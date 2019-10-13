@@ -76,6 +76,10 @@
 			<id>spigot-repo</id>
 			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
 		</repository>
+		<repository>
+			<id>volmit</id>
+			<url>http://nexus.volmit.com/content/repositories/volmit</url>
+		</repository>
 	</repositories>
 	<dependencies>
 		<dependency>
@@ -88,6 +92,13 @@
 			<artifactId>spigot-api</artifactId>
 			<version>1.12.2-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<artifactId>craftbukkit-1.12.2</artifactId>
+			<groupId>cb</groupId>
+			<version>1</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/craftbukkit-1.12.2.jar</systemPath>
 		</dependency>
 	</dependencies>
 </project>

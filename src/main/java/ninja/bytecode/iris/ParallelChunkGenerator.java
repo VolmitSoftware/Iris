@@ -4,14 +4,16 @@ import java.util.Random;
 
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.atomics.AtomicChunkData;
 import ninja.bytecode.shuriken.Shuriken;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
-import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
 import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.math.RollingSequence;
 
 public abstract class ParallelChunkGenerator extends ChunkGenerator
 {
@@ -23,12 +25,13 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private TaskGroup tg;
 	private boolean ready = false;
 	private ChronoLatch cl = new ChronoLatch(1000);
+	private RollingSequence rs = new RollingSequence(512);
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
 		Shuriken.profiler.start("chunkgen-" + world.getName());
 		data = new AtomicChunkData(world);
-		
+
 		try
 		{
 			if(!ready)
@@ -37,7 +40,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				ready = true;
 			}
 
-			tg = Iris.executor.startWork();
+			tg = Iris.noisePool.startWork();
 
 			for(i = 0; i < 16; i++)
 			{
@@ -48,16 +51,25 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					wz = (z * 16) + j;
 					int a = wx;
 					int b = wz;
-					tg.queue(() -> genColumn(a, b));
+					int c = i;
+					int d = j;
+					tg.queue(() ->
+					{
+						synchronized(biome)
+						{
+							biome.setBiome(c, d, genColumn(a, b, c, d));
+						}
+					});
 				}
 			}
 
-			tg.execute();
+			TaskResult r = tg.execute();
+			rs.put(r.timeElapsed);
 			Shuriken.profiler.stop("chunkgen-" + world.getName());
 
 			if(cl.flip())
 			{
-				J.a(() -> System.out.print("Gen: " + F.duration(Shuriken.profiler.getResult("chunkgen-" + world.getName()).getAverage(), 2)));
+				System.out.print("Avg: " + F.duration(rs.getAverage(), 2) + " " + F.duration(rs.getMax(), 2) + " / " + F.duration(rs.getMedian(), 2) + " / " + F.duration(rs.getMin(), 2));
 			}
 		}
 
@@ -77,7 +89,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public abstract void onInit(World world, Random random);
 
-	public abstract void genColumn(int wx, int wz);
+	public abstract Biome genColumn(int wx, int wz, int x, int z);
 
 	@SuppressWarnings("deprecation")
 	protected void setBlock(int x, int y, int z, Material b)
@@ -98,6 +110,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	protected void setBlock(int x, int y, int z, int b, byte d)
 	{
-		data.setBlock(x, y, z, b, d);
+		synchronized(data)
+		{
+			data.setBlock(x, y, z, b, d);
+		}
 	}
 }

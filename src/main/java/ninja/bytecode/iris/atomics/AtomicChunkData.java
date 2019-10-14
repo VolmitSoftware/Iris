@@ -174,6 +174,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			{
 				s0 = new char[h];
 			}
+			
 			return s0;
 		}
 		else if(s == 1)

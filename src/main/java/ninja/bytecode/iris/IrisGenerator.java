@@ -4,64 +4,103 @@ import java.util.Random;
 
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 
 import ninja.bytecode.iris.gen.GenLayerBase;
+import ninja.bytecode.iris.gen.GenLayerBiome;
 import ninja.bytecode.iris.gen.IGenLayer;
+import ninja.bytecode.iris.util.RealBiome;
 import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
 {
-	private static final MB water = new MB(Material.STATIONARY_WATER);
-	private static final MB bedrock = new MB(Material.BEDROCK);
-	private static final MB air = new MB(Material.AIR);
-	private static final MB grass = new MB(Material.GRASS);
-	private static final MB[] earth = {new MB(Material.DIRT), new MB(Material.DIRT, 1),
-	};
-	private static final MB[] sand = {new MB(Material.SAND), new MB(Material.SAND), new MB(Material.SAND, 1),
-	};
-	private static final MB[] sandygrass = {new MB(Material.GRASS), new MB(Material.SAND, 1),
-	};
-	private static final MB[] rock = {new MB(Material.STONE), new MB(Material.STONE, 5), new MB(Material.COBBLESTONE),
-	};
 	private GList<IGenLayer> genLayers;
+	private GenLayerBiome glBiome;
+	private GenLayerBase glBase;
+	private int waterLevel = 127;
 
 	@Override
 	public void onInit(World world, Random random)
 	{
 		RNG rng = new RNG(world.getSeed());
 		genLayers = new GList<>();
-		genLayers.add(new GenLayerBase(world, random, rng));
-		System.out.print("Gend");
+		genLayers.add(glBiome = new GenLayerBiome(world, random, rng));
+		genLayers.add(glBase = new GenLayerBase(world, random, rng));
 	}
 
 	public int getHeight(double dx, double dz)
 	{
 		double noise = 0.5;
-		
+
 		for(IGenLayer i : genLayers)
 		{
 			noise = i.generateLayer(noise, dx, dz);
 		}
-				
+
 		double n = noise * 250;
-		n = n > 255 ? 255 : n;
+		n = n > 254 ? 254 : n;
 		n = n < 0 ? 0 : n;
 
 		return (int) n;
 	}
 
 	@Override
-	public void genColumn(final int wx, final int wz)
+	public Biome genColumn(int wx, int wz, int x, int z)
 	{
 		int height = getHeight(wx, wz);
-		MB mb = rock[0];
-		
-		for(int i = 0; i < height; i++)
+		RealBiome b = glBiome.getBiome(wx, wz);
+		boolean underwater = height < waterLevel;
+
+		for(int i = 0; i < Math.max(height, waterLevel); i++)
 		{
-			setBlock(wx, i, wz, mb.material, mb.data);
+			MB mb = underwater ? new MB(Material.STATIONARY_WATER) : new MB(Material.AIR);
+
+			if(i > height && underwater)
+			{
+				mb = new MB(Material.STATIONARY_WATER);
+			}
+
+			else if(i == 0 || (i == 1 && glBase.scatterChance(wx, i, wz, 0.45)))
+			{
+				mb = new MB(Material.BEDROCK);
+			}
+
+			else if(i == height - 1)
+			{
+				if(underwater)
+				{
+					mb = new MB(Material.SAND);
+				}
+
+				else
+				{
+					mb = b.surface(wx, i, wz, glBase);
+				}
+			}
+
+			else if(i > height - glBase.scatterInt(wx, i, wz, 12))
+			{
+				if(underwater)
+				{
+					mb = new MB(Material.SAND);
+				}
+
+				else
+				{
+					mb = b.dirt(wx, i, wz, glBase);
+				}
+			}
+
+			else
+			{
+				mb = b.rock(wx, i, wz, glBase);
+			}
+
+			setBlock(x, i, z, mb.material, mb.data);
 		}
+
+		return b.getBiome();
 	}
 
 	public int pick(int max, double noise)

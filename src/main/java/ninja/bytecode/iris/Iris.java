@@ -7,29 +7,49 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
 public class Iris extends JavaPlugin implements Listener
 {
-	public static TaskExecutor executor;
-	
+	public static TaskExecutor noisePool;
+	public static IrisGenerator gen;
+
 	public void onEnable()
 	{
-		executor = new TaskExecutor(1, Thread.MIN_PRIORITY, "Iris Generator");
+		gen = new IrisGenerator();
+		noisePool = new TaskExecutor(4, Thread.MIN_PRIORITY, "Iris Generator");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
+		
+		// Debug world regens
+		GSet<String> ws = new GSet<>();
+		World w = createIrisWorld();
+		for(Player i : Bukkit.getOnlinePlayers())
+		{
+			ws.add(i.getWorld().getName());
+			i.teleport(new Location(w, 0, 256, 0));
+			i.setFlying(true);
+			i.setGameMode(GameMode.CREATIVE);
+		}
+		
+		for(String i : ws)
+		{
+			Bukkit.unloadWorld(i, false);
+		}
 	}
-	
+
 	public void onDisable()
 	{
-		executor.close();
+		noisePool.close();
 	}
-	
+
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
@@ -41,17 +61,24 @@ public class Iris extends JavaPlugin implements Listener
 	{
 		if(e.getMessage().toLowerCase().equals("/iris"))
 		{
-			World ww = Bukkit.createWorld(new WorldCreator("iris-worlds/" + UUID.randomUUID().toString())
-					.generator(new IrisGenerator())
-					.seed(0));
-			ww.setSpawnFlags(false, false);
-			ww.setAutoSave(false);
-			ww.setKeepSpawnInMemory(false);
-			ww.setSpawnLocation(0, 256, 0);
-			e.getPlayer().teleport(new Location(ww, 0, 256, 0));
+			World wold = e.getPlayer().getWorld();
+			World w = createIrisWorld();
+			e.getPlayer().teleport(new Location(w, 0, 256, 0));
 			e.getPlayer().setFlying(true);
 			e.getPlayer().setGameMode(GameMode.CREATIVE);
 			e.setCancelled(true);
+			wold.setAutoSave(false);
+			Bukkit.unloadWorld(wold, false);
 		}
+	}
+
+	private World createIrisWorld()
+	{
+		World ww = Bukkit.createWorld(new WorldCreator("iris-worlds/" + UUID.randomUUID().toString()).generator(new IrisGenerator()).seed(0));
+		ww.setSpawnFlags(false, false);
+		ww.setAutoSave(false);
+		ww.setKeepSpawnInMemory(false);
+		ww.setSpawnLocation(0, 256, 0);
+		return ww;
 	}
 }

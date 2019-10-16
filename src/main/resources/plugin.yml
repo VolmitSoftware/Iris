@@ -1,3 +1,4 @@
 name: ${project.name}
 version: ${project.version}
 main: ninja.bytecode.iris.Iris
+api-version: 1.13

@@ -5,11 +5,13 @@ import java.util.Random;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.atomics.AtomicChunkData;
 import ninja.bytecode.shuriken.Shuriken;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
+import ninja.bytecode.shuriken.execution.NastyRunnable;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
 import ninja.bytecode.shuriken.format.F;
@@ -23,6 +25,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private int wz;
 	private AtomicChunkData data;
 	private TaskGroup tg;
+	private TaskGroup tb;
 	private boolean ready = false;
 	private ChronoLatch cl = new ChronoLatch(1000);
 	private RollingSequence rs = new RollingSequence(512);
@@ -41,6 +44,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			}
 
 			tg = Iris.noisePool.startWork();
+			tb = Iris.blockPool.startWork();
 
 			for(i = 0; i < 16; i++)
 			{
@@ -55,16 +59,14 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					int d = j;
 					tg.queue(() ->
 					{
-						synchronized(biome)
-						{
-							biome.setBiome(c, d, genColumn(a, b, c, d));
-						}
+						biome.setBiome(c, d, genColumn(a, b, c, d));
 					});
 				}
 			}
 
 			TaskResult r = tg.execute();
-			rs.put(r.timeElapsed);
+			
+			rs.put(r.timeElapsed + tb.execute().timeElapsed);
 			Shuriken.profiler.stop("chunkgen-" + world.getName());
 
 			if(cl.flip())
@@ -75,6 +77,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		catch(Throwable e)
 		{
+			e.printStackTrace();
 			for(int i = 0; i < 16; i++)
 			{
 				for(int j = 0; j < 16; j++)
@@ -87,32 +90,27 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 		return data.toChunkData();
 	}
 
+	public boolean isParallelCapable()
+	{
+		return true;
+	}
+
 	public abstract void onInit(World world, Random random);
 
 	public abstract Biome genColumn(int wx, int wz, int x, int z);
 
-	@SuppressWarnings("deprecation")
-	protected void setBlock(int x, int y, int z, Material b)
+	protected void queueSets(NastyRunnable r)
 	{
-		setBlock(x, y, z, b.getId(), (byte) 0);
+		tb.queue(r);
 	}
 
-	@SuppressWarnings("deprecation")
-	protected void setBlock(int x, int y, int z, Material b, byte d)
+	protected void setBlock(int x, int y, int z, BlockData b)
 	{
-		setBlock(x, y, z, b.getId(), d);
-	}
-
-	protected void setBlock(int x, int y, int z, int b)
-	{
-		setBlock(x, y, z, b, (byte) 0);
-	}
-
-	protected void setBlock(int x, int y, int z, int b, byte d)
-	{
-		synchronized(data)
+		if(b.getMaterial().equals(Material.AIR))
 		{
-			data.setBlock(x, y, z, b, d);
+			return;
 		}
+
+		tb.queue(() -> data.setBlock(x, y, z, b));
 	}
 }

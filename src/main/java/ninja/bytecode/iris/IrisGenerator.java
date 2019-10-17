@@ -2,12 +2,14 @@ package ninja.bytecode.iris;
 
 import java.util.Random;
 
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Bisected.Half;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.gen.GenLayerBase;
 import ninja.bytecode.iris.gen.GenLayerBiome;
@@ -15,7 +17,6 @@ import ninja.bytecode.iris.gen.GenLayerDeepOcean;
 import ninja.bytecode.iris.gen.IGenLayer;
 import ninja.bytecode.iris.util.RealBiome;
 import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
@@ -28,10 +29,22 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerBiome glBiome;
 	private GenLayerBase glBase;
 	private int waterLevel = 127;
+	private GList<Vector> updates = new GList<>();
+
+	public void doUpdates(Chunk c)
+	{
+		for(Vector i : updates)
+		{
+			c.getBlock(i.getBlockX(), i.getBlockY(), i.getBlockZ()).getState().update(true);
+		}
+
+		updates.clear();
+	}
 
 	@Override
 	public void onInit(World world, Random random)
 	{
+		updates = new GList<>();
 		genLayers = new GList<>();
 		RNG rng = new RNG(world.getSeed());
 		genLayers.add(glBiome = new GenLayerBiome(world, random, rng.nextRNG()));
@@ -59,11 +72,10 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public Biome genColumn(int wx, int wz, int x, int z)
 	{
 		int height = getHeight(wx, wz);
-		double temp = glBiome.getTemperature(wx, wz);
-		double humidity = glBiome.getHumidity(wx, wz);
-		RealBiome b = glBiome.getBiome(wx, wz);
+		double temp = glBiome.getTemperature(wx, wz, height);
+		RealBiome b = glBiome.getBiome(wx, wz, temp, height);
 		boolean underwater = height < waterLevel;
-
+		
 		// Change biome to ocean / deep ocean if underwater height
 		if(underwater)
 		{
@@ -142,36 +154,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 			// Surface blocks
 			else if(i == height - 1)
 			{
-				if(temp > 0.6 && b.getBiome().equals(Biome.BEACH))
-				{
-					if(humidity > 0.6)
-					{
-						mb = Material.YELLOW_CONCRETE_POWDER.createBlockData();
-					}
-					
-					else
-					{
-						mb = Material.BLACK_CONCRETE_POWDER.createBlockData();
-					}
-				}
-				
-				else if(temp < 0.4 && b.getBiome().equals(Biome.BEACH))
-				{
-					if(humidity > 0.6)
-					{
-						mb = Material.WHITE_CONCRETE_POWDER.createBlockData();
-					}
-					
-					else
-					{
-						mb = Material.LIGHT_GRAY_CONCRETE_POWDER.createBlockData();
-					}
-				}
-				
-				else
-				{
-					mb = b.surface(wx, i, wz, glBase);
-				}
+				mb = b.surface(wx, i, wz, glBase);
 			}
 
 			// Dirt Blocks
@@ -221,6 +204,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		}
 
 		return b.getBiome();
+	}
+
+	private void scheduleUpdate(int x, int y, int z)
+	{
+		updates.add(new Vector(x, y, z));
 	}
 
 	public int pick(int max, double noise)

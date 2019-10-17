@@ -103,10 +103,13 @@ public class RealBiome
 				.surface(Material.SAND.createBlockData(), Material.CLAY.createBlockData(), Material.GRAVEL.createBlockData()),
 			new RealBiome(Biome.DEEP_WARM_OCEAN.ordinal(), 0.6, h, -1)
 				.water()
-				.surface(Material.BRAIN_CORAL_BLOCK.createBlockData(), Material.FIRE_CORAL_BLOCK.createBlockData(), Material.HORN_CORAL_BLOCK.createBlockData(), Material.MAGMA_BLOCK.createBlockData(), Material.TUBE_CORAL_BLOCK.createBlockData(), Material.BRAIN_CORAL_BLOCK.createBlockData(), Material.BLUE_CONCRETE_POWDER.createBlockData(), Material.CYAN_CONCRETE_POWDER.createBlockData(), Material.LIGHT_BLUE_CONCRETE_POWDER.createBlockData(), Material.SAND.createBlockData())
-				.surface(Material.SAND.createBlockData())
+				.surface(Material.BRAIN_CORAL_BLOCK.createBlockData(), Material.FIRE_CORAL_BLOCK.createBlockData(), Material.HORN_CORAL_BLOCK.createBlockData(), Material.TUBE_CORAL_BLOCK.createBlockData(), Material.BRAIN_CORAL_BLOCK.createBlockData(), Material.BLUE_CONCRETE_POWDER.createBlockData(), Material.CYAN_CONCRETE_POWDER.createBlockData(), Material.LIGHT_BLUE_CONCRETE_POWDER.createBlockData(), Material.SAND.createBlockData())
 				.surface(Material.SEAGRASS.createBlockData(), 0.39)
 				.surface(Material.TALL_SEAGRASS.createBlockData(), 0.52)
+				.surface(Material.MAGMA_BLOCK.createBlockData(), 0.003)
+				.surface(Material.SEA_LANTERN.createBlockData(), 0.003)
+				.surface(Material.SOUL_SAND.createBlockData(), 0.003)
+				.surface(Material.BRAIN_CORAL.createBlockData(), 0.09)
 				.surface(Material.BRAIN_CORAL.createBlockData(), 0.09)
 				.surface(Material.BUBBLE_CORAL.createBlockData(), 0.09)
 				.surface(Material.FIRE_CORAL.createBlockData(), 0.09)
@@ -116,7 +119,6 @@ public class RealBiome
 				.surface(Material.BUBBLE_CORAL_FAN.createBlockData(), 0.05)
 				.surface(Material.FIRE_CORAL_FAN.createBlockData(), 0.05)
 				.surface(Material.HORN_CORAL_FAN.createBlockData(), 0.05)
-				.surface(Material.SEA_LANTERN.createBlockData(), 0.006)
 				.surface(Material.TUBE_CORAL_FAN.createBlockData(), 0.05), 
 			new RealBiome(Biome.DEEP_LUKEWARM_OCEAN.ordinal(), 0.7, h, -1)
 				.water()

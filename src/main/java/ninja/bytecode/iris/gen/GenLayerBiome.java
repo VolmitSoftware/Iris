@@ -15,6 +15,7 @@ public class GenLayerBiome extends GenLayer
 	private CNG humidity;
 	private CNG hfracture;
 	private CNG alt;
+	private CNG bfracture;
 	private CNG height;
 	private CNG superheight;
 
@@ -30,6 +31,8 @@ public class GenLayerBiome extends GenLayer
 		humidity = new CNG(rng.nextRNG(), 1, 2)
 				.scale(0.0024)
 				.fractureWith(new CNG(rng.nextRNG(), 1, 1).scale(0.06), 32);
+		bfracture = new CNG(rng.nextRNG(), 1, 1)
+				.scale(0.524);
 		superheight = new CNG(rng.nextRNG(), 1, 8)
 				.scale(0.0004)
 				.fractureWith(new CNG(rng.nextRNG(), 1, 1).scale(0.021), 250);
@@ -50,6 +53,11 @@ public class GenLayerBiome extends GenLayer
 	{
 		return RealBiome.match(getTemperature(x, z) * 2, getHumidity(x, z), getHeight(x, z), getAlt(x, z));
 	}
+	
+	public RealBiome getBiome(double x, double z, double temp, double height)
+	{
+		return RealBiome.match(temp * 2, getHumidity(x, z), height, getAlt(x, z));
+	}
 
 	private double getAlt(double x, double z)
 	{
@@ -58,7 +66,17 @@ public class GenLayerBiome extends GenLayer
 
 	public double getTemperature(double x, double z)
 	{
-		return M.clip(temperature.noise(x, z) - (getHeight(x, z) * 0.19), 0D, 1D);
+		return getTemperature(x, z, getHeight(x, z));
+	}
+	
+	public double getTemperature(double x, double z, double height)
+	{
+		return M.clip(temperature.noise(x, z) - (height * 0.19), 0D, 1D);
+	}
+	
+	public double getBFracture(double x, double z)
+	{
+		return bfracture.noise(x, z);
 	}
 
 	public double getHumidity(double x, double z)

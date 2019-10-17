@@ -6,9 +6,6 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.block.data.Bisected;
-import org.bukkit.block.data.Bisected.Half;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.gen.GenLayerBase;
@@ -21,10 +18,10 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
 {
-	private BlockData AIR = Material.AIR.createBlockData();
-	private BlockData WATER = Material.WATER.createBlockData();
-	private BlockData SAND = Material.SAND.createBlockData();
-	private BlockData BEDROCK = Material.BEDROCK.createBlockData();
+	private MB AIR = new MB(Material.AIR);
+	private MB WATER = new MB(Material.STATIONARY_WATER);
+	private MB SAND = new MB(Material.SAND);
+	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GList<IGenLayer> genLayers;
 	private GenLayerBiome glBiome;
 	private GenLayerBase glBase;
@@ -75,75 +72,21 @@ public class IrisGenerator extends ParallelChunkGenerator
 		double temp = glBiome.getTemperature(wx, wz, height);
 		RealBiome b = glBiome.getBiome(wx, wz, temp, height);
 		boolean underwater = height < waterLevel;
-		
+
 		// Change biome to ocean / deep ocean if underwater height
 		if(underwater)
 		{
-			if(waterLevel - height > 20)
-			{
-				if(temp <= 0.05)
-				{
-					b = RealBiome.of(Biome.DEEP_FROZEN_OCEAN);
-				}
-
-				else if(temp <= 0.35)
-				{
-					b = RealBiome.of(Biome.DEEP_COLD_OCEAN);
-				}
-
-				else if(temp <= 0.55)
-				{
-					b = RealBiome.of(Biome.DEEP_OCEAN);
-				}
-
-				else if(temp <= 0.65)
-				{
-					b = RealBiome.of(Biome.DEEP_LUKEWARM_OCEAN);
-				}
-
-				else
-				{
-					b = RealBiome.of(Biome.DEEP_WARM_OCEAN);
-				}
-			}
-
-			else
-			{
-				if(temp <= 0.05)
-				{
-					b = RealBiome.of(Biome.FROZEN_OCEAN);
-				}
-
-				else if(temp <= 0.35)
-				{
-					b = RealBiome.of(Biome.COLD_OCEAN);
-				}
-
-				else if(temp <= 0.55)
-				{
-					b = RealBiome.of(Biome.OCEAN);
-				}
-
-				else if(temp <= 0.65)
-				{
-					b = RealBiome.of(Biome.LUKEWARM_OCEAN);
-				}
-
-				else
-				{
-					b = RealBiome.of(Biome.WARM_OCEAN);
-				}
-			}
+			b = RealBiome.biomes[Biome.OCEAN.ordinal()];
 		}
 
 		if(height > 122 && height < 128 + (temp * 1.5) + (glBase.scatter(wx, wx * wz, wz) * 3.35))
 		{
-			b = RealBiome.of(Biome.BEACH);
+			b = RealBiome.biomes[Biome.BEACHES.ordinal()];
 		}
 
 		for(int i = 0; i < Math.max(height, waterLevel); i++)
 		{
-			BlockData mb = AIR;
+			MB mb = AIR;
 
 			// Bedrockify
 			if(i == 0 || (!Iris.settings.gen.flatBedrock && ((i == 1 && glBase.scatterChance(wx, i, wz, 0.45)))))
@@ -175,48 +118,31 @@ public class IrisGenerator extends ParallelChunkGenerator
 				mb = b.rock(wx, i, wz, glBase);
 			}
 
-			if(mb.getMaterial().equals(Material.AIR))
+			if(mb.equals(AIR))
 			{
 				continue;
 			}
 
-			setBlock(x, i, z, mb);
+			setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		BlockData v = b.getSurfaceDecoration();
+		MB v = b.getSurfaceDecoration();
 
 		if(v != null && underwater == b.isWater() && (underwater ? height < 125 : true))
 		{
-			if(v instanceof Bisected)
-			{
-				Bisected bs = (Bisected) v;
-				bs.setHalf(Half.BOTTOM);
-				setBlock(x, height, z, bs);
-				Bisected bst = (Bisected) bs.clone();
-				bst.setHalf(Half.TOP);
-				setBlock(x, height + 1, z, bst);
-			}
-
-			else
-			{
-				setBlock(x, height, z, v);
-			}
+			setBlock(x, height, z, v.material, v.data);
 		}
 
 		return b.getBiome();
 	}
 
-	private void scheduleUpdate(int x, int y, int z)
-	{
-		updates.add(new Vector(x, y, z));
-	}
 
 	public int pick(int max, double noise)
 	{
 		return (int) (noise * max);
 	}
 
-	public BlockData pick(BlockData[] array, double noise)
+	public MB pick(MB[] array, double noise)
 	{
 		return array[pick(array.length, noise)];
 	}

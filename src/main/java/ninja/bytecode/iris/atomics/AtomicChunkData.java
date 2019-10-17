@@ -5,79 +5,213 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_14_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_14_R1.generator.CraftChunkData;
-import org.bukkit.craftbukkit.v1_14_R1.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_12_R1.generator.CraftChunkData;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
 
-import net.minecraft.server.v1_14_R1.Blocks;
-import net.minecraft.server.v1_14_R1.ChunkSection;
-import net.minecraft.server.v1_14_R1.IBlockData;
-
 public final class AtomicChunkData implements ChunkGenerator.ChunkData
 {
 	private static final Field t;
+	private static final Field[] locks;
+	private static final Field[] sections;
 	private static final int h = 0x1000;
-	private static final Field[] f = new Field[16];
 	private final int maxHeight;
-	private final ReentrantLock[] locks = makeLocks();
-	private ChunkSection s0;
-	private ChunkSection s1;
-	private ChunkSection s2;
-	private ChunkSection s3;
-	private ChunkSection s4;
-	private ChunkSection s5;
-	private ChunkSection s6;
-	private ChunkSection s7;
-	private ChunkSection s8;
-	private ChunkSection s9;
-	private ChunkSection s10;
-	private ChunkSection s11;
-	private ChunkSection s12;
-	private ChunkSection s13;
-	private ChunkSection s14;
-	private ChunkSection s15;
-	private ChunkSection[] m;
+	private static ReentrantLock lock0;
+	private static ReentrantLock lock1;
+	private static ReentrantLock lock2;
+	private static ReentrantLock lock3;
+	private static ReentrantLock lock4;
+	private static ReentrantLock lock5;
+	private static ReentrantLock lock6;
+	private static ReentrantLock lock7;
+	private static ReentrantLock lock8;
+	private static ReentrantLock lock9;
+	private static ReentrantLock lock10;
+	private static ReentrantLock lock11;
+	private static ReentrantLock lock12;
+	private static ReentrantLock lock13;
+	private static ReentrantLock lock14;
+	private static ReentrantLock lock15;
+	private char[] s0;
+	private char[] s1;
+	private char[] s2;
+	private char[] s3;
+	private char[] s4;
+	private char[] s5;
+	private char[] s6;
+	private char[] s7;
+	private char[] s8;
+	private char[] s9;
+	private char[] s10;
+	private char[] s11;
+	private char[] s12;
+	private char[] s13;
+	private char[] s14;
+	private char[] s15;
+	private char[][] m;
 	private World w;
 
 	public AtomicChunkData(World world)
 	{
 		this.maxHeight = world.getMaxHeight();
 		this.w = world;
+
 	}
 
-	private ReentrantLock[] makeLocks()
+	@Override
+	public int getMaxHeight()
 	{
-		ReentrantLock[] f = new ReentrantLock[16];
+		return maxHeight;
+	}
 
-		for(int i = 0; i < 16; i++)
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setBlock(int x, int y, int z, Material material)
+	{
+		setBlock(x, y, z, material.getId());
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setBlock(int x, int y, int z, MaterialData material)
+	{
+		setBlock(x, y, z, material.getItemTypeId(), material.getData());
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material)
+	{
+		setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.getId());
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material)
+	{
+		setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.getItemTypeId(), material.getData());
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public Material getType(int x, int y, int z)
+	{
+		return Material.getMaterial(getTypeId(x, y, z));
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public MaterialData getTypeAndData(int x, int y, int z)
+	{
+		return getType(x, y, z).getNewData(getData(x, y, z));
+	}
+
+	@Override
+	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, int blockId)
+	{
+		setRegion(xMin, yMin, zMin, xMax, yMax, zMax, blockId, (byte) 0);
+	}
+
+	@Override
+	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, int blockId, int data)
+	{
+		throw new UnsupportedOperationException("AtomicChunkData does not support setting regions");
+	}
+
+	@Override
+	public void setBlock(int x, int y, int z, int blockId)
+	{
+		setBlock(x, y, z, blockId, (byte) 0);
+	}
+
+	@Override
+	public void setBlock(int x, int y, int z, int blockId, byte data)
+	{
+		setBlock(x, y, z, (char) (blockId << 4 | data));
+	}
+
+	@Override
+	public int getTypeId(int x, int y, int z)
+	{
+		if(x != (x & 0xf) || y < 0 || y >= maxHeight || z != (z & 0xf))
 		{
-			f[i] = new ReentrantLock();
+			return 0;
 		}
 
-		return f;
+		char[] section = getChunkSection(y, false);
+
+		if(section == null)
+		{
+			return 0;
+		}
+
+		else
+		{
+			return section[(y & 0xf) << 8 | z << 4 | x] >> 4;
+		}
 	}
 
-	private ChunkSection ofSection(int y, boolean c)
+	@Override
+	public byte getData(int x, int y, int z)
 	{
-		int s = y >> 4;
+		if(x != (x & 0xf) || y < 0 || y >= maxHeight || z != (z & 0xf))
+		{
+			return (byte) 0;
+		}
 
+		char[] section = getChunkSection(y, false);
+
+		if(section == null)
+		{
+			return (byte) 0;
+		}
+
+		else
+		{
+			return (byte) (section[(y & 0xf) << 8 | z << 4 | x] & 0xf);
+		}
+	}
+
+	private void setBlock(int x, int y, int z, char type)
+	{
+		if(x != (x & 0xf) || y < 0 || y >= maxHeight || z != (z & 0xf))
+		{
+			return;
+		}
+
+		ReentrantLock l = null;
+		
 		try
 		{
-			locks[s].lock();
-			ChunkSection v = (ChunkSection) f[s].get(this);
+			l = (ReentrantLock) locks[y >> 4].get(null);
+		}
 
-			if(v == null)
+		catch(IllegalArgumentException | IllegalAccessException e)
+		{
+			e.printStackTrace();
+		}
+
+		l.lock();
+		getChunkSection(y, true)[(y & 0xf) << 8 | z << 4 | x] = type;
+		l.unlock();
+	}
+
+	private char[] getChunkSection(int y, boolean c)
+	{
+		try
+		{
+			int s = y >> 4;
+			Field sf = sections[s];
+			char[] section = (char[]) sf.get(this);
+
+			if(section == null && c)
 			{
-				v = new ChunkSection(y);
-				f[s].set(this, v);
+				sf.set(this, new char[h]);
+				section = (char[]) sf.get(this);
 			}
 
-			locks[s].unlock();
-			return v;
+			return section;
 		}
 
 		catch(Throwable e)
@@ -86,7 +220,6 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 		}
 
 		return null;
-		//@done
 	}
 
 	public ChunkData toChunkData()
@@ -95,7 +228,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 
 		try
 		{
-			m = (ChunkSection[]) t.get(c);
+			m = (char[][]) t.get(c);
 			m[0] = s0;
 			m[1] = s1;
 			m[2] = s2;
@@ -124,6 +257,40 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 
 	static
 	{
+		Field[] l = new Field[16];
+		Field[] s = new Field[16];
+
+		for(int i = 0; i < 16; i++)
+		{
+			try
+			{
+				l[i] = AtomicChunkData.class.getDeclaredField("lock" + i);
+				s[i] = AtomicChunkData.class.getDeclaredField("s" + i);
+
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		locks = l;
+		sections = s;
+
+		for(int i = 0; i < 16; i++)
+		{
+			try
+			{
+				locks[i].set(null, new ReentrantLock());
+			}
+			
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}
+
 		Field x = null;
 
 		try
@@ -137,103 +304,6 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			e.printStackTrace();
 		}
 
-		for(int i = 0; i < 16; i++)
-		{
-			try
-			{
-				Field g = AtomicChunkData.class.getDeclaredField("s" + i);
-				g.setAccessible(true);
-				f[i] = g;
-			}
-
-			catch(Throwable e)
-			{
-				e.printStackTrace();
-			}
-		}
-
 		t = x;
-	}
-
-	public int getMaxHeight()
-	{
-		return this.maxHeight;
-	}
-
-	public void setBlock(int x, int y, int z, Material material)
-	{
-		this.setBlock(x, y, z, material.createBlockData());
-	}
-
-	public void setBlock(int x, int y, int z, MaterialData material)
-	{
-		this.setBlock(x, y, z, CraftMagicNumbers.getBlock(material));
-	}
-
-	public void setBlock(int x, int y, int z, BlockData blockData)
-	{
-		this.setBlock(x, y, z, ((CraftBlockData) blockData).getState());
-	}
-
-	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material)
-	{
-		this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.createBlockData());
-	}
-
-	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material)
-	{
-		this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, CraftMagicNumbers.getBlock(material));
-	}
-
-	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData)
-	{
-		this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, ((CraftBlockData) blockData).getState());
-	}
-
-	public Material getType(int x, int y, int z)
-	{
-		return CraftMagicNumbers.getMaterial(this.getTypeId(x, y, z).getBlock());
-	}
-
-	public MaterialData getTypeAndData(int x, int y, int z)
-	{
-		return CraftMagicNumbers.getMaterial(this.getTypeId(x, y, z));
-	}
-
-	public BlockData getBlockData(int x, int y, int z)
-	{
-		return CraftBlockData.fromData(this.getTypeId(x, y, z));
-	}
-
-	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, IBlockData type)
-	{
-		throw new RuntimeException("Not Supported!");
-	}
-
-	public IBlockData getTypeId(int x, int y, int z)
-	{
-		if(x == (x & 15) && y >= 0 && y < this.maxHeight && z == (z & 15))
-		{
-			ChunkSection section = ofSection(y, false);
-			return section == null ? Blocks.AIR.getBlockData() : section.getType(x, y & 15, z);
-		}
-		else
-		{
-			return Blocks.AIR.getBlockData();
-		}
-	}
-
-	public byte getData(int x, int y, int z)
-	{
-		return CraftMagicNumbers.toLegacyData(this.getTypeId(x, y, z));
-	}
-
-	private void setBlock(int x, int y, int z, IBlockData type)
-	{
-		if(x == (x & 15) && y >= 0 && y < this.maxHeight && z == (z & 15))
-		{
-			ChunkSection section = ofSection(y, true);
-			section.setType(x, y & 15, z, type);
-		}
 	}
 }

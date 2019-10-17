@@ -20,7 +20,6 @@ import ninja.bytecode.shuriken.execution.TaskExecutor;
 public class Iris extends JavaPlugin implements Listener
 {
 	public static TaskExecutor noisePool;
-	public static TaskExecutor blockPool;
 	public static IrisGenerator gen;
 	public static Settings settings;
 	public static Iris instance;
@@ -31,7 +30,6 @@ public class Iris extends JavaPlugin implements Listener
 		settings = new Settings();
 		gen = new IrisGenerator();
 		noisePool = new TaskExecutor(settings.performance.threadCount, settings.performance.threadPriority, "Iris Noise Generator");
-		blockPool = new TaskExecutor(1, Thread.MAX_PRIORITY, "Iris Decorator");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 
 		// Debug world regens
@@ -54,7 +52,6 @@ public class Iris extends JavaPlugin implements Listener
 	public void onDisable()
 	{
 		noisePool.close();
-		blockPool.close();
 	}
 
 	@Override

@@ -6,4 +6,5 @@ public enum PerformanceMode
 	UNLIMITED,
 	MATCH_CPU,
 	HALF_CPU,
+	EXPLICIT,
 }

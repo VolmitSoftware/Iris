@@ -1,19 +1,27 @@
 package ninja.bytecode.iris;
 
+import java.awt.Polygon;
+import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+import java.util.List;
 import java.util.Random;
 
-import org.bukkit.Chunk;
+import org.apache.logging.log4j.core.layout.GelfLayout;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.Vector;
+import org.bukkit.util.noise.PerlinNoiseGenerator;
 
+import net.minecraft.server.v1_12_R1.GenLayer;
+import net.minecraft.server.v1_12_R1.WorldProviderNormal;
 import ninja.bytecode.iris.gen.GenLayerBase;
-import ninja.bytecode.iris.gen.GenLayerBiome;
-import ninja.bytecode.iris.gen.GenLayerDeepOcean;
+import ninja.bytecode.iris.gen.GenLayerSuperSample;
 import ninja.bytecode.iris.gen.IGenLayer;
-import ninja.bytecode.iris.util.RealBiome;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.math.CNG;
+import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
@@ -23,119 +31,66 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private MB SAND = new MB(Material.SAND);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GList<IGenLayer> genLayers;
-	private GenLayerBiome glBiome;
 	private GenLayerBase glBase;
+	private GenLayerSuperSample glSuperSample;
 	private int waterLevel = 127;
 	private GList<Vector> updates = new GList<>();
-
-	public void doUpdates(Chunk c)
-	{
-		for(Vector i : updates)
-		{
-			c.getBlock(i.getBlockX(), i.getBlockY(), i.getBlockZ()).getState().update(true);
-		}
-
-		updates.clear();
-	}
+	private String wf;
 
 	@Override
 	public void onInit(World world, Random random)
 	{
+		wf = world.getName();
 		updates = new GList<>();
 		genLayers = new GList<>();
 		RNG rng = new RNG(world.getSeed());
-		genLayers.add(glBiome = new GenLayerBiome(world, random, rng.nextRNG()));
-		genLayers.add(glBase = new GenLayerBase(world, random, rng.nextRNG()));
-		genLayers.add(new GenLayerDeepOcean(world, random, rng.nextRNG()));
+		genLayers.add(glBase = new GenLayerBase(this, world, random, rng.nextRNG()));
+		genLayers.add(glSuperSample = new GenLayerSuperSample(this, world, random, rng.nextRNG()));
 	}
 
 	public int getHeight(double dx, double dz)
 	{
-		double noise = 0.5;
+		double height = M.clip(glSuperSample.getSuperSampledHeight(dx, dz), 0D, 1D);
+
+		return (int) (height * 253);
+	}
+
+	public double getRawHeight(double dx, double dz)
+	{
+		double noise = 0 + Iris.settings.gen.baseHeight;
 
 		for(IGenLayer i : genLayers)
 		{
 			noise = i.generateLayer(noise, dx, dz);
 		}
 
-		double n = noise * 250;
-		n = n > 254 ? 254 : n;
-		n = n < 0 ? 0 : n;
-
-		return (int) n;
+		return M.clip(noise, 0D, 1D);
 	}
 
 	@Override
-	public Biome genColumn(int wx, int wz, int x, int z)
+	public Biome genColumn(int wxx, int wzx, int x, int z)
 	{
+		int wx = (int) Math.round((double) wxx * Iris.settings.gen.horizontalZoom);
+		int wz = (int) Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
 		int height = getHeight(wx, wz);
-		double temp = glBiome.getTemperature(wx, wz, height);
-		RealBiome b = glBiome.getBiome(wx, wz, temp, height);
-		boolean underwater = height < waterLevel;
-
-		// Change biome to ocean / deep ocean if underwater height
-		if(underwater)
+		
+		for(int i = 0; i < height; i++)
 		{
-			b = RealBiome.biomes[Biome.OCEAN.ordinal()];
-		}
-
-		if(height > 122 && height < 128 + (temp * 1.5) + (glBase.scatter(wx, wx * wz, wz) * 3.35))
-		{
-			b = RealBiome.biomes[Biome.BEACHES.ordinal()];
-		}
-
-		for(int i = 0; i < Math.max(height, waterLevel); i++)
-		{
-			MB mb = AIR;
-
-			// Bedrockify
-			if(i == 0 || (!Iris.settings.gen.flatBedrock && ((i == 1 && glBase.scatterChance(wx, i, wz, 0.45)))))
-			{
-				mb = BEDROCK;
-			}
-
-			// Surface blocks
-			else if(i == height - 1)
-			{
-				mb = b.surface(wx, i, wz, glBase);
-			}
-
-			// Dirt Blocks
-			else if(!underwater && i > height - glBase.scatterInt(wx, i, wz, 12))
-			{
-				mb = b.dirt(wx, i, wz, glBase);
-			}
-
-			// Create Water blocks
-			else if(i >= height && underwater)
-			{
-				mb = WATER;
-			}
-
-			// Below Dirt
-			else
-			{
-				mb = b.rock(wx, i, wz, glBase);
-			}
-
-			if(mb.equals(AIR))
-			{
-				continue;
-			}
+			MB mb = new MB(Material.STONE);
 
 			setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		MB v = b.getSurfaceDecoration();
-
-		if(v != null && underwater == b.isWater() && (underwater ? height < 125 : true))
-		{
-			setBlock(x, height, z, v.material, v.data);
-		}
-
-		return b.getBiome();
+		return Biome.PLAINS;
 	}
 
+	@Override
+	public List<BlockPopulator> getDefaultPopulators(World world)
+	{
+		GList<BlockPopulator> p = new GList<BlockPopulator>();
+
+		return p;
+	}
 
 	public int pick(int max, double noise)
 	{
@@ -145,5 +100,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public MB pick(MB[] array, double noise)
 	{
 		return array[pick(array.length, noise)];
+	}
+
+	@Override
+	public void onInitChunk(World world, int x, int z, Random random)
+	{
+		
 	}
 }

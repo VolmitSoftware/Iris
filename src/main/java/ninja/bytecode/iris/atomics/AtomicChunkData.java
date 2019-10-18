@@ -13,26 +13,10 @@ import org.bukkit.material.MaterialData;
 public final class AtomicChunkData implements ChunkGenerator.ChunkData
 {
 	private static final Field t;
-	private static final Field[] locks;
 	private static final Field[] sections;
 	private static final int h = 0x1000;
 	private final int maxHeight;
-	private static ReentrantLock lock0;
-	private static ReentrantLock lock1;
-	private static ReentrantLock lock2;
-	private static ReentrantLock lock3;
-	private static ReentrantLock lock4;
-	private static ReentrantLock lock5;
-	private static ReentrantLock lock6;
-	private static ReentrantLock lock7;
-	private static ReentrantLock lock8;
-	private static ReentrantLock lock9;
-	private static ReentrantLock lock10;
-	private static ReentrantLock lock11;
-	private static ReentrantLock lock12;
-	private static ReentrantLock lock13;
-	private static ReentrantLock lock14;
-	private static ReentrantLock lock15;
+	private static ReentrantLock[] locks;
 	private char[] s0;
 	private char[] s1;
 	private char[] s2;
@@ -180,18 +164,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			return;
 		}
 
-		ReentrantLock l = null;
-		
-		try
-		{
-			l = (ReentrantLock) locks[y >> 4].get(null);
-		}
-
-		catch(IllegalArgumentException | IllegalAccessException e)
-		{
-			e.printStackTrace();
-		}
-
+		ReentrantLock l = locks[y >> 4];
 		l.lock();
 		getChunkSection(y, true)[(y & 0xf) << 8 | z << 4 | x] = type;
 		l.unlock();
@@ -257,16 +230,15 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 
 	static
 	{
-		Field[] l = new Field[16];
+		locks = new ReentrantLock[16];
 		Field[] s = new Field[16];
 
 		for(int i = 0; i < 16; i++)
 		{
 			try
 			{
-				l[i] = AtomicChunkData.class.getDeclaredField("lock" + i);
 				s[i] = AtomicChunkData.class.getDeclaredField("s" + i);
-
+				locks[i] = new ReentrantLock();
 			}
 
 			catch(Throwable e)
@@ -275,21 +247,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			}
 		}
 
-		locks = l;
 		sections = s;
-
-		for(int i = 0; i < 16; i++)
-		{
-			try
-			{
-				locks[i].set(null, new ReentrantLock());
-			}
-			
-			catch(Throwable e)
-			{
-				e.printStackTrace();
-			}
-		}
 
 		Field x = null;
 

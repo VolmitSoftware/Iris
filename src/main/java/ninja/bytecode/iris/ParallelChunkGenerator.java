@@ -40,7 +40,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				ready = true;
 			}
 
-			tg = Iris.noisePool.startWork();
+			tg = Iris.genPool.startWork();
 
 			for(i = 0; i < 16; i++)
 			{
@@ -57,13 +57,14 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				}
 			}
 
+			onInitChunk(world, x, z, random);
 			TaskResult r = tg.execute();
 			rs.put(r.timeElapsed);
 			Shuriken.profiler.stop("chunkgen-" + world.getName());
 
 			if(cl.flip())
 			{
-				System.out.print("Avg: " + F.duration(rs.getAverage(), 2) + " " + F.duration(rs.getMax(), 2) + " / " + F.duration(rs.getMedian(), 2) + " / " + F.duration(rs.getMin(), 2));
+				System.out.println("Total MS: " + F.duration(rs.getAverage(), 2));
 			}
 		}
 
@@ -82,6 +83,8 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	}
 
 	public abstract void onInit(World world, Random random);
+	
+	public abstract void onInitChunk(World world, int x, int z, Random random);
 
 	public abstract Biome genColumn(int wx, int wz, int x, int z);
 

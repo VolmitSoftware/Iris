@@ -4,7 +4,10 @@ import java.util.Random;
 
 import org.bukkit.World;
 
+import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.IrisGenerator;
 import ninja.bytecode.shuriken.math.CNG;
+import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBase extends GenLayer
@@ -12,25 +15,41 @@ public class GenLayerBase extends GenLayer
 	private double[][][] scatterCache;
 	private CNG gen;
 	private CNG fracture;
+	private CNG hfracture;
+	private CNG height;
+	private CNG superheight;
 
-	public GenLayerBase(World world, Random random, RNG rng)
+	public GenLayerBase(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		//@builder
-		super(world, random, rng);
+		super(iris, world, random, rng);
 		scatterCache = new double[16][][];
 		CNG scatter = new CNG(rng.nextRNG(), 1, 1)
-				.scale(10);
+			.scale(10);
+		hfracture = new CNG(rng.nextRNG(), 1, 2)
+			.scale(0.0124);
 		gen = new CNG(rng.nextRNG(), 0.19D, 16)
-				.scale(0.012)
-				.amp(0.5)
-				.freq(1.1)
-				.fractureWith(new CNG(rng.nextRNG(), 1, 6)
-						.scale(0.018)
-						.injectWith(CNG.MULTIPLY)
-						.child(new CNG(rng.nextRNG(), 0.745, 2)
-								.scale(0.1))
-						.fractureWith(new CNG(rng.nextRNG(), 1, 3)
-								.scale(0.15), 24), 44);
+			.scale(0.012)
+			.amp(0.5)
+			.freq(1.1)
+			.fractureWith(new CNG(rng.nextRNG(), 1, 6)
+				.scale(0.018)
+				.injectWith(CNG.MULTIPLY)
+				.child(new CNG(rng.nextRNG(), 0.745, 2)
+					.scale(0.1))
+				.fractureWith(new CNG(rng.nextRNG(), 1, 3)
+					.scale(0.15), 24), 44);
+		height = new CNG(rng.nextRNG(), 1, 16)
+			.scale(0.0017601 * Iris.settings.gen.heightScale)
+			.fractureWith(new CNG(rng.nextRNG(), 1, 6)
+				.scale(0.0174)
+				.fractureWith(new CNG(rng.nextRNG(), 1, 1)
+					.scale(0.0034), 31)
+				.scale(0.066), 58);		
+		superheight = new CNG(rng.nextRNG(), 1, 6)
+			.scale(0.0025 * Iris.settings.gen.superHeightScale)
+			.fractureWith(new CNG(rng.nextRNG(), 1, 1)
+				.scale(0.021), 250);
 		fracture = new CNG(rng.nextRNG(), 0.6D, 4)
 				.scale(0.118);
 		//@done
@@ -51,6 +70,11 @@ public class GenLayerBase extends GenLayer
 		}
 	}
 
+	public double getHeight(double x, double z)
+	{
+		return M.clip(Math.pow(height.noise(x + (hfracture.noise(x, z) * Iris.settings.gen.heightFracture), z + (hfracture.noise(z, x) * Iris.settings.gen.heightFracture)), Iris.settings.gen.heightExponentBase + (superheight.noise(x, z) * Iris.settings.gen.heightExponentMultiplier)) * Iris.settings.gen.heightMultiplier, 0D, 1D);
+	}
+
 	public int scatterInt(int x, int y, int z, int bound)
 	{
 		return (int) (scatter(x, y, z) * (double) (bound - 1));
@@ -67,11 +91,12 @@ public class GenLayerBase extends GenLayer
 	}
 
 	@Override
-	public double generateLayer(double noise, double dx, double dz)
+	public double generateLayer(double gnoise, double dx, double dz)
 	{
+		double noise = gnoise + getHeight(dx, dz);
 		double fnoise = fracture.noise(dx, dz);
 		dx += (fnoise * 44);
 		dz -= (fnoise * 44);
-		return ((noise * 0.5) + (gen.noise(dx, dz) * (0.15 + (noise * 0.65)))) + 0.31;
+		return ((noise * 0.185) + (gen.noise(dx, dz) * (0.15 + (noise * 0.65))));
 	}
 }

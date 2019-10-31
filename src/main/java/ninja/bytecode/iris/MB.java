@@ -17,4 +17,14 @@ public class MB
 	{
 		this(material, 0);
 	}
+
+	public static MB of(Material f)
+	{
+		return new MB(f);
+	}
+	
+	public static MB of(Material f, int a)
+	{
+		return new MB(f, a);
+	}
 }

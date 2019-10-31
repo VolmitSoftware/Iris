@@ -12,9 +12,9 @@ import ninja.bytecode.shuriken.math.RNG;
 public class GenLayerFracture extends GenLayer
 {
 	private CNG gen;
-	private CNG cond;
+	private CNG cond; 
 	private double shootHeight = 0.563;
-
+   
 	public GenLayerFracture(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		//@builder

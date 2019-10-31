@@ -59,6 +59,8 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 			onInitChunk(world, x, z, random);
 			TaskResult r = tg.execute();
+			onPostChunk(world, x, z, random);
+
 			rs.put(r.timeElapsed);
 			Shuriken.profiler.stop("chunkgen-" + world.getName());
 
@@ -70,6 +72,11 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		catch(Throwable e)
 		{
+			if(cl.flip())
+			{
+				e.printStackTrace();
+			}
+			
 			for(int i = 0; i < 16; i++)
 			{
 				for(int j = 0; j < 16; j++)
@@ -83,8 +90,10 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	}
 
 	public abstract void onInit(World world, Random random);
-	
+
 	public abstract void onInitChunk(World world, int x, int z, Random random);
+
+	public abstract void onPostChunk(World world, int x, int z, Random random);
 
 	public abstract Biome genColumn(int wx, int wz, int x, int z);
 
@@ -108,5 +117,15 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	protected void setBlock(int x, int y, int z, int b, byte d)
 	{
 		data.setBlock(x, y, z, b, d);
+	}
+
+	protected Material getType(int x, int y, int z)
+	{
+		return data.getType(x, y, z);
+	}
+
+	protected byte getData(int x, int y, int z)
+	{
+		return data.getData(x, y, z);
 	}
 }

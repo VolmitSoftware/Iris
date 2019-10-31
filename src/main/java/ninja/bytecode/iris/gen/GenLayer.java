@@ -3,6 +3,7 @@ package ninja.bytecode.iris.gen;
 import java.util.Random;
 
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 
 import ninja.bytecode.iris.IrisGenerator;
 import ninja.bytecode.shuriken.math.RNG;
@@ -13,6 +14,7 @@ public class GenLayer implements IGenLayer
 	protected World world;
 	protected Random random;
 	protected IrisGenerator iris;
+	protected Biome biome = Biome.OCEAN;
 	
 	public GenLayer(IrisGenerator iris, World world, Random random, RNG rng)
 	{

@@ -111,6 +111,8 @@
     </dependency>
   </dependencies>
   <properties>
+    <skip.copy>false</skip.copy>
+    <secretary.build>package</secretary.build>
     <development.location>${user.home}\Documents\development\server\plugins\${project.name}.jar</development.location>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>

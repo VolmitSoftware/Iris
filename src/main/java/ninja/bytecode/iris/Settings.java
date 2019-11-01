@@ -14,7 +14,7 @@ public class Settings
 
 	public static class GeneratorSettings
 	{ 
-		public double horizontalZoom = 1.325; // 1.856 2.556
+		public double horizontalZoom = 2.225; // 1.856 2.556
 		public double heightFracture = 155;
 		public double heightMultiplier = 1.154;
 		public double heightExponentBase = 1;
@@ -22,7 +22,7 @@ public class Settings
 		public double heightScale = 1;
 		public double superHeightScale = 0.65;
 		public double altBiomeScale = 1;
-		public double baseHeight = 0.3415;
+		public double baseHeight = 0.22;
 		public double superSamplerRadius = 32;
 		public int superSamplerIterations = 14;
 		public int superSamples = 12;

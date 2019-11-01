@@ -8,35 +8,23 @@ import org.bukkit.World;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.IrisGenerator;
 import ninja.bytecode.iris.biome.CBI;
-import ninja.bytecode.iris.util.PolygonGenerator;
-import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private CNG fractures2;
-	private CNG fractures4;
-	private PolygonGenerator.EnumPolygonGenerator<CBI> biomeGenerator;
+	private EnumMaxingGenerator<CBI> biomeGenerator;
 	private Function<CNG, CNG> factory;
-	private double closest;
+	private CNG riverCheck;
 
 	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		//@builder
 		super(iris, world, random, rng);
-		double scale = 1.25D;
-		factory = (g) -> g
-				.fractureWith(new CNG(g.nextRNG().nextRNG(), 1D, 32)
-						.scale(0.2112)
-						.fractureWith(new CNG(g.nextRNG(), 1D, 16)
-								.scale(0.132),
-								 333), 588);
-		fractures2 = new CNG(rng.nextRNG(), 1, 32).scale(0.02);
-		fractures4 = new CNG(rng.nextRNG(), 1, 16).scale(0.12);
-		
-		biomeGenerator = new PolygonGenerator.EnumPolygonGenerator<CBI>(rng.nextRNG(), 0.00755 * Iris.settings.gen.biomeScale, 1, 
+		factory = (g) -> g.fractureWith(new CNG(rng.nextRNG(), 1D, 4).scale(0.02), 56);
+		riverCheck = new CNG(rng.nextRNG(), 1D, 2).scale(0.00096);
+		biomeGenerator = new EnumMaxingGenerator<CBI>(rng.nextRNG(), 0.00755 * Iris.settings.gen.biomeScale, 1, 
 				new CBI[] {
 						CBI.DESERT,
 						CBI.DESERT_HILLS,
@@ -71,30 +59,20 @@ public class GenLayerBiome extends GenLayer
 
 	public CBI getBiome(double x, double z)
 	{
-		double scram2 = fractures2.noise(x, z) * 188.35;
-		double scram4 = fractures4.noise(x, z) * 47;
-		double a = x - scram2 - scram4;
-		double b = z + scram2 + scram4;
-		a += Math.sin(b) * 12;
-		b += Math.cos(a) * 12;
-		return biomeGenerator.getChoice(a, b);
-	}
-
-	public double getCenterPercent(double x, double z)
-	{
-		double scram2 = fractures2.noise(x, z) * 188.35;
-		double scram4 = fractures4.noise(x, z) * 47;
-		double a = x - scram2 - scram4;
-		double b = z + scram2 + scram4;
-		a += Math.sin(b) * 12;
-		b += Math.cos(a) * 12;
-		return biomeGenerator.getClosestNeighbor(a, b);
+		if(riverCheck.noise(x, z) > 0.75)
+		{
+			if(biomeGenerator.hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
+			{
+				return CBI.RIVER;
+			}
+		}
+		
+		return biomeGenerator.getChoice(x, z);
 	}
 
 	@Override
 	public double generateLayer(double noise, double dx, double dz)
 	{
-		CBI biome = getBiome(dx, dz);
-		return ((1D + (biome.getAmp())) * noise) + (biome.getHeight() / 3D);
+		return noise;
 	}
 }

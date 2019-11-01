@@ -150,7 +150,7 @@ public class Iris extends JavaPlugin implements Listener
 
 			else if(p.startsWith("^"))
 			{
-				double c = M.percentRange(value, -11, 37);
+				double c = M.lerpInverse(-11, 37, value);
 				double f = 32 + (c * (1.8));
 				v = F.f(c, Integer.valueOf(p.substring(1))) + " \u00B0C / " + F.f(f, Integer.valueOf(p.substring(1))) + " \u00B0F";
 			}

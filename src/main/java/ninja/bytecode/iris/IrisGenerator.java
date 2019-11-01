@@ -3,64 +3,59 @@ package ninja.bytecode.iris;
 import java.util.List;
 import java.util.Random;
 
-import org.bukkit.BlockChangeDelegate;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
+import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.biome.CBI;
 import ninja.bytecode.iris.gen.GenLayerBase;
 import ninja.bytecode.iris.gen.GenLayerBiome;
-import ninja.bytecode.iris.gen.IGenLayer;
-import ninja.bytecode.iris.util.PolygonGenerator;
+import ninja.bytecode.iris.util.MaxingGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.execution.ChronoLatch;
+import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
 {
+	private GMap<Vector, Double> heightCache;
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
-	private GList<IGenLayer> genLayers;
 	private GenLayerBase glBase;
 	private GenLayerBiome glBiome;
-	private GMap<Location, TreeType> trees;
 	private RNG rng;
 	private World world;
-	private PolygonGenerator g;
 
 	@Override
 	public void onInit(World world, Random random)
 	{
 		this.world = world;
-		trees = new GMap<>();
-		genLayers = new GList<>();
+		heightCache = new GMap<>();
 		rng = new RNG(world.getSeed());
-		genLayers.add(glBase = new GenLayerBase(this, world, random, rng.nextRNG()));
-		genLayers.add(glBiome = new GenLayerBiome(this, world, random, rng.nextRNG()));
-		g = new PolygonGenerator(rng, 16, 0.01, 1, (c) -> c);
+		glBase = new GenLayerBase(this, world, random, rng.nextRNG());
+		glBiome = new GenLayerBiome(this, world, random, rng.nextRNG());
+	}
+
+	public int getHeight(double h)
+	{
+		double height = M.clip(h, 0D, 1D);
+
+		return (int) (height * 253);
 	}
 
 	public int getHeight(double dx, double dz)
 	{
-		double height = M.clip(getRawHeight(dx, dz), 0D, 1D);
-
-		return (int) (height * 253);
+		return getHeight(getRawHeight(dx, dz));
 	}
 
 	public double getRawHeight(double dx, double dz)
 	{
 		double noise = 0 + Iris.settings.gen.baseHeight;
-
-		for(IGenLayer i : genLayers)
-		{
-			noise = i.generateLayer(noise, dx, dz);
-		}
 
 		return M.clip(noise, 0D, 1D);
 	}
@@ -68,29 +63,84 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public Biome genColumn(int wxx, int wzx, int x, int z)
 	{
-		if(true)
-		{
-			for(int i = 0; i < 1; i++)
-			{
-				setBlock(x, i, z, Material.CONCRETE, (byte) g.getIndex(wxx, wzx));
-			}
-			
-			return Biome.PLAINS;
-		}
-
-		else
-		{
-			return genBaseColumn(wxx, wzx, x, z);
-		}
+		return genBaseColumn(wxx, wzx, x, z);
 	}
 
+	private double lerp(double a, double b, double f)
+	{
+		return a + (f * (b - a));
+	}
+	
+	private double blerp(double a, double b, double c, double d, double tx, double ty)
+	{
+		return lerp(lerp(a, b, tx), lerp(c, d, tx), ty);
+	}
+
+	private double getBiomedHeight(int x, int z)
+	{
+		Vector v = new Vector(x, z, x * z);
+		if(heightCache.containsKey(v))
+		{
+			return heightCache.get(v);
+		}
+		
+		int wx = (int) Math.round((double) x * Iris.settings.gen.horizontalZoom);
+		int wz = (int) Math.round((double) z * Iris.settings.gen.horizontalZoom);
+		CBI biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
+		double h = Iris.settings.gen.baseHeight + biome.getHeight();
+		h += (glBase.getHeight(wx, wz) * biome.getAmp()) - (0.33 * biome.getAmp());
+		heightCache.put(v, h);
+		
+		return h;
+	}
+
+	private double getBilinearNoise(int x, int z)
+	{
+		int h = 3;
+		int fx = x >> h;
+		int fz = z >> h;
+		int xa = (fx << h) - 2;
+		int za = (fz << h) - 2;
+		int xb = ((fx + 1) << h) + 2;
+		int zb = ((fz + 1) << h) + 2;
+		double na = getBiomedHeight(xa, za);
+		double nb = getBiomedHeight(xa, zb);
+		double nc = getBiomedHeight(xb, za);
+		double nd = getBiomedHeight(xb, zb);
+		double px = M.rangeScale(0, 1, xa, xb, x);
+		double pz = M.rangeScale(0, 1, za, zb, z);
+
+		return blerp(na, nc, nb, nd, px, pz);
+	}
+
+	private double getBicubicNoise(int x, int z)
+	{
+		int h = 3;
+		int fx = x >> h;
+		int fz = z >> h;
+		int xa = (fx << h);
+		int za = (fz << h);
+		int xb = ((fx + 1) << h);
+		int zb = ((fz + 1) << h);
+		double na = getBilinearNoise(xa, za);
+		double nb = getBilinearNoise(xa, zb);
+		double nc = getBilinearNoise(xb, za);
+		double nd = getBilinearNoise(xb, zb);
+		double px = M.rangeScale(0, 1, xa, xb, x);
+		double pz = M.rangeScale(0, 1, za, zb, z);
+
+		return blerp(na, nc, nb, nd, px, pz);
+	}
+
+	
 	private Biome genBaseColumn(int wxx, int wzx, int x, int z)
 	{
 		int seaLevel = Iris.settings.gen.seaLevel;
 		int wx = (int) Math.round((double) wxx * Iris.settings.gen.horizontalZoom);
 		int wz = (int) Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
 		CBI biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
-		int height = getHeight(wx, wz) + 25;
+		double hv = getBicubicNoise(wxx, wzx);
+		int height = getHeight(hv);
 
 		for(int i = 0; i < Math.max(height, seaLevel); i++)
 		{
@@ -122,17 +172,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 						{
 							setBlock(x, i + 1, z, place.material, place.data);
 						}
-					}
-				}
-
-				if(height < 240 && height >= seaLevel)
-				{
-					TreeType s = biome.getTreeChanceSingle();
-
-					if(s != null)
-					{
-						setBlock(x, i + 1, z, Material.AIR);
-						trees.put(new Location(world, x, i + 1, z), s);
 					}
 				}
 			}
@@ -169,17 +208,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public void onInitChunk(World world, int x, int z, Random random)
 	{
-
+		heightCache.clear();
 	}
 
 	@Override
 	public void onPostChunk(World world, int x, int z, Random random)
 	{
-
-	}
-
-	public double getBiomeBorder(double dx, double dz)
-	{
-		return glBiome.getCenterPercent(dx, dz);
+		
 	}
 }

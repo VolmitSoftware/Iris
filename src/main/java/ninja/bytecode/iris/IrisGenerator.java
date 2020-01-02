@@ -9,15 +9,16 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.Vector;
 
+import ninja.bytecode.iris.atomics.AtomicChunkData;
 import ninja.bytecode.iris.biome.CBI;
 import ninja.bytecode.iris.gen.GenLayerBase;
 import ninja.bytecode.iris.gen.GenLayerBiome;
-import ninja.bytecode.iris.util.MaxingGenerator;
+import ninja.bytecode.iris.gen.GenLayerLayeredNoise;
+import ninja.bytecode.iris.gen.GenLayerRidge;
+import ninja.bytecode.iris.pop.PopulatorLakes;
+import ninja.bytecode.iris.pop.PopulatorTrees;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.execution.ChronoLatch;
-import ninja.bytecode.shuriken.format.F;
-import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -27,6 +28,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GenLayerBase glBase;
+	private GenLayerLayeredNoise glLNoise;
+	private GenLayerRidge glRidge;
 	private GenLayerBiome glBiome;
 	private RNG rng;
 	private World world;
@@ -38,7 +41,14 @@ public class IrisGenerator extends ParallelChunkGenerator
 		heightCache = new GMap<>();
 		rng = new RNG(world.getSeed());
 		glBase = new GenLayerBase(this, world, random, rng.nextRNG());
+		glLNoise = new GenLayerLayeredNoise(this, world, random, rng.nextRNG());
+		glRidge = new GenLayerRidge(this, world, random, rng.nextRNG());
 		glBiome = new GenLayerBiome(this, world, random, rng.nextRNG());
+	}
+	
+	public World getWorld()
+	{
+		return world;
 	}
 
 	public int getHeight(double h)
@@ -140,6 +150,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 		int wz = (int) Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
 		CBI biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
 		double hv = getBicubicNoise(wxx, wzx);
+		hv += glLNoise.generateLayer(hv, wxx, wzx);
+		hv -= glRidge.generateLayer(hv, wxx, wzx);
 		int height = getHeight(hv);
 
 		for(int i = 0; i < Math.max(height, seaLevel); i++)
@@ -191,7 +203,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public List<BlockPopulator> getDefaultPopulators(World world)
 	{
 		GList<BlockPopulator> p = new GList<BlockPopulator>();
-
+		p.add(new PopulatorTrees());
+		p.add(new PopulatorLakes());
 		return p;
 	}
 
@@ -212,8 +225,10 @@ public class IrisGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	public void onPostChunk(World world, int x, int z, Random random)
+	public GList<Runnable> onPostChunk(World world, int x, int z, Random random, AtomicChunkData data)
 	{
+		GList<Runnable> jobs = new GList<>();
 		
+		return jobs;
 	}
 }

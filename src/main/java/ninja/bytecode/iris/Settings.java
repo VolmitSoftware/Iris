@@ -21,18 +21,9 @@ public class Settings
 		public double heightExponentMultiplier = 1.41;
 		public double heightScale = 1;
 		public double superHeightScale = 0.65;
-		public double altBiomeScale = 1;
-		public double baseHeight = 0.22;
-		public double superSamplerRadius = 32;
-		public int superSamplerIterations = 14;
-		public int superSamples = 12;
-		public double superSamplerMultiplier = 1;
-		public double superSampleThreshold = 0.00984;
-		public double superSampleOpacity = 1;
+		public double baseHeight = 0.165;
 		public int seaLevel = 63;
-		public double biomeScale = 1.31;
-		public double landChance = 0.75;
-
+		public double biomeScale = 2.41;
 		public boolean flatBedrock = false;
 	}
 }

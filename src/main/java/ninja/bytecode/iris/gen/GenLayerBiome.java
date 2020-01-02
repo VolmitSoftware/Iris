@@ -3,11 +3,13 @@ package ninja.bytecode.iris.gen;
 import java.util.Random;
 import java.util.function.Function;
 
+import org.bukkit.Material;
 import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.IrisGenerator;
 import ninja.bytecode.iris.biome.CBI;
+import ninja.bytecode.iris.util.MaxingGenerator;
 import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
@@ -15,15 +17,21 @@ import ninja.bytecode.shuriken.math.RNG;
 public class GenLayerBiome extends GenLayer
 {
 	private EnumMaxingGenerator<CBI> biomeGenerator;
+	private MaxingGenerator roads;
 	private Function<CNG, CNG> factory;
+	private CNG pathCheck;
 	private CNG riverCheck;
+	private CNG fracture;
 
 	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		//@builder
 		super(iris, world, random, rng);
+		fracture = new CNG(rng.nextRNG(), 1D, 7).scale(0.004).fractureWith(new CNG(rng.nextRNG(), 1D, 3).scale(0.19), 277D);
 		factory = (g) -> g.fractureWith(new CNG(rng.nextRNG(), 1D, 4).scale(0.02), 56);
 		riverCheck = new CNG(rng.nextRNG(), 1D, 2).scale(0.00096);
+		pathCheck = new CNG(rng.nextRNG(), 1D, 1).scale(0.00096);
+		roads = new MaxingGenerator(rng.nextRNG(), 5, 0.00055, 8, factory);
 		biomeGenerator = new EnumMaxingGenerator<CBI>(rng.nextRNG(), 0.00755 * Iris.settings.gen.biomeScale, 1, 
 				new CBI[] {
 						CBI.DESERT,
@@ -57,8 +65,11 @@ public class GenLayerBiome extends GenLayer
 		//@done
 	}
 
-	public CBI getBiome(double x, double z)
+	public CBI getBiome(double xx, double zz)
 	{
+		double x = xx + (fracture.noise(zz, xx) * 866);
+		double z = zz - (fracture.noise(xx, zz) * 866);
+		
 		if(riverCheck.noise(x, z) > 0.75)
 		{
 			if(biomeGenerator.hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
@@ -67,7 +78,25 @@ public class GenLayerBiome extends GenLayer
 			}
 		}
 		
-		return biomeGenerator.getChoice(x, z);
+		CBI cbi = biomeGenerator.getChoice(x, z);
+		
+		if(pathCheck.noise(x, z) > 0.5)
+		{
+			CBI road = CBI.ROAD_GRAVEL;
+			
+			if(cbi.getSurface().get(0).material.equals(Material.GRASS))
+			{
+				road = CBI.ROAD_GRASSY;
+			}
+			
+			if(Math.abs(road.getHeight() - cbi.getHeight()) < 0.0001 && roads.hasBorder(4, 8, xx, zz))
+			{
+				return road;
+			}
+			
+		}
+		
+		return cbi;
 	}
 
 	@Override

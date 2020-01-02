@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package ninja.bytecode.iris.util;
 
 import org.bukkit.Material;
 

@@ -1,5 +1,7 @@
 package ninja.bytecode.iris;
 
+import ninja.bytecode.iris.util.PerformanceMode;
+
 public class Settings
 {
 	public PerformanceSettings performance = new PerformanceSettings();
@@ -25,5 +27,6 @@ public class Settings
 		public int seaLevel = 63;
 		public double biomeScale = 2.46;
 		public boolean flatBedrock = false;
+		public boolean doTrees = false;
 	}
 }

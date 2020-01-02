@@ -1,11 +1,11 @@
-package ninja.bytecode.iris.gen;
+package ninja.bytecode.iris.util;
 
 import java.util.Random;
 
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayer implements IGenLayer

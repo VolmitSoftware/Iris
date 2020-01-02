@@ -27,7 +27,7 @@ public class PolygonGenerator
 
 		for(int i = 0; i < bits; i++)
 		{
-			gen[i] = new CNG(rng.nextRNG(), 1D, 1).scale(scale);
+			gen[i] = new CNG(rng.nextParallelRNG(2118 + (i * 3305)), 1D, 1).scale(scale);
 			gen[i] = factory.apply(gen[i]);
 		}
 	}

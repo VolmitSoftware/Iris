@@ -1,11 +1,12 @@
-package ninja.bytecode.iris.gen;
+package ninja.bytecode.iris.generator.layer;
 
 import java.util.Random;
 
 import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -24,33 +25,31 @@ public class GenLayerBase extends GenLayer
 		//@builder
 		super(iris, world, random, rng);
 		scatterCache = new double[16][][];
-		CNG scatter = new CNG(rng.nextRNG(), 1, 1)
+		CNG scatter = new CNG(rng.nextParallelRNG(5), 1, 1)
 			.scale(10);
-		hfracture = new CNG(rng.nextRNG(), 1, 2)
+		hfracture = new CNG(rng.nextParallelRNG(6), 1, 2)
 			.scale(0.0124);
-		gen = new CNG(rng.nextRNG(), 0.19D, 16)
+		gen = new CNG(rng.nextParallelRNG(7), 0.19D, 8)
 			.scale(0.012)
 			.amp(0.5)
 			.freq(1.1)
-			.fractureWith(new CNG(rng.nextRNG(), 1, 6)
+			.fractureWith(new CNG(rng.nextParallelRNG(8), 1, 6)
 				.scale(0.018)
 				.injectWith(CNG.MULTIPLY)
-				.child(new CNG(rng.nextRNG(), 0.745, 2)
-					.scale(0.1))
-				.fractureWith(new CNG(rng.nextRNG(), 1, 3)
-					.scale(0.15), 24), 44);
-		height = new CNG(rng.nextRNG(), 1, 16)
+				.child(new CNG(rng.nextParallelRNG(9), 0.745, 2)
+					.scale(0.1)), 44);
+		height = new CNG(rng.nextParallelRNG(10), 1, 8)
 			.scale(0.0017601 * Iris.settings.gen.heightScale)
-			.fractureWith(new CNG(rng.nextRNG(), 1, 6)
+			.fractureWith(new CNG(rng.nextParallelRNG(11), 1, 6)
 				.scale(0.0174)
-				.fractureWith(new CNG(rng.nextRNG(), 1, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(12), 1, 1)
 					.scale(0.0034), 31)
 				.scale(0.066), 58);		
-		superheight = new CNG(rng.nextRNG(), 1, 6)
+		superheight = new CNG(rng.nextParallelRNG(13), 1, 6)
 			.scale(0.0025 * Iris.settings.gen.superHeightScale)
-			.fractureWith(new CNG(rng.nextRNG(), 1, 1)
+			.fractureWith(new CNG(rng.nextParallelRNG(14), 1, 1)
 				.scale(0.021), 250);
-		fracture = new CNG(rng.nextRNG(), 0.6D, 4)
+		fracture = new CNG(rng.nextParallelRNG(15), 0.6D, 4)
 				.scale(0.118);
 		//@done
 

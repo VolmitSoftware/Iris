@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package ninja.bytecode.iris.util;
 
 import java.util.Random;
 
@@ -8,10 +8,9 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
-import ninja.bytecode.iris.atomics.AtomicChunkData;
-import ninja.bytecode.iris.pop.PopulatorTrees;
+import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.generator.populator.PopulatorTrees;
 import ninja.bytecode.shuriken.Shuriken;
-import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
@@ -19,6 +18,7 @@ import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
+import ninja.bytecode.shuriken.reaction.O;
 
 public abstract class ParallelChunkGenerator extends ChunkGenerator
 {
@@ -68,6 +68,12 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		}, 20, 5);
 	}
+	
+	public void generateFullColumn(int a, int b, int c, int d, BiomeGrid g, ChunkPlan p)
+	{
+		g.setBiome(c, d, genColumn(a, b, c, d, p));
+		decorateColumn(a, b, c, d, p);
+	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
@@ -84,7 +90,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			}
 
 			tg = Iris.genPool.startWork();
-
+			O<ChunkPlan> plan = new O<ChunkPlan>();
 			for(i = 0; i < 16; i++)
 			{
 				wx = (x * 16) + i;
@@ -96,13 +102,13 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					int b = wz;
 					int c = i;
 					int d = j;
-					tg.queue(() -> biome.setBiome(c, d, genColumn(a, b, c, d)));
+					tg.queue(() -> generateFullColumn(a, b, c, d, biome, plan.get()));
 				}
 			}
 
-			onInitChunk(world, x, z, random);
+			plan.set(onInitChunk(world, x, z, random));
 			TaskResult r = tg.execute();
-			onPostChunk(world, x, z, random, data);
+			onPostChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
 			Shuriken.profiler.stop("chunkgen-" + world.getName());
 			cg++;
@@ -129,12 +135,14 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public abstract void onInit(World world, Random random);
 
-	public abstract void onInitChunk(World world, int x, int z, Random random);
+	public abstract ChunkPlan onInitChunk(World world, int x, int z, Random random);
 
-	public abstract GList<Runnable> onPostChunk(World world, int x, int z, Random random, AtomicChunkData data2);
+	public abstract void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
 
-	public abstract Biome genColumn(int wx, int wz, int x, int z);
-
+	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan);
+	
+	public abstract void decorateColumn(int wx, int wz, int x, int z, ChunkPlan plan);
+	
 	@SuppressWarnings("deprecation")
 	protected void setBlock(int x, int y, int z, Material b)
 	{

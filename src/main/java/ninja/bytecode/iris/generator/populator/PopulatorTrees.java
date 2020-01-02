@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.pop;
+package ninja.bytecode.iris.generator.populator;
 
 import java.util.Random;
 
@@ -9,7 +9,8 @@ import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.generator.BlockPopulator;
 
-import ninja.bytecode.iris.biome.CBI;
+import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.generator.biome.IrisBiome;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.math.RollingSequence;
 
@@ -20,6 +21,11 @@ public class PopulatorTrees extends BlockPopulator
 	@Override
 	public void populate(World world, Random random, Chunk source)
 	{
+		if(!Iris.settings.gen.doTrees)
+		{
+			return;
+		}
+		
 		PrecisionStopwatch f = PrecisionStopwatch.start();
 		int debuff = 0;
 		
@@ -41,7 +47,7 @@ public class PopulatorTrees extends BlockPopulator
 				l.getBlock().setType(Material.AIR, false);
 			}
 			
-			CBI biome = CBI.find(world.getBiome(x, z));
+			IrisBiome biome = IrisBiome.find(world.getBiome(x, z));
 			TreeType tt = biome.getTreeChanceSingle();
 			
 			if(tt != null)

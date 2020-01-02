@@ -17,7 +17,7 @@ public class MaxingGenerator
 
 		for(int i = 0; i < possibilities; i++)
 		{
-			gen[i] = new CNG(rng.nextRNG(), 1D, 1).scale(scale);
+			gen[i] = new CNG(rng.nextParallelRNG((i * 15000) + 11285), 1D, 1).scale(scale);
 			gen[i] = factory.apply(gen[i]);
 		}
 	}

@@ -1,10 +1,11 @@
-package ninja.bytecode.iris.gen;
+package ninja.bytecode.iris.generator.layer;
 
 import java.util.Random;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -19,13 +20,13 @@ public class GenLayerFracture extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		gen = new CNG(rng.nextRNG(), 1D, 12)
+		gen = new CNG(rng.nextParallelRNG(40), 1D, 12)
 				.scale(0.023)
-				.fractureWith(new CNG(rng.nextRNG(), 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(41), 1D, 1)
 						.scale(0.05), 333);
-		cond = new CNG(rng.nextRNG(), 1D, 12)
+		cond = new CNG(rng.nextParallelRNG(42), 1D, 12)
 				.scale(0.038)
-				.fractureWith(new CNG(rng.nextRNG(), 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(43), 1D, 1)
 						.scale(0.025), 299);
 		//@done
 	}

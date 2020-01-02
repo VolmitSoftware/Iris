@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.atomics;
+package ninja.bytecode.iris.util;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.locks.ReentrantLock;

@@ -18,6 +18,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.RealBiome;
 import ninja.bytecode.shuriken.bench.Profiler;
 import ninja.bytecode.shuriken.collections.GMap;
@@ -161,7 +162,7 @@ public class Iris extends JavaPlugin implements Listener
 
 	private World createIrisWorld()
 	{
-		World ww = Bukkit.createWorld(new WorldCreator("iris-worlds/" + UUID.randomUUID().toString()).generator(new IrisGenerator()).seed(0));
+		World ww = Bukkit.createWorld(new WorldCreator("iris-worlds/" + UUID.randomUUID().toString()).generator(new IrisGenerator()).seed(5944323));
 		ww.setSpawnFlags(false, false);
 		ww.setAutoSave(false);
 		ww.setKeepSpawnInMemory(false);

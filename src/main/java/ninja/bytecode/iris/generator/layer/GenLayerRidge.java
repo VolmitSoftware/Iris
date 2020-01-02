@@ -1,10 +1,11 @@
-package ninja.bytecode.iris.gen;
+package ninja.bytecode.iris.generator.layer;
 
 import java.util.Random;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -19,19 +20,19 @@ public class GenLayerRidge extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		q = new CNG(rng.nextRNG(), 1D, 2).scale(0.0211);
-		g = new CNG(rng.nextRNG(), 1D, 2).scale(0.0011);
-		fract = new CNG(rng.nextRNG(), 1D, 5).scale(0.0011);
-		gen = new CNG(rng.nextRNG(), 0.19D, 16)
+		q = new CNG(rng.nextParallelRNG(21), 1D, 2).scale(0.0211);
+		g = new CNG(rng.nextParallelRNG(22), 1D, 2).scale(0.0011);
+		fract = new CNG(rng.nextParallelRNG(23), 1D, 5).scale(0.0011);
+		gen = new CNG(rng.nextParallelRNG(24), 0.19D, 16)
 			.scale(0.012)
 			.injectWith(CNG.MAX)
 			.amp(0.5)
 			.freq(1.1)
-			.fractureWith(new CNG(rng.nextRNG(), 1, 6)
+			.fractureWith(new CNG(rng.nextParallelRNG(25), 1, 6)
 				.scale(0.018)
-				.child(new CNG(rng.nextRNG(), 0.745, 2)
+				.child(new CNG(rng.nextParallelRNG(26), 0.745, 2)
 					.scale(0.1))
-				.fractureWith(new CNG(rng.nextRNG(), 1, 3)
+				.fractureWith(new CNG(rng.nextParallelRNG(27), 1, 3)
 					.scale(0.15), 24), 44);
 	}
 

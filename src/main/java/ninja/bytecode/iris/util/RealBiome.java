@@ -6,7 +6,6 @@ import org.bukkit.block.Biome;
 import net.minecraft.server.v1_12_R1.BiomeBase;
 import net.minecraft.server.v1_12_R1.Block;
 import net.minecraft.server.v1_12_R1.IBlockData;
-import ninja.bytecode.iris.MB;
 import ninja.bytecode.shuriken.format.F;
 
 public class RealBiome

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.gen;
+package ninja.bytecode.iris.util;
 
 public interface IGenLayer
 {

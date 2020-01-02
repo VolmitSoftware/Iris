@@ -7,7 +7,6 @@ import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 
 import net.minecraft.server.v1_12_R1.IBlockData;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.MB;
 import ninja.bytecode.shuriken.execution.J;
 
 public class Catalyst12

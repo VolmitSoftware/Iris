@@ -27,13 +27,15 @@ public class GenLayerBiome extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		fracture = new CNG(rng.nextRNG(), 1D, 7).scale(0.004).fractureWith(new CNG(rng.nextRNG(), 1D, 3).scale(0.19), 277D);
+		fracture = new CNG(rng.nextRNG(), 1D, 24).scale(0.0021).fractureWith(new CNG(rng.nextRNG(), 1D, 12).scale(0.01), 12250);
 		factory = (g) -> g.fractureWith(new CNG(rng.nextRNG(), 1D, 4).scale(0.02), 56);
 		riverCheck = new CNG(rng.nextRNG(), 1D, 2).scale(0.00096);
 		pathCheck = new CNG(rng.nextRNG(), 1D, 1).scale(0.00096);
 		roads = new MaxingGenerator(rng.nextRNG(), 5, 0.00055, 8, factory);
 		biomeGenerator = new EnumMaxingGenerator<CBI>(rng.nextRNG(), 0.00755 * Iris.settings.gen.biomeScale, 1, 
 				new CBI[] {
+						CBI.HAUNTED_FOREST,
+						CBI.FOREST_MOUNTAINS,
 						CBI.DESERT,
 						CBI.DESERT_HILLS,
 						CBI.MESA,
@@ -67,8 +69,8 @@ public class GenLayerBiome extends GenLayer
 
 	public CBI getBiome(double xx, double zz)
 	{
-		double x = xx + (fracture.noise(zz, xx) * 866);
-		double z = zz - (fracture.noise(xx, zz) * 866);
+		double x = xx + (fracture.noise(zz, xx) * 1550D);
+		double z = zz - (fracture.noise(xx, zz) * 1550D);
 		
 		if(riverCheck.noise(x, z) > 0.75)
 		{
@@ -80,7 +82,7 @@ public class GenLayerBiome extends GenLayer
 		
 		CBI cbi = biomeGenerator.getChoice(x, z);
 		
-		if(pathCheck.noise(x, z) > 0.5)
+		if(pathCheck.noise(x, z) > 0.33)
 		{
 			CBI road = CBI.ROAD_GRAVEL;
 			
@@ -89,11 +91,10 @@ public class GenLayerBiome extends GenLayer
 				road = CBI.ROAD_GRASSY;
 			}
 			
-			if(Math.abs(road.getHeight() - cbi.getHeight()) < 0.0001 && roads.hasBorder(4, 8, xx, zz))
+			if(Math.abs(road.getHeight() - cbi.getHeight()) < 0.0001 && roads.hasBorder(4, 3, xx, zz))
 			{
 				return road;
 			}
-			
 		}
 		
 		return cbi;

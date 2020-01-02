@@ -16,7 +16,7 @@ import ninja.bytecode.shuriken.math.RollingSequence;
 public class PopulatorTrees extends BlockPopulator
 {
 	public static RollingSequence timings = new RollingSequence(512);
-	
+
 	@Override
 	public void populate(World world, Random random, Chunk source)
 	{

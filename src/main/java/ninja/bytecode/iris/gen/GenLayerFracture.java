@@ -19,14 +19,14 @@ public class GenLayerFracture extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		gen = new CNG(rng.nextRNG(), 1D, 4)
-				.scale(0.013)
+		gen = new CNG(rng.nextRNG(), 1D, 12)
+				.scale(0.023)
 				.fractureWith(new CNG(rng.nextRNG(), 1D, 1)
-						.scale(0.05), 25);
-		cond = new CNG(rng.nextRNG(), 1D, 4)
-				.scale(0.018)
+						.scale(0.05), 333);
+		cond = new CNG(rng.nextRNG(), 1D, 12)
+				.scale(0.038)
 				.fractureWith(new CNG(rng.nextRNG(), 1D, 1)
-						.scale(0.025), 9);
+						.scale(0.025), 299);
 		//@done
 	}
 

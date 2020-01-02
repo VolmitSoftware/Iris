@@ -9,7 +9,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.atomics.AtomicChunkData;
-import ninja.bytecode.iris.pop.PopulatorLakes;
 import ninja.bytecode.iris.pop.PopulatorTrees;
 import ninja.bytecode.shuriken.Shuriken;
 import ninja.bytecode.shuriken.collections.GList;
@@ -55,15 +54,15 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					cg = 0;
 				}
 				
-				double total = rs.getAverage() + PopulatorTrees.timings.getAverage() + PopulatorLakes.timings.getAverage();
+				double total = rs.getAverage() + PopulatorTrees.timings.getAverage();
 				double rcs = (1000D / total);
 				double work = cps.getAverage() / (rcs + 1);
 				L.i("Terrain Gen for " + world.getName());
 				L.i("- Terrain (MLTC): " + F.duration(rs.getAverage(), 2));
 				L.i("- Trees (SGLC): " + F.duration(PopulatorTrees.timings.getAverage(), 2));
-				L.i("- Lakes (SGLC): " + F.duration(PopulatorLakes.timings.getAverage(), 2));
 				L.i("Total: " + F.duration(total, 3) + " Work: " + F.f(cps.getAverage(), 0) + "/s of " + F.f(rcs, 0) + "/s (" + F.pc(work, 0) + " utilization)");
 				L.flush();
+				
 				System.out.println("");
 			});
 

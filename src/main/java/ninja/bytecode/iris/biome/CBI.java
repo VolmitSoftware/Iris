@@ -20,6 +20,8 @@ public class CBI
 	//@builder
 	public static final CBI RIVER = new CBI("River", Biome.RIVER)
 			.surface(MB.of(Material.SAND));
+	public static final CBI BEACH = new CBI("Beach", Biome.BEACHES)
+			.surface(MB.of(Material.SAND));
 	public static final CBI ROAD_GRAVEL = new CBI("Gravel Road", Biome.PLAINS)
 			.surface(MB.of(Material.GRAVEL), MB.of(Material.COBBLESTONE))
 			.scatter(MB.of(Material.TORCH), 0.05);
@@ -27,22 +29,24 @@ public class CBI
 			.surface(MB.of(Material.GRASS_PATH))
 			.scatter(MB.of(Material.TORCH), 0.05);
 	public static final CBI OCEAN = new CBI("Ocean", Biome.OCEAN)
-			.surface(MB.of(Material.SAND))
-			.height(-0.07);
+			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
+			.simplexSurface()
+			.height(-0.03);
 	public static final CBI DEEP_OCEAN = new CBI("Deep Ocean", Biome.DEEP_OCEAN)
-			.surface(MB.of(Material.SAND))
+			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
+			.simplexSurface()
 			.height(-0.07);
 	public static final CBI DESERT = new CBI("Desert", Biome.DESERT)
 			.surface(MB.of(Material.SAND))
-			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.08)
+			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.008)
 			.dirt(MB.of(Material.SANDSTONE));
 	public static final CBI DESERT_RED = new CBI("Red Desert", Biome.DESERT)
 			.surface(MB.of(Material.SAND, 1))
-			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.08)
+			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.008)
 			.dirt(MB.of(Material.RED_SANDSTONE));
 	public static final CBI DESERT_COMBINED = new CBI("Combined Desert", Biome.DESERT)
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND, 1))
-			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.08)
+			.scatter(MB.of(Material.DEAD_BUSH, 0), 0.008)
 			.dirt(MB.of(Material.SANDSTONE), MB.of(Material.RED_SANDSTONE))
 			.simplexSurface();
 	public static final CBI DESERT_HILLS = new CBI("Desert Hills", Biome.DESERT_HILLS)
@@ -63,16 +67,17 @@ public class CBI
 			.amp(0.75);
 	public static final CBI JUNGLE = new CBI("Jungle", Biome.JUNGLE)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.058)
-			.tree(TreeType.JUNGLE, 0.8)
+			.tree(TreeType.JUNGLE, 0.9)
 			.tree(TreeType.JUNGLE_BUSH, 0.3)
 			.tree(TreeType.SMALL_JUNGLE, 0.1)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.013);
 	public static final CBI JUNGLE_HILLS = new CBI("Jungle Hills", Biome.JUNGLE_HILLS)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.081)
-			.tree(TreeType.JUNGLE, 0.8)
+			.tree(TreeType.JUNGLE, 0.9)
 			.tree(TreeType.JUNGLE_BUSH, 0.3)
 			.tree(TreeType.SMALL_JUNGLE, 0.1)
-			.amp(0.75)
+			.amp(1.75)
+			.height(0.166)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.02);
 	public static final CBI SWAMP = new CBI("Swamp", Biome.SWAMPLAND)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.04)
@@ -95,6 +100,24 @@ public class CBI
 			.amp(0.75)
 			.tree(TreeType.TREE, 0.7)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
+	public static final CBI FOREST_MOUNTAINS = new CBI("Forest Mountains", Biome.MUTATED_EXTREME_HILLS_WITH_TREES)
+			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
+			.amp(2.25)
+			.height(0.265)
+			.tree(TreeType.MEGA_REDWOOD, 0.5)
+			.tree(TreeType.TALL_REDWOOD, 0.7)
+			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
+	public static final CBI HAUNTED_FOREST = new CBI("Haunted Forest", Biome.MUTATED_SWAMPLAND)
+			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
+			.tree(TreeType.JUNGLE_BUSH, 0.5)
+			.tree(TreeType.BIG_TREE, 0.4)
+			.tree(TreeType.SWAMP, 0.4)
+			.tree(TreeType.JUNGLE, 0.4)
+			.tree(TreeType.SMALL_JUNGLE, 0.4)
+			.tree(TreeType.JUNGLE_BUSH, 0.5)
+			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13)
+			.surface(MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.DIRT), MB.of(Material.DIRT, 1), MB.of(Material.DIRT, 2))
+			.scatterSurface();
 	public static final CBI BIRCH_FOREST = new CBI("Birch Forest", Biome.BIRCH_FOREST)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
 			.tree(TreeType.BIRCH, 0.7)
@@ -109,21 +132,21 @@ public class CBI
 			.tree(TreeType.DARK_OAK, 0.9)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
 	public static final CBI TAIGA = new CBI("Taiga", Biome.TAIGA)
-
 			.tree(TreeType.REDWOOD, 0.4)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.07);
 	public static final CBI EXTREME_HILLS = new CBI("Extreme Hills", Biome.EXTREME_HILLS)
-			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04);
+			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04)
+			.amp(1.565)
+			.height(0.22);
 	public static final CBI EXTREME_HILLS_TREES = new CBI("Extreme Hills +", Biome.EXTREME_HILLS_WITH_TREES)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.09)
-
 			.tree(TreeType.REDWOOD, 0.1)
-			.amp(1.25);
+			.amp(1.525)
+			.height(0.22);
 	public static final CBI TAIGA_COLD = new CBI("Taiga Cold", Biome.TAIGA_COLD)
 			.tree(TreeType.REDWOOD, 0.3)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04);
 	public static final CBI TAIGA_COLD_HILLS = new CBI("Taiga Cold Hills", Biome.TAIGA_COLD_HILLS)
-
 			.tree(TreeType.REDWOOD, 0.15).amp(0.75);
 	public static final CBI ICE_FLATS = new CBI("Ice Flats", Biome.ICE_FLATS);
 	public static final CBI ICE_MOUNTAINS = new CBI("Ice Mountains", Biome.ICE_MOUNTAINS)
@@ -138,7 +161,7 @@ public class CBI
 			.surface(MB.of(Material.DIRT, 2), MB.of(Material.DIRT, 1))
 			.amp(0.75)
 			.simplexSurface();
-
+	
 	//@done
 	private static final GMap<Biome, CBI> map = build();
 	private String name;
@@ -149,6 +172,7 @@ public class CBI
 	private GList<MB> surface;
 	private GList<MB> dirt;
 	private GMap<MB, Double> scatterChance;
+	private boolean scatterSurface;
 	private boolean simplexScatter;
 	private GMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
@@ -213,6 +237,12 @@ public class CBI
 		simplexScatter = true;
 		return this;
 	}
+	
+	public CBI scatterSurface()
+	{
+		scatterSurface = true;
+		return this;
+	}
 
 	public CBI surface(MB... mbs)
 	{
@@ -268,19 +298,34 @@ public class CBI
 		return dirt;
 	}
 
-	public MB getSurface(int wx, int wz, RNG rng)
+	public MB getSurface(int x, int z, RNG rng)
 	{
+		double wx = x + 1000D;
+		double wz = z + 1000D;
 		if(simplexScatter)
 		{
 			if(poly == null)
 			{
-				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.05, 12, getSurface().toArray(new MB[getSurface().size()]), (g) ->
+				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.25, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
 				{
-					return g.fractureWith(new CNG(rng.nextRNG(), 1D, 2).scale(0.155), 24);
+					return g.fractureWith(new CNG(rng.nextRNG(), 1D, 2).scale(0.0155), 242);
 				});
 			}
 
-			return poly.getChoice(wx, wz);
+			return poly.getChoice(wx * 0.2D, wz *  0.2D);
+		}
+		
+		if(scatterSurface)
+		{
+			if(poly == null)
+			{
+				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
+				{
+					return g.fractureWith(new CNG(rng.nextRNG(), 1D, 2).scale(0.0155), 224);
+				});
+			}
+
+			return poly.getChoice(wx * 0.2D, wz *  0.2D);
 		}
 
 		return getSurface().getRandom();

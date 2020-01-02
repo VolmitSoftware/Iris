@@ -15,7 +15,6 @@ import ninja.bytecode.iris.gen.GenLayerBase;
 import ninja.bytecode.iris.gen.GenLayerBiome;
 import ninja.bytecode.iris.gen.GenLayerLayeredNoise;
 import ninja.bytecode.iris.gen.GenLayerRidge;
-import ninja.bytecode.iris.pop.PopulatorLakes;
 import ninja.bytecode.iris.pop.PopulatorTrees;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
@@ -106,7 +105,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double getBilinearNoise(int x, int z)
 	{
-		int h = 3;
+		int h = 5;
 		int fx = x >> h;
 		int fz = z >> h;
 		int xa = (fx << h) - 2;
@@ -125,7 +124,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double getBicubicNoise(int x, int z)
 	{
-		int h = 3;
+		int h = 5;
 		int fx = x >> h;
 		int fz = z >> h;
 		int xa = (fx << h);
@@ -193,6 +192,15 @@ public class IrisGenerator extends ParallelChunkGenerator
 				mb = BEDROCK;
 			}
 
+			if(i == height - 1 && i < 66 + (glBase.scatter(wx, i, wz) * 2) && i > 59)
+			{
+				mb = MB.of(Material.SAND);
+				setBlock(x, i+1, z, Material.AIR);
+				setBlock(x, i-1, z, mb.material, mb.data);
+				setBlock(x, i-2, z, mb.material, mb.data);
+				setBlock(x, i-3, z, mb.material, mb.data);
+			}
+			
 			setBlock(x, i, z, mb.material, mb.data);
 		}
 
@@ -204,7 +212,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		GList<BlockPopulator> p = new GList<BlockPopulator>();
 		p.add(new PopulatorTrees());
-		p.add(new PopulatorLakes());
 		return p;
 	}
 

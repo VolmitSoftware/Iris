@@ -9,8 +9,8 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
-		public int threadCount = 4;
+		public PerformanceMode performanceMode = PerformanceMode.MATCH_CPU;
+		public int threadCount = 12;
 		public int threadPriority = Thread.MAX_PRIORITY;
 	}
 

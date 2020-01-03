@@ -33,38 +33,7 @@ public class GenLayerBiome extends GenLayer
 		riverCheck = new CNG(rng.nextParallelRNG(30), 1D, 2).scale(0.00096);
 		pathCheck = new CNG(rng.nextParallelRNG(31), 1D, 1).scale(0.00096);
 		roads = new MaxingGenerator(rng.nextParallelRNG(32), 5, 0.00055, 8, factory);
-		biomeGenerator = new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33), 0.00755 * Iris.settings.gen.biomeScale, 1, 
-				new IrisBiome[] {
-						IrisBiome.HAUNTED_FOREST,
-						IrisBiome.FOREST_MOUNTAINS,
-						IrisBiome.DESERT,
-						IrisBiome.DESERT_HILLS,
-						IrisBiome.MESA,
-						IrisBiome.DESERT_COMBINED,
-						IrisBiome.SAVANNA,
-						IrisBiome.SAVANNA_HILLS,
-						IrisBiome.DESERT_RED,
-						IrisBiome.JUNGLE,
-						IrisBiome.JUNGLE_HILLS,
-						IrisBiome.SWAMP,
-						IrisBiome.OCEAN,
-						IrisBiome.PLAINS,
-						IrisBiome.DECAYING_PLAINS,
-						IrisBiome.FOREST,
-						IrisBiome.FOREST_HILLS,
-						IrisBiome.BIRCH_FOREST,
-						IrisBiome.BIRCH_FOREST_HILLS,
-						IrisBiome.ROOFED_FOREST,
-						IrisBiome.TAIGA,
-						IrisBiome.EXTREME_HILLS,
-						IrisBiome.EXTREME_HILLS_TREES,
-						IrisBiome.TAIGA_COLD,
-						IrisBiome.TAIGA_COLD_HILLS,
-						IrisBiome.ICE_FLATS,
-						IrisBiome.ICE_MOUNTAINS,
-						IrisBiome.REDWOOD_TAIGA,
-						IrisBiome.REDWOOD_TAIGA_HILLS,
-				}, factory);
+		biomeGenerator = new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33), 0.00755 * Iris.settings.gen.biomeScale, 1, IrisBiome.getBiomes().toArray(new IrisBiome[IrisBiome.getBiomes().size()]), factory);
 		//@done
 	}
 
@@ -72,7 +41,7 @@ public class GenLayerBiome extends GenLayer
 	{
 		double x = xx + (fracture.noise(zz, xx) * 1550D);
 		double z = zz - (fracture.noise(xx, zz) * 1550D);
-		
+
 		if(riverCheck.noise(x, z) > 0.75)
 		{
 			if(biomeGenerator.hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
@@ -80,24 +49,24 @@ public class GenLayerBiome extends GenLayer
 				return IrisBiome.RIVER;
 			}
 		}
-		
+
 		IrisBiome cbi = biomeGenerator.getChoice(x, z);
-		
+
 		if(pathCheck.noise(x, z) > 0.33)
 		{
 			IrisBiome road = IrisBiome.ROAD_GRAVEL;
-			
+
 			if(cbi.getSurface().get(0).material.equals(Material.GRASS))
 			{
 				road = IrisBiome.ROAD_GRASSY;
 			}
-			
+
 			if(Math.abs(road.getHeight() - cbi.getHeight()) < 0.0001 && roads.hasBorder(4, 3, xx, zz))
 			{
 				return road;
 			}
 		}
-		
+
 		return cbi;
 	}
 

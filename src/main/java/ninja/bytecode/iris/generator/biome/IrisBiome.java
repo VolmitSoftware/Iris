@@ -32,6 +32,10 @@ public class IrisBiome
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface()
 			.height(-0.03);
+	public static final IrisBiome LAKE = new IrisBiome("Lake", Biome.OCEAN)
+			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.GRAVEL), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
+			.simplexSurface()
+			.height(-0.03);
 	public static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
 			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface()
@@ -237,7 +241,7 @@ public class IrisBiome
 		simplexScatter = true;
 		return this;
 	}
-	
+
 	public IrisBiome scatterSurface()
 	{
 		scatterSurface = true;
@@ -312,9 +316,9 @@ public class IrisBiome
 				});
 			}
 
-			return poly.getChoice(wx * 0.2D, wz *  0.2D);
+			return poly.getChoice(wx * 0.2D, wz * 0.2D);
 		}
-		
+
 		if(scatterSurface)
 		{
 			if(poly == null)
@@ -325,7 +329,7 @@ public class IrisBiome
 				});
 			}
 
-			return poly.getChoice(wx * 0.2D, wz *  0.2D);
+			return poly.getChoice(wx * 0.2D, wz * 0.2D);
 		}
 
 		return getSurface().getRandom();
@@ -385,7 +389,12 @@ public class IrisBiome
 		return null;
 	}
 
-	public static IrisBiome find(Biome biome)
+	public static GList<IrisBiome> getBiomes()
+	{
+		return map.v().remove(IrisBiome.ROAD_GRASSY, IrisBiome.ROAD_GRAVEL, IrisBiome.BEACH, IrisBiome.LAKE, IrisBiome.RIVER);
+	}
+
+	public static IrisBiome findByBiome(Biome biome)
 	{
 		if(map.containsKey(biome))
 		{
@@ -393,5 +402,10 @@ public class IrisBiome
 		}
 
 		return IrisBiome.PLAINS;
+	}
+
+	public GMap<String, Double> getSchematicGroups()
+	{
+		return schematicGroups;
 	}
 }

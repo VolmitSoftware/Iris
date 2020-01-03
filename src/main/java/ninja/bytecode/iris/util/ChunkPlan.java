@@ -2,18 +2,28 @@ package ninja.bytecode.iris.util;
 
 import java.util.function.Supplier;
 
+import org.bukkit.util.BlockVector;
+
 import ninja.bytecode.iris.generator.biome.IrisBiome;
+import ninja.bytecode.iris.schematic.Schematic;
 import ninja.bytecode.shuriken.collections.GMap;
 
 public class ChunkPlan
 {
 	private final GMap<ChunkedVector, Double> heightCache;
 	private final GMap<ChunkedVector, IrisBiome> biomeCache;
+	private final GMap<BlockVector, Schematic> schematics;
 	
 	public ChunkPlan()
 	{
-		this.heightCache = new GMap<ChunkedVector, Double>();
-		this.biomeCache = new GMap<ChunkedVector, IrisBiome>();
+		this.schematics = new GMap<>();
+		this.heightCache = new GMap<>();
+		this.biomeCache = new GMap<>();
+	}
+	
+	public void planSchematic(BlockVector b, Schematic s)
+	{
+		schematics.put(b, s);
 	}
 	
 	public IrisBiome getBiome(int x, int z)

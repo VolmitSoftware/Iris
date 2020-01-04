@@ -22,6 +22,7 @@ import ninja.bytecode.shuriken.logging.L;
 
 public class Schematic
 {
+	private boolean centeredHeight;
 	private int w;
 	private int h;
 	private int d;
@@ -29,7 +30,7 @@ public class Schematic
 	private int y;
 	private int z;
 	private final GMap<BlockVector, MB> s;
-	
+
 	public Schematic(int w, int h, int d, int x, int y, int z)
 	{
 		this.w = w;
@@ -39,58 +40,48 @@ public class Schematic
 		this.y = y;
 		this.z = z;
 		s = new GMap<>();
+		centeredHeight = false;
 	}
-	
-	
-	
+
+	public void setCenteredHeight()
+	{
+		this.centeredHeight = true;
+	}
+
 	public int getW()
 	{
 		return w;
 	}
-
-
 
 	public int getH()
 	{
 		return h;
 	}
 
-
-
 	public int getD()
 	{
 		return d;
 	}
-
-
 
 	public int getX()
 	{
 		return x;
 	}
 
-
-
 	public int getY()
 	{
 		return y;
 	}
-
-
 
 	public int getZ()
 	{
 		return z;
 	}
 
-
-
 	public GMap<BlockVector, MB> getSchematic()
 	{
 		return s;
 	}
-
-
 
 	@SuppressWarnings("deprecation")
 	public void read(InputStream in) throws IOException
@@ -105,20 +96,20 @@ public class Schematic
 		z = din.readInt();
 		int l = din.readInt();
 		clear();
-		
+
 		for(int i = 0; i < l; i++)
 		{
-			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int)din.readInt()), din.readInt()));
+			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int) din.readInt()), din.readInt()));
 		}
-		
+
 		din.close();
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	public void write(OutputStream out) throws IOException
 	{
 		CustomOutputStream cos = new CustomOutputStream(out, 9);
-		DataOutputStream dos = new DataOutputStream(cos);	
+		DataOutputStream dos = new DataOutputStream(cos);
 		dos.writeInt(w);
 		dos.writeInt(h);
 		dos.writeInt(d);
@@ -126,7 +117,7 @@ public class Schematic
 		dos.writeInt(y);
 		dos.writeInt(z);
 		dos.writeInt(s.size());
-		
+
 		for(BlockVector i : s.keySet())
 		{
 			dos.writeInt(i.getBlockX());
@@ -135,42 +126,43 @@ public class Schematic
 			dos.writeInt(s.get(i).material.getId());
 			dos.writeInt(s.get(i).data);
 		}
-		
+
 		dos.close();
 	}
-	
+
 	public BlockVector getOffset()
 	{
 		return new BlockVector(x, y, z);
 	}
-	
+
 	public MB get(int x, int y, int z)
 	{
 		return s.get(new BlockVector(x, y, z));
 	}
-	
+
 	public boolean has(int x, int y, int z)
 	{
 		return s.contains(new BlockVector(x, y, z));
 	}
-	
+
 	public void put(int x, int y, int z, MB mb)
 	{
 		s.put(new BlockVector(x, y, z), mb);
 	}
-	
+
 	public Schematic copy()
 	{
 		Schematic s = new Schematic(w, h, d, x, y, z);
 		s.fill(this.s);
+		s.centeredHeight = centeredHeight;
 		return s;
 	}
-	
+
 	public void clear()
 	{
 		s.clear();
 	}
-	
+
 	public void fill(GMap<BlockVector, MB> b)
 	{
 		clear();
@@ -179,7 +171,7 @@ public class Schematic
 
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().subtract(w / 2, 0, d / 2);
+		Location start = new Location(source, wx, wy, wz).clone().subtract(w / 2, centeredHeight ? h / 2 : 0, d / 2);
 
 		for(BlockVector i : getSchematic().k())
 		{
@@ -190,12 +182,12 @@ public class Schematic
 			{
 				continue;
 			}
-			
+
 			try
 			{
 				Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
 			}
-			
+
 			catch(Throwable e)
 			{
 				e.printStackTrace();

@@ -199,6 +199,50 @@ public class WandManager implements Listener
 			e.getPlayer().getInventory().setItemInMainHand(WandUtil.createWand(b[0], b[1]));
 			e.getPlayer().updateInventory();
 		}
+		
+		if(e.getMessage().startsWith("/ivert"))
+		{
+			e.setCancelled(true);
+			Location[] b = WandUtil.getCuboid(e.getPlayer().getInventory().getItemInMainHand());
+
+			Location a1 = b[0].clone();
+			Location a2 = b[1].clone();
+			Location a1x = b[0].clone();
+			Location a2x = b[1].clone();
+			Cuboid cursor = new Cuboid(a1, a2);
+			Cuboid cursorx = new Cuboid(a1, a2);
+
+			while(!cursor.containsOnly(Material.AIR))
+			{
+				a1.add(new Vector(0, 1, 0));
+				a2.add(new Vector(0, 1, 0));
+				cursor = new Cuboid(a1, a2);
+			}
+			
+			a1.add(new Vector(0, -1, 0));
+			a2.add(new Vector(0, -1, 0));
+			
+			while(!cursorx.containsOnly(Material.AIR))
+			{
+				a1x.add(new Vector(0, -1, 0));
+				a2x.add(new Vector(0, -1, 0));
+				cursorx = new Cuboid(a1x, a2x);
+			}
+			
+			a1x.add(new Vector(0, 1, 0));
+			a2x.add(new Vector(0, 1, 0));
+			b[0] = a1;
+			b[1] = a2x;
+			cursor = new Cuboid(b[0], b[1]);
+			cursor = cursor.contract(CuboidDirection.North);
+			cursor = cursor.contract(CuboidDirection.South);
+			cursor = cursor.contract(CuboidDirection.East);
+			cursor = cursor.contract(CuboidDirection.West);
+			b[0] = cursor.getLowerNE();
+			b[1] = cursor.getUpperSW();
+			e.getPlayer().getInventory().setItemInMainHand(WandUtil.createWand(b[0], b[1]));
+			e.getPlayer().updateInventory();
+		}
 
 		if(e.getMessage().equals("/iris wand"))
 		{

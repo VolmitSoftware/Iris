@@ -34,7 +34,7 @@ public class GenLayerOreGold extends GenLayer
 	{
 		double orenoise = ore.noise(wxx, wzx);		
 		
-		if(clamp.noise(wxx, wzx) < 0.4 && (int) (orenoise * 200D) - 42 < 45 && b.getSurface().contains(new MB(Material.GRASS)) && IrisGenerator.ROCK.contains(MB.of(g.getType(x, (int) (orenoise * 200D) - 42, z))))
+		if(clamp.noise(wxx, wzx) > 0.75 && (int) (orenoise * 200D) - 42 < 45 && b.getSurface().contains(new MB(Material.GRASS)) && IrisGenerator.ROCK.contains(MB.of(g.getType(x, (int) (orenoise * 200D) - 42, z))))
 		{
 			g.setBlock(x, (int) (orenoise * 200D) - 42, z, Material.GOLD_ORE);
 		}

@@ -28,6 +28,35 @@ public class SurfaceBiasSchematicPopulator extends SchematicPopulator
 	}
 	
 	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((bias == null) ? 0 : bias.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(!super.equals(obj))
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		SurfaceBiasSchematicPopulator other = (SurfaceBiasSchematicPopulator) obj;
+		if(bias == null)
+		{
+			if(other.bias != null)
+				return false;
+		}
+		else if(!bias.equals(other.bias))
+			return false;
+		return true;
+	}
+
+	@Override
 	public void doPopulate(World world, Random random, Chunk source, int wx, int wz)
 	{
 		if(schematics.length == 0)

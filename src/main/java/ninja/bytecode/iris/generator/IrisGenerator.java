@@ -1,9 +1,12 @@
 package ninja.bytecode.iris.generator;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -24,13 +27,16 @@ import ninja.bytecode.iris.generator.layer.GenLayerOreLapis;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
 import ninja.bytecode.iris.generator.populator.BiomeBiasSchematicPopulator;
 import ninja.bytecode.iris.schematic.Schematic;
+import ninja.bytecode.iris.schematic.SchematicGroup;
 import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParallelChunkGenerator;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -70,6 +76,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerOreDiamond glOreDiamond;
 	private RNG rTerrain;
 	private World world;
+	private GMap<String, SchematicGroup> schematicCache = new GMap<>();
 
 	@Override
 	public void onInit(World world, Random random)
@@ -157,7 +164,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 				mb = biome.getSurface(wx, wz, rTerrain);
 				MB mbx = biome.getScatterChanceSingle();
-				
+
 				if(!mbx.material.equals(Material.AIR))
 				{
 					setBlock(x, i + 1, z, mbx.material, mbx.data);
@@ -209,42 +216,109 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public List<BlockPopulator> getDefaultPopulators(World world)
 	{
 		GList<BlockPopulator> p = new GList<>();
-		int b = 0;
-		for(IrisBiome i : IrisBiome.getAllBiomes())
+
+		if(Iris.settings.gen.doSchematics)
 		{
-			b++;
-			L.i("Processing Populators for Biome " + i.getName());
-			
-			for(String j : i.getSchematicGroups().keySet())
+			int b = 0;
+			int sch = 0;
+			for(IrisBiome i : IrisBiome.getAllBiomes())
 			{
-				p.add(new BiomeBiasSchematicPopulator(i.getSchematicGroups().get(j), i, loadSchematics(j)));
+				b++;
+				L.i("Processing Populators for Biome " + i.getName());
+
+				for(String j : i.getSchematicGroups().keySet())
+				{
+					SchematicGroup gs = loadSchematics(j);
+					sch += gs.size();
+					p.add(new BiomeBiasSchematicPopulator(i.getSchematicGroups().get(j), i, gs.getSchematics().toArray(new Schematic[gs.size()])));
+				}
 			}
+
+			p.add(new BlockPopulator()
+			{
+				@SuppressWarnings("deprecation")
+				@Override
+				public void populate(World world, Random random, Chunk source)
+				{
+					Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> world.refreshChunk(source.getX(), source.getZ()), 50);
+				}
+			});
+
+			L.i("Initialized " + b + " Biomes with " + p.size() + " Populators using " + sch + " Schematics");
 		}
-				
-		L.i("Initialized " + b + " Biomes and " + p.size() + " Populators");
-		L.flush();
-		
+
 		return p;
 	}
-	
-	private Schematic[] loadSchematics(String folder)
+
+	private SchematicGroup loadSchematics(String folder)
 	{
+		if(schematicCache.containsKey(folder))
+		{
+			return schematicCache.get(folder);
+		}
+
 		File f = new File(Iris.instance.getDataFolder(), "objects/" + folder);
 		GList<Schematic> s = new GList<>();
-		
+		GList<String> flags = new GList<>();
+
 		if(f.exists() && f.isDirectory())
 		{
 			for(File i : f.listFiles())
 			{
+				if(i.isFile() && i.getName().endsWith(".ifl"))
+				{
+					try
+					{
+						flags.add(IO.readAll(i).split("\\Q\n\\E"));
+					}
+
+					catch(IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+
 				if(i.isFile() && i.getName().endsWith(".ish"))
 				{
-					J.attempt(()-> s.add(Schematic.load(i)));
+					J.attempt(() ->
+					{
+						Schematic sc = Schematic.load(i);
+						s.add(sc);
+					});
 				}
 			}
 		}
-		
+
+		for(String i : flags)
+		{
+			String flag = i.trim().toLowerCase();
+
+			if(flag.equals("center"))
+			{
+				for(Schematic j : s)
+				{
+					j.setCenteredHeight();
+				}
+
+				L.i("Centered " + s.size() + " Schematics");
+			}
+		}
+
 		L.i("Loaded " + s.size() + " Schematics in " + folder);
-		return s.toArray(new Schematic[s.size()]);
+		SchematicGroup g = new SchematicGroup(folder);
+		g.setSchematics(s);
+		g.setFlags(flags);
+
+		for(String i : flags)
+		{
+			if(i.startsWith("priority="))
+			{
+				J.attempt(() -> g.setPriority(Integer.valueOf(i.split("\\Q=\\E")[1]).intValue()));
+			}
+		}
+
+		schematicCache.put(folder, g);
+		return g;
 	}
 
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)

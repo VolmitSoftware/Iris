@@ -44,5 +44,31 @@ public abstract class ChancedPopulator extends BlockPopulator
 		}
 	}
 
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		long temp;
+		temp = Double.doubleToLongBits(chance);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		ChancedPopulator other = (ChancedPopulator) obj;
+		if(Double.doubleToLongBits(chance) != Double.doubleToLongBits(other.chance))
+			return false;
+		return true;
+	}
+
 	public abstract void doPopulate(World world, Random random, Chunk source, int x, int z);
 }

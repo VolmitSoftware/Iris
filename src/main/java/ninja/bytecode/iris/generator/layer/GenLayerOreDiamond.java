@@ -27,7 +27,6 @@ public class GenLayerOreDiamond extends GenLayer
 		clamp = new CNG(rng.nextParallelRNG(299 + shift), 1D, 1).scale(0.0325).fractureWith(new CNG(rng.nextParallelRNG(412 + shift), 1D, 1)
 				.scale(0.015).fractureWith(new CNG(rng.nextParallelRNG(412 + shift), 1D, 1)
 						.scale(0.03), 33), 592);
-		
 		//@done
 	}
 	
@@ -35,7 +34,7 @@ public class GenLayerOreDiamond extends GenLayer
 	{
 		double orenoise = ore.noise(wxx, wzx);		
 		
-		if(clamp.noise(wxx, wzx) > 0.77 && IrisGenerator.ROCK.contains(MB.of(g.getType(x, (int) (orenoise * 12D), z))))
+		if(clamp.noise(wxx, wzx) > 0.85 && IrisGenerator.ROCK.contains(MB.of(g.getType(x, (int) (orenoise * 12D), z))))
 		{
 			g.setBlock(x, (int) (orenoise * 12D), z, Material.DIAMOND_ORE);
 		}

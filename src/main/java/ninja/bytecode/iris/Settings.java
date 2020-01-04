@@ -12,6 +12,7 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
 		public int threadCount = 12;
 		public int threadPriority = Thread.MIN_PRIORITY;
+		public boolean loadonstart = false;
 	}
 
 	public static class GeneratorSettings
@@ -27,6 +28,6 @@ public class Settings
 		public int seaLevel = 63;
 		public double biomeScale = 2.46;
 		public boolean flatBedrock = false;
-		public boolean doTrees = false;
+		public boolean doSchematics = false;
 	}
 }

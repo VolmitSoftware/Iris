@@ -20,6 +20,7 @@ import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.biome.IrisBiome;
+import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.bench.Profiler;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
@@ -36,6 +37,7 @@ public class Iris extends JavaPlugin implements Listener
 
 	public void onEnable()
 	{
+		Direction.calculatePermutations();
 		profiler = new Profiler(512);
 		values = new GMap<>();
 		instance = this;
@@ -46,22 +48,28 @@ public class Iris extends JavaPlugin implements Listener
 		new WandManager();
 		
 		// Debug world regens
-		GSet<String> ws = new GSet<>();
-
-		World w = createIrisWorld();
-		for(Player i : Bukkit.getOnlinePlayers())
+		
+		if(settings.performance.loadonstart)
 		{
-			Location m = i.getLocation();
-			ws.add(i.getWorld().getName());
-			i.teleport(new Location(w, m.getX(), m.getY(), m.getZ(), m.getYaw(), m.getPitch()));
-			i.setFlying(true);
-			i.setGameMode(GameMode.SPECTATOR);
-		}
+			GSet<String> ws = new GSet<>();
 
-		for(String i : ws)
-		{
-			Bukkit.unloadWorld(i, false);
+			World w = createIrisWorld();
+			for(Player i : Bukkit.getOnlinePlayers())
+			{
+				Location m = i.getLocation();
+				ws.add(i.getWorld().getName());
+				i.teleport(new Location(w, m.getX(), m.getY(), m.getZ(), m.getYaw(), m.getPitch()));
+				i.setFlying(true);
+				i.setGameMode(GameMode.SPECTATOR);
+			}
+
+			for(String i : ws)
+			{
+				Bukkit.unloadWorld(i, false);
+			}
 		}
+		
+		
 		
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> {
 			for(World i : Bukkit.getWorlds())

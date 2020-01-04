@@ -30,4 +30,33 @@ public class BiomeBiasSchematicPopulator extends SurfaceBiasSchematicPopulator
 			super.doPopulate(world, random, source, wx, wz);
 		}
 	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((biome == null) ? 0 : biome.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(!super.equals(obj))
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		BiomeBiasSchematicPopulator other = (BiomeBiasSchematicPopulator) obj;
+		if(biome == null)
+		{
+			if(other.biome != null)
+				return false;
+		}
+		else if(!biome.equals(other.biome))
+			return false;
+		return true;
+	}
 }

@@ -19,17 +19,9 @@ import ninja.bytecode.shuriken.collections.GList;
 
 public class WandUtil
 {
-	@SuppressWarnings("deprecation")
 	public static void pasteSchematic(Schematic s, Location at)
 	{
-		Location start = at.clone().add(s.getOffset());
-
-		for(BlockVector i : s.getSchematic().keySet())
-		{
-			MB b = s.getSchematic().get(i);
-			System.out.println("Pasted " + b.material + " @ " + start.clone().add(i));
-			start.clone().add(i).getBlock().setTypeIdAndData(b.material.getId(), b.data, false);
-		}
+		s.place(at.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ());
 	}
 
 	@SuppressWarnings("deprecation")
@@ -39,7 +31,7 @@ public class WandUtil
 		{
 			return null;
 		}
-
+		
 		try
 		{
 			Location[] f = getCuboid(wand);
@@ -56,9 +48,11 @@ public class WandUtil
 					continue;
 				}
 				
+				byte data = b.getData();
+				
 				BlockVector bv = b.getLocation().toVector().toBlockVector().subtract(c.getLowerNE().toVector().toBlockVector()).toBlockVector();
 				System.out.println("Load " + bv + " " + b.getType());
-				s.put(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), new MB(b.getType(), b.getData()));
+				s.put(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), new MB(b.getType(), data));
 			}
 
 			return s;

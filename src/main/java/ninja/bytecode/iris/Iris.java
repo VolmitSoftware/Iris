@@ -19,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.biome.IrisBiome;
 import ninja.bytecode.shuriken.bench.Profiler;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
@@ -61,6 +62,20 @@ public class Iris extends JavaPlugin implements Listener
 		{
 			Bukkit.unloadWorld(i, false);
 		}
+		
+		Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> {
+			for(World i : Bukkit.getWorlds())
+			{
+				if(i.getGenerator() instanceof IrisGenerator)
+				{
+					for(Player j : i.getPlayers())
+					{
+						IrisBiome biome = IrisBiome.findByBiome(j.getLocation().getBlock().getBiome());
+						biome.applyEffects(j);
+					}
+				}
+			}
+		}, 0, 15);
 	}
 
 	private int getTC()

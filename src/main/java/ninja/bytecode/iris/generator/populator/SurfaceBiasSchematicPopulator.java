@@ -30,6 +30,11 @@ public class SurfaceBiasSchematicPopulator extends SchematicPopulator
 	@Override
 	public void doPopulate(World world, Random random, Chunk source, int wx, int wz)
 	{
+		if(schematics.length == 0)
+		{
+			return;
+		}
+		
 		Block b = world.getHighestBlockAt(wx, wz);
 		
 		for(Material i : bias)

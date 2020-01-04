@@ -12,9 +12,9 @@ import java.util.zip.GZIPInputStream;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.util.BlockVector;
 
+import ninja.bytecode.iris.util.Catalyst12;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
@@ -108,7 +108,7 @@ public class Schematic
 		
 		for(int i = 0; i < l; i++)
 		{
-			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int)din.readByte()), din.readByte()));
+			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int)din.readInt()), din.readInt()));
 		}
 		
 		din.close();
@@ -132,8 +132,8 @@ public class Schematic
 			dos.writeInt(i.getBlockX());
 			dos.writeInt(i.getBlockY());
 			dos.writeInt(i.getBlockZ());
-			dos.writeByte(s.get(i).material.getId());
-			dos.writeByte(s.get(i).data);
+			dos.writeInt(s.get(i).material.getId());
+			dos.writeInt(s.get(i).data);
 		}
 		
 		dos.close();
@@ -177,34 +177,39 @@ public class Schematic
 		s.put(b);
 	}
 
-	@SuppressWarnings("deprecation")
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().subtract(getOffset());
+		Location start = new Location(source, wx, wy, wz).clone().subtract(w / 2, 0, d / 2);
 
-		for(BlockVector i : getSchematic().keySet())
+		for(BlockVector i : getSchematic().k())
 		{
 			MB b = getSchematic().get(i);
-			Block blk = start.clone().add(i).getBlock();
-			
-			if(!blk.isEmpty() && !b.material.isOccluding())
+			Location f = start.clone().add(i);
+
+			if(b.material.equals(Material.SKULL))
 			{
 				continue;
 			}
 			
-			blk.setTypeIdAndData(b.material.getId(), b.data, false);
+			try
+			{
+				Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
+			}
+			
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 
-
-
 	public static Schematic load(File f) throws IOException
 	{
-		L.i("Loading Schematic: " + f.getPath());
 		Schematic s = new Schematic(1, 1, 1, 1, 1, 1);
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
-		
+
+		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;
 	}
 }

@@ -15,6 +15,12 @@ import ninja.bytecode.iris.generator.layer.GenLayerBase;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
+import ninja.bytecode.iris.generator.layer.GenLayerOreCoal;
+import ninja.bytecode.iris.generator.layer.GenLayerOreDiamond;
+import ninja.bytecode.iris.generator.layer.GenLayerOreEmerald;
+import ninja.bytecode.iris.generator.layer.GenLayerOreGold;
+import ninja.bytecode.iris.generator.layer.GenLayerOreIron;
+import ninja.bytecode.iris.generator.layer.GenLayerOreLapis;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
 import ninja.bytecode.iris.generator.populator.BiomeBiasSchematicPopulator;
 import ninja.bytecode.iris.schematic.Schematic;
@@ -31,6 +37,24 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class IrisGenerator extends ParallelChunkGenerator
 {
+	//@builder
+	public static final GList<MB> ROCK = new GList<MB>().add(new MB[] {
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE, 5),
+			MB.of(Material.STONE, 5),
+			MB.of(Material.COBBLESTONE),
+			MB.of(Material.COBBLESTONE),
+			MB.of(Material.SMOOTH_BRICK),
+			MB.of(Material.SMOOTH_BRICK, 1),
+			MB.of(Material.SMOOTH_BRICK, 2),
+			MB.of(Material.SMOOTH_BRICK, 3),
+	});
+	//@done
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GenLayerBase glBase;
@@ -38,6 +62,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerRidge glRidge;
 	private GenLayerBiome glBiome;
 	private GenLayerCaves glCaves;
+	private GenLayerOreIron glOreIron;
+	private GenLayerOreCoal glOreCoal;
+	private GenLayerOreLapis glOreLapis;
+	private GenLayerOreGold glOreGold;
+	private GenLayerOreEmerald glOreEmerald;
+	private GenLayerOreDiamond glOreDiamond;
 	private RNG rTerrain;
 	private World world;
 
@@ -51,6 +81,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glRidge = new GenLayerRidge(this, world, random, rTerrain.nextParallelRNG(3));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4));
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
+		glOreIron = new GenLayerOreIron(this, world, random, rTerrain.nextParallelRNG(-500), 10);
+		glOreLapis = new GenLayerOreLapis(this, world, random, rTerrain.nextParallelRNG(-501), 15);
+		glOreCoal = new GenLayerOreCoal(this, world, random, rTerrain.nextParallelRNG(-502), 20);
+		glOreGold = new GenLayerOreGold(this, world, random, rTerrain.nextParallelRNG(-503), 25);
+		glOreEmerald = new GenLayerOreEmerald(this, world, random, rTerrain.nextParallelRNG(-504), 30);
+		glOreDiamond = new GenLayerOreDiamond(this, world, random, rTerrain.nextParallelRNG(-505), 35);
 	}
 
 	@Override
@@ -75,7 +111,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		for(int i = 0; i < max; i++)
 		{
-			MB mb = new MB(Material.STONE);
+			MB mb = ROCK.get(glBase.scatterInt(wzx, i, wxx, ROCK.size()));
 			boolean underwater = i >= height && i < seaLevel;
 			boolean underground = i < height;
 
@@ -120,6 +156,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 				}
 
 				mb = biome.getSurface(wx, wz, rTerrain);
+				MB mbx = biome.getScatterChanceSingle();
+				
+				if(!mbx.material.equals(Material.AIR))
+				{
+					setBlock(x, i + 1, z, mbx.material, mbx.data);
+				}
 			}
 
 			if(i == 0)
@@ -136,6 +178,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 		}
 
 		glCaves.genCaves(wxx, wzx, x, z, height, this);
+		glOreIron.genOre(wxx, wzx, x, z, height, this, biome);
+		glOreLapis.genOre(wxx, wzx, x, z, height, this, biome);
+		glOreCoal.genOre(wxx, wzx, x, z, height, this, biome);
+		glOreGold.genOre(wxx, wzx, x, z, height, this, biome);
+		glOreEmerald.genOre(wxx, wzx, x, z, height, this, biome);
+		glOreDiamond.genOre(wxx, wzx, x, z, height, this, biome);
 
 		if(override != null)
 		{
@@ -162,7 +210,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		GList<BlockPopulator> p = new GList<>();
 		int b = 0;
-		for(IrisBiome i : IrisBiome.getBiomes())
+		for(IrisBiome i : IrisBiome.getAllBiomes())
 		{
 			b++;
 			L.i("Processing Populators for Biome " + i.getName());
@@ -172,9 +220,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 				p.add(new BiomeBiasSchematicPopulator(i.getSchematicGroups().get(j), i, loadSchematics(j)));
 			}
 		}
-		
-		J.attempt(() -> p.add(new BiomeBiasSchematicPopulator(5, IrisBiome.JUNGLE, loadSchematics(""))));
-		
+				
 		L.i("Initialized " + b + " Biomes and " + p.size() + " Populators");
 		L.flush();
 		
@@ -186,25 +232,18 @@ public class IrisGenerator extends ParallelChunkGenerator
 		File f = new File(Iris.instance.getDataFolder(), "objects/" + folder);
 		GList<Schematic> s = new GList<>();
 		
-		try
+		if(f.exists() && f.isDirectory())
 		{
-			if(f.exists() && f.isDirectory())
+			for(File i : f.listFiles())
 			{
-				for(File i : f.listFiles())
+				if(i.isFile() && i.getName().endsWith(".ish"))
 				{
-					if(i.isFile() && i.getName().endsWith(".ish"))
-					{
-						s.add(Schematic.load(i));
-					}
+					J.attempt(()-> s.add(Schematic.load(i)));
 				}
 			}
 		}
 		
-		catch(Throwable e)
-		{
-			
-		}
-		
+		L.i("Loaded " + s.size() + " Schematics in " + folder);
 		return s.toArray(new Schematic[s.size()]);
 	}
 

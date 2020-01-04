@@ -28,12 +28,9 @@ public class Catalyst12
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void setBlock(Location l, MB m)
+	public static void setBlock(World wo, int x, int y, int z, MB m)
 	{
-		int x = l.getBlockX();
-		int y = l.getBlockY();
-		int z = l.getBlockZ();
-		net.minecraft.server.v1_12_R1.World w = ((CraftWorld) l.getWorld()).getHandle();
+		net.minecraft.server.v1_12_R1.World w = ((CraftWorld) wo).getHandle();
 		net.minecraft.server.v1_12_R1.Chunk chunk = w.getChunkAt(x >> 4, z >> 4);
 		int combined = m.material.getId() + (m.data << 12);
 		IBlockData ibd = net.minecraft.server.v1_12_R1.Block.getByCombinedId(combined);
@@ -44,10 +41,6 @@ public class Catalyst12
 		}
 
 		net.minecraft.server.v1_12_R1.ChunkSection sec = chunk.getSections()[y >> 4];
-
-		synchronized(sec)
-		{
-			sec.setType(x & 15, y & 15, z & 15, ibd);
-		}
+		sec.setType(x & 15, y & 15, z & 15, ibd);
 	}
 }

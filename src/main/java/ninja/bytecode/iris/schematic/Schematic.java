@@ -105,6 +105,7 @@ public class Schematic
 		}
 
 		din.close();
+		center();
 	}
 
 	@SuppressWarnings("deprecation")
@@ -130,7 +131,6 @@ public class Schematic
 		}
 
 		dos.close();
-		center();
 	}
 
 	public BlockVector getOffset()
@@ -174,7 +174,7 @@ public class Schematic
 
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().subtract(w / 2, centeredHeight ? h / 2 : 0, d / 2);
+		Location start = new Location(source, wx, wy, wz).clone().subtract(0, centeredHeight ? h / 2 : 0, 0);
 
 		for(BlockVector i : getSchematic().k())
 		{
@@ -210,41 +210,46 @@ public class Schematic
 	
 	public void center()
 	{
-		GMap<BlockVector, MB> s = getSchematic().copy();
+		GMap<BlockVector, MB> sf = getSchematic().copy();
+		BlockVector max = new BlockVector(-w, -h, -d);
+		BlockVector min = new BlockVector(w, h, d);
 		clear();
-		BlockVector max = new BlockVector(-10000, -10000, -10000);
-		BlockVector min = new BlockVector(10000, 10000, 10000);
 		
-		for(BlockVector i : s.k())
-		{
-			if(i.lengthSquared() < min.lengthSquared())
+		for(BlockVector i : sf.k())
+		{			
+			if(i.getX() <= min.getX() && i.getZ() <= min.getZ() && i.getY() <= min.getY())
 			{
 				min = i;
 			}
 			
-			if(i.lengthSquared() > max.lengthSquared())
+			if(i.getX() >= max.getX() && i.getZ() >= max.getZ() && i.getY() >= max.getY())
 			{
 				max = i;
 			}
 		}
 		
 		BlockVector center = min.clone().add(max.clone().multiply(0.5D)).toBlockVector();
+		center.setY(0);
 		
-		for(BlockVector i : s.k())
+		for(BlockVector i : sf.k())
 		{
-			getSchematic().put(i.clone().subtract(center).toBlockVector(), s.get(i));
+			getSchematic().put(i.clone().subtract(center).toBlockVector(), sf.get(i));
 		}
+		
+		x = 0;
+		y = 0;
+		z = 0;
 	}
 
 	public void rotate(Direction from, Direction to)
 	{
-		center();
-		GMap<BlockVector, MB> s = getSchematic().copy();
+		GMap<BlockVector, MB> sf = getSchematic().copy();
 		clear();
 		
-		for(BlockVector i : s.k())
+		for(BlockVector i : sf.k())
 		{
-			getSchematic().put(VectorMath.rotate(from, to, i).toBlockVector(), s.get(i));
+			getSchematic().put(VectorMath.rotate(from, to, i).toBlockVector(), sf.get(i));
 		}
+		center();
 	}
 }

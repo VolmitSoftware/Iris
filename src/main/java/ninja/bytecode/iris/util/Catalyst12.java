@@ -29,6 +29,11 @@ public class Catalyst12
 	@SuppressWarnings("deprecation")
 	public static void setBlock(World wo, int x, int y, int z, MB m)
 	{
+		if(y > wo.getMaxHeight())
+		{
+			return;
+		}
+		
 		net.minecraft.server.v1_12_R1.World w = ((CraftWorld) wo).getHandle();
 		net.minecraft.server.v1_12_R1.Chunk chunk = w.getChunkAt(x >> 4, z >> 4);
 		int combined = m.material.getId() + (m.data << 12);

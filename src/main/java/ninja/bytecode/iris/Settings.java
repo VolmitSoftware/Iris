@@ -9,10 +9,10 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
+		public PerformanceMode performanceMode = PerformanceMode.MATCH_CPU;
 		public int threadCount = 12;
 		public int threadPriority = Thread.MIN_PRIORITY;
-		public boolean loadonstart = false;
+		public boolean loadonstart = true;
 	}
 
 	public static class GeneratorSettings
@@ -26,8 +26,9 @@ public class Settings
 		public double superHeightScale = 0.95;
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
+		public double caveDensity = 3;
 		public double biomeScale = 2.46;
 		public boolean flatBedrock = false;
-		public boolean doSchematics = false;
+		public boolean doSchematics = true;
 	}
 }

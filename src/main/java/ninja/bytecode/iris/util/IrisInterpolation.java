@@ -16,7 +16,7 @@ public class IrisInterpolation
 	
 	public static double getBilinearNoise(int x, int z, NoiseProvider n)
 	{
-		int h = 5;
+		int h = 3;
 		int fx = x >> h;
 		int fz = z >> h;
 		int xa = (fx << h) - 2;
@@ -35,7 +35,7 @@ public class IrisInterpolation
 
 	public static double getBicubicNoise(int x, int z, NoiseProvider n)
 	{
-		int h = 5;
+		int h = 6;
 		int fx = x >> h;
 		int fz = z >> h;
 		int xa = (fx << h);

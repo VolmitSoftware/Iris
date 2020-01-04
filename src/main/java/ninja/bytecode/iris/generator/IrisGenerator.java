@@ -106,8 +106,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
 	{
 		int seaLevel = Iris.settings.gen.seaLevel;
-		int wx = (int) Math.round((double) wxx * Iris.settings.gen.horizontalZoom);
-		int wz = (int) Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
+		double wx = Math.round((double) wxx * Iris.settings.gen.horizontalZoom);
+		double wz = Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
 		IrisBiome biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
 		double hv = IrisInterpolation.getBicubicNoise(wxx, wzx, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
 		hv += glLNoise.generateLayer(hv, wxx, wzx);
@@ -129,7 +129,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 			if(underground && (height - 1) - i < glBase.scatterInt(x, i, z, 4) + 2)
 			{
-				mb = biome.getDirt(wx, wz);
+				mb = biome.getDirtRNG();
 			}
 
 			if(i == height - 1)

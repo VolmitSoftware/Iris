@@ -145,7 +145,7 @@ public class IrisBiome
 			.schematic("boulder/smooth", 0.01)
 			.schematic("tree/redwood", 1.11)
 			.schematic("tree/redwood/tall", 2.51)
-			.height(0.165)
+			.height(0.365)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
 	public static final IrisBiome HAUNTED_FOREST = new IrisBiome("Haunted Forest", Biome.MUTATED_SWAMPLAND)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
@@ -196,7 +196,7 @@ public class IrisBiome
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04)
 			.amp(1.565)
 			.schematic("boulder/smooth", 0.01)
-			.height(0.142);
+			.height(0.342);
 	public static final IrisBiome EXTREME_HILLS_TREES = new IrisBiome("Extreme Hills +", Biome.EXTREME_HILLS_WITH_TREES)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.09)
 			.schematic("boulder", 0.02)
@@ -204,7 +204,7 @@ public class IrisBiome
 			.schematic("boulder/smooth", 0.01)
 			.schematic("tree/redwood/tall", 3.02)
 			.amp(1.525)
-			.height(0.152);
+			.height(0.352);
 	public static final IrisBiome TAIGA_COLD = new IrisBiome("Taiga Cold", Biome.TAIGA_COLD)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04)
 			.schematic("tree/pine", 2.51)
@@ -234,6 +234,7 @@ public class IrisBiome
 			.schematic("boulder", 0.02)
 			.schematic("tree/redwood", 3.5)
 			.amp(0.75)
+			.height(0.167)
 			.simplexSurface();
 	
 	//@done
@@ -365,7 +366,7 @@ public class IrisBiome
 		return dirt;
 	}
 
-	public MB getSurface(int x, int z, RNG rng)
+	public MB getSurface(double x, double z, RNG rng)
 	{
 		double wx = x + 1000D;
 		double wz = z + 1000D;
@@ -398,7 +399,7 @@ public class IrisBiome
 		return getSurface().getRandom();
 	}
 
-	public MB getDirt(int wx, int wz)
+	public MB getDirtRNG()
 	{
 		return getDirt().getRandom();
 	}

@@ -316,6 +316,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 				J.attempt(() -> g.setPriority(Integer.valueOf(i.split("\\Q=\\E")[1]).intValue()));
 			}
 		}
+		
+		g.generateRotationVariants();
 
 		schematicCache.put(folder, g);
 		return g;

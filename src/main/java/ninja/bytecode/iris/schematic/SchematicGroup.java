@@ -1,6 +1,5 @@
 package ninja.bytecode.iris.schematic;
 
-import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
 
 public class SchematicGroup
@@ -61,29 +60,5 @@ public class SchematicGroup
 	public int size()
 	{
 		return getSchematics().size();
-	}
-	
-	public void generateRotationVariants()
-	{
-		if(flags.contains("rotation=none"))
-		{
-			return;
-		}
-		
-		GList<Schematic> variants = new GList<>();
-		GList<Direction> directions = flags.contains("rotation=all") ? Direction.udnews() : Direction.news();
-		directions.remove(Direction.N);
-		
-		for(Schematic i : getSchematics())
-		{
-			for(Direction j : directions)
-			{
-				Schematic rotated = i.copy();
-				rotated.rotate(Direction.N, j);
-				variants.add(rotated);
-			}
-		}
-		
-		getSchematics().add(variants);
 	}
 }

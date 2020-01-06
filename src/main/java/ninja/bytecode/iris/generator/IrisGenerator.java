@@ -317,8 +317,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 			}
 		}
 		
-		g.generateRotationVariants();
-
 		schematicCache.put(folder, g);
 		return g;
 	}

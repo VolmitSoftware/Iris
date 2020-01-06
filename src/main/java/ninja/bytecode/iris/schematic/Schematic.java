@@ -15,9 +15,7 @@ import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.util.Catalyst12;
-import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.MB;
-import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
@@ -105,7 +103,6 @@ public class Schematic
 		}
 
 		din.close();
-		center();
 	}
 
 	@SuppressWarnings("deprecation")
@@ -206,50 +203,5 @@ public class Schematic
 
 		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;
-	}
-	
-	public void center()
-	{
-		GMap<BlockVector, MB> sf = getSchematic().copy();
-		BlockVector max = new BlockVector(-w, -h, -d);
-		BlockVector min = new BlockVector(w, h, d);
-		clear();
-		
-		for(BlockVector i : sf.k())
-		{			
-			if(i.getX() <= min.getX() && i.getZ() <= min.getZ() && i.getY() <= min.getY())
-			{
-				min = i;
-			}
-			
-			if(i.getX() >= max.getX() && i.getZ() >= max.getZ() && i.getY() >= max.getY())
-			{
-				max = i;
-			}
-		}
-		
-		BlockVector center = min.clone().add(max.clone().multiply(0.5D)).toBlockVector();
-		center.setY(0);
-		
-		for(BlockVector i : sf.k())
-		{
-			getSchematic().put(i.clone().subtract(center).toBlockVector(), sf.get(i));
-		}
-		
-		x = 0;
-		y = 0;
-		z = 0;
-	}
-
-	public void rotate(Direction from, Direction to)
-	{
-		GMap<BlockVector, MB> sf = getSchematic().copy();
-		clear();
-		
-		for(BlockVector i : sf.k())
-		{
-			getSchematic().put(VectorMath.rotate(from, to, i).toBlockVector(), sf.get(i));
-		}
-		center();
 	}
 }

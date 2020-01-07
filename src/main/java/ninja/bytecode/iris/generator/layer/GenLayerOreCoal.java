@@ -6,7 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.generator.biome.IrisBiome;
+import ninja.bytecode.iris.spec.IrisBiome;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.shuriken.math.CNG;

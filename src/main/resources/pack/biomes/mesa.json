@@ -1,0 +1,16 @@
+{
+    "name": "Mesa",
+    "derivative": "Mesa",
+    "surface": [
+        "HARD_CLAY",
+        "STAINED_CLAY:1",
+        "STAINED_CLAY:8",
+        "STAINED_CLAY:12"
+    ],
+    "dirt": [
+        "CLAY",
+        "SAND:1",
+        "SAND"
+    ],
+    "surfaceType": "simplex"
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Overworld",
+    "environment": "normal",
+    "biomes": [
+        "desert",
+        "desert_red",
+        "desert_hills",
+        "mesa",
+        "savanna",
+        "savanna_hills",
+        "jungle",
+        "jungle_hills",
+        "swamp",
+        "plains"
+    ]
+}

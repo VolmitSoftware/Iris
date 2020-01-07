@@ -5,8 +5,8 @@ import java.util.Random;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import ninja.bytecode.iris.generator.biome.IrisBiome;
 import ninja.bytecode.iris.schematic.Schematic;
+import ninja.bytecode.iris.spec.IrisBiome;
 import ninja.bytecode.iris.util.MB;
 
 public class BiomeBiasSchematicPopulator extends SurfaceBiasSchematicPopulator

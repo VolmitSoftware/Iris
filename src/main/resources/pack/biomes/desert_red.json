@@ -1,0 +1,13 @@
+{
+    "name": "Desert Red",
+    "derivative": "MUTATED_DESERT",
+    "surface": [
+        "SAND:1"
+    ],
+    "dirt": [
+        "RED_SANDSTONE"
+    ],
+    "scatter":[
+        "DEAD_BUSH=0.008"
+    ]
+}

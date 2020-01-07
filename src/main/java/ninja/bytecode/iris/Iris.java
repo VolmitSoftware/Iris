@@ -1,5 +1,7 @@
 package ninja.bytecode.iris;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -18,12 +20,20 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.generator.biome.IrisBiome;
+import ninja.bytecode.iris.schematic.Schematic;
+import ninja.bytecode.iris.schematic.SchematicGroup;
+import ninja.bytecode.iris.spec.IrisBiome;
+import ninja.bytecode.iris.spec.IrisDimension;
+import ninja.bytecode.iris.spec.IrisPack;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.bench.Profiler;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
+import ninja.bytecode.shuriken.io.IO;
+import ninja.bytecode.shuriken.json.JSONException;
+import ninja.bytecode.shuriken.json.JSONObject;
+import ninja.bytecode.shuriken.logging.L;
 
 public class Iris extends JavaPlugin implements Listener
 {
@@ -34,14 +44,21 @@ public class Iris extends JavaPlugin implements Listener
 	public static Settings settings;
 	public static Iris instance;
 	public static GMap<String, GMap<String, Function<Vector, Double>>> values;
+	public static GMap<String, IrisDimension> dimensions;
+	public static GMap<String, IrisBiome> biomes;
+	public static GMap<String, SchematicGroup> schematics;
 
 	public void onEnable()
 	{
 		Direction.calculatePermutations();
+		dimensions = new GMap<>();
+		biomes = new GMap<>();
+		schematics = new GMap<>();
 		profiler = new Profiler(512);
 		values = new GMap<>();
 		instance = this;
 		settings = new Settings();
+		loadContent();
 		gen = new IrisGenerator();
 		genPool = new TaskExecutor(getTC(), settings.performance.threadPriority, "Iris Generator");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
@@ -70,20 +87,27 @@ public class Iris extends JavaPlugin implements Listener
 				Bukkit.unloadWorld(i, false);
 			}
 		}
+	}
+
+	private void loadContent()
+	{
+		L.i("Loading Content");
 		
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> {
-			for(World i : Bukkit.getWorlds())
-			{
-				if(i.getGenerator() instanceof IrisGenerator)
-				{
-					for(Player j : i.getPlayers())
-					{
-						IrisBiome biome = IrisBiome.findByBiome(j.getLocation().getBlock().getBiome());
-						biome.applyEffects(j);
-					}
-				}
-			}
-		}, 0, 15);
+		try
+		{
+			IrisPack master = new IrisPack(loadJSON("pack/manifest.json"));
+			master.load();
+		}
+		
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
+
+		L.i("Dimensions: " + dimensions.size());
+		L.i("Biomes: " + biomes.size());
+		L.i("Schematic Groups: " + schematics.size());
+		L.flush();
 	}
 
 	private int getTC()
@@ -137,5 +161,33 @@ public class Iris extends JavaPlugin implements Listener
 		}
 
 		values.get(w).put(t, d);
+	}
+	
+	public static IrisDimension loadDimension(String s) throws JSONException, IOException
+	{
+		L.i("Loading Iris Dimension " + s);
+		return new IrisDimension(loadJSON("pack/dimensions/" + s + ".json"));
+	}
+	
+	public static IrisBiome loadBiome(String s) throws JSONException, IOException
+	{
+		L.i("Loading Iris Biome " + s);
+		return new IrisBiome(loadJSON("pack/biomes/" + s + ".json"));
+	}
+	
+	public static Schematic loadSchematic(String s) throws IOException
+	{
+		L.i("Loading Iris Object " + s);
+		return Schematic.load(loadResource("pack/objects/" + s + ".ish"));
+	}
+	
+	public static JSONObject loadJSON(String s) throws JSONException, IOException
+	{
+		return new JSONObject(IO.readAll(loadResource(s)));
+	}
+
+	public static InputStream loadResource(String string)
+	{
+		return Iris.class.getResourceAsStream("/" + string);
 	}
 }

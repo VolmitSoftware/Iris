@@ -1,0 +1,13 @@
+{
+    "name": "Desert Hills",
+    "derivative": "DESERT_HILLS",
+    "surface": [
+        "SAND"
+    ],
+    "dirt": [
+        "SANDSTONE"
+    ],
+    "scatter":[
+        "DEAD_BUSH=0.005"
+    ]
+}

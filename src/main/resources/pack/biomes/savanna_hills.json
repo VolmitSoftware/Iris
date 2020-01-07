@@ -1,0 +1,7 @@
+{
+    "name": "Savanna Hills",
+    "derivative": "SAVANNA_ROCK",
+    "scatter":[
+        "LONG_GRASS:1=0.18"
+    ]
+}

@@ -4,8 +4,8 @@ import java.util.function.Supplier;
 
 import org.bukkit.util.BlockVector;
 
-import ninja.bytecode.iris.generator.biome.IrisBiome;
 import ninja.bytecode.iris.schematic.Schematic;
+import ninja.bytecode.iris.spec.IrisBiome;
 import ninja.bytecode.shuriken.collections.GMap;
 
 public class ChunkPlan

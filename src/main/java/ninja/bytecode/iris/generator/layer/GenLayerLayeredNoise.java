@@ -39,6 +39,6 @@ public class GenLayerLayeredNoise extends GenLayer
 	@Override
 	public double generateLayer(double gnoise, double dx, double dz)
 	{
-		return 0.65* gen.noise(gnoise, dx + (fract.noise(gnoise, dx, dz) * 333), dz - (fract.noise(dz, dx, gnoise) * 333));
+		return 0.65 * gen.noise(gnoise, dx + (fract.noise(gnoise, dx, dz) * 333), dz - (fract.noise(dz, dx, gnoise) * 333));
 	}
 }

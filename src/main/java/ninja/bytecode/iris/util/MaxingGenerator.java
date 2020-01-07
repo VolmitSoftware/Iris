@@ -21,7 +21,7 @@ public class MaxingGenerator
 			gen[i] = factory.apply(gen[i]);
 		}
 	}
-	
+
 	public double getEdge(double... dim)
 	{
 		double b = 0;
@@ -61,8 +61,8 @@ public class MaxingGenerator
 	public boolean hasBorder(int checks, double distance, double... dims)
 	{
 		int current = getIndex(dims);
-		double ajump = 360D / (double)checks;
-		
+		double ajump = 360D / (double) checks;
+
 		if(dims.length == 2)
 		{
 			for(int i = 0; i < checks; i++)
@@ -75,7 +75,7 @@ public class MaxingGenerator
 				}
 			}
 		}
-		
+
 		if(dims.length == 3)
 		{
 			for(int i = 0; i < checks; i++)
@@ -89,10 +89,10 @@ public class MaxingGenerator
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public static class EnumMaxingGenerator<T> extends MaxingGenerator
 	{
 		private T[] choices;
@@ -100,6 +100,12 @@ public class MaxingGenerator
 		public EnumMaxingGenerator(RNG rng, double scale, int octaves, T[] choices, Function<CNG, CNG> factory)
 		{
 			super(rng, choices.length, scale / (double) choices.length, octaves, factory);
+
+			if(choices.length == 0)
+			{
+				throw new RuntimeException("Must contain more than 0 choices!");
+			}
+
 			this.choices = choices;
 		}
 

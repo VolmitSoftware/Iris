@@ -12,22 +12,25 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.UNLIMITED;
 		public int threadCount = 12;
 		public int threadPriority = Thread.MAX_PRIORITY;
-		public boolean loadonstart = false;
+		public boolean loadonstart = true;
 	}
 
 	public static class GeneratorSettings
 	{ 
-		public double horizontalZoom = 0.525; // 0.525
+		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
+		public double landScale = 0.125;
+		public double landChance = 0.529;
+		public double roughness = 1.333;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
-		public double heightScale = 1;
+		public double heightScale = 0.56;
 		public double superHeightScale = 0.95;
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
 		public double caveDensity = 1;
-		public double biomeScale = 2.46;
+		public double biomeScale = 2.5;
 		public boolean flatBedrock = false;
 		public boolean doSchematics = true;
 	}

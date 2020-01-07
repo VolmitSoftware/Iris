@@ -7,6 +7,51 @@ public class MB
 	public final Material material;
 	public final byte data;
 	
+	@SuppressWarnings("deprecation")
+	public static MB of(String dat)
+	{
+		String material = dat;
+		byte data = 0;
+		
+		if(dat.contains(":"))
+		{
+			material = dat.split("\\Q:\\E")[0];
+			data = Integer.valueOf(dat.split("\\Q:\\E")[1]).byteValue();
+		}
+		
+		try
+		{
+			return new MB(Material.getMaterial(Integer.valueOf(material)), data);
+		}
+		
+		catch(Throwable e)
+		{
+			
+		}
+		
+		try
+		{
+			return new MB(Material.getMaterial(material), data);
+		}
+		
+		catch(Throwable e)
+		{
+			
+		}
+		
+		return MB.of(Material.AIR);
+	}
+	
+	public String toString()
+	{
+		if(data == 0)
+		{
+			return material.name();
+		}
+		
+		return material.name() + ":" + data;
+	}
+	
 	public MB(Material material, int data)
 	{
 		this.material = material;

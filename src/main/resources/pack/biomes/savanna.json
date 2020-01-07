@@ -1,0 +1,7 @@
+{
+    "name": "Savanna",
+    "derivative": "SAVANNA",
+    "scatter":[
+        "LONG_GRASS:1=0.18"
+    ]
+}

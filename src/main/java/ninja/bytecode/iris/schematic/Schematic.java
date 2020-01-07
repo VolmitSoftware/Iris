@@ -170,12 +170,22 @@ public class Schematic
 			}
 		}
 	}
+	
+	public static Schematic load(InputStream in) throws IOException
+	{
+		Schematic s = new Schematic(1, 1, 1);
+		s.read(in);
+
+		L.i("Loaded Internal Schematic: " + s.getSchematic().size());
+		return s;
+	}
 
 	public static Schematic load(File f) throws IOException
 	{
 		Schematic s = new Schematic(1, 1, 1);
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
+		
 
 		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;

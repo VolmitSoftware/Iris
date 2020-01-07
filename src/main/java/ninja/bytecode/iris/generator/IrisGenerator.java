@@ -83,6 +83,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		this(Iris.dimensions.get("overworld"));
 	}
 	
+	public GList<IrisBiome> getLoadedBiomes()
+	{
+		return IrisBiome.getAllBiomes().copy().add(dim.getBiomes());
+	}
+	
 	public IrisGenerator(IrisDimension dim)
 	{
 		this.dim = dim;

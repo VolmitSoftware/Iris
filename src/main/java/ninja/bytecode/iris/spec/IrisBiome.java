@@ -54,48 +54,6 @@ public class IrisBiome
 			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
 
-//	public static final IrisBiome FOREST = new IrisBiome("Forest", Biome.FOREST)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome FOREST_HILLS = new IrisBiome("Forest Hills", Biome.FOREST_HILLS)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome FOREST_MOUNTAINS = new IrisBiome("Forest Mountains", Biome.MUTATED_EXTREME_HILLS_WITH_TREES)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome HAUNTED_FOREST = new IrisBiome("Haunted Forest", Biome.MUTATED_SWAMPLAND)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13)
-//			.surface(MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.GRASS), MB.of(Material.SOUL_SAND), MB.of(Material.DIRT), MB.of(Material.DIRT, 1), MB.of(Material.DIRT, 2))
-//			.scatterSurface();
-//	public static final IrisBiome BIRCH_FOREST = new IrisBiome("Birch Forest", Biome.BIRCH_FOREST)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome BIRCH_FOREST_HILLS = new IrisBiome("Birch Forest Hills", Biome.BIRCH_FOREST_HILLS)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome ROOFED_FOREST = new IrisBiome("Roofed Forest", Biome.ROOFED_FOREST)
-//			.scatter(MB.of(Material.LONG_GRASS, 1), 0.23)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13);
-//	public static final IrisBiome TAIGA = new IrisBiome("Taiga", Biome.TAIGA)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.07);
-//	public static final IrisBiome EXTREME_HILLS = new IrisBiome("Extreme Hills", Biome.EXTREME_HILLS)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04)
-//			.height(0.28);
-//	public static final IrisBiome EXTREME_HILLS_TREES = new IrisBiome("Extreme Hills +", Biome.EXTREME_HILLS_WITH_TREES)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.09);
-//	public static final IrisBiome TAIGA_COLD = new IrisBiome("Taiga Cold", Biome.TAIGA_COLD)
-//			.scatter(MB.of(Material.LONG_GRASS, 2), 0.04);
-//	public static final IrisBiome TAIGA_COLD_HILLS = new IrisBiome("Taiga Cold Hills", Biome.TAIGA_COLD_HILLS);
-//	public static final IrisBiome ICE_FLATS = new IrisBiome("Ice Flats", Biome.ICE_FLATS);
-//	public static final IrisBiome ICE_MOUNTAINS = new IrisBiome("Ice Mountains", Biome.ICE_MOUNTAINS);
-//	public static final IrisBiome REDWOOD_TAIGA = new IrisBiome("Redwood Taiga", Biome.REDWOOD_TAIGA)
-//			.surface(MB.of(Material.DIRT, 2), MB.of(Material.DIRT, 1))
-//			.simplexSurface();
-//	public static final IrisBiome REDWOOD_TAIGA_HILLS = new IrisBiome("Redwood Taiga Hills", Biome.REDWOOD_TAIGA_HILLS)
-//			.surface(MB.of(Material.DIRT, 2), MB.of(Material.DIRT, 1))
-//			.simplexSurface();
-	
 	//@done
 	private static final GMap<Biome, IrisBiome> map = build();
 	private String name;

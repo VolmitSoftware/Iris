@@ -1,0 +1,23 @@
+{
+    "name": "Haunted Forest",
+    "derivative": "MUTATED_SWAMPLAND",
+    "surface": [
+        "GRASS",
+        "GRASS",
+        "GRASS",
+        "GRASS",
+        "SOUL_SAND",
+        "DIRT",
+        "DIRT:1",
+        "DIRT:2"
+    ],
+    "dirt": [
+        "DIRT",
+        "DIRT:1",
+        "SOUL_SAND"
+    ],
+    "scatter":[
+        "LONG_GRASS:1=0.13"
+    ],
+    "surfaceType": "simplex"
+}

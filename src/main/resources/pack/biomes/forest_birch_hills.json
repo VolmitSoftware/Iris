@@ -1,0 +1,8 @@
+{
+    "name": "Birch Forest Hills",
+    "derivative": "BIRCH_FOREST_HILLS",
+    "scatter":[
+        "LONG_GRASS:1=0.23",
+        "LONG_GRASS:2=0.13"
+    ]
+}

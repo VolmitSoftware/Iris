@@ -1,0 +1,7 @@
+{
+    "name": "Cold Taiga",
+    "derivative": "TAIGA_COLD",
+    "scatter":[
+        "LONG_GRASS:2=0.04"
+    ]
+}

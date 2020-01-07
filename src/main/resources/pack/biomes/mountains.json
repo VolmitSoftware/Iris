@@ -1,0 +1,7 @@
+{
+    "name": "Mountains",
+    "derivative": "EXTREME_HILLS",
+    "scatter":[
+        "LONG_GRASS:2=0.04"
+    ]
+}

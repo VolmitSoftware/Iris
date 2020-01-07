@@ -1,0 +1,13 @@
+{
+    "name": "Redwood Forest",
+    "derivative": "REDWOOD_TAIGA",
+    "surface": [
+        "DIRT",
+        "DIRT:1",
+        "DIRT:2"
+    ],
+    "surfaceType": "simplex",
+    "scatter": [
+        "LONG_GRASS:2=0.07"
+    ]
+}

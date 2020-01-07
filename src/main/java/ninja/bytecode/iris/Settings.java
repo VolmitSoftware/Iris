@@ -19,7 +19,7 @@ public class Settings
 	{ 
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
-		public double landScale = 0.125;
+		public double landScale = 0.205;
 		public double landChance = 0.529;
 		public double roughness = 1.333;
 		public double heightMultiplier = 0.806;

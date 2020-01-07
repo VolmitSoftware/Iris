@@ -45,7 +45,7 @@ public class CommandIris implements CommandExecutor
 						{
 							IrisGenerator g = (IrisGenerator) w.getGenerator();
 							IrisBiome b = null;
-							for(IrisBiome i : IrisBiome.getBiomes())
+							for(IrisBiome i : g.getLoadedBiomes())
 							{
 								if(args[1].toLowerCase().equals(i.getName().toLowerCase().replaceAll("\\Q \\E", "_")))
 								{

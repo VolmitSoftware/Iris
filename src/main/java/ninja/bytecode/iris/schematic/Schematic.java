@@ -70,9 +70,6 @@ public class Schematic
 		w = din.readInt();
 		h = din.readInt();
 		d = din.readInt();
-		din.readInt();
-		din.readInt();
-		din.readInt();
 		int l = din.readInt();
 		clear();
 

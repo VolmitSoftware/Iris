@@ -12,7 +12,7 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.UNLIMITED;
 		public int threadCount = 12;
 		public int threadPriority = Thread.MAX_PRIORITY;
-		public boolean loadonstart = true;
+		public boolean loadonstart = false;
 	}
 
 	public static class GeneratorSettings

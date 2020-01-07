@@ -1,6 +1,5 @@
 package ninja.bytecode.iris;
 
-import java.io.File;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -83,24 +82,6 @@ public class Iris extends JavaPlugin implements Listener
 				}
 			}
 		}, 0, 15);
-	}
-	
-	public void convert(File folder)
-	{
-		if(!folder.exists())
-		{
-			return;
-		}
-		
-		if(folder.isFile())
-		{
-			
-		}
-		
-		for(File i : folder.listFiles())
-		{
-			
-		}
 	}
 
 	private int getTC()

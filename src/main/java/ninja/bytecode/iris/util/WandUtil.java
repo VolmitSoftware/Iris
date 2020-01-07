@@ -15,6 +15,7 @@ import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.schematic.Schematic;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.logging.L;
 
 public class WandUtil
 {
@@ -49,7 +50,6 @@ public class WandUtil
 				byte data = b.getData();
 				
 				BlockVector bv = b.getLocation().subtract(c.getCenter()).toVector().toBlockVector();
-				System.out.println("Load " + bv + " " + b.getType());
 				s.put(bv.getBlockX(), 
 						bv.getBlockY(), 
 						bv.getBlockZ(), 

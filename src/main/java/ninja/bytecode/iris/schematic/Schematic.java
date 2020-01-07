@@ -26,19 +26,13 @@ public class Schematic
 	private int w;
 	private int h;
 	private int d;
-	private int x;
-	private int y;
-	private int z;
 	private final GMap<BlockVector, MB> s;
 
-	public Schematic(int w, int h, int d, int x, int y, int z)
+	public Schematic(int w, int h, int d)
 	{
 		this.w = w;
 		this.h = h;
 		this.d = d;
-		this.x = x;
-		this.y = y;
-		this.z = z;
 		s = new GMap<>();
 		centeredHeight = false;
 	}
@@ -63,21 +57,6 @@ public class Schematic
 		return d;
 	}
 
-	public int getX()
-	{
-		return x;
-	}
-
-	public int getY()
-	{
-		return y;
-	}
-
-	public int getZ()
-	{
-		return z;
-	}
-
 	public GMap<BlockVector, MB> getSchematic()
 	{
 		return s;
@@ -91,9 +70,9 @@ public class Schematic
 		w = din.readInt();
 		h = din.readInt();
 		d = din.readInt();
-		x = din.readInt();
-		y = din.readInt();
-		z = din.readInt();
+		din.readInt();
+		din.readInt();
+		din.readInt();
 		int l = din.readInt();
 		clear();
 
@@ -113,9 +92,6 @@ public class Schematic
 		dos.writeInt(w);
 		dos.writeInt(h);
 		dos.writeInt(d);
-		dos.writeInt(x);
-		dos.writeInt(y);
-		dos.writeInt(z);
 		dos.writeInt(s.size());
 
 		for(BlockVector i : s.keySet())
@@ -128,11 +104,6 @@ public class Schematic
 		}
 
 		dos.close();
-	}
-
-	public BlockVector getOffset()
-	{
-		return new BlockVector(x, y, z);
 	}
 
 	public MB get(int x, int y, int z)
@@ -152,7 +123,7 @@ public class Schematic
 
 	public Schematic copy()
 	{
-		Schematic s = new Schematic(w, h, d, x, y, z);
+		Schematic s = new Schematic(w, h, d);
 		s.fill(this.s);
 		s.centeredHeight = centeredHeight;
 		return s;
@@ -171,7 +142,7 @@ public class Schematic
 
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().subtract(0, centeredHeight ? h / 2 : 0, 0);
+		Location start = new Location(source, wx, wy, wz).clone().add(w / 2, centeredHeight ? 0 : -(h / 2), d / 2);
 
 		for(BlockVector i : getSchematic().k())
 		{
@@ -197,7 +168,7 @@ public class Schematic
 
 	public static Schematic load(File f) throws IOException
 	{
-		Schematic s = new Schematic(1, 1, 1, 1, 1, 1);
+		Schematic s = new Schematic(1, 1, 1);
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
 

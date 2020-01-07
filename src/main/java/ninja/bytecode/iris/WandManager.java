@@ -146,7 +146,7 @@ public class WandManager implements Listener
 		if(e.getMessage().startsWith("/iload "))
 		{
 			e.setCancelled(true);
-			Schematic s = new Schematic(1, 1, 1, 1, 1, 1);
+			Schematic s = new Schematic(1, 1, 1);
 			File f = new File(Iris.instance.getDataFolder(), "schematics/" + e.getMessage().split("\\Q \\E")[1] + ".ish");
 			if(!f.exists())
 			{

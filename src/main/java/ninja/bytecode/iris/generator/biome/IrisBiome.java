@@ -103,6 +103,7 @@ public class IrisBiome
 	public static final IrisBiome SWAMP = new IrisBiome("Swamp", Biome.SWAMPLAND)
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.04)
 			.schematic("tree/willow", 2.5)
+			.schematic("tree/god/willow", 0.01)
 			.schematic("boulder", 0.02)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.03);
 	public static final IrisBiome PLAINS = new IrisBiome("Plains", Biome.PLAINS)
@@ -151,6 +152,7 @@ public class IrisBiome
 			.scatter(MB.of(Material.LONG_GRASS, 1), 0.13)
 			.scatter(MB.of(Material.LONG_GRASS, 2), 0.13)
 			.schematic("tree/willow", 1.21)
+			.schematic("tree/god/willow", 0.04)
 			.schematic("tree/oak", 0.71)
 			.schematic("boulder", 0.01)
 			.schematic("boulder/smooth", 0.02)

@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
-import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.schematic.Schematic;
 import ninja.bytecode.shuriken.collections.GList;
@@ -36,8 +35,7 @@ public class WandUtil
 		{
 			Location[] f = getCuboid(wand);
 			Cuboid c = new Cuboid(f[0], f[1]);
-			Vector v = at.clone().subtract(c.getLowerNE()).toVector();
-			Schematic s = new Schematic(c.getSizeX(), c.getSizeY(), c.getSizeZ(), v.getBlockX(), v.getBlockY(), v.getBlockZ());
+			Schematic s = new Schematic(c.getSizeX(), c.getSizeY(), c.getSizeZ());
 			Iterator<Block> bb = c.iterator();
 			while(bb.hasNext())
 			{
@@ -50,9 +48,13 @@ public class WandUtil
 				
 				byte data = b.getData();
 				
-				BlockVector bv = b.getLocation().toVector().toBlockVector().subtract(c.getLowerNE().toVector().toBlockVector()).toBlockVector();
+				BlockVector bv = b.getLocation().subtract(c.getCenter()).toVector().toBlockVector();
 				System.out.println("Load " + bv + " " + b.getType());
-				s.put(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), new MB(b.getType(), data));
+				s.put(bv.getBlockX(), 
+						bv.getBlockY(), 
+						bv.getBlockZ(), 
+						
+						new MB(b.getType(), data));
 			}
 
 			return s;

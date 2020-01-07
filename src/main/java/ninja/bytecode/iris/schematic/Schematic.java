@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Catalyst12;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.shuriken.collections.GMap;
@@ -137,9 +138,15 @@ public class Schematic
 		s.put(b);
 	}
 
+	public int sh(int g)
+	{
+		int m = (g / 2);
+		return g % 2 == 0 ? m : m + 1;
+	}
+
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().add(w / 2, centeredHeight ? 0 : -(h / 2), d / 2);
+		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
 
 		for(BlockVector i : getSchematic().k())
 		{
@@ -153,6 +160,7 @@ public class Schematic
 
 			try
 			{
+				Iris.refresh.add(f.getChunk());
 				Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
 			}
 

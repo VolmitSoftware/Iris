@@ -233,17 +233,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 					p.add(new BiomeBiasSchematicPopulator(i.getSchematicGroups().get(j), i, gs.getSchematics().toArray(new Schematic[gs.size()])));
 				}
 			}
-
-			p.add(new BlockPopulator()
-			{
-				@SuppressWarnings("deprecation")
-				@Override
-				public void populate(World world, Random random, Chunk source)
-				{
-					Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> world.refreshChunk(source.getX(), source.getZ()), 50);
-				}
-			});
-
+			
 			L.i("Initialized " + b + " Biomes with " + p.size() + " Populators using " + sch + " Schematics");
 		}
 

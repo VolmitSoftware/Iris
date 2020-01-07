@@ -4,15 +4,14 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,6 +27,7 @@ import ninja.bytecode.shuriken.execution.TaskExecutor;
 
 public class Iris extends JavaPlugin implements Listener
 {
+	public static GSet<Chunk> refresh = new GSet<>();
 	public static Profiler profiler;
 	public static TaskExecutor genPool;
 	public static IrisGenerator gen;
@@ -45,6 +45,8 @@ public class Iris extends JavaPlugin implements Listener
 		gen = new IrisGenerator();
 		genPool = new TaskExecutor(getTC(), settings.performance.threadPriority, "Iris Generator");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
+		getCommand("iris").setExecutor(new CommandIris());
+		getCommand("ish").setExecutor(new CommandIsh());
 		new WandManager();
 		
 		// Debug world regens
@@ -117,23 +119,7 @@ public class Iris extends JavaPlugin implements Listener
 		return new IrisGenerator();
 	}
 
-	@EventHandler
-	public void on(PlayerCommandPreprocessEvent e)
-	{
-		if(e.getMessage().toLowerCase().equals("/iris gen"))
-		{
-			e.setCancelled(true);
-			World wold = e.getPlayer().getWorld();
-			World w = createIrisWorld();
-			e.getPlayer().teleport(new Location(w, 0, 256, 0));
-			e.getPlayer().setFlying(true);
-			e.getPlayer().setGameMode(GameMode.CREATIVE);
-			wold.setAutoSave(false);
-			Bukkit.unloadWorld(wold, false);
-		}
-	}
-
-	private World createIrisWorld()
+	public World createIrisWorld()
 	{
 		World ww = Bukkit.createWorld(new WorldCreator("iris-worlds/" + UUID.randomUUID().toString()).generator(new IrisGenerator()).seed(5944323));
 		ww.setSpawnFlags(false, false);

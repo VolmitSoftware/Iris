@@ -15,7 +15,6 @@ import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.schematic.Schematic;
 import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.logging.L;
 
 public class WandUtil
 {
@@ -108,6 +107,11 @@ public class WandUtil
 		Location[] f = getCuboid(item);
 		Location other = left ? f[1] : f[0];
 
+		if(other != null && !other.getWorld().getName().equals(a.getWorld().getName()))
+		{
+			other = null;
+		}
+		
 		return createWand(left ? a : other, left ? other : a);
 	}
 

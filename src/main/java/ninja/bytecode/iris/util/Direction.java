@@ -62,7 +62,7 @@ public enum Direction
 		for(Direction i : values())
 		{
 			Vector x = i.toVector();
-			double g = x.distance(v);
+			double g = x.dot(v);
 
 			if(g < m)
 			{

@@ -422,6 +422,17 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
 		}
 	}
 
+	public Cuboid expand(Direction dir, int amount)
+	{
+		int ax = dir.toVector().getBlockX() == 1 ? amount : 0;
+		int sx = dir.toVector().getBlockX() == -1 ? -amount : 0;
+		int ay = dir.toVector().getBlockY() == 1 ? amount : 0;
+		int sy = dir.toVector().getBlockY() == -1 ? -amount : 0;
+		int az = dir.toVector().getBlockZ() == 1 ? amount : 0;
+		int sz = dir.toVector().getBlockZ() == -1 ? -amount : 0;
+		return new Cuboid(worldName, x1 + sx, y1 + sy, z1 + sz, x2 + ax, y2 + ay, z2 + az);
+	}
+
 	/**
 	 * Shift the Cuboid in the given direction by the given amount.
 	 *

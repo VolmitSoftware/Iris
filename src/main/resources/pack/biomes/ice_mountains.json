@@ -1,4 +1,10 @@
 {
     "name": "Ice Mountains",
-    "derivative": "ICE_MOUNTAINS"
+    "derivative": "ICE_MOUNTAINS",
+    "height": 0.412,
+    "objects": [
+        "tree/spruce/medium=0.07",
+        "tree/spruce/small=0.25",
+        "tree/spruce/dead/medium=0.035"
+    ]
 }

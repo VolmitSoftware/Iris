@@ -3,5 +3,8 @@
     "derivative": "MUSHROOM_ISLAND",
     "surface": [
         "MYCEL"
+    ],
+    "objects":[
+        "mushroom/red=0.23"
     ]
 }

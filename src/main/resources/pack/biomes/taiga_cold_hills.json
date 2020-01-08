@@ -3,5 +3,11 @@
     "derivative": "TAIGA_COLD",
     "scatter":[
         "LONG_GRASS:2=0.04"
+    ],
+    "height":0.12,
+    "objects": [
+        "tree/spruce/medium=0.27",
+        "tree/spruce/small=1.7",
+        "tree/spruce/dead/medium=0.39"
     ]
 }

@@ -170,7 +170,6 @@ public class IrisBiome
 
 			for(String i : schematicGroups.k())
 			{
-				L.v("Loading Object Group: " + i);
 				Iris.loadSchematicGroup(i);
 			}
 		});

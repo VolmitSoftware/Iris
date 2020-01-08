@@ -246,13 +246,11 @@ public class Iris extends JavaPlugin implements Listener
 
 	public static IrisDimension loadDimension(String s) throws JSONException, IOException
 	{
-		L.i("Loading Iris Dimension " + s);
 		return new IrisDimension(loadJSON("pack/dimensions/" + s + ".json"));
 	}
 
 	public static IrisBiome loadBiome(String s) throws JSONException, IOException
 	{
-		L.i("Loading Iris Biome " + s);
 		return new IrisBiome(loadJSON("pack/biomes/" + s + ".json"));
 	}
 
@@ -263,7 +261,6 @@ public class Iris extends JavaPlugin implements Listener
 		if(g != null)
 		{
 			schematics.put(s, g);
-			L.i("Loaded Object Group: " + g.getName() + " (" + g.getSchematics().size() + " Objects)");
 			return g;
 		}
 
@@ -274,7 +271,6 @@ public class Iris extends JavaPlugin implements Listener
 
 	public static Schematic loadSchematic(String s) throws IOException
 	{
-		L.i("Loading Iris Object " + s);
 		return Schematic.load(loadResource("pack/objects/" + s + ".ish"));
 	}
 
@@ -289,7 +285,6 @@ public class Iris extends JavaPlugin implements Listener
 
 		if(internal.exists())
 		{
-			L.v("Loading Group: " + string);
 			return internal;
 		}
 

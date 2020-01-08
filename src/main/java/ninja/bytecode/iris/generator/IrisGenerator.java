@@ -20,8 +20,7 @@ import ninja.bytecode.iris.generator.layer.GenLayerOreGold;
 import ninja.bytecode.iris.generator.layer.GenLayerOreIron;
 import ninja.bytecode.iris.generator.layer.GenLayerOreLapis;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
-import ninja.bytecode.iris.generator.populator.BiomeBiasSchematicPopulator;
-import ninja.bytecode.iris.schematic.Schematic;
+import ninja.bytecode.iris.generator.populator.ObjectPopulator;
 import ninja.bytecode.iris.schematic.SchematicGroup;
 import ninja.bytecode.iris.spec.IrisBiome;
 import ninja.bytecode.iris.spec.IrisDimension;
@@ -255,28 +254,13 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		if(Iris.settings.gen.doSchematics)
 		{
-			int b = 0;
-			int sch = 0;
-			for(IrisBiome i : IrisBiome.getAllBiomes().copy().add(dim.getBiomes()))
-			{
-				b++;
-				L.i("Processing Populators for Biome " + i.getName());
-
-				for(String j : i.getSchematicGroups().keySet())
-				{
-					SchematicGroup gs = loadSchematics(j);
-					sch += gs.size();
-					p.add(new BiomeBiasSchematicPopulator(i.getSchematicGroups().get(j), i, gs.getSchematics().toArray(new Schematic[gs.size()])));
-				}
-			}
-
-			L.i("Initialized " + b + " Biomes with " + p.size() + " Populators using " + sch + " Schematics");
+			p.add(new ObjectPopulator(this));
 		}
 
 		return p;
 	}
 
-	private SchematicGroup loadSchematics(String folder)
+	public SchematicGroup loadSchematics(String folder)
 	{
 		return Iris.schematics.get(folder);
 	}

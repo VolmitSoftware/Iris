@@ -7,6 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
@@ -122,9 +123,10 @@ public class SchematicGroup
 		GList<Schematic> inject = new GList<>();
 		L.v("Processing " + name + " Objects");
 		L.v("# Creating Rotations for " + getSchematics().size() + " Objects");
-
+		String x = Thread.currentThread().getName();
 		ReentrantLock rr = new ReentrantLock();
-		TaskGroup gg = Iris.buildPool.startWork();
+		TaskExecutor ex = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, x + "/Subroutine ");
+		TaskGroup gg = ex.startWork();
 		for(Schematic i : getSchematics())
 		{
 			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
@@ -142,7 +144,7 @@ public class SchematicGroup
 		}
 		
 		gg.execute();
-		gg = Iris.buildPool.startWork();
+		gg = ex.startWork();
 		getSchematics().add(inject);
 		L.v("# Generated " + inject.size() + " Rotated Objects to " + getName());
 
@@ -159,5 +161,46 @@ public class SchematicGroup
 		}
 		
 		gg.execute();
+		ex.close();
+	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((flags == null) ? 0 : flags.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + priority;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		SchematicGroup other = (SchematicGroup) obj;
+		if(flags == null)
+		{
+			if(other.flags != null)
+				return false;
+		}
+		else if(!flags.equals(other.flags))
+			return false;
+		if(name == null)
+		{
+			if(other.name != null)
+				return false;
+		}
+		else if(!name.equals(other.name))
+			return false;
+		if(priority != other.priority)
+			return false;
+		return true;
 	}
 }

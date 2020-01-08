@@ -38,6 +38,7 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -49,7 +50,6 @@ public class Iris extends JavaPlugin implements Listener
 	public static GSet<Chunk> refresh = new GSet<>();
 	public static Profiler profiler;
 	public static TaskExecutor genPool;
-	public static TaskExecutor buildPool;
 	public static IrisGenerator gen;
 	public static Settings settings;
 	public static Iris instance;
@@ -60,7 +60,6 @@ public class Iris extends JavaPlugin implements Listener
 
 	public void onEnable()
 	{
-		PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
 		Direction.calculatePermutations();
 		dimensions = new GMap<>();
 		biomes = new GMap<>();
@@ -69,19 +68,19 @@ public class Iris extends JavaPlugin implements Listener
 		values = new GMap<>();
 		instance = this;
 		settings = new Settings();
-		buildPool = new TaskExecutor(getTC(), settings.performance.threadPriority, "Iris Compiler");
 		J.attempt(() -> createTempCache());
 		loadContent();
-		processContent();
 		gen = new IrisGenerator();
 		genPool = new TaskExecutor(getTC(), settings.performance.threadPriority, "Iris Generator");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		getCommand("iris").setExecutor(new CommandIris());
 		getCommand("ish").setExecutor(new CommandIsh());
 		new WandManager();
+		loadComplete();
+	}
 
-		// Debug world regens
-
+	private void loadComplete()
+	{
 		if(settings.performance.loadonstart)
 		{
 			GSet<String> ws = new GSet<>();
@@ -100,24 +99,6 @@ public class Iris extends JavaPlugin implements Listener
 			{
 				Bukkit.unloadWorld(i, false);
 			}
-		}
-
-		double ms = stopwatch.getMilliseconds();
-		
-		J.a(() ->
-		{
-			J.sleep(5000);
-			L.i("Iris Startup Took " + F.duration(ms, 2));
-		});
-	}
-
-	private void processContent()
-	{
-		L.v("Processing Content");
-
-		for(SchematicGroup i : schematics.v())
-		{
-			i.processVariants();
 		}
 	}
 
@@ -158,6 +139,7 @@ public class Iris extends JavaPlugin implements Listener
 
 	private void loadContent()
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		L.i("Loading Content");
 
 		try
@@ -177,11 +159,23 @@ public class Iris extends JavaPlugin implements Listener
 		{
 			m += i.size();
 		}
+
+		L.v("Processing Content");
+
+		TaskExecutor exf = new TaskExecutor(settings.performance.compilerThreads, settings.performance.compilerPriority, "Iris Compiler");
+		TaskGroup gg = exf.startWork();
+		for(SchematicGroup i : schematics.v())
+		{
+			gg.queue(i::processVariants);
+		}
+		gg.execute();
+		exf.close();
+
 		L.i("Dimensions: " + dimensions.size());
 		L.i("Biomes: " + biomes.size());
 		L.i("Object Groups: " + schematics.size());
 		L.i("Objects: " + F.f(m));
-
+		L.i("Compilation Time: " + F.duration(p.getMilliseconds(), 2));
 		L.flush();
 	}
 
@@ -195,6 +189,8 @@ public class Iris extends JavaPlugin implements Listener
 				return Runtime.getRuntime().availableProcessors();
 			case SINGLE_THREADED:
 				return 1;
+			case DOUBLE_CPU:
+				return Runtime.getRuntime().availableProcessors() * 2;
 			case UNLIMITED:
 				return -1;
 			case EXPLICIT:

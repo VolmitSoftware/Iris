@@ -8,6 +8,7 @@ import org.bukkit.World.Environment;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -74,7 +75,8 @@ public class IrisDimension
 	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
 		GList<IrisBiome> b = new GList<>();
-		TaskGroup g = Iris.buildPool.startWork();
+		TaskExecutor ex= new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Dim Compiler");
+		TaskGroup g = ex.startWork();
 		ReentrantLock lock = new ReentrantLock();
 		
 		for(int i = 0; i < a.length(); i++)
@@ -90,6 +92,7 @@ public class IrisDimension
 		}
 		
 		g.execute();
+		ex.close();
 		
 		return b;
 	}

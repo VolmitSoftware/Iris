@@ -17,6 +17,7 @@ import org.bukkit.util.BlockVector;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Catalyst12;
 import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
@@ -28,6 +29,7 @@ public class Schematic
 	private int h;
 	private int d;
 	private final GMap<BlockVector, MB> s;
+	private BlockVector mount;
 
 	public Schematic(int w, int h, int d)
 	{
@@ -36,6 +38,57 @@ public class Schematic
 		this.d = d;
 		s = new GMap<>();
 		centeredHeight = false;
+	}
+
+	public void computeMountShift()
+	{
+		int ly = Integer.MAX_VALUE;
+		
+		for(BlockVector i : s.k())
+		{
+			if(i.getBlockY() < ly)
+			{
+				ly = i.getBlockY();
+			}
+		}
+
+		
+		GList<BlockVector> fmount = new GList<>();
+		
+		for(BlockVector i : s.k())
+		{
+			if(i.getBlockY() == ly)
+			{
+				fmount.add(i);
+			}
+		}
+		
+		double avx[] = new double[fmount.size()];
+		double avy[] = new double[fmount.size()];
+		double avz[] = new double[fmount.size()];
+		int c = 0;
+		
+		for(BlockVector i : fmount)
+		{
+			avx[c] = i.getBlockX();
+			avy[c] = i.getBlockY();
+			avz[c] = i.getBlockZ();
+			c++;
+		}
+		
+		mount = new BlockVector(avg(avx), avg(avy), avg(avz));
+	}
+	
+	private int avg(double[] v)
+	{
+		double g = 0;
+		
+		for(int i = 0; i < v.length; i++)
+		{
+			g+=v[i];
+		}
+		
+		return (int) Math.round(g / (double) v.length);
 	}
 
 	public void setCenteredHeight()
@@ -170,7 +223,7 @@ public class Schematic
 			}
 		}
 	}
-	
+
 	public static Schematic load(InputStream in) throws IOException
 	{
 		Schematic s = new Schematic(1, 1, 1);
@@ -185,7 +238,6 @@ public class Schematic
 		Schematic s = new Schematic(1, 1, 1);
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
-		
 
 		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;

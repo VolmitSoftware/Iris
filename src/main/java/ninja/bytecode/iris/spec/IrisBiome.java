@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
@@ -97,7 +98,14 @@ public class IrisBiome
 		J.attempt(() -> scatterChance = scatterFromJSON(o.getJSONArray("scatter")));
 		J.attempt(() -> simplexScatter = o.getString("surfaceType").equalsIgnoreCase("simplex"));
 		J.attempt(() -> scatterSurface = o.getString("surfaceType").equalsIgnoreCase("scatter"));
-		J.attempt(() -> schematicGroups = strFromJSON(o.getJSONArray("schematics")));
+		J.attempt(() -> {
+			schematicGroups = strFromJSON(o.getJSONArray("objects"));
+			
+			for(String i : schematicGroups.k())
+			{
+				Iris.loadSchematicGroup(i);
+			}
+		});
 	}
 	
 	public JSONObject toJSON()
@@ -110,7 +118,7 @@ public class IrisBiome
 		J.attempt(() -> j.put("dirt", mbListToJSON(dirt)));
 		J.attempt(() -> j.put("scatter", scatterToJson(scatterChance)));
 		J.attempt(() -> j.put("surfaceType", simplexScatter ? "simplex" : scatterSurface ? "scatter" : "na"));
-		J.attempt(() -> j.put("schematics", strToJson(schematicGroups)));
+		J.attempt(() -> j.put("objects", strToJson(schematicGroups)));
 		
 		return j;
 	}

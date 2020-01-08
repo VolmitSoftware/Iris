@@ -9,5 +9,9 @@
     ],
     "scatter":[
         "DEAD_BUSH=0.008"
+    ],
+    "objects": [
+        "tree/palm/medium=0.25",
+        "tree/palm/small=2.5"
     ]
 }

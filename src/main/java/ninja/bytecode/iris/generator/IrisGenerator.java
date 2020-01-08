@@ -1,7 +1,5 @@
 package ninja.bytecode.iris.generator;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
@@ -34,8 +32,6 @@ import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParallelChunkGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -260,73 +256,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private SchematicGroup loadSchematics(String folder)
 	{
-		if(schematicCache.containsKey(folder))
-		{
-			return schematicCache.get(folder);
-		}
-
-		File f = new File(Iris.instance.getDataFolder(), "objects/" + folder);
-		GList<Schematic> s = new GList<>();
-		GList<String> flags = new GList<>();
-
-		if(f.exists() && f.isDirectory())
-		{
-			for(File i : f.listFiles())
-			{
-				if(i.isFile() && i.getName().endsWith(".ifl"))
-				{
-					try
-					{
-						flags.add(IO.readAll(i).split("\\Q\n\\E"));
-					}
-
-					catch(IOException e)
-					{
-						e.printStackTrace();
-					}
-				}
-
-				if(i.isFile() && i.getName().endsWith(".ish"))
-				{
-					J.attempt(() ->
-					{
-						Schematic sc = Schematic.load(i);
-						s.add(sc);
-					});
-				}
-			}
-		}
-
-		for(String i : flags)
-		{
-			String flag = i.trim().toLowerCase();
-
-			if(flag.equals("center"))
-			{
-				for(Schematic j : s)
-				{
-					j.setCenteredHeight();
-				}
-
-				L.i("Centered " + s.size() + " Schematics");
-			}
-		}
-
-		L.i("Loaded " + s.size() + " Schematics in " + folder);
-		SchematicGroup g = new SchematicGroup(folder);
-		g.setSchematics(s);
-		g.setFlags(flags);
-
-		for(String i : flags)
-		{
-			if(i.startsWith("priority="))
-			{
-				J.attempt(() -> g.setPriority(Integer.valueOf(i.split("\\Q=\\E")[1]).intValue()));
-			}
-		}
-
-		schematicCache.put(folder, g);
-		return g;
+		return Iris.schematics.get(folder);
 	}
 
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)

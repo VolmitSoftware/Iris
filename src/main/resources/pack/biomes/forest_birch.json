@@ -7,6 +7,7 @@
     ],
     "objects": [
         "tree/birch/medium=0.33",
+        "tree/birch/large=0.43",
         "tree/birch/small=2.2"
     ]
 }

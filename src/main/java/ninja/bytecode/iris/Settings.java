@@ -15,7 +15,7 @@ public class Settings
 		public boolean loadonstart = true;
 		public int compilerThreads = 4;
 		public int compilerPriority = Thread.MAX_PRIORITY;
-		public int decorationAccuracy = 3;
+		public int decorationAccuracy = 1;
 	}
 
 	public static class GeneratorSettings
@@ -23,7 +23,7 @@ public class Settings
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
 		public double landScale = 0.205;
-		public double landChance = 0.6;
+		public double landChance = 0.67;
 		public double roughness = 1.333;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
@@ -33,6 +33,7 @@ public class Settings
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
 		public double caveDensity = 0;
+		public double caveScale = 1.45;
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean doSchematics = true;

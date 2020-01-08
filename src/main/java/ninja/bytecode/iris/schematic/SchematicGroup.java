@@ -4,11 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
+import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 
@@ -121,8 +123,6 @@ public class SchematicGroup
 	public void processVariants()
 	{
 		GList<Schematic> inject = new GList<>();
-		L.v("Processing " + name + " Objects");
-		L.v("# Creating Rotations for " + getSchematics().size() + " Objects");
 		String x = Thread.currentThread().getName();
 		ReentrantLock rr = new ReentrantLock();
 		TaskExecutor ex = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, x + "/Subroutine ");
@@ -146,7 +146,6 @@ public class SchematicGroup
 		gg.execute();
 		gg = ex.startWork();
 		getSchematics().add(inject);
-		L.v("# Generated " + inject.size() + " Rotated Objects to " + getName());
 
 		for(Schematic i : getSchematics())
 		{
@@ -162,6 +161,7 @@ public class SchematicGroup
 		
 		gg.execute();
 		ex.close();
+		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE +  name);
 	}
 
 	@Override

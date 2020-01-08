@@ -85,7 +85,6 @@ public class Schematic
 
 		mountHeight = avg(avy);
 		mount = new BlockVector(avg(avx), 0, avg(avz));
-		L.i("Corrected " + getName() + "'s Mount Point: 0,0,0 -> " + mount.getBlockX() + "," + mount.getBlockY() + "," + mount.getBlockZ());
 	}
 
 	private int avg(double[] v)
@@ -260,7 +259,6 @@ public class Schematic
 		Schematic s = new Schematic(1, 1, 1);
 		s.read(in);
 
-		L.i("Loaded Internal Object: " + s.getSchematic().size());
 		return s;
 	}
 
@@ -271,7 +269,6 @@ public class Schematic
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
 
-		L.i("Loaded Object: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;
 	}
 
@@ -335,7 +332,6 @@ public class Schematic
 			{
 				int downshift = Integer.valueOf(j.split("\\Q=\\E")[1]);
 				shift.subtract(new Vector(0, downshift, 0));
-				L.i("Corrected " + getName() + "'s Mount Height: 0,0,0 -> " + shift.getBlockX() + "," + shift.getBlockY() + "," + shift.getBlockZ());
 			}
 		}
 

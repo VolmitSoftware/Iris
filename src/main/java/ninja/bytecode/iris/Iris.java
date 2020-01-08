@@ -78,6 +78,16 @@ public class Iris extends JavaPlugin implements Listener
 		new WandManager();
 		loadComplete();
 	}
+	
+	public static void started(String obj)
+	{
+		profiler.start(obj);
+	}
+	
+	public static void stopped(String obj)
+	{
+		profiler.stop(obj);
+	}
 
 	private void loadComplete()
 	{

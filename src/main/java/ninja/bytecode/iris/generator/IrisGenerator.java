@@ -13,12 +13,6 @@ import ninja.bytecode.iris.generator.layer.GenLayerBase;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
-import ninja.bytecode.iris.generator.layer.GenLayerOreCoal;
-import ninja.bytecode.iris.generator.layer.GenLayerOreDiamond;
-import ninja.bytecode.iris.generator.layer.GenLayerOreEmerald;
-import ninja.bytecode.iris.generator.layer.GenLayerOreGold;
-import ninja.bytecode.iris.generator.layer.GenLayerOreIron;
-import ninja.bytecode.iris.generator.layer.GenLayerOreLapis;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
 import ninja.bytecode.iris.generator.populator.ObjectPopulator;
 import ninja.bytecode.iris.schematic.SchematicGroup;
@@ -64,12 +58,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerRidge glRidge;
 	private GenLayerBiome glBiome;
 	private GenLayerCaves glCaves;
-	private GenLayerOreIron glOreIron;
-	private GenLayerOreCoal glOreCoal;
-	private GenLayerOreLapis glOreLapis;
-	private GenLayerOreGold glOreGold;
-	private GenLayerOreEmerald glOreEmerald;
-	private GenLayerOreDiamond glOreDiamond;
 	private RNG rTerrain;
 	private IrisDimension dim;
 	private World world;
@@ -121,12 +109,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glRidge = new GenLayerRidge(this, world, random, rTerrain.nextParallelRNG(3));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
-		glOreIron = new GenLayerOreIron(this, world, random, rTerrain.nextParallelRNG(-500), 10);
-		glOreLapis = new GenLayerOreLapis(this, world, random, rTerrain.nextParallelRNG(-501), 15);
-		glOreCoal = new GenLayerOreCoal(this, world, random, rTerrain.nextParallelRNG(-502), 20);
-		glOreGold = new GenLayerOreGold(this, world, random, rTerrain.nextParallelRNG(-503), 25);
-		glOreEmerald = new GenLayerOreEmerald(this, world, random, rTerrain.nextParallelRNG(-504), 30);
-		glOreDiamond = new GenLayerOreDiamond(this, world, random, rTerrain.nextParallelRNG(-505), 35);
 	}
 
 	@Override
@@ -224,14 +206,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 			setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		glCaves.genCaves(wxx, wzx, x, z, height, this);
-		glOreIron.genOre(wxx, wzx, x, z, height, this, biome);
-		glOreLapis.genOre(wxx, wzx, x, z, height, this, biome);
-		glOreCoal.genOre(wxx, wzx, x, z, height, this, biome);
-		glOreGold.genOre(wxx, wzx, x, z, height, this, biome);
-		glOreEmerald.genOre(wxx, wzx, x, z, height, this, biome);
-		glOreDiamond.genOre(wxx, wzx, x, z, height, this, biome);
-
+		plan.caveMs(glCaves.genCaves(wxx, wzx, x, z, height, this));
+		
 		return biome.getRealBiome();
 	}
 

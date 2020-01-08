@@ -102,5 +102,12 @@ public class SchematicGroup
 	public void processVariants()
 	{
 		L.v("Processing " + name + " Objects");
+		
+		for(Schematic i : getSchematics())
+		{
+			L.v("# Processing " + i.getName());
+			L.flush();
+			i.computeMountShift();
+		}
 	}
 }

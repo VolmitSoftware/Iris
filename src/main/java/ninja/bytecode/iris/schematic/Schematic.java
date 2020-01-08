@@ -28,8 +28,10 @@ public class Schematic
 	private int w;
 	private int h;
 	private int d;
+	private String name = "?";
 	private final GMap<BlockVector, MB> s;
 	private BlockVector mount;
+	private int mountHeight;
 
 	public Schematic(int w, int h, int d)
 	{
@@ -43,7 +45,7 @@ public class Schematic
 	public void computeMountShift()
 	{
 		int ly = Integer.MAX_VALUE;
-		
+
 		for(BlockVector i : s.k())
 		{
 			if(i.getBlockY() < ly)
@@ -52,9 +54,8 @@ public class Schematic
 			}
 		}
 
-		
 		GList<BlockVector> fmount = new GList<>();
-		
+
 		for(BlockVector i : s.k())
 		{
 			if(i.getBlockY() == ly)
@@ -62,12 +63,12 @@ public class Schematic
 				fmount.add(i);
 			}
 		}
-		
+
 		double avx[] = new double[fmount.size()];
 		double avy[] = new double[fmount.size()];
 		double avz[] = new double[fmount.size()];
 		int c = 0;
-		
+
 		for(BlockVector i : fmount)
 		{
 			avx[c] = i.getBlockX();
@@ -75,19 +76,21 @@ public class Schematic
 			avz[c] = i.getBlockZ();
 			c++;
 		}
-		
-		mount = new BlockVector(avg(avx), avg(avy), avg(avz));
+
+		mountHeight = avg(avy);
+		mount = new BlockVector(avg(avx), 0, avg(avz));
+		L.i("  Corrected Mount Point: 0,0,0 -> " + mount.getBlockX() + "," + mount.getBlockY() + "," + mount.getBlockZ());
 	}
-	
+
 	private int avg(double[] v)
 	{
 		double g = 0;
-		
+
 		for(int i = 0; i < v.length; i++)
 		{
-			g+=v[i];
+			g += v[i];
 		}
-		
+
 		return (int) Math.round(g / (double) v.length);
 	}
 
@@ -199,8 +202,14 @@ public class Schematic
 
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
+		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d)).subtract(mount);
+		int highestY = source.getHighestBlockYAt(start);
 
+		if(start.getBlockY() + mountHeight > highestY)
+		{
+			start.subtract(0, start.getBlockY() + mountHeight - highestY, 0);
+		}
+				
 		for(BlockVector i : getSchematic().k())
 		{
 			MB b = getSchematic().get(i);
@@ -236,10 +245,16 @@ public class Schematic
 	public static Schematic load(File f) throws IOException
 	{
 		Schematic s = new Schematic(1, 1, 1);
+		s.name = f.getName().replaceAll("\\Q.ish\\E", "");
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
 
 		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;
+	}
+
+	public String getName()
+	{
+		return name;
 	}
 }

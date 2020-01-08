@@ -7,11 +7,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.zip.GZIPInputStream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
+import org.bukkit.material.Button;
+import org.bukkit.material.Directional;
+import org.bukkit.material.MaterialData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -230,8 +235,16 @@ public class Schematic
 			{
 				for(Location j : undo.k())
 				{
-					Catalyst12.setBlock(source, j.getBlockX(), j.getBlockY(), j.getBlockZ(), undo.get(j));
-					Iris.refresh.add(j.getChunk());
+					if(Iris.settings.performance.fastPlacement)
+					{
+						Catalyst12.setBlock(source, j.getBlockX(), j.getBlockY(), j.getBlockZ(), undo.get(j));
+						Iris.refresh.add(j.getChunk());
+					}
+
+					else
+					{
+						source.getBlockAt(j.getBlockX(), j.getBlockY(), j.getBlockZ()).setTypeIdAndData(undo.get(j).material.getId(), undo.get(j).data, false);
+					}
 				}
 
 				return;
@@ -244,9 +257,17 @@ public class Schematic
 
 			try
 			{
-				Iris.refresh.add(f.getChunk());
 				undo.put(f, MB.of(f.getBlock().getType(), f.getBlock().getData()));
-				Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
+				if(Iris.settings.performance.fastPlacement)
+				{
+					Iris.refresh.add(f.getChunk());
+					Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
+				}
+
+				else
+				{
+					source.getBlockAt(f.getBlockX(), f.getBlockY(), f.getBlockZ()).setTypeIdAndData(b.material.getId(), b.data, false);
+				}
 			}
 
 			catch(Throwable e)
@@ -288,10 +309,44 @@ public class Schematic
 
 		for(BlockVector i : g.k())
 		{
-			s.put(VectorMath.rotate(from, to, i).toBlockVector(), g.get(i));
+			MB mb = rotate(from, to, g.get(i));
+			s.put(VectorMath.rotate(from, to, i).toBlockVector(), mb);
 		}
 
 		name = name + "-rt" + to.name();
+	}
+
+	@SuppressWarnings("deprecation")
+	private MB rotate(Direction from, Direction to, MB mb)
+	{
+		Class<? extends MaterialData> cl = mb.material.getData();
+
+		if(cl.isAssignableFrom(Directional.class))
+		{
+			try
+			{
+				Directional d = (Directional) cl.getConstructor(int.class, byte.class).newInstance(mb.material.getId(), mb.data);
+				BlockFace f = d.getFacing();
+				Vector mod = new Vector(f.getModX(), f.getModY(), f.getModZ());
+				Vector modded = VectorMath.rotate(from, to, mod);
+
+				for(BlockFace i : BlockFace.values())
+				{
+					if(i.getModX() == modded.getBlockX() && i.getModY() == modded.getBlockY() && i.getModZ() == modded.getBlockZ())
+					{
+						d.setFacingDirection(i);
+						return new MB(mb.material, ((MaterialData) d).getData());
+					}
+				}
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		return mb;
 	}
 
 	public void computeFlag(String j)

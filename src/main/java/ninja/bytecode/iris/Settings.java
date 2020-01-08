@@ -12,11 +12,12 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.MATCH_CPU;
 		public int threadCount = 1;
 		public int threadPriority = Thread.MIN_PRIORITY;
-		public boolean loadonstart = true;
+		public boolean loadonstart = false;
+		public boolean fastPlacement = false;
 	}
 
 	public static class GeneratorSettings
-	{ 
+	{
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
 		public double landScale = 0.205;

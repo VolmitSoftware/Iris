@@ -217,7 +217,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 				mb = BEDROCK;
 			}
 
-			if(Iris.settings.gen.flatBedrock ? i == 1 : i < glBase.scatterInt(x, i, z, 3))
+			if(!Iris.settings.gen.flatBedrock ? i <= 2 : i < glBase.scatterInt(x, i, z, 3))
 			{
 				mb = BEDROCK;
 			}

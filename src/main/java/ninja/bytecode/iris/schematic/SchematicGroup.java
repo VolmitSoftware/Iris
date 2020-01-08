@@ -143,7 +143,6 @@ public class SchematicGroup
 		
 		gg.execute();
 		gg = Iris.buildPool.startWork();
-
 		getSchematics().add(inject);
 		L.v("# Generated " + inject.size() + " Rotated Objects to " + getName());
 

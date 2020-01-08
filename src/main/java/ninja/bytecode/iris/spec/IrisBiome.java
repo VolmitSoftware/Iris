@@ -13,7 +13,6 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONObject;
-import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;

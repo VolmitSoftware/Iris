@@ -25,6 +25,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.schematic.Schematic;
 import ninja.bytecode.iris.schematic.SchematicGroup;
@@ -60,6 +61,7 @@ public class Iris extends JavaPlugin implements Listener
 
 	public void onEnable()
 	{
+		L.consoleConsumer = (s) -> Bukkit.getConsoleSender().sendMessage(s);
 		Direction.calculatePermutations();
 		dimensions = new GMap<>();
 		biomes = new GMap<>();
@@ -78,12 +80,12 @@ public class Iris extends JavaPlugin implements Listener
 		new WandManager();
 		loadComplete();
 	}
-	
+
 	public static void started(String obj)
 	{
 		profiler.start(obj);
 	}
-	
+
 	public static void stopped(String obj)
 	{
 		profiler.stop(obj);
@@ -170,7 +172,7 @@ public class Iris extends JavaPlugin implements Listener
 			m += i.size();
 		}
 
-		L.v("Processing Content");
+		L.v(ChatColor.LIGHT_PURPLE + "Processing Content");
 
 		TaskExecutor exf = new TaskExecutor(settings.performance.compilerThreads, settings.performance.compilerPriority, "Iris Compiler");
 		TaskGroup gg = exf.startWork();
@@ -180,12 +182,12 @@ public class Iris extends JavaPlugin implements Listener
 		}
 		gg.execute();
 		exf.close();
-
-		L.i("Dimensions: " + dimensions.size());
-		L.i("Biomes: " + biomes.size());
-		L.i("Object Groups: " + schematics.size());
-		L.i("Objects: " + F.f(m));
-		L.i("Compilation Time: " + F.duration(p.getMilliseconds(), 2));
+		L.i(ChatColor.LIGHT_PURPLE + "Dimensions: " + ChatColor.WHITE + dimensions.size());
+		L.i(ChatColor.LIGHT_PURPLE + "Biomes: " + ChatColor.WHITE + biomes.size());
+		L.i(ChatColor.LIGHT_PURPLE + "Object Groups: " + ChatColor.WHITE + F.f(schematics.size()));
+		L.i(ChatColor.LIGHT_PURPLE + "Objects: " + ChatColor.WHITE + F.f(m));
+		L.i(ChatColor.LIGHT_PURPLE + "Compilation Time: " + ChatColor.WHITE + F.duration(p.getMilliseconds(), 2));
+		L.i(ChatColor.GREEN + "Iris Dimensions Successfully Compiled!");
 		L.flush();
 	}
 
@@ -288,7 +290,7 @@ public class Iris extends JavaPlugin implements Listener
 			return internal;
 		}
 
-		L.f("Cannot find folder: " + internal.getAbsolutePath());
+		L.f(ChatColor.RED + "Cannot find folder: " + internal.getAbsolutePath());
 		return null;
 	}
 
@@ -298,14 +300,14 @@ public class Iris extends JavaPlugin implements Listener
 
 		if(internal.exists())
 		{
-			L.v("Loading Resource: " + internal.getAbsolutePath());
+			L.v(ChatColor.DARK_PURPLE + "Loading Resource: " + ChatColor.GRAY + internal.getAbsolutePath());
 			L.flush();
 			return new FileInputStream(internal);
 		}
 
 		else
 		{
-			L.f("Cannot find Resource: " + internal.getAbsolutePath());
+			L.f(ChatColor.RED + "Cannot find Resource: " + ChatColor.YELLOW + internal.getAbsolutePath());
 			return null;
 		}
 	}

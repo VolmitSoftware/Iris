@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
@@ -160,7 +161,7 @@ public class SchematicGroup
 		
 		gg.execute();
 		ex.close();
-		L.i("Processed " + F.f(schematics.size()) + " Schematics in " + name);
+		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE +  name);
 	}
 
 	@Override

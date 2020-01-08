@@ -13,18 +13,12 @@ public class ChunkPlan
 	private final GMap<ChunkedVector, Double> heightCache;
 	private final GMap<ChunkedVector, IrisBiome> biomeCache;
 	private final GMap<BlockVector, Schematic> schematics;
-	private double caveMs;
 	
 	public ChunkPlan()
 	{
 		this.schematics = new GMap<>();
 		this.heightCache = new GMap<>();
 		this.biomeCache = new GMap<>();
-	}
-	
-	public double getCaveMs()
-	{
-		return caveMs;
 	}
 	
 	public void planSchematic(BlockVector b, Schematic s)
@@ -73,10 +67,5 @@ public class ChunkPlan
 	public void setHeight(int x, int z, double h)
 	{
 		setHeight(new ChunkedVector(x, z), h);
-	}
-
-	public void caveMs(double genCaves)
-	{
-		caveMs += genCaves;
 	}
 }

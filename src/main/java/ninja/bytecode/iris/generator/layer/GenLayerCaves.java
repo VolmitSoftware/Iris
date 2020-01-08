@@ -9,7 +9,6 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.MaxingGenerator;
-import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -30,9 +29,8 @@ public class GenLayerCaves extends GenLayer
 		
 	}
 	
-	public double genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g)
+	public void genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g)
 	{
-		PrecisionStopwatch p = PrecisionStopwatch.start();
 		for(double itr = 0; itr < 0.1 * Iris.settings.gen.caveDensity; itr += 0.1)
 		{
 			double thickness = 0.25 + itr + (0.5 * caveClamp.noise(wxx, wzx));
@@ -71,8 +69,6 @@ public class GenLayerCaves extends GenLayer
 
 			}
 		}
-		
-		return p.getMilliseconds();
 	}
 
 	@Override

@@ -206,7 +206,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 			setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		plan.caveMs(glCaves.genCaves(wxx, wzx, x, z, height, this));
+		glCaves.genCaves(wxx, wzx, x, z, height, this);
 		
 		return biome.getRealBiome();
 	}

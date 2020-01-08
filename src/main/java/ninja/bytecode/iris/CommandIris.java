@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.spec.IrisBiome;
+import ninja.bytecode.shuriken.format.F;
 
 public class CommandIris implements CommandExecutor
 {
@@ -25,6 +26,7 @@ public class CommandIris implements CommandExecutor
 	{
 		if(args.length == 0)
 		{
+			msg(sender, "/iris timings - Iris Timings");
 			msg(sender, "/iris rtp [biome] - RTP to a biome");
 			msg(sender, "/iris gen - Gen a new Iris World");
 			msg(sender, "/ish - Iris Schematic Commands");
@@ -32,6 +34,17 @@ public class CommandIris implements CommandExecutor
 
 		if(args.length > 0)
 		{
+			if(args[0].equalsIgnoreCase("timings"))
+			{
+				double t = Iris.profiler.getResult("terrain").getAverage();
+				double c = Iris.profiler.getResult("caves").getAverage();
+				double d = Iris.profiler.getResult("decor").getAverage();
+				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t + d, 2));
+				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t, 2));
+				msg(sender, "  \\Caves: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(c, 2));
+				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(d, 2));
+			}
+			
 			if(args[0].equalsIgnoreCase("rtp"))
 			{
 				if(sender instanceof Player)

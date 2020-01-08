@@ -13,7 +13,6 @@ public class Settings
 		public int threadCount = 1;
 		public int threadPriority = Thread.MIN_PRIORITY;
 		public boolean loadonstart = true;
-		public boolean fastPlacement = false;
 		public int compilerThreads = 4;
 		public int compilerPriority = Thread.MAX_PRIORITY;
 		public int decorationAccuracy = 3;

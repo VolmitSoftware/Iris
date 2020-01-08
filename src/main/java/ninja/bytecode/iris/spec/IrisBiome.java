@@ -462,4 +462,17 @@ public class IrisBiome
 	{
 		return schematicGroups;
 	}
+
+	public boolean isSurface(Material t)
+	{
+		for(MB i : surface)
+		{
+			if(i.material.equals(t))
+			{
+				return true;
+			}
+		}
+		
+		return false;
+	}
 }

@@ -3,6 +3,7 @@ package ninja.bytecode.iris.generator.populator;
 import java.util.Random;
 
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -45,6 +46,7 @@ public class ObjectPopulator extends BlockPopulator
 	@Override
 	public void populate(World world, Random random, Chunk source)
 	{
+		Iris.started("decor");
 		GSet<Biome> hits = new GSet<>();
 		
 		for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
@@ -73,11 +75,13 @@ public class ObjectPopulator extends BlockPopulator
 			}
 			
 			hits.add(biome);
-			populate(world, random, source, biome, objects);
+			populate(world, random, source, biome, ibiome, objects);
 		}
+
+		Iris.stopped("decor");
 	}
 	
-	private void populate(World world, Random random, Chunk source, Biome biome, GMap<SchematicGroup, Double> objects)
+	private void populate(World world, Random random, Chunk source, Biome biome, IrisBiome ibiome, GMap<SchematicGroup, Double> objects)
 	{
 		for(SchematicGroup i : objects.k())
 		{
@@ -85,14 +89,15 @@ public class ObjectPopulator extends BlockPopulator
 			{
 				int x = (source.getX() << 4) + random.nextInt(16);
 				int z = (source.getZ() << 4) + random.nextInt(16);
-				Block b = world.getHighestBlockAt(x, z);
+				Block b = world.getHighestBlockAt(x, z).getRelative(BlockFace.DOWN);
+				Material t = b.getType();
 				
-				if(!b.getRelative(BlockFace.DOWN).getType().isSolid())
+				if(!t.isSolid() || !ibiome.isSurface(t))
 				{
 					return;
 				}
 				
-				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(world, x, b.getY() - 1, z);
+				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(world, x, b.getY(), z);
 			}
 		}
 	}

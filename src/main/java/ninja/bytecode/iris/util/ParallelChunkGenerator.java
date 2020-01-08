@@ -42,8 +42,8 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
+		Iris.started("terrain");
 		this.world = world;
-		Shuriken.profiler.start("chunkgen-" + world.getName());
 		data = new AtomicChunkData(world);
 
 		try
@@ -75,7 +75,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			TaskResult r = tg.execute();
 			onPostChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
-			Shuriken.profiler.stop("chunkgen-" + world.getName());
+			Iris.profiler.getResult("caves").put(plan.get().getCaveMs());
 			cg++;
 		}
 
@@ -95,6 +95,8 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			}
 		}
 
+		Iris.stopped("terrain");
+		
 		return data.toChunkData();
 	}
 

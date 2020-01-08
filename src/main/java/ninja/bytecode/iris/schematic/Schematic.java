@@ -7,21 +7,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.zip.GZIPInputStream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.material.Button;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.Catalyst12;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.VectorMath;
@@ -235,16 +231,7 @@ public class Schematic
 			{
 				for(Location j : undo.k())
 				{
-					if(Iris.settings.performance.fastPlacement)
-					{
-						Catalyst12.setBlock(source, j.getBlockX(), j.getBlockY(), j.getBlockZ(), undo.get(j));
-						Iris.refresh.add(j.getChunk());
-					}
-
-					else
-					{
-						source.getBlockAt(j.getBlockX(), j.getBlockY(), j.getBlockZ()).setTypeIdAndData(undo.get(j).material.getId(), undo.get(j).data, false);
-					}
+					source.getBlockAt(j.getBlockX(), j.getBlockY(), j.getBlockZ()).setTypeIdAndData(undo.get(j).material.getId(), undo.get(j).data, false);
 				}
 
 				return;
@@ -258,16 +245,7 @@ public class Schematic
 			try
 			{
 				undo.put(f, MB.of(f.getBlock().getType(), f.getBlock().getData()));
-				if(Iris.settings.performance.fastPlacement)
-				{
-					Iris.refresh.add(f.getChunk());
-					Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
-				}
-
-				else
-				{
-					source.getBlockAt(f.getBlockX(), f.getBlockY(), f.getBlockZ()).setTypeIdAndData(b.material.getId(), b.data, false);
-				}
+				source.getBlockAt(f.getBlockX(), f.getBlockY(), f.getBlockZ()).setTypeIdAndData(b.material.getId(), b.data, false);
 			}
 
 			catch(Throwable e)

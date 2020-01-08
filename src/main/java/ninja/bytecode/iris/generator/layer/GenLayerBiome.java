@@ -45,13 +45,13 @@ public class GenLayerBiome extends GenLayer
 	{
 		double x = xx + (fracture.noise(zz, xx) * 1550D);
 		double z = zz - (fracture.noise(xx, zz) * 1550D);
-		IrisBiome cbi = IrisBiome.OCEAN;
+		IrisBiome cbi = iris.biome("Ocean");
 		double land = island.noise(x, z);
 		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);
 		
 		if(land > landChance && land < landChance + 0.0175)
 		{
-			cbi = IrisBiome.BEACH;
+			cbi = iris.biome("Beach");
 		}
 		
 		else if(land > landChance + 0.0175)
@@ -60,7 +60,7 @@ public class GenLayerBiome extends GenLayer
 			{
 				if(biomeGenerator.hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
 				{
-					return IrisBiome.RIVER;
+					return iris.biome("River");
 				}
 			}
 
@@ -68,7 +68,7 @@ public class GenLayerBiome extends GenLayer
 
 			if(pathCheck.noise(x, z) > 0.33)
 			{
-				IrisBiome road = IrisBiome.ROAD_GRAVEL;
+				IrisBiome road = iris.biome("Beach");
 
 				if(cbi.getSurface().get(0).material.equals(Material.GRASS))
 				{
@@ -84,7 +84,7 @@ public class GenLayerBiome extends GenLayer
 		
 		else if(land < 0.3)
 		{
-			cbi = IrisBiome.DEEP_OCEAN;
+			cbi = iris.biome("Deep Ocean");
 		}
 		
 		return cbi;

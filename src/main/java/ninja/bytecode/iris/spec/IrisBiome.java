@@ -23,12 +23,12 @@ public class IrisBiome
 	public static final double MAX_HEIGHT = 0.77768;
 	public static final double IDEAL_HEIGHT = 0.1127;
 	public static final double MIN_HEIGHT = -0.0218;
-	
+
 	//@builder
-	public static final IrisBiome RIVER = new IrisBiome("River", Biome.RIVER)
+	private static final IrisBiome RIVER = new IrisBiome("River", Biome.RIVER)
 			.surface(MB.of(Material.SAND))
 			.coreBiome();
-	public static final IrisBiome BEACH = new IrisBiome("Beach", Biome.BEACHES)
+	private static final IrisBiome BEACH = new IrisBiome("Beach", Biome.BEACHES)
 			.height(-0.078)
 			.coreBiome()
 			.surface(MB.of(Material.SAND));
@@ -40,17 +40,12 @@ public class IrisBiome
 			.surface(MB.of(Material.GRASS_PATH))
 			.coreBiome()
 			.scatter(MB.of(Material.TORCH), 0.05);
-	public static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
+	private static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
 			.height(-0.5)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
-	public static final IrisBiome LAKE = new IrisBiome("Lake", Biome.DESERT)
-			.height(-0.38)
-			.coreBiome()
-			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.GRAVEL), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
-			.simplexSurface();
-	public static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
+	private static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
 			.height(-0.88)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
@@ -71,6 +66,76 @@ public class IrisBiome
 	private GMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
 
+	public static double getMaxHeight()
+	{
+		return MAX_HEIGHT;
+	}
+
+	public static double getIdealHeight()
+	{
+		return IDEAL_HEIGHT;
+	}
+
+	public static double getMinHeight()
+	{
+		return MIN_HEIGHT;
+	}
+
+	public static IrisBiome getRiver()
+	{
+		return RIVER;
+	}
+
+	public static IrisBiome getBeach()
+	{
+		return BEACH;
+	}
+
+	public static IrisBiome getRoadGravel()
+	{
+		return ROAD_GRAVEL;
+	}
+
+	public static IrisBiome getRoadGrassy()
+	{
+		return ROAD_GRASSY;
+	}
+
+	public static IrisBiome getOcean()
+	{
+		return OCEAN;
+	}
+
+	public static IrisBiome getDeepOcean()
+	{
+		return DEEP_OCEAN;
+	}
+
+	public static GMap<Biome, IrisBiome> getMap()
+	{
+		return map;
+	}
+
+	public boolean isScatterSurface()
+	{
+		return scatterSurface;
+	}
+
+	public boolean isCore()
+	{
+		return core;
+	}
+
+	public boolean isSimplexScatter()
+	{
+		return simplexScatter;
+	}
+
+	public PolygonGenerator.EnumPolygonGenerator<MB> getPoly()
+	{
+		return poly;
+	}
+
 	public IrisBiome(JSONObject json)
 	{
 		this("Loading", Biome.OCEAN);
@@ -88,7 +153,7 @@ public class IrisBiome
 		schematicGroups = new GMap<>();
 		surface(new MB(Material.GRASS)).dirt(new MB(Material.DIRT), new MB(Material.DIRT, 1));
 	}
-	
+
 	public void fromJSON(JSONObject o)
 	{
 		name = o.getString("name");
@@ -99,9 +164,10 @@ public class IrisBiome
 		J.attempt(() -> scatterChance = scatterFromJSON(o.getJSONArray("scatter")));
 		J.attempt(() -> simplexScatter = o.getString("surfaceType").equalsIgnoreCase("simplex"));
 		J.attempt(() -> scatterSurface = o.getString("surfaceType").equalsIgnoreCase("scatter"));
-		J.attempt(() -> {
+		J.attempt(() ->
+		{
 			schematicGroups = strFromJSON(o.getJSONArray("objects"));
-			
+
 			for(String i : schematicGroups.k())
 			{
 				L.v("Loading Object Group: " + i);
@@ -109,7 +175,7 @@ public class IrisBiome
 			}
 		});
 	}
-	
+
 	public JSONObject toJSON()
 	{
 		JSONObject j = new JSONObject();
@@ -121,34 +187,34 @@ public class IrisBiome
 		J.attempt(() -> j.put("scatter", scatterToJson(scatterChance)));
 		J.attempt(() -> j.put("surfaceType", simplexScatter ? "simplex" : scatterSurface ? "scatter" : "na"));
 		J.attempt(() -> j.put("objects", strToJson(schematicGroups)));
-		
+
 		return j;
 	}
-	
+
 	private GList<MB> mbListFromJSON(JSONArray ja)
 	{
 		GList<MB> mb = new GList<>();
-		
+
 		for(int i = 0; i < ja.length(); i++)
 		{
 			mb.add(MB.of(ja.getString(i)));
 		}
-		
+
 		return mb;
 	}
-	
+
 	private JSONArray mbListToJSON(GList<MB> mbs)
 	{
 		JSONArray ja = new JSONArray();
-		
+
 		for(MB i : mbs)
 		{
 			ja.put(i.toString());
 		}
-		
+
 		return ja;
 	}
-	
+
 	public IrisBiome coreBiome()
 	{
 		this.core = true;
@@ -158,50 +224,50 @@ public class IrisBiome
 	private GMap<MB, Double> scatterFromJSON(JSONArray ja)
 	{
 		GMap<MB, Double> mb = new GMap<MB, Double>();
-		
+
 		for(int i = 0; i < ja.length(); i++)
 		{
 			String s = ja.getString(i);
 			mb.put(MB.of(s.split("\\Q=\\E")[0]), Double.valueOf(s.split("\\Q=\\E")[1]));
 		}
-		
+
 		return mb;
 	}
-	
+
 	private JSONArray scatterToJson(GMap<MB, Double> mbs)
 	{
 		JSONArray ja = new JSONArray();
-		
+
 		for(MB i : mbs.k())
 		{
 			ja.put(i.toString() + "=" + mbs.get(i));
 		}
-		
+
 		return ja;
 	}
-	
+
 	private GMap<String, Double> strFromJSON(JSONArray ja)
 	{
 		GMap<String, Double> mb = new GMap<String, Double>();
-		
+
 		for(int i = 0; i < ja.length(); i++)
 		{
 			String s = ja.getString(i);
 			mb.put(s.split("\\Q=\\E")[0], Double.valueOf(s.split("\\Q=\\E")[1]));
 		}
-		
+
 		return mb;
 	}
-	
+
 	private JSONArray strToJson(GMap<String, Double> mbs)
 	{
 		JSONArray ja = new JSONArray();
-		
+
 		for(String i : mbs.k())
 		{
 			ja.put(i.toString() + "=" + mbs.get(i));
 		}
-		
+
 		return ja;
 	}
 
@@ -233,7 +299,7 @@ public class IrisBiome
 
 		return this;
 	}
-	
+
 	public IrisBiome schematic(String t, double chance)
 	{
 		schematicGroups.put(t, chance);
@@ -271,12 +337,12 @@ public class IrisBiome
 		{
 			this.height = M.lerp(IDEAL_HEIGHT, MAX_HEIGHT, M.clip(height, 0D, 1D));
 		}
-		
+
 		else
 		{
 			this.height = M.lerp(MIN_HEIGHT, IDEAL_HEIGHT, M.clip(height, -1D, 0D));
 		}
-		
+
 		return this;
 	}
 
@@ -300,7 +366,7 @@ public class IrisBiome
 	{
 		return height;
 	}
-	
+
 	public double getAmp()
 	{
 		return amp;
@@ -330,7 +396,7 @@ public class IrisBiome
 				});
 			}
 
-			return poly.getChoice(wx / 3, wz /3);
+			return poly.getChoice(wx / 3, wz / 3);
 		}
 
 		if(scatterSurface)
@@ -358,7 +424,7 @@ public class IrisBiome
 	{
 		return scatterChance;
 	}
-	
+
 	public MB getScatterChanceSingle()
 	{
 		for(MB i : getScatterChance().keySet())
@@ -374,9 +440,9 @@ public class IrisBiome
 
 	public static GList<IrisBiome> getBiomes()
 	{
-		return map.v().remove(IrisBiome.BEACH, IrisBiome.OCEAN, IrisBiome.DEEP_OCEAN, IrisBiome.LAKE, IrisBiome.ROAD_GRASSY, IrisBiome.ROAD_GRAVEL, IrisBiome.BEACH, IrisBiome.LAKE, IrisBiome.RIVER);
+		return map.v().remove(IrisBiome.BEACH, IrisBiome.OCEAN, IrisBiome.DEEP_OCEAN, IrisBiome.ROAD_GRASSY, IrisBiome.ROAD_GRAVEL, IrisBiome.BEACH, IrisBiome.RIVER);
 	}
-	
+
 	public static GList<IrisBiome> getAllBiomes()
 	{
 		return map.v();

@@ -2,9 +2,12 @@ package ninja.bytecode.iris.schematic;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 
@@ -71,26 +74,27 @@ public class SchematicGroup
 	public static SchematicGroup load(String string)
 	{
 		File folder = Iris.loadFolder(string);
-		
+
 		if(folder != null)
 		{
 			SchematicGroup g = new SchematicGroup(string);
 			
 			for(File i : folder.listFiles())
 			{
+				
 				if(i.getName().endsWith(".ifl"))
 				{
 					try
 					{
 						g.flags.add(IO.readAll(i).split("\\Q\n\\E"));
 					}
-					
+
 					catch(IOException e)
 					{
 						L.ex(e);
 					}
 				}
-				
+
 				if(i.getName().endsWith(".ish"))
 				{
 					try
@@ -98,7 +102,7 @@ public class SchematicGroup
 						Schematic s = Schematic.load(i);
 						g.getSchematics().add(s);
 					}
-					
+
 					catch(IOException e)
 					{
 						L.f("Cannot load Schematic: " + string + "/" + i.getName());
@@ -106,27 +110,55 @@ public class SchematicGroup
 					}
 				}
 			}
-			
+
 			return g;
 		}
-		
+
 		return null;
 	}
 
 	public void processVariants()
 	{
+		GList<Schematic> inject = new GList<>();
 		L.v("Processing " + name + " Objects");
-		
+		L.v("# Creating Rotations for " + getSchematics().size() + " Objects");
+
+		ReentrantLock rr = new ReentrantLock();
+		TaskGroup gg = Iris.buildPool.startWork();
 		for(Schematic i : getSchematics())
 		{
-			L.v("# Processing " + i.getName());
-			L.flush();
-			i.computeMountShift();
-			
-			for(String j : flags)
+			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
 			{
-				i.computeFlag(j);
+				Schematic cp = i.copy();
+				
+				gg.queue(() -> {
+					Schematic f = cp;
+					f.rotate(Direction.N, j);
+					rr.lock();
+					inject.add(f);
+					rr.unlock();
+				});
 			}
 		}
+		
+		gg.execute();
+		gg = Iris.buildPool.startWork();
+
+		getSchematics().add(inject);
+		L.v("# Generated " + inject.size() + " Rotated Objects to " + getName());
+
+		for(Schematic i : getSchematics())
+		{
+			gg.queue(() -> {
+				i.computeMountShift();
+
+				for(String j : flags)
+				{
+					i.computeFlag(j);
+				}
+			});
+		}
+		
+		gg.execute();
 	}
 }

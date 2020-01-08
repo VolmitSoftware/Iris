@@ -17,7 +17,9 @@ import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Catalyst12;
+import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
@@ -82,7 +84,7 @@ public class Schematic
 
 		mountHeight = avg(avy);
 		mount = new BlockVector(avg(avx), 0, avg(avz));
-		L.i("  Corrected Mount Point: 0,0,0 -> " + mount.getBlockX() + "," + mount.getBlockY() + "," + mount.getBlockZ());
+		L.i("Corrected " + getName() + "'s Mount Point: 0,0,0 -> " + mount.getBlockX() + "," + mount.getBlockY() + "," + mount.getBlockZ());
 	}
 
 	private int avg(double[] v)
@@ -183,6 +185,7 @@ public class Schematic
 		Schematic s = new Schematic(w, h, d);
 		s.fill(this.s);
 		s.centeredHeight = centeredHeight;
+		s.name = name;
 		return s;
 	}
 
@@ -203,9 +206,11 @@ public class Schematic
 		return g % 2 == 0 ? m : m + 1;
 	}
 
+	@SuppressWarnings("deprecation")
 	public void place(World source, int wx, int wy, int wz)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d)).subtract(mount);
+		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
+		start.subtract(mount);
 		int highestY = source.getHighestBlockYAt(start);
 
 		if(start.getBlockY() + mountHeight > highestY)
@@ -214,11 +219,23 @@ public class Schematic
 		}
 
 		start.add(shift);
+		GMap<Location, MB> undo = new GMap<>();
 
 		for(BlockVector i : getSchematic().k())
 		{
 			MB b = getSchematic().get(i);
 			Location f = start.clone().add(i);
+
+			if(i.getBlockY() == mountHeight && f.clone().subtract(0, 1, 0).getBlock().isLiquid())
+			{
+				for(Location j : undo.k())
+				{
+					Catalyst12.setBlock(source, j.getBlockX(), j.getBlockY(), j.getBlockZ(), undo.get(j));
+					Iris.refresh.add(j.getChunk());
+				}
+
+				return;
+			}
 
 			if(b.material.equals(Material.SKULL))
 			{
@@ -228,6 +245,7 @@ public class Schematic
 			try
 			{
 				Iris.refresh.add(f.getChunk());
+				undo.put(f, MB.of(f.getBlock().getType(), f.getBlock().getData()));
 				Catalyst12.setBlock(source, f.getBlockX(), f.getBlockY(), f.getBlockZ(), b);
 			}
 
@@ -243,7 +261,7 @@ public class Schematic
 		Schematic s = new Schematic(1, 1, 1);
 		s.read(in);
 
-		L.i("Loaded Internal Schematic: " + s.getSchematic().size());
+		L.i("Loaded Internal Object: " + s.getSchematic().size());
 		return s;
 	}
 
@@ -254,13 +272,26 @@ public class Schematic
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);
 
-		L.i("Loaded Schematic: " + f.getPath() + " Size: " + s.getSchematic().size());
+		L.i("Loaded Object: " + f.getPath() + " Size: " + s.getSchematic().size());
 		return s;
 	}
 
 	public String getName()
 	{
 		return name;
+	}
+
+	public void rotate(Direction from, Direction to)
+	{
+		GMap<BlockVector, MB> g = s.copy();
+		s.clear();
+
+		for(BlockVector i : g.k())
+		{
+			s.put(VectorMath.rotate(from, to, i).toBlockVector(), g.get(i));
+		}
+
+		name = name + "-rt" + to.name();
 	}
 
 	public void computeFlag(String j)
@@ -271,7 +302,7 @@ public class Schematic
 			{
 				int downshift = Integer.valueOf(j.split("\\Q=\\E")[1]);
 				shift.subtract(new Vector(0, downshift, 0));
-				L.i("  Sank Object: 0,0,0 -> " + shift.getBlockX() + "," + shift.getBlockY() + "," + shift.getBlockZ());
+				L.i("Corrected " + getName() + "'s Mount Height: 0,0,0 -> " + shift.getBlockX() + "," + shift.getBlockY() + "," + shift.getBlockZ());
 			}
 		}
 

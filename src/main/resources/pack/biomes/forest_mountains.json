@@ -4,5 +4,10 @@
     "scatter":[
         "LONG_GRASS:1=0.13",
         "LONG_GRASS:2=0.13"
+    ],
+    "objects": [
+        "tree/oak/medium=0.11",
+        "tree/oak/small=3.2",
+        "colossal/oak/massive=0.0005"
     ]
 }

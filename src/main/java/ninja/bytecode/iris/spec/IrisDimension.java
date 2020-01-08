@@ -1,13 +1,14 @@
 package ninja.bytecode.iris.spec;
 
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World.Environment;
-import org.bukkit.block.Biome;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -44,6 +45,19 @@ public class IrisDimension
 		{
 			e.printStackTrace();
 		}
+		
+		if(o.has("focus"))
+		{
+			String focus = o.getString("focus");
+			
+			for(IrisBiome i : biomes.copy())
+			{
+				if(!i.getName().toLowerCase().replaceAll(" ", "_").equals(focus))
+				{
+					biomes.remove(i);
+				}
+			}
+		}
 	}
 	
 	public JSONObject toJSON()
@@ -60,13 +74,22 @@ public class IrisDimension
 	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
 		GList<IrisBiome> b = new GList<>();
+		TaskGroup g = Iris.buildPool.startWork();
+		ReentrantLock lock = new ReentrantLock();
 		
 		for(int i = 0; i < a.length(); i++)
 		{
-			IrisBiome bb = Iris.loadBiome(a.getString(i));
-			Iris.biomes.put(a.getString(i), bb);
-			b.add(bb);
+			int ii = i;
+			g.queue(() -> {
+				IrisBiome bb = Iris.loadBiome(a.getString(ii));
+				lock.lock();
+				Iris.biomes.put(a.getString(ii), bb);
+				b.add(bb);
+				lock.unlock();
+			});
 		}
+		
+		g.execute();
 		
 		return b;
 	}

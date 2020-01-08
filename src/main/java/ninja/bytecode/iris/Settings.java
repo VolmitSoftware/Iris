@@ -9,9 +9,9 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.UNLIMITED;
-		public int threadCount = 12;
-		public int threadPriority = Thread.MAX_PRIORITY;
+		public PerformanceMode performanceMode = PerformanceMode.MATCH_CPU;
+		public int threadCount = 1;
+		public int threadPriority = Thread.MIN_PRIORITY;
 		public boolean loadonstart = true;
 	}
 
@@ -20,7 +20,7 @@ public class Settings
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
 		public double landScale = 0.205;
-		public double landChance = 0.529;
+		public double landChance = 0.6;
 		public double roughness = 1.333;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
@@ -30,7 +30,7 @@ public class Settings
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
 		public double caveDensity = 1;
-		public double biomeScale = 2.5;
+		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean doSchematics = true;
 	}

@@ -1,0 +1,19 @@
+{
+    "name": "Beach",
+    "derivative": "BEACHES",
+    "height": -0.078,
+    "surface": [
+        "SAND"
+    ],
+    "dirt": [
+        "SAND",
+        "SAND",
+        "SAND",
+        "CLAY",
+        "GRAVEL"
+    ],
+    "objects": [
+        "tree/palm/medium=0.35",
+        "tree/palm/small=1.95"
+    ]
+}

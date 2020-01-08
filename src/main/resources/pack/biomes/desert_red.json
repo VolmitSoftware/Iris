@@ -9,5 +9,8 @@
     ],
     "scatter":[
         "DEAD_BUSH=0.008"
+    ],
+    "objects": [
+        "colossal/willow/dead/supermassive=0.00033"
     ]
 }

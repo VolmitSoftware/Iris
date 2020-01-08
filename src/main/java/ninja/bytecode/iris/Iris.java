@@ -32,6 +32,7 @@ import ninja.bytecode.iris.spec.IrisBiome;
 import ninja.bytecode.iris.spec.IrisDimension;
 import ninja.bytecode.iris.spec.IrisPack;
 import ninja.bytecode.iris.util.Direction;
+import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.bench.Profiler;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
@@ -48,6 +49,7 @@ public class Iris extends JavaPlugin implements Listener
 	public static GSet<Chunk> refresh = new GSet<>();
 	public static Profiler profiler;
 	public static TaskExecutor genPool;
+	public static TaskExecutor buildPool;
 	public static IrisGenerator gen;
 	public static Settings settings;
 	public static Iris instance;
@@ -58,6 +60,7 @@ public class Iris extends JavaPlugin implements Listener
 
 	public void onEnable()
 	{
+		PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
 		Direction.calculatePermutations();
 		dimensions = new GMap<>();
 		biomes = new GMap<>();
@@ -66,6 +69,7 @@ public class Iris extends JavaPlugin implements Listener
 		values = new GMap<>();
 		instance = this;
 		settings = new Settings();
+		buildPool = new TaskExecutor(getTC(), settings.performance.threadPriority, "Iris Compiler");
 		J.attempt(() -> createTempCache());
 		loadContent();
 		processContent();
@@ -97,12 +101,20 @@ public class Iris extends JavaPlugin implements Listener
 				Bukkit.unloadWorld(i, false);
 			}
 		}
+
+		double ms = stopwatch.getMilliseconds();
+		
+		J.a(() ->
+		{
+			J.sleep(5000);
+			L.i("Iris Startup Took " + F.duration(ms, 2));
+		});
 	}
-	
+
 	private void processContent()
 	{
 		L.v("Processing Content");
-		
+
 		for(SchematicGroup i : schematics.v())
 		{
 			i.processVariants();
@@ -115,7 +127,7 @@ public class Iris extends JavaPlugin implements Listener
 		{
 			return new File(Iris.instance.getDataFolder(), resource);
 		}
-		
+
 		return new File(System.getProperty("java.io.tmpdir") + "/Iris/" + resource);
 	}
 
@@ -160,17 +172,16 @@ public class Iris extends JavaPlugin implements Listener
 		}
 
 		int m = 0;
-		
+
 		for(SchematicGroup i : schematics.v())
 		{
-			m+=i.size();
+			m += i.size();
 		}
 		L.i("Dimensions: " + dimensions.size());
 		L.i("Biomes: " + biomes.size());
 		L.i("Object Groups: " + schematics.size());
 		L.i("Objects: " + F.f(m));
-		
-		
+
 		L.flush();
 	}
 
@@ -238,23 +249,23 @@ public class Iris extends JavaPlugin implements Listener
 		L.i("Loading Iris Biome " + s);
 		return new IrisBiome(loadJSON("pack/biomes/" + s + ".json"));
 	}
-	
+
 	public static SchematicGroup loadSchematicGroup(String s)
 	{
-		SchematicGroup g =  SchematicGroup.load("pack/objects/" + s);
-		
+		SchematicGroup g = SchematicGroup.load("pack/objects/" + s);
+
 		if(g != null)
 		{
 			schematics.put(s, g);
 			L.i("Loaded Object Group: " + g.getName() + " (" + g.getSchematics().size() + " Objects)");
 			return g;
 		}
-		
+
 		L.i("Cannot load Object Group: " + s);
-		
+
 		return null;
 	}
-	
+
 	public static Schematic loadSchematic(String s) throws IOException
 	{
 		L.i("Loading Iris Object " + s);
@@ -269,28 +280,28 @@ public class Iris extends JavaPlugin implements Listener
 	public static File loadFolder(String string)
 	{
 		File internal = internalResource(string);
-		
+
 		if(internal.exists())
 		{
 			L.v("Loading Group: " + string);
 			return internal;
 		}
-		
+
 		L.f("Cannot find folder: " + internal.getAbsolutePath());
 		return null;
 	}
-	
+
 	public static InputStream loadResource(String string) throws IOException
 	{
 		File internal = internalResource(string);
-		
+
 		if(internal.exists())
 		{
 			L.v("Loading Resource: " + internal.getAbsolutePath());
 			L.flush();
 			return new FileInputStream(internal);
 		}
-		
+
 		else
 		{
 			L.f("Cannot find Resource: " + internal.getAbsolutePath());

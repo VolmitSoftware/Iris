@@ -55,9 +55,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 			MB.of(Material.SMOOTH_BRICK, 2),
 			MB.of(Material.SMOOTH_BRICK, 3),
 	});
+	public GMap<String, IrisBiome> biomeCache = new GMap<>();
 	//@done
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
+	private GList<IrisBiome> internal;
 	private GenLayerBase glBase;
 	private GenLayerLayeredNoise glLNoise;
 	private GenLayerRidge glRidge;
@@ -78,18 +80,38 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		this(Iris.dimensions.get("overworld"));
 	}
-	
+
 	public GList<IrisBiome> getLoadedBiomes()
 	{
-		return IrisBiome.getAllBiomes().copy().add(dim.getBiomes());
+		return internal;
 	}
-	
+
 	public IrisGenerator(IrisDimension dim)
 	{
 		this.dim = dim;
 		L.i("Preparing Dimension: " + dim.getName() + " With " + dim.getBiomes().size() + " Biomes...");
+		internal = IrisBiome.getAllBiomes();
+
+		for(IrisBiome i : dim.getBiomes())
+		{
+			for(IrisBiome j : internal.copy())
+			{
+				if(j.getName().equals(i.getName()))
+				{
+					internal.remove(j);
+					L.i("Internal Biome: " + j.getName() + " overwritten by dimension " + dim.getName());
+				}
+			}
+		}
+
+		internal.addAll(dim.getBiomes());
+
+		for(IrisBiome i : internal)
+		{
+			biomeCache.put(i.getName(), i);
+		}
 	}
-	
+
 	@Override
 	public void onInit(World world, Random random)
 	{
@@ -121,6 +143,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
 	}
 
+	public IrisBiome biome(String name)
+	{
+		return biomeCache.get(name);
+	}
+
 	@Override
 	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
 	{
@@ -137,24 +164,19 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		if(height > 61 && height < 65)
 		{
-			override = IrisBiome.BEACH;
+			override = biome("Beach");
 		}
 
 		else if(height < 63)
 		{
 			if(height < 36)
 			{
-				override = IrisBiome.DEEP_OCEAN;
-			}
-
-			else if(height < 50)
-			{
-				override = IrisBiome.OCEAN;
+				override = biome("Deep Ocean");
 			}
 
 			else
 			{
-				override = IrisBiome.LAKE;
+				override = biome("Ocean");
 			}
 		}
 
@@ -276,5 +298,15 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public World getWorld()
 	{
 		return world;
+	}
+
+	public GMap<String, SchematicGroup> getSchematicCache()
+	{
+		return schematicCache;
+	}
+
+	public void setSchematicCache(GMap<String, SchematicGroup> schematicCache)
+	{
+		this.schematicCache = schematicCache;
 	}
 }

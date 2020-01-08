@@ -11,7 +11,6 @@
         "DEAD_BUSH=0.008"
     ],
     "objects": [
-        "tree/palm/medium=0.25",
-        "tree/palm/small=2.5"
+        "colossal/dead/massive=0.00023"
     ]
 }

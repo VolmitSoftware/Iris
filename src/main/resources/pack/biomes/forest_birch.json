@@ -4,5 +4,9 @@
     "scatter":[
         "LONG_GRASS:1=0.23",
         "LONG_GRASS:2=0.13"
+    ],
+    "objects": [
+        "tree/birch/medium=0.33",
+        "tree/birch/small=2.2"
     ]
 }

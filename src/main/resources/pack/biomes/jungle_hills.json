@@ -4,5 +4,8 @@
     "scatter":[
         "LONG_GRASS:1=0.33",
         "LONG_GRASS:2=0.02"
+    ],
+    "objects": [
+        "colossal/jungle/massive=0.001"
     ]
 }

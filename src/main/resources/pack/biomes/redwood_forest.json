@@ -9,5 +9,10 @@
     "surfaceType": "simplex",
     "scatter": [
         "LONG_GRASS:2=0.07"
+    ],
+    "objects": [
+        "tree/spruce/medium=0.67",
+        "tree/spruce/small=2.7",
+        "tree/spruce/dead/medium=0.09"
     ]
 }

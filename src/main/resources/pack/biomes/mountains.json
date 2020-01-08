@@ -1,5 +1,6 @@
 {
     "name": "Mountains",
+    "height": 0.35,
     "derivative": "EXTREME_HILLS",
     "scatter":[
         "LONG_GRASS:2=0.04"

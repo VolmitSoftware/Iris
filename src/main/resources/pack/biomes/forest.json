@@ -8,8 +8,8 @@
     "objects": [
         "tree/oak/medium=0.33",
         "tree/oak/small=2.2",
-        "colossal/oak/massive=0.004",
-        "colossal/oak/superlarge=0.002",
-        "colossal/oak/supermassive=0.001"
+        "colossal/oak/massive=0.001",
+        "colossal/oak/superlarge=0.0004",
+        "colossal/oak/supermassive=0.0001"
     ]
 }

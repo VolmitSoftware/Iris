@@ -111,6 +111,11 @@ public class Iris extends JavaPlugin implements Listener
 
 	private static File internalResource(String resource)
 	{
+		if(new File(Iris.instance.getDataFolder(), "pack").exists())
+		{
+			return new File(Iris.instance.getDataFolder(), resource);
+		}
+		
 		return new File(System.getProperty("java.io.tmpdir") + "/Iris/" + resource);
 	}
 
@@ -281,13 +286,14 @@ public class Iris extends JavaPlugin implements Listener
 		
 		if(internal.exists())
 		{
-			L.v("Loading Resource: " + "Iris/" + string);
+			L.v("Loading Resource: " + internal.getAbsolutePath());
+			L.flush();
 			return new FileInputStream(internal);
 		}
 		
 		else
 		{
-			L.f("Cannot find Resource: " + string);
+			L.f("Cannot find Resource: " + internal.getAbsolutePath());
 			return null;
 		}
 	}

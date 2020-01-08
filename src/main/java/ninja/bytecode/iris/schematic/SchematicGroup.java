@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 
 public class SchematicGroup
@@ -77,6 +78,19 @@ public class SchematicGroup
 			
 			for(File i : folder.listFiles())
 			{
+				if(i.getName().endsWith(".ifl"))
+				{
+					try
+					{
+						g.flags.add(IO.readAll(i).split("\\Q\n\\E"));
+					}
+					
+					catch(IOException e)
+					{
+						L.ex(e);
+					}
+				}
+				
 				if(i.getName().endsWith(".ish"))
 				{
 					try
@@ -108,6 +122,11 @@ public class SchematicGroup
 			L.v("# Processing " + i.getName());
 			L.flush();
 			i.computeMountShift();
+			
+			for(String j : flags)
+			{
+				i.computeFlag(j);
+			}
 		}
 	}
 }

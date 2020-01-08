@@ -13,6 +13,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;
+import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Catalyst12;
@@ -32,12 +33,14 @@ public class Schematic
 	private final GMap<BlockVector, MB> s;
 	private BlockVector mount;
 	private int mountHeight;
+	private BlockVector shift;
 
 	public Schematic(int w, int h, int d)
 	{
 		this.w = w;
 		this.h = h;
 		this.d = d;
+		shift = new BlockVector();
 		s = new GMap<>();
 		centeredHeight = false;
 	}
@@ -209,7 +212,9 @@ public class Schematic
 		{
 			start.subtract(0, start.getBlockY() + mountHeight - highestY, 0);
 		}
-				
+
+		start.add(shift);
+
 		for(BlockVector i : getSchematic().k())
 		{
 			MB b = getSchematic().get(i);
@@ -256,5 +261,24 @@ public class Schematic
 	public String getName()
 	{
 		return name;
+	}
+
+	public void computeFlag(String j)
+	{
+		try
+		{
+			if(j.startsWith("sink="))
+			{
+				int downshift = Integer.valueOf(j.split("\\Q=\\E")[1]);
+				shift.subtract(new Vector(0, downshift, 0));
+				L.i("  Sank Object: 0,0,0 -> " + shift.getBlockX() + "," + shift.getBlockY() + "," + shift.getBlockZ());
+			}
+		}
+
+		catch(Throwable e)
+		{
+			L.f("Failed to compute flag '" + j + "'");
+			L.ex(e);
+		}
 	}
 }

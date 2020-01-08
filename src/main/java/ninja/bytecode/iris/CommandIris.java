@@ -37,11 +37,9 @@ public class CommandIris implements CommandExecutor
 			if(args[0].equalsIgnoreCase("timings"))
 			{
 				double t = Iris.profiler.getResult("terrain").getAverage();
-				double c = Iris.profiler.getResult("caves").getAverage();
 				double d = Iris.profiler.getResult("decor").getAverage();
 				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t + d, 2));
 				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t, 2));
-				msg(sender, "  \\Caves: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(c, 2));
 				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(d, 2));
 			}
 			

@@ -32,7 +32,7 @@ public class Settings
 		public double superHeightScale = 0.95;
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
-		public double caveDensity = 1;
+		public double caveDensity = 0;
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean doSchematics = true;

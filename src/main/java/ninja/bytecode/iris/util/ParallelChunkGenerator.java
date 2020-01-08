@@ -8,7 +8,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.shuriken.Shuriken;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
@@ -75,7 +74,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			TaskResult r = tg.execute();
 			onPostChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
-			Iris.profiler.getResult("caves").put(plan.get().getCaveMs());
 			cg++;
 		}
 

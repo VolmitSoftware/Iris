@@ -25,8 +25,7 @@ public class GenLayerCaves extends GenLayer
 		caveHeight = new CNG(rng.nextParallelRNG(-100001), 1D, 7).scale(0.00222);
 		caveGirth = new CNG(rng.nextParallelRNG(-100002), 1D, 12).scale(0.03);
 		caveClamp = new CNG(rng.nextParallelRNG(-10000), 1D, 3).scale(0.1422);
-		caveVeins = new MaxingGenerator(rng.nextParallelRNG(-99999), 22, 0.002, 1, (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(-5555), 1D, 4).scale(0.02), 70));
-		
+		caveVeins = new MaxingGenerator(rng.nextParallelRNG(-99999), 22, 0.002 * Iris.settings.gen.caveScale, 1, (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(-5555), 1D, 4).scale(0.02), 70));
 	}
 	
 	public void genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g)
@@ -49,8 +48,8 @@ public class GenLayerCaves extends GenLayer
 				if(caveVeins.hasBorder(3, width, wxx - (19949D * itr), wzx + (19949D * itr)))
 				{
 					double r = (((caveGirth.noise(wxx, wzx, width)) * variance) + height) / 2D;
-					
-					for(int i = (int) -r; i < r; i++)
+					int f = 3;
+					for(int i = (int) -r; i < r && f >= 0; i++)
 					{
 						if(i + height > s)
 						{
@@ -66,7 +65,6 @@ public class GenLayerCaves extends GenLayer
 						g.setBlock(x, (int) (elevation + i) - 55, z, Material.AIR);
 					}
 				}
-
 			}
 		}
 	}

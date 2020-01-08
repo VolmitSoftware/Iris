@@ -4,5 +4,12 @@
     "scatter":[
         "LONG_GRASS:1=0.37",
         "LONG_GRASS:2=0.09"
+    ],
+    "objects": [
+        "tree/serrulata/alt/medium=0.33",
+        "tree/serrulata/bleeding/large=0.42",
+        "tree/serrulata/bleeding/medium=0.42",
+        "tree/serrulata/nobleed/medium=0.42",
+        "tree/serrulata/sakura/medium=0.2"
     ]
 }

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.schematic;
+package ninja.bytecode.iris.generator.genobject;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -26,7 +26,7 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
 
-public class Schematic
+public class GenObject
 {
 	private boolean centeredHeight;
 	private int w;
@@ -38,7 +38,7 @@ public class Schematic
 	private int mountHeight;
 	private BlockVector shift;
 
-	public Schematic(int w, int h, int d)
+	public GenObject(int w, int h, int d)
 	{
 		this.w = w;
 		this.h = h;
@@ -180,9 +180,9 @@ public class Schematic
 		s.put(new BlockVector(x, y, z), mb);
 	}
 
-	public Schematic copy()
+	public GenObject copy()
 	{
-		Schematic s = new Schematic(w, h, d);
+		GenObject s = new GenObject(w, h, d);
 		s.fill(this.s);
 		s.centeredHeight = centeredHeight;
 		s.name = name;
@@ -254,17 +254,17 @@ public class Schematic
 		}
 	}
 
-	public static Schematic load(InputStream in) throws IOException
+	public static GenObject load(InputStream in) throws IOException
 	{
-		Schematic s = new Schematic(1, 1, 1);
+		GenObject s = new GenObject(1, 1, 1);
 		s.read(in);
 
 		return s;
 	}
 
-	public static Schematic load(File f) throws IOException
+	public static GenObject load(File f) throws IOException
 	{
-		Schematic s = new Schematic(1, 1, 1);
+		GenObject s = new GenObject(1, 1, 1);
 		s.name = f.getName().replaceAll("\\Q.ish\\E", "");
 		FileInputStream fin = new FileInputStream(f);
 		s.read(fin);

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.generator.populator;
+package ninja.bytecode.iris.generator.genobject;
 
 import java.util.Random;
 
@@ -11,19 +11,20 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.generator.BlockPopulator;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
+import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.schematic.SchematicGroup;
-import ninja.bytecode.iris.spec.IrisBiome;
+import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.math.M;
 
-public class ObjectPopulator extends BlockPopulator
+public class GenObjectDecorator extends BlockPopulator
 {
 	private GMap<Biome, IrisBiome> biomeMap;
-	private GMap<Biome, GMap<SchematicGroup, Double>> populationCache;
+	private GMap<Biome, GMap<GenObjectGroup, Double>> populationCache;
 
-	public ObjectPopulator(IrisGenerator generator)
+	public GenObjectDecorator(IrisGenerator generator)
 	{
 		biomeMap = new GMap<>();
 		populationCache = new GMap<>();
@@ -32,11 +33,11 @@ public class ObjectPopulator extends BlockPopulator
 		{
 			biomeMap.put(i.getRealBiome(), i);
 
-			GMap<SchematicGroup, Double> gk = new GMap<>();
+			GMap<GenObjectGroup, Double> gk = new GMap<>();
 
 			for(String j : i.getSchematicGroups().k())
 			{
-				gk.put(Iris.schematics.get(j), i.getSchematicGroups().get(j));
+				gk.put(Iris.getController(PackController.class).getGenObjectGroups().get(j), i.getSchematicGroups().get(j));
 			}
 
 			populationCache.put(i.getRealBiome(), gk);
@@ -46,7 +47,7 @@ public class ObjectPopulator extends BlockPopulator
 	@Override
 	public void populate(World world, Random random, Chunk source)
 	{
-		Iris.started("decor");
+		Iris.getController(TimingsController.class).started("decor");
 		GSet<Biome> hits = new GSet<>();
 		
 		for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
@@ -67,7 +68,7 @@ public class ObjectPopulator extends BlockPopulator
 				continue;
 			}
 			
-			GMap<SchematicGroup, Double> objects = populationCache.get(biome);
+			GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
 			
 			if(objects == null)
 			{
@@ -78,12 +79,12 @@ public class ObjectPopulator extends BlockPopulator
 			populate(world, random, source, biome, ibiome, objects);
 		}
 
-		Iris.stopped("decor");
+		Iris.getController(TimingsController.class).stopped("decor");
 	}
 	
-	private void populate(World world, Random random, Chunk source, Biome biome, IrisBiome ibiome, GMap<SchematicGroup, Double> objects)
+	private void populate(World world, Random random, Chunk source, Biome biome, IrisBiome ibiome, GMap<GenObjectGroup, Double> objects)
 	{
-		for(SchematicGroup i : objects.k())
+		for(GenObjectGroup i : objects.k())
 		{
 			for(int j = 0; j < getTries(objects.get(i)); j++)
 			{

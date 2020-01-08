@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.spec;
+package ninja.bytecode.iris.pack;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -6,6 +6,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.World.Environment;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
@@ -75,7 +76,7 @@ public class IrisDimension
 	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
 		GList<IrisBiome> b = new GList<>();
-		TaskExecutor ex= new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Dim Compiler");
+		TaskExecutor ex= new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Loader");
 		TaskGroup g = ex.startWork();
 		ReentrantLock lock = new ReentrantLock();
 		
@@ -83,9 +84,9 @@ public class IrisDimension
 		{
 			int ii = i;
 			g.queue(() -> {
-				IrisBiome bb = Iris.loadBiome(a.getString(ii));
+				IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
 				lock.lock();
-				Iris.biomes.put(a.getString(ii), bb);
+				Iris.getController(PackController.class).getBiomes().put(a.getString(ii), bb);
 				b.add(bb);
 				lock.unlock();
 			});
@@ -117,5 +118,10 @@ public class IrisDimension
 	public String getName()
 	{
 		return name;
+	}
+
+	public Environment getEnvironment()
+	{
+		return environment;
 	}
 }

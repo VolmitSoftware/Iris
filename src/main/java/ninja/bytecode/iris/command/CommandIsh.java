@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package ninja.bytecode.iris.command;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.util.Cuboid;

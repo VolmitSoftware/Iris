@@ -4,15 +4,15 @@ import java.util.function.Supplier;
 
 import org.bukkit.util.BlockVector;
 
-import ninja.bytecode.iris.schematic.Schematic;
-import ninja.bytecode.iris.spec.IrisBiome;
+import ninja.bytecode.iris.generator.genobject.GenObject;
+import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.shuriken.collections.GMap;
 
 public class ChunkPlan
 {
 	private final GMap<ChunkedVector, Double> heightCache;
 	private final GMap<ChunkedVector, IrisBiome> biomeCache;
-	private final GMap<BlockVector, Schematic> schematics;
+	private final GMap<BlockVector, GenObject> schematics;
 	
 	public ChunkPlan()
 	{
@@ -21,7 +21,7 @@ public class ChunkPlan
 		this.biomeCache = new GMap<>();
 	}
 	
-	public void planSchematic(BlockVector b, Schematic s)
+	public void planSchematic(BlockVector b, GenObject s)
 	{
 		schematics.put(b, s);
 	}

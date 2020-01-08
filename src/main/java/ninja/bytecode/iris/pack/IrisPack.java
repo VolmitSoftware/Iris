@@ -1,8 +1,9 @@
-package ninja.bytecode.iris.spec;
+package ninja.bytecode.iris.pack;
 
 import java.io.IOException;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
@@ -73,14 +74,14 @@ public class IrisPack
 	{
 		for(String i : dimensions)
 		{
-			IrisDimension d = Iris.loadDimension(i);
-			Iris.dimensions.put(i, d);
+			IrisDimension d = Iris.getController(PackController.class).loadDimension(i);
+			Iris.getController(PackController.class).getDimensions().put(i, d);
 		}
 	}
 	
 	public void loadBiome(String s) throws JSONException, IOException
 	{
-		IrisBiome b = Iris.loadBiome(s);
-		Iris.biomes.put(s, b);
+		IrisBiome b = Iris.getController(PackController.class).loadBiome(s);
+		Iris.getController(PackController.class).getBiomes().put(s, b);
 	}
 }

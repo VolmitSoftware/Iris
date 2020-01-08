@@ -8,7 +8,7 @@ import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.spec.IrisBiome;
+import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.MaxingGenerator;
 import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;

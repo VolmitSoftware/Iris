@@ -8,7 +8,10 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.ExecutionController;
+import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
 import ninja.bytecode.shuriken.math.RollingSequence;
@@ -27,6 +30,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private ChronoLatch cl = new ChronoLatch(1000);
 	private RollingSequence rs = new RollingSequence(512);
 	private World world;
+	private TaskExecutor genPool;
 	
 	public World getWorld()
 	{
@@ -41,7 +45,11 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
-		Iris.started("terrain");
+		Iris.getController(TimingsController.class).started("terrain");
+		if(genPool == null)
+		{
+			genPool = Iris.getController(ExecutionController.class).getExecutor(world);
+		}
 		this.world = world;
 		data = new AtomicChunkData(world);
 
@@ -53,7 +61,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				ready = true;
 			}
 
-			tg = Iris.genPool.startWork();
+			tg = genPool.startWork();
 			O<ChunkPlan> plan = new O<ChunkPlan>();
 			for(i = 0; i < 16; i++)
 			{
@@ -93,7 +101,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			}
 		}
 
-		Iris.stopped("terrain");
+		Iris.getController(TimingsController.class).stopped("terrain");
 		
 		return data.toChunkData();
 	}

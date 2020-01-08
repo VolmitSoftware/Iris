@@ -12,8 +12,8 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
 		public int threadCount = 1;
 		public int threadPriority = Thread.MIN_PRIORITY;
-		public boolean loadonstart = true;
-		public int compilerThreads = 4;
+		public boolean debugMode = true;
+		public int compilerThreads = 12;
 		public int compilerPriority = Thread.MAX_PRIORITY;
 		public int decorationAccuracy = 1;
 	}

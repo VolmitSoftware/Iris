@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package ninja.bytecode.iris.command;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -10,6 +10,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.controller.WorldController;
 import ninja.bytecode.iris.generator.IrisGenerator;
@@ -30,7 +31,7 @@ public class CommandIris implements CommandExecutor
 		{
 			msg(sender, "/iris timings - Iris Timings");
 			msg(sender, "/iris rtp [biome] - RTP to a biome");
-			msg(sender, "/iris reload - Reload & Recompile");
+			msg(sender, "/iris gen - Gen a new Iris World");
 			msg(sender, "/ish - Iris Schematic Commands");
 		}
 
@@ -106,10 +107,23 @@ public class CommandIris implements CommandExecutor
 				}
 			}
 
-			if(args[0].equalsIgnoreCase("reload"))
+			if(args[0].equalsIgnoreCase("gen"))
 			{
-				msg(sender, "Reloading Iris...");
-				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Iris.instance.reload());
+				if(sender instanceof Player)
+				{
+					World wold = ((Player) sender).getWorld();
+					World w = Iris.getController(WorldController.class).createIrisWorld(null, 0, true);
+					((Player) sender).teleport(new Location(w, 0, 256, 0));
+					((Player) sender).setFlying(true);
+					((Player) sender).setGameMode(GameMode.CREATIVE);
+					wold.setAutoSave(false);
+					Bukkit.unloadWorld(wold, false);
+				}
+
+				else
+				{
+					Iris.getController(WorldController.class).createIrisWorld(null, 0, true);
+				}
 			}
 		}
 

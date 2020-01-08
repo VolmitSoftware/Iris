@@ -9,15 +9,16 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
+import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
+import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
 import ninja.bytecode.iris.generator.layer.GenLayerBase;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
-import ninja.bytecode.iris.generator.populator.ObjectPopulator;
-import ninja.bytecode.iris.schematic.SchematicGroup;
-import ninja.bytecode.iris.spec.IrisBiome;
-import ninja.bytecode.iris.spec.IrisDimension;
+import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
@@ -61,11 +62,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private RNG rTerrain;
 	private IrisDimension dim;
 	private World world;
-	private GMap<String, SchematicGroup> schematicCache = new GMap<>();
+	private GMap<String, GenObjectGroup> schematicCache = new GMap<>();
 
 	public IrisGenerator()
 	{
-		this(Iris.dimensions.get("overworld"));
+		this(Iris.getController(PackController.class).getDimensions().get("overworld"));
 	}
 
 	public GList<IrisBiome> getLoadedBiomes()
@@ -230,15 +231,15 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		if(Iris.settings.gen.doSchematics)
 		{
-			p.add(new ObjectPopulator(this));
+			p.add(new GenObjectDecorator(this));
 		}
 
 		return p;
 	}
 
-	public SchematicGroup loadSchematics(String folder)
+	public GenObjectGroup loadSchematics(String folder)
 	{
-		return Iris.schematics.get(folder);
+		return Iris.getController(PackController.class).getGenObjectGroups().get(folder);
 	}
 
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)
@@ -260,12 +261,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return world;
 	}
 
-	public GMap<String, SchematicGroup> getSchematicCache()
+	public GMap<String, GenObjectGroup> getSchematicCache()
 	{
 		return schematicCache;
 	}
 
-	public void setSchematicCache(GMap<String, SchematicGroup> schematicCache)
+	public void setSchematicCache(GMap<String, GenObjectGroup> schematicCache)
 	{
 		this.schematicCache = schematicCache;
 	}

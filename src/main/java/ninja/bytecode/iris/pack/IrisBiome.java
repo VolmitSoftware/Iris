@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.spec;
+package ninja.bytecode.iris.pack;
 
 import java.lang.reflect.Field;
 
@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
@@ -169,7 +170,7 @@ public class IrisBiome
 
 			for(String i : schematicGroups.k())
 			{
-				Iris.loadSchematicGroup(i);
+				Iris.getController(PackController.class).loadSchematicGroup(i);
 			}
 		});
 	}

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.schematic;
+package ninja.bytecode.iris.generator.genobject;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,6 +6,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
@@ -14,14 +15,14 @@ import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 
-public class SchematicGroup
+public class GenObjectGroup
 {
-	private GList<Schematic> schematics;
+	private GList<GenObject> schematics;
 	private GList<String> flags;
 	private String name;
 	private int priority;
 
-	public SchematicGroup(String name)
+	public GenObjectGroup(String name)
 	{
 		this.schematics = new GList<>();
 		this.flags = new GList<>();
@@ -39,12 +40,12 @@ public class SchematicGroup
 		this.name = name;
 	}
 
-	public GList<Schematic> getSchematics()
+	public GList<GenObject> getSchematics()
 	{
 		return schematics;
 	}
 
-	public void setSchematics(GList<Schematic> schematics)
+	public void setSchematics(GList<GenObject> schematics)
 	{
 		this.schematics = schematics;
 	}
@@ -74,13 +75,13 @@ public class SchematicGroup
 		return getSchematics().size();
 	}
 
-	public static SchematicGroup load(String string)
+	public static GenObjectGroup load(String string)
 	{
-		File folder = Iris.loadFolder(string);
+		File folder = Iris.getController(PackController.class).loadFolder(string);
 
 		if(folder != null)
 		{
-			SchematicGroup g = new SchematicGroup(string);
+			GenObjectGroup g = new GenObjectGroup(string);
 			
 			for(File i : folder.listFiles())
 			{
@@ -102,7 +103,7 @@ public class SchematicGroup
 				{
 					try
 					{
-						Schematic s = Schematic.load(i);
+						GenObject s = GenObject.load(i);
 						g.getSchematics().add(s);
 					}
 
@@ -122,19 +123,19 @@ public class SchematicGroup
 
 	public void processVariants()
 	{
-		GList<Schematic> inject = new GList<>();
+		GList<GenObject> inject = new GList<>();
 		String x = Thread.currentThread().getName();
 		ReentrantLock rr = new ReentrantLock();
 		TaskExecutor ex = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, x + "/Subroutine ");
 		TaskGroup gg = ex.startWork();
-		for(Schematic i : getSchematics())
+		for(GenObject i : getSchematics())
 		{
 			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
 			{
-				Schematic cp = i.copy();
+				GenObject cp = i.copy();
 				
 				gg.queue(() -> {
-					Schematic f = cp;
+					GenObject f = cp;
 					f.rotate(Direction.N, j);
 					rr.lock();
 					inject.add(f);
@@ -147,7 +148,7 @@ public class SchematicGroup
 		gg = ex.startWork();
 		getSchematics().add(inject);
 
-		for(Schematic i : getSchematics())
+		for(GenObject i : getSchematics())
 		{
 			gg.queue(() -> {
 				i.computeMountShift();
@@ -184,7 +185,7 @@ public class SchematicGroup
 			return false;
 		if(getClass() != obj.getClass())
 			return false;
-		SchematicGroup other = (SchematicGroup) obj;
+		GenObjectGroup other = (GenObjectGroup) obj;
 		if(flags == null)
 		{
 			if(other.flags != null)

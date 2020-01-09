@@ -12,9 +12,6 @@ import java.util.zip.GZIPInputStream;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.BlockFace;
-import org.bukkit.material.Directional;
-import org.bukkit.material.MaterialData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -210,7 +207,14 @@ public class GenObject
 	public void place(World source, int wx, int wy, int wz)
 	{
 		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
+
+		if(mount == null)
+		{
+			computeMountShift();
+		}
+
 		start.subtract(mount);
+
 		int highestY = source.getHighestBlockYAt(start);
 
 		if(start.getBlockY() + mountHeight > highestY)
@@ -224,6 +228,12 @@ public class GenObject
 		for(BlockVector i : getSchematic().k())
 		{
 			MB b = getSchematic().get(i);
+
+			if(b.material.equals(Material.CONCRETE_POWDER))
+			{
+				continue;
+			}
+
 			Location f = start.clone().add(i);
 
 			if(i.getBlockY() == mountHeight && f.clone().subtract(0, 1, 0).getBlock().isLiquid())
@@ -291,46 +301,31 @@ public class GenObject
 		name = name + "-rt" + to.name();
 	}
 
-	@SuppressWarnings("deprecation")
-	private MB rotate(Direction from, Direction to, MB mb)
-	{
-		Class<? extends MaterialData> cl = mb.material.getData();
-
-		if(cl.isAssignableFrom(Directional.class))
-		{
-			try
-			{
-				Directional d = (Directional) cl.getConstructor(int.class, byte.class).newInstance(mb.material.getId(), mb.data);
-				BlockFace f = d.getFacing();
-				Vector mod = new Vector(f.getModX(), f.getModY(), f.getModZ());
-				Vector modded = VectorMath.rotate(from, to, mod);
-
-				for(BlockFace i : BlockFace.values())
-				{
-					if(i.getModX() == modded.getBlockX() && i.getModY() == modded.getBlockY() && i.getModZ() == modded.getBlockZ())
-					{
-						d.setFacingDirection(i);
-						return new MB(mb.material, ((MaterialData) d).getData());
-					}
-				}
-			}
-
-			catch(Throwable e)
-			{
-				e.printStackTrace();
-			}
-		}
-
-		return mb;
-	}
-
 	public void computeFlag(String j)
 	{
 		try
 		{
-			if(j.startsWith("sink="))
+			if(j.startsWith("replace "))
 			{
-				int downshift = Integer.valueOf(j.split("\\Q=\\E")[1]);
+				String[] g = j.split("\\Q \\E");
+				MB a = MB.of(g[1]);
+				boolean specific = g[1].contains(":");
+				MB b = MB.of(g[2]);
+
+				for(BlockVector i : s.k())
+				{
+					MB c = s.get(i);
+
+					if((specific && c.equals(a)) || c.material.equals(a.material))
+					{
+						s.put(i, b);
+					}
+				}
+			}
+
+			if(j.startsWith("sink "))
+			{
+				int downshift = Integer.valueOf(j.split("\\Q \\E")[1]);
 				shift.subtract(new Vector(0, downshift, 0));
 			}
 		}

@@ -2,8 +2,6 @@ package ninja.bytecode.iris;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import ninja.bytecode.iris.controller.TimingsController;
-import ninja.bytecode.iris.controller.WorldController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.shuriken.format.F;

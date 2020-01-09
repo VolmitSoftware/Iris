@@ -284,7 +284,7 @@ public class GenObject
 
 		for(BlockVector i : g.k())
 		{
-			MB mb = rotate(from, to, g.get(i));
+			MB mb = g.get(i);
 			s.put(VectorMath.rotate(from, to, i).toBlockVector(), mb);
 		}
 

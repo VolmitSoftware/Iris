@@ -19,6 +19,7 @@ import ninja.bytecode.iris.pack.IrisPack;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
@@ -48,17 +49,18 @@ public class PackController implements IrisController
 	{
 
 	}
-	
+
 	public boolean isReady()
 	{
 		return ready;
 	}
-	
+
 	public void createTempCache(File jar)
 	{
 		try
 		{
-			File temp = new File(System.getProperty("java.io.tmpdir") + "/Iris/");
+			J.a(() -> IO.delete(new File(Iris.instance.getDataFolder(), "pack")));
+			File temp = Iris.instance.getDataFolder();
 			temp.mkdirs();
 			L.i("Iris Cache: " + temp.getAbsolutePath());
 			ZipFile zipFile = new ZipFile(jar);
@@ -80,7 +82,7 @@ public class PackController implements IrisController
 
 			zipFile.close();
 		}
-		
+
 		catch(Throwable e)
 		{
 			L.w(ChatColor.YELLOW + "Failed to cache internal resources. Did you reload Iris externally?");
@@ -119,7 +121,7 @@ public class PackController implements IrisController
 		gg.execute();
 		exf.close();
 		int m = 0;
-		
+
 		for(GenObjectGroup i : getGenObjectGroups().v())
 		{
 			m += i.size();

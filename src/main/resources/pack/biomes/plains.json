@@ -5,4 +5,9 @@
         "LONG_GRASS:1=0.37",
         "LONG_GRASS:2=0.09"
     ],
+    "objects": [
+        "colossal/blossom/massive=0.0008",
+        "colossal/blossom/supermassive=0.00011",
+        "colossal/blossom/superlarge=0.00054"
+    ]
 }

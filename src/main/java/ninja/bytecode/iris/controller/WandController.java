@@ -35,7 +35,7 @@ public class WandController implements IrisController
 	@Override
 	public void onStart()
 	{
-		//TODO: Optimize
+		// TODO: Optimize
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
 			for(Player i : Bukkit.getOnlinePlayers())
@@ -48,9 +48,9 @@ public class WandController implements IrisController
 	@Override
 	public void onStop()
 	{
-		
+
 	}
-	
+
 	@EventHandler
 	public void tick(Player p)
 	{
@@ -135,10 +135,10 @@ public class WandController implements IrisController
 				}
 			}
 		}
-		
+
 		catch(Throwable e)
 		{
-			
+
 		}
 	}
 
@@ -164,10 +164,10 @@ public class WandController implements IrisController
 			}
 		}
 	}
-	
+
 	public static void pasteSchematic(GenObject s, Location at)
 	{
-		s.place(at.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ());
+		s.place(at);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -177,7 +177,7 @@ public class WandController implements IrisController
 		{
 			return null;
 		}
-		
+
 		try
 		{
 			Location[] f = getCuboid(wand);
@@ -192,14 +192,12 @@ public class WandController implements IrisController
 				{
 					continue;
 				}
-				
+
 				byte data = b.getData();
-				
+
 				BlockVector bv = b.getLocation().subtract(c.getCenter()).toVector().toBlockVector();
-				s.put(bv.getBlockX(), 
-						bv.getBlockY(), 
-						bv.getBlockZ(), 
-						
+				s.put(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(),
+
 						new MB(b.getType(), data));
 			}
 
@@ -258,7 +256,7 @@ public class WandController implements IrisController
 		{
 			other = null;
 		}
-		
+
 		return createWand(left ? a : other, left ? other : a);
 	}
 

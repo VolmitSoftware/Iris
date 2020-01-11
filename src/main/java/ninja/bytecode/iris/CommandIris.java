@@ -2,7 +2,6 @@ package ninja.bytecode.iris;
 
 import java.io.File;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -112,7 +111,7 @@ public class CommandIris implements CommandExecutor
 			if(args[0].equalsIgnoreCase("reload"))
 			{
 				msg(sender, "Reloading Iris...");
-				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Iris.instance.reload());
+				Iris.instance.reload();
 			}
 
 			if(args[0].equalsIgnoreCase("clean"))

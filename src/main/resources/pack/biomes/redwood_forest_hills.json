@@ -13,7 +13,9 @@
     ],
     "objects": [
         "tree/spruce/medium=0.87",
-        "tree/spruce/small=2.7",
-        "tree/spruce/dead/medium=0.06"
+        "tree/spruce/small=3.7",
+        "tree/spruce/dead/medium=0.01",
+        "tree/evergreen/large=0.27",
+        "tree/evergreen/medium=0.32"
     ]
 }

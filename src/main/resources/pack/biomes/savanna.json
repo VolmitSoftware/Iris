@@ -3,5 +3,11 @@
     "derivative": "SAVANNA",
     "scatter":[
         "LONG_GRASS:1=0.18"
+    ],
+    "objects":[
+        "colossal/dead/massive=0.001",
+        "colossal/dead/superlarge=0.0005",
+        "colossal/dead/supermassive=0.0001",
+        "colossal/dead/fallen/massive=0.001"
     ]
 }

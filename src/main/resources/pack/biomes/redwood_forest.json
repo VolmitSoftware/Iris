@@ -12,8 +12,10 @@
         "LONG_GRASS:2=0.07"
     ],
     "objects": [
-        "tree/spruce/medium=0.67",
-        "tree/spruce/small=2.7",
-        "tree/spruce/dead/medium=0.09"
+        "tree/spruce/medium=0.87",
+        "tree/spruce/small=3.7",
+        "tree/spruce/dead/medium=0.01",
+        "tree/evergreen/large=0.17",
+        "tree/evergreen/medium=0.22"
     ]
 }

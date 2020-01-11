@@ -16,6 +16,7 @@ import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.logging.L;
@@ -25,6 +26,7 @@ public class GenObjectDecorator extends BlockPopulator
 {
 	private GMap<Biome, IrisBiome> biomeMap;
 	private GMap<Biome, GMap<GenObjectGroup, Double>> populationCache;
+	private IPlacer placer;
 
 	public GenObjectDecorator(IrisGenerator generator)
 	{
@@ -109,7 +111,12 @@ public class GenObjectDecorator extends BlockPopulator
 					return;
 				}
 
-				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(world, x, b.getY(), z);
+				if(placer == null)
+				{
+					placer = Iris.settings.performance.placerType.get(world);
+				}
+				
+				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, placer);
 			}
 		}
 	}

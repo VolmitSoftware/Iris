@@ -1,6 +1,7 @@
 package ninja.bytecode.iris;
 
 import ninja.bytecode.iris.util.PerformanceMode;
+import ninja.bytecode.iris.util.PlacerType;
 
 public class Settings
 {
@@ -10,11 +11,12 @@ public class Settings
 	public static class PerformanceSettings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
-		public int threadCount = 1;
+		public PlacerType placerType = PlacerType.BUKKIT_NO_PHYSICS;
 		public int threadPriority = Thread.MIN_PRIORITY;
+		public int compilerPriority = Thread.MIN_PRIORITY;
+		public int threadCount = 1;
 		public boolean debugMode = true;
 		public int compilerThreads = 12;
-		public int compilerPriority = Thread.MAX_PRIORITY;
 		public int decorationAccuracy = 1;
 	}
 

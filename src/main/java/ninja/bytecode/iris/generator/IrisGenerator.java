@@ -221,7 +221,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan)
 	{
-
+		
 	}
 
 	@Override

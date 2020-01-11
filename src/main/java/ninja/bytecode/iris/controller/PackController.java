@@ -201,6 +201,13 @@ public class PackController implements IrisController
 		else
 		{
 			L.f(ChatColor.RED + "Cannot find Resource: " + ChatColor.YELLOW + internal.getAbsolutePath());
+			
+			if(internal.getName().equals("manifest.json"))
+			{
+				L.f(ChatColor.RED + "Reloading Iris to fix manifest jar issues");
+				Iris.instance.reload();
+			}
+			
 			return null;
 		}
 	}

@@ -6,10 +6,10 @@
         "LONG_GRASS:2=0.09"
     ],
     "objects": [
-        "tree/serrulata/bleeding/alt/medium=0.033",
-        "tree/serrulata/bleeding/large=0.042",
-        "tree/serrulata/bleeding/medium=0.042",
-        "tree/serrulata/nobleed/medium=0.042",
-        "tree/serrulata/sakura/medium=0.02"
+        "tree/serrulata/bleeding/alt/medium=0.012",
+        "tree/serrulata/bleeding/medium=0.012",
+        "tree/serrulata/nobleed/medium=0.012",
+        "tree/serrulata/sakura/medium=0.012",
+        "tree/serrulata/bleeding/large=0.003"
     ]
 }

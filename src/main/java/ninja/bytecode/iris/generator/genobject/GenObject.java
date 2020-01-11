@@ -11,11 +11,12 @@ import java.util.zip.GZIPInputStream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.Direction;
+import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.GList;
@@ -202,11 +203,20 @@ public class GenObject
 		int m = (g / 2);
 		return g % 2 == 0 ? m : m + 1;
 	}
-
-	@SuppressWarnings("deprecation")
-	public void place(World source, int wx, int wy, int wz)
+	
+	public void place(Location l)
 	{
-		Location start = new Location(source, wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
+		place(l, Iris.settings.performance.placerType.get(l.getWorld()));
+	}
+	
+	public void place(Location l, IPlacer placer)
+	{
+		place(l.getBlockX(), l.getBlockY(), l.getBlockZ(), placer);
+	}
+
+	public void place(int wx, int wy, int wz, IPlacer placer)
+	{
+		Location start = new Location(placer.getWorld(), wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
 
 		if(mount == null)
 		{
@@ -215,7 +225,7 @@ public class GenObject
 
 		start.subtract(mount);
 
-		int highestY = source.getHighestBlockYAt(start);
+		int highestY = placer.getHighestY(start);
 
 		if(start.getBlockY() + mountHeight > highestY)
 		{
@@ -236,11 +246,12 @@ public class GenObject
 
 			Location f = start.clone().add(i);
 
-			if(i.getBlockY() == mountHeight && f.clone().subtract(0, 1, 0).getBlock().isLiquid())
+			Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
+			if(i.getBlockY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
 			{
 				for(Location j : undo.k())
 				{
-					source.getBlockAt(j.getBlockX(), j.getBlockY(), j.getBlockZ()).setTypeIdAndData(undo.get(j).material.getId(), undo.get(j).data, false);
+					placer.set(j, undo.get(j));
 				}
 
 				return;
@@ -253,8 +264,8 @@ public class GenObject
 
 			try
 			{
-				undo.put(f, MB.of(f.getBlock().getType(), f.getBlock().getData()));
-				source.getBlockAt(f.getBlockX(), f.getBlockY(), f.getBlockZ()).setTypeIdAndData(b.material.getId(), b.data, false);
+				undo.put(f, placer.get(f));
+				placer.set(f, b);
 			}
 
 			catch(Throwable e)

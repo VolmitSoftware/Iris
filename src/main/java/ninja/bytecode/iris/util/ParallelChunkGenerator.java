@@ -14,6 +14,7 @@ import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 
@@ -31,12 +32,12 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private RollingSequence rs = new RollingSequence(512);
 	private World world;
 	private TaskExecutor genPool;
-	
+
 	public World getWorld()
 	{
 		return world;
 	}
-	
+
 	public void generateFullColumn(int a, int b, int c, int d, BiomeGrid g, ChunkPlan p)
 	{
 		g.setBiome(c, d, genColumn(a, b, c, d, p));
@@ -45,16 +46,15 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
-		Iris.getController(TimingsController.class).started("terrain");
-		if(genPool == null)
-		{
-			genPool = Iris.getController(ExecutionController.class).getExecutor(world);
-		}
-		this.world = world;
-		data = new AtomicChunkData(world);
-
 		try
 		{
+			Iris.getController(TimingsController.class).started("terrain");
+			if(genPool == null)
+			{
+				genPool = Iris.getController(ExecutionController.class).getExecutor(world);
+			}
+			this.world = world;
+			data = new AtomicChunkData(world);
 			if(!ready)
 			{
 				onInit(world, random);
@@ -83,6 +83,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			onPostChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
 			cg++;
+			Iris.getController(TimingsController.class).stopped("terrain");
 		}
 
 		catch(Throwable e)
@@ -99,9 +100,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					data.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA);
 				}
 			}
+			
+			L.ex(e);
 		}
-
-		Iris.getController(TimingsController.class).stopped("terrain");
 		
 		return data.toChunkData();
 	}
@@ -113,9 +114,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	public abstract void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
 
 	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan);
-	
+
 	public abstract void decorateColumn(int wx, int wz, int x, int z, ChunkPlan plan);
-	
+
 	@SuppressWarnings("deprecation")
 	public void setBlock(int x, int y, int z, Material b)
 	{

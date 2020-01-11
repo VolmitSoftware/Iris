@@ -63,8 +63,10 @@ public class Iris extends JavaPlugin implements Listener
 	
 	public void reload()
 	{
-		onDisable();
-		onEnable();
+		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+			onDisable();
+			onEnable();
+		});
 	}
 
 	@SuppressWarnings("unchecked")

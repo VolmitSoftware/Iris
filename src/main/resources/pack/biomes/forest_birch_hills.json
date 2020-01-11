@@ -5,9 +5,10 @@
         "LONG_GRASS:1=0.23",
         "LONG_GRASS:2=0.13"
     ],
+    "height": 0.14,
     "objects": [
-        "tree/birch/medium=0.33",
-        "tree/birch/large=0.42",
-        "tree/birch/small=2.2"
+        "tree/birch/medium=0.63",
+        "tree/birch/large=0.32",
+        "tree/birch/small=3.2"
     ]
 }

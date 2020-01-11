@@ -30,6 +30,11 @@ public class WorldController implements IrisController
 			}
 		});
 	}
+	
+	public boolean isChunkGenerated(World w, int x, int z)
+	{
+		return w.loadChunk(x, z, false);
+	}
 
 	@Override
 	public void onStop()

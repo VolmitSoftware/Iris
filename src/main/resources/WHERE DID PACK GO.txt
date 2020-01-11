@@ -1,0 +1,10 @@
+1. Ensure your test server is NOT RUNNING!
+2. Ensure Iris is up to date (gitkraken)
+3. Delete plugins/Iris/pack (server) (keep the folder Iris there)
+4. Delete plugins/Iris.jar (server)
+5. Make a new tab in gitkraken, click on clone a repository (github)
+6. Select "IrisPack" and set the clone path to yourserver/plugins/Iris
+7. Set the repository name to "pack" and click Clone, then Open Now
+8. Build Iris (eclipse)
+9. Start Server
+10. Profit

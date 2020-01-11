@@ -1,9 +1,0 @@
-{
-    "name": "Mountains",
-    "height": 0.35,
-    "region": "Cold",
-    "derivative": "EXTREME_HILLS",
-    "scatter":[
-        "LONG_GRASS:2=0.04"
-    ]
-}

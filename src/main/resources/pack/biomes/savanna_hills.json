@@ -1,8 +1,0 @@
-{
-    "name": "Savanna Hills",
-    "derivative": "SAVANNA_ROCK",
-    "region": "HotDry",
-    "scatter":[
-        "LONG_GRASS:1=0.18"
-    ]
-}

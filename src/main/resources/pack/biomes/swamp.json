@@ -1,9 +1,0 @@
-{
-    "name": "Swamp",
-    "derivative": "SWAMPLAND",
-    "region": "Humid",
-    "scatter":[
-        "LONG_GRASS:1=0.04",
-        "LONG_GRASS:2=0.03"
-    ]
-}

@@ -1,13 +1,15 @@
 {
-    "name": "Mesa",
+    "name": "Mesa Blue",
     "derivative": "Mesa",
     "height": 0.125,
     "region": "HotDry",
     "surface": [
-        "HARD_CLAY",
-        "STAINED_CLAY:1",
-        "STAINED_CLAY:8",
-        "STAINED_CLAY:12"
+        "STAINED_CLAY:9",
+        "STAINED_CLAY:3",
+        "STAINED_CLAY:11",
+        "STAINED_CLAY:10",
+        "STAINED_CLAY:2",
+        "STAINED_CLAY:6"
     ],
     "dirt": [
         "CLAY",

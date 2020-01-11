@@ -1,6 +1,7 @@
 {
     "name": "Plains",
     "derivative": "PLAINS",
+    "region": "Temperate",
     "scatter":[
         "LONG_GRASS:1=0.37",
         "LONG_GRASS:2=0.09"

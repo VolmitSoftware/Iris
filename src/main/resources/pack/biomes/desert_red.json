@@ -1,6 +1,7 @@
 {
     "name": "Desert Red",
     "derivative": "MUTATED_DESERT",
+    "region": "HotDry",
     "surface": [
         "SAND:1"
     ],

@@ -1,5 +1,6 @@
 {
     "name": "Sakura",
+    "region": "Temperate",
     "derivative": "MUTATED_PLAINS",
     "scatter":[
         "LONG_GRASS:1=0.37",

@@ -1,6 +1,7 @@
 {
     "name": "Taiga",
     "derivative": "TAIGA",
+    "region": "Cold",
     "scatter":[
         "LONG_GRASS:2=0.07"
     ],

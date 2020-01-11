@@ -1,6 +1,7 @@
 {
     "name": "Mushroom Island",
     "derivative": "MUSHROOM_ISLAND",
+    "region": "Cold",
     "surface": [
         "MYCEL"
     ],

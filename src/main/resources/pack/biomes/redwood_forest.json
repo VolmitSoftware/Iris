@@ -1,6 +1,7 @@
 {
     "name": "Redwood Forest",
     "derivative": "REDWOOD_TAIGA",
+    "region": "Cold",
     "surface": [
         "DIRT",
         "DIRT:1",

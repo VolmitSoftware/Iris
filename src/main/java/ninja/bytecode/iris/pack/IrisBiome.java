@@ -63,6 +63,7 @@ public class IrisBiome
 	private boolean scatterSurface;
 	private boolean core;
 	private boolean simplexScatter;
+	private String region;
 	private GMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
 
@@ -144,6 +145,7 @@ public class IrisBiome
 
 	public IrisBiome(String name, Biome realBiome)
 	{
+		this.region = "Default";
 		this.core = false;
 		this.name = name;
 		this.realBiome = realBiome;
@@ -158,6 +160,7 @@ public class IrisBiome
 	{
 		name = o.getString("name");
 		realBiome = Biome.valueOf(o.getString("derivative").toUpperCase().replaceAll(" ", "_"));
+		J.attempt(() -> region = o.getString("region"));
 		J.attempt(() -> height = o.getDouble("height"));
 		J.attempt(() -> surface = mbListFromJSON(o.getJSONArray("surface")));
 		J.attempt(() -> dirt = mbListFromJSON(o.getJSONArray("dirt")));
@@ -179,6 +182,7 @@ public class IrisBiome
 	{
 		JSONObject j = new JSONObject();
 		j.put("name", name);
+		J.attempt(() -> j.put("region", region));
 		J.attempt(() -> j.put("derivative", realBiome.name().toLowerCase().replaceAll("_", " ")));
 		J.attempt(() -> j.put("height", height));
 		J.attempt(() -> j.put("surface", mbListToJSON(surface)));
@@ -473,5 +477,10 @@ public class IrisBiome
 		}
 		
 		return false;
+	}
+
+	public String getRegion()
+	{
+		return region;
 	}
 }

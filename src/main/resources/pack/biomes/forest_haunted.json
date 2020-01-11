@@ -1,6 +1,7 @@
 {
     "name": "Haunted Forest",
     "derivative": "MUTATED_SWAMPLAND",
+    "region": "Temperate",
     "surface": [
         "GRASS",
         "GRASS",

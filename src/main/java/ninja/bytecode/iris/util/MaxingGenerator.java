@@ -111,6 +111,11 @@ public class MaxingGenerator
 
 		public T getChoice(double... dim)
 		{
+			if(choices.length == 1)
+			{
+				return choices[0];
+			}
+			
 			return choices[super.getIndex(dim)];
 		}
 	}

@@ -2,6 +2,7 @@
     "name": "Ice Mountains",
     "derivative": "ICE_MOUNTAINS",
     "height": 0.412,
+    "region": "Cold",
     "objects": [
         "tree/spruce/medium=0.07",
         "tree/spruce/small=0.25",

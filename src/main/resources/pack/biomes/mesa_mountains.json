@@ -1,7 +1,7 @@
 {
-    "name": "Mesa",
+    "name": "Mesa Mountains",
     "derivative": "Mesa",
-    "height": 0.125,
+    "height": 0.325,
     "region": "HotDry",
     "surface": [
         "HARD_CLAY",

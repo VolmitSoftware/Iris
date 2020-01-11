@@ -9,17 +9,19 @@ import org.bukkit.World;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.MaxingGenerator;
 import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private EnumMaxingGenerator<IrisBiome> biomeGenerator;
+	private EnumMaxingGenerator<IrisRegion> regionGenerator;
 	private MaxingGenerator roads;
 	private Function<CNG, CNG> factory;
 	private CNG pathCheck;
@@ -37,8 +39,33 @@ public class GenLayerBiome extends GenLayer
 		riverCheck = new CNG(rng.nextParallelRNG(30), 1D, 2).scale(0.00096);
 		pathCheck = new CNG(rng.nextParallelRNG(31), 1D, 1).scale(0.00096);
 		roads = new MaxingGenerator(rng.nextParallelRNG(32), 5, 0.00055, 8, factory);
-		biomeGenerator = new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33), 0.00755 * Iris.settings.gen.biomeScale, 1, biomes.toArray(new IrisBiome[biomes.size()]), factory);
 		//@done
+		
+		GMap<String, IrisRegion> regions = new GMap<>();
+		
+		for(IrisBiome i : biomes)
+		{
+			if(!regions.containsKey(i.getRegion()))
+			{
+				regions.put(i.getRegion(), new IrisRegion(i.getRegion()));
+			}
+			
+			regions.get(i.getRegion()).getBiomes().add(i);
+		}
+
+		int v = 85034;
+		regionGenerator = new EnumMaxingGenerator<IrisRegion>(rng.nextParallelRNG(v), 0.00522 * Iris.settings.gen.biomeScale * 0.189, 1, regions.v().toArray(new IrisRegion[regions.v().size()]), factory);
+		
+		for(IrisRegion i : regions.v())
+		{
+			v += 13 - i.getName().length();
+			i.setGen(new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000755 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
+		}
+	}
+	
+	public EnumMaxingGenerator<IrisBiome> getRegionGenerator(double xx, double zz)
+	{
+		return regionGenerator.getChoice(xx, zz).getGen();
 	}
 
 	public IrisBiome getBiome(double xx, double zz)
@@ -48,23 +75,23 @@ public class GenLayerBiome extends GenLayer
 		IrisBiome cbi = iris.biome("Ocean");
 		double land = island.noise(x, z);
 		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);
-		
+
 		if(land > landChance && land < landChance + 0.0175)
 		{
 			cbi = iris.biome("Beach");
 		}
-		
+
 		else if(land > landChance + 0.0175)
 		{
 			if(riverCheck.noise(x, z) > 0.75)
 			{
-				if(biomeGenerator.hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
+				if(getRegionGenerator(x, z).hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
 				{
 					return iris.biome("River");
 				}
 			}
 
-			cbi = biomeGenerator.getChoice(x, z);
+			cbi = getRegionGenerator(x, z).getChoice(x, z);
 
 			if(pathCheck.noise(x, z) > 0.33)
 			{
@@ -81,12 +108,12 @@ public class GenLayerBiome extends GenLayer
 				}
 			}
 		}
-		
+
 		else if(land < 0.3)
 		{
 			cbi = iris.biome("Deep Ocean");
 		}
-		
+
 		return cbi;
 	}
 

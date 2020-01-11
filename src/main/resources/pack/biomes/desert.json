@@ -1,6 +1,7 @@
 {
     "name": "Desert",
     "derivative": "DESERT",
+    "region": "HotDry",
     "surface": [
         "SAND"
     ],

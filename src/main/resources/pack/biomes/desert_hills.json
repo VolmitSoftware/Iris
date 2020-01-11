@@ -1,6 +1,7 @@
 {
     "name": "Desert Hills",
     "derivative": "DESERT_HILLS",
+    "region": "HotDry",
     "surface": [
         "SAND"
     ],

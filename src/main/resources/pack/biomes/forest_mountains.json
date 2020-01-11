@@ -1,6 +1,7 @@
 {
     "name": "Forest Mountains",
     "derivative": "MUTATED_EXTREME_HILLS_WITH_TREES",
+    "region": "Temperate",
     "scatter":[
         "LONG_GRASS:1=0.13",
         "LONG_GRASS:2=0.13"

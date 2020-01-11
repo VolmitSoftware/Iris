@@ -7,6 +7,6 @@
         "LONG_GRASS:2=0.02"
     ],
     "objects": [
-        "colossal/jungle/massive=0.001"
+        "colossal/jungle/massive=0.0005"
     ]
 }

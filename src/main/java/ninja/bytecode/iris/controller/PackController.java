@@ -2,12 +2,8 @@ package ninja.bytecode.iris.controller;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
@@ -19,7 +15,6 @@ import ninja.bytecode.iris.pack.IrisPack;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
@@ -53,40 +48,6 @@ public class PackController implements IrisController
 	public boolean isReady()
 	{
 		return ready;
-	}
-
-	public void createTempCache(File jar)
-	{
-		try
-		{
-			J.a(() -> IO.delete(new File(Iris.instance.getDataFolder(), "pack")));
-			File temp = Iris.instance.getDataFolder();
-			temp.mkdirs();
-			L.i("Iris Cache: " + temp.getAbsolutePath());
-			ZipFile zipFile = new ZipFile(jar);
-			Enumeration<? extends ZipEntry> entries = zipFile.entries();
-			while(entries.hasMoreElements())
-			{
-				ZipEntry entry = entries.nextElement();
-				if(entry.getName().startsWith("pack/") && !entry.isDirectory())
-				{
-					File f = new File(temp, entry.getName());
-					f.getParentFile().mkdirs();
-					InputStream stream = zipFile.getInputStream(entry);
-					FileOutputStream fos = new FileOutputStream(f);
-					IO.fullTransfer(stream, fos, 16921);
-					fos.close();
-					stream.close();
-				}
-			}
-
-			zipFile.close();
-		}
-
-		catch(Throwable e)
-		{
-			L.w(ChatColor.YELLOW + "Failed to cache internal resources. Did you reload Iris externally?");
-		}
 	}
 
 	public void loadContent()

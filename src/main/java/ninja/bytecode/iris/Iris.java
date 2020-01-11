@@ -46,7 +46,6 @@ public class Iris extends JavaPlugin implements Listener
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		getCommand("iris").setExecutor(new CommandIris());
 		getCommand("ish").setExecutor(new CommandIsh());
-		getController(PackController.class).createTempCache(getFile());
 		
 		if(!settings.performance.debugMode)
 		{

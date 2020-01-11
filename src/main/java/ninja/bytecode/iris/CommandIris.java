@@ -1,9 +1,6 @@
 package ninja.bytecode.iris;
 
-import java.io.File;
-
 import org.bukkit.ChatColor;
-import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,9 +10,7 @@ import org.bukkit.entity.Player;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.format.F;
-import ninja.bytecode.shuriken.io.IO;
 
 public class CommandIris implements CommandExecutor
 {
@@ -112,18 +107,6 @@ public class CommandIris implements CommandExecutor
 			{
 				msg(sender, "Reloading Iris...");
 				Iris.instance.reload();
-			}
-
-			if(args[0].equalsIgnoreCase("clean"))
-			{
-				msg(sender, "Poof!");
-
-				if(sender instanceof Player)
-				{
-					((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_END_PORTAL_SPAWN, 0.33f, (float) 1.65);
-				}
-
-				J.attempt(() -> IO.delete(new File(Iris.instance.getDataFolder(), "pack")));
 			}
 		}
 

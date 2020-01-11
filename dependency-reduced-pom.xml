@@ -18,7 +18,7 @@
               <include>**/*.yml</include>
               <include>**/*.txt</include>
               <include>**/*.properties</include>
-              <include>**/*.html</include>
+              <include>**/*.json</include>
             </includes>
           </resource>
         </resources>
@@ -33,7 +33,7 @@
                   <goal>shade</goal>
                 </goals>
                 <configuration>
-                  <minimizeJar>true</minimizeJar>
+                  <minimizeJar>false</minimizeJar>
                 </configuration>
               </execution>
             </executions>

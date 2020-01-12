@@ -133,6 +133,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
 	{
+		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
 		double wx = Math.round((double) wxx * Iris.settings.gen.horizontalZoom);
 		double wz = Math.round((double) wzx * Iris.settings.gen.horizontalZoom);
@@ -144,7 +145,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		int max = Math.max(height, seaLevel);
 		IrisBiome override = null;
 
-		if(height > 61 && height < 65)
+		if(height > 61 && height < 65 + (glLNoise.getHeight(wz, wx) * 24D))
 		{
 			override = biome("Beach");
 		}
@@ -191,6 +192,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 				if(!mbx.material.equals(Material.AIR))
 				{
 					setBlock(x, i + 1, z, mbx.material, mbx.data);
+					highest = i > highest ? i : highest;
 				}
 			}
 
@@ -205,10 +207,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 			}
 
 			setBlock(x, i, z, mb.material, mb.data);
+			highest = i > highest ? i : highest;
 		}
 
 		glCaves.genCaves(wxx, wzx, x, z, height, this);
-		
+		plan.setRealHeight(x, z, highest);
 		return biome.getRealBiome();
 	}
 
@@ -221,7 +224,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan)
 	{
-		
+
 	}
 
 	@Override
@@ -229,7 +232,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		GList<BlockPopulator> p = new GList<>();
 
-		if(Iris.settings.gen.doSchematics)
+		if(Iris.settings.gen.genObjects)
 		{
 			p.add(new GenObjectDecorator(this));
 		}

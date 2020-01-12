@@ -174,7 +174,14 @@
     </dependency>
     <dependency>
       <groupId>cb</groupId>
-      <artifactId>craftbukkit-1.12.2</artifactId>
+      <artifactId>mort</artifactId>
+      <version>1</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/Mortar.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>cb</groupId>
+      <artifactId>cb12</artifactId>
       <version>1</version>
       <scope>system</scope>
       <systemPath>${project.basedir}/lib/craftbukkit-1.12.2.jar</systemPath>

@@ -14,7 +14,6 @@ import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
-import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 
@@ -41,7 +40,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	public void generateFullColumn(int a, int b, int c, int d, BiomeGrid g, ChunkPlan p)
 	{
 		g.setBiome(c, d, genColumn(a, b, c, d, p));
-		decorateColumn(a, b, c, d, p);
 	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
@@ -100,8 +98,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					data.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA);
 				}
 			}
-			
-			L.ex(e);
 		}
 		
 		return data.toChunkData();

@@ -12,4 +12,6 @@ public interface IPlacer
 	public void set(Location l, MB mb);
 	
 	public int getHighestY(Location l);
+	
+	public void flush();
 }

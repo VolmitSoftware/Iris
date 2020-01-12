@@ -15,10 +15,12 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 
@@ -26,7 +28,9 @@ public class GenObjectDecorator extends BlockPopulator
 {
 	private GMap<Biome, IrisBiome> biomeMap;
 	private GMap<Biome, GMap<GenObjectGroup, Double>> populationCache;
+	private IPlacer cascadingPlacer;
 	private IPlacer placer;
+	private ChronoLatch cl = new ChronoLatch(1000);
 
 	public GenObjectDecorator(IrisGenerator generator)
 	{
@@ -37,13 +41,14 @@ public class GenObjectDecorator extends BlockPopulator
 		{
 			biomeMap.put(i.getRealBiome(), i);
 
-			GMap<GenObjectGroup, Double> gk = new GMap<>();
+			GMap<GenObjectGroup, Double> gc = new GMap<>();
 
 			for(String j : i.getSchematicGroups().k())
 			{
 				try
 				{
-					gk.put(Iris.getController(PackController.class).getGenObjectGroups().get(j), i.getSchematicGroups().get(j));
+					GenObjectGroup g = Iris.getController(PackController.class).getGenObjectGroups().get(j);
+					gc.put(g, i.getSchematicGroups().get(j));
 				}
 
 				catch(Throwable e)
@@ -53,13 +58,17 @@ public class GenObjectDecorator extends BlockPopulator
 				}
 			}
 
-			populationCache.put(i.getRealBiome(), gk);
+			if(!gc.isEmpty())
+			{
+				populationCache.put(i.getRealBiome(), gc);
+			}
 		}
 	}
 
 	@Override
-	public void populate(World world, Random random, Chunk source)
+	public void populate(World world, Random rnotusingyou, Chunk source)
 	{
+		Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
 		Iris.getController(TimingsController.class).started("decor");
 		GSet<Biome> hits = new GSet<>();
 
@@ -108,16 +117,21 @@ public class GenObjectDecorator extends BlockPopulator
 
 				if(!t.isSolid() || !ibiome.isSurface(t))
 				{
-					return;
+					continue;
 				}
 
-				if(placer == null)
+				if(cascadingPlacer == null)
 				{
-					placer = Iris.settings.performance.placerType.get(world);
+					cascadingPlacer = new NMSPlacer(world);
 				}
-				
-				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, placer);
+
+				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, cascadingPlacer);
 			}
+		}
+
+		if(placer != null && cl.flip())
+		{
+			placer.flush();
 		}
 	}
 

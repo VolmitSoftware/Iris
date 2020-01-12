@@ -1,8 +1,11 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.placer;
 
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+
+import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.Placer;
 
 public class BukkitPlacer extends Placer
 {
@@ -26,8 +29,7 @@ public class BukkitPlacer extends Placer
 	@Override
 	public void set(Location l, MB mb)
 	{
-		Block b = world.getBlockAt(l);
-		b.setTypeIdAndData(mb.material.getId(), mb.data, applyPhysics);
+		l.getBlock().setTypeIdAndData(mb.material.getId(), mb.data, applyPhysics);
 	}
 
 	@Override

@@ -21,6 +21,7 @@ public class GenObjectGroup
 	private GList<String> flags;
 	private String name;
 	private int priority;
+	private boolean noCascade;
 
 	public GenObjectGroup(String name)
 	{
@@ -28,6 +29,7 @@ public class GenObjectGroup
 		this.flags = new GList<>();
 		priority = 0;
 		this.name = name;
+		this.noCascade = false;
 	}
 
 	public String getName()
@@ -85,7 +87,6 @@ public class GenObjectGroup
 			
 			for(File i : folder.listFiles())
 			{
-				
 				if(i.getName().endsWith(".ifl"))
 				{
 					try
@@ -162,7 +163,18 @@ public class GenObjectGroup
 		
 		gg.execute();
 		ex.close();
-		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE +  name);
+		noCascade = true;
+		
+		for(GenObject i : getSchematics())
+		{
+			if(i.isCascading())
+			{
+				noCascade = false;
+				break;
+			}
+		}
+		
+		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE +  name + (noCascade ? ChatColor.AQUA + "*" : ChatColor.YELLOW + "^"));
 	}
 
 	@Override
@@ -203,5 +215,10 @@ public class GenObjectGroup
 		if(priority != other.priority)
 			return false;
 		return true;
+	}
+
+	public boolean isCascading()
+	{
+		return !noCascade;
 	}
 }

@@ -1,7 +1,6 @@
 package ninja.bytecode.iris;
 
 import ninja.bytecode.iris.util.PerformanceMode;
-import ninja.bytecode.iris.util.PlacerType;
 
 public class Settings
 {
@@ -11,20 +10,21 @@ public class Settings
 	public static class PerformanceSettings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
-		public PlacerType placerType = PlacerType.BUKKIT_NO_PHYSICS;
+		public boolean decoratePhysics = false;
 		public int threadPriority = Thread.MIN_PRIORITY;
 		public int compilerPriority = Thread.MIN_PRIORITY;
 		public int threadCount = 1;
 		public boolean debugMode = true;
 		public int compilerThreads = 12;
 		public int decorationAccuracy = 1;
+		public int cascadeLimit = 14;
 	}
 
 	public static class GeneratorSettings
 	{
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
-		public double landScale = 0.205;
+		public double landScale = 0.325;
 		public double landChance = 0.67;
 		public double roughness = 1.333;
 		public double heightMultiplier = 0.806;
@@ -38,6 +38,6 @@ public class Settings
 		public double caveScale = 1.45;
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
-		public boolean doSchematics = true;
+		public boolean genObjects = true;
 	}
 }

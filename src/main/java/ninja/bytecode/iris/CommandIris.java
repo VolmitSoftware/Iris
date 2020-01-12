@@ -1,12 +1,14 @@
 package ninja.bytecode.iris;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import mortar.api.nms.NMP;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
@@ -107,6 +109,17 @@ public class CommandIris implements CommandExecutor
 			{
 				msg(sender, "Reloading Iris...");
 				Iris.instance.reload();
+			}
+
+			if(args[0].equalsIgnoreCase("refresh"))
+			{
+				msg(sender, "Sec...");
+				Player p = ((Player) sender);
+
+				for(Chunk i : p.getWorld().getLoadedChunks())
+				{
+					NMP.CHUNK.refresh(p, i);
+				}
 			}
 		}
 

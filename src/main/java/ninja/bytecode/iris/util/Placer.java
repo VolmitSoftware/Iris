@@ -16,4 +16,9 @@ public abstract class Placer implements IPlacer
 	{
 		return world;
 	}
+	
+	public void flush()
+	{
+		
+	}
 }

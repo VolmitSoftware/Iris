@@ -15,6 +15,7 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
@@ -35,12 +36,14 @@ public class GenObject
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;
+	private boolean cascading;
 
 	public GenObject(int w, int h, int d)
 	{
 		this.w = w;
 		this.h = h;
 		this.d = d;
+		cascading = false;
 		shift = new BlockVector();
 		s = new GMap<>();
 		centeredHeight = false;
@@ -121,6 +124,41 @@ public class GenObject
 	{
 		return s;
 	}
+	
+	public int getWidth()
+	{
+		return w;
+	}
+	
+	public int getDepth()
+	{
+		return d;
+	}
+	
+	public int getAntiCascadeWidth()
+	{
+		if(isCascading())
+		{
+			return -1;
+		}
+		
+		return 16 - w;
+	}
+	
+	public int getAntiCascadeDepth()
+	{
+		if(isCascading())
+		{
+			return -1;
+		}
+		
+		return 16 - d;
+	}
+	
+	public boolean isCascading()
+	{
+		return cascading;
+	}
 
 	@SuppressWarnings("deprecation")
 	public void read(InputStream in) throws IOException
@@ -130,6 +168,7 @@ public class GenObject
 		w = din.readInt();
 		h = din.readInt();
 		d = din.readInt();
+		cascading = w > Iris.settings.performance.cascadeLimit || d > Iris.settings.performance.cascadeLimit;
 		int l = din.readInt();
 		clear();
 
@@ -203,12 +242,12 @@ public class GenObject
 		int m = (g / 2);
 		return g % 2 == 0 ? m : m + 1;
 	}
-	
+
 	public void place(Location l)
 	{
-		place(l, Iris.settings.performance.placerType.get(l.getWorld()));
+		place(l, new NMSPlacer(l.getWorld()));
 	}
-	
+
 	public void place(Location l, IPlacer placer)
 	{
 		place(l.getBlockX(), l.getBlockY(), l.getBlockZ(), placer);

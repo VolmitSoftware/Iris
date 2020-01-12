@@ -4,3 +4,4 @@ main: ninja.bytecode.iris.Iris
 commands:
   iris:
   ish:
+depend: [Mortar]

@@ -40,29 +40,29 @@ public class GenLayerBiome extends GenLayer
 		pathCheck = new CNG(rng.nextParallelRNG(31), 1D, 1).scale(0.00096);
 		roads = new MaxingGenerator(rng.nextParallelRNG(32), 5, 0.00055, 8, factory);
 		//@done
-		
+
 		GMap<String, IrisRegion> regions = new GMap<>();
-		
+
 		for(IrisBiome i : biomes)
 		{
 			if(!regions.containsKey(i.getRegion()))
 			{
 				regions.put(i.getRegion(), new IrisRegion(i.getRegion()));
 			}
-			
+
 			regions.get(i.getRegion()).getBiomes().add(i);
 		}
 
 		int v = 85034;
 		regionGenerator = new EnumMaxingGenerator<IrisRegion>(rng.nextParallelRNG(v), 0.00522 * Iris.settings.gen.biomeScale * 0.189, 1, regions.v().toArray(new IrisRegion[regions.v().size()]), factory);
-		
+
 		for(IrisRegion i : regions.v())
 		{
 			v += 13 - i.getName().length();
-			i.setGen(new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000755 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
+			i.setGen(new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
 		}
 	}
-	
+
 	public EnumMaxingGenerator<IrisBiome> getRegionGenerator(double xx, double zz)
 	{
 		return regionGenerator.getChoice(xx, zz).getGen();

@@ -160,7 +160,14 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<artifactId>craftbukkit-1.12.2</artifactId>
+			<artifactId>mort</artifactId>
+			<groupId>cb</groupId>
+			<version>1</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/Mortar.jar</systemPath> 
+		</dependency>
+		<dependency>
+			<artifactId>cb12</artifactId>
 			<groupId>cb</groupId>
 			<version>1</version>
 			<scope>system</scope>

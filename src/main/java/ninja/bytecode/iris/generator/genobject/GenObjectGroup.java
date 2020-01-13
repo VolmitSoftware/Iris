@@ -32,6 +32,33 @@ public class GenObjectGroup
 		this.noCascade = false;
 	}
 
+	public void applySnowFilter(int factor)
+	{
+		L.i(ChatColor.AQUA + "Applying Snow Filter to " + ChatColor.WHITE + getName());
+		for(GenObject i : schematics)
+		{
+			i.applySnowFilter(factor);
+		}
+	}
+
+	public GenObjectGroup copy(String suffix)
+	{
+		GenObjectGroup gog = new GenObjectGroup(name + suffix);
+		gog.schematics = new GList<>();
+		gog.flags = flags.copy();
+		gog.priority = priority;
+		gog.noCascade = noCascade;
+
+		for(GenObject i : schematics)
+		{
+			GenObject g = i.copy();
+			g.setName(i.getName() + suffix);
+			gog.schematics.add(g);
+		}
+
+		return gog;
+	}
+
 	public String getName()
 	{
 		return name;
@@ -84,7 +111,7 @@ public class GenObjectGroup
 		if(folder != null)
 		{
 			GenObjectGroup g = new GenObjectGroup(string);
-			
+
 			for(File i : folder.listFiles())
 			{
 				if(i.getName().endsWith(".ifl"))
@@ -134,8 +161,9 @@ public class GenObjectGroup
 			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
 			{
 				GenObject cp = i.copy();
-				
-				gg.queue(() -> {
+
+				gg.queue(() ->
+				{
 					GenObject f = cp;
 					f.rotate(Direction.N, j);
 					rr.lock();
@@ -144,15 +172,16 @@ public class GenObjectGroup
 				});
 			}
 		}
-		
+
 		gg.execute();
 		gg = ex.startWork();
 		getSchematics().add(inject);
 
 		for(GenObject i : getSchematics())
 		{
-			gg.queue(() -> {
-				i.computeMountShift();
+			gg.queue(() ->
+			{
+				i.recalculateMountShift();
 
 				for(String j : flags)
 				{
@@ -160,11 +189,11 @@ public class GenObjectGroup
 				}
 			});
 		}
-		
+
 		gg.execute();
 		ex.close();
 		noCascade = true;
-		
+
 		for(GenObject i : getSchematics())
 		{
 			if(i.isCascading())
@@ -173,8 +202,8 @@ public class GenObjectGroup
 				break;
 			}
 		}
-		
-		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE +  name + (noCascade ? ChatColor.AQUA + "*" : ChatColor.YELLOW + "^"));
+
+		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name + (noCascade ? ChatColor.AQUA + "*" : ChatColor.YELLOW + "^"));
 	}
 
 	@Override

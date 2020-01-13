@@ -15,6 +15,7 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.placer.BukkitPlacer;
 import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.IPlacer;
@@ -26,16 +27,17 @@ import ninja.bytecode.shuriken.math.M;
 
 public class GenObjectDecorator extends BlockPopulator
 {
+	private GMap<String, GenObjectGroup> snowCache;
 	private GMap<Biome, IrisBiome> biomeMap;
 	private GMap<Biome, GMap<GenObjectGroup, Double>> populationCache;
-	private IPlacer cascadingPlacer;
 	private IPlacer placer;
-	private ChronoLatch cl = new ChronoLatch(1000);
+	private ChronoLatch cl = new ChronoLatch(250);
 
 	public GenObjectDecorator(IrisGenerator generator)
 	{
 		biomeMap = new GMap<>();
 		populationCache = new GMap<>();
+		snowCache = new GMap<>();
 
 		for(IrisBiome i : generator.getLoadedBiomes())
 		{
@@ -48,6 +50,21 @@ public class GenObjectDecorator extends BlockPopulator
 				try
 				{
 					GenObjectGroup g = Iris.getController(PackController.class).getGenObjectGroups().get(j);
+
+					if(i.isSnowy())
+					{
+						String v = g.getName() + "-" + i.getSnow();
+
+						if(!snowCache.containsKey(v))
+						{
+							GenObjectGroup gog = g.copy("-snowy-" + i.getSnow());
+							gog.applySnowFilter((int) (i.getSnow() * 4));
+							snowCache.put(v, gog);
+						}
+
+						g = snowCache.get(v);
+					}
+
 					gc.put(g, i.getSchematicGroups().get(j));
 				}
 
@@ -68,40 +85,48 @@ public class GenObjectDecorator extends BlockPopulator
 	@Override
 	public void populate(World world, Random rnotusingyou, Chunk source)
 	{
-		Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
-		Iris.getController(TimingsController.class).started("decor");
-		GSet<Biome> hits = new GSet<>();
-
-		for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
+		try
 		{
-			int x = (source.getX() << 4) + random.nextInt(16);
-			int z = (source.getZ() << 4) + random.nextInt(16);
-			Biome biome = world.getBiome(x, z);
+			Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
+			Iris.getController(TimingsController.class).started("decor");
+			GSet<Biome> hits = new GSet<>();
 
-			if(hits.contains(biome))
+			for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
 			{
-				continue;
+				int x = (source.getX() << 4) + random.nextInt(16);
+				int z = (source.getZ() << 4) + random.nextInt(16);
+				Biome biome = world.getBiome(x, z);
+
+				if(hits.contains(biome))
+				{
+					continue;
+				}
+
+				IrisBiome ibiome = biomeMap.get(biome);
+
+				if(ibiome == null)
+				{
+					continue;
+				}
+
+				GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
+
+				if(objects == null)
+				{
+					continue;
+				}
+
+				hits.add(biome);
+				populate(world, random, source, biome, ibiome, objects);
 			}
 
-			IrisBiome ibiome = biomeMap.get(biome);
-
-			if(ibiome == null)
-			{
-				continue;
-			}
-
-			GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
-
-			if(objects == null)
-			{
-				continue;
-			}
-
-			hits.add(biome);
-			populate(world, random, source, biome, ibiome, objects);
+			Iris.getController(TimingsController.class).stopped("decor");
 		}
 
-		Iris.getController(TimingsController.class).stopped("decor");
+		catch(Throwable e)
+		{
+
+		}
 	}
 
 	private void populate(World world, Random random, Chunk source, Biome biome, IrisBiome ibiome, GMap<GenObjectGroup, Double> objects)
@@ -120,12 +145,20 @@ public class GenObjectDecorator extends BlockPopulator
 					continue;
 				}
 
-				if(cascadingPlacer == null)
+				if(placer == null)
 				{
-					cascadingPlacer = new NMSPlacer(world);
+					if(Iris.settings.performance.fastDecoration)
+					{
+						placer = new NMSPlacer(world);
+					}
+
+					else
+					{
+						placer = new BukkitPlacer(world, false);
+					}
 				}
 
-				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, cascadingPlacer);
+				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, placer);
 			}
 		}
 

@@ -63,6 +63,7 @@ public class IrisBiome
 	private boolean scatterSurface;
 	private boolean core;
 	private boolean simplexScatter;
+	private double snow;
 	private String region;
 	private GMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
@@ -162,6 +163,7 @@ public class IrisBiome
 		realBiome = Biome.valueOf(o.getString("derivative").toUpperCase().replaceAll(" ", "_"));
 		J.attempt(() -> region = o.getString("region"));
 		J.attempt(() -> height = o.getDouble("height"));
+		J.attempt(() -> snow = o.getDouble("snow"));
 		J.attempt(() -> surface = mbListFromJSON(o.getJSONArray("surface")));
 		J.attempt(() -> dirt = mbListFromJSON(o.getJSONArray("dirt")));
 		J.attempt(() -> scatterChance = scatterFromJSON(o.getJSONArray("scatter")));
@@ -185,6 +187,7 @@ public class IrisBiome
 		J.attempt(() -> j.put("region", region));
 		J.attempt(() -> j.put("derivative", realBiome.name().toLowerCase().replaceAll("_", " ")));
 		J.attempt(() -> j.put("height", height));
+		J.attempt(() -> j.put("snow", snow));
 		J.attempt(() -> j.put("surface", mbListToJSON(surface)));
 		J.attempt(() -> j.put("dirt", mbListToJSON(dirt)));
 		J.attempt(() -> j.put("scatter", scatterToJson(scatterChance)));
@@ -475,12 +478,22 @@ public class IrisBiome
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 
 	public String getRegion()
 	{
 		return region;
+	}
+
+	public boolean isSnowy()
+	{
+		return getSnow() > 0;
+	}
+
+	public double getSnow()
+	{
+		return snow;
 	}
 }

@@ -12,6 +12,7 @@ import mortar.api.world.MaterialBlock;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.Placer;
 import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.execution.J;
 
 public class NMSPlacer extends Placer
 {
@@ -49,10 +50,15 @@ public class NMSPlacer extends Placer
 	{
 		for(Chunk i : c)
 		{
-			for(Player j : NMP.CHUNK.nearbyPlayers(i))
+			NMP.host.relight(i);
+
+			J.a(() ->
 			{
-				NMP.CHUNK.refresh(j, i);
-			}
+				for(Player j : i.getWorld().getPlayers())
+				{
+					NMP.CHUNK.refreshIgnorePosition(j, i);
+				}
+			});
 		}
 
 		c.clear();

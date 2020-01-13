@@ -29,7 +29,7 @@ public class GenLayerBase extends GenLayer
 			.scale(10);
 		hfracture = new CNG(rng.nextParallelRNG(6), 1, 2)
 			.scale(0.0124);
-		gen = new CNG(rng.nextParallelRNG(7), 0.19D, 8)
+		gen = new CNG(rng.nextParallelRNG(7), 0.19D, 7)
 			.scale(0.012)
 			.amp(0.5)
 			.freq(1.1)

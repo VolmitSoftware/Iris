@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import mortar.compute.math.M;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.util.Direction;
@@ -24,6 +25,7 @@ import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
+import ninja.bytecode.shuriken.math.RNG;
 
 public class GenObject
 {
@@ -49,7 +51,7 @@ public class GenObject
 		centeredHeight = false;
 	}
 
-	public void computeMountShift()
+	public void recalculateMountShift()
 	{
 		int ly = Integer.MAX_VALUE;
 
@@ -124,37 +126,37 @@ public class GenObject
 	{
 		return s;
 	}
-	
+
 	public int getWidth()
 	{
 		return w;
 	}
-	
+
 	public int getDepth()
 	{
 		return d;
 	}
-	
+
 	public int getAntiCascadeWidth()
 	{
 		if(isCascading())
 		{
 			return -1;
 		}
-		
+
 		return 16 - w;
 	}
-	
+
 	public int getAntiCascadeDepth()
 	{
 		if(isCascading())
 		{
 			return -1;
 		}
-		
+
 		return 16 - d;
 	}
-	
+
 	public boolean isCascading()
 	{
 		return cascading;
@@ -259,7 +261,7 @@ public class GenObject
 
 		if(mount == null)
 		{
-			computeMountShift();
+			recalculateMountShift();
 		}
 
 		start.subtract(mount);
@@ -337,6 +339,11 @@ public class GenObject
 		return name;
 	}
 
+	public void setName(String name)
+	{
+		this.name = name;
+	}
+
 	public void rotate(Direction from, Direction to)
 	{
 		GMap<BlockVector, MB> g = s.copy();
@@ -384,6 +391,87 @@ public class GenObject
 		{
 			L.f("Failed to compute flag '" + j + "'");
 			L.ex(e);
+		}
+	}
+
+	public void applySnowFilter(int factor)
+	{
+		int minX = 0;
+		int maxX = 0;
+		int minY = 0;
+		int maxY = 0;
+		int minZ = 0;
+		int maxZ = 0;
+		boolean added = false;
+
+		for(BlockVector i : getSchematic().k())
+		{
+			if(i.getBlockX() > maxX)
+			{
+				maxX = i.getBlockX();
+			}
+
+			if(i.getBlockY() > maxY)
+			{
+				maxY = i.getBlockY();
+			}
+
+			if(i.getBlockZ() > maxZ)
+			{
+				maxZ = i.getBlockZ();
+			}
+
+			if(i.getBlockX() < minX)
+			{
+				minX = i.getBlockX();
+			}
+
+			if(i.getBlockY() < minY)
+			{
+				minY = i.getBlockY();
+			}
+
+			if(i.getBlockZ() < minZ)
+			{
+				minZ = i.getBlockZ();
+			}
+		}
+
+		for(int i = minX; i <= maxX; i++)
+		{
+			for(int j = minZ; j <= maxZ; j++)
+			{
+				BlockVector highest = null;
+
+				for(BlockVector k : getSchematic().k())
+				{
+					if(k.getBlockX() == i && k.getBlockZ() == j)
+					{
+						if(highest == null)
+						{
+							highest = k;
+						}
+
+						else if(highest.getBlockY() < k.getBlockY())
+						{
+							highest = k;
+						}
+					}
+				}
+
+				if(highest != null)
+				{
+					BlockVector mbv = highest.clone().add(new Vector(0, 1, 0)).toBlockVector();
+					added = true;
+					getSchematic().put(mbv, MB.of(Material.SNOW, RNG.r.nextInt((int) M.clip(factor, 0, 8))));
+				}
+			}
+		}
+
+		if(added)
+		{
+			h++;
+			recalculateMountShift();
 		}
 	}
 }

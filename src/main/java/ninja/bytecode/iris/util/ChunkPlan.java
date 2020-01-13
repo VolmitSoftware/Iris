@@ -1,7 +1,5 @@
 package ninja.bytecode.iris.util;
 
-import java.util.function.Supplier;
-
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.shuriken.collections.GMap;
 
@@ -28,7 +26,7 @@ public class ChunkPlan
 		biomeCache.put(new ChunkedVector(x, z), cng);
 	}
 
-	public double getHeight(int x, int z, Supplier<Double> realHeight)
+	public double getHeight(int x, int z)
 	{
 		ChunkedVector c = new ChunkedVector(x, z);
 		if(hasHeight(c))
@@ -36,9 +34,7 @@ public class ChunkPlan
 			return heightCache.get(c);
 		}
 
-		double m = realHeight.get();
-		setHeight(c, m);
-		return m;
+		return -1;
 	}
 
 	public int getRealHeight(int x, int z)

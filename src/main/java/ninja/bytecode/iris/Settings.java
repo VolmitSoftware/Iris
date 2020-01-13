@@ -9,8 +9,8 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
-		public boolean decoratePhysics = false;
+		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
+		public boolean fastDecoration = true;
 		public int threadPriority = Thread.MIN_PRIORITY;
 		public int compilerPriority = Thread.MIN_PRIORITY;
 		public int threadCount = 1;
@@ -24,9 +24,10 @@ public class Settings
 	{
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
+		public double beachScale = 76;
 		public double landScale = 0.325;
-		public double landChance = 0.67;
-		public double roughness = 1.333;
+		public double landChance = 0.62;
+		public double roughness = 1;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
@@ -39,5 +40,8 @@ public class Settings
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean genObjects = true;
+		public int minCarvingHeight = 75;
+		public int maxCarvingHeight = 175;
+		public double carvingChance = 0.6;
 	}
 }

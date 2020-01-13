@@ -25,7 +25,6 @@ public class GenLayerBiome extends GenLayer
 	private MaxingGenerator roads;
 	private Function<CNG, CNG> factory;
 	private CNG pathCheck;
-	private CNG riverCheck;
 	private CNG fracture;
 	private CNG island;
 
@@ -36,7 +35,6 @@ public class GenLayerBiome extends GenLayer
 		island = new CNG(rng.nextParallelRNG(10334), 1D, 3).scale(0.003 * Iris.settings.gen.landScale).fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 12).scale(0.6), 180);
 		fracture = new CNG(rng.nextParallelRNG(28), 1D, 24).scale(0.0021).fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 12).scale(0.01), 12250);
 		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 4).scale(0.02), 56);
-		riverCheck = new CNG(rng.nextParallelRNG(30), 1D, 2).scale(0.00096);
 		pathCheck = new CNG(rng.nextParallelRNG(31), 1D, 1).scale(0.00096);
 		roads = new MaxingGenerator(rng.nextParallelRNG(32), 5, 0.00055, 8, factory);
 		//@done
@@ -83,14 +81,6 @@ public class GenLayerBiome extends GenLayer
 
 		else if(land > landChance + 0.0175)
 		{
-			if(riverCheck.noise(x, z) > 0.75)
-			{
-				if(getRegionGenerator(x, z).hasBorder(3, 3 + Math.pow(riverCheck.noise(x, z), 1.25) * 16, x, z))
-				{
-					return iris.biome("River");
-				}
-			}
-
 			cbi = getRegionGenerator(x, z).getChoice(x, z);
 
 			if(pathCheck.noise(x, z) > 0.33)

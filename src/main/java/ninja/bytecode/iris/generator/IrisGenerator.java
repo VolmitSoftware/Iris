@@ -14,9 +14,11 @@ import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
 import ninja.bytecode.iris.generator.layer.GenLayerBase;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
+import ninja.bytecode.iris.generator.layer.GenLayerCarving;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
+import ninja.bytecode.iris.generator.layer.GenLayerSnow;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.util.AtomicChunkData;
@@ -59,6 +61,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerRidge glRidge;
 	private GenLayerBiome glBiome;
 	private GenLayerCaves glCaves;
+	private GenLayerCarving glCarving;
+	private GenLayerSnow glSnow;
 	private RNG rTerrain;
 	private IrisDimension dim;
 	private World world;
@@ -110,6 +114,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glRidge = new GenLayerRidge(this, world, random, rTerrain.nextParallelRNG(3));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
+		glCarving = new GenLayerCarving(this, world, random, rTerrain.nextParallelRNG(-2));
+		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 	}
 
 	@Override
@@ -145,7 +151,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		int max = Math.max(height, seaLevel);
 		IrisBiome override = null;
 
-		if(height > 61 && height < 65 + (glLNoise.getHeight(wz, wx) * 24D))
+		if(height > 61 && height < 65 + (glLNoise.getHeight(wz, wx) * Iris.settings.gen.beachScale))
 		{
 			override = biome("Beach");
 		}
@@ -187,12 +193,38 @@ public class IrisGenerator extends ParallelChunkGenerator
 			if(i == height - 1)
 			{
 				mb = biome.getSurface(wx, wz, rTerrain);
-				MB mbx = biome.getScatterChanceSingle();
 
-				if(!mbx.material.equals(Material.AIR))
+				if(biome.getSnow() > 0)
 				{
-					setBlock(x, i + 1, z, mbx.material, mbx.data);
-					highest = i > highest ? i : highest;
+					double level = glSnow.getHeight(wx, wz) * biome.getSnow();
+					int blocks = (int) level;
+					level -= blocks;
+					int layers = (int) (level * 7D);
+					int snowHeight = blocks + (layers > 0 ? 1 : 0);
+
+					for(int j = 0; j < snowHeight; j++)
+					{
+						if(j == snowHeight - 1)
+						{
+							setBlock(x, i + j + 1, z, Material.SNOW, (byte) layers);
+						}
+
+						else
+						{
+							setBlock(x, i + j + 1, z, Material.SNOW_BLOCK);
+						}
+					}
+				}
+
+				else
+				{
+					MB mbx = biome.getScatterChanceSingle();
+
+					if(!mbx.material.equals(Material.AIR))
+					{
+						setBlock(x, i + 1, z, mbx.material, mbx.data);
+						highest = i > highest ? i : highest;
+					}
 				}
 			}
 
@@ -211,6 +243,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		}
 
 		glCaves.genCaves(wxx, wzx, x, z, height, this);
+		glCarving.genCarves(wxx, wzx, x, z, height, this, biome);
 		plan.setRealHeight(x, z, highest);
 		return biome.getRealBiome();
 	}
@@ -247,7 +280,9 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)
 	{
-		return plan.getHeight(x, z, () ->
+		double xh = plan.getHeight(x, z);
+
+		if(xh == -1)
 		{
 			int wx = (int) Math.round((double) x * Iris.settings.gen.horizontalZoom);
 			int wz = (int) Math.round((double) z * Iris.settings.gen.horizontalZoom);
@@ -255,8 +290,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 			double h = Iris.settings.gen.baseHeight + biome.getHeight();
 			h += (glBase.getHeight(wx, wz) * 0.5) - (0.33 * 0.5);
 
+			plan.setHeight(x, z, h);
 			return h;
-		});
+		}
+
+		return xh;
 	}
 
 	public World getWorld()
@@ -272,5 +310,15 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public void setSchematicCache(GMap<String, GenObjectGroup> schematicCache)
 	{
 		this.schematicCache = schematicCache;
+	}
+
+	public RNG getRTerrain()
+	{
+		return rTerrain;
+	}
+
+	public GenLayerBase getGlBase()
+	{
+		return glBase;
 	}
 }

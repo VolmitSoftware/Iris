@@ -14,6 +14,7 @@ import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisPack;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
+import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;

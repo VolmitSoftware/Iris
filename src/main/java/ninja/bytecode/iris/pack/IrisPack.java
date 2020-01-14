@@ -75,13 +75,13 @@ public class IrisPack
 		for(String i : dimensions)
 		{
 			IrisDimension d = Iris.getController(PackController.class).loadDimension(i);
-			Iris.getController(PackController.class).getDimensions().put(i, d);
+			Iris.getController(PackController.class).registerDimension(i, d);
 		}
 	}
 	
 	public void loadBiome(String s) throws JSONException, IOException
 	{
 		IrisBiome b = Iris.getController(PackController.class).loadBiome(s);
-		Iris.getController(PackController.class).getBiomes().put(s, b);
+		Iris.getController(PackController.class).registerBiome(s, b);
 	}
 }

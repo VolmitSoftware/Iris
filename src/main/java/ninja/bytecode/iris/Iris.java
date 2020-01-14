@@ -46,10 +46,10 @@ public class Iris extends JavaPlugin implements Listener
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		getCommand("iris").setExecutor(new CommandIris());
 		getCommand("ish").setExecutor(new CommandIsh());
-		
+
 		if(!settings.performance.debugMode)
 		{
-			getController(PackController.class).loadContent();
+			getController(PackController.class).compile();
 		}
 	}
 
@@ -59,10 +59,11 @@ public class Iris extends JavaPlugin implements Listener
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
 	}
-	
+
 	public void reload()
 	{
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+		{
 			onDisable();
 			onEnable();
 		});

@@ -71,7 +71,7 @@ public class DebugController implements IrisController
 							}
 						}, 1);
 					});
-					Iris.getController(PackController.class).loadContent();
+					Iris.getController(PackController.class).compile();
 				});
 			}
 		}, 1);

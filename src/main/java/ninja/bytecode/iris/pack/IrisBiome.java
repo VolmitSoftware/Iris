@@ -159,6 +159,11 @@ public class IrisBiome
 
 	public void fromJSON(JSONObject o)
 	{
+		fromJSON(o, true);
+	}
+
+	public void fromJSON(JSONObject o, boolean chain)
+	{
 		name = o.getString("name");
 		realBiome = Biome.valueOf(o.getString("derivative").toUpperCase().replaceAll(" ", "_"));
 		J.attempt(() -> region = o.getString("region"));
@@ -173,9 +178,12 @@ public class IrisBiome
 		{
 			schematicGroups = strFromJSON(o.getJSONArray("objects"));
 
-			for(String i : schematicGroups.k())
+			if(chain)
 			{
-				Iris.getController(PackController.class).loadSchematicGroup(i);
+				for(String i : schematicGroups.k())
+				{
+					Iris.getController(PackController.class).loadSchematicGroup(i);
+				}
 			}
 		});
 	}

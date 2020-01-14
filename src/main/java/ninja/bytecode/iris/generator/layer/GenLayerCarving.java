@@ -25,25 +25,25 @@ public class GenLayerCarving extends GenLayer
 		super(iris, world, random, rng);
 		//@builder
 		carver = new CNG(rng.nextParallelRNG(116), 1D, 3)
-				.scale(0.0135)
+				.scale(0.0285)
 				.amp(0.5)
 				.freq(1.1)
 				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 3)
-					.scale(0.018)
+					.scale(0.005)
 					.child(new CNG(rng.nextParallelRNG(19), 0.745, 2)
 						.scale(0.1))
 					.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 3)
-						.scale(0.15), 24), 44);
+						.scale(0.08), 12), 33);
 		clipper = new CNG(rng.nextParallelRNG(117), 1D, 1)
-				.scale(0.005)
-				.amp(0.5)
+				.scale(0.0009)
+				.amp(0.0)
 				.freq(1.1)
 				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 3)
-					.scale(0.018)
+					.scale(0.005)
 					.child(new CNG(rng.nextParallelRNG(19), 0.745, 2)
 						.scale(0.1))
 					.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 3)
-						.scale(0.15), 24), 44);
+						.scale(0.08), 12), 33);
 		//@done
 	}
 
@@ -87,7 +87,7 @@ public class GenLayerCarving extends GenLayer
 					continue;
 				}
 
-				if(carver.noise(wxx, i, wzx) < IrisInterpolation.lerpBezier(0.01, 0.465, hill))
+				if(carver.noise(wxx, i, wzx) < IrisInterpolation.lerpBezier(0.01, 0.425, hill))
 				{
 					carved++;
 					g.setBlock(x, i, z, Material.AIR);
@@ -97,6 +97,8 @@ public class GenLayerCarving extends GenLayer
 
 		if(carved > 4)
 		{
+			boolean fail = false;
+
 			for(int i = Iris.settings.gen.maxCarvingHeight; i > Iris.settings.gen.minCarvingHeight; i--)
 			{
 				Material m = g.getType(x, i, z);
@@ -106,14 +108,44 @@ public class GenLayerCarving extends GenLayer
 
 					if(hit == 1)
 					{
-						MB mb = biome.getSurface(wxx, wzx, g.getRTerrain());
-						g.setBlock(x, i, z, mb.material, mb.data);
+						fail = false;
+
+						if(i > 5)
+						{
+							for(int j = i; j > i - 5; j--)
+							{
+								if(g.getType(x, j, z).equals(Material.AIR))
+								{
+									fail = true;
+									break;
+								}
+							}
+						}
+
+						if(!fail)
+						{
+							MB mb = biome.getSurface(wxx, wzx, g.getRTerrain());
+							g.setBlock(x, i, z, mb.material, mb.data);
+						}
+
+						else
+						{
+							g.setBlock(x, i, z, Material.AIR);
+						}
 					}
 
 					else if(hit > 1 && hit < g.getGlBase().scatterInt(x, i, z, 4) + 3)
 					{
-						MB mb = biome.getDirtRNG();
-						g.setBlock(x, i, z, mb.material, mb.data);
+						if(!fail)
+						{
+							MB mb = biome.getDirtRNG();
+							g.setBlock(x, i, z, mb.material, mb.data);
+						}
+
+						else
+						{
+							g.setBlock(x, i, z, Material.AIR);
+						}
 					}
 				}
 

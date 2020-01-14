@@ -9,7 +9,7 @@ import org.bukkit.WorldCreator;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.pack.IrisDimension;
+import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.io.IO;
@@ -42,11 +42,11 @@ public class WorldController implements IrisController
 
 	}
 
-	public World createIrisWorld(IrisDimension dimension, long seed, boolean temp)
+	public World createIrisWorld(CompiledDimension dimension, long seed, boolean temp)
 	{
 		if(dimension == null)
 		{
-			dimension = Iris.getController(PackController.class).getDimensions().get("overworld");
+			dimension = Iris.getController(PackController.class).getDimension("overworld");
 		}
 
 		//@builder

@@ -73,7 +73,7 @@ public class CommandIsh implements CommandExecutor
 					try
 					{
 						FileOutputStream fos = new FileOutputStream(f);
-						s.write(fos);
+						s.write(fos, true);
 						msg(p, "Saved " + args[1] + " (" + F.f(s.getSchematic().size()) + " Entries)");
 						p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 0.45f);
 					}
@@ -97,7 +97,7 @@ public class CommandIsh implements CommandExecutor
 					try
 					{
 						FileInputStream fin = new FileInputStream(f);
-						s.read(fin);
+						s.read(fin, true);
 
 						boolean cursor = false;
 						for(String i : args)

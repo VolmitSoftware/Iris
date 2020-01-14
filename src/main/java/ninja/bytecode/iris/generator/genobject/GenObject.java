@@ -15,7 +15,6 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import mortar.compute.math.M;
-import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IPlacer;
@@ -38,14 +37,12 @@ public class GenObject
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;
-	private boolean cascading;
 
 	public GenObject(int w, int h, int d)
 	{
 		this.w = w;
 		this.h = h;
 		this.d = d;
-		cascading = false;
 		shift = new BlockVector();
 		s = new GMap<>();
 		centeredHeight = false;
@@ -137,40 +134,21 @@ public class GenObject
 		return d;
 	}
 
-	public int getAntiCascadeWidth()
+	public void read(InputStream in, boolean gzip) throws IOException
 	{
-		if(isCascading())
-		{
-			return -1;
-		}
-
-		return 16 - w;
-	}
-
-	public int getAntiCascadeDepth()
-	{
-		if(isCascading())
-		{
-			return -1;
-		}
-
-		return 16 - d;
-	}
-
-	public boolean isCascading()
-	{
-		return cascading;
+		@SuppressWarnings("resource")
+		GZIPInputStream gzi = gzip ? new GZIPInputStream(in) : null;
+		DataInputStream din = new DataInputStream(gzip ? gzi : in);
+		readDirect(din);
+		din.close();
 	}
 
 	@SuppressWarnings("deprecation")
-	public void read(InputStream in) throws IOException
+	public void readDirect(DataInputStream din) throws IOException
 	{
-		GZIPInputStream gzi = new GZIPInputStream(in);
-		DataInputStream din = new DataInputStream(gzi);
 		w = din.readInt();
 		h = din.readInt();
 		d = din.readInt();
-		cascading = w > Iris.settings.performance.cascadeLimit || d > Iris.settings.performance.cascadeLimit;
 		int l = din.readInt();
 		clear();
 
@@ -178,15 +156,11 @@ public class GenObject
 		{
 			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int) din.readInt()), din.readInt()));
 		}
-
-		din.close();
 	}
 
 	@SuppressWarnings("deprecation")
-	public void write(OutputStream out) throws IOException
+	public void writeDirect(DataOutputStream dos) throws IOException
 	{
-		CustomOutputStream cos = new CustomOutputStream(out, 9);
-		DataOutputStream dos = new DataOutputStream(cos);
 		dos.writeInt(w);
 		dos.writeInt(h);
 		dos.writeInt(d);
@@ -200,7 +174,13 @@ public class GenObject
 			dos.writeInt(s.get(i).material.getId());
 			dos.writeInt(s.get(i).data);
 		}
+	}
 
+	public void write(OutputStream out, boolean gzip) throws IOException
+	{
+		CustomOutputStream cos = gzip ? new CustomOutputStream(out, 9) : null;
+		DataOutputStream dos = new DataOutputStream(gzip ? cos : out);
+		writeDirect(dos);
 		dos.close();
 	}
 
@@ -319,7 +299,7 @@ public class GenObject
 	public static GenObject load(InputStream in) throws IOException
 	{
 		GenObject s = new GenObject(1, 1, 1);
-		s.read(in);
+		s.read(in, true);
 
 		return s;
 	}
@@ -329,7 +309,7 @@ public class GenObject
 		GenObject s = new GenObject(1, 1, 1);
 		s.name = f.getName().replaceAll("\\Q.ish\\E", "");
 		FileInputStream fin = new FileInputStream(f);
-		s.read(fin);
+		s.read(fin, true);
 
 		return s;
 	}

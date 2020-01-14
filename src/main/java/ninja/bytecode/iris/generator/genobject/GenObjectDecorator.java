@@ -47,25 +47,13 @@ public class GenObjectDecorator extends BlockPopulator
 
 			for(String j : i.getSchematicGroups().k())
 			{
+				double c = i.getSchematicGroups().get(j);
+
 				try
 				{
-					GenObjectGroup g = Iris.getController(PackController.class).getGenObjectGroups().get(j);
+					GenObjectGroup g = generator.getDimension().getObjectGroup(j);
 
-					if(i.isSnowy())
-					{
-						String v = g.getName() + "-" + i.getSnow();
-
-						if(!snowCache.containsKey(v))
-						{
-							GenObjectGroup gog = g.copy("-snowy-" + i.getSnow());
-							gog.applySnowFilter((int) (i.getSnow() * 4));
-							snowCache.put(v, gog);
-						}
-
-						g = snowCache.get(v);
-					}
-
-					gc.put(g, i.getSchematicGroups().get(j));
+					gc.put(g, c);
 				}
 
 				catch(Throwable e)

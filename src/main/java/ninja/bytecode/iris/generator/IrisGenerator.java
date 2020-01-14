@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 
+import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
@@ -19,8 +20,8 @@ import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerRidge;
 import ninja.bytecode.iris.generator.layer.GenLayerSnow;
+import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
@@ -64,21 +65,16 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerCarving glCarving;
 	private GenLayerSnow glSnow;
 	private RNG rTerrain;
-	private IrisDimension dim;
+	private CompiledDimension dim;
 	private World world;
 	private GMap<String, GenObjectGroup> schematicCache = new GMap<>();
 
 	public IrisGenerator()
 	{
-		this(Iris.getController(PackController.class).getDimensions().get("overworld"));
+		this(Iris.getController(PackController.class).getDimension("overworld"));
 	}
 
-	public GList<IrisBiome> getLoadedBiomes()
-	{
-		return internal;
-	}
-
-	public IrisGenerator(IrisDimension dim)
+	public IrisGenerator(CompiledDimension dim)
 	{
 		this.dim = dim;
 		L.i("Preparing Dimension: " + dim.getName() + " With " + dim.getBiomes().size() + " Biomes...");
@@ -91,7 +87,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 				if(j.getName().equals(i.getName()))
 				{
 					internal.remove(j);
-					L.i("Internal Biome: " + j.getName() + " overwritten by dimension " + dim.getName());
+					L.i(ChatColor.LIGHT_PURPLE + "Internal Biome: " + ChatColor.WHITE+ j.getName() + ChatColor.LIGHT_PURPLE + " overwritten by dimension " + ChatColor.WHITE + dim.getName());
 				}
 			}
 		}
@@ -102,6 +98,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		{
 			biomeCache.put(i.getName(), i);
 		}
+	}
+
+	public GList<IrisBiome> getLoadedBiomes()
+	{
+		return internal;
 	}
 
 	@Override
@@ -273,11 +274,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return p;
 	}
 
-	public GenObjectGroup loadSchematics(String folder)
-	{
-		return Iris.getController(PackController.class).getGenObjectGroups().get(folder);
-	}
-
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)
 	{
 		double xh = plan.getHeight(x, z);
@@ -320,5 +316,10 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public GenLayerBase getGlBase()
 	{
 		return glBase;
+	}
+
+	public CompiledDimension getDimension()
+	{
+		return dim;
 	}
 }

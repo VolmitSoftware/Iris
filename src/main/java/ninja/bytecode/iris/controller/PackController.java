@@ -1,14 +1,21 @@
 package ninja.bytecode.iris.controller;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
+import mortar.logic.queue.ChronoLatch;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
+import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisPack;
@@ -16,24 +23,29 @@ import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
+import ninja.bytecode.shuriken.io.VoidOutputStream;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
 import ninja.bytecode.shuriken.logging.L;
 
 public class PackController implements IrisController
 {
+	private GMap<String, CompiledDimension> compiledDimensions;
 	private GMap<String, IrisDimension> dimensions;
 	private GMap<String, IrisBiome> biomes;
 	private GMap<String, GenObjectGroup> genObjectGroups;
+	private ChronoLatch ll = new ChronoLatch(3000);
 	private boolean ready;
 
 	@Override
 	public void onStart()
 	{
+		compiledDimensions = new GMap<>();
 		dimensions = new GMap<>();
 		biomes = new GMap<>();
 		genObjectGroups = new GMap<>();
@@ -51,14 +63,43 @@ public class PackController implements IrisController
 		return ready;
 	}
 
-	public void loadContent()
+	public GList<File> getFiles(File folder)
+	{
+		GList<File> buf = new GList<File>();
+
+		if(!folder.exists())
+		{
+			return buf;
+		}
+
+		if(folder.isDirectory())
+		{
+			for(File i : folder.listFiles())
+			{
+				if(i.isFile())
+				{
+					buf.add(i);
+				}
+
+				else if(i.isDirectory())
+				{
+					buf.addAll(getFiles(folder));
+				}
+			}
+		}
+
+		return buf;
+	}
+
+	public void compile()
 	{
 		dimensions = new GMap<>();
 		biomes = new GMap<>();
 		genObjectGroups = new GMap<>();
 		ready = false;
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		L.i("Loading Content");
+		File dims = new File(Iris.instance.getDataFolder(), "dimensions");
+		dims.mkdirs();
 
 		try
 		{
@@ -75,28 +116,63 @@ public class PackController implements IrisController
 
 		TaskExecutor exf = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Compiler");
 		TaskGroup gg = exf.startWork();
-		for(GenObjectGroup i : getGenObjectGroups().v())
+		for(GenObjectGroup i : genObjectGroups.v())
 		{
 			gg.queue(i::processVariants);
 		}
 
 		gg.execute();
 		exf.close();
-		int m = 0;
 
-		for(GenObjectGroup i : getGenObjectGroups().v())
+		for(String i : dimensions.k())
 		{
-			m += i.size();
+			IrisDimension id = dimensions.get(i);
+			CompiledDimension d = new CompiledDimension(id);
+
+			for(IrisBiome j : id.getBiomes())
+			{
+				d.registerBiome(j);
+				GList<String> g = j.getSchematicGroups().k();
+				g.sort();
+
+				for(String k : g)
+				{
+					d.registerObject(genObjectGroups.get(k));
+
+					if(j.isSnowy())
+					{
+						GenObjectGroup ggx = genObjectGroups.get(k).copy("-snowy-" + j.getSnow());
+						ggx.applySnowFilter((int) (j.getSnow() * 4));
+						d.registerObject(ggx);
+					}
+				}
+			}
+
+			d.sort();
+			compiledDimensions.put(i, d);
 		}
 
-		L.i(ChatColor.LIGHT_PURPLE + "Dimensions: " + ChatColor.WHITE + getDimensions().size());
-		L.i(ChatColor.LIGHT_PURPLE + "Biomes: " + ChatColor.WHITE + getBiomes().size());
-		L.i(ChatColor.LIGHT_PURPLE + "Object Groups: " + ChatColor.WHITE + F.f(getGenObjectGroups().size()));
-		L.i(ChatColor.LIGHT_PURPLE + "Objects: " + ChatColor.WHITE + F.f(m));
+		for(String i : compiledDimensions.k())
+		{
+			CompiledDimension d = compiledDimensions.get(i);
+			L.i(ChatColor.GREEN + i + ChatColor.WHITE + " (" + d.getEnvironment().toString().toLowerCase() + ")");
+			L.i(ChatColor.DARK_GREEN + "  Biomes: " + ChatColor.GRAY + F.f(d.getBiomes().size()));
+			L.i(ChatColor.DARK_GREEN + "  Objects: " + ChatColor.GRAY + F.f(d.countObjects()));
+			L.flush();
+		}
+
+		L.i("");
 		L.i(ChatColor.LIGHT_PURPLE + "Compilation Time: " + ChatColor.WHITE + F.duration(p.getMilliseconds(), 2));
-		L.flush();
 		L.i(ChatColor.GREEN + "Iris Dimensions Successfully Compiled!");
+		L.i("");
+		L.flush();
+
 		ready = true;
+	}
+	
+	public CompiledDimension getDimension(String name)
+	{
+		return compiledDimensions.get(name);
 	}
 
 	public IrisDimension loadDimension(String s) throws JSONException, IOException
@@ -118,7 +194,7 @@ public class PackController implements IrisController
 
 		if(g != null)
 		{
-			Iris.getController(PackController.class).getGenObjectGroups().put(s, g);
+			Iris.getController(PackController.class).genObjectGroups.put(s, g);
 			return g;
 		}
 
@@ -163,13 +239,13 @@ public class PackController implements IrisController
 		else
 		{
 			L.f(ChatColor.RED + "Cannot find Resource: " + ChatColor.YELLOW + internal.getAbsolutePath());
-			
+
 			if(internal.getName().equals("manifest.json"))
 			{
 				L.f(ChatColor.RED + "Reloading Iris to fix manifest jar issues");
 				Iris.instance.reload();
 			}
-			
+
 			return null;
 		}
 	}
@@ -184,18 +260,19 @@ public class PackController implements IrisController
 		return new File(System.getProperty("java.io.tmpdir") + "/Iris/" + resource);
 	}
 
-	public GMap<String, IrisDimension> getDimensions()
+	public void registerBiome(String name, IrisBiome biome)
 	{
-		return dimensions;
+		biomes.put(name, biome);
 	}
 
-	public GMap<String, IrisBiome> getBiomes()
+	public void registerDimension(String i, IrisDimension d)
 	{
-		return biomes;
+		dimensions.put(i, d);
 	}
 
-	public GMap<String, GenObjectGroup> getGenObjectGroups()
+	public void invalidate()
 	{
-		return genObjectGroups;
+		J.attempt(() -> new File(Iris.instance.getDataFolder(), "dimensions").delete());
+		compiledDimensions.clear();
 	}
 }

@@ -68,8 +68,8 @@ public class GenLayerBiome extends GenLayer
 
 	public IrisBiome getBiome(double xx, double zz)
 	{
-		double x = xx + (fracture.noise(zz, xx) * 1550D);
-		double z = zz - (fracture.noise(xx, zz) * 1550D);
+		double x = xx + (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(zz, xx) * Iris.settings.gen.biomeEdgeScramble));
+		double z = zz - (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(xx, zz) * Iris.settings.gen.biomeEdgeScramble));
 		IrisBiome cbi = iris.biome("Ocean");
 		double land = island.noise(x, z);
 		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);

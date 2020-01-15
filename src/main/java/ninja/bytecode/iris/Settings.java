@@ -28,11 +28,12 @@ public class Settings
 		public InterpolationType trilinearFunction = InterpolationType.BEZIER;
 		public double linearSampleFractureMultiplier = 11.4;
 		public double linearSampleFractureScale = 0.21;
-		public double horizontalZoom = 1; // 0.525
+		public double horizontalZoom = 0.525; // 0.525
 		public double heightFracture = 155;
 		public double beachScale = 76;
 		public double landScale = 0.325;
 		public double landChance = 0.62;
+		public double biomeEdgeScramble = 0D; // 1550D
 		public double roughness = 1.25;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;

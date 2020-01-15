@@ -181,10 +181,10 @@ public class IrisGenerator extends ParallelChunkGenerator
 		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476));
 		IrisBiome biome = getBiome(wxx, wzx);
 		double hv = IrisInterpolation.getNoise(wxx, wzx, 
-				Iris.settings.gen.linearSampleRadius,
-				(xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan), 
-				Iris.settings.gen.linearFunction);
-		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, wxx * Iris.settings.gen.roughness * 0.82, wzx * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35));
+				Iris.settings.gen.hermiteSampleRadius,
+				(xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
+		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, wxx * Iris.settings.gen.roughness * 0.82, wzx * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35)) * 0.725;
+		
 		int height = (int) Math.round(M.clip(hv, 0D, 1D) * 253);
 		int max = Math.max(height, seaLevel);
 		IrisBiome override = null;
@@ -323,7 +323,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 			int wz = (int) Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476));
 			IrisBiome biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
 			double h = Iris.settings.gen.baseHeight + biome.getHeight();
-
 			plan.setHeight(x, z, h);
 			return h;
 		}

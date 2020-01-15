@@ -23,15 +23,13 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
-		public InterpolationType linearFunction = InterpolationType.PARAMETRIC_2;
-		public int linearSampleRadius = 6;
-		public int interpolationIntervals = 1;
+		public int hermiteSampleRadius = 6;
 		public double horizontalZoom = 1;
 		public double heightFracture = 155;
 		public double beachScale = 76;
 		public double landScale = 0.325;
 		public double landChance = 0.62;
-		public double biomeEdgeScramble = 0D; // 1550D
+		public double biomeEdgeScramble = 1550D; // 1550D
 		public double roughness = 1.25;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;

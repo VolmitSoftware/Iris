@@ -71,63 +71,87 @@ public class IrisInterpolation
 		return lerpParametric(lerpParametric(a, b, tx, v), lerpParametric(c, d, tx, v), ty, v);
 	}
 
-	public static double hermite(double y0, double y1, double y2, double y3, double mu, double tension, double bias)
+	public static double hermite(double p0, double p1, double p2, double p3, double mu, double tension, double bias)
 	{
 		double m0, m1, mu2, mu3;
 		double a0, a1, a2, a3;
 
 		mu2 = mu * mu;
 		mu3 = mu2 * mu;
-		m0 = (y1 - y0) * (1 + bias) * (1 - tension) / 2;
-		m0 += (y2 - y1) * (1 - bias) * (1 - tension) / 2;
-		m1 = (y2 - y1) * (1 + bias) * (1 - tension) / 2;
-		m1 += (y3 - y2) * (1 - bias) * (1 - tension) / 2;
+		m0 = (p1 - p0) * (1 + bias) * (1 - tension) / 2;
+		m0 += (p2 - p1) * (1 - bias) * (1 - tension) / 2;
+		m1 = (p2 - p1) * (1 + bias) * (1 - tension) / 2;
+		m1 += (p3 - p2) * (1 - bias) * (1 - tension) / 2;
 		a0 = 2 * mu3 - 3 * mu2 + 1;
 		a1 = mu3 - 2 * mu2 + mu;
 		a2 = mu3 - mu2;
 		a3 = -2 * mu3 + 3 * mu2;
 
-		return (a0 * y1 + a1 * m0 + a2 * m1 + a3 * y2);
+		return (a0 * p1 + a1 * m0 + a2 * m1 + a3 * p2);
 	}
 
-	public static double cubic(double y0, double y1, double y2, double y3, double mu)
+	public static double bihermite(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias)
+	{
+		return hermite(hermite(p00, p01, p02, p03, muy, tension, bias), hermite(p10, p11, p12, p13, muy, tension, bias), hermite(p20, p21, p22, p23, muy, tension, bias), hermite(p30, p31, p32, p33, muy, tension, bias), mux, tension, bias);
+	}
+
+	public static double cubic(double p0, double p1, double p2, double p3, double mu)
 	{
 		double a0, a1, a2, a3, mu2;
 
 		mu2 = mu * mu;
-		a0 = y3 - y2 - y0 + y1;
-		a1 = y0 - y1 - a0;
-		a2 = y2 - y0;
-		a3 = y1;
+		a0 = p3 - p2 - p0 + p1;
+		a1 = p0 - p1 - a0;
+		a2 = p2 - p0;
+		a3 = p1;
 
 		return a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
 	}
 
-	public static double getLinearNoise(int x, int z, int rad, NoiseProvider n, InterpolationType type)
+	public static double bicubic(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy)
+	{
+		return cubic(cubic(p00, p01, p02, p03, muy), cubic(p10, p11, p12, p13, muy), cubic(p20, p21, p22, p23, muy), cubic(p30, p31, p32, p33, muy), mux);
+	}
+
+	public static double getHermiteNoise(int x, int z, int rad, NoiseProvider n)
 	{
 		int h = rad;
 		int fx = x >> h;
 		int fz = z >> h;
-		int xa = (fx << h);
-		int za = (fz << h);
-		int xb = ((fx + 1) << h);
-		int zb = ((fz + 1) << h);
-		double na = n.noise(xa, za);
-		double nb = n.noise(xa, zb);
-		double nc = n.noise(xb, za);
-		double nd = n.noise(xb, zb);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
-		return blerp(na, nc, nb, nd, px, pz, type);
+		int x0 = ((fx - 1) << h);
+		int z0 = ((fz - 1) << h);
+		int x1 = (fx << h);
+		int z1 = (fz << h);
+		int x2 = ((fx + 1) << h);
+		int z2 = ((fz + 1) << h);
+		int x3 = ((fx + 2) << h);
+		int z3 = ((fz + 2) << h);
+		double px = M.rangeScale(0, 1, x1, x2, x);
+		double pz = M.rangeScale(0, 1, z1, z2, z);
+		//@builder
+		return bihermite(
+				n.noise(x0, z0), 
+				n.noise(x0, z1), 
+				n.noise(x0, z2), 
+				n.noise(x0, z3), 
+				n.noise(x1, z0), 
+				n.noise(x1, z1), 
+				n.noise(x1, z2), 
+				n.noise(x1, z3), 
+				n.noise(x2, z0), 
+				n.noise(x2, z1), 
+				n.noise(x2, z2), 
+				n.noise(x2, z3), 
+				n.noise(x3, z0), 
+				n.noise(x3, z1), 
+				n.noise(x3, z2), 
+				n.noise(x3, z3), 
+				px, pz, 0.01, 0);
+		//@done
 	}
 
-	public static double getNoise(int x, int z, int lrad, NoiseProvider n, InterpolationType linear)
+	public static double getNoise(int x, int z, int lrad, NoiseProvider n)
 	{
-		if(linear.equals(InterpolationType.NONE))
-		{
-			return n.noise(x, z);
-		}
-
-		return getLinearNoise(x, z, lrad, n, linear);
+		return getHermiteNoise(x, z, lrad, n);
 	}
 }

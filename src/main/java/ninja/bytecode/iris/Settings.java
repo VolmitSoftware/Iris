@@ -1,6 +1,5 @@
 package ninja.bytecode.iris;
 
-import ninja.bytecode.iris.util.InterpolationType;
 import ninja.bytecode.iris.util.PerformanceMode;
 
 public class Settings
@@ -30,7 +29,7 @@ public class Settings
 		public double landScale = 0.325;
 		public double landChance = 0.62;
 		public double biomeEdgeScramble = 1550D; // 1550D
-		public double roughness = 1.25;
+		public double roughness = 1.55;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
@@ -42,10 +41,10 @@ public class Settings
 		public double caveScale = 1.45;
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
-		public boolean genObjects = false;
-		public boolean genCarving = false;
-		public boolean genCaverns = false;
-		public boolean genCaves = false;
+		public boolean genObjects = true;
+		public boolean genCarving = true;
+		public boolean genCaverns = true;
+		public boolean genCaves = true;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

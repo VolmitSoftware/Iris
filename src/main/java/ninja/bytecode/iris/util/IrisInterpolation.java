@@ -74,80 +74,29 @@ public class IrisInterpolation
 	public static double getLinearNoise(int x, int z, int rad, NoiseProvider n, NoiseProvider f, InterpolationType type)
 	{
 		int h = rad;
-		int xa = x - h;
-		int za = z - h;
-		int xb = x + h;
-		int zb = z + h;
-		double hfx = f.noise(x, z) * Iris.settings.gen.linearSampleFractureMultiplier;
-		double hfz = f.noise(z, x) * Iris.settings.gen.linearSampleFractureMultiplier;
-		double na = n.noise(xa + hfx, za + hfz);
-		double nb = n.noise(xa + hfx, zb - hfz);
-		double nc = n.noise(xb - hfx, za + hfz);
-		double nd = n.noise(xb - hfx, zb - hfz);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
-
-		return blerp(na, nc, nb, nd, px, pz, type);
-	}
-
-	public static double getBilinearNoise(int x, int z, int lrad, int birad, NoiseProvider n, NoiseProvider f, InterpolationType linear, InterpolationType bilinear)
-	{
-		int h = birad;
-		int fx = x >> h;
-		int fz = z >> h;
-		int xa = (fx << h) - 15;
-		int za = (fz << h) - 15;
-		int xb = ((fx + 1) << h) + 15;
-		int zb = ((fz + 1) << h) + 15;
-		double na = getLinearNoise(xa, za, lrad, n, f, linear);
-		double nb = getLinearNoise(xa, zb, lrad, n, f, linear);
-		double nc = getLinearNoise(xb, za, lrad, n, f, linear);
-		double nd = getLinearNoise(xb, zb, lrad, n, f, linear);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
-
-		return blerp(na, nc, nb, nd, px, pz, bilinear);
-	}
-
-	public static double getTrilinearNoise(int x, int z, int lrad, int birad, int trirad, NoiseProvider n, NoiseProvider f, InterpolationType linear, InterpolationType bilinear, InterpolationType trilinear)
-	{
-		int h = trirad;
 		int fx = x >> h;
 		int fz = z >> h;
 		int xa = (fx << h);
 		int za = (fz << h);
 		int xb = ((fx + 1) << h);
 		int zb = ((fz + 1) << h);
-		double na = getBilinearNoise(xa, za, lrad, birad, n, f, linear, bilinear);
-		double nb = getBilinearNoise(xa, zb, lrad, birad, n, f, linear, bilinear);
-		double nc = getBilinearNoise(xb, za, lrad, birad, n, f, linear, bilinear);
-		double nd = getBilinearNoise(xb, zb, lrad, birad, n, f, linear, bilinear);
+		double na = n.noise(xa, za);
+		double nb = n.noise(xa, zb);
+		double nc = n.noise(xb, za);
+		double nd = n.noise(xb, zb);
 		double px = M.rangeScale(0, 1, xa, xb, x);
 		double pz = M.rangeScale(0, 1, za, zb, z);
 
-		return blerp(na, nc, nb, nd, px, pz, trilinear);
+		return blerp(na, nc, nb, nd, px, pz, type);
 	}
 
-	public static double getNoise(int x, int z, int lrad, int birad, int trirad, NoiseProvider n, NoiseProvider fli, InterpolationType linear, InterpolationType bilinear, InterpolationType trilinear)
+	public static double getNoise(int x, int z, int lrad, NoiseProvider n, NoiseProvider fli, InterpolationType linear)
 	{
 		if(linear.equals(InterpolationType.NONE))
 		{
 			return n.noise(x, z);
 		}
 
-		else if(bilinear.equals(InterpolationType.NONE))
-		{
-			return getLinearNoise(x, z, lrad, n, fli, linear);
-		}
-
-		else if(trilinear.equals(InterpolationType.NONE))
-		{
-			return getBilinearNoise(x, z, lrad, birad, n, fli, linear, bilinear);
-		}
-
-		else
-		{
-			return getTrilinearNoise(x, z, lrad, birad, trirad, n, fli, linear, bilinear, trilinear);
-		}
+		return getLinearNoise(x, z, lrad, n, fli, linear);
 	}
 }

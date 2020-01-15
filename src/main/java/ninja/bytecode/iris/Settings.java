@@ -23,14 +23,9 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
-		public InterpolationType linearFunction = InterpolationType.BEZIER;
-		public InterpolationType bilinearFunction = InterpolationType.PARAMETRIC_2;
-		public InterpolationType trilinearFunction = InterpolationType.BEZIER;
-		public double linearSampleFractureMultiplier = 11.4;
-		public double linearSampleFractureScale = 0.21;
-		public int linearSampleRadius = 29;
-		public int bilinearSampleRadius = 1;
-		public int trilinearSampleRadius = 6;
+		public InterpolationType linearFunction = InterpolationType.PARAMETRIC_2;
+		public int linearSampleRadius = 2;
+		public int interpolationIntervals = 1;
 		public double horizontalZoom = 1;
 		public double heightFracture = 155;
 		public double beachScale = 76;

@@ -15,13 +15,13 @@ import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
-public class GenLayerCarving extends GenLayer
+public class GenLayerCaverns extends GenLayer
 {
 	private CNG carver;
 	private CNG fract;
 	private CNG ruff;
 
-	public GenLayerCarving(IrisGenerator iris, World world, Random random, RNG rng)
+	public GenLayerCaverns(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		super(iris, world, random, rng);
 		//@builder
@@ -38,8 +38,8 @@ public class GenLayerCarving extends GenLayer
 
 	public double getHill(double height)
 	{
-		double min = Iris.settings.gen.minCarvingHeight;
-		double max = Iris.settings.gen.maxCarvingHeight;
+		double min = Iris.settings.gen.minCavernHeight;
+		double max = Iris.settings.gen.maxCavernHeight;
 		double mid = IrisInterpolation.lerp(min, max, 0.5);
 
 		if(height >= min && height <= mid)
@@ -55,7 +55,7 @@ public class GenLayerCarving extends GenLayer
 		return 0;
 	}
 
-	public double carve(double x, double y, double z)
+	public double cavern(double x, double y, double z)
 	{
 		double cx = 77D;
 		double cz = 11D;
@@ -68,17 +68,17 @@ public class GenLayerCarving extends GenLayer
 		return carver.noise(x + fx, y - fy, z + fz);
 	}
 
-	public void genCarves(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome)
+	public void genCaverns(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome)
 	{
-		if(s < Iris.settings.gen.minCarvingHeight)
+		if(s < Iris.settings.gen.minCavernHeight)
 		{
 			return;
 		}
 
-		double ch = Iris.settings.gen.carvingChance;
-		int txy = (int) IrisInterpolation.lerp(Iris.settings.gen.minCarvingHeight, Iris.settings.gen.maxCarvingHeight, 0.5);
+		double ch = Iris.settings.gen.cavernChance;
+		int txy = (int) IrisInterpolation.lerp(Iris.settings.gen.minCavernHeight, Iris.settings.gen.maxCavernHeight, 0.5);
 
-		if(carve(wxx, txy, wzx) < ch / 2D)
+		if(cavern(wxx, txy, wzx) < ch / 2D)
 		{
 			return;
 		}
@@ -86,7 +86,7 @@ public class GenLayerCarving extends GenLayer
 		int hit = 0;
 		int carved = 0;
 
-		for(int i = Math.min(Iris.settings.gen.maxCarvingHeight, s); i > Iris.settings.gen.minCarvingHeight; i--)
+		for(int i = Math.min(Iris.settings.gen.maxCavernHeight, s); i > Iris.settings.gen.minCavernHeight; i--)
 		{
 			double hill = getHill(i);
 
@@ -95,7 +95,7 @@ public class GenLayerCarving extends GenLayer
 				continue;
 			}
 
-			if(carve(wxx, i, wzx) < IrisInterpolation.lerpBezier(0, ch, hill))
+			if(cavern(wxx, i, wzx) < IrisInterpolation.lerpBezier(0, ch, hill))
 			{
 				carved++;
 				g.setBlock(x, i, z, Material.AIR);
@@ -106,7 +106,7 @@ public class GenLayerCarving extends GenLayer
 		{
 			boolean fail = false;
 
-			for(int i = Iris.settings.gen.maxCarvingHeight; i > Iris.settings.gen.minCarvingHeight; i--)
+			for(int i = Iris.settings.gen.maxCavernHeight; i > Iris.settings.gen.minCavernHeight; i--)
 			{
 				Material m = g.getType(x, i, z);
 				if(!m.equals(Material.AIR))

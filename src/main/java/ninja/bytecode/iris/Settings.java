@@ -1,5 +1,6 @@
 package ninja.bytecode.iris;
 
+import ninja.bytecode.iris.util.InterpolationType;
 import ninja.bytecode.iris.util.PerformanceMode;
 
 public class Settings
@@ -22,6 +23,11 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
+		public InterpolationType linearFunction = InterpolationType.BEZIER;
+		public InterpolationType bilinearFunction = InterpolationType.PARAMETRIC_2;
+		public InterpolationType trilinearFunction = InterpolationType.BEZIER;
+		public double linearSampleFractureMultiplier = 11.4;
+		public double linearSampleFractureScale = 0.21;
 		public double horizontalZoom = 1; // 0.525
 		public double heightFracture = 155;
 		public double beachScale = 76;
@@ -35,13 +41,16 @@ public class Settings
 		public double superHeightScale = 0.95;
 		public double baseHeight = 0.165;
 		public int seaLevel = 63;
-		public double caveDensity = 0;
+		public double caveDensity = 4;
 		public double caveScale = 1.45;
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean genObjects = true;
+		public double carvingChance = 0.352;
+		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;
 		public int maxCarvingHeight = 155;
-		public double carvingChance = 0.6;
+		public int minCavernHeight = 14;
+		public int maxCavernHeight = 54;
 	}
 }

@@ -19,7 +19,7 @@ public enum Direction
 	S(0, 0, 1, CuboidDirection.South),
 	E(1, 0, 0, CuboidDirection.East),
 	W(-1, 0, 0, CuboidDirection.West);
-
+ 
 	private static GMap<GBiset<Direction, Direction>, DOP> permute = null;
 
 	private int x;

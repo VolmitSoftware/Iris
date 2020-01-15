@@ -1,16 +1,10 @@
 package ninja.bytecode.iris.controller;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
-import mortar.logic.queue.ChronoLatch;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.genobject.GenObject;
@@ -28,7 +22,6 @@ import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
-import ninja.bytecode.shuriken.io.VoidOutputStream;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
 import ninja.bytecode.shuriken.logging.L;
@@ -39,7 +32,6 @@ public class PackController implements IrisController
 	private GMap<String, IrisDimension> dimensions;
 	private GMap<String, IrisBiome> biomes;
 	private GMap<String, GenObjectGroup> genObjectGroups;
-	private ChronoLatch ll = new ChronoLatch(3000);
 	private boolean ready;
 
 	@Override

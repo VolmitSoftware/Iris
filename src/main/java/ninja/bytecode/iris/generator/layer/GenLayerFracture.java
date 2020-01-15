@@ -14,17 +14,17 @@ public class GenLayerFracture extends GenLayer
 {
 	private CNG gen;
 	private CNG cond; 
-	private double shootHeight = 0.563;
+	private double shootHeight = 0.963;
    
 	public GenLayerFracture(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		//@builder
 		super(iris, world, random, rng);
-		gen = new CNG(rng.nextParallelRNG(40), 1D, 12)
+		gen = new CNG(rng.nextParallelRNG(40), 1D, 2)
 				.scale(0.023)
 				.fractureWith(new CNG(rng.nextParallelRNG(41), 1D, 1)
 						.scale(0.05), 333);
-		cond = new CNG(rng.nextParallelRNG(42), 1D, 12)
+		cond = new CNG(rng.nextParallelRNG(42), 1D, 2)
 				.scale(0.038)
 				.fractureWith(new CNG(rng.nextParallelRNG(43), 1D, 1)
 						.scale(0.025), 299);

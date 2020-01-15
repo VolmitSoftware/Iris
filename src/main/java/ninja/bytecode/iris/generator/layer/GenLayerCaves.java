@@ -22,10 +22,10 @@ public class GenLayerCaves extends GenLayer
 	public GenLayerCaves(IrisGenerator iris, World world, Random random, RNG rng)
 	{
 		super(iris, world, random, rng);
-		caveHeight = new CNG(rng.nextParallelRNG(-100001), 1D, 7).scale(0.00222);
-		caveGirth = new CNG(rng.nextParallelRNG(-100002), 1D, 12).scale(0.03);
+		caveHeight = new CNG(rng.nextParallelRNG(-100001), 1D, 3).scale(0.00222);
+		caveGirth = new CNG(rng.nextParallelRNG(-100002), 1D, 3).scale(0.03);
 		caveClamp = new CNG(rng.nextParallelRNG(-10000), 1D, 3).scale(0.1422);
-		caveVeins = new MaxingGenerator(rng.nextParallelRNG(-99999), 22, 0.002 * Iris.settings.gen.caveScale, 1, (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(-5555), 1D, 4).scale(0.02), 70));
+		caveVeins = new MaxingGenerator(rng.nextParallelRNG(-99999), 4, 0.002 * Iris.settings.gen.caveScale, 1, (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(-5555), 1D, 4).scale(0.02), 70));
 	}
 	
 	public void genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g)

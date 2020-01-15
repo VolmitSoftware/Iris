@@ -12,7 +12,6 @@ import org.bukkit.generator.BlockPopulator;
 
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.placer.BukkitPlacer;
@@ -27,7 +26,6 @@ import ninja.bytecode.shuriken.math.M;
 
 public class GenObjectDecorator extends BlockPopulator
 {
-	private GMap<String, GenObjectGroup> snowCache;
 	private GMap<Biome, IrisBiome> biomeMap;
 	private GMap<Biome, GMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
@@ -37,7 +35,6 @@ public class GenObjectDecorator extends BlockPopulator
 	{
 		biomeMap = new GMap<>();
 		populationCache = new GMap<>();
-		snowCache = new GMap<>();
 
 		for(IrisBiome i : generator.getLoadedBiomes())
 		{

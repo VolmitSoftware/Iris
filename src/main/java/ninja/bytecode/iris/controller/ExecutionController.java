@@ -8,7 +8,7 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
 public class ExecutionController implements IrisController
-{
+{ 
 	GMap<String, TaskExecutor> executors;
 	
 	@Override

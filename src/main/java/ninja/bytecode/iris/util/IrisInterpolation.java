@@ -71,7 +71,39 @@ public class IrisInterpolation
 		return lerpParametric(lerpParametric(a, b, tx, v), lerpParametric(c, d, tx, v), ty, v);
 	}
 
-	public static double getLinearNoise(int x, int z, int rad, NoiseProvider n, NoiseProvider f, InterpolationType type)
+	public static double hermite(double y0, double y1, double y2, double y3, double mu, double tension, double bias)
+	{
+		double m0, m1, mu2, mu3;
+		double a0, a1, a2, a3;
+
+		mu2 = mu * mu;
+		mu3 = mu2 * mu;
+		m0 = (y1 - y0) * (1 + bias) * (1 - tension) / 2;
+		m0 += (y2 - y1) * (1 - bias) * (1 - tension) / 2;
+		m1 = (y2 - y1) * (1 + bias) * (1 - tension) / 2;
+		m1 += (y3 - y2) * (1 - bias) * (1 - tension) / 2;
+		a0 = 2 * mu3 - 3 * mu2 + 1;
+		a1 = mu3 - 2 * mu2 + mu;
+		a2 = mu3 - mu2;
+		a3 = -2 * mu3 + 3 * mu2;
+
+		return (a0 * y1 + a1 * m0 + a2 * m1 + a3 * y2);
+	}
+
+	public static double cubic(double y0, double y1, double y2, double y3, double mu)
+	{
+		double a0, a1, a2, a3, mu2;
+
+		mu2 = mu * mu;
+		a0 = y3 - y2 - y0 + y1;
+		a1 = y0 - y1 - a0;
+		a2 = y2 - y0;
+		a3 = y1;
+
+		return a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
+	}
+
+	public static double getLinearNoise(int x, int z, int rad, NoiseProvider n, InterpolationType type)
 	{
 		int h = rad;
 		int fx = x >> h;
@@ -86,17 +118,16 @@ public class IrisInterpolation
 		double nd = n.noise(xb, zb);
 		double px = M.rangeScale(0, 1, xa, xb, x);
 		double pz = M.rangeScale(0, 1, za, zb, z);
-
 		return blerp(na, nc, nb, nd, px, pz, type);
 	}
 
-	public static double getNoise(int x, int z, int lrad, NoiseProvider n, NoiseProvider fli, InterpolationType linear)
+	public static double getNoise(int x, int z, int lrad, NoiseProvider n, InterpolationType linear)
 	{
 		if(linear.equals(InterpolationType.NONE))
 		{
 			return n.noise(x, z);
 		}
 
-		return getLinearNoise(x, z, lrad, n, fli, linear);
+		return getLinearNoise(x, z, lrad, n, linear);
 	}
 }

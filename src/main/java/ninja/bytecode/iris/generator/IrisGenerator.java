@@ -128,7 +128,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		this.world = world;
 		rTerrain = new RNG(world.getSeed() + 1024);
-		lerpf = new CNG(rTerrain.nextParallelRNG(-10000), 1D, 2).scale(Iris.settings.gen.linearSampleFractureScale);
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
@@ -183,13 +182,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 		IrisBiome biome = getBiome(wxx, wzx);
 		double hv = IrisInterpolation.getNoise(wxx, wzx, 
 				Iris.settings.gen.linearSampleRadius,
-				Iris.settings.gen.bilinearSampleRadius,
-				Iris.settings.gen.trilinearSampleRadius,
 				(xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan), 
-				(a, b) -> lerpf.noise(a, b), 
-				Iris.settings.gen.linearFunction,
-				Iris.settings.gen.bilinearFunction, 
-				Iris.settings.gen.trilinearFunction);
+				Iris.settings.gen.linearFunction);
 		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, wxx * Iris.settings.gen.roughness * 0.82, wzx * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35));
 		int height = (int) Math.round(M.clip(hv, 0D, 1D) * 253);
 		int max = Math.max(height, seaLevel);

@@ -24,7 +24,7 @@ public class Settings
 	public static class GeneratorSettings
 	{
 		public InterpolationType linearFunction = InterpolationType.PARAMETRIC_2;
-		public int linearSampleRadius = 2;
+		public int linearSampleRadius = 6;
 		public int interpolationIntervals = 1;
 		public double horizontalZoom = 1;
 		public double heightFracture = 155;

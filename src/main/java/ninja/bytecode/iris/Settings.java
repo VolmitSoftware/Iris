@@ -28,7 +28,10 @@ public class Settings
 		public InterpolationType trilinearFunction = InterpolationType.BEZIER;
 		public double linearSampleFractureMultiplier = 11.4;
 		public double linearSampleFractureScale = 0.21;
-		public double horizontalZoom = 0.525; // 0.525
+		public int linearSampleRadius = 29;
+		public int bilinearSampleRadius = 1;
+		public int trilinearSampleRadius = 6;
+		public double horizontalZoom = 1;
 		public double heightFracture = 155;
 		public double beachScale = 76;
 		public double landScale = 0.325;

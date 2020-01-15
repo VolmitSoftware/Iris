@@ -146,7 +146,7 @@ public class GenLayerCaverns extends GenLayer
 						}
 					}
 
-					else if(hit > 1 && hit < g.getGlBase().scatterInt(x, i, z, 4) + 3)
+					else if(hit > 1 && hit < g.scatterInt(x, i, z, 4) + 3)
 					{
 						if(!fail)
 						{

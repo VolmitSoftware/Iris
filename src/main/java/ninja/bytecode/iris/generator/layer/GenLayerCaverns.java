@@ -70,6 +70,11 @@ public class GenLayerCaverns extends GenLayer
 
 	public void genCaverns(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome)
 	{
+		if(!Iris.settings.gen.genCaverns)
+		{
+			return;
+		}
+
 		if(s < Iris.settings.gen.minCavernHeight)
 		{
 			return;

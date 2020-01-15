@@ -30,6 +30,11 @@ public class GenLayerCaves extends GenLayer
 	
 	public void genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g)
 	{
+		if(!Iris.settings.gen.genCaves)
+		{
+			return;
+		}
+		
 		for(double itr = 0; itr < 0.1 * Iris.settings.gen.caveDensity; itr += 0.1)
 		{
 			double thickness = 0.25 + itr + (0.5 * caveClamp.noise(wxx, wzx));

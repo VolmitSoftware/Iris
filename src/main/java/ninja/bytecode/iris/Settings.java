@@ -41,10 +41,10 @@ public class Settings
 		public double caveScale = 1.45;
 		public double biomeScale = 2;
 		public boolean flatBedrock = true;
-		public boolean genObjects = false;
-		public boolean genCarving = false;
-		public boolean genCaverns = false;
-		public boolean genCaves = false;
+		public boolean genObjects = true;
+		public boolean genCarving = true;
+		public boolean genCaverns = true;
+		public boolean genCaves = true;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

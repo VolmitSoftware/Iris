@@ -52,6 +52,9 @@ public class IrisBiome
 	private boolean scatterSurfaceSub;
 	private boolean core;
 	private int dirtDepth;
+	private double surfaceScale;
+	private double subSurfaceScale;
+	private double rockScale;
 	private boolean simplexScatter;
 	private boolean simplexScatterRock;
 	private boolean simplexScatterSub;
@@ -134,6 +137,9 @@ public class IrisBiome
 		this.height = IDEAL_HEIGHT;
 		this.amp = 0.31;
 		rockDepth = 11;
+		surfaceScale = 1;
+		subSurfaceScale = 1;
+		rockScale = 1;
 		simplexScatterRock = false;
 		scatterSurfaceRock = true;
 		simplexScatterSub = false;
@@ -176,6 +182,9 @@ public class IrisBiome
 		J.attempt(() -> dirtDepth = o.getInt("dirtDepth"));
 		J.attempt(() -> rockDepth = o.getInt("rockDepth"));
 		J.attempt(() -> cliffScale = o.getDouble("cliffScale"));
+		J.attempt(() -> rockScale = o.getDouble("rockScale"));
+		J.attempt(() -> surfaceScale = o.getDouble("surfaceScale"));
+		J.attempt(() -> subSurfaceScale = o.getDouble("subSurfaceScale"));
 		J.attempt(() -> cliffChance = o.getDouble("cliffChance"));
 		J.attempt(() -> cliffs = o.getBoolean("cliffs"));
 		J.attempt(() -> surface = mbListFromJSON(o.getJSONArray("surface")));
@@ -224,6 +233,9 @@ public class IrisBiome
 		J.attempt(() -> j.put("snow", snow));
 		J.attempt(() -> j.put("cliffs", cliffs));
 		J.attempt(() -> j.put("cliffScale", cliffScale));
+		J.attempt(() -> j.put("rockScale", rockScale));
+		J.attempt(() -> j.put("subSurfaceScale", subSurfaceScale));
+		J.attempt(() -> j.put("surfaceScale", surfaceScale));
 		J.attempt(() -> j.put("cliffChance", cliffChance));
 		J.attempt(() -> j.put("surface", mbListToJSON(surface)));
 		J.attempt(() -> j.put("rock", mbListToJSON(rock)));
@@ -451,7 +463,7 @@ public class IrisBiome
 			{
 				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
 				{
-					return g.scale(0.05).fractureWith(new CNG(rng.nextParallelRNG(56), 1D, 2).scale(0.0955), 55);
+					return g.scale(0.09 * surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(56), 1D, 2).scale(0.0955), 55);
 				});
 			}
 
@@ -464,7 +476,7 @@ public class IrisBiome
 			{
 				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
 				{
-					return g.fractureWith(new CNG(rng.nextParallelRNG(55), 1D, 2).scale(0.0155), 224);
+					return g.scale(surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(55), 1D, 2).scale(0.0155), 224);
 				});
 			}
 
@@ -484,7 +496,7 @@ public class IrisBiome
 			{
 				polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
 				{
-					return g.scale(0.05).fractureWith(new CNG(rng.nextParallelRNG(526), 1D, 2).scale(0.0955), 55);
+					return g.scale(0.06 * subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(526), 1D, 2).scale(0.0955), 55);
 				});
 			}
 
@@ -497,7 +509,7 @@ public class IrisBiome
 			{
 				polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
 				{
-					return g.fractureWith(new CNG(rng.nextParallelRNG(515), 1D, 2).scale(0.0155), 224);
+					return g.scale(subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(515), 1D, 2).scale(0.0155), 224);
 				});
 			}
 
@@ -517,7 +529,7 @@ public class IrisBiome
 			{
 				polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
 				{
-					return g.scale(0.05).fractureWith(new CNG(rng.nextParallelRNG(562), 1D, 2).scale(0.0955), 55);
+					return g.scale(0.08 * rockScale).fractureWith(new CNG(rng.nextParallelRNG(562), 1D, 2).scale(0.0955), 55);
 				});
 			}
 
@@ -530,7 +542,7 @@ public class IrisBiome
 			{
 				polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
 				{
-					return g.fractureWith(new CNG(rng.nextParallelRNG(551), 1D, 2).scale(0.0155), 224);
+					return g.scale(rockScale).fractureWith(new CNG(rng.nextParallelRNG(551), 1D, 2).scale(0.0155), 224);
 				});
 			}
 

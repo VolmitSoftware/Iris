@@ -150,7 +150,7 @@ public class GenLayerCarving extends GenLayer
 					{
 						if(!fail)
 						{
-							MB mb = biome.getDirtRNG();
+							MB mb = biome.getSubSurface(wxx, i, wzx, g.getRTerrain());
 							g.setBlock(x, i, z, mb.material, mb.data);
 						}
 

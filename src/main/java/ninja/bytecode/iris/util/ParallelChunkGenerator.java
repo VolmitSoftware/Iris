@@ -53,17 +53,14 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				genPool = Iris.getController(ExecutionController.class).getExecutor(world);
 			}
 
+			if(this.world == null)
+			{
+				ready = false;
+			}
+			
 			if(this.world != null && world.getSeed() != this.world.getSeed())
 			{
-				for(int i = 0; i < 16; i++)
-				{
-					for(int j = 0; j < 16; j++)
-					{
-						data.setBlock(i, 0, j, Material.YELLOW_GLAZED_TERRACOTTA);
-					}
-				}
-
-				return data.toChunkData();
+				ready = false;
 			}
 
 			this.world = world;

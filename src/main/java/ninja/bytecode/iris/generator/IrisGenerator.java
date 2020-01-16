@@ -133,7 +133,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public void onInit(World world, Random random)
 	{
 		this.world = world;
-		rTerrain = new RNG(world.getSeed() + 1024);
+		rTerrain = new RNG(world.getSeed());
 		glBase = new GenLayerBase(this, world, random, rTerrain.nextParallelRNG(1));
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
@@ -159,6 +159,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 				}
 			}
 		}
+		
+		L.i("Signature = " + world.getSeed() + " + " + glBiome.getBiome(0, 0).getRealBiome().ordinal() +" + "+ computeHeight(0, 0, new ChunkPlan(), biome("Plains")));
 	}
 
 	@Override

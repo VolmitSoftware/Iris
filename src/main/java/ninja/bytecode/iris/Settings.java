@@ -40,7 +40,7 @@ public class Settings
 		public double caveDensity = 4;
 		public double caveScale = 1.45;
 		public double biomeScale = 2;
-		public boolean flatBedrock = false;
+		public boolean flatBedrock = true;
 		public boolean genObjects = true;
 		public boolean genCarving = true;
 		public boolean genCaverns = true;

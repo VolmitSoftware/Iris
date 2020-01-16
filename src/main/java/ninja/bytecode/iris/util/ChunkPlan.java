@@ -6,12 +6,14 @@ import ninja.bytecode.shuriken.collections.GMap;
 public class ChunkPlan
 {
 	private final GMap<ChunkedVector, Integer> realHeightCache;
+	private final GMap<ChunkedVector, Integer> realWaterHeightCache;
 	private final GMap<ChunkedVector, Double> heightCache;
 	private final GMap<ChunkedVector, IrisBiome> biomeCache;
 
 	public ChunkPlan()
 	{
 		this.realHeightCache = new GMap<>();
+		this.realWaterHeightCache = new GMap<>();
 		this.heightCache = new GMap<>();
 		this.biomeCache = new GMap<>();
 	}
@@ -48,6 +50,18 @@ public class ChunkPlan
 		return 0;
 	}
 
+	public int getRealWaterHeight(int x, int z)
+	{
+		ChunkedVector c = new ChunkedVector(x, z);
+
+		if(realWaterHeightCache.containsKey(c))
+		{
+			return realWaterHeightCache.get(c);
+		}
+
+		return 0;
+	}
+
 	public boolean hasHeight(ChunkedVector c)
 	{
 		return heightCache.containsKey(c);
@@ -68,13 +82,23 @@ public class ChunkPlan
 		realHeightCache.put(c, h);
 	}
 
-	public void setHeight(int x, int z, double h)
-	{
-		setHeight(new ChunkedVector(x, z), h);
-	}
-
 	public void setRealHeight(int x, int z, int h)
 	{
 		setRealHeight(new ChunkedVector(x, z), h);
+	}
+
+	public void setRealWaterHeight(ChunkedVector c, int h)
+	{
+		realWaterHeightCache.put(c, h);
+	}
+
+	public void setRealWaterHeight(int x, int z, int h)
+	{
+		setRealWaterHeight(new ChunkedVector(x, z), h);
+	}
+
+	public void setHeight(int x, int z, double h)
+	{
+		setHeight(new ChunkedVector(x, z), h);
 	}
 }

@@ -99,7 +99,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				}
 			}
 		}
-		
+
 		return data.toChunkData();
 	}
 
@@ -113,10 +113,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public abstract void decorateColumn(int wx, int wz, int x, int z, ChunkPlan plan);
 
-	@SuppressWarnings("deprecation")
 	public void setBlock(int x, int y, int z, Material b)
 	{
-		setBlock(x, y, z, b.getId(), (byte) 0);
+		setBlock(x, y, z, b, (byte) 0);
 	}
 
 	@SuppressWarnings("deprecation")

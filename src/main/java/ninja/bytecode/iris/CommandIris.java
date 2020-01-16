@@ -75,6 +75,7 @@ public class CommandIris implements CommandExecutor
 							{
 								msg(sender, "Looking for " + b.getName() + "...");
 								boolean f = false;
+								int t = 0;
 								for(int i = 0; i < 10000; i++)
 								{
 									int x = (int) ((int) (29999983 / 1.2) * Math.random());
@@ -83,8 +84,23 @@ public class CommandIris implements CommandExecutor
 									if(g.getBiome(x, z).equals(b))
 									{
 										f = true;
-										p.teleport(w.getHighestBlockAt(x, z).getLocation());
-										break;
+
+										if(w.getHighestBlockYAt(x, z) > 66)
+										{
+											p.teleport(w.getHighestBlockAt(x, z).getLocation());
+											break;
+										}
+										
+										else
+										{
+											t++;
+											
+											if(t > 30)
+											{
+												msg(sender, "Checked 30 " + b.getName() + " bearing chunks. All of them were underwater. Try Again!");
+												break;
+											}
+										}
 									}
 								}
 

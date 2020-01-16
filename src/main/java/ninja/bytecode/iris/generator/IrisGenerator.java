@@ -174,14 +174,24 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return biomeCache.get(name);
 	}
 
+	public double getOffsetX(double x)
+	{
+		return Math.round((double) x * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+	}
+
+	public double getOffsetZ(double z)
+	{
+		return Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+	}
+	
 	@Override
 	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
 	{
 		//@builder
 		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
-		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476));
-		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+		double wx = getOffsetX(wxx);
+		double wz = getOffsetZ(wzx);
 		IrisBiome biome = getBiome(wxx, wzx);
 		double hv = IrisInterpolation.getNoise(wxx, wzx, 
 				Iris.settings.gen.hermiteSampleRadius,
@@ -260,11 +270,13 @@ public class IrisGenerator extends ParallelChunkGenerator
 					{
 						if(j == snowHeight - 1)
 						{
+							highest = highest < j ? j : highest;
 							setBlock(x, i + j + 1, z, Material.SNOW, (byte) layers);
 						}
 
 						else
 						{
+							highest = highest < j + 1 ? j + 1 : highest;
 							setBlock(x, i + j + 1, z, Material.SNOW_BLOCK);
 						}
 					}
@@ -299,7 +311,28 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCaves.genCaves(wxx, wzx, x, z, height, this);
 		glCarving.genCarves(wxx, wzx, x, z, height, this, biome);
 		glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome);
-		plan.setRealHeight(x, z, highest);
+		int hw = 0;
+		int hl = 0;
+
+		for(int i = highest; i > 0; i--)
+		{
+			Material t = getType(x, i, z);
+
+			if(i > seaLevel && hw == 0 && (t.equals(Material.WATER) || t.equals(Material.STATIONARY_WATER)))
+			{
+				hw = i;
+			}
+
+			else if(hl == 0 && !t.equals(Material.AIR))
+			{
+				hl = i;
+			}
+		}
+
+		plan.setRealHeight(x, z, hl);
+		plan.setRealWaterHeight(x, z, hw == 0 ? seaLevel : hw);
+		plan.setBiome(x, z, biome);
+
 		return biome.getRealBiome();
 	}
 

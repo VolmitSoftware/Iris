@@ -141,13 +141,24 @@ public class IrisBiome
 		J.attempt(() -> scatterSurface = o.getString("surfaceType").equalsIgnoreCase("scatter"));
 		J.attempt(() ->
 		{
-			schematicGroups = strFromJSON(o.getJSONArray("objects"));
+			if(Iris.settings.gen.genObjects)
+			{
+				schematicGroups = strFromJSON(o.getJSONArray("objects"));
+			}
+			
+			else
+			{
+				schematicGroups = new GMap<>();
+			}
 
 			if(chain)
 			{
-				for(String i : schematicGroups.k())
+				if(Iris.settings.gen.genObjects)
 				{
-					Iris.getController(PackController.class).loadSchematicGroup(i);
+					for(String i : schematicGroups.k())
+					{
+						Iris.getController(PackController.class).loadSchematicGroup(i);
+					}
 				}
 			}
 		});

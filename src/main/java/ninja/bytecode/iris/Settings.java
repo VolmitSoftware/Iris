@@ -1,6 +1,5 @@
 package ninja.bytecode.iris;
 
-import ninja.bytecode.iris.util.InterpolationType;
 import ninja.bytecode.iris.util.PerformanceMode;
 
 public class Settings
@@ -23,17 +22,14 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
-		public InterpolationType linearFunction = InterpolationType.BEZIER;
-		public InterpolationType bilinearFunction = InterpolationType.PARAMETRIC_2;
-		public InterpolationType trilinearFunction = InterpolationType.BEZIER;
-		public double linearSampleFractureMultiplier = 11.4;
-		public double linearSampleFractureScale = 0.21;
-		public double horizontalZoom = 1; // 0.525
+		public int hermiteSampleRadius = 6;
+		public double horizontalZoom = 1;
 		public double heightFracture = 155;
 		public double beachScale = 76;
 		public double landScale = 0.325;
 		public double landChance = 0.62;
-		public double roughness = 1.25;
+		public double biomeEdgeScramble = 1550D; // 1550D
+		public double roughness = 1.55;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
@@ -46,6 +42,9 @@ public class Settings
 		public double biomeScale = 2;
 		public boolean flatBedrock = false;
 		public boolean genObjects = true;
+		public boolean genCarving = true;
+		public boolean genCaverns = true;
+		public boolean genCaves = true;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

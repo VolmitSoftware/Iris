@@ -58,11 +58,6 @@ public class IrisInterpolation
 			return blerpParametric(a, b, c, d, tx, ty, 4);
 		}
 
-		if(type.equals(InterpolationType.PARAMETRIC_NH))
-		{
-			return blerpParametric(a, b, c, d, tx, ty, -0.5);
-		}
-
 		return 0;
 	}
 
@@ -76,83 +71,87 @@ public class IrisInterpolation
 		return lerpParametric(lerpParametric(a, b, tx, v), lerpParametric(c, d, tx, v), ty, v);
 	}
 
-	public static double getLinearNoise(int x, int z, NoiseProvider n, NoiseProvider f, InterpolationType type)
+	public static double hermite(double p0, double p1, double p2, double p3, double mu, double tension, double bias)
 	{
-		int h = 29;
-		int xa = x - h;
-		int za = z - h;
-		int xb = x + h;
-		int zb = z + h;
-		double hfx = f.noise(x, z) * Iris.settings.gen.linearSampleFractureMultiplier;
-		double hfz = f.noise(z, x) * Iris.settings.gen.linearSampleFractureMultiplier;
-		double na = n.noise(xa + hfx, za + hfz);
-		double nb = n.noise(xa + hfx, zb - hfz);
-		double nc = n.noise(xb - hfx, za + hfz);
-		double nd = n.noise(xb - hfx, zb - hfz);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
+		double m0, m1, mu2, mu3;
+		double a0, a1, a2, a3;
 
-		return blerp(na, nc, nb, nd, px, pz, type);
+		mu2 = mu * mu;
+		mu3 = mu2 * mu;
+		m0 = (p1 - p0) * (1 + bias) * (1 - tension) / 2;
+		m0 += (p2 - p1) * (1 - bias) * (1 - tension) / 2;
+		m1 = (p2 - p1) * (1 + bias) * (1 - tension) / 2;
+		m1 += (p3 - p2) * (1 - bias) * (1 - tension) / 2;
+		a0 = 2 * mu3 - 3 * mu2 + 1;
+		a1 = mu3 - 2 * mu2 + mu;
+		a2 = mu3 - mu2;
+		a3 = -2 * mu3 + 3 * mu2;
+
+		return (a0 * p1 + a1 * m0 + a2 * m1 + a3 * p2);
 	}
 
-	public static double getBilinearNoise(int x, int z, NoiseProvider n, NoiseProvider f, InterpolationType linear, InterpolationType bilinear)
+	public static double bihermite(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias)
 	{
-		int h = 1;
+		return hermite(hermite(p00, p01, p02, p03, muy, tension, bias), hermite(p10, p11, p12, p13, muy, tension, bias), hermite(p20, p21, p22, p23, muy, tension, bias), hermite(p30, p31, p32, p33, muy, tension, bias), mux, tension, bias);
+	}
+
+	public static double cubic(double p0, double p1, double p2, double p3, double mu)
+	{
+		double a0, a1, a2, a3, mu2;
+
+		mu2 = mu * mu;
+		a0 = p3 - p2 - p0 + p1;
+		a1 = p0 - p1 - a0;
+		a2 = p2 - p0;
+		a3 = p1;
+
+		return a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
+	}
+
+	public static double bicubic(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy)
+	{
+		return cubic(cubic(p00, p01, p02, p03, muy), cubic(p10, p11, p12, p13, muy), cubic(p20, p21, p22, p23, muy), cubic(p30, p31, p32, p33, muy), mux);
+	}
+
+	public static double getHermiteNoise(int x, int z, int rad, NoiseProvider n)
+	{
+		int h = rad;
 		int fx = x >> h;
 		int fz = z >> h;
-		int xa = (fx << h) - 15;
-		int za = (fz << h) - 15;
-		int xb = ((fx + 1) << h) + 15;
-		int zb = ((fz + 1) << h) + 15;
-		double na = getLinearNoise(xa, za, n, f, linear);
-		double nb = getLinearNoise(xa, zb, n, f, linear);
-		double nc = getLinearNoise(xb, za, n, f, linear);
-		double nd = getLinearNoise(xb, zb, n, f, linear);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
-
-		return blerp(na, nc, nb, nd, px, pz, bilinear);
+		int x0 = ((fx - 1) << h);
+		int z0 = ((fz - 1) << h);
+		int x1 = (fx << h);
+		int z1 = (fz << h);
+		int x2 = ((fx + 1) << h);
+		int z2 = ((fz + 1) << h);
+		int x3 = ((fx + 2) << h);
+		int z3 = ((fz + 2) << h);
+		double px = M.rangeScale(0, 1, x1, x2, x);
+		double pz = M.rangeScale(0, 1, z1, z2, z);
+		//@builder
+		return bihermite(
+				n.noise(x0, z0), 
+				n.noise(x0, z1), 
+				n.noise(x0, z2), 
+				n.noise(x0, z3), 
+				n.noise(x1, z0), 
+				n.noise(x1, z1), 
+				n.noise(x1, z2), 
+				n.noise(x1, z3), 
+				n.noise(x2, z0), 
+				n.noise(x2, z1), 
+				n.noise(x2, z2), 
+				n.noise(x2, z3), 
+				n.noise(x3, z0), 
+				n.noise(x3, z1), 
+				n.noise(x3, z2), 
+				n.noise(x3, z3), 
+				px, pz, 0.01, 0);
+		//@done
 	}
 
-	public static double getTrilinearNoise(int x, int z, NoiseProvider n, NoiseProvider f, InterpolationType linear, InterpolationType bilinear, InterpolationType trilinear)
+	public static double getNoise(int x, int z, int lrad, NoiseProvider n)
 	{
-		int h = 6;
-		int fx = x >> h;
-		int fz = z >> h;
-		int xa = (fx << h);
-		int za = (fz << h);
-		int xb = ((fx + 1) << h);
-		int zb = ((fz + 1) << h);
-		double na = getBilinearNoise(xa, za, n, f, linear, bilinear);
-		double nb = getBilinearNoise(xa, zb, n, f, linear, bilinear);
-		double nc = getBilinearNoise(xb, za, n, f, linear, bilinear);
-		double nd = getBilinearNoise(xb, zb, n, f, linear, bilinear);
-		double px = M.rangeScale(0, 1, xa, xb, x);
-		double pz = M.rangeScale(0, 1, za, zb, z);
-
-		return blerp(na, nc, nb, nd, px, pz, trilinear);
-	}
-
-	public static double getNoise(int x, int z, NoiseProvider n, NoiseProvider fli, InterpolationType linear, InterpolationType bilinear, InterpolationType trilinear)
-	{
-		if(linear.equals(InterpolationType.NONE))
-		{
-			return n.noise(x, z);
-		}
-
-		else if(bilinear.equals(InterpolationType.NONE))
-		{
-			return getLinearNoise(x, z, n, fli, linear);
-		}
-
-		else if(trilinear.equals(InterpolationType.NONE))
-		{
-			return getBilinearNoise(x, z, n, fli, linear, bilinear);
-		}
-
-		else
-		{
-			return getTrilinearNoise(x, z, n, fli, linear, bilinear, trilinear);
-		}
+		return getHermiteNoise(x, z, lrad, n);
 	}
 }

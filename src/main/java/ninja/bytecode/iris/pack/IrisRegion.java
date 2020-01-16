@@ -1,18 +1,37 @@
 package ninja.bytecode.iris.pack;
 
+import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.json.JSONObject;
 
 public class IrisRegion
 {
 	private String name;
 	private GList<IrisBiome> biomes;
 	private EnumMaxingGenerator<IrisBiome> gen;
+	private double rarity;
+	private IrisBiome beach;
 
 	public IrisRegion(String name)
 	{
 		this.name = name;
 		this.biomes = new GList<>();
+		rarity = 1;
+		beach = null;
+	}
+
+	public void load()
+	{
+		J.attempt(() ->
+		{
+			JSONObject o = Iris.getController(PackController.class).loadJSON("pack/regions/" + name + ".json");
+			J.attempt(() -> name = o.getString("name"));
+			J.attempt(() -> rarity = o.getDouble("rarity"));
+			J.attempt(() -> beach = Iris.getController(PackController.class).getBiomeById(o.getString("beach")));
+		});
 	}
 
 	public EnumMaxingGenerator<IrisBiome> getGen()
@@ -45,13 +64,38 @@ public class IrisRegion
 		this.biomes = biomes;
 	}
 
+	public double getRarity()
+	{
+		return rarity;
+	}
+
+	public void setRarity(double rarity)
+	{
+		this.rarity = rarity;
+	}
+
+	public IrisBiome getBeach()
+	{
+		return beach;
+	}
+
+	public void setBeach(IrisBiome beach)
+	{
+		this.beach = beach;
+	}
+
 	@Override
 	public int hashCode()
 	{
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((beach == null) ? 0 : beach.hashCode());
 		result = prime * result + ((biomes == null) ? 0 : biomes.hashCode());
+		result = prime * result + ((gen == null) ? 0 : gen.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		long temp;
+		temp = Double.doubleToLongBits(rarity);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
 		return result;
 	}
 
@@ -65,6 +109,13 @@ public class IrisRegion
 		if(getClass() != obj.getClass())
 			return false;
 		IrisRegion other = (IrisRegion) obj;
+		if(beach == null)
+		{
+			if(other.beach != null)
+				return false;
+		}
+		else if(!beach.equals(other.beach))
+			return false;
 		if(biomes == null)
 		{
 			if(other.biomes != null)
@@ -72,12 +123,21 @@ public class IrisRegion
 		}
 		else if(!biomes.equals(other.biomes))
 			return false;
+		if(gen == null)
+		{
+			if(other.gen != null)
+				return false;
+		}
+		else if(!gen.equals(other.gen))
+			return false;
 		if(name == null)
 		{
 			if(other.name != null)
 				return false;
 		}
 		else if(!name.equals(other.name))
+			return false;
+		if(Double.doubleToLongBits(rarity) != Double.doubleToLongBits(other.rarity))
 			return false;
 		return true;
 	}

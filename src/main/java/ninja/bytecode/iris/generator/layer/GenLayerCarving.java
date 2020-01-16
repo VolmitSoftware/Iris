@@ -70,6 +70,11 @@ public class GenLayerCarving extends GenLayer
 
 	public void genCarves(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome)
 	{
+		if(!Iris.settings.gen.genCarving)
+		{
+			return;
+		}
+		
 		if(s < Iris.settings.gen.minCarvingHeight)
 		{
 			return;
@@ -141,7 +146,7 @@ public class GenLayerCarving extends GenLayer
 						}
 					}
 
-					else if(hit > 1 && hit < g.getGlBase().scatterInt(x, i, z, 4) + 3)
+					else if(hit > 1 && hit < g.scatterInt(x, i, z, 4) + 3)
 					{
 						if(!fail)
 						{

@@ -21,25 +21,10 @@ import ninja.bytecode.shuriken.math.RNG;
 public class IrisBiome
 {
 	public static final double MAX_HEIGHT = 0.77768;
-	public static final double IDEAL_HEIGHT = 0.1127;
+	public static final double IDEAL_HEIGHT = 0.0527;
 	public static final double MIN_HEIGHT = -0.0218;
 
 	//@builder
-	private static final IrisBiome RIVER = new IrisBiome("River", Biome.RIVER)
-			.surface(MB.of(Material.SAND))
-			.coreBiome();
-	private static final IrisBiome BEACH = new IrisBiome("Beach", Biome.BEACHES)
-			.height(-0.078)
-			.coreBiome()
-			.surface(MB.of(Material.SAND));
-	public static final IrisBiome ROAD_GRAVEL = new IrisBiome("Gravel Road", Biome.PLAINS)
-			.surface(MB.of(Material.GRAVEL), MB.of(Material.COBBLESTONE))
-			.coreBiome()
-			.scatter(MB.of(Material.TORCH), 0.05);
-	public static final IrisBiome ROAD_GRASSY = new IrisBiome("Grass Path", Biome.PLAINS)
-			.surface(MB.of(Material.GRASS_PATH))
-			.coreBiome()
-			.scatter(MB.of(Material.TORCH), 0.05);
 	private static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
 			.height(-0.5)
 			.coreBiome()
@@ -81,26 +66,6 @@ public class IrisBiome
 	public static double getMinHeight()
 	{
 		return MIN_HEIGHT;
-	}
-
-	public static IrisBiome getRiver()
-	{
-		return RIVER;
-	}
-
-	public static IrisBiome getBeach()
-	{
-		return BEACH;
-	}
-
-	public static IrisBiome getRoadGravel()
-	{
-		return ROAD_GRAVEL;
-	}
-
-	public static IrisBiome getRoadGrassy()
-	{
-		return ROAD_GRASSY;
 	}
 
 	public static IrisBiome getOcean()
@@ -146,7 +111,7 @@ public class IrisBiome
 
 	public IrisBiome(String name, Biome realBiome)
 	{
-		this.region = "Default";
+		this.region = "default";
 		this.core = false;
 		this.name = name;
 		this.realBiome = realBiome;
@@ -454,7 +419,7 @@ public class IrisBiome
 
 	public static GList<IrisBiome> getBiomes()
 	{
-		return map.v().remove(IrisBiome.BEACH, IrisBiome.OCEAN, IrisBiome.DEEP_OCEAN, IrisBiome.ROAD_GRASSY, IrisBiome.ROAD_GRAVEL, IrisBiome.BEACH, IrisBiome.RIVER);
+		return map.v().remove(IrisBiome.OCEAN, IrisBiome.DEEP_OCEAN);
 	}
 
 	public static GList<IrisBiome> getAllBiomes()

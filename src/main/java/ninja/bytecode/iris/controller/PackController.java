@@ -161,7 +161,7 @@ public class PackController implements IrisController
 
 		ready = true;
 	}
-	
+
 	public CompiledDimension getDimension(String name)
 	{
 		return compiledDimensions.get(name);
@@ -266,5 +266,23 @@ public class PackController implements IrisController
 	{
 		J.attempt(() -> new File(Iris.instance.getDataFolder(), "dimensions").delete());
 		compiledDimensions.clear();
+	}
+
+	public IrisBiome getBiomeById(String id)
+	{
+		if(!biomes.containsKey(id))
+		{
+			try
+			{
+				biomes.put(id, Iris.getController(PackController.class).loadBiome(id));
+			}
+
+			catch(JSONException | IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		return biomes.get(id);
 	}
 }

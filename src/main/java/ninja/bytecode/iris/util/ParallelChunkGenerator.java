@@ -14,6 +14,7 @@ import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 
@@ -37,9 +38,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 		return world;
 	}
 
-	public void generateFullColumn(int a, int b, int c, int d, BiomeGrid g, ChunkPlan p)
+	public Biome generateFullColumn(int a, int b, int c, int d, ChunkPlan p)
 	{
-		g.setBiome(c, d, genColumn(a, b, c, d, p));
+		return genColumn(a, b, c, d, p);
 	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
@@ -51,6 +52,20 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			{
 				genPool = Iris.getController(ExecutionController.class).getExecutor(world);
 			}
+
+			if(this.world != null && world.getSeed() != this.world.getSeed())
+			{
+				for(int i = 0; i < 16; i++)
+				{
+					for(int j = 0; j < 16; j++)
+					{
+						data.setBlock(i, 0, j, Material.YELLOW_GLAZED_TERRACOTTA);
+					}
+				}
+
+				return data.toChunkData();
+			}
+
 			this.world = world;
 			data = new AtomicChunkData(world);
 			if(!ready)
@@ -61,6 +76,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 			tg = genPool.startWork();
 			O<ChunkPlan> plan = new O<ChunkPlan>();
+
 			for(i = 0; i < 16; i++)
 			{
 				wx = (x * 16) + i;
@@ -72,7 +88,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					int b = wz;
 					int c = i;
 					int d = j;
-					tg.queue(() -> generateFullColumn(a, b, c, d, biome, plan.get()));
+					tg.queue(() -> biome.setBiome(c, d, generateFullColumn(a, b, c, d, plan.get())));
 				}
 			}
 
@@ -86,10 +102,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		catch(Throwable e)
 		{
-			if(cl.flip())
-			{
-				e.printStackTrace();
-			}
+			e.printStackTrace();
 
 			for(int i = 0; i < 16; i++)
 			{

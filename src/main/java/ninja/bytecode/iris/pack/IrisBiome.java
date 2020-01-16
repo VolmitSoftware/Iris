@@ -26,12 +26,17 @@ public class IrisBiome
 
 	//@builder
 	private static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
-			.height(-0.5)
+			.height(-0.2)
+			.coreBiome()
+			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
+			.simplexSurface();
+	private static final IrisBiome FROZEN_OCEAN = new IrisBiome("Frozen Ocean", Biome.FROZEN_OCEAN)
+			.height(-0.16)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
 	private static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
-			.height(-0.88)
+			.height(-0.4)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();

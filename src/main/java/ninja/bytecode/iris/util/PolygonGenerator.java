@@ -3,6 +3,7 @@ package ninja.bytecode.iris.util;
 import java.util.function.Function;
 
 import ninja.bytecode.shuriken.math.CNG;
+import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class PolygonGenerator
@@ -30,6 +31,41 @@ public class PolygonGenerator
 			gen[i] = new CNG(rng.nextParallelRNG(2118 + (i * 3305)), 1D, 1).scale(scale);
 			gen[i] = factory.apply(gen[i]);
 		}
+	}
+	
+	public boolean hasBorder(int checks, double distance, double... dims)
+	{
+		int current = getIndex(dims);
+		double ajump = 360D / (double) checks;
+
+		if(dims.length == 2)
+		{
+			for(int i = 0; i < checks; i++)
+			{
+				double dx = M.sin((float)Math.toRadians(ajump * i));
+				double dz = M.cos((float)Math.toRadians(ajump * i));
+				if(current != getIndex((dx * distance) + dims[0], (dz * distance) + dims[1]))
+				{
+					return true;
+				}
+			}
+		}
+
+		if(dims.length == 3)
+		{
+			for(int i = 0; i < checks; i++)
+			{
+				double dx = M.sin((float)Math.toRadians(ajump * i));
+				double dz = M.cos((float)Math.toRadians(ajump * i));
+				double dy = Math.tan(Math.toRadians(ajump * i));
+				if(current != getIndex((dx * distance) + dims[0], (dz * distance) + dims[1], (dy * distance) + dims[2]))
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 	
 	/**

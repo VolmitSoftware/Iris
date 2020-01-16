@@ -10,7 +10,7 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.GenLayer;
-import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
+import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.math.CNG;
@@ -19,7 +19,7 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private EnumMaxingGenerator<IrisRegion> regionGenerator;
+	private EnumPolygonGenerator<IrisRegion> regionGenerator;
 	private GMap<String, IrisRegion> regions;
 	private Function<CNG, CNG> factory;
 	private CNG fracture;
@@ -54,16 +54,16 @@ public class GenLayerBiome extends GenLayer
 		}
 
 		int v = 85034;
-		regionGenerator = new EnumMaxingGenerator<IrisRegion>(rng.nextParallelRNG(v), 0.00522 * Iris.settings.gen.biomeScale * 0.189, 1, regions.v().toArray(new IrisRegion[regions.v().size()]), factory);
+		regionGenerator = new EnumPolygonGenerator<IrisRegion>(rng.nextParallelRNG(v), 0.00522 * Iris.settings.gen.biomeScale * 0.189, 1, regions.v().toArray(new IrisRegion[regions.v().size()]), factory);
 
 		for(IrisRegion i : regions.v())
 		{
 			v += 13 - i.getName().length();
-			i.setGen(new EnumMaxingGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
+			i.setGen(new EnumPolygonGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
 		}
 	}
 
-	public EnumMaxingGenerator<IrisBiome> getRegionGenerator(double xx, double zz)
+	public EnumPolygonGenerator<IrisBiome> getRegionGenerator(double xx, double zz)
 	{
 		return regionGenerator.getChoice(xx, zz).getGen();
 	}

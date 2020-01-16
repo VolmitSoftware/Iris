@@ -2,7 +2,7 @@ package ninja.bytecode.iris.pack;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
-import ninja.bytecode.iris.util.MaxingGenerator.EnumMaxingGenerator;
+import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -11,12 +11,14 @@ public class IrisRegion
 {
 	private String name;
 	private GList<IrisBiome> biomes;
-	private EnumMaxingGenerator<IrisBiome> gen;
+	private EnumPolygonGenerator<IrisBiome> gen;
 	private double rarity;
+	private boolean frozen;
 	private IrisBiome beach;
 
 	public IrisRegion(String name)
 	{
+		frozen = false;
 		this.name = name;
 		this.biomes = new GList<>();
 		rarity = 1;
@@ -28,18 +30,19 @@ public class IrisRegion
 		J.attempt(() ->
 		{
 			JSONObject o = Iris.getController(PackController.class).loadJSON("pack/regions/" + name + ".json");
+			J.attempt(() -> frozen = o.getBoolean("frozen"));
 			J.attempt(() -> name = o.getString("name"));
 			J.attempt(() -> rarity = o.getDouble("rarity"));
 			J.attempt(() -> beach = Iris.getController(PackController.class).getBiomeById(o.getString("beach")));
 		});
 	}
 
-	public EnumMaxingGenerator<IrisBiome> getGen()
+	public EnumPolygonGenerator<IrisBiome> getGen()
 	{
 		return gen;
 	}
 
-	public void setGen(EnumMaxingGenerator<IrisBiome> gen)
+	public void setGen(EnumPolygonGenerator<IrisBiome> gen)
 	{
 		this.gen = gen;
 	}
@@ -140,5 +143,10 @@ public class IrisRegion
 		if(Double.doubleToLongBits(rarity) != Double.doubleToLongBits(other.rarity))
 			return false;
 		return true;
+	}
+
+	public boolean isFrozen()
+	{
+		return frozen;
 	}
 }

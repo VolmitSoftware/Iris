@@ -2,7 +2,6 @@ package ninja.bytecode.iris.generator;
 
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -62,6 +61,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private CNG scatter;
 	public GMap<String, IrisBiome> biomeCache = new GMap<>();
 	private MB WATER = new MB(Material.STATIONARY_WATER);
+	private MB ICE = new MB(Material.ICE);
+	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GList<IrisBiome> internal;
 	private GenLayerLayeredNoise glLNoise;
@@ -190,6 +191,15 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	public IrisBiome getOcean(IrisBiome biome, int height)
 	{
+		IrisRegion region = glBiome.getRegion(biome.getRegion());
+		if(region != null)
+		{
+			if(region.isFrozen())
+			{
+				return biome("Frozen Ocean");
+			}
+		}
+
 		if(height < 36)
 		{
 			return biome("Deep Ocean");
@@ -237,6 +247,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return hv;
 	}
 
+	public IrisRegion getRegion(IrisBiome biome)
+	{
+		return glBiome.getRegion(biome.getRegion());
+	}
+
 	@Override
 	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
 	{
@@ -245,22 +260,28 @@ public class IrisGenerator extends ParallelChunkGenerator
 		double wx = getOffsetX(wxx);
 		double wz = getOffsetZ(wzx);
 		IrisBiome biome = getBiome(wxx, wzx);
+		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
-		biome = height > 61 && height < 65 ? getBeach(biome) : biome;
-		biome = height < 63 ? getOcean(biome, height) : biome;
+		IrisBiome nbiome = height < 63 ? getOcean(biome, height) : biome;
+		biome = nbiome;
+		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(biome) : biome;
 
 		for(int i = 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));
 			boolean underwater = i >= height && i < seaLevel;
+			boolean someunderwater = i >= height && i < seaLevel - (1 + scatterInt(x, i, z, 1));
+			boolean wayunderwater = i >= height && i < seaLevel - (3 + scatterInt(x, i, z, 2));
 			boolean underground = i < height;
 			int dheight = biome.getDirtDepth();
 			int rheight = biome.getRockDepth();
 			boolean dirt = (height - 1) - i < (dheight > 0 ? scatterInt(x, i, z, 4) : 0) + dheight;
 			boolean rocky = i > height - rheight && !dirt;
 			boolean bedrock = i == 0 || !Iris.settings.gen.flatBedrock ? i <= 2 : i < scatterInt(x, i, z, 3);
-			mb = underwater ? WATER : mb;
+			mb = underwater ? frozen ? PACKED_ICE : WATER : mb;
+			mb = someunderwater ? frozen ? ICE : WATER : mb;
+			mb = wayunderwater ? WATER : mb;
 			mb = underground && dirt ? biome.getSubSurface(wxx, i, wzx, rTerrain) : mb;
 			mb = underground && rocky ? biome.getRock(wxx, i, wzx, rTerrain) : mb;
 			mb = bedrock ? BEDROCK : mb;

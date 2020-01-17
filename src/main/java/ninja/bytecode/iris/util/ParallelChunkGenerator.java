@@ -1,6 +1,7 @@
 package ninja.bytecode.iris.util;
 
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -24,6 +25,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private int wx;
 	private int wz;
 	private AtomicChunkData data;
+	private ReentrantLock biomeLock;
 	private TaskGroup tg;
 	private boolean ready = false;
 	int cg = 0;
@@ -52,20 +54,11 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				genPool = Iris.getController(ExecutionController.class).getExecutor(world);
 			}
 
-			if(this.world == null)
-			{
-				ready = false;
-			}
-			
-			if(this.world != null && world.getSeed() != this.world.getSeed())
-			{
-				ready = false;
-			}
-
 			this.world = world;
 			data = new AtomicChunkData(world);
 			if(!ready)
 			{
+				biomeLock = new ReentrantLock();
 				onInit(world, random);
 				ready = true;
 			}
@@ -75,19 +68,25 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 			for(i = 0; i < 16; i++)
 			{
-				wx = (x * 16) + i;
+				wx = (x << 4) + i;
 
 				for(j = 0; j < 16; j++)
 				{
-					wz = (z * 16) + j;
+					wz = (z << 4) + j;
 					int a = wx;
 					int b = wz;
 					int c = i;
 					int d = j;
-					tg.queue(() -> biome.setBiome(c, d, generateFullColumn(a, b, c, d, plan.get())));
+					tg.queue(() ->
+					{
+						Biome f = generateFullColumn(a, b, c, d, plan.get());
+						biomeLock.lock();
+						biome.setBiome(c, d, f);
+						biomeLock.unlock();
+					});
 				}
 			}
-
+			
 			plan.set(onInitChunk(world, x, z, random));
 			TaskResult r = tg.execute();
 			onPostChunk(world, x, z, random, data, plan.get());

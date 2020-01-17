@@ -35,7 +35,7 @@ public class GenLayerBiome extends GenLayer
 
 		for(IrisBiome i : biomes)
 		{
-			if(i.getName().equals("Beach"))
+			if(i.getRegion().equals("default"))
 			{
 				continue;
 			}
@@ -60,6 +60,18 @@ public class GenLayerBiome extends GenLayer
 		{
 			v += 13 - i.getName().length();
 			i.setGen(new EnumPolygonGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
+		}
+
+		int m = 0;
+
+		for(IrisRegion i : regions.values())
+		{
+			for(IrisBiome j : i.getBiomes())
+			{
+				j.seal(iris.getRTerrain().nextParallelRNG(3922 - m++));
+			}
+
+			i.getBeach().seal(iris.getRTerrain().nextParallelRNG(3922 - m++));
 		}
 	}
 
@@ -115,22 +127,29 @@ public class GenLayerBiome extends GenLayer
 		return regionGenerator.getChoice(xx, zz).getGen();
 	}
 
-	public IrisBiome getBiome(double xx, double zz)
+	public IrisBiome getBiome(double wxx, double wzx)
 	{
-		double x = xx + (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(zz, xx) * Iris.settings.gen.biomeEdgeScramble));
-		double z = zz - (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(xx, zz) * Iris.settings.gen.biomeEdgeScramble));
+		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
+		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
+		double x = wx + (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wz, wx) * Iris.settings.gen.biomeEdgeScramble));
+		double z = wz - (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wx, wz) * Iris.settings.gen.biomeEdgeScramble));
 		IrisBiome cbi = iris.biome("Ocean");
 		double land = island.noise(x, z);
 		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);
 
-		if(land > landChance + 0.0175)
+		if(land > landChance)
 		{
 			cbi = getRegionGenerator(x, z).getChoice(x, z);
 		}
 
-		else if(land < 0.3)
+		else if(land < 0.4)
 		{
 			cbi = iris.biome("Deep Ocean");
+		}
+
+		else
+		{
+			cbi = iris.biome("Ocean");
 		}
 
 		return cbi;

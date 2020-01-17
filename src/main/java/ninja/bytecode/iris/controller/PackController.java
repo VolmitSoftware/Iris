@@ -18,8 +18,6 @@ import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
-import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -106,15 +104,10 @@ public class PackController implements IrisController
 
 		L.v(ChatColor.LIGHT_PURPLE + "Processing Content");
 
-		TaskExecutor exf = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Compiler");
-		TaskGroup gg = exf.startWork();
 		for(GenObjectGroup i : genObjectGroups.v())
 		{
-			gg.queue(i::processVariants);
+			i.processVariants();
 		}
-
-		gg.execute();
-		exf.close();
 
 		for(String i : dimensions.k())
 		{

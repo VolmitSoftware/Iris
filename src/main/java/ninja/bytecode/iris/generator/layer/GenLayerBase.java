@@ -24,16 +24,16 @@ public class GenLayerBase extends GenLayer
 		//@builder
 		super(iris, world, random, rng);
 		hfracture = new CNG(rng.nextParallelRNG(6), 1, 2)
-			.scale(0.0124);
-		gen = new CNG(rng.nextParallelRNG(7), 0.19D, 7)
-			.scale(0.012)
+			.scale(0.0024);
+		gen = new CNG(rng.nextParallelRNG(7), 0.24D, 7)
+			.scale(0.0072)
 			.amp(0.5)
 			.freq(1.1)
 			.fractureWith(new CNG(rng.nextParallelRNG(8), 1, 6)
-				.scale(0.018)
+				.scale(0.0007)
 				.injectWith(CNG.MULTIPLY)
 				.child(new CNG(rng.nextParallelRNG(9), 0.745, 2)
-					.scale(0.1)), 44);
+					.scale(0.001)), 44);
 		height = new CNG(rng.nextParallelRNG(10), 1, 8)
 			.scale(0.0017601 * Iris.settings.gen.heightScale)
 			.fractureWith(new CNG(rng.nextParallelRNG(11), 1, 6)
@@ -42,11 +42,11 @@ public class GenLayerBase extends GenLayer
 					.scale(0.0034), 31)
 				.scale(0.066), 58);		
 		superheight = new CNG(rng.nextParallelRNG(13), 1, 6)
-			.scale(0.025 * Iris.settings.gen.superHeightScale)
+			.scale(0.0125)
 			.fractureWith(new CNG(rng.nextParallelRNG(14), 1, 1)
-				.scale(0.13), 250);
+				.scale(0.013), 250);
 		fracture = new CNG(rng.nextParallelRNG(15), 0.6D, 4)
-				.scale(0.118);
+				.scale(0.01);
 		//@done
 	}
 

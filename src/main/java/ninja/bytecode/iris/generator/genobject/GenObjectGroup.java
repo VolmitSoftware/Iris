@@ -199,44 +199,30 @@ public class GenObjectGroup
 		GList<GenObject> inject = new GList<>();
 		String x = Thread.currentThread().getName();
 		ReentrantLock rr = new ReentrantLock();
-		TaskExecutor ex = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, x + "/Subroutine ");
-		TaskGroup gg = ex.startWork();
 		for(GenObject i : getSchematics())
 		{
 			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
 			{
 				GenObject cp = i.copy();
-
-				gg.queue(() ->
-				{
-					GenObject f = cp;
-					f.rotate(Direction.N, j);
-					rr.lock();
-					inject.add(f);
-					rr.unlock();
-				});
+				GenObject f = cp;
+				f.rotate(Direction.N, j);
+				rr.lock();
+				inject.add(f);
+				rr.unlock();
 			}
 		}
 
-		gg.execute();
-		gg = ex.startWork();
 		getSchematics().add(inject);
 
 		for(GenObject i : getSchematics())
 		{
-			gg.queue(() ->
+			i.recalculateMountShift();
+
+			for(String j : flags)
 			{
-				i.recalculateMountShift();
-
-				for(String j : flags)
-				{
-					i.computeFlag(j);
-				}
-			});
+				i.computeFlag(j);
+			}
 		}
-
-		gg.execute();
-		ex.close();
 
 		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
 	}

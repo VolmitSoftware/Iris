@@ -1,6 +1,5 @@
 package ninja.bytecode.iris.util;
 
-import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.math.M;
 
 public class IrisInterpolation
@@ -115,17 +114,16 @@ public class IrisInterpolation
 
 	public static double getHermiteNoise(int x, int z, int rad, NoiseProvider n)
 	{
-		int h = rad;
-		int fx = x >> h;
-		int fz = z >> h;
-		int x0 = ((fx - 1) << h);
-		int z0 = ((fz - 1) << h);
-		int x1 = (fx << h);
-		int z1 = (fz << h);
-		int x2 = ((fx + 1) << h);
-		int z2 = ((fz + 1) << h);
-		int x3 = ((fx + 2) << h);
-		int z3 = ((fz + 2) << h);
+		int fx = x >> rad;
+		int fz = z >> rad;
+		int x0 = ((fx - 1) << rad);
+		int z0 = ((fz - 1) << rad);
+		int x1 = (fx << rad);
+		int z1 = (fz << rad);
+		int x2 = ((fx + 1) << rad);
+		int z2 = ((fz + 1) << rad);
+		int x3 = ((fx + 2) << rad);
+		int z3 = ((fz + 2) << rad);
 		double px = M.rangeScale(0, 1, x1, x2, x);
 		double pz = M.rangeScale(0, 1, z1, z2, z);
 		//@builder
@@ -146,7 +144,7 @@ public class IrisInterpolation
 				n.noise(x3, z1), 
 				n.noise(x3, z2), 
 				n.noise(x3, z3), 
-				px, pz, 0.01, 0);
+				px, pz, 0.00001, 0.5);
 		//@done
 	}
 

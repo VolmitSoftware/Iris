@@ -68,26 +68,14 @@ public class IrisDimension
 	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
 		GList<IrisBiome> b = new GList<>();
-		TaskExecutor ex = new TaskExecutor(Iris.settings.performance.compilerThreads, Iris.settings.performance.compilerPriority, "Iris Loader");
-		TaskGroup g = ex.startWork();
-		ReentrantLock lock = new ReentrantLock();
 
 		for(int i = 0; i < a.length(); i++)
 		{
 			int ii = i;
-			g.queue(() ->
-			{
-				IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
-				lock.lock();
-				Iris.getController(PackController.class).registerBiome(a.getString(ii), bb);
-				b.add(bb);
-				lock.unlock();
-			});
+			IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
+			Iris.getController(PackController.class).registerBiome(a.getString(ii), bb);
+			b.add(bb);
 		}
-
-		g.execute();
-		ex.close();
-
 		return b;
 	}
 

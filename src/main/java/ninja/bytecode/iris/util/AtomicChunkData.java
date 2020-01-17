@@ -40,7 +40,6 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	{
 		this.maxHeight = world.getMaxHeight();
 		this.w = world;
-
 	}
 
 	@Override

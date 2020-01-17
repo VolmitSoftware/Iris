@@ -14,6 +14,7 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONObject;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -26,17 +27,17 @@ public class IrisBiome
 
 	//@builder
 	private static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
-			.height(-0.2)
+			.height(-0.4)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
 	private static final IrisBiome FROZEN_OCEAN = new IrisBiome("Frozen Ocean", Biome.FROZEN_OCEAN)
-			.height(-0.16)
+			.height(-0.4)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
 	private static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
-			.height(-0.4)
+			.height(-0.6)
 			.coreBiome()
 			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
 			.simplexSurface();
@@ -174,6 +175,57 @@ public class IrisBiome
 	public void fromJSON(JSONObject o)
 	{
 		fromJSON(o, true);
+	}
+
+	public void seal(RNG rng)
+	{
+		if(simplexScatter)
+		{
+			poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
+			{
+				return g.scale(0.09 * surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(56), 1D, 2).scale(0.0955), 55);
+			});
+		}
+
+		else
+		{
+			poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
+			{
+				return g.scale(surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(55), 1D, 2).scale(0.0155), 224);
+			});
+		}
+
+		if(simplexScatterSub)
+		{
+			polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
+			{
+				return g.scale(0.06 * subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(526), 1D, 2).scale(0.0955), 55);
+			});
+		}
+
+		else
+		{
+			polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
+			{
+				return g.scale(subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(515), 1D, 2).scale(0.0155), 224);
+			});
+		}
+
+		if(simplexScatterRock)
+		{
+			polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
+			{
+				return g.scale(0.08 * rockScale).fractureWith(new CNG(rng.nextParallelRNG(562), 1D, 2).scale(0.0955), 55);
+			});
+		}
+
+		else
+		{
+			polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
+			{
+				return g.scale(rockScale).fractureWith(new CNG(rng.nextParallelRNG(551), 1D, 2).scale(0.0155), 224);
+			});
+		}
 	}
 
 	public void fromJSON(JSONObject o, boolean chain)
@@ -462,29 +514,19 @@ public class IrisBiome
 	{
 		double wx = x + 1000D;
 		double wz = z + 1000D;
+
+		if(polySub == null)
+		{
+			L.w(getName() + " is not sealed!");
+		}
+
 		if(simplexScatter)
 		{
-			if(poly == null)
-			{
-				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
-				{
-					return g.scale(0.09 * surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(56), 1D, 2).scale(0.0955), 55);
-				});
-			}
-
 			return poly.getChoice(wx / 3, wz / 3);
 		}
 
 		if(scatterSurface)
 		{
-			if(poly == null)
-			{
-				poly = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getSurface().toArray(new MB[getSurface().size()]), (g) ->
-				{
-					return g.scale(surfaceScale).fractureWith(new CNG(rng.nextParallelRNG(55), 1D, 2).scale(0.0155), 224);
-				});
-			}
-
 			return poly.getChoice(wx * 0.2D, wz * 0.2D);
 		}
 
@@ -495,29 +537,19 @@ public class IrisBiome
 	{
 		double wx = x + 1000D;
 		double wz = z + 1000D;
+
+		if(polySub == null)
+		{
+			L.w(getName() + " is not sealed!");
+		}
+
 		if(simplexScatterSub)
 		{
-			if(polySub == null)
-			{
-				polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
-				{
-					return g.scale(0.06 * subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(526), 1D, 2).scale(0.0955), 55);
-				});
-			}
-
 			return polySub.getChoice(wx / 3, i / 3, wz / 3);
 		}
 
 		if(scatterSurfaceSub)
 		{
-			if(polySub == null)
-			{
-				polySub = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getDirt().toArray(new MB[getDirt().size()]), (g) ->
-				{
-					return g.scale(subSurfaceScale).fractureWith(new CNG(rng.nextParallelRNG(515), 1D, 2).scale(0.0155), 224);
-				});
-			}
-
 			return polySub.getChoice(wx * 0.2D, i / 3, wz * 0.2D);
 		}
 
@@ -528,29 +560,19 @@ public class IrisBiome
 	{
 		double wx = x + 1000D;
 		double wz = z + 1000D;
+
+		if(polySub == null)
+		{
+			L.w(getName() + " is not sealed!");
+		}
+
 		if(simplexScatterRock)
 		{
-			if(polyRock == null)
-			{
-				polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 0.125, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
-				{
-					return g.scale(0.08 * rockScale).fractureWith(new CNG(rng.nextParallelRNG(562), 1D, 2).scale(0.0955), 55);
-				});
-			}
-
 			return polyRock.getChoice(wx / 3, i / 3, wz / 3);
 		}
 
 		if(scatterSurfaceRock)
 		{
-			if(polyRock == null)
-			{
-				polyRock = new PolygonGenerator.EnumPolygonGenerator<MB>(rng, 15.05, 2, getRock().toArray(new MB[getRock().size()]), (g) ->
-				{
-					return g.scale(rockScale).fractureWith(new CNG(rng.nextParallelRNG(551), 1D, 2).scale(0.0155), 224);
-				});
-			}
-
 			return polyRock.getChoice(wx * 0.2D, i * 0.2D, wz * 0.2D);
 		}
 
@@ -824,5 +846,4 @@ public class IrisBiome
 			return false;
 		return true;
 	}
-
 }

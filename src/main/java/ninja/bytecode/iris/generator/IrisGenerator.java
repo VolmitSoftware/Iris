@@ -59,7 +59,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double[][][] scatterCache;
 	private CNG scatter;
-	private CNG fff;
 	public GMap<String, IrisBiome> biomeCache = new GMap<>();
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB ICE = new MB(Material.ICE);
@@ -145,7 +144,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
-		fff = new CNG(rTerrain.nextParallelRNG(53), 1, 1).scale(0.01);
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -162,7 +160,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 			}
 		}
 
-		L.i("Signature = " + world.getSeed() + " + " + glBiome.getBiome(0, 0).getRealBiome().ordinal() + " + " + computeHeight(0, 0, new ChunkPlan(), biome("Plains")));
+		int m = 0;
+
+		for(IrisBiome i : biomeCache.values())
+		{
+			i.seal(getRTerrain().nextParallelRNG(1922 - m++));
+		}
 	}
 
 	@Override
@@ -173,9 +176,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	public IrisBiome getBiome(int wxx, int wzx)
 	{
-		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476));
-		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476));
-		return glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
+		return glBiome.getBiome(wxx, wzx);
 	}
 
 	public IrisBiome biome(String name)
@@ -240,8 +241,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	public double getANoise(int x, int z, ChunkPlan plan, IrisBiome biome)
 	{
-		double hv = IrisInterpolation.getNoise(x, z, Iris.settings.gen.hermiteSampleRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
-		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, (double) x * Iris.settings.gen.roughness * 0.82, (double) z * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35));
+		double hv = Iris.settings.performance.interpolation ? IrisInterpolation.getNoise(x, z, Iris.settings.gen.hermiteSampleRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan)) : getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
+		hv += Iris.settings.performance.surfaceNoise ? glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, (double) x * Iris.settings.gen.roughness * 0.82, (double) z * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35)) : 0;
 
 		if(biome.hasCliffs())
 		{
@@ -272,6 +273,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		IrisBiome nbiome = height < 63 ? getOcean(biome, height) : biome;
 		biome = nbiome;
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(biome) : biome;
+		biome = height > 63 && biome.isCore() ? getBeach(biome) : biome;
 
 		for(int i = 0; i < max; i++)
 		{
@@ -378,11 +380,19 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		if(xh == -1)
 		{
-			int wx = (int) Math.round((double) x * (Iris.settings.gen.horizontalZoom / 1.90476190476));
-			int wz = (int) Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476));
-			IrisBiome biome = glBiome.getBiome(wx * Iris.settings.gen.biomeScale, wz * Iris.settings.gen.biomeScale);
+			IrisBiome biome = glBiome.getBiome(x, z);
 			double h = Iris.settings.gen.baseHeight + biome.getHeight();
-			h += (glBase.getHeight(wx, wz) * 0.5) - (0.33 * 0.5);
+
+			if(Iris.settings.performance.baseNoise)
+			{
+				h += (glBase.getHeight(x, z) * 0.5) - (0.08);
+			}
+
+			else
+			{
+				h += 0.00001;
+			}
+
 			plan.setHeight(x, z, h);
 			return h;
 		}

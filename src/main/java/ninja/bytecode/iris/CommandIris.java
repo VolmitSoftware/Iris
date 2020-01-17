@@ -57,7 +57,7 @@ public class CommandIris implements CommandExecutor
 						{
 							IrisGenerator g = (IrisGenerator) w.getGenerator();
 							IrisBiome b = null;
-							for(IrisBiome i : g.getLoadedBiomes())
+							for(IrisBiome i : g.getDimension().getBiomes())
 							{
 								if(args[1].toLowerCase().equals(i.getName().toLowerCase().replaceAll("\\Q \\E", "_")))
 								{
@@ -81,7 +81,7 @@ public class CommandIris implements CommandExecutor
 									int x = (int) ((int) (29999983 / 1.2) * Math.random());
 									int z = (int) ((int) (29999983 / 1.2) * Math.random());
 
-									if(g.getBiome(x, z).equals(b))
+									if(g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetZ(z)).equals(b))
 									{
 										f = true;
 
@@ -90,11 +90,11 @@ public class CommandIris implements CommandExecutor
 											p.teleport(w.getHighestBlockAt(x, z).getLocation());
 											break;
 										}
-										
+
 										else
 										{
 											t++;
-											
+
 											if(t > 30)
 											{
 												msg(sender, "Checked 30 " + b.getName() + " bearing chunks. All of them were underwater. Try Again!");

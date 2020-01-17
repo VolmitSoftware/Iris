@@ -28,9 +28,16 @@ public class GenLayerBiome extends GenLayer
 	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng, GList<IrisBiome> biomes)
 	{
 		super(iris, world, random, rng);
-		island = new CNG(rng.nextParallelRNG(10334), 1D, 3).scale(0.003 * Iris.settings.gen.landScale).fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 12).scale(0.6), 180);
-		fracture = new CNG(rng.nextParallelRNG(28), 1D, 24).scale(0.0021).fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 12).scale(0.01), 12250);
-		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 4).scale(0.02), 56);
+		//@builder
+		island = new CNG(rng.nextParallelRNG(10334), 1D, 1)
+				.scale(0.003 * Iris.settings.gen.landScale)
+				.fractureWith(new CNG(rng.nextParallelRNG(1211), 1D, 1).scale(0.0001 * Iris.settings.gen.landScale), 600);
+		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021)
+				.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
+						.scale(0.01), 12250);
+		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 4)
+				.scale(0.02), 56);
+		//@done
 		regions = new GMap<>();
 
 		for(IrisBiome i : biomes)
@@ -60,18 +67,6 @@ public class GenLayerBiome extends GenLayer
 		{
 			v += 13 - i.getName().length();
 			i.setGen(new EnumPolygonGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
-		}
-
-		int m = 0;
-
-		for(IrisRegion i : regions.values())
-		{
-			for(IrisBiome j : i.getBiomes())
-			{
-				j.seal(iris.getRTerrain().nextParallelRNG(3922 - m++));
-			}
-
-			i.getBeach().seal(iris.getRTerrain().nextParallelRNG(3922 - m++));
 		}
 	}
 
@@ -142,7 +137,7 @@ public class GenLayerBiome extends GenLayer
 			cbi = getRegionGenerator(x, z).getChoice(x, z);
 		}
 
-		else if(land < 0.4)
+		else if(land < 0.1)
 		{
 			cbi = iris.biome("Deep Ocean");
 		}

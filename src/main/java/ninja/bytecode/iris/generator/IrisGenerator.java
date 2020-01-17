@@ -8,12 +8,10 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 
-import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
-import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
-import ninja.bytecode.iris.generator.layer.GenLayerBase;
+import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCarving;
 import ninja.bytecode.iris.generator.layer.GenLayerCaverns;
@@ -21,6 +19,7 @@ import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerCliffs;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerSnow;
+import ninja.bytecode.iris.pack.BiomeType;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
@@ -30,7 +29,6 @@ import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParallelChunkGenerator;
 import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
@@ -59,24 +57,21 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double[][][] scatterCache;
 	private CNG scatter;
-	public GMap<String, IrisBiome> biomeCache = new GMap<>();
-	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB ICE = new MB(Material.ICE);
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
+	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
-	private GList<IrisBiome> internal;
 	private GenLayerLayeredNoise glLNoise;
 	private GenLayerBiome glBiome;
 	private GenLayerCaves glCaves;
 	private GenLayerCarving glCarving;
 	private GenLayerCaverns glCaverns;
 	private GenLayerSnow glSnow;
-	private GenLayerBase glBase;
+	private BiomeNoiseGenerator glBase;
 	private GenLayerCliffs glCliffs;
 	private RNG rTerrain;
 	private CompiledDimension dim;
 	private World world;
-	private GMap<String, GenObjectGroup> schematicCache = new GMap<>();
 
 	public IrisGenerator()
 	{
@@ -87,26 +82,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	{
 		this.dim = dim;
 		L.i("Preparing Dimension: " + dim.getName() + " With " + dim.getBiomes().size() + " Biomes...");
-		internal = IrisBiome.getAllBiomes();
-
-		for(IrisBiome i : dim.getBiomes())
-		{
-			for(IrisBiome j : internal.copy())
-			{
-				if(j.getName().equals(i.getName()))
-				{
-					internal.remove(j);
-					L.i(ChatColor.LIGHT_PURPLE + "Internal Biome: " + ChatColor.WHITE + j.getName() + ChatColor.LIGHT_PURPLE + " overwritten by dimension " + ChatColor.WHITE + dim.getName());
-				}
-			}
-		}
-
-		internal.addAll(dim.getBiomes());
-
-		for(IrisBiome i : internal)
-		{
-			biomeCache.put(i.getName(), i);
-		}
 	}
 
 	public int scatterInt(int x, int y, int z, int bound)
@@ -124,17 +99,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return scatter(x, y, z) > chance;
 	}
 
-	public GList<IrisBiome> getLoadedBiomes()
-	{
-		return internal;
-	}
-
 	@Override
 	public void onInit(World world, Random random)
 	{
 		this.world = world;
 		rTerrain = new RNG(world.getSeed());
-		glBase = new GenLayerBase(this, world, random, rTerrain.nextParallelRNG(1));
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
@@ -162,9 +131,9 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		int m = 0;
 
-		for(IrisBiome i : biomeCache.values())
+		for(IrisBiome i : getDimension().getBiomes())
 		{
-			i.seal(getRTerrain().nextParallelRNG(1922 - m++));
+			i.seal(getRTerrain().nextParallelRNG(3922 - m++));
 		}
 	}
 
@@ -181,7 +150,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	public IrisBiome biome(String name)
 	{
-		return biomeCache.get(name);
+		return getDimension().getBiomeByName(name);
 	}
 
 	public double getOffsetX(double x)
@@ -273,7 +242,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		IrisBiome nbiome = height < 63 ? getOcean(biome, height) : biome;
 		biome = nbiome;
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(biome) : biome;
-		biome = height > 63 && biome.isCore() ? getBeach(biome) : biome;
+		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(biome) : biome;
 
 		for(int i = 0; i < max; i++)
 		{
@@ -382,17 +351,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		{
 			IrisBiome biome = glBiome.getBiome(x, z);
 			double h = Iris.settings.gen.baseHeight + biome.getHeight();
-
-			if(Iris.settings.performance.baseNoise)
-			{
-				h += (glBase.getHeight(x, z) * 0.5) - (0.08);
-			}
-
-			else
-			{
-				h += 0.00001;
-			}
-
+			h += biome.getGenerator().getHeight(x, z);
 			plan.setHeight(x, z, h);
 			return h;
 		}
@@ -403,16 +362,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public World getWorld()
 	{
 		return world;
-	}
-
-	public GMap<String, GenObjectGroup> getSchematicCache()
-	{
-		return schematicCache;
-	}
-
-	public void setSchematicCache(GMap<String, GenObjectGroup> schematicCache)
-	{
-		this.schematicCache = schematicCache;
 	}
 
 	public RNG getRTerrain()

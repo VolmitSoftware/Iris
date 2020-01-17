@@ -18,23 +18,22 @@ public class Settings
 		public int cascadeLimit = 14;
 		public boolean interpolation = true;
 		public boolean surfaceNoise = true;
-		public boolean baseNoise = true;
 	}
 
 	public static class GeneratorSettings
 	{
-		public int hermiteSampleRadius = 6;
+		public int hermiteSampleRadius = 4;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
 		public double landScale = 0.5;
-		public double landChance = 0.5;
-		public double biomeEdgeScramble = 1550D; // 1550D
+		public double landChance = 0.6;
+		public double biomeEdgeScramble = 0; // 1550D
 		public double roughness = 1.55;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
 		public double heightScale = 0.56;
-		public double baseHeight = 0.165;
+		public double baseHeight = 0.065;
 		public int seaLevel = 63;
 		public double caveDensity = 4;
 		public double caveScale = 1.45;

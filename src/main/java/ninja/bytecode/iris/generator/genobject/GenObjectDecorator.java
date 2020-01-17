@@ -35,7 +35,7 @@ public class GenObjectDecorator extends BlockPopulator
 		this.g = generator;
 		populationCache = new GMap<>();
 
-		for(IrisBiome i : generator.getLoadedBiomes())
+		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
 			GMap<GenObjectGroup, Double> gc = new GMap<>();
 

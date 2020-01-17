@@ -12,23 +12,29 @@ import java.util.zip.GZIPOutputStream;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 
+import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.json.JSONObject;
+import ninja.bytecode.shuriken.logging.L;
+import ninja.bytecode.shuriken.math.RNG;
 import ninja.bytecode.shuriken.reaction.O;
 
 public class CompiledDimension
 {
+	public static IrisBiome theVoid = new IrisBiome("Void", Biome.VOID).height(0).seal(RNG.r);
 	private IrisDimension dimension;
 	private GList<IrisBiome> biomes;
+	private GMap<String, IrisBiome> biomeCache;
 	private GMap<String, GenObjectGroup> objects;
 
 	public CompiledDimension(IrisDimension dimension)
 	{
 		this.dimension = dimension;
 		biomes = new GList<>();
+		biomeCache = new GMap<>();
 		objects = new GMap<>();
 	}
 
@@ -101,6 +107,7 @@ public class CompiledDimension
 	public void registerBiome(IrisBiome j)
 	{
 		biomes.add(j);
+		biomeCache.put(j.getName(), j);
 	}
 
 	public void registerObject(GenObjectGroup g)
@@ -148,5 +155,18 @@ public class CompiledDimension
 	public void sort()
 	{
 		biomes.sort();
+	}
+
+	public IrisBiome getBiomeByName(String name)
+	{
+		IrisBiome b = biomeCache.get(name);
+
+		if(b == null)
+		{
+			L.f(ChatColor.RED + "Cannot Find Biome: " + ChatColor.GOLD + name);
+			return theVoid;
+		}
+
+		return b;
 	}
 }

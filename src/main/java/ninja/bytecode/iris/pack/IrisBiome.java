@@ -7,6 +7,7 @@ import org.bukkit.block.Biome;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
+import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
@@ -24,30 +25,11 @@ public class IrisBiome
 	public static final double MAX_HEIGHT = 0.77768;
 	public static final double IDEAL_HEIGHT = 0.0527;
 	public static final double MIN_HEIGHT = -0.0218;
-
-	//@builder
-	private static final IrisBiome OCEAN = new IrisBiome("Ocean", Biome.OCEAN)
-			.height(-0.4)
-			.coreBiome()
-			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
-			.simplexSurface();
-	private static final IrisBiome FROZEN_OCEAN = new IrisBiome("Frozen Ocean", Biome.FROZEN_OCEAN)
-			.height(-0.4)
-			.coreBiome()
-			.surface(MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
-			.simplexSurface();
-	private static final IrisBiome DEEP_OCEAN = new IrisBiome("Deep Ocean", Biome.DEEP_OCEAN)
-			.height(-0.6)
-			.coreBiome()
-			.surface(MB.of(Material.SAND), MB.of(Material.CLAY), MB.of(Material.GRAVEL))
-			.simplexSurface();
-
-	//@done
 	private static final GMap<Biome, IrisBiome> map = build();
 	private String name;
+	private String parent;
 	private Biome realBiome;
 	private double height;
-	private double amp;
 	private GList<MB> rock;
 	private int rockDepth;
 	private GList<MB> surface;
@@ -67,7 +49,13 @@ public class IrisBiome
 	private double snow;
 	private double cliffChance;
 	private double cliffScale;
+	private double genScale;
+	private double genAmplifier;
+	private double genSwirl;
+	private double genSwirlScale;
 	private boolean cliffs;
+	private BiomeNoiseGenerator bng;
+	private BiomeType type;
 	private String region;
 	private GMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
@@ -87,16 +75,6 @@ public class IrisBiome
 	public static double getMinHeight()
 	{
 		return MIN_HEIGHT;
-	}
-
-	public static IrisBiome getOcean()
-	{
-		return OCEAN;
-	}
-
-	public static IrisBiome getDeepOcean()
-	{
-		return DEEP_OCEAN;
 	}
 
 	public static GMap<Biome, IrisBiome> getMap()
@@ -135,13 +113,18 @@ public class IrisBiome
 		this.region = "default";
 		this.core = false;
 		this.name = name;
+		type = BiomeType.LAND;
 		cliffs = false;
+		genScale = 1;
+		genAmplifier = 0.35;
+		genSwirl = 1;
+		genSwirlScale = 1;
 		cliffScale = 1;
 		cliffChance = 0.37;
+		parent = "";
 		dirtDepth = 2;
 		this.realBiome = realBiome;
 		this.height = IDEAL_HEIGHT;
-		this.amp = 0.31;
 		rockDepth = 11;
 		surfaceScale = 1;
 		subSurfaceScale = 1;
@@ -177,7 +160,7 @@ public class IrisBiome
 		fromJSON(o, true);
 	}
 
-	public void seal(RNG rng)
+	public IrisBiome seal(RNG rng)
 	{
 		if(simplexScatter)
 		{
@@ -226,14 +209,35 @@ public class IrisBiome
 				return g.scale(rockScale).fractureWith(new CNG(rng.nextParallelRNG(551), 1D, 2).scale(0.0155), 224);
 			});
 		}
+
+		bng = new BiomeNoiseGenerator(rng.nextParallelRNG(2077), this);
+
+		return this;
+	}
+
+	public BiomeNoiseGenerator getGenerator()
+	{
+		if(polySub == null)
+		{
+			L.w(getName() + " is not sealed!");
+		}
+
+		return bng;
 	}
 
 	public void fromJSON(JSONObject o, boolean chain)
 	{
 		name = o.getString("name");
 		realBiome = Biome.valueOf(o.getString("derivative").toUpperCase().replaceAll(" ", "_"));
+		type = BiomeType.valueOf(o.getString("type").toUpperCase().replaceAll(" ", "_"));
 		J.attempt(() -> region = o.getString("region"));
+		J.attempt(() -> parent = o.getString("parent"));
 		J.attempt(() -> height = o.getDouble("height"));
+		J.attempt(() -> height = o.getDouble("genHeight"));
+		J.attempt(() -> genAmplifier = o.getDouble("genAmplifier"));
+		J.attempt(() -> genSwirl = o.getDouble("genSwirl"));
+		J.attempt(() -> genSwirlScale = o.getDouble("genSwirlScale"));
+		J.attempt(() -> genScale = o.getDouble("genScale"));
 		J.attempt(() -> snow = o.getDouble("snow"));
 		J.attempt(() -> dirtDepth = o.getInt("subSurfaceDepth"));
 		J.attempt(() -> dirtDepth = o.getInt("dirtDepth"));
@@ -284,9 +288,15 @@ public class IrisBiome
 	{
 		JSONObject j = new JSONObject();
 		j.put("name", name);
+		J.attempt(() -> j.put("parent", parent));
 		J.attempt(() -> j.put("region", region));
 		J.attempt(() -> j.put("derivative", realBiome.name().toLowerCase().replaceAll("_", " ")));
-		J.attempt(() -> j.put("height", height));
+		J.attempt(() -> j.put("type", type.name().toLowerCase().replaceAll("_", " ")));
+		J.attempt(() -> j.put("genHeight", height));
+		J.attempt(() -> j.put("genScale", genScale));
+		J.attempt(() -> j.put("genSwirl", genSwirl));
+		J.attempt(() -> j.put("genSwirlScale", genSwirlScale));
+		J.attempt(() -> j.put("genAmplifier", genAmplifier));
 		J.attempt(() -> j.put("snow", snow));
 		J.attempt(() -> j.put("cliffs", cliffs));
 		J.attempt(() -> j.put("cliffScale", cliffScale));
@@ -469,12 +479,6 @@ public class IrisBiome
 		return this;
 	}
 
-	public IrisBiome amp(double amp)
-	{
-		this.amp = amp;
-		return this;
-	}
-
 	public String getName()
 	{
 		return name;
@@ -488,11 +492,6 @@ public class IrisBiome
 	public double getHeight()
 	{
 		return height;
-	}
-
-	public double getAmp()
-	{
-		return amp;
 	}
 
 	public GList<MB> getSurface()
@@ -599,11 +598,6 @@ public class IrisBiome
 
 	public static GList<IrisBiome> getBiomes()
 	{
-		return map.v().remove(IrisBiome.OCEAN, IrisBiome.DEEP_OCEAN);
-	}
-
-	public static GList<IrisBiome> getAllBiomes()
-	{
 		return map.v();
 	}
 
@@ -614,7 +608,7 @@ public class IrisBiome
 			return map.get(biome);
 		}
 
-		return IrisBiome.OCEAN;
+		return null;
 	}
 
 	public GMap<String, Double> getSchematicGroups()
@@ -680,14 +674,268 @@ public class IrisBiome
 		return cliffChance;
 	}
 
+	public String getParent()
+	{
+		return parent;
+	}
+
+	public boolean isScatterSurfaceRock()
+	{
+		return scatterSurfaceRock;
+	}
+
+	public boolean isScatterSurfaceSub()
+	{
+		return scatterSurfaceSub;
+	}
+
+	public double getSurfaceScale()
+	{
+		return surfaceScale;
+	}
+
+	public double getSubSurfaceScale()
+	{
+		return subSurfaceScale;
+	}
+
+	public double getRockScale()
+	{
+		return rockScale;
+	}
+
+	public boolean isSimplexScatterRock()
+	{
+		return simplexScatterRock;
+	}
+
+	public boolean isSimplexScatterSub()
+	{
+		return simplexScatterSub;
+	}
+
+	public BiomeType getType()
+	{
+		return type;
+	}
+
+	public PolygonGenerator.EnumPolygonGenerator<MB> getPolySub()
+	{
+		return polySub;
+	}
+
+	public PolygonGenerator.EnumPolygonGenerator<MB> getPolyRock()
+	{
+		return polyRock;
+	}
+
+	public double getGenScale()
+	{
+		return genScale;
+	}
+
+	public void setGenScale(double genScale)
+	{
+		this.genScale = genScale;
+	}
+
+	public double getGenAmplifier()
+	{
+		return genAmplifier;
+	}
+
+	public void setGenAmplifier(double genAmplifier)
+	{
+		this.genAmplifier = genAmplifier;
+	}
+
+	public double getGenSwirl()
+	{
+		return genSwirl;
+	}
+
+	public void setGenSwirl(double genSwirl)
+	{
+		this.genSwirl = genSwirl;
+	}
+
+	public void setName(String name)
+	{
+		this.name = name;
+	}
+
+	public void setParent(String parent)
+	{
+		this.parent = parent;
+	}
+
+	public void setRealBiome(Biome realBiome)
+	{
+		this.realBiome = realBiome;
+	}
+
+	public void setHeight(double height)
+	{
+		this.height = height;
+	}
+
+	public void setRock(GList<MB> rock)
+	{
+		this.rock = rock;
+	}
+
+	public void setRockDepth(int rockDepth)
+	{
+		this.rockDepth = rockDepth;
+	}
+
+	public void setSurface(GList<MB> surface)
+	{
+		this.surface = surface;
+	}
+
+	public void setDirt(GList<MB> dirt)
+	{
+		this.dirt = dirt;
+	}
+
+	public void setScatterChance(GMap<MB, Double> scatterChance)
+	{
+		this.scatterChance = scatterChance;
+	}
+
+	public void setScatterSurface(boolean scatterSurface)
+	{
+		this.scatterSurface = scatterSurface;
+	}
+
+	public void setScatterSurfaceRock(boolean scatterSurfaceRock)
+	{
+		this.scatterSurfaceRock = scatterSurfaceRock;
+	}
+
+	public void setScatterSurfaceSub(boolean scatterSurfaceSub)
+	{
+		this.scatterSurfaceSub = scatterSurfaceSub;
+	}
+
+	public void setCore(boolean core)
+	{
+		this.core = core;
+	}
+
+	public void setDirtDepth(int dirtDepth)
+	{
+		this.dirtDepth = dirtDepth;
+	}
+
+	public void setSurfaceScale(double surfaceScale)
+	{
+		this.surfaceScale = surfaceScale;
+	}
+
+	public void setSubSurfaceScale(double subSurfaceScale)
+	{
+		this.subSurfaceScale = subSurfaceScale;
+	}
+
+	public void setRockScale(double rockScale)
+	{
+		this.rockScale = rockScale;
+	}
+
+	public void setSimplexScatter(boolean simplexScatter)
+	{
+		this.simplexScatter = simplexScatter;
+	}
+
+	public void setSimplexScatterRock(boolean simplexScatterRock)
+	{
+		this.simplexScatterRock = simplexScatterRock;
+	}
+
+	public void setSimplexScatterSub(boolean simplexScatterSub)
+	{
+		this.simplexScatterSub = simplexScatterSub;
+	}
+
+	public void setSnow(double snow)
+	{
+		this.snow = snow;
+	}
+
+	public void setCliffChance(double cliffChance)
+	{
+		this.cliffChance = cliffChance;
+	}
+
+	public void setCliffScale(double cliffScale)
+	{
+		this.cliffScale = cliffScale;
+	}
+
+	public void setCliffs(boolean cliffs)
+	{
+		this.cliffs = cliffs;
+	}
+
+	public void setType(BiomeType type)
+	{
+		this.type = type;
+	}
+
+	public void setRegion(String region)
+	{
+		this.region = region;
+	}
+
+	public void setSchematicGroups(GMap<String, Double> schematicGroups)
+	{
+		this.schematicGroups = schematicGroups;
+	}
+
+	public void setPoly(PolygonGenerator.EnumPolygonGenerator<MB> poly)
+	{
+		this.poly = poly;
+	}
+
+	public void setPolySub(PolygonGenerator.EnumPolygonGenerator<MB> polySub)
+	{
+		this.polySub = polySub;
+	}
+
+	public void setPolyRock(PolygonGenerator.EnumPolygonGenerator<MB> polyRock)
+	{
+		this.polyRock = polyRock;
+	}
+
+	public double getGenSwirlScale()
+	{
+		return genSwirlScale;
+	}
+
+	public void setGenSwirlScale(double genSwirlScale)
+	{
+		this.genSwirlScale = genSwirlScale;
+	}
+
+	public BiomeNoiseGenerator getBng()
+	{
+		return bng;
+	}
+
+	public void setBng(BiomeNoiseGenerator bng)
+	{
+		this.bng = bng;
+	}
+
 	@Override
 	public int hashCode()
 	{
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((bng == null) ? 0 : bng.hashCode());
 		long temp;
-		temp = Double.doubleToLongBits(amp);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
 		temp = Double.doubleToLongBits(cliffChance);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		temp = Double.doubleToLongBits(cliffScale);
@@ -696,9 +944,18 @@ public class IrisBiome
 		result = prime * result + (core ? 1231 : 1237);
 		result = prime * result + ((dirt == null) ? 0 : dirt.hashCode());
 		result = prime * result + dirtDepth;
+		temp = Double.doubleToLongBits(genAmplifier);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(genScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(genSwirl);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(genSwirlScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
 		temp = Double.doubleToLongBits(height);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
 		result = prime * result + ((poly == null) ? 0 : poly.hashCode());
 		result = prime * result + ((polyRock == null) ? 0 : polyRock.hashCode());
 		result = prime * result + ((polySub == null) ? 0 : polySub.hashCode());
@@ -723,6 +980,7 @@ public class IrisBiome
 		result = prime * result + ((surface == null) ? 0 : surface.hashCode());
 		temp = Double.doubleToLongBits(surfaceScale);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
 
@@ -736,7 +994,12 @@ public class IrisBiome
 		if(getClass() != obj.getClass())
 			return false;
 		IrisBiome other = (IrisBiome) obj;
-		if(Double.doubleToLongBits(amp) != Double.doubleToLongBits(other.amp))
+		if(bng == null)
+		{
+			if(other.bng != null)
+				return false;
+		}
+		else if(!bng.equals(other.bng))
 			return false;
 		if(Double.doubleToLongBits(cliffChance) != Double.doubleToLongBits(other.cliffChance))
 			return false;
@@ -755,6 +1018,14 @@ public class IrisBiome
 			return false;
 		if(dirtDepth != other.dirtDepth)
 			return false;
+		if(Double.doubleToLongBits(genAmplifier) != Double.doubleToLongBits(other.genAmplifier))
+			return false;
+		if(Double.doubleToLongBits(genScale) != Double.doubleToLongBits(other.genScale))
+			return false;
+		if(Double.doubleToLongBits(genSwirl) != Double.doubleToLongBits(other.genSwirl))
+			return false;
+		if(Double.doubleToLongBits(genSwirlScale) != Double.doubleToLongBits(other.genSwirlScale))
+			return false;
 		if(Double.doubleToLongBits(height) != Double.doubleToLongBits(other.height))
 			return false;
 		if(name == null)
@@ -763,6 +1034,13 @@ public class IrisBiome
 				return false;
 		}
 		else if(!name.equals(other.name))
+			return false;
+		if(parent == null)
+		{
+			if(other.parent != null)
+				return false;
+		}
+		else if(!parent.equals(other.parent))
 			return false;
 		if(poly == null)
 		{
@@ -843,6 +1121,8 @@ public class IrisBiome
 		else if(!surface.equals(other.surface))
 			return false;
 		if(Double.doubleToLongBits(surfaceScale) != Double.doubleToLongBits(other.surfaceScale))
+			return false;
+		if(type != other.type)
 			return false;
 		return true;
 	}

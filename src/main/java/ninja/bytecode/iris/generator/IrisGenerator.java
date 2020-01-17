@@ -59,6 +59,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	private double[][][] scatterCache;
 	private CNG scatter;
+	private CNG fff;
 	public GMap<String, IrisBiome> biomeCache = new GMap<>();
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB ICE = new MB(Material.ICE);
@@ -144,6 +145,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
+		fff = new CNG(rTerrain.nextParallelRNG(53), 1, 1).scale(0.01);
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -159,8 +161,8 @@ public class IrisGenerator extends ParallelChunkGenerator
 				}
 			}
 		}
-		
-		L.i("Signature = " + world.getSeed() + " + " + glBiome.getBiome(0, 0).getRealBiome().ordinal() +" + "+ computeHeight(0, 0, new ChunkPlan(), biome("Plains")));
+
+		L.i("Signature = " + world.getSeed() + " + " + glBiome.getBiome(0, 0).getRealBiome().ordinal() + " + " + computeHeight(0, 0, new ChunkPlan(), biome("Plains")));
 	}
 
 	@Override
@@ -255,12 +257,14 @@ public class IrisGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	public Biome genColumn(int wxx, int wzx, int x, int z, ChunkPlan plan)
+	public Biome genColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan)
 	{
+		double wx = getOffsetX(wxxf);
+		double wz = getOffsetZ(wzxf);
+		int wxx = (int) wx;
+		int wzx = (int) wz;
 		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
-		double wx = getOffsetX(wxx);
-		double wz = getOffsetZ(wzx);
 		IrisBiome biome = getBiome(wxx, wzx);
 		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
 		int height = computeHeight(wxx, wzx, plan, biome);

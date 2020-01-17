@@ -39,7 +39,7 @@ public class GenLayerBiome extends GenLayer
 			{
 				continue;
 			}
-			
+
 			if(!regions.containsKey(i.getRegion()))
 			{
 				regions.put(i.getRegion(), new IrisRegion(i.getRegion()));
@@ -61,6 +61,53 @@ public class GenLayerBiome extends GenLayer
 			v += 13 - i.getName().length();
 			i.setGen(new EnumPolygonGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
 		}
+	}
+
+	public boolean hasBorder(int checks, double distance, double... dims)
+	{
+		IrisBiome current = getBiome(dims[0], dims[1]);
+		double ajump = 360D / (double) checks;
+
+		if(dims.length == 2)
+		{
+			for(int i = 0; i < checks; i++)
+			{
+				double dx = M.sin((float) Math.toRadians(ajump * i));
+				double dz = M.cos((float) Math.toRadians(ajump * i));
+				if(!current.equals(getBiome((dx * distance) + dims[0], (dz * distance) + dims[1])))
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	public boolean hasHeightBorder(int checks, double distance, double... dims)
+	{
+		IrisBiome current = getBiome(dims[0], dims[1]);
+		double ajump = 360D / (double) checks;
+
+		if(dims.length == 2)
+		{
+			for(int i = 0; i < checks; i++)
+			{
+				double dx = M.sin((float) Math.toRadians(ajump * i));
+				double dz = M.cos((float) Math.toRadians(ajump * i));
+				if(current.getHeight() != getBiome((dx * distance) + dims[0], (dz * distance) + dims[1]).getHeight())
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	public boolean isBorder(int wx, int wz, double range)
+	{
+		return hasHeightBorder(6, range, wx, wz);
 	}
 
 	public EnumPolygonGenerator<IrisBiome> getRegionGenerator(double xx, double zz)

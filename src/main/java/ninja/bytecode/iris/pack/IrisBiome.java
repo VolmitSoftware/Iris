@@ -657,4 +657,172 @@ public class IrisBiome
 	{
 		return cliffChance;
 	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		long temp;
+		temp = Double.doubleToLongBits(amp);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(cliffChance);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(cliffScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + (cliffs ? 1231 : 1237);
+		result = prime * result + (core ? 1231 : 1237);
+		result = prime * result + ((dirt == null) ? 0 : dirt.hashCode());
+		result = prime * result + dirtDepth;
+		temp = Double.doubleToLongBits(height);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((poly == null) ? 0 : poly.hashCode());
+		result = prime * result + ((polyRock == null) ? 0 : polyRock.hashCode());
+		result = prime * result + ((polySub == null) ? 0 : polySub.hashCode());
+		result = prime * result + ((realBiome == null) ? 0 : realBiome.hashCode());
+		result = prime * result + ((region == null) ? 0 : region.hashCode());
+		result = prime * result + ((rock == null) ? 0 : rock.hashCode());
+		result = prime * result + rockDepth;
+		temp = Double.doubleToLongBits(rockScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((scatterChance == null) ? 0 : scatterChance.hashCode());
+		result = prime * result + (scatterSurface ? 1231 : 1237);
+		result = prime * result + (scatterSurfaceRock ? 1231 : 1237);
+		result = prime * result + (scatterSurfaceSub ? 1231 : 1237);
+		result = prime * result + ((schematicGroups == null) ? 0 : schematicGroups.hashCode());
+		result = prime * result + (simplexScatter ? 1231 : 1237);
+		result = prime * result + (simplexScatterRock ? 1231 : 1237);
+		result = prime * result + (simplexScatterSub ? 1231 : 1237);
+		temp = Double.doubleToLongBits(snow);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		temp = Double.doubleToLongBits(subSurfaceScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((surface == null) ? 0 : surface.hashCode());
+		temp = Double.doubleToLongBits(surfaceScale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		IrisBiome other = (IrisBiome) obj;
+		if(Double.doubleToLongBits(amp) != Double.doubleToLongBits(other.amp))
+			return false;
+		if(Double.doubleToLongBits(cliffChance) != Double.doubleToLongBits(other.cliffChance))
+			return false;
+		if(Double.doubleToLongBits(cliffScale) != Double.doubleToLongBits(other.cliffScale))
+			return false;
+		if(cliffs != other.cliffs)
+			return false;
+		if(core != other.core)
+			return false;
+		if(dirt == null)
+		{
+			if(other.dirt != null)
+				return false;
+		}
+		else if(!dirt.equals(other.dirt))
+			return false;
+		if(dirtDepth != other.dirtDepth)
+			return false;
+		if(Double.doubleToLongBits(height) != Double.doubleToLongBits(other.height))
+			return false;
+		if(name == null)
+		{
+			if(other.name != null)
+				return false;
+		}
+		else if(!name.equals(other.name))
+			return false;
+		if(poly == null)
+		{
+			if(other.poly != null)
+				return false;
+		}
+		else if(!poly.equals(other.poly))
+			return false;
+		if(polyRock == null)
+		{
+			if(other.polyRock != null)
+				return false;
+		}
+		else if(!polyRock.equals(other.polyRock))
+			return false;
+		if(polySub == null)
+		{
+			if(other.polySub != null)
+				return false;
+		}
+		else if(!polySub.equals(other.polySub))
+			return false;
+		if(realBiome != other.realBiome)
+			return false;
+		if(region == null)
+		{
+			if(other.region != null)
+				return false;
+		}
+		else if(!region.equals(other.region))
+			return false;
+		if(rock == null)
+		{
+			if(other.rock != null)
+				return false;
+		}
+		else if(!rock.equals(other.rock))
+			return false;
+		if(rockDepth != other.rockDepth)
+			return false;
+		if(Double.doubleToLongBits(rockScale) != Double.doubleToLongBits(other.rockScale))
+			return false;
+		if(scatterChance == null)
+		{
+			if(other.scatterChance != null)
+				return false;
+		}
+		else if(!scatterChance.equals(other.scatterChance))
+			return false;
+		if(scatterSurface != other.scatterSurface)
+			return false;
+		if(scatterSurfaceRock != other.scatterSurfaceRock)
+			return false;
+		if(scatterSurfaceSub != other.scatterSurfaceSub)
+			return false;
+		if(schematicGroups == null)
+		{
+			if(other.schematicGroups != null)
+				return false;
+		}
+		else if(!schematicGroups.equals(other.schematicGroups))
+			return false;
+		if(simplexScatter != other.simplexScatter)
+			return false;
+		if(simplexScatterRock != other.simplexScatterRock)
+			return false;
+		if(simplexScatterSub != other.simplexScatterSub)
+			return false;
+		if(Double.doubleToLongBits(snow) != Double.doubleToLongBits(other.snow))
+			return false;
+		if(Double.doubleToLongBits(subSurfaceScale) != Double.doubleToLongBits(other.subSurfaceScale))
+			return false;
+		if(surface == null)
+		{
+			if(other.surface != null)
+				return false;
+		}
+		else if(!surface.equals(other.surface))
+			return false;
+		if(Double.doubleToLongBits(surfaceScale) != Double.doubleToLongBits(other.surfaceScale))
+			return false;
+		return true;
+	}
+
 }

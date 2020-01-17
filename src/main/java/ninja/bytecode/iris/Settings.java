@@ -14,7 +14,7 @@ public class Settings
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int compilerPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
-		public boolean debugMode = true;
+		public boolean debugMode = false;
 		public int compilerThreads = 12;
 		public int decorationAccuracy = 1;
 		public int cascadeLimit = 14;
@@ -41,10 +41,10 @@ public class Settings
 		public double caveScale = 1.45;
 		public double biomeScale = 2.5;
 		public boolean flatBedrock = true;
-		public boolean genObjects = true;
-		public boolean genCarving = true;
-		public boolean genCaverns = true;
-		public boolean genCaves = true;
+		public boolean genObjects = false;
+		public boolean genCarving = false;
+		public boolean genCaverns = false;
+		public boolean genCaves = false;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

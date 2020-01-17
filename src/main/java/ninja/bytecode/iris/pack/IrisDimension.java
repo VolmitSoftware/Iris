@@ -8,6 +8,8 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -65,14 +67,21 @@ public class IrisDimension
 	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
 		GList<IrisBiome> b = new GList<>();
-
+		TaskExecutor t = new TaskExecutor(Runtime.getRuntime().availableProcessors() * 2, Thread.MIN_PRIORITY, "Biome Loader");
+		TaskGroup g = t.startWork();
 		for(int i = 0; i < a.length(); i++)
 		{
 			int ii = i;
-			IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
-			Iris.getController(PackController.class).registerBiome(a.getString(ii), bb);
-			b.add(bb);
+
+			g.queue(() ->
+			{
+				IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
+				Iris.getController(PackController.class).registerBiome(a.getString(ii), bb);
+				b.add(bb);
+			});
 		}
+		g.execute();
+		t.close();
 		return b;
 	}
 

@@ -3,12 +3,15 @@ package ninja.bytecode.iris.generator.genobject;
 import java.util.Random;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.generator.BlockPopulator;
 
+import mortar.logic.format.F;
+import mortar.util.text.C;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.TimingsController;
@@ -38,7 +41,7 @@ public class GenObjectDecorator extends BlockPopulator
 		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
 			GMap<GenObjectGroup, Double> gc = new GMap<>();
-
+			int ff = 0;
 			for(String j : i.getSchematicGroups().k())
 			{
 				double c = i.getSchematicGroups().get(j);
@@ -46,7 +49,7 @@ public class GenObjectDecorator extends BlockPopulator
 				try
 				{
 					GenObjectGroup g = generator.getDimension().getObjectGroup(j);
-
+					ff += g.size();
 					gc.put(g, c);
 				}
 
@@ -60,6 +63,11 @@ public class GenObjectDecorator extends BlockPopulator
 			if(!gc.isEmpty())
 			{
 				populationCache.put(i, gc);
+
+				if(Iris.settings.performance.verbose)
+				{
+					L.v(C.DARK_GREEN + i.getName() + ": " + C.DARK_AQUA + F.f(ff) + " Objects");
+				}
 			}
 		}
 	}
@@ -77,7 +85,7 @@ public class GenObjectDecorator extends BlockPopulator
 			{
 				int x = (source.getX() << 4) + random.nextInt(16);
 				int z = (source.getZ() << 4) + random.nextInt(16);
-				IrisBiome biome = g.getBiome(x, z);
+				IrisBiome biome = g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetX(z));
 
 				if(hits.contains(biome))
 				{
@@ -102,6 +110,11 @@ public class GenObjectDecorator extends BlockPopulator
 		{
 
 		}
+
+		if(Iris.settings.performance.verbose)
+		{
+			L.flush();
+		}
 	}
 
 	private void populate(World world, Random random, Chunk source, IrisBiome biome, GMap<GenObjectGroup, Double> objects)
@@ -110,30 +123,39 @@ public class GenObjectDecorator extends BlockPopulator
 		{
 			for(int j = 0; j < getTries(objects.get(i)); j++)
 			{
-				int x = (source.getX() << 4) + random.nextInt(16);
-				int z = (source.getZ() << 4) + random.nextInt(16);
-				Block b = world.getHighestBlockAt(x, z).getRelative(BlockFace.DOWN);
-				Material t = b.getType();
-
-				if(!t.isSolid() || !biome.isSurface(t))
+				if(M.r(Iris.settings.gen.objectDensity))
 				{
-					continue;
-				}
+					int x = (source.getX() << 4) + random.nextInt(16);
+					int z = (source.getZ() << 4) + random.nextInt(16);
+					Block b = world.getHighestBlockAt(x, z).getRelative(BlockFace.DOWN);
+					Material t = b.getType();
 
-				if(placer == null)
-				{
-					if(Iris.settings.performance.fastDecoration)
+					if(!t.isSolid() || !biome.isSurface(t))
 					{
-						placer = new NMSPlacer(world);
+						continue;
 					}
 
-					else
+					if(placer == null)
 					{
-						placer = new BukkitPlacer(world, false);
+						if(Iris.settings.performance.fastDecoration)
+						{
+							placer = new NMSPlacer(world);
+						}
+
+						else
+						{
+							placer = new BukkitPlacer(world, false);
+						}
+					}
+
+					GenObject g = i.getSchematics().get(random.nextInt(i.getSchematics().size()));
+					Location start = g.place(x, b.getY(), z, placer);
+
+					if(start != null && Iris.settings.performance.verbose)
+					{
+						L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
 					}
 				}
-
-				i.getSchematics().get(random.nextInt(i.getSchematics().size())).place(x, b.getY(), z, placer);
 			}
 		}
 

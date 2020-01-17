@@ -934,7 +934,6 @@ public class IrisBiome
 	{
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((bng == null) ? 0 : bng.hashCode());
 		long temp;
 		temp = Double.doubleToLongBits(cliffChance);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
@@ -956,9 +955,6 @@ public class IrisBiome
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
-		result = prime * result + ((poly == null) ? 0 : poly.hashCode());
-		result = prime * result + ((polyRock == null) ? 0 : polyRock.hashCode());
-		result = prime * result + ((polySub == null) ? 0 : polySub.hashCode());
 		result = prime * result + ((realBiome == null) ? 0 : realBiome.hashCode());
 		result = prime * result + ((region == null) ? 0 : region.hashCode());
 		result = prime * result + ((rock == null) ? 0 : rock.hashCode());
@@ -994,13 +990,6 @@ public class IrisBiome
 		if(getClass() != obj.getClass())
 			return false;
 		IrisBiome other = (IrisBiome) obj;
-		if(bng == null)
-		{
-			if(other.bng != null)
-				return false;
-		}
-		else if(!bng.equals(other.bng))
-			return false;
 		if(Double.doubleToLongBits(cliffChance) != Double.doubleToLongBits(other.cliffChance))
 			return false;
 		if(Double.doubleToLongBits(cliffScale) != Double.doubleToLongBits(other.cliffScale))
@@ -1041,27 +1030,6 @@ public class IrisBiome
 				return false;
 		}
 		else if(!parent.equals(other.parent))
-			return false;
-		if(poly == null)
-		{
-			if(other.poly != null)
-				return false;
-		}
-		else if(!poly.equals(other.poly))
-			return false;
-		if(polyRock == null)
-		{
-			if(other.polyRock != null)
-				return false;
-		}
-		else if(!polyRock.equals(other.polyRock))
-			return false;
-		if(polySub == null)
-		{
-			if(other.polySub != null)
-				return false;
-		}
-		else if(!polySub.equals(other.polySub))
 			return false;
 		if(realBiome != other.realBiome)
 			return false;

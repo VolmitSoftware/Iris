@@ -124,10 +124,21 @@ public class GenLayerBiome extends GenLayer
 
 	public IrisBiome getBiome(double wxx, double wzx)
 	{
+		return getBiome(wxx, wzx, false);
+	}
+
+	public IrisBiome getBiome(double wxx, double wzx, boolean real)
+	{
 		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
 		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
 		double x = wx + (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wz, wx) * Iris.settings.gen.biomeEdgeScramble));
 		double z = wz - (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wx, wz) * Iris.settings.gen.biomeEdgeScramble));
+
+		if(real)
+		{
+			return getRegionGenerator(x, z).getChoice(x, z);
+		}
+
 		IrisBiome cbi = iris.biome("Ocean");
 		double land = island.noise(x, z);
 		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);

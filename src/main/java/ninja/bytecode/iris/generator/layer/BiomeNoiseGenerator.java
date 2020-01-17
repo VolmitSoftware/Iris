@@ -1,7 +1,6 @@
 package ninja.bytecode.iris.generator.layer;
 
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 

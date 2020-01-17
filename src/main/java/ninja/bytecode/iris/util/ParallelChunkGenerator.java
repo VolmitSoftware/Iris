@@ -11,7 +11,6 @@ import org.bukkit.generator.ChunkGenerator;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.iris.controller.TimingsController;
-import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
@@ -29,7 +28,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private TaskGroup tg;
 	private boolean ready = false;
 	int cg = 0;
-	private ChronoLatch cl = new ChronoLatch(1000);
 	private RollingSequence rs = new RollingSequence(512);
 	private World world;
 	private TaskExecutor genPool;

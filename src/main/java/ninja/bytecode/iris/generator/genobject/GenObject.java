@@ -15,6 +15,9 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import mortar.compute.math.M;
+import mortar.logic.format.F;
+import mortar.util.text.C;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IPlacer;
@@ -225,17 +228,17 @@ public class GenObject
 		return g % 2 == 0 ? m : m + 1;
 	}
 
-	public void place(Location l)
+	public Location place(Location l)
 	{
-		place(l, new NMSPlacer(l.getWorld()));
+		return place(l, new NMSPlacer(l.getWorld()));
 	}
 
-	public void place(Location l, IPlacer placer)
+	public Location place(Location l, IPlacer placer)
 	{
-		place(l.getBlockX(), l.getBlockY(), l.getBlockZ(), placer);
+		return place(l.getBlockX(), l.getBlockY(), l.getBlockZ(), placer);
 	}
 
-	public void place(int wx, int wy, int wz, IPlacer placer)
+	public Location place(int wx, int wy, int wz, IPlacer placer)
 	{
 		Location start = new Location(placer.getWorld(), wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
 
@@ -275,7 +278,12 @@ public class GenObject
 					placer.set(j, undo.get(j));
 				}
 
-				return;
+				if(Iris.settings.performance.verbose)
+				{
+					L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
+				}
+
+				return null;
 			}
 
 			if(b.material.equals(Material.SKULL))
@@ -294,6 +302,8 @@ public class GenObject
 				e.printStackTrace();
 			}
 		}
+
+		return start;
 	}
 
 	public static GenObject load(InputStream in) throws IOException

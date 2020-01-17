@@ -11,7 +11,6 @@ import org.bukkit.generator.BlockPopulator;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
-import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCarving;
 import ninja.bytecode.iris.generator.layer.GenLayerCaverns;
@@ -67,7 +66,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerCarving glCarving;
 	private GenLayerCaverns glCaverns;
 	private GenLayerSnow glSnow;
-	private BiomeNoiseGenerator glBase;
 	private GenLayerCliffs glCliffs;
 	private RNG rTerrain;
 	private CompiledDimension dim;
@@ -145,7 +143,17 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 	public IrisBiome getBiome(int wxx, int wzx)
 	{
-		return glBiome.getBiome(wxx, wzx);
+		IrisBiome biome = glBiome.getBiome(wxx, wzx);
+		IrisBiome real = glBiome.getBiome(wxx, wzx, true);
+		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
+		int height = computeHeight(wxx, wzx, new ChunkPlan(), biome);
+		int max = Math.max(height, Iris.settings.gen.seaLevel);
+		IrisBiome nbiome = height < 63 ? getOcean(real, height) : biome;
+		biome = nbiome;
+		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;
+		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(real) : biome;
+
+		return biome;
 	}
 
 	public IrisBiome biome(String name)
@@ -236,14 +244,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
 		IrisBiome biome = getBiome(wxx, wzx);
-		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
+		IrisRegion r = getRegion(biome);
+		boolean frozen = r != null && r.isFrozen();
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
-		IrisBiome nbiome = height < 63 ? getOcean(biome, height) : biome;
-		biome = nbiome;
-		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(biome) : biome;
-		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(biome) : biome;
-
+		
 		for(int i = 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));

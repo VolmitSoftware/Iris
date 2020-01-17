@@ -14,19 +14,20 @@ public class Settings
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;
-		public int decorationAccuracy = 1;
-		public int cascadeLimit = 14;
+		public int decorationAccuracy = 2;
 		public boolean interpolation = true;
 		public boolean surfaceNoise = true;
+		public boolean verbose = false;
 	}
 
 	public static class GeneratorSettings
 	{
+		public double objectDensity = 1D;
 		public int hermiteSampleRadius = 4;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
-		public double landScale = 0.5;
-		public double landChance = 0.6;
+		public double landScale = 0.45;
+		public double landChance = 0.53;
 		public double biomeEdgeScramble = 0; // 1550D
 		public double roughness = 1.55;
 		public double heightMultiplier = 0.806;
@@ -37,12 +38,12 @@ public class Settings
 		public int seaLevel = 63;
 		public double caveDensity = 4;
 		public double caveScale = 1.45;
-		public double biomeScale = 1.65;
+		public double biomeScale = 1.25;
 		public boolean flatBedrock = true;
-		public boolean genObjects = false;
-		public boolean genCarving = false;
-		public boolean genCaverns = false;
-		public boolean genCaves = false;
+		public boolean genObjects = true;
+		public boolean genCarving = true;
+		public boolean genCaverns = true;
+		public boolean genCaves = true;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

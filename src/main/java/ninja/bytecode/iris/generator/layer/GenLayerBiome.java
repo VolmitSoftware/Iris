@@ -9,8 +9,8 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
+import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.iris.util.GenLayer;
-import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.math.CNG;
@@ -19,11 +19,11 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private EnumPolygonGenerator<IrisRegion> regionGenerator;
 	private GMap<String, IrisRegion> regions;
 	private Function<CNG, CNG> factory;
 	private CNG fracture;
 	private CNG island;
+	private BiomeLayer master;
 
 	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng, GList<IrisBiome> biomes)
 	{
@@ -31,12 +31,16 @@ public class GenLayerBiome extends GenLayer
 		//@builder
 		island = new CNG(rng.nextParallelRNG(10334), 1D, 1)
 				.scale(0.003 * Iris.settings.gen.landScale)
-				.fractureWith(new CNG(rng.nextParallelRNG(1211), 1D, 1).scale(0.0001 * Iris.settings.gen.landScale), 600);
+				.fractureWith(new CNG(rng.nextParallelRNG(1211), 1D, 1)
+						.scale(0.001 * Iris.settings.gen.landScale), 600);
 		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021)
 				.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
 						.scale(0.01), 12250);
-		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 4)
-				.scale(0.02), 56);
+		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 3)
+				.scale(0.005 * Iris.settings.gen.biomeScale), 1024D / Iris.settings.gen.biomeScale)
+				.fractureWith(new CNG(rng.nextParallelRNG(1212), 1D, 2)
+						.scale(0.04)
+						.fractureWith(new CNG(rng.nextParallelRNG(1216), 1D, 3).scale(0.0004), 266), 66);
 		//@done
 		regions = new GMap<>();
 
@@ -60,13 +64,18 @@ public class GenLayerBiome extends GenLayer
 			i.load();
 		}
 
-		int v = 85034;
-		regionGenerator = new EnumPolygonGenerator<IrisRegion>(rng.nextParallelRNG(v), 0.00522 * Iris.settings.gen.biomeScale * 0.189, 1, regions.v().toArray(new IrisRegion[regions.v().size()]), factory);
+		int m = 0;
 
-		for(IrisRegion i : regions.v())
+		for(IrisBiome i : iris.getDimension().getBiomes())
 		{
-			v += 13 - i.getName().length();
-			i.setGen(new EnumPolygonGenerator<IrisBiome>(rng.nextParallelRNG(33 + v), 0.000255 * i.getBiomes().size() * Iris.settings.gen.biomeScale, 1, i.getBiomes().toArray(new IrisBiome[i.getBiomes().size()]), factory));
+			i.seal(iris.getRTerrain().nextParallelRNG(3922 - m++));
+		}
+
+		master = BiomeLayer.compile(iris, 0.082 * Iris.settings.gen.biomeScale * 0.189, 1, factory);
+		
+		if(Iris.settings.performance.verbose)
+		{
+			master.print(2);
 		}
 	}
 
@@ -117,11 +126,6 @@ public class GenLayerBiome extends GenLayer
 		return hasHeightBorder(6, range, wx, wz);
 	}
 
-	public EnumPolygonGenerator<IrisBiome> getRegionGenerator(double xx, double zz)
-	{
-		return regionGenerator.getChoice(xx, zz).getGen();
-	}
-
 	public IrisBiome getBiome(double wxx, double wzx)
 	{
 		return getBiome(wxx, wzx, false);
@@ -136,7 +140,7 @@ public class GenLayerBiome extends GenLayer
 
 		if(real)
 		{
-			return getRegionGenerator(x, z).getChoice(x, z);
+			return master.computeBiome(x, z);
 		}
 
 		IrisBiome cbi = iris.biome("Ocean");
@@ -145,7 +149,7 @@ public class GenLayerBiome extends GenLayer
 
 		if(land > landChance)
 		{
-			cbi = getRegionGenerator(x, z).getChoice(x, z);
+			cbi = master.computeBiome(x, z);
 		}
 
 		else if(land < 0.1)

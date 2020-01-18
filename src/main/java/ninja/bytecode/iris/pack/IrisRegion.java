@@ -2,7 +2,6 @@ package ninja.bytecode.iris.pack;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
-import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -11,7 +10,6 @@ public class IrisRegion
 {
 	private String name;
 	private GList<IrisBiome> biomes;
-	private EnumPolygonGenerator<IrisBiome> gen;
 	private double rarity;
 	private boolean frozen;
 	private IrisBiome beach;
@@ -35,16 +33,6 @@ public class IrisRegion
 			J.attempt(() -> rarity = o.getDouble("rarity"));
 			J.attempt(() -> beach = Iris.getController(PackController.class).getBiomeById(o.getString("beach")));
 		});
-	}
-
-	public EnumPolygonGenerator<IrisBiome> getGen()
-	{
-		return gen;
-	}
-
-	public void setGen(EnumPolygonGenerator<IrisBiome> gen)
-	{
-		this.gen = gen;
 	}
 
 	public String getName()
@@ -94,7 +82,6 @@ public class IrisRegion
 		int result = 1;
 		result = prime * result + ((beach == null) ? 0 : beach.hashCode());
 		result = prime * result + ((biomes == null) ? 0 : biomes.hashCode());
-		result = prime * result + ((gen == null) ? 0 : gen.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		long temp;
 		temp = Double.doubleToLongBits(rarity);
@@ -126,13 +113,7 @@ public class IrisRegion
 		}
 		else if(!biomes.equals(other.biomes))
 			return false;
-		if(gen == null)
-		{
-			if(other.gen != null)
-				return false;
-		}
-		else if(!gen.equals(other.gen))
-			return false;
+
 		if(name == null)
 		{
 			if(other.name != null)

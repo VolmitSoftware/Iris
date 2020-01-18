@@ -48,19 +48,21 @@ public class NMSPlacer extends Placer
 
 	public void flush()
 	{
-		for(Chunk i : c)
-		{
-			NMP.host.relight(i);
-
-			J.a(() ->
+		J.attempt(() -> {
+			for(Chunk i : c)
 			{
-				for(Player j : i.getWorld().getPlayers())
-				{
-					NMP.CHUNK.refreshIgnorePosition(j, i);
-				}
-			});
-		}
+				NMP.host.relight(i);
 
-		c.clear();
+				J.a(() ->
+				{
+					for(Player j : i.getWorld().getPlayers())
+					{
+						NMP.CHUNK.refreshIgnorePosition(j, i);
+					}
+				});
+			}
+
+			c.clear();
+		});
 	}
 }

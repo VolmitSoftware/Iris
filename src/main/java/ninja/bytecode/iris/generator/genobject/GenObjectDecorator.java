@@ -1,7 +1,11 @@
 package ninja.bytecode.iris.generator.genobject;
 
+import java.lang.Thread.State;
 import java.util.Random;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,6 +27,7 @@ import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 
@@ -30,6 +35,7 @@ public class GenObjectDecorator extends BlockPopulator
 {
 	private GMap<IrisBiome, GMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
+	private Executor ex;
 	private IrisGenerator g;
 	private ChronoLatch cl = new ChronoLatch(250);
 
@@ -37,6 +43,7 @@ public class GenObjectDecorator extends BlockPopulator
 	{
 		this.g = generator;
 		populationCache = new GMap<>();
+		ex = Executors.newSingleThreadExecutor();
 
 		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
@@ -70,15 +77,15 @@ public class GenObjectDecorator extends BlockPopulator
 				}
 			}
 		}
+
+		L.i("Population Cache is " + populationCache.size());
 	}
 
 	@Override
 	public void populate(World world, Random rnotusingyou, Chunk source)
 	{
-		try
-		{
+		ex.execute(() -> {
 			Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
-			Iris.getController(TimingsController.class).started("decor");
 			GSet<IrisBiome> hits = new GSet<>();
 
 			for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
@@ -100,21 +107,15 @@ public class GenObjectDecorator extends BlockPopulator
 				}
 
 				hits.add(biome);
+
 				populate(world, random, source, biome, objects);
 			}
 
-			Iris.getController(TimingsController.class).stopped("decor");
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		if(Iris.settings.performance.verbose)
-		{
-			L.flush();
-		}
+			if(Iris.settings.performance.verbose)
+			{
+				L.flush();
+			}
+		});
 	}
 
 	private void populate(World world, Random random, Chunk source, IrisBiome biome, GMap<GenObjectGroup, Double> objects)
@@ -149,12 +150,15 @@ public class GenObjectDecorator extends BlockPopulator
 					}
 
 					GenObject g = i.getSchematics().get(random.nextInt(i.getSchematics().size()));
-					Location start = g.place(x, b.getY(), z, placer);
-
-					if(start != null && Iris.settings.performance.verbose)
+					Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
 					{
-						L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
-					}
+						Location start = g.place(x, b.getY(), z, placer);
+
+						if(start != null && Iris.settings.performance.verbose)
+						{
+							L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+						}
+					});
 				}
 			}
 		}

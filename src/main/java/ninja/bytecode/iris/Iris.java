@@ -19,12 +19,13 @@ import ninja.bytecode.shuriken.logging.L;
 public class Iris extends JavaPlugin implements Listener
 {
 	public IrisControllerSet controllerSet;
-
+	public static Thread primaryThread;
 	public static Settings settings;
 	public static Iris instance;
 
 	public void onEnable()
 	{
+		primaryThread = Thread.currentThread();
 		instance = this;
 		controllerSet = new IrisControllerSet();
 		L.consoleConsumer = (s) -> Bukkit.getConsoleSender().sendMessage(s);

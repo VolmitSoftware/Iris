@@ -26,8 +26,8 @@ public class Settings
 		public int hermiteSampleRadius = 4;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
-		public double landScale = 0.45;
-		public double landChance = 0.53;
+		public double landScale = 0.25;
+		public double landChance = 0.45;
 		public double biomeEdgeScramble = 0; // 1550D
 		public double roughness = 1.55;
 		public double heightMultiplier = 0.806;
@@ -38,9 +38,9 @@ public class Settings
 		public int seaLevel = 63;
 		public double caveDensity = 4;
 		public double caveScale = 1.45;
-		public double biomeScale = 5;
+		public double biomeScale = 0.65;
 		public boolean flatBedrock = true;
-		public boolean genObjects = false;
+		public boolean genObjects = true;
 		public boolean genCarving = true;
 		public boolean genCaverns = true;
 		public boolean genCaves = true;

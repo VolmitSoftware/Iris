@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 
+import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
@@ -53,6 +54,7 @@ public class IrisBiome
 	private double genAmplifier;
 	private double genSwirl;
 	private double genSwirlScale;
+	private double rarity;
 	private boolean cliffs;
 	private BiomeNoiseGenerator bng;
 	private BiomeType type;
@@ -116,6 +118,7 @@ public class IrisBiome
 		type = BiomeType.LAND;
 		cliffs = false;
 		genScale = 1;
+		rarity = 1;
 		genAmplifier = 0.35;
 		genSwirl = 1;
 		genSwirlScale = 1;
@@ -239,6 +242,7 @@ public class IrisBiome
 		J.attempt(() -> genSwirlScale = o.getDouble("genSwirlScale"));
 		J.attempt(() -> genScale = o.getDouble("genScale"));
 		J.attempt(() -> snow = o.getDouble("snow"));
+		J.attempt(() -> rarity = o.getDouble("rarity"));
 		J.attempt(() -> dirtDepth = o.getInt("subSurfaceDepth"));
 		J.attempt(() -> dirtDepth = o.getInt("dirtDepth"));
 		J.attempt(() -> rockDepth = o.getInt("rockDepth"));
@@ -292,6 +296,7 @@ public class IrisBiome
 		J.attempt(() -> j.put("region", region));
 		J.attempt(() -> j.put("derivative", realBiome.name().toLowerCase().replaceAll("_", " ")));
 		J.attempt(() -> j.put("type", type.name().toLowerCase().replaceAll("_", " ")));
+		J.attempt(() -> j.put("rarity", rarity));
 		J.attempt(() -> j.put("genHeight", height));
 		J.attempt(() -> j.put("genScale", genScale));
 		J.attempt(() -> j.put("genSwirl", genSwirl));
@@ -679,6 +684,31 @@ public class IrisBiome
 		return parent;
 	}
 
+	public GList<String> getParents()
+	{
+		GList<String> f = new GList<>();
+
+		if(getParent().trim().isEmpty())
+		{
+			return f;
+		}
+
+		if(getParent().contains("&"))
+		{
+			for(String i : getParent().split("\\Q&\\E"))
+			{
+				f.add(i.trim());
+			}
+		}
+
+		else
+		{
+			f.add(getParent().trim());
+		}
+
+		return f;
+	}
+
 	public boolean isScatterSurfaceRock()
 	{
 		return scatterSurfaceRock;
@@ -929,6 +959,84 @@ public class IrisBiome
 		this.bng = bng;
 	}
 
+	public double getRarity()
+	{
+		return rarity;
+	}
+
+	public String getRarityString()
+	{
+		if(getRarity() <= 0.1)
+		{
+			return C.RED + "Literally Everywhere";
+		}
+
+		else if(getRarity() < 0.25)
+		{
+			return "Overly Abundant";
+		}
+
+		else if(getRarity() < 0.4)
+		{
+			return "Very Abundant";
+		}
+
+		else if(getRarity() < 0.6)
+		{
+			return "Abundant";
+		}
+
+		else if(getRarity() < 0.75)
+		{
+			return "Very Common";
+		}
+
+		else if(getRarity() <= 1)
+		{
+			return "Common";
+		}
+
+		else if(getRarity() <= 2)
+		{
+			return "Often";
+		}
+
+		else if(getRarity() <= 3)
+		{
+			return "Uncommon";
+		}
+
+		else if(getRarity() <= 6)
+		{
+			return "Rare";
+		}
+
+		else if(getRarity() <= 16)
+		{
+			return "Very Rare";
+		}
+
+		else if(getRarity() <= 50)
+		{
+			return "Exceedingly Rare";
+		}
+
+		else if(getRarity() <= 100)
+		{
+			return "Marvelously Rare";
+		}
+
+		else if(getRarity() <= 200)
+		{
+			return "Extraordinarily Rare";
+		}
+
+		else
+		{
+			return "Start Praying";
+		}
+	}
+
 	@Override
 	public int hashCode()
 	{
@@ -955,6 +1063,8 @@ public class IrisBiome
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
+		temp = Double.doubleToLongBits(rarity);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + ((realBiome == null) ? 0 : realBiome.hashCode());
 		result = prime * result + ((region == null) ? 0 : region.hashCode());
 		result = prime * result + ((rock == null) ? 0 : rock.hashCode());
@@ -1030,6 +1140,8 @@ public class IrisBiome
 				return false;
 		}
 		else if(!parent.equals(other.parent))
+			return false;
+		if(Double.doubleToLongBits(rarity) != Double.doubleToLongBits(other.rarity))
 			return false;
 		if(realBiome != other.realBiome)
 			return false;

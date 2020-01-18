@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 
+import net.minecraft.server.v1_12_R1.CriterionTriggerBredAnimals.b;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
@@ -23,6 +24,7 @@ import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.AtomicChunkData;
+import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
@@ -126,13 +128,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 				}
 			}
 		}
-
-		int m = 0;
-
-		for(IrisBiome i : getDimension().getBiomes())
-		{
-			i.seal(getRTerrain().nextParallelRNG(3922 - m++));
-		}
 	}
 
 	@Override
@@ -149,8 +144,10 @@ public class IrisGenerator extends ParallelChunkGenerator
 		int height = computeHeight(wxx, wzx, new ChunkPlan(), biome);
 		IrisBiome nbiome = height < 63 ? getOcean(real, height) : biome;
 		biome = nbiome;
+		int beach = 65;
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;
 		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(real) : biome;
+		biome = height >= beach && !biome.getType().equals(BiomeType.LAND) ? real : biome;
 
 		return biome;
 	}
@@ -247,7 +244,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		boolean frozen = r != null && r.isFrozen();
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
-		
+
 		for(int i = 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));

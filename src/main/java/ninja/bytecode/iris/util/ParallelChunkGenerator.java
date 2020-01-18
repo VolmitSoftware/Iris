@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
+import mortar.logic.queue.ChronoLatch;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.iris.controller.TimingsController;
@@ -26,6 +27,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private AtomicChunkData data;
 	private ReentrantLock biomeLock;
 	private TaskGroup tg;
+	private ChronoLatch el = new ChronoLatch(5000);
 	private boolean ready = false;
 	int cg = 0;
 	private RollingSequence rs = new RollingSequence(512);
@@ -84,7 +86,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					});
 				}
 			}
-			
+
 			plan.set(onInitChunk(world, x, z, random));
 			TaskResult r = tg.execute();
 			onPostChunk(world, x, z, random, data, plan.get());
@@ -101,6 +103,11 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				{
 					data.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA);
 				}
+			}
+
+			if(el.flip())
+			{
+				e.printStackTrace();
 			}
 		}
 

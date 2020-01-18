@@ -38,9 +38,9 @@ public class Settings
 		public int seaLevel = 63;
 		public double caveDensity = 4;
 		public double caveScale = 1.45;
-		public double biomeScale = 1.25;
+		public double biomeScale = 5;
 		public boolean flatBedrock = true;
-		public boolean genObjects = true;
+		public boolean genObjects = false;
 		public boolean genCarving = true;
 		public boolean genCaverns = true;
 		public boolean genCaves = true;

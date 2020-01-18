@@ -147,7 +147,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		IrisBiome real = glBiome.getBiome(wxx, wzx, true);
 		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
 		int height = computeHeight(wxx, wzx, new ChunkPlan(), biome);
-		int max = Math.max(height, Iris.settings.gen.seaLevel);
 		IrisBiome nbiome = height < 63 ? getOcean(real, height) : biome;
 		biome = nbiome;
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;

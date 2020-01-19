@@ -112,6 +112,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 			return;
 		}
 
+		//@builder
 		this.world = world;
 		rTerrain = new RNG(world.getSeed());
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
@@ -123,7 +124,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
-
+		//@done
 		for(int i = 0; i < 16; i++)
 		{
 			scatterCache[i] = new double[16][];

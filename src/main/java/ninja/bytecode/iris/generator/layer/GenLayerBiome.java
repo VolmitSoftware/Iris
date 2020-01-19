@@ -135,8 +135,8 @@ public class GenLayerBiome extends GenLayer
 	{
 		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
 		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
-		double x = wx + (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wz, wx) * Iris.settings.gen.biomeEdgeScramble));
-		double z = wz - (Iris.settings.gen.biomeEdgeScramble == 0 ? 0 : (fracture.noise(wx, wz) * Iris.settings.gen.biomeEdgeScramble));
+		double x = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleScale);
+		double z = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleScale);
 
 		if(real)
 		{

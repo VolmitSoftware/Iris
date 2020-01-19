@@ -29,8 +29,8 @@ public class Settings
 		public double heightFracture = 155;
 		public double landScale = 0.25;
 		public double landChance = 0.45;
-		public double biomeEdgeScramble = 0; // 1550D
 		public double roughness = 1.55;
+		public double biomeEdgeScrambleScale = 1;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
@@ -41,7 +41,7 @@ public class Settings
 		public double caveScale = 1.45;
 		public double biomeScale = 0.65;
 		public boolean flatBedrock = true;
-		public boolean genObjects = true;
+		public boolean genObjects = false;
 		public boolean genCarving = true;
 		public boolean genCaverns = true;
 		public boolean genCaves = true;

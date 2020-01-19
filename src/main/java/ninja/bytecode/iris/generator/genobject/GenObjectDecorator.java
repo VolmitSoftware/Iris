@@ -134,7 +134,7 @@ public class GenObjectDecorator extends BlockPopulator
 
 				hits.add(biome);
 
-				populate(world, random, source, biome, objects, orderCache.get(biome));
+				populate(world, random, source, biome, orderCache.get(biome));
 			}
 
 			if(Iris.settings.performance.verbose)
@@ -144,11 +144,17 @@ public class GenObjectDecorator extends BlockPopulator
 		});
 	}
 
-	private void populate(World world, Random random, Chunk source, IrisBiome biome, GMap<GenObjectGroup, Double> objects, GList<GenObjectGroup> order)
+	private void populate(World world, Random random, Chunk source, IrisBiome biome, GList<GenObjectGroup> order)
 	{
 		for(GenObjectGroup i : order)
 		{
-			for(int j = 0; j < getTries(objects.get(i)); j++)
+			if(biome.getSchematicGroups().get(i.getName()) == null)
+			{
+				L.w(C.YELLOW + "Cannot find chance for " + C.RED + i.getName() + C.YELLOW + " in Biome " + C.RED + biome.getName());
+				continue;
+			}
+
+			for(int j = 0; j < getTries(biome.getSchematicGroups().get(i.getName())); j++)
 			{
 				if(M.r(Iris.settings.gen.objectDensity))
 				{

@@ -254,6 +254,11 @@ public class WandController implements IrisController
 
 				p.sendMessage(C.GRAY + "Var: " + C.DARK_AQUA + F.f(g.getSuccesses()) + C.GRAY + " of " + C.AQUA + F.f(g.getPlaces()) + C.GRAY + " placements (" + C.DARK_AQUA + F.pc(g.getSuccess(), 0) + C.GRAY + ")");
 
+				for(String i : ggg.getFlags())
+				{
+					p.sendMessage(C.GRAY + "- " + C.DARK_PURPLE + i);
+				}
+
 				draw(new Location[] {point.clone().add(g.getW() / 2, g.getH() / 2, g.getD() / 2), point.clone().subtract(g.getW() / 2, g.getH() / 2, g.getD() / 2)
 				}, p);
 			}

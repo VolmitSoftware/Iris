@@ -476,12 +476,10 @@ public class GenObject
 				MB a = MB.of(g[1]);
 				boolean specific = g[1].contains(":");
 				MB b = MB.of(g[2]);
-				GMap<SBlockVector, MB> m = new GMap<>();
-				m.putAll(s);
-				s.clear();
-				for(SBlockVector i : m.keySet())
+
+				for(SBlockVector i : s.k())
 				{
-					MB c = m.get(i);
+					MB c = s.get(i);
 
 					if((specific && c.equals(a)) || c.material.equals(a.material))
 					{

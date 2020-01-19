@@ -18,8 +18,6 @@ import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
-import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -283,6 +281,21 @@ public class PackController implements IrisController
 
 	public void dispose()
 	{
+		for(GenObjectGroup i : genObjectGroups.values())
+		{
+			i.dispose();
+		}
+		
+		for(IrisDimension i : dimensions.values())
+		{
+			i.dispose();
+		}
+		
+		for(CompiledDimension i : compiledDimensions.values())
+		{
+			i.dispose();
+		}
+		
 		compiledDimensions.clear();
 		dimensions.clear();
 		biomes.clear();

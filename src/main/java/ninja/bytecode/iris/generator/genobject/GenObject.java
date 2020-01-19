@@ -468,4 +468,9 @@ public class GenObject
 			recalculateMountShift();
 		}
 	}
+
+	public void dispose()
+	{
+		s.clear();
+	}
 }

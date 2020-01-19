@@ -169,4 +169,17 @@ public class CompiledDimension
 
 		return b;
 	}
+
+	public void dispose()
+	{
+		biomes.clear();
+		biomeCache.clear();
+
+		for(GenObjectGroup i : objects.values())
+		{
+			i.dispose();
+		}
+
+		objects.clear();
+	}
 }

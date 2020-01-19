@@ -1,8 +1,10 @@
 package ninja.bytecode.iris.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -12,15 +14,16 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.io.IO;
 
 public class WorldController implements IrisController
 {
 	@Override
 	public void onStart()
 	{
-		
+
 	}
-	
+
 	public boolean isChunkGenerated(World w, int x, int z)
 	{
 		return w.loadChunk(x, z, false);
@@ -52,7 +55,27 @@ public class WorldController implements IrisController
 
 		if(temp)
 		{
+			File folder = ww.getWorldFolder();
 			J.attempt(() -> new File(ww.getWorldFolder(), ".garbage").createNewFile());
+			Runtime.getRuntime().addShutdownHook(new Thread()
+			{
+				@Override
+				public void run()
+				{
+					IO.delete(folder);
+
+					try
+					{
+						FileUtils.forceDelete(folder);
+						System.out.println("Deleted Debug World: " + folder.getName());
+					}
+
+					catch(IOException e)
+					{
+						System.out.println("FAILED TO Delete Debug World: " + folder.getName());
+					}
+				}
+			});
 		}
 
 		return ww;

@@ -104,4 +104,9 @@ public class IrisDimension
 	{
 		return environment;
 	}
+
+	public void dispose()
+	{
+		biomes.clear();
+	}
 }

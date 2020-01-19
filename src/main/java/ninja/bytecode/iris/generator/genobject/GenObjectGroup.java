@@ -220,4 +220,15 @@ public class GenObjectGroup
 
 		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
 	}
+
+	public void dispose()
+	{
+		for(GenObject i : schematics)
+		{
+			i.dispose();
+		}
+		
+		schematics.clear();
+		flags.clear();
+	}
 }

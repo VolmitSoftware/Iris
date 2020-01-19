@@ -1,6 +1,5 @@
 package ninja.bytecode.iris.util;
 
-import java.util.Map;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;

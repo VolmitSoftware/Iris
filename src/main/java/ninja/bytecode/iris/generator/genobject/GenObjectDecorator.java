@@ -1,6 +1,6 @@
 package ninja.bytecode.iris.generator.genobject;
 
-import java.lang.Thread.State;
+import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -18,21 +18,21 @@ import mortar.logic.format.F;
 import mortar.util.text.C;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.placer.BukkitPlacer;
 import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.IPlacer;
+import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
-import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 
 public class GenObjectDecorator extends BlockPopulator
 {
+	private GMap<IrisBiome, GList<GenObjectGroup>> orderCache;
 	private GMap<IrisBiome, GMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
 	private Executor ex;
@@ -43,11 +43,13 @@ public class GenObjectDecorator extends BlockPopulator
 	{
 		this.g = generator;
 		populationCache = new GMap<>();
+		orderCache = new GMap<>();
 		ex = Executors.newSingleThreadExecutor();
 
 		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
 			GMap<GenObjectGroup, Double> gc = new GMap<>();
+			GMap<Integer, GList<GenObjectGroup>> or = new GMap<>();
 			int ff = 0;
 			for(String j : i.getSchematicGroups().k())
 			{
@@ -58,6 +60,13 @@ public class GenObjectDecorator extends BlockPopulator
 					GenObjectGroup g = generator.getDimension().getObjectGroup(j);
 					ff += g.size();
 					gc.put(g, c);
+
+					if(!or.containsKey(g.getPiority()))
+					{
+						or.put(g.getPiority(), new GList<>());
+					}
+
+					or.get(g.getPiority()).add(g);
 				}
 
 				catch(Throwable e)
@@ -69,6 +78,14 @@ public class GenObjectDecorator extends BlockPopulator
 
 			if(!gc.isEmpty())
 			{
+				GList<GenObjectGroup> g = new GList<>();
+				for(GList<GenObjectGroup> j : or.v())
+				{
+					g.addAll(j);
+				}
+
+				Collections.sort(g, (a, b) -> a.getPiority() - b.getPiority());
+				orderCache.put(i, g);
 				populationCache.put(i, gc);
 
 				if(Iris.settings.performance.verbose)
@@ -88,8 +105,9 @@ public class GenObjectDecorator extends BlockPopulator
 		{
 			return;
 		}
-		
-		ex.execute(() -> {
+
+		ex.execute(() ->
+		{
 			Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
 			GSet<IrisBiome> hits = new GSet<>();
 
@@ -113,7 +131,7 @@ public class GenObjectDecorator extends BlockPopulator
 
 				hits.add(biome);
 
-				populate(world, random, source, biome, objects);
+				populate(world, random, source, biome, objects, orderCache.get(biome));
 			}
 
 			if(Iris.settings.performance.verbose)
@@ -123,9 +141,9 @@ public class GenObjectDecorator extends BlockPopulator
 		});
 	}
 
-	private void populate(World world, Random random, Chunk source, IrisBiome biome, GMap<GenObjectGroup, Double> objects)
+	private void populate(World world, Random random, Chunk source, IrisBiome biome, GMap<GenObjectGroup, Double> objects, GList<GenObjectGroup> order)
 	{
-		for(GenObjectGroup i : objects.k())
+		for(GenObjectGroup i : order)
 		{
 			for(int j = 0; j < getTries(objects.get(i)); j++)
 			{
@@ -138,6 +156,7 @@ public class GenObjectDecorator extends BlockPopulator
 
 					if(!t.isSolid() || !biome.isSurface(t))
 					{
+						L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place in " + C.YELLOW + t.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(b.getX()) + " " + F.f(b.getY()) + " " + F.f(b.getZ()));
 						continue;
 					}
 

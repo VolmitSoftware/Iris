@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import mortar.util.text.C;
 import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.util.Cuboid;
@@ -99,6 +100,9 @@ public class CommandIsh implements CommandExecutor
 						s.read(fin, true);
 
 						boolean cursor = false;
+						Direction df = null;
+						Direction dt = null;
+
 						for(String i : args)
 						{
 							if(i.equalsIgnoreCase("cursor"))
@@ -106,6 +110,22 @@ public class CommandIsh implements CommandExecutor
 								cursor = true;
 								break;
 							}
+
+							if(i.startsWith("from:"))
+							{
+								df = Direction.valueOf(i.split("\\Q:\\E")[1].toUpperCase().substring(0, 1));
+							}
+
+							if(i.startsWith("to:"))
+							{
+								dt = Direction.valueOf(i.split("\\Q:\\E")[1].toUpperCase().substring(0, 1));
+							}
+						}
+
+						if(dt != null && df != null)
+						{
+							msg(sender, "Rotating " + C.WHITE + df + C.GRAY + " to " + C.WHITE + dt);
+							s.rotate(df, dt);
 						}
 
 						Location at = p.getLocation();

@@ -8,8 +8,6 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
-import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;

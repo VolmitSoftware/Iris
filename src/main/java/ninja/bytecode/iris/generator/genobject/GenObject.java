@@ -7,10 +7,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.zip.GZIPInputStream;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.material.Directional;
+import org.bukkit.material.Ladder;
+import org.bukkit.material.MaterialData;
+import org.bukkit.material.Stairs;
+import org.bukkit.material.Vine;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -231,7 +239,11 @@ public class GenObject
 
 	public Location place(Location l)
 	{
-		return place(l, new NMSPlacer(l.getWorld()));
+		NMSPlacer p;
+		Location ll = place(l, p = new NMSPlacer(l.getWorld()));
+		p.flush();
+
+		return ll;
 	}
 
 	public Location place(Location l, IPlacer placer)
@@ -263,12 +275,6 @@ public class GenObject
 		for(SBlockVector i : s.keySet())
 		{
 			MB b = getSchematic().get(i);
-
-			if(b.material.equals(Material.CONCRETE_POWDER))
-			{
-				continue;
-			}
-
 			Location f = start.clone().add(i.toBlockVector());
 
 			Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
@@ -343,11 +349,122 @@ public class GenObject
 
 		for(SBlockVector i : g.keySet())
 		{
-			MB mb = g.get(i);
+			MB mb = rotate(from, to, g.get(i));
 			s.put(new SBlockVector(VectorMath.rotate(from, to, i.toBlockVector()).toBlockVector()), mb);
 		}
 
 		name = name + "-rt" + to.name();
+	}
+
+	@SuppressWarnings("deprecation")
+	private MB rotate(Direction from, Direction to, MB mb)
+	{
+		try
+		{
+			Material t = mb.material;
+			int i = t.getId();
+			byte d = mb.data;
+			MaterialData data = t.getData().getConstructor(int.class, byte.class).newInstance(i, d);
+
+			if(data instanceof Directional)
+			{
+				Directional dir = (Directional) data;
+				Supplier<BlockFace> get = dir::getFacing;
+				Consumer<BlockFace> set = dir::setFacingDirection;
+
+				if(dir instanceof Ladder)
+				{
+					get = ((Ladder) dir)::getAttachedFace;
+					set = ((Ladder) dir)::setFacingDirection;
+				}
+
+				if(dir instanceof Stairs)
+				{
+					get = ((Stairs) dir)::getAscendingDirection;
+					set = ((Stairs) dir)::setFacingDirection;
+				}
+
+				BlockFace fac = get.get();
+				set.accept(rotate(from, to, fac));
+				d = data.getData();
+				t = data.getItemType();
+				return MB.of(t, d);
+			}
+
+			else if(data instanceof Vine)
+			{
+				Vine vin = (Vine) data;
+				Vine vif = new Vine();
+
+				for(Direction j : Direction.news())
+				{
+					if(vin.isOnFace(j.getFace()))
+					{
+						vif.putOnFace(rotate(from, to, j.getFace()));
+					}
+				}
+
+				d = vif.getData();
+				t = vif.getItemType();
+				return MB.of(t, d);
+			}
+
+			else if(i >= 235 && i <= 250)
+			{
+				BlockFace fac = getGlazedTCDir(d);
+				d = toGlazedTCDir(Direction.getDirection(rotate(from, to, fac)).getFace());
+				t = data.getItemType();
+				return MB.of(t, d);
+			}
+		}
+
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
+
+		return mb;
+	}
+
+	private byte toGlazedTCDir(BlockFace b)
+	{
+		switch(b)
+		{
+			case NORTH:
+				return 0;
+			case EAST:
+				return 1;
+			case SOUTH:
+				return 2;
+			case WEST:
+				return 3;
+			default:
+				break;
+		}
+
+		return 0;
+	}
+
+	private BlockFace getGlazedTCDir(byte d2)
+	{
+		switch(d2)
+		{
+			case 0:
+				return BlockFace.NORTH;
+			case 1:
+				return BlockFace.EAST;
+			case 2:
+				return BlockFace.SOUTH;
+			case 3:
+				return BlockFace.WEST;
+		}
+
+		return BlockFace.NORTH;
+	}
+
+	private BlockFace rotate(Direction from, Direction to, BlockFace face)
+	{
+		return Direction.getDirection(from.angle(Direction.getDirection(face).toVector(), to)).getFace();
 	}
 
 	public void computeFlag(String j)
@@ -378,6 +495,12 @@ public class GenObject
 			{
 				int downshift = Integer.valueOf(j.split("\\Q \\E")[1]);
 				shift.subtract(new Vector(0, downshift, 0));
+			}
+
+			if(j.startsWith("raise "))
+			{
+				int downshift = Integer.valueOf(j.split("\\Q \\E")[1]);
+				shift.add(new Vector(0, downshift, 0));
 			}
 		}
 

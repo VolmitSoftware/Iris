@@ -1,5 +1,6 @@
 package ninja.bytecode.iris.util;
 
+import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
@@ -19,13 +20,60 @@ public enum Direction
 	S(0, 0, 1, CuboidDirection.South),
 	E(1, 0, 0, CuboidDirection.East),
 	W(-1, 0, 0, CuboidDirection.West);
- 
+
 	private static GMap<GBiset<Direction, Direction>, DOP> permute = null;
 
 	private int x;
 	private int y;
 	private int z;
 	private CuboidDirection f;
+
+	public static Direction getDirection(BlockFace f)
+	{
+		switch(f)
+		{
+			case DOWN:
+				return D;
+			case EAST:
+				return E;
+			case EAST_NORTH_EAST:
+				return E;
+			case EAST_SOUTH_EAST:
+				return E;
+			case NORTH:
+				return N;
+			case NORTH_EAST:
+				return N;
+			case NORTH_NORTH_EAST:
+				return N;
+			case NORTH_NORTH_WEST:
+				return N;
+			case NORTH_WEST:
+				return N;
+			case SELF:
+				return U;
+			case SOUTH:
+				return S;
+			case SOUTH_EAST:
+				return S;
+			case SOUTH_SOUTH_EAST:
+				return S;
+			case SOUTH_SOUTH_WEST:
+				return S;
+			case SOUTH_WEST:
+				return S;
+			case UP:
+				return U;
+			case WEST:
+				return W;
+			case WEST_NORTH_WEST:
+				return W;
+			case WEST_SOUTH_WEST:
+				return W;
+		}
+
+		return D;
+	}
 
 	@Override
 	public String toString()
@@ -202,7 +250,7 @@ public enum Direction
 
 	public static GList<Direction> news()
 	{
-		return new GList<Direction>().add(N,E,W,S);
+		return new GList<Direction>().add(N, E, W, S);
 	}
 
 	public static Direction getDirection(Vector v)
@@ -222,7 +270,7 @@ public enum Direction
 
 	public static GList<Direction> udnews()
 	{
-		return new GList<Direction>().add(U,D,N,E,W,S);
+		return new GList<Direction>().add(U, D, N, E, W, S);
 	}
 
 	/**
@@ -439,6 +487,27 @@ public enum Direction
 				}
 			}
 		}
+	}
+
+	public BlockFace getFace()
+	{
+		switch(this)
+		{
+			case D:
+				return BlockFace.DOWN;
+			case E:
+				return BlockFace.EAST;
+			case N:
+				return BlockFace.NORTH;
+			case S:
+				return BlockFace.SOUTH;
+			case U:
+				return BlockFace.UP;
+			case W:
+				return BlockFace.WEST;
+		}
+
+		return null;
 	}
 
 	public Axis getAxis()

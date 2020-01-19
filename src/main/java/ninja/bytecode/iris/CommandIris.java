@@ -15,7 +15,6 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.shuriken.format.F;
-import ninja.bytecode.shuriken.logging.L;
 
 public class CommandIris implements CommandExecutor
 {

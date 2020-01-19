@@ -11,8 +11,6 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
-import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
@@ -22,12 +20,14 @@ public class GenObjectGroup
 	private GList<GenObject> schematics;
 	private GList<String> flags;
 	private String name;
+	private int priority;
 
 	public GenObjectGroup(String name)
 	{
 		this.schematics = new GList<>();
 		this.flags = new GList<>();
 		this.name = name;
+		priority = Integer.MIN_VALUE;
 	}
 
 	public void read(DataInputStream din) throws IOException
@@ -148,6 +148,23 @@ public class GenObjectGroup
 		return getSchematics().size();
 	}
 
+	public int getPiority()
+	{
+		if(priority == Integer.MIN_VALUE)
+		{
+			for(String i : flags)
+			{
+				if(i.startsWith("priority "))
+				{
+					priority = Integer.valueOf(i.split("\\Q \\E")[1]);
+					break;
+				}
+			}
+		}
+
+		return priority;
+	}
+
 	public static GenObjectGroup load(String string)
 	{
 		File folder = Iris.getController(PackController.class).loadFolder(string);
@@ -195,19 +212,6 @@ public class GenObjectGroup
 
 	public void processVariants()
 	{
-		GList<GenObject> inject = new GList<>();
-		for(GenObject i : getSchematics())
-		{
-			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
-			{
-				GenObject cp = i.copy();
-				GenObject f = cp;
-				f.rotate(Direction.N, j);
-				inject.add(f);
-			}
-		}
-
-		getSchematics().add(inject);
 		for(GenObject i : getSchematics())
 		{
 			i.recalculateMountShift();
@@ -216,6 +220,24 @@ public class GenObjectGroup
 			{
 				i.computeFlag(j);
 			}
+		}
+
+		if(!flags.contains("no rotation"))
+		{
+			GList<GenObject> inject = new GList<>();
+			for(GenObject i : getSchematics())
+			{
+				for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
+				{
+					GenObject cp = i.copy();
+					GenObject f = cp;
+					f.rotate(Direction.N, j);
+					f.recalculateMountShift();
+					inject.add(f);
+				}
+			}
+
+			getSchematics().add(inject);
 		}
 
 		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
@@ -227,8 +249,50 @@ public class GenObjectGroup
 		{
 			i.dispose();
 		}
-		
+
 		schematics.clear();
 		flags.clear();
 	}
+
+	@Override
+	public int hashCode()
+	{
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((flags == null) ? 0 : flags.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + priority;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		GenObjectGroup other = (GenObjectGroup) obj;
+		if(flags == null)
+		{
+			if(other.flags != null)
+				return false;
+		}
+		else if(!flags.equals(other.flags))
+			return false;
+		if(name == null)
+		{
+			if(other.name != null)
+				return false;
+		}
+		else if(!name.equals(other.name))
+			return false;
+		if(priority != other.priority)
+			return false;
+
+		return true;
+	}
+
 }

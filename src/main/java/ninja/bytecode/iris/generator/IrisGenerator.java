@@ -3,15 +3,18 @@ package ninja.bytecode.iris.generator;
 import java.util.List;
 import java.util.Random;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
+import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
+import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCarving;
 import ninja.bytecode.iris.generator.layer.GenLayerCaverns;
@@ -62,6 +65,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
 	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
+	private GenObjectDecorator god;
 	private GenLayerLayeredNoise glLNoise;
 	private GenLayerBiome glBiome;
 	private GenLayerCaves glCaves;
@@ -350,7 +354,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		if(Iris.settings.gen.genObjects)
 		{
-			p.add(new GenObjectDecorator(this));
+			p.add(god = new GenObjectDecorator(this));
 		}
 
 		return p;
@@ -407,5 +411,26 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public boolean isDisposed()
 	{
 		return disposed;
+	}
+
+	public PlacedObject nearest(Location o, int i)
+	{
+		PlacedObject f = null;
+		double d = Integer.MAX_VALUE;
+		if(god != null)
+		{
+			for(PlacedObject j : god.getHistory())
+			{
+				double dx = Math.abs(NumberConversions.square(j.getX() - o.getX()) + NumberConversions.square(j.getY() - o.getY()) + NumberConversions.square(j.getZ() - o.getZ()));
+
+				if(dx < d)
+				{
+					d = dx;
+					f = j;
+				}
+			}
+		}
+
+		return f;
 	}
 }

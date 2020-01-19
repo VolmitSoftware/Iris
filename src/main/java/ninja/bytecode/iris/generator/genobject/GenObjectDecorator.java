@@ -32,6 +32,7 @@ import ninja.bytecode.shuriken.math.M;
 
 public class GenObjectDecorator extends BlockPopulator
 {
+	private GList<PlacedObject> placeHistory;
 	private GMap<IrisBiome, GList<GenObjectGroup>> orderCache;
 	private GMap<IrisBiome, GMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
@@ -42,6 +43,7 @@ public class GenObjectDecorator extends BlockPopulator
 	public GenObjectDecorator(IrisGenerator generator)
 	{
 		this.g = generator;
+		placeHistory = new GList<>();
 		populationCache = new GMap<>();
 		orderCache = new GMap<>();
 		ex = Executors.newSingleThreadExecutor();
@@ -103,6 +105,7 @@ public class GenObjectDecorator extends BlockPopulator
 	{
 		if(g.isDisposed())
 		{
+			placeHistory.clear();
 			return;
 		}
 
@@ -156,7 +159,11 @@ public class GenObjectDecorator extends BlockPopulator
 
 					if(!t.isSolid() || !biome.isSurface(t))
 					{
-						L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place in " + C.YELLOW + t.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(b.getX()) + " " + F.f(b.getY()) + " " + F.f(b.getZ()));
+						if(Iris.settings.performance.verbose)
+						{
+							L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place in " + C.YELLOW + t.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(b.getX()) + " " + F.f(b.getY()) + " " + F.f(b.getZ()));
+						}
+
 						continue;
 					}
 
@@ -178,9 +185,25 @@ public class GenObjectDecorator extends BlockPopulator
 					{
 						Location start = g.place(x, b.getY(), z, placer);
 
-						if(start != null && Iris.settings.performance.verbose)
+						if(start != null)
 						{
-							L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+							if(Iris.settings.performance.verbose)
+							{
+								L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+							}
+
+							if(Iris.settings.performance.debugMode)
+							{
+								placeHistory.add(new PlacedObject(start.getBlockX(), start.getBlockY(), start.getBlockZ(), i.getName() + ":" + g.getName()));
+
+								if(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+								{
+									while(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+									{
+										placeHistory.remove(0);
+									}
+								}
+							}
 						}
 					});
 				}
@@ -213,5 +236,10 @@ public class GenObjectDecorator extends BlockPopulator
 		}
 
 		return floor;
+	}
+
+	public GList<PlacedObject> getHistory()
+	{
+		return placeHistory;
 	}
 }

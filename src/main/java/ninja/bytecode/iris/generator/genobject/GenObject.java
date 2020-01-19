@@ -44,6 +44,8 @@ public class GenObject
 	private int w;
 	private int h;
 	private int d;
+	private int failures;
+	private int successes;
 	private String name = "?";
 	private final GMap<SBlockVector, MB> s;
 	private BlockVector mount;
@@ -290,12 +292,8 @@ public class GenObject
 					L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
 				}
 
+				failures++;
 				return null;
-			}
-
-			if(b.material.equals(Material.SKULL))
-			{
-				continue;
 			}
 
 			try
@@ -310,6 +308,7 @@ public class GenObject
 			}
 		}
 
+		successes++;
 		return start;
 	}
 
@@ -590,6 +589,26 @@ public class GenObject
 			h++;
 			recalculateMountShift();
 		}
+	}
+
+	public double getSuccess()
+	{
+		return (double) successes / ((double) successes + (double) failures);
+	}
+
+	public int getFailures()
+	{
+		return failures;
+	}
+
+	public int getSuccesses()
+	{
+		return successes;
+	}
+
+	public int getPlaces()
+	{
+		return successes + failures;
 	}
 
 	public void dispose()

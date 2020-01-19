@@ -11,6 +11,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import ninja.bytecode.iris.controller.PackController;
+import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IrisController;
@@ -58,10 +59,11 @@ public class Iris extends JavaPlugin implements Listener
 	public void onDisable()
 	{
 		getController(PackController.class).dispose();
+		getController(WandController.class).dispose();
 		controllerSet.stopControllers();
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
-		
+
 		if(Iris.settings.performance.debugMode)
 		{
 			for(World i : Bukkit.getWorlds())

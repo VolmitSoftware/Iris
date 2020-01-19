@@ -18,6 +18,7 @@ public class Settings
 		public boolean interpolation = true;
 		public boolean surfaceNoise = true;
 		public boolean verbose = false;
+		public int placeHistoryLimit = 8192;
 	}
 
 	public static class GeneratorSettings

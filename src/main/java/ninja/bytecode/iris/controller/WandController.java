@@ -21,20 +21,33 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import mortar.compute.math.M;
+import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.genobject.GenObject;
+import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
+import ninja.bytecode.iris.generator.genobject.PlacedObject;
+import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.Cuboid;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParticleEffect;
 import ninja.bytecode.iris.util.ParticleRedstone;
 import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.format.F;
 
 public class WandController implements IrisController
 {
+	private GMap<String, GenObject> goc;
+	private GMap<String, GenObjectGroup> gog;
+
 	@Override
 	public void onStart()
 	{
+		goc = new GMap<>();
+		gog = new GMap<>();
 		// TODO: Optimize
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
@@ -58,87 +71,192 @@ public class WandController implements IrisController
 		{
 			if(isWand(p.getInventory().getItemInMainHand()))
 			{
+				if(Iris.settings.performance.debugMode && p.getWorld().getGenerator() instanceof IrisGenerator)
+				{
+					tickHighlight(p, (IrisGenerator) p.getWorld().getGenerator());
+				}
+
 				Location[] d = getCuboid(p.getInventory().getItemInMainHand());
-				ParticleEffect.CRIT_MAGIC.display(0.1f, 1, d[0].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
-				ParticleEffect.CRIT.display(0.1f, 1, d[1].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
-
-				if(!d[0].getWorld().equals(d[1].getWorld()))
-				{
-					return;
-				}
-
-				if(d[0].distanceSquared(d[1]) > 64 * 64)
-				{
-					return;
-				}
-
-				int minx = Math.min(d[0].getBlockX(), d[1].getBlockX());
-				int miny = Math.min(d[0].getBlockY(), d[1].getBlockY());
-				int minz = Math.min(d[0].getBlockZ(), d[1].getBlockZ());
-				int maxx = Math.max(d[0].getBlockX(), d[1].getBlockX());
-				int maxy = Math.max(d[0].getBlockY(), d[1].getBlockY());
-				int maxz = Math.max(d[0].getBlockZ(), d[1].getBlockZ());
-
-				for(double j = minx - 1; j < maxx + 1; j += 0.25)
-				{
-					for(double k = miny - 1; k < maxy + 1; k += 0.25)
-					{
-						for(double l = minz - 1; l < maxz + 1; l += 0.25)
-						{
-							boolean jj = j == minx || j == maxx;
-							boolean kk = k == miny || k == maxy;
-							boolean ll = l == minz || l == maxz;
-							double aa = j;
-							double bb = k;
-							double cc = l;
-
-							if((jj && kk) || (jj && ll) || (ll && kk))
-							{
-								Vector push = new Vector(0, 0, 0);
-
-								if(j == minx)
-								{
-									push.add(new Vector(-0.55, 0, 0));
-								}
-
-								if(k == miny)
-								{
-									push.add(new Vector(0, -0.55, 0));
-								}
-
-								if(l == minz)
-								{
-									push.add(new Vector(0, 0, -0.55));
-								}
-
-								if(j == maxx)
-								{
-									push.add(new Vector(0.55, 0, 0));
-								}
-
-								if(k == maxy)
-								{
-									push.add(new Vector(0, 0.55, 0));
-								}
-
-								if(l == maxz)
-								{
-									push.add(new Vector(0, 0, 0.55));
-								}
-
-								Location lv = new Location(d[0].getWorld(), aa, bb, cc).clone().add(0.5, 0.5, 0.5).clone().add(push);
-								int color = Color.getHSBColor((float) (0.5f + (Math.sin((aa + bb + cc + (p.getTicksLived() / 2)) / 20f) / 2)), 1, 1).getRGB();
-								new ParticleRedstone().setColor(new Color(color)).play(lv, p);
-							}
-						}
-					}
-				}
+				draw(d, p);
 			}
 		}
 
 		catch(Throwable e)
 		{
 
+		}
+	}
+
+	private void draw(Location[] d, Player p)
+	{
+		ParticleEffect.CRIT_MAGIC.display(0.1f, 1, d[0].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
+		ParticleEffect.CRIT.display(0.1f, 1, d[1].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
+
+		if(!d[0].getWorld().equals(d[1].getWorld()))
+		{
+			return;
+		}
+
+		if(d[0].distanceSquared(d[1]) > 64 * 64)
+		{
+			return;
+		}
+
+		int minx = Math.min(d[0].getBlockX(), d[1].getBlockX());
+		int miny = Math.min(d[0].getBlockY(), d[1].getBlockY());
+		int minz = Math.min(d[0].getBlockZ(), d[1].getBlockZ());
+		int maxx = Math.max(d[0].getBlockX(), d[1].getBlockX());
+		int maxy = Math.max(d[0].getBlockY(), d[1].getBlockY());
+		int maxz = Math.max(d[0].getBlockZ(), d[1].getBlockZ());
+
+		for(double j = minx - 1; j < maxx + 1; j += 0.25)
+		{
+			for(double k = miny - 1; k < maxy + 1; k += 0.25)
+			{
+				for(double l = minz - 1; l < maxz + 1; l += 0.25)
+				{
+					if(M.r(0.25))
+					{
+						boolean jj = j == minx || j == maxx;
+						boolean kk = k == miny || k == maxy;
+						boolean ll = l == minz || l == maxz;
+						double aa = j;
+						double bb = k;
+						double cc = l;
+
+						if((jj && kk) || (jj && ll) || (ll && kk))
+						{
+							Vector push = new Vector(0, 0, 0);
+
+							if(j == minx)
+							{
+								push.add(new Vector(-0.55, 0, 0));
+							}
+
+							if(k == miny)
+							{
+								push.add(new Vector(0, -0.55, 0));
+							}
+
+							if(l == minz)
+							{
+								push.add(new Vector(0, 0, -0.55));
+							}
+
+							if(j == maxx)
+							{
+								push.add(new Vector(0.55, 0, 0));
+							}
+
+							if(k == maxy)
+							{
+								push.add(new Vector(0, 0.55, 0));
+							}
+
+							if(l == maxz)
+							{
+								push.add(new Vector(0, 0, 0.55));
+							}
+
+							Location lv = new Location(d[0].getWorld(), aa, bb, cc).clone().add(0.5, 0.5, 0.5).clone().add(push);
+							int color = Color.getHSBColor((float) (0.5f + (Math.sin((aa + bb + cc + (p.getTicksLived() / 2)) / 20f) / 2)), 1, 1).getRGB();
+							new ParticleRedstone().setColor(new Color(color)).play(lv, p);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private void tickHighlight(Player p, IrisGenerator generator)
+	{
+		Location l = p.getTargetBlock(null, 32).getLocation();
+		PlacedObject po = generator.nearest(l, 12);
+
+		if(po != null)
+		{
+			if(!goc.containsKey(po.getF()))
+			{
+				String root = po.getF().split("\\Q:\\E")[0];
+				String n = po.getF().split("\\Q:\\E")[1];
+				GenObjectGroup gg = generator.getDimension().getObjectGroup(root);
+				gog.put(root, gg);
+
+				for(GenObject i : gg.getSchematics())
+				{
+					if(i.getName().equals(n))
+					{
+						goc.put(po.getF(), i);
+						break;
+					}
+				}
+
+				if(!goc.containsKey(po.getF()))
+				{
+					goc.put(po.getF(), new GenObject(0, 0, 0));
+				}
+			}
+
+			GenObjectGroup ggg = gog.get(po.getF().split("\\Q:\\E")[0]);
+			GenObject g = goc.get(po.getF());
+
+			if(g != null)
+			{
+				Location point = new Location(l.getWorld(), po.getX(), po.getY(), po.getZ());
+				IrisBiome biome = generator.getBiome((int) generator.getOffsetX(po.getX()), (int) generator.getOffsetZ(po.getZ()));
+				String gg = po.getF().split("\\Q:\\E")[0];
+
+				for(int j = 0; j < 10; j++)
+				{
+					p.sendMessage(" ");
+				}
+
+				p.sendMessage(C.DARK_GREEN + C.BOLD.toString() + gg + C.GRAY + "/" + C.RESET + C.ITALIC + C.GRAY + g.getName() + C.RESET + C.WHITE + " (1 of " + F.f(generator.getDimension().getObjectGroup(gg).size()) + " variants)");
+
+				if(biome.getSchematicGroups().containsKey(gg))
+				{
+					String f = "";
+					double percent = biome.getSchematicGroups().get(gg);
+
+					if(percent > 1D)
+					{
+						f = (int) percent + " + " + F.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
+					}
+
+					else
+					{
+						f = F.pc(percent, percent >= 0.01 ? 0 : 3);
+					}
+
+					p.sendMessage(C.GOLD + "Spawn Chance in " + C.YELLOW + biome.getName() + C.RESET + ": " + C.BOLD + C.WHITE + f);
+				}
+
+				try
+				{
+					int a = 0;
+					int b = 0;
+					double c = 0;
+
+					for(GenObject i : ggg.getSchematics())
+					{
+						a += i.getSuccesses();
+						b += i.getPlaces();
+					}
+
+					c = ((double) a / (double) b);
+					p.sendMessage(C.GRAY + "Grp: " + C.DARK_AQUA + F.f(a) + C.GRAY + " of " + C.AQUA + F.f(b) + C.GRAY + " placements (" + C.DARK_AQUA + F.pc(c, 0) + C.GRAY + ")");
+				}
+
+				catch(Throwable e)
+				{
+					e.printStackTrace();
+				}
+
+				p.sendMessage(C.GRAY + "Var: " + C.DARK_AQUA + F.f(g.getSuccesses()) + C.GRAY + " of " + C.AQUA + F.f(g.getPlaces()) + C.GRAY + " placements (" + C.DARK_AQUA + F.pc(g.getSuccess(), 0) + C.GRAY + ")");
+
+				draw(new Location[] {point.clone().add(g.getW() / 2, g.getH() / 2, g.getD() / 2), point.clone().subtract(g.getW() / 2, g.getH() / 2, g.getD() / 2)
+				}, p);
+			}
 		}
 	}
 
@@ -258,6 +376,12 @@ public class WandController implements IrisController
 		}
 
 		return createWand(left ? a : other, left ? other : a);
+	}
+
+	public void dispose()
+	{
+		goc.clear();
+		gog.clear();
 	}
 
 	public static ItemStack createWand(Location a, Location b)

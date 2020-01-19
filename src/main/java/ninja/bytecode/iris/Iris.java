@@ -3,6 +3,7 @@ package ninja.bytecode.iris;
 import java.io.IOException;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
@@ -56,9 +57,23 @@ public class Iris extends JavaPlugin implements Listener
 
 	public void onDisable()
 	{
+		getController(PackController.class).dispose();
 		controllerSet.stopControllers();
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
+		
+		if(Iris.settings.performance.debugMode)
+		{
+			for(World i : Bukkit.getWorlds())
+			{
+				if(i.getGenerator() instanceof IrisGenerator)
+				{
+					((IrisGenerator) i.getGenerator()).dispose();
+				}
+			}
+
+			System.gc();
+		}
 	}
 
 	public void reload()

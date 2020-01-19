@@ -1,5 +1,7 @@
 package ninja.bytecode.iris.controller;
 
+import java.io.File;
+
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -12,6 +14,7 @@ import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.io.IO;
 
 public class DebugController implements IrisController
 {
@@ -38,7 +41,7 @@ public class DebugController implements IrisController
 							{
 								GSet<String> ws = new GSet<>();
 								GList<World> destroy = new GList<>();
-								
+
 								for(World i : Bukkit.getWorlds())
 								{
 									if(i.getGenerator() instanceof IrisGenerator)
@@ -46,7 +49,7 @@ public class DebugController implements IrisController
 										destroy.add(i);
 									}
 								}
-								
+
 								World w = Iris.getController(WorldController.class).createIrisWorld(null, 0, true);
 								for(Player i : Bukkit.getOnlinePlayers())
 								{
@@ -61,8 +64,9 @@ public class DebugController implements IrisController
 								{
 									Bukkit.unloadWorld(i, false);
 								}
-								
-								Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+								Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+								{
 									for(World i : destroy.copy())
 									{
 										Bukkit.unloadWorld(i, false);
@@ -80,6 +84,24 @@ public class DebugController implements IrisController
 	@Override
 	public void onStop()
 	{
+		deleteOnExit(new File("iris-worlds"));
+	}
 
+	public static void deleteOnExit(File f)
+	{
+		if(f == null || !f.exists())
+		{
+			return;
+		}
+
+		if(f.isDirectory())
+		{
+			for(File i : f.listFiles())
+			{
+				deleteOnExit(i);
+			}
+		}
+
+		f.deleteOnExit();
 	}
 }

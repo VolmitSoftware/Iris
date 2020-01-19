@@ -8,7 +8,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
 
-import net.minecraft.server.v1_12_R1.CriterionTriggerBredAnimals.b;
+import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
@@ -24,7 +24,6 @@ import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.AtomicChunkData;
-import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
@@ -56,6 +55,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	});
 	//@done
 
+	private boolean disposed;
 	private double[][][] scatterCache;
 	private CNG scatter;
 	private MB ICE = new MB(Material.ICE);
@@ -81,6 +81,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public IrisGenerator(CompiledDimension dim)
 	{
 		this.dim = dim;
+		disposed = false;
 		L.i("Preparing Dimension: " + dim.getName() + " With " + dim.getBiomes().size() + " Biomes...");
 	}
 
@@ -102,6 +103,11 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public void onInit(World world, Random random)
 	{
+		if(disposed)
+		{
+			return;
+		}
+
 		this.world = world;
 		rTerrain = new RNG(world.getSeed());
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
@@ -233,6 +239,12 @@ public class IrisGenerator extends ParallelChunkGenerator
 	@Override
 	public Biome genColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan)
 	{
+		if(disposed)
+		{
+			setBlock(x, 0, z, Material.MAGENTA_GLAZED_TERRACOTTA);
+			return Biome.VOID;
+		}
+
 		double wx = getOffsetX(wxxf);
 		double wz = getOffsetZ(wzxf);
 		int wxx = (int) wx;
@@ -373,5 +385,27 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public CompiledDimension getDimension()
 	{
 		return dim;
+	}
+
+	public void dispose()
+	{
+		if(disposed)
+		{
+			return;
+		}
+		L.w(C.YELLOW + "Disposed Iris World " + C.RED + world.getName());
+		disposed = true;
+		dim = null;
+		glLNoise = null;
+		glCaves = null;
+		glCarving = null;
+		glCaverns = null;
+		glSnow = null;
+		glCliffs = null;
+	}
+
+	public boolean isDisposed()
+	{
+		return disposed;
 	}
 }

@@ -84,6 +84,11 @@ public class GenObjectDecorator extends BlockPopulator
 	@Override
 	public void populate(World world, Random rnotusingyou, Chunk source)
 	{
+		if(g.isDisposed())
+		{
+			return;
+		}
+		
 		ex.execute(() -> {
 			Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
 			GSet<IrisBiome> hits = new GSet<>();

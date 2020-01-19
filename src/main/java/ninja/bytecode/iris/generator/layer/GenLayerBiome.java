@@ -72,7 +72,7 @@ public class GenLayerBiome extends GenLayer
 		}
 
 		master = BiomeLayer.compile(iris, 0.082 * Iris.settings.gen.biomeScale * 0.189, 1, factory);
-		
+
 		if(Iris.settings.performance.verbose)
 		{
 			master.print(2);
@@ -174,5 +174,10 @@ public class GenLayerBiome extends GenLayer
 	public IrisRegion getRegion(String name)
 	{
 		return regions.get(name);
+	}
+
+	public void compileInfo(BiomeLayer l)
+	{
+		l.compileChildren(0.082 * Iris.settings.gen.biomeScale * 0.189, 1, factory, true);
 	}
 }

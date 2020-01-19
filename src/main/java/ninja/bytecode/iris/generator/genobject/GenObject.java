@@ -22,6 +22,7 @@ import ninja.bytecode.iris.generator.placer.NMSPlacer;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.SBlockVector;
 import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
@@ -36,7 +37,7 @@ public class GenObject
 	private int h;
 	private int d;
 	private String name = "?";
-	private final GMap<BlockVector, MB> s;
+	private final GMap<SBlockVector, MB> s;
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;
@@ -55,19 +56,19 @@ public class GenObject
 	{
 		int ly = Integer.MAX_VALUE;
 
-		for(BlockVector i : s.k())
+		for(SBlockVector i : s.keySet())
 		{
-			if(i.getBlockY() < ly)
+			if(i.getY() < ly)
 			{
-				ly = i.getBlockY();
+				ly = (int) i.getY();
 			}
 		}
 
-		GList<BlockVector> fmount = new GList<>();
+		GList<SBlockVector> fmount = new GList<>();
 
-		for(BlockVector i : s.k())
+		for(SBlockVector i : s.keySet())
 		{
-			if(i.getBlockY() == ly)
+			if(i.getY() == ly)
 			{
 				fmount.add(i);
 			}
@@ -78,11 +79,11 @@ public class GenObject
 		double avz[] = new double[fmount.size()];
 		int c = 0;
 
-		for(BlockVector i : fmount)
+		for(SBlockVector i : fmount)
 		{
-			avx[c] = i.getBlockX();
-			avy[c] = i.getBlockY();
-			avz[c] = i.getBlockZ();
+			avx[c] = i.getX();
+			avy[c] = i.getY();
+			avz[c] = i.getZ();
 			c++;
 		}
 
@@ -122,7 +123,7 @@ public class GenObject
 		return d;
 	}
 
-	public GMap<BlockVector, MB> getSchematic()
+	public GMap<SBlockVector, MB> getSchematic()
 	{
 		return s;
 	}
@@ -157,7 +158,7 @@ public class GenObject
 
 		for(int i = 0; i < l; i++)
 		{
-			s.put(new BlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int) din.readInt()), din.readInt()));
+			s.put(new SBlockVector(din.readInt(), din.readInt(), din.readInt()), new MB(Material.getMaterial((int) din.readInt()), din.readInt()));
 		}
 	}
 
@@ -169,11 +170,11 @@ public class GenObject
 		dos.writeInt(d);
 		dos.writeInt(s.size());
 
-		for(BlockVector i : s.keySet())
+		for(SBlockVector i : s.keySet())
 		{
-			dos.writeInt(i.getBlockX());
-			dos.writeInt(i.getBlockY());
-			dos.writeInt(i.getBlockZ());
+			dos.writeInt((int) i.getX());
+			dos.writeInt((int) i.getY());
+			dos.writeInt((int) i.getZ());
 			dos.writeInt(s.get(i).material.getId());
 			dos.writeInt(s.get(i).data);
 		}
@@ -189,17 +190,17 @@ public class GenObject
 
 	public MB get(int x, int y, int z)
 	{
-		return s.get(new BlockVector(x, y, z));
+		return s.get(new SBlockVector(x, y, z));
 	}
 
 	public boolean has(int x, int y, int z)
 	{
-		return s.contains(new BlockVector(x, y, z));
+		return s.containsKey(new SBlockVector(x, y, z));
 	}
 
 	public void put(int x, int y, int z, MB mb)
 	{
-		s.put(new BlockVector(x, y, z), mb);
+		s.put(new SBlockVector(x, y, z), mb);
 	}
 
 	public GenObject copy()
@@ -216,10 +217,10 @@ public class GenObject
 		s.clear();
 	}
 
-	public void fill(GMap<BlockVector, MB> b)
+	public void fill(GMap<SBlockVector, MB> b)
 	{
 		clear();
-		s.put(b);
+		s.putAll(b);
 	}
 
 	public int sh(int g)
@@ -259,7 +260,7 @@ public class GenObject
 		start.add(shift);
 		GMap<Location, MB> undo = new GMap<>();
 
-		for(BlockVector i : getSchematic().k())
+		for(SBlockVector i : s.keySet())
 		{
 			MB b = getSchematic().get(i);
 
@@ -268,10 +269,10 @@ public class GenObject
 				continue;
 			}
 
-			Location f = start.clone().add(i);
+			Location f = start.clone().add(i.toBlockVector());
 
 			Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
-			if(i.getBlockY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
+			if(i.getY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
 			{
 				for(Location j : undo.k())
 				{
@@ -336,13 +337,14 @@ public class GenObject
 
 	public void rotate(Direction from, Direction to)
 	{
-		GMap<BlockVector, MB> g = s.copy();
+		GMap<SBlockVector, MB> g = new GMap<>();
+		g.putAll(s);
 		s.clear();
 
-		for(BlockVector i : g.k())
+		for(SBlockVector i : g.keySet())
 		{
 			MB mb = g.get(i);
-			s.put(VectorMath.rotate(from, to, i).toBlockVector(), mb);
+			s.put(new SBlockVector(VectorMath.rotate(from, to, i.toBlockVector()).toBlockVector()), mb);
 		}
 
 		name = name + "-rt" + to.name();
@@ -358,10 +360,12 @@ public class GenObject
 				MB a = MB.of(g[1]);
 				boolean specific = g[1].contains(":");
 				MB b = MB.of(g[2]);
-
-				for(BlockVector i : s.k())
+				GMap<SBlockVector, MB> m = new GMap<>();
+				m.putAll(s);
+				s.clear();
+				for(SBlockVector i : m.keySet())
 				{
-					MB c = s.get(i);
+					MB c = m.get(i);
 
 					if((specific && c.equals(a)) || c.material.equals(a.material))
 					{
@@ -394,36 +398,36 @@ public class GenObject
 		int maxZ = 0;
 		boolean added = false;
 
-		for(BlockVector i : getSchematic().k())
+		for(SBlockVector i : getSchematic().keySet())
 		{
-			if(i.getBlockX() > maxX)
+			if(i.getX() > maxX)
 			{
-				maxX = i.getBlockX();
+				maxX = (int) i.getX();
 			}
 
-			if(i.getBlockY() > maxY)
+			if(i.getY() > maxY)
 			{
-				maxY = i.getBlockY();
+				maxY = (int) i.getY();
 			}
 
-			if(i.getBlockZ() > maxZ)
+			if(i.getZ() > maxZ)
 			{
-				maxZ = i.getBlockZ();
+				maxZ = (int) i.getZ();
 			}
 
-			if(i.getBlockX() < minX)
+			if(i.getX() < minX)
 			{
-				minX = i.getBlockX();
+				minX = (int) i.getX();
 			}
 
-			if(i.getBlockY() < minY)
+			if(i.getY() < minY)
 			{
-				minY = i.getBlockY();
+				minY = (int) i.getY();
 			}
 
-			if(i.getBlockZ() < minZ)
+			if(i.getZ() < minZ)
 			{
-				minZ = i.getBlockZ();
+				minZ = (int) i.getZ();
 			}
 		}
 
@@ -431,18 +435,18 @@ public class GenObject
 		{
 			for(int j = minZ; j <= maxZ; j++)
 			{
-				BlockVector highest = null;
+				SBlockVector highest = null;
 
-				for(BlockVector k : getSchematic().k())
+				for(SBlockVector k : getSchematic().keySet())
 				{
-					if(k.getBlockX() == i && k.getBlockZ() == j)
+					if(k.getX() == i && k.getZ() == j)
 					{
 						if(highest == null)
 						{
 							highest = k;
 						}
 
-						else if(highest.getBlockY() < k.getBlockY())
+						else if(highest.getY() < k.getY())
 						{
 							highest = k;
 						}
@@ -451,9 +455,9 @@ public class GenObject
 
 				if(highest != null)
 				{
-					BlockVector mbv = highest.clone().add(new Vector(0, 1, 0)).toBlockVector();
+					BlockVector mbv = highest.toBlockVector().add(new Vector(0, 1, 0)).toBlockVector();
 					added = true;
-					getSchematic().put(mbv, MB.of(Material.SNOW, RNG.r.nextInt((int) M.clip(factor, 0, 8))));
+					getSchematic().put(new SBlockVector(mbv), MB.of(Material.SNOW, RNG.r.nextInt((int) M.clip(factor, 0, 8))));
 				}
 			}
 		}

@@ -195,41 +195,28 @@ public class GenObjectGroup
 
 	public void processVariants()
 	{
-		TaskExecutor te = new TaskExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY, "Variant Processor");
-		TaskGroup g = te.startWork();
 		GList<GenObject> inject = new GList<>();
 		for(GenObject i : getSchematics())
 		{
 			for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
 			{
-				g.queue(() ->
-				{
-					GenObject cp = i.copy();
-					GenObject f = cp;
-					f.rotate(Direction.N, j);
-					inject.add(f);
-				});
+				GenObject cp = i.copy();
+				GenObject f = cp;
+				f.rotate(Direction.N, j);
+				inject.add(f);
 			}
 		}
 
-		g.execute();
 		getSchematics().add(inject);
-		g = te.startWork();
 		for(GenObject i : getSchematics())
 		{
-			g.queue(() ->
+			i.recalculateMountShift();
+
+			for(String j : flags)
 			{
-				i.recalculateMountShift();
-
-				for(String j : flags)
-				{
-					i.computeFlag(j);
-				}
-			});
+				i.computeFlag(j);
+			}
 		}
-
-		g.execute();
-		te.close();
 
 		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
 	}

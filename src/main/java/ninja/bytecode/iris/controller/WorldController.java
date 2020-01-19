@@ -12,23 +12,13 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.io.IO;
 
 public class WorldController implements IrisController
 {
 	@Override
 	public void onStart()
 	{
-		J.attemptAsync(() ->
-		{
-			for(File i : new File(Iris.instance.getDataFolder().getParentFile().getParentFile(), "iris-worlds").listFiles())
-			{
-				if(new File(i, ".garbage").exists())
-				{
-					IO.delete(i);
-				}
-			}
-		});
+		
 	}
 	
 	public boolean isChunkGenerated(World w, int x, int z)

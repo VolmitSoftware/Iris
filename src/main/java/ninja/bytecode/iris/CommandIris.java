@@ -9,10 +9,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import mortar.api.nms.NMP;
+import mortar.util.text.C;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.logging.L;
 
 public class CommandIris implements CommandExecutor
 {
@@ -42,6 +45,46 @@ public class CommandIris implements CommandExecutor
 				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t + d, 2));
 				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t, 2));
 				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(d, 2));
+			}
+
+			if(args[0].equalsIgnoreCase("info"))
+			{
+				if(sender instanceof Player)
+				{
+					Player p = (Player) sender;
+					World w = p.getWorld();
+
+					if(w.getGenerator() instanceof IrisGenerator)
+					{
+						IrisGenerator g = (IrisGenerator) w.getGenerator();
+						IrisBiome biome = g.getBiome((int) g.getOffsetX(p.getLocation().getX()), (int) g.getOffsetZ(p.getLocation().getZ()));
+						BiomeLayer l = new BiomeLayer(g, biome);
+						msg(p, "Biome: " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " (" + C.GOLD + l.getBiome().getRarityString() + C.GRAY + ")");
+
+						for(String i : biome.getSchematicGroups().k())
+						{
+							String f = "";
+							double percent = biome.getSchematicGroups().get(i);
+
+							if(percent > 1D)
+							{
+								f = (int) percent + " + " + F.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
+							}
+
+							else
+							{
+								f = F.pc(percent, percent >= 0.01 ? 0 : 3);
+							}
+
+							msg(p, "* " + C.DARK_GREEN + i + ": " + C.BOLD + C.WHITE + f + C.RESET + C.GRAY + " (" + F.f(g.getDimension().getObjectGroup(i).size()) + " variants)");
+						}
+					}
+
+					else
+					{
+						msg(sender, "Not in an Iris World");
+					}
+				}
 			}
 
 			if(args[0].equalsIgnoreCase("rtp"))
@@ -117,6 +160,11 @@ public class CommandIris implements CommandExecutor
 							int z = (int) ((int) (29999983 / 1.2) * Math.random());
 							p.teleport(w.getHighestBlockAt(x, z).getLocation());
 						}
+					}
+
+					else
+					{
+						msg(sender, "Not in an Iris World");
 					}
 				}
 			}

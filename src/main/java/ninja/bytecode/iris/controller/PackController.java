@@ -105,15 +105,11 @@ public class PackController implements IrisController
 		}
 
 		L.v(ChatColor.LIGHT_PURPLE + "Processing Content");
-		TaskExecutor executor = new TaskExecutor(Runtime.getRuntime().availableProcessors() * 2, Thread.MIN_PRIORITY, "Schematic Processor");
-		TaskGroup gx = executor.startWork();
+		
 		for(GenObjectGroup i : genObjectGroups.v())
 		{
-			gx.queue(i::processVariants);
+			i.processVariants();
 		}
-		
-		gx.execute();
-		executor.close();
 
 		for(String i : dimensions.k())
 		{
@@ -283,5 +279,13 @@ public class PackController implements IrisController
 		}
 
 		return biomes.get(id);
+	}
+
+	public void dispose()
+	{
+		compiledDimensions.clear();
+		dimensions.clear();
+		biomes.clear();
+		genObjectGroups.clear();
 	}
 }

@@ -33,7 +33,7 @@ public class BiomeLayer
 		this.children = new GList<>();
 	}
 
-	private void compile(double scale, int octaves, Function<CNG, CNG> factory)
+	public void compileChildren(double scale, int octaves, Function<CNG, CNG> factory, boolean inf)
 	{
 		if(gen != null)
 		{
@@ -61,7 +61,7 @@ public class BiomeLayer
 
 		for(BiomeLayer i : getChildren())
 		{
-			i.compile(scale, octaves, factory);
+			i.compileChildren(scale, octaves, factory, inf);
 		}
 	}
 
@@ -161,6 +161,11 @@ public class BiomeLayer
 
 	public static BiomeLayer compile(IrisGenerator g, double scale, int octaves, Function<CNG, CNG> factory)
 	{
+		return compile(g, scale, octaves, factory, false);
+	}
+
+	public static BiomeLayer compile(IrisGenerator g, double scale, int octaves, Function<CNG, CNG> factory, boolean inf)
+	{
 		GMap<String, BiomeLayer> components = new GMap<>();
 
 		for(IrisBiome i : g.getDimension().getBiomes())
@@ -204,7 +209,7 @@ public class BiomeLayer
 			master.addLayer(components.get(i));
 		}
 
-		master.compile(scale, octaves, factory);
+		master.compileChildren(scale, octaves, factory, inf);
 
 		return master;
 	}

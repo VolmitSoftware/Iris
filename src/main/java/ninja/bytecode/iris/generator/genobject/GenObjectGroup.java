@@ -21,6 +21,8 @@ public class GenObjectGroup
 	private GList<String> flags;
 	private String name;
 	private int priority;
+	private double worldChance;
+	private int worldRad;
 
 	public GenObjectGroup(String name)
 	{
@@ -28,6 +30,8 @@ public class GenObjectGroup
 		this.flags = new GList<>();
 		this.name = name;
 		priority = Integer.MIN_VALUE;
+		worldChance = Integer.MIN_VALUE;
+		worldRad = 32;
 	}
 
 	public void read(DataInputStream din) throws IOException
@@ -293,6 +297,38 @@ public class GenObjectGroup
 			return false;
 
 		return true;
+	}
+
+	public double getWorldChance()
+	{
+		if(worldChance == Integer.MIN_VALUE)
+		{
+			for(String i : flags)
+			{
+				if(i.startsWith("world chance "))
+				{
+					worldChance = Double.valueOf(i.split("\\Q \\E")[2]);
+				}
+			}
+		}
+
+		return worldChance;
+	}
+
+	public double getWorldRadius()
+	{
+		if(worldRad == Integer.MIN_VALUE)
+		{
+			for(String i : flags)
+			{
+				if(i.startsWith("world radius "))
+				{
+					worldRad = Integer.valueOf(i.split("\\Q \\E")[2]);
+				}
+			}
+		}
+
+		return worldRad;
 	}
 
 }

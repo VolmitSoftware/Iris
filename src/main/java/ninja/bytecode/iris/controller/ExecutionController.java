@@ -8,9 +8,9 @@ import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
 public class ExecutionController implements IrisController
-{ 
+{
 	GMap<String, TaskExecutor> executors;
-	
+
 	@Override
 	public void onStart()
 	{
@@ -20,16 +20,19 @@ public class ExecutionController implements IrisController
 	@Override
 	public void onStop()
 	{
-		
+		for(TaskExecutor i : executors.v())
+		{
+			i.close();
+		}
 	}
-	
-	public TaskExecutor getExecutor(World world)
+
+	public TaskExecutor getExecutor(World world, String f)
 	{
-		TaskExecutor x = new TaskExecutor(getTC(), Iris.settings.performance.threadPriority, "Iris Generator (" + world.getName() + ")");
-		executors.put(world.getWorldFolder().getAbsolutePath() + " (" + world + ")", x);
+		TaskExecutor x = new TaskExecutor(getTC(), Iris.settings.performance.threadPriority, "Iris " + f);
+		executors.put(world.getWorldFolder().getAbsolutePath() + " (" + world + ") " + f, x);
 		return x;
 	}
-	
+
 	private int getTC()
 	{
 		switch(Iris.settings.performance.performanceMode)

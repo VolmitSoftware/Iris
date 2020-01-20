@@ -1,28 +1,28 @@
 package ninja.bytecode.iris.util;
 
-public class ChunkedVector
+public class SChunkVector
 {
 	private byte x;
 	private byte z;
 
-	public ChunkedVector(int x, int z)
+	public SChunkVector(int x, int z)
 	{
 		this.x = (byte) (x);
 		this.z = (byte) (z);
 	}
 
-	public ChunkedVector(byte x, byte z)
+	public SChunkVector(byte x, byte z)
 	{
 		this.x = x;
 		this.z = z;
 	}
 
-	public ChunkedVector(double x, double z)
+	public SChunkVector(double x, double z)
 	{
 		this((int) Math.round(x), (int) Math.round(z));
 	}
 
-	public ChunkedVector()
+	public SChunkVector()
 	{
 		this((byte) 0, (byte) 0);
 	}
@@ -66,13 +66,11 @@ public class ChunkedVector
 			return false;
 		if(getClass() != obj.getClass())
 			return false;
-		ChunkedVector other = (ChunkedVector) obj;
+		SChunkVector other = (SChunkVector) obj;
 		if(x != other.x)
 			return false;
 		if(z != other.z)
 			return false;
 		return true;
 	}
-	
-	
 }

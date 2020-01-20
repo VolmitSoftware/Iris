@@ -98,7 +98,7 @@ public class GenObject
 		}
 
 		mountHeight = avg(avy);
-		mount = new BlockVector(avg(avx), 0, avg(avz));
+		mount = new BlockVector(0, 0, 0);
 	}
 
 	private int avg(double[] v)
@@ -255,7 +255,7 @@ public class GenObject
 
 	public Location place(int wx, int wy, int wz, IPlacer placer)
 	{
-		Location start = new Location(placer.getWorld(), wx, wy, wz).clone().add(sh(w), sh(h) + 1, sh(d));
+		Location start = new Location(placer.getWorld(), wx, wy, wz).clone().add(0, sh(h) + 1, 0);
 
 		if(mount == null)
 		{
@@ -279,21 +279,25 @@ public class GenObject
 			MB b = getSchematic().get(i);
 			Location f = start.clone().add(i.toBlockVector());
 
-			Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
-			if(i.getY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
+			if(!Iris.settings.performance.noObjectFail)
 			{
-				for(Location j : undo.k())
-				{
-					placer.set(j, undo.get(j));
-				}
+				Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
 
-				if(Iris.settings.performance.verbose)
+				if(i.getY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
 				{
-					L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
-				}
+					for(Location j : undo.k())
+					{
+						placer.set(j, undo.get(j));
+					}
 
-				failures++;
-				return null;
+					if(Iris.settings.performance.verbose)
+					{
+						L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
+					}
+
+					failures++;
+					return null;
+				}
 			}
 
 			try

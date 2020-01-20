@@ -1,13 +1,11 @@
 package ninja.bytecode.iris.generator;
 
-import java.util.List;
 import java.util.Random;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
@@ -30,14 +28,15 @@ import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
-import ninja.bytecode.iris.util.ParallelChunkGenerator;
+import ninja.bytecode.iris.util.ParallaxWorldGenerator;
+import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
-public class IrisGenerator extends ParallelChunkGenerator
+public class IrisGenerator extends ParallaxWorldGenerator
 {
 	//@builder
 	public static final GList<MB> ROCK = new GList<MB>().add(new MB[] {
@@ -75,7 +74,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 	private GenLayerCliffs glCliffs;
 	private RNG rTerrain;
 	private CompiledDimension dim;
-	private World world;
 
 	public IrisGenerator()
 	{
@@ -113,7 +111,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		}
 
 		//@builder
-		this.world = world;
 		rTerrain = new RNG(world.getSeed());
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
@@ -124,6 +121,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
+		god = new GenObjectDecorator(this);
 		//@done
 		for(int i = 0; i < 16; i++)
 		{
@@ -242,11 +240,25 @@ public class IrisGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	public Biome genColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan)
+	public void onGenParallax(int x, int z, Random random)
+	{
+		try
+		{
+			god.decorateParallax(x, z, random);
+		}
+
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data)
 	{
 		if(disposed)
 		{
-			setBlock(x, 0, z, Material.MAGENTA_GLAZED_TERRACOTTA);
+			data.setBlock(x, 0, z, Material.MAGENTA_GLAZED_TERRACOTTA);
 			return Biome.VOID;
 		}
 
@@ -296,7 +308,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 					for(int j = 0; j < snowHeight; j++)
 					{
 						highest = j == snowHeight - 1 ? highest < j ? j : highest : highest < j + 1 ? j + 1 : highest;
-						setBlock(x, i + j + 1, z, j == snowHeight - 1 ? Material.SNOW : Material.SNOW_BLOCK, j == snowHeight - 1 ? (byte) layers : (byte) 0);
+						data.setBlock(x, i + j + 1, z, j == snowHeight - 1 ? Material.SNOW : Material.SNOW_BLOCK, j == snowHeight - 1 ? (byte) layers : (byte) 0);
 					}
 				}
 
@@ -307,24 +319,24 @@ public class IrisGenerator extends ParallelChunkGenerator
 					if(!mbx.material.equals(Material.AIR))
 					{
 						highest = i > highest ? i : highest;
-						setBlock(x, i + 1, z, mbx.material, mbx.data);
+						data.setBlock(x, i + 1, z, mbx.material, mbx.data);
 					}
 				}
 			}
 
 			highest = i > highest ? i : highest;
-			setBlock(x, i, z, mb.material, mb.data);
+			data.setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		glCaves.genCaves(wxx, wzx, x, z, height, this);
-		glCarving.genCarves(wxx, wzx, x, z, height, this, biome);
-		glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome);
+		glCaves.genCaves(wxx, wzx, x, z, height, this, data);
+		glCarving.genCarves(wxx, wzx, x, z, height, this, biome, data);
+		glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome, data);
 		int hw = 0;
 		int hl = 0;
 
 		for(int i = highest; i > 0; i--)
 		{
-			Material t = getType(x, i, z);
+			Material t = data.getType(x, i, z);
 			hw = i > seaLevel && hw == 0 && (t.equals(Material.WATER) || t.equals(Material.STATIONARY_WATER)) ? i : hw;
 			hl = hl == 0 && !t.equals(Material.AIR) ? i : hl;
 		}
@@ -337,28 +349,9 @@ public class IrisGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	public void decorateColumn(int wx, int wz, int x, int z, ChunkPlan plan)
-	{
-
-	}
-
-	@Override
 	public void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan)
 	{
 
-	}
-
-	@Override
-	public List<BlockPopulator> getDefaultPopulators(World world)
-	{
-		GList<BlockPopulator> p = new GList<>();
-
-		if(Iris.settings.gen.genObjects)
-		{
-			p.add(god = new GenObjectDecorator(this));
-		}
-
-		return p;
 	}
 
 	private double getBiomedHeight(int x, int z, ChunkPlan plan)
@@ -377,11 +370,6 @@ public class IrisGenerator extends ParallelChunkGenerator
 		return xh;
 	}
 
-	public World getWorld()
-	{
-		return world;
-	}
-
 	public RNG getRTerrain()
 	{
 		return rTerrain;
@@ -398,7 +386,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		{
 			return;
 		}
-		L.w(C.YELLOW + "Disposed Iris World " + C.RED + world.getName());
+		L.w(C.YELLOW + "Disposed Iris World " + C.RED + getWorld().getName());
 		disposed = true;
 		dim = null;
 		glLNoise = null;
@@ -407,6 +395,7 @@ public class IrisGenerator extends ParallelChunkGenerator
 		glCaverns = null;
 		glSnow = null;
 		glCliffs = null;
+		god.dispose();
 	}
 
 	public boolean isDisposed()
@@ -438,5 +427,17 @@ public class IrisGenerator extends ParallelChunkGenerator
 	public PlacedObject randomObject(String string)
 	{
 		return god.randomObject(string);
+	}
+
+	@Override
+	protected SChunkVector getParallaxSize()
+	{
+		return dim.getMaxChunkSize();
+	}
+
+	@Override
+	protected void onUnload()
+	{
+		dispose();
 	}
 }

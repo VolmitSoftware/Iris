@@ -142,6 +142,7 @@ public class PackController implements IrisController
 		for(String i : compiledDimensions.k())
 		{
 			CompiledDimension d = compiledDimensions.get(i);
+			d.computeObjectSize();
 			L.i(ChatColor.GREEN + i + ChatColor.WHITE + " (" + d.getEnvironment().toString().toLowerCase() + ")");
 			L.i(ChatColor.DARK_GREEN + "  Biomes: " + ChatColor.GRAY + F.f(d.getBiomes().size()));
 			L.i(ChatColor.DARK_GREEN + "  Objects: " + ChatColor.GRAY + F.f(d.countObjects()));

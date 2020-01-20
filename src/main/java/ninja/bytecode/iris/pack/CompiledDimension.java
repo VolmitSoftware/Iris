@@ -13,7 +13,10 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 
 import net.md_5.bungee.api.ChatColor;
+import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
+import ninja.bytecode.iris.util.SChunkVector;
+import ninja.bytecode.iris.util.SBlockVector;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
@@ -29,6 +32,8 @@ public class CompiledDimension
 	private GList<IrisBiome> biomes;
 	private GMap<String, IrisBiome> biomeCache;
 	private GMap<String, GenObjectGroup> objects;
+	private SBlockVector maxSize;
+	private SChunkVector maxChunkSize;
 
 	public CompiledDimension(IrisDimension dimension)
 	{
@@ -36,6 +41,8 @@ public class CompiledDimension
 		biomes = new GList<>();
 		biomeCache = new GMap<>();
 		objects = new GMap<>();
+		maxSize = new SBlockVector(0, 0, 0);
+		maxChunkSize = new SChunkVector(0, 0);
 	}
 
 	public void read(InputStream in) throws IOException
@@ -181,5 +188,57 @@ public class CompiledDimension
 		}
 
 		objects.clear();
+	}
+
+	public void computeObjectSize()
+	{
+		int maxWidth = 0;
+		int maxHeight = 0;
+		int maxDepth = 0;
+
+		for(GenObjectGroup i : objects.values())
+		{
+			for(GenObject j : i.getSchematics().copy())
+			{
+				maxWidth = j.getW() > maxWidth ? j.getW() : maxWidth;
+				maxHeight = j.getH() > maxHeight ? j.getH() : maxHeight;
+				maxDepth = j.getD() > maxDepth ? j.getD() : maxDepth;
+			}
+		}
+
+		maxSize = new SBlockVector(maxWidth, maxHeight, maxDepth);
+		maxChunkSize = new SChunkVector(Math.ceil((double) (maxWidth) / 16D), Math.ceil((double) (maxDepth) / 16D));
+		L.i("Max Object Bound is " + maxWidth + ", " + maxHeight + ", " + maxDepth);
+		L.i("Max Object Region is " + maxChunkSize.getX() + " by " + maxChunkSize.getZ() + " Chunks");
+	}
+
+	public static IrisBiome getTheVoid()
+	{
+		return theVoid;
+	}
+
+	public IrisDimension getDimension()
+	{
+		return dimension;
+	}
+
+	public GMap<String, IrisBiome> getBiomeCache()
+	{
+		return biomeCache;
+	}
+
+	public GMap<String, GenObjectGroup> getObjects()
+	{
+		return objects;
+	}
+
+	public SBlockVector getMaxSize()
+	{
+		return maxSize;
+	}
+
+	public SChunkVector getMaxChunkSize()
+	{
+		return maxChunkSize;
 	}
 }

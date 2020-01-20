@@ -8,6 +8,7 @@ import org.bukkit.World;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
@@ -68,7 +69,7 @@ public class GenLayerCaverns extends GenLayer
 		return carver.noise(x + fx, y - fy, z + fz);
 	}
 
-	public void genCaverns(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome)
+	public void genCaverns(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome, AtomicChunkData data)
 	{
 		if(!Iris.settings.gen.genCaverns)
 		{
@@ -103,7 +104,7 @@ public class GenLayerCaverns extends GenLayer
 			if(cavern(wxx, i, wzx) < IrisInterpolation.lerpBezier(0, ch, hill))
 			{
 				carved++;
-				g.setBlock(x, i, z, Material.AIR);
+				data.setBlock(x, i, z, Material.AIR);
 			}
 		}
 
@@ -113,7 +114,7 @@ public class GenLayerCaverns extends GenLayer
 
 			for(int i = Iris.settings.gen.maxCavernHeight; i > Iris.settings.gen.minCavernHeight; i--)
 			{
-				Material m = g.getType(x, i, z);
+				Material m = data.getType(x, i, z);
 				if(!m.equals(Material.AIR))
 				{
 					hit++;
@@ -126,7 +127,7 @@ public class GenLayerCaverns extends GenLayer
 						{
 							for(int j = i; j > i - 5; j--)
 							{
-								if(g.getType(x, j, z).equals(Material.AIR))
+								if(data.getType(x, j, z).equals(Material.AIR))
 								{
 									fail = true;
 									break;
@@ -137,12 +138,12 @@ public class GenLayerCaverns extends GenLayer
 						if(!fail)
 						{
 							MB mb = biome.getSurface(wxx, wzx, g.getRTerrain());
-							g.setBlock(x, i, z, mb.material, mb.data);
+							data.setBlock(x, i, z, mb.material, mb.data);
 						}
 
 						else
 						{
-							g.setBlock(x, i, z, Material.AIR);
+							data.setBlock(x, i, z, Material.AIR);
 						}
 					}
 
@@ -151,12 +152,12 @@ public class GenLayerCaverns extends GenLayer
 						if(!fail)
 						{
 							MB mb = biome.getSubSurface(wxx, i, wzx, g.getRTerrain());
-							g.setBlock(x, i, z, mb.material, mb.data);
+							data.setBlock(x, i, z, mb.material, mb.data);
 						}
 
 						else
 						{
-							g.setBlock(x, i, z, Material.AIR);
+							data.setBlock(x, i, z, Material.AIR);
 						}
 					}
 				}

@@ -8,7 +8,6 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
-import mortar.logic.queue.ChronoLatch;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.iris.controller.TimingsController;
@@ -24,48 +23,64 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private int j;
 	private int wx;
 	private int wz;
-	private AtomicChunkData data;
 	private ReentrantLock biomeLock;
 	private TaskGroup tg;
-	private ChronoLatch el = new ChronoLatch(5000);
 	private boolean ready = false;
 	int cg = 0;
 	private RollingSequence rs = new RollingSequence(512);
 	private World world;
 	private TaskExecutor genPool;
+	private TaskExecutor genPar;
 
 	public World getWorld()
 	{
 		return world;
 	}
 
-	public Biome generateFullColumn(int a, int b, int c, int d, ChunkPlan p)
+	public Biome generateFullColumn(int a, int b, int c, int d, ChunkPlan p, AtomicChunkData data)
 	{
-		return genColumn(a, b, c, d, p);
+		return genColumn(a, b, c, d, p, data);
+	}
+
+	public TaskGroup startParallaxWork()
+	{
+		if(genPar == null)
+		{
+			genPar = Iris.getController(ExecutionController.class).getExecutor(world, "Parallax");
+		}
+
+		return genPar.startWork();
+	}
+
+	public TaskGroup startWork()
+	{
+		if(genPool == null)
+		{
+			genPool = Iris.getController(ExecutionController.class).getExecutor(world, "Generator");
+		}
+
+		return genPool.startWork();
 	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
+		AtomicChunkData data = new AtomicChunkData(world);
+
 		try
 		{
 			Iris.getController(TimingsController.class).started("terrain");
-			if(genPool == null)
-			{
-				genPool = Iris.getController(ExecutionController.class).getExecutor(world);
-			}
 
 			this.world = world;
-			data = new AtomicChunkData(world);
+
 			if(!ready)
 			{
 				biomeLock = new ReentrantLock();
-				onInit(world, random);
+				init(world, random);
 				ready = true;
 			}
 
-			tg = genPool.startWork();
+			tg = startWork();
 			O<ChunkPlan> plan = new O<ChunkPlan>();
-
 			for(i = 0; i < 16; i++)
 			{
 				wx = (x << 4) + i;
@@ -79,7 +94,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					int d = j;
 					tg.queue(() ->
 					{
-						Biome f = generateFullColumn(a, b, c, d, plan.get());
+						Biome f = generateFullColumn(a, b, c, d, plan.get(), data);
 						biomeLock.lock();
 						biome.setBiome(c, d, f);
 						biomeLock.unlock();
@@ -87,9 +102,9 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 				}
 			}
 
-			plan.set(onInitChunk(world, x, z, random));
+			plan.set(initChunk(world, x, z, random));
 			TaskResult r = tg.execute();
-			onPostChunk(world, x, z, random, data, plan.get());
+			postChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
 			cg++;
 			Iris.getController(TimingsController.class).stopped("terrain");
@@ -97,61 +112,32 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		catch(Throwable e)
 		{
-			for(int i = 0; i < 16; i++)
+			try
 			{
-				for(int j = 0; j < 16; j++)
+				for(int i = 0; i < 16; i++)
 				{
-					data.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA);
+					for(int j = 0; j < 16; j++)
+					{
+						data.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA);
+					}
 				}
 			}
 
-			if(el.flip())
+			catch(Throwable ex)
 			{
-				e.printStackTrace();
+
 			}
+			e.printStackTrace();
 		}
 
 		return data.toChunkData();
 	}
 
-	public abstract void onInit(World world, Random random);
+	public abstract void init(World world, Random random);
 
-	public abstract ChunkPlan onInitChunk(World world, int x, int z, Random random);
+	public abstract ChunkPlan initChunk(World world, int x, int z, Random random);
 
-	public abstract void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
+	public abstract void postChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
 
-	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan);
-
-	public abstract void decorateColumn(int wx, int wz, int x, int z, ChunkPlan plan);
-
-	public void setBlock(int x, int y, int z, Material b)
-	{
-		setBlock(x, y, z, b, (byte) 0);
-	}
-
-	@SuppressWarnings("deprecation")
-	public void setBlock(int x, int y, int z, Material b, byte d)
-	{
-		setBlock(x, y, z, b.getId(), d);
-	}
-
-	public void setBlock(int x, int y, int z, int b)
-	{
-		setBlock(x, y, z, b, (byte) 0);
-	}
-
-	public void setBlock(int x, int y, int z, int b, byte d)
-	{
-		data.setBlock(x, y, z, b, d);
-	}
-
-	public Material getType(int x, int y, int z)
-	{
-		return data.getType(x, y, z);
-	}
-
-	public byte getData(int x, int y, int z)
-	{
-		return data.getData(x, y, z);
-	}
+	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data);
 }

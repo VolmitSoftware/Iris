@@ -1,5 +1,10 @@
 package ninja.bytecode.iris.util;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -9,6 +14,8 @@ import org.bukkit.craftbukkit.v1_12_R1.generator.CraftChunkData;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
+
+import mortar.compute.math.M;
 
 public final class AtomicChunkData implements ChunkGenerator.ChunkData
 {
@@ -35,11 +42,125 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	private char[] s15;
 	private char[][] m;
 	private World w;
+	private long lastUse;
+	private int bits;
 
 	public AtomicChunkData(World world)
 	{
 		this.maxHeight = world.getMaxHeight();
 		this.w = world;
+		bits = 0;
+		lastUse = M.ms();
+	}
+
+	public long getTimeSinceLastUse()
+	{
+		return M.ms() - lastUse;
+	}
+
+	public void read(InputStream in) throws IOException
+	{
+		read(in, true);
+	}
+
+	public void read(InputStream in, boolean ignoreAir) throws IOException
+	{
+		DataInputStream din = new DataInputStream(in);
+		int bits = din.readInt();
+
+		for(int i = 0; i < 16; i++)
+		{
+			int bit = getBit(i);
+			if((bits & bit) == bit)
+			{
+				char[] section = getChunkSection(i << 4, true);
+
+				for(int j = 0; j < section.length; j++)
+				{
+					char c = din.readChar();
+
+					if(c == 0 && ignoreAir)
+					{
+						continue;
+					}
+
+					section[j] = c;
+				}
+			}
+		}
+
+		din.close();
+	}
+
+	public void write(OutputStream out) throws IOException
+	{
+		DataOutputStream dos = new DataOutputStream(out);
+		dos.writeInt(getDataBits());
+
+		for(int i = 0; i < 16; i++)
+		{
+			if(hasDataBit(i))
+			{
+				char[] section = getChunkSection(i << 4, false);
+				for(int j = 0; j < section.length; j++)
+				{
+					dos.writeChar(section[j]);
+				}
+			}
+		}
+
+		dos.close();
+	}
+
+	public boolean hasDataBit(int section)
+	{
+		int b = getBit(section);
+		return (bits & b) == b;
+	}
+
+	public void clearDataBits()
+	{
+		bits = 0;
+	}
+
+	public void addDataBit(int section)
+	{
+		bits |= getBit(section);
+	}
+
+	public void removeDataBit(int section)
+	{
+		bits ^= getBit(section);
+	}
+
+	public int getDataBits()
+	{
+		return bits;
+	}
+
+	public int getBit(int index)
+	{
+		return (int) (index < 0 ? -1 : Math.pow(2, index));
+	}
+
+	public int computeDataBits()
+	{
+		int bits = 0;
+
+		for(int i = 0; i < 16; i++)
+		{
+			try
+			{
+				bits |= sections[i].get(this) != null ? getBit(i) : 0;
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		}
+
+		return bits;
 	}
 
 	@Override
@@ -80,6 +201,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	@Override
 	public Material getType(int x, int y, int z)
 	{
+		lastUse = M.ms();
 		return Material.getMaterial(getTypeId(x, y, z));
 	}
 
@@ -87,18 +209,27 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	@Override
 	public MaterialData getTypeAndData(int x, int y, int z)
 	{
+		lastUse = M.ms();
 		return getType(x, y, z).getNewData(getData(x, y, z));
+	}
+
+	@SuppressWarnings("deprecation")
+	public void setBlock(int x, int y, int z, Material blockId, byte data)
+	{
+		setBlock(x, y, z, blockId.getId(), data);
 	}
 
 	@Override
 	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, int blockId)
 	{
+		lastUse = M.ms();
 		setRegion(xMin, yMin, zMin, xMax, yMax, zMax, blockId, (byte) 0);
 	}
 
 	@Override
 	public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, int blockId, int data)
 	{
+		lastUse = M.ms();
 		throw new UnsupportedOperationException("AtomicChunkData does not support setting regions");
 	}
 
@@ -112,6 +243,31 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	public void setBlock(int x, int y, int z, int blockId, byte data)
 	{
 		setBlock(x, y, z, (char) (blockId << 4 | data));
+	}
+
+	@SuppressWarnings("deprecation")
+	public MB getMB(int x, int y, int z)
+	{
+		if(x != (x & 0xf) || y < 0 || y >= maxHeight || z != (z & 0xf))
+		{
+			lastUse = M.ms();
+			return MB.of(Material.AIR);
+		}
+
+		char[] section = getChunkSection(y, false);
+
+		if(section == null)
+		{
+			lastUse = M.ms();
+			return MB.of(Material.AIR);
+		}
+
+		else
+		{
+			lastUse = M.ms();
+			char xf = section[(y & 0xf) << 8 | z << 4 | x];
+			return MB.of(Material.getMaterial(xf >> 4), xf & 0xf);
+		}
 	}
 
 	@Override
@@ -131,6 +287,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 
 		else
 		{
+			lastUse = M.ms();
 			return section[(y & 0xf) << 8 | z << 4 | x] >> 4;
 		}
 	}
@@ -140,6 +297,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 	{
 		if(x != (x & 0xf) || y < 0 || y >= maxHeight || z != (z & 0xf))
 		{
+			lastUse = M.ms();
 			return (byte) 0;
 		}
 
@@ -147,11 +305,13 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 
 		if(section == null)
 		{
+			lastUse = M.ms();
 			return (byte) 0;
 		}
 
 		else
 		{
+			lastUse = M.ms();
 			return (byte) (section[(y & 0xf) << 8 | z << 4 | x] & 0xf);
 		}
 	}
@@ -163,6 +323,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			return;
 		}
 
+		lastUse = M.ms();
 		ReentrantLock l = locks[y >> 4];
 		l.lock();
 		getChunkSection(y, true)[(y & 0xf) << 8 | z << 4 | x] = type;
@@ -181,6 +342,7 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			{
 				sf.set(this, new char[h]);
 				section = (char[]) sf.get(this);
+				addDataBit(s);
 			}
 
 			return section;
@@ -262,5 +424,27 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 		}
 
 		t = x;
+	}
+
+	public void inject(AtomicChunkData data)
+	{
+		for(int i = 0; i < 16; i++)
+		{
+			if(hasDataBit(i))
+			{
+				char[] fromSection = getChunkSection(i << 4, false);
+				char[] toSection = data.getChunkSection(i << 4, true);
+
+				for(int j = 0; j < fromSection.length; j++)
+				{
+					char x = fromSection[j];
+
+					if(x != 0)
+					{
+						toSection[j] = x;
+					}
+				}
+			}
+		}
 	}
 }

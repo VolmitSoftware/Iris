@@ -2,41 +2,34 @@ package ninja.bytecode.iris.generator.genobject;
 
 import java.util.Collections;
 import java.util.Random;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.generator.BlockPopulator;
 
 import mortar.logic.format.F;
 import mortar.util.text.C;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.generator.placer.BukkitPlacer;
-import ninja.bytecode.iris.generator.placer.NMSPlacer;
+import ninja.bytecode.iris.generator.placer.AtomicParallaxPlacer;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.IPlacer;
+import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.ParallaxCache;
+import ninja.bytecode.iris.util.SMCAVector;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
+import ninja.bytecode.shuriken.math.RNG;
 
-public class GenObjectDecorator extends BlockPopulator
+public class GenObjectDecorator
 {
 	private GList<PlacedObject> placeHistory;
 	private GMap<IrisBiome, GList<GenObjectGroup>> orderCache;
 	private GMap<IrisBiome, GMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
-	private Executor ex;
 	private IrisGenerator g;
 	private ChronoLatch cl = new ChronoLatch(250);
 
@@ -46,7 +39,6 @@ public class GenObjectDecorator extends BlockPopulator
 		placeHistory = new GList<>();
 		populationCache = new GMap<>();
 		orderCache = new GMap<>();
-		ex = Executors.newSingleThreadExecutor();
 
 		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
@@ -100,25 +92,24 @@ public class GenObjectDecorator extends BlockPopulator
 		L.i("Population Cache is " + populationCache.size());
 	}
 
-	@Override
-	public void populate(World world, Random rnotusingyou, Chunk source)
+	public void decorateParallax(int cx, int cz, Random random)
 	{
-		if(g.isDisposed())
+		try
 		{
-			placeHistory.clear();
-			return;
-		}
+			if(g.isDisposed())
+			{
+				placeHistory.clear();
+				return;
+			}
 
-		ex.execute(() ->
-		{
-			Random random = new Random(((source.getX() - 32) * (source.getZ() + 54)) + world.getSeed());
+			ParallaxCache cache = new ParallaxCache(g);
 			GSet<IrisBiome> hits = new GSet<>();
 
 			for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
 			{
-				int x = (source.getX() << 4) + random.nextInt(16);
-				int z = (source.getZ() << 4) + random.nextInt(16);
-				IrisBiome biome = g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetX(z));
+				int x = (cx << 4) + random.nextInt(16);
+				int z = (cz << 4) + random.nextInt(16);
+				IrisBiome biome = cache.getBiome(x, z);
 
 				if(hits.contains(biome))
 				{
@@ -133,20 +124,19 @@ public class GenObjectDecorator extends BlockPopulator
 				}
 
 				hits.add(biome);
-
-				populate(world, random, source, biome, orderCache.get(biome));
+				populate(cx, cz, random, biome, cache);
 			}
+		}
 
-			if(Iris.settings.performance.verbose)
-			{
-				L.flush();
-			}
-		});
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
 	}
 
-	private void populate(World world, Random random, Chunk source, IrisBiome biome, GList<GenObjectGroup> order)
+	private void populate(int cx, int cz, Random random, IrisBiome biome, ParallaxCache cache)
 	{
-		for(GenObjectGroup i : order)
+		for(GenObjectGroup i : orderCache.get(biome))
 		{
 			if(biome.getSchematicGroups().get(i.getName()) == null)
 			{
@@ -158,60 +148,65 @@ public class GenObjectDecorator extends BlockPopulator
 			{
 				if(M.r(Iris.settings.gen.objectDensity))
 				{
-					int x = (source.getX() << 4) + random.nextInt(16);
-					int z = (source.getZ() << 4) + random.nextInt(16);
-					Block b = world.getHighestBlockAt(x, z).getRelative(BlockFace.DOWN);
-					Material t = b.getType();
+					GenObject go = i.getSchematics().get(random.nextInt(i.getSchematics().size()));
+					int x = (cx << 4) + random.nextInt(16);
+					int z = (cz << 4) + random.nextInt(16);
 
-					if(!t.isSolid() || !biome.isSurface(t))
+					if(i.getWorldChance() >= 0D)
 					{
-						if(Iris.settings.performance.verbose)
-						{
-							L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place in " + C.YELLOW + t.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(b.getX()) + " " + F.f(b.getY()) + " " + F.f(b.getZ()));
-						}
+						int rngx = (int) Math.floor(x / (double) (i.getWorldRadius() == 0 ? 32 : i.getWorldRadius()));
+						int rngz = (int) Math.floor(z / (double) (i.getWorldRadius() == 0 ? 32 : i.getWorldRadius()));
 
-						continue;
-					}
-
-					if(placer == null)
-					{
-						if(Iris.settings.performance.fastDecoration)
-						{
-							placer = new NMSPlacer(world);
-						}
-
-						else
-						{
-							placer = new BukkitPlacer(world, false);
-						}
-					}
-
-					GenObject g = i.getSchematics().get(random.nextInt(i.getSchematics().size()));
-					Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-					{
-						Location start = g.place(x, b.getY(), z, placer);
-
-						if(start != null)
+						if(new RNG(new SMCAVector(rngx, rngz).hashCode()).nextDouble() < i.getWorldChance())
 						{
 							if(Iris.settings.performance.verbose)
 							{
-								L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + g.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+								L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place due to a world chance.");
 							}
 
-							if(Iris.settings.performance.debugMode)
-							{
-								placeHistory.add(new PlacedObject(start.getBlockX(), start.getBlockY(), start.getBlockZ(), i.getName() + ":" + g.getName()));
+							break;
+						}
+					}
 
-								if(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+					int by = cache.getHeight(x, z);
+					MB mb = cache.get(x, by, z);
+
+					if(!Iris.settings.performance.noObjectFail)
+					{
+						if(!mb.material.isSolid() || !biome.isSurface(mb.material))
+						{
+							if(Iris.settings.performance.verbose)
+							{
+								L.w(C.WHITE + "Object " + C.YELLOW + i.getName() + "/*" + C.WHITE + " failed to place in " + C.YELLOW + mb.material.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(x) + " " + F.f(by) + " " + F.f(z));
+							}
+
+							return;
+						}
+					}
+
+					placer = new AtomicParallaxPlacer(g, cache);
+					Location start = go.place(x, by, z, placer);
+
+					if(start != null)
+					{
+						if(Iris.settings.performance.verbose)
+						{
+							L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + go.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+						}
+
+						if(Iris.settings.performance.debugMode)
+						{
+							placeHistory.add(new PlacedObject(start.getBlockX(), start.getBlockY(), start.getBlockZ(), i.getName() + ":" + go.getName()));
+
+							if(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+							{
+								while(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
 								{
-									while(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
-									{
-										placeHistory.remove(0);
-									}
+									placeHistory.remove(0);
 								}
 							}
 						}
-					});
+					}
 				}
 			}
 		}
@@ -247,6 +242,11 @@ public class GenObjectDecorator extends BlockPopulator
 	public GList<PlacedObject> getHistory()
 	{
 		return placeHistory;
+	}
+
+	public void dispose()
+	{
+
 	}
 
 	public PlacedObject randomObject(String string)

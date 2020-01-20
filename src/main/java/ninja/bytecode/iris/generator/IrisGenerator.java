@@ -223,8 +223,8 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public double getANoise(int x, int z, ChunkPlan plan, IrisBiome biome)
 	{
-		double hv = Iris.settings.performance.interpolation ? IrisInterpolation.getNoise(x, z, Iris.settings.gen.hermiteSampleRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan)) : getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
-		hv += Iris.settings.performance.surfaceNoise ? glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, (double) x * Iris.settings.gen.roughness * 0.82, (double) z * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35)) : 0;
+		double hv = !Iris.settings.performance.fastMode ? IrisInterpolation.getNoise(x, z, Iris.settings.gen.hermiteSampleRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan)) : getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
+		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, (double) x * Iris.settings.gen.roughness * 0.82, (double) z * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35));
 
 		if(biome.hasCliffs())
 		{

@@ -10,13 +10,11 @@ public class Settings
 	public static class PerformanceSettings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
-		public boolean fastDecoration = true;
+		public boolean fastMode = true;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;
 		public int decorationAccuracy = 2;
-		public boolean interpolation = true;
-		public boolean surfaceNoise = true;
 		public boolean noObjectFail = false;
 		public boolean verbose = false;
 		public int placeHistoryLimit = 8192;
@@ -39,7 +37,7 @@ public class Settings
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
 		public double caveDensity = 5;
-		public double caveScale = 1.45;
+		public double caveScale = 1.2;
 		public double biomeScale = 0.65;
 		public boolean flatBedrock = true;
 		public boolean genObjects = true;

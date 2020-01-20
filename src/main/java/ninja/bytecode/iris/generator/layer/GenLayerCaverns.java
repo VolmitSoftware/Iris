@@ -71,7 +71,7 @@ public class GenLayerCaverns extends GenLayer
 
 	public void genCaverns(double wxx, double wzx, int x, int z, int s, IrisGenerator g, IrisBiome biome, AtomicChunkData data)
 	{
-		if(!Iris.settings.gen.genCaverns)
+		if(!Iris.settings.gen.genCaverns || Iris.settings.performance.fastMode)
 		{
 			return;
 		}

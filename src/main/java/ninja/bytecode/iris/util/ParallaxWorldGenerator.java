@@ -48,7 +48,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	@EventHandler
 	public void on(ChunkLoadEvent e)
 	{
-		if(e.getWorld().equals(world))
+		if(!Iris.settings.performance.fastMode && e.getWorld().equals(world))
 		{
 			NMP.host.relight(e.getChunk());
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> fix.add(e.getChunk()), 20);
@@ -109,11 +109,11 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		TaskGroup g = startWork();
 		int gg = 0;
 		int gx = 0;
-		for(int ii = -(getParallaxSize().getX() / 2) - 1; ii < (getParallaxSize().getX() / 2) + 1; ii++)
+		for(int ii = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getX() / 2) - 1; ii < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getX() / 2) + 1)); ii++)
 		{
 			int i = ii;
 
-			for(int jj = -(getParallaxSize().getZ() / 2) - 1; jj < (getParallaxSize().getZ() / 2) + 1; jj++)
+			for(int jj = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getZ() / 2) - 1; jj < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getZ() / 2) + 1)); jj++)
 			{
 				gx++;
 				int j = jj;

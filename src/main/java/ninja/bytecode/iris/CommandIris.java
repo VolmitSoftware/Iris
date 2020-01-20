@@ -32,6 +32,8 @@ public class CommandIris implements CommandExecutor
 		{
 			msg(sender, "/iris timings - Iris Timings");
 			msg(sender, "/iris rtp [biome] - RTP to a biome");
+			msg(sender, "/iris otp [schematic] - RTP to a specific schematic");
+			msg(sender, "/iris info - Chunk info");
 			msg(sender, "/iris reload - Reload & Recompile");
 			msg(sender, "/iris clean - Clean Pack Install in Iris Folder");
 			msg(sender, "/ish - Iris Schematic Commands");

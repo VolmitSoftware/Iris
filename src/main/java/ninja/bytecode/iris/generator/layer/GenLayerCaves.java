@@ -31,7 +31,7 @@ public class GenLayerCaves extends GenLayer
 
 	public void genCaves(double wxx, double wzx, int x, int z, int s, IrisGenerator g, AtomicChunkData data)
 	{
-		if(!Iris.settings.gen.genCaves)
+		if(!Iris.settings.gen.genCaves || Iris.settings.performance.fastMode)
 		{
 			return;
 		}
@@ -40,7 +40,7 @@ public class GenLayerCaves extends GenLayer
 		{
 			double thickness = 0.25 + itr + (0.5 * caveClamp.noise(wxx, wzx));
 			double size = (3.88D * thickness);
-			double variance = 8.34D * thickness;
+			double variance = 3.34D * thickness;
 			double w = size + (variance * caveGirth.noise(wxx, wzx));
 			double h = size + (variance * caveGirth.noise(wzx, wxx));
 			double width = 0;

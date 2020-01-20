@@ -103,7 +103,7 @@ public class PackController implements IrisController
 		}
 
 		L.v(ChatColor.LIGHT_PURPLE + "Processing Content");
-		
+
 		for(GenObjectGroup i : genObjectGroups.v())
 		{
 			i.processVariants();
@@ -129,6 +129,8 @@ public class PackController implements IrisController
 						GenObjectGroup ggx = genObjectGroups.get(k).copy("-snowy-" + j.getSnow());
 						ggx.applySnowFilter((int) (j.getSnow() * 4));
 						d.registerObject(ggx);
+						j.getSchematicGroups().put(ggx.getName(), j.getSchematicGroups().get(k));
+						j.getSchematicGroups().remove(k);
 					}
 				}
 			}
@@ -285,17 +287,17 @@ public class PackController implements IrisController
 		{
 			i.dispose();
 		}
-		
+
 		for(IrisDimension i : dimensions.values())
 		{
 			i.dispose();
 		}
-		
+
 		for(CompiledDimension i : compiledDimensions.values())
 		{
 			i.dispose();
 		}
-		
+
 		compiledDimensions.clear();
 		dimensions.clear();
 		biomes.clear();

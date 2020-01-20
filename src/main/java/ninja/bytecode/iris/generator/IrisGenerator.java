@@ -434,4 +434,9 @@ public class IrisGenerator extends ParallelChunkGenerator
 
 		return f;
 	}
+
+	public PlacedObject randomObject(String string)
+	{
+		return god.randomObject(string);
+	}
 }

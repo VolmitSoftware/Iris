@@ -2,6 +2,7 @@ package ninja.bytecode.iris;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -12,6 +13,7 @@ import mortar.api.nms.NMP;
 import mortar.util.text.C;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.shuriken.format.F;
@@ -82,6 +84,40 @@ public class CommandIris implements CommandExecutor
 					else
 					{
 						msg(sender, "Not in an Iris World");
+					}
+				}
+			}
+
+			if(args[0].equalsIgnoreCase("otp"))
+			{
+				if(sender instanceof Player)
+				{
+					Player p = (Player) sender;
+					World w = p.getWorld();
+
+					if(w.getGenerator() instanceof IrisGenerator)
+					{
+						if(args.length >= 2)
+						{
+							PlacedObject o = ((IrisGenerator) w.getGenerator()).randomObject(args[1]);
+
+							if(o != null)
+							{
+								Location l = new Location(w, o.getX(), o.getY(), o.getZ());
+								p.teleport(l);
+								msg(p, "Found " + C.DARK_GREEN + o.getF().replace(":", "/" + C.WHITE));
+							}
+
+							else
+							{
+								msg(p, "Found Nothing");
+							}
+						}
+
+						else
+						{
+							msg(p, "/iris otp <object/group>");
+						}
 					}
 				}
 			}

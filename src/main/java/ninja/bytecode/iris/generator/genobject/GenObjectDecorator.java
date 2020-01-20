@@ -248,4 +248,24 @@ public class GenObjectDecorator extends BlockPopulator
 	{
 		return placeHistory;
 	}
+
+	public PlacedObject randomObject(String string)
+	{
+		GList<PlacedObject> v = new GList<>();
+
+		for(PlacedObject i : placeHistory)
+		{
+			if(i.getF().toLowerCase().replaceAll("\\Q:\\E", "/").startsWith(string.toLowerCase()))
+			{
+				v.add(i);
+			}
+		}
+
+		if(v.isEmpty())
+		{
+			return null;
+		}
+
+		return v.getRandom();
+	}
 }

@@ -1,6 +1,5 @@
 package ninja.bytecode.iris.util;
 
-import java.util.Collections;
 import java.util.function.Function;
 
 import mortar.lang.collection.GList;

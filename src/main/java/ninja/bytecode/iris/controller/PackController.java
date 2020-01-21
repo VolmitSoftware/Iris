@@ -5,8 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.bukkit.command.CommandSender;
-
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.genobject.GenObject;

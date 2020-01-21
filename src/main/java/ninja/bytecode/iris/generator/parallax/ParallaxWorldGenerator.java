@@ -16,6 +16,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import mortar.api.nms.NMP;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.TimingsController;
+import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisWorldData;
@@ -117,7 +118,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 
 	public ParallaxAnchor computeAnchor(int wx, int wz, ChunkPlan heightBuffer, AtomicChunkData data)
 	{
-		onGenColumn(wx, wz, wx & 15, wz & 15, heightBuffer, data);
+		onGenColumn(wx, wz, wx & 15, wz & 15, heightBuffer, data, false);
 
 		return new ParallaxAnchor(heightBuffer.getRealHeight(wx & 15, wz & 15), heightBuffer.getRealWaterHeight(wx & 15, wz & 15), heightBuffer.getBiome(wx & 15, wz & 15), data);
 	}
@@ -125,7 +126,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	public ParallaxAnchor computeAnchor(int wx, int wz)
 	{
 		ChunkPlan heightBuffer = new ChunkPlan();
-		onGenColumn(wx, wz, wx & 15, wz & 15, heightBuffer, buffer);
+		onGenColumn(wx, wz, wx & 15, wz & 15, heightBuffer, buffer, false);
 
 		return new ParallaxAnchor(heightBuffer.getRealHeight(wx & 15, wz & 15), heightBuffer.getRealWaterHeight(wx & 15, wz & 15), heightBuffer.getBiome(wx & 15, wz & 15), buffer);
 	}
@@ -140,35 +141,40 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	public final ChunkPlan initChunk(World world, int x, int z, Random random)
 	{
 		PrecisionStopwatch ps = PrecisionStopwatch.start();
-		TaskGroup g = startWork();
 		int gg = 0;
 		int gx = 0;
-		for(int ii = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getX() / 2) - 1; ii < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getX() / 2) + 1)); ii++)
+		TaskGroup g = startWork();
+		if(Iris.settings.gen.genObjects)
 		{
-			int i = ii;
-
-			for(int jj = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getZ() / 2) - 1; jj < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getZ() / 2) + 1)); jj++)
+			for(int ii = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getX() / 2) - 1; ii < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getX() / 2) + 1)); ii++)
 			{
-				gx++;
-				int j = jj;
-				int cx = x + i;
-				int cz = z + j;
+				int i = ii;
 
-				if(!getWorldData().exists(cx, cz))
+				for(int jj = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getZ() / 2) - 1; jj < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getZ() / 2) + 1)); jj++)
 				{
-					g.queue(() ->
-					{
-						onGenParallax(cx, cz, getRMaster(cx, cz, -59328));
-						getWorldData().getChunk(cx, cz);
-					});
+					gx++;
+					int j = jj;
+					int cx = x + i;
+					int cz = z + j;
 
-					gg++;
+					if(!getWorldData().exists(cx, cz))
+					{
+						g.queue(() ->
+						{
+							onGenParallax(cx, cz, getRMaster(cx, cz, -59328));
+							getWorldData().getChunk(cx, cz);
+						});
+
+						gg++;
+					}
 				}
 			}
+
 		}
 
 		double a = ps.getMilliseconds();
 		double b = g.execute().timeElapsed;
+		((IrisGenerator) this).getMetrics().put("parallax:ms:/chunk", ps.getMillis());
 
 		if(Iris.settings.performance.verbose)
 		{
@@ -186,9 +192,9 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	}
 
 	@Override
-	public final Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data)
+	public final Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surface)
 	{
-		return onGenColumn(wx, wz, x, z, plan, data);
+		return onGenColumn(wx, wz, x, z, plan, data, surface);
 	}
 
 	public World getWorld()
@@ -221,7 +227,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 
 	public abstract ChunkPlan onInitChunk(World world, int x, int z, Random random);
 
-	public abstract Biome onGenColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data2);
+	public abstract Biome onGenColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly);
 
 	public abstract void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
 }

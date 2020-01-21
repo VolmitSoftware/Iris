@@ -189,6 +189,7 @@ public class GenObjectDecorator
 
 					if(start != null)
 					{
+						g.hitObject();
 						if(Iris.settings.performance.verbose)
 						{
 							L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + go.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));

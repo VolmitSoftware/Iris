@@ -123,7 +123,7 @@ public class WorldReactor
 						{
 							for(int j = 0; j < 16; j++)
 							{
-								gen.onGenColumn((x << 4) + i, (z << 4) + j, i, j, typlan, tydata);
+								gen.onGenColumn((x << 4) + i, (z << 4) + j, i, j, typlan, tydata, true);
 							}
 						}
 

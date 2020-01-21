@@ -43,11 +43,21 @@ public class CommandIris implements CommandExecutor
 		{
 			if(args[0].equalsIgnoreCase("timings"))
 			{
-				double t = Iris.getController(TimingsController.class).getResult("terrain");
-				double d = Iris.getController(TimingsController.class).getResult("decor");
-				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t + d, 2));
-				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t, 2));
-				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(d, 2));
+				if(sender instanceof Player)
+				{
+					Player p = (Player) sender;
+					World w = p.getWorld();
+
+					if(w.getGenerator() instanceof IrisGenerator)
+					{
+						((IrisGenerator) w.getGenerator()).getMetrics().send(p, (m) -> msg(p, m));
+					}
+
+					else
+					{
+						msg(p, "You must be in an iris world for this");
+					}
+				}
 			}
 
 			if(args[0].equalsIgnoreCase("info"))

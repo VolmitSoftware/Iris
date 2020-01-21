@@ -6,10 +6,13 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.generator.ChunkGenerator.BiomeGrid;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.IrisMetrics;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
@@ -25,11 +28,14 @@ import ninja.bytecode.iris.generator.parallax.ParallaxWorldGenerator;
 import ninja.bytecode.iris.pack.BiomeType;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.ChunkPlan;
+import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.SChunkVector;
+import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
@@ -74,14 +80,24 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private GenLayerCliffs glCliffs;
 	private RNG rTerrain;
 	private CompiledDimension dim;
+	private IrisMetrics metrics = new IrisMetrics(0, 512);
+	private int objectHits;
 
 	public IrisGenerator()
 	{
 		this(Iris.getController(PackController.class).getDimension("overworld"));
 	}
 
+	public void hitObject()
+	{
+		objectHits++;
+	}
+
 	public IrisGenerator(CompiledDimension dim)
 	{
+		objectHits = 0;
+		CNG.hits = 0;
+		CNG.creates = 0;
 		this.dim = dim;
 		disposed = false;
 		L.i("Preparing Dimension: " + dim.getName() + " With " + dim.getBiomes().size() + " Biomes...");
@@ -147,6 +163,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public IrisBiome getBiome(int wxx, int wzx)
 	{
+		PrecisionStopwatch c = getMetrics().start();
 		IrisBiome biome = glBiome.getBiome(wxx, wzx);
 		IrisBiome real = glBiome.getBiome(wxx, wzx, true);
 		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
@@ -157,8 +174,20 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;
 		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(real) : biome;
 		biome = height >= beach && !biome.getType().equals(BiomeType.LAND) ? real : biome;
+		getMetrics().stop("biome:ms:x256:/terrain:..", c);
 
 		return biome;
+	}
+
+	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
+	{
+		PrecisionStopwatch s = getMetrics().start();
+		ChunkData d = super.generateChunkData(world, random, x, z, biome);
+		getMetrics().stop("chunk:ms", s);
+		getMetrics().put("noise-hits", CNG.hits);
+		metrics.setGenerators((int) CNG.creates);
+		CNG.hits = 0;
+		return d;
 	}
 
 	public IrisBiome biome(String name)
@@ -174,6 +203,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	public double getOffsetZ(double z)
 	{
 		return Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+	}
+
+	public IrisMetrics getMetrics()
+	{
+		return metrics;
 	}
 
 	public IrisBiome getOcean(IrisBiome biome, int height)
@@ -221,9 +255,39 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return (int) Math.round(M.clip(getANoise((int) x, (int) z, plan, biome), 0D, 1D) * 253);
 	}
 
+	public double getInterpolation(int x, int z, ChunkPlan plan)
+	{
+		PrecisionStopwatch s = getMetrics().start();
+		double d = 0;
+		InterpolationMode m = Iris.settings.gen.interpolationMode;
+		if(m.equals(InterpolationMode.BILINEAR))
+		{
+			d = IrisInterpolation.getBilinearNoise(x, z, Iris.settings.gen.interpolationRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
+		}
+
+		else if(m.equals(InterpolationMode.BICUBIC))
+		{
+			d = IrisInterpolation.getBicubicNoise(x, z, Iris.settings.gen.interpolationRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
+		}
+
+		else if(m.equals(InterpolationMode.HERMITE_BICUBIC))
+		{
+			d = IrisInterpolation.getHermiteNoise(x, z, Iris.settings.gen.interpolationRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan));
+		}
+
+		else
+		{
+			d = getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
+		}
+
+		getMetrics().stop("interpolation:ms:x256:/biome:.", s);
+
+		return d;
+	}
+
 	public double getANoise(int x, int z, ChunkPlan plan, IrisBiome biome)
 	{
-		double hv = !Iris.settings.performance.fastMode ? IrisInterpolation.getNoise(x, z, Iris.settings.gen.hermiteSampleRadius, (xf, zf) -> getBiomedHeight((int) Math.round(xf), (int) Math.round(zf), plan)) : getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
+		double hv = !Iris.settings.performance.fastMode ? getInterpolation(x, z, plan) : getBiomedHeight((int) Math.round(x), (int) Math.round(z), plan);
 		hv += glLNoise.generateLayer(hv * Iris.settings.gen.roughness * 215, (double) x * Iris.settings.gen.roughness * 0.82, (double) z * Iris.settings.gen.roughness * 0.82) * (1.6918 * (hv * 2.35));
 
 		if(biome.hasCliffs())
@@ -244,7 +308,10 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	{
 		try
 		{
+			PrecisionStopwatch s = getMetrics().start();
 			god.decorateParallax(x, z, random);
+			String xx = "x" + getParallaxSize().getX() * getParallaxSize().getZ();
+			getMetrics().stop("object:" + xx + ":.:ms:/parallax", s);
 		}
 
 		catch(Throwable e)
@@ -253,9 +320,17 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		}
 	}
 
-	@Override
-	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data)
+	private double getObjectHits()
 	{
+		int hits = objectHits;
+		objectHits = 0;
+		return hits;
+	}
+
+	@Override
+	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly)
+	{
+		PrecisionStopwatch s = getMetrics().start();
 		if(disposed)
 		{
 			data.setBlock(x, 0, z, Material.MAGENTA_GLAZED_TERRACOTTA);
@@ -274,7 +349,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
 
-		for(int i = 0; i < max; i++)
+		for(int i = surfaceOnly ? max > seaLevel ? max - 2 : height - 2 : 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));
 			boolean underwater = i >= height && i < seaLevel;
@@ -328,9 +403,22 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			data.setBlock(x, i, z, mb.material, mb.data);
 		}
 
-		glCaves.genCaves(wxx, wzx, x, z, height, this, data);
+		getMetrics().stop("terrain:ms:x256:/chunk:..", s);
+
+		if(!surfaceOnly)
+		{
+			PrecisionStopwatch c = getMetrics().start();
+			glCaves.genCaves(wxx, wzx, x, z, height, this, data);
+			getMetrics().stop("caves:ms:x256:/terrain:..", c);
+			PrecisionStopwatch v = getMetrics().start();
+			glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome, data);
+			getMetrics().stop("caverns:ms:x256:/terrain:..", v);
+		}
+
+		PrecisionStopwatch c = getMetrics().start();
 		glCarving.genCarves(wxx, wzx, x, z, height, this, biome, data);
-		glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome, data);
+		getMetrics().stop("carving:ms:x256:/terrain:..", c);
+
 		int hw = 0;
 		int hl = 0;
 
@@ -344,6 +432,10 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		plan.setRealHeight(x, z, hl);
 		plan.setRealWaterHeight(x, z, hw == 0 ? seaLevel : hw);
 		plan.setBiome(x, z, biome);
+		double time = s.getMilliseconds() * 256D;
+		double atime = getMetrics().get("chunk:ms").getAverage();
+		getMetrics().setParScale(time / atime);
+		getMetrics().put("objects:,:/parallax", getObjectHits());
 
 		return biome.getRealBiome();
 	}

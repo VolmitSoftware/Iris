@@ -1,3 +1,4 @@
+
 package ninja.bytecode.iris.util;
 
 import org.bukkit.block.BlockFace;

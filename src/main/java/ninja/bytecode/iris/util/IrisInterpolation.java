@@ -112,6 +112,62 @@ public class IrisInterpolation
 		return cubic(cubic(p00, p01, p02, p03, muy), cubic(p10, p11, p12, p13, muy), cubic(p20, p21, p22, p23, muy), cubic(p30, p31, p32, p33, muy), mux);
 	}
 
+	public static double getBilinearNoise(int x, int z, int rad, NoiseProvider n)
+	{
+		int fx = x >> rad;
+		int fz = z >> rad;
+		int x1 = (fx << rad);
+		int z1 = (fz << rad);
+		int x2 = ((fx + 1) << rad);
+		int z2 = ((fz + 1) << rad);
+		double px = M.rangeScale(0, 1, x1, x2, x);
+		double pz = M.rangeScale(0, 1, z1, z2, z);
+		//@builder
+		return blerpBezier( 
+				n.noise(x1, z1), 
+				n.noise(x2, z1), 
+				n.noise(x1, z2), 
+				n.noise(x2, z2),
+				px, pz);
+		//@done
+	}
+
+	public static double getBicubicNoise(int x, int z, int rad, NoiseProvider n)
+	{
+		int fx = x >> rad;
+		int fz = z >> rad;
+		int x0 = ((fx - 1) << rad);
+		int z0 = ((fz - 1) << rad);
+		int x1 = (fx << rad);
+		int z1 = (fz << rad);
+		int x2 = ((fx + 1) << rad);
+		int z2 = ((fz + 1) << rad);
+		int x3 = ((fx + 2) << rad);
+		int z3 = ((fz + 2) << rad);
+		double px = M.rangeScale(0, 1, x1, x2, x);
+		double pz = M.rangeScale(0, 1, z1, z2, z);
+		//@builder
+		return bicubic(
+				n.noise(x0, z0), 
+				n.noise(x0, z1), 
+				n.noise(x0, z2), 
+				n.noise(x0, z3), 
+				n.noise(x1, z0), 
+				n.noise(x1, z1), 
+				n.noise(x1, z2), 
+				n.noise(x1, z3), 
+				n.noise(x2, z0), 
+				n.noise(x2, z1), 
+				n.noise(x2, z2), 
+				n.noise(x2, z3), 
+				n.noise(x3, z0), 
+				n.noise(x3, z1), 
+				n.noise(x3, z2), 
+				n.noise(x3, z3), 
+				px, pz);
+		//@done
+	}
+
 	public static double getHermiteNoise(int x, int z, int rad, NoiseProvider n)
 	{
 		int fx = x >> rad;
@@ -146,10 +202,5 @@ public class IrisInterpolation
 				n.noise(x3, z3), 
 				px, pz, 0.00001, 0.5);
 		//@done
-	}
-
-	public static double getNoise(int x, int z, int lrad, NoiseProvider n)
-	{
-		return getHermiteNoise(x, z, lrad, n);
 	}
 }

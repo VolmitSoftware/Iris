@@ -33,7 +33,7 @@ public class ExecutionController implements IrisController
 		return x;
 	}
 
-	private int getTC()
+	public int getTC()
 	{
 		switch(Iris.settings.performance.performanceMode)
 		{

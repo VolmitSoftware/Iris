@@ -48,7 +48,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public Biome generateFullColumn(int a, int b, int c, int d, ChunkPlan p, AtomicChunkData data)
 	{
-		return genColumn(a, b, c, d, p, data);
+		return genColumn(a, b, c, d, p, data, false);
 	}
 
 	public TaskGroup startParallaxWork()
@@ -158,5 +158,5 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public abstract void postChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan);
 
-	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data);
+	public abstract Biome genColumn(int wx, int wz, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly);
 }

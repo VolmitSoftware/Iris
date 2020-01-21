@@ -281,22 +281,25 @@ public class GenObject
 
 			if(!Iris.settings.performance.noObjectFail)
 			{
-				Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
-
-				if(i.getY() == mountHeight && (m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA)))
+				if(f.getBlockY() == 63 && i.getY() == mountHeight)
 				{
-					for(Location j : undo.k())
-					{
-						placer.set(j, undo.get(j));
-					}
+					Material m = placer.get(f.clone().subtract(0, 1, 0)).material;
 
-					if(Iris.settings.performance.verbose)
+					if(m.equals(Material.WATER) || m.equals(Material.STATIONARY_WATER) || m.equals(Material.LAVA) || m.equals(Material.STATIONARY_LAVA))
 					{
-						L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
-					}
+						for(Location j : undo.k())
+						{
+							placer.set(j, undo.get(j));
+						}
 
-					failures++;
-					return null;
+						if(Iris.settings.performance.verbose)
+						{
+							L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
+						}
+
+						failures++;
+						return null;
+					}
 				}
 			}
 

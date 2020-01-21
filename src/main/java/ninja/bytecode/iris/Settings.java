@@ -1,5 +1,6 @@
 package ninja.bytecode.iris;
 
+import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.PerformanceMode;
 
 public class Settings
@@ -22,8 +23,9 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
+		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
+		public int interpolationRadius = 5;
 		public double objectDensity = 1D;
-		public int hermiteSampleRadius = 4;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
 		public double landScale = 0.25;

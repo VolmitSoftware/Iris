@@ -1,7 +1,5 @@
 package ninja.bytecode.iris;
 
-import java.util.Random;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -12,24 +10,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import mortar.api.nms.NMP;
-import mortar.compute.math.M;
-import mortar.lang.collection.FinalBoolean;
 import mortar.util.text.C;
-import mortar.util.text.PhantomSpinner;
 import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.generator.WorldReactor;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
-import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
-import ninja.bytecode.iris.util.SMCAVector;
-import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.execution.ChronoLatch;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.format.F;
-import ninja.bytecode.shuriken.math.CNG;
-import ninja.bytecode.shuriken.math.RNG;
 
 public class CommandIris implements CommandExecutor
 {
@@ -223,86 +210,6 @@ public class CommandIris implements CommandExecutor
 			{
 				msg(sender, "Reloading Iris...");
 				Iris.instance.reload();
-			}
-
-			if(args[0].equalsIgnoreCase("pregen"))
-			{
-				Player p = ((Player) sender);
-				int x = Integer.valueOf(args[1]);
-				int z = Integer.valueOf(args[2]);
-				int tc = Integer.valueOf(args[3]);
-				msg(sender, "Generating MCA[" + x + "," + z + "] with " + tc + " Threads");
-				WorldReactor reactor = new WorldReactor(p.getWorld());
-
-				GMap<SMCAVector, TaskExecutor> xf = new GMap<>();
-				xf.put(new SMCAVector(x, z), new TaskExecutor(tc / 4, Thread.MAX_PRIORITY, "Iris Reactor " + x + "," + z));
-				xf.put(new SMCAVector(x + 1, z), new TaskExecutor(tc / 4, Thread.MAX_PRIORITY, "Iris Reactor " + x + "," + z));
-				xf.put(new SMCAVector(x, z + 1), new TaskExecutor(tc / 4, Thread.MAX_PRIORITY, "Iris Reactor " + x + "," + z));
-				xf.put(new SMCAVector(x + 1, z + 1), new TaskExecutor(tc / 4, Thread.MAX_PRIORITY, "Iris Reactor " + x + "," + z));
-				FinalBoolean d = new FinalBoolean(false);
-				CNG cng = new CNG(RNG.r, 1D, 12);
-				reactor.generateMultipleRegions(xf, true, 45, (px) ->
-				{
-					for(int mf = 0; mf < 20; mf++)
-					{
-						double n = cng.noise(0, (double) (mf + ((double) M.tick() / 1D)) / 6D);
-						int b = 40;
-						int g = (int) (n * b);
-						p.sendMessage(F.repeat(" ", g) + "◐");
-					}
-
-					p.sendMessage(" ");
-
-					msg(p, "Generating: " + C.GOLD + F.pc(px));
-				}, () ->
-				{
-					d.set(true);
-					msg(sender, "Done.");
-					p.teleport(new Location(p.getWorld(), (((x << 5) + 32) << 4), 200, (((z << 5) + 32) << 4)));
-
-					for(TaskExecutor i : xf.v())
-					{
-						i.close();
-					}
-				});
-			}
-
-			if(args[0].equalsIgnoreCase("regen"))
-			{
-				Player p = ((Player) sender);
-				int x = p.getLocation().getChunk().getX() >> 5;
-				int z = p.getLocation().getChunk().getZ() >> 5;
-				int tc = Runtime.getRuntime().availableProcessors();
-				msg(sender, "Generating with " + tc + " Threads");
-				WorldReactor reactor = new WorldReactor(p.getWorld());
-				TaskExecutor e = new TaskExecutor(tc, Thread.MAX_PRIORITY, "Iris Reactor " + x + "," + z);
-				FinalBoolean d = new FinalBoolean(false);
-				CNG cng = new CNG(RNG.r, 1D, 12);
-				Location l = new Location(p.getWorld(), (((x << 5) + 16) << 4), 200, (((z << 5) + 16) << 4));
-				l.setDirection(p.getLocation().getDirection());
-				l.setY(p.getLocation().getY());
-				p.teleport(l);
-
-				reactor.generateRegionNormal(p, x, z, true, 45, (px) ->
-				{
-					for(int mf = 0; mf < 20; mf++)
-					{
-						double n = cng.noise(0, (double) (mf + ((double) M.tick() / 1D)) / 6D);
-						int b = 40;
-						int g = (int) (n * b);
-						p.sendMessage(F.repeat(" ", g) + "◐");
-					}
-
-					p.sendMessage(" ");
-
-					msg(p, "Generating: " + C.GOLD + F.pc(px));
-				}, () ->
-				{
-					d.set(true);
-					msg(sender, "Done.");
-
-					e.close();
-				});
 			}
 
 			if(args[0].equalsIgnoreCase("refresh"))

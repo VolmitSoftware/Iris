@@ -85,6 +85,39 @@ public class PolygonGenerator
 		return false;
 	}
 
+	public boolean hasBorder3D(int checks, double distance, double... dims)
+	{
+		int current = getIndex(dims);
+		double ajump = 360D / (double) checks;
+		int hit = -1;
+		int hit2 = -1;
+
+		if(dims.length == 3)
+		{
+			for(int i = 0; i < checks; i++)
+			{
+				double dx = M.sin((float) Math.toRadians(ajump * i));
+				double dz = M.cos((float) Math.toRadians(ajump * i));
+				double dy = Math.tan(Math.toRadians(ajump * i));
+				int d = getIndex((dx * distance) + dims[0], (dz * distance) + dims[1], (dy * distance) + dims[2]);
+				if(current != d)
+				{
+					if(hit >= 0 && hit != current && hit != d)
+					{
+						return true;
+					}
+
+					if(hit < 0)
+					{
+						hit = d;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 	/**
 	 * Returns 0.0 to 1.0 where 0.0 is directly on the border of another region and
 	 * 1.0 is perfectly in the center of a region

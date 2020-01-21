@@ -164,6 +164,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 				}
 			}
 
+			g.execute();
 		}
 
 		((IrisGenerator) this).getMetrics().put("parallax:ms:/chunk", ps.getMillis());

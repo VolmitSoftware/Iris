@@ -10,7 +10,9 @@ import mortar.api.nms.NMP;
 import mortar.api.sched.J;
 import mortar.compute.math.M;
 import mortar.lang.collection.FinalDouble;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChronoQueue;
+import ninja.bytecode.iris.util.ObjectMode;
 
 public class WorldReactor
 {
@@ -37,6 +39,12 @@ public class WorldReactor
 
 				if(world.isChunkLoaded(x, z) || world.loadChunk(x, z, false))
 				{
+					if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && world.getGenerator() instanceof IrisGenerator)
+					{
+						IrisGenerator gg = ((IrisGenerator) world.getGenerator());
+						gg.getWorldData().deleteChunk(x, z);
+					}
+
 					max.add(1);
 					q.queue(() ->
 					{

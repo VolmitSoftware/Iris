@@ -22,6 +22,7 @@ import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
+import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
@@ -255,7 +256,6 @@ public class CommandIris implements CommandExecutor
 					{
 						Consumer<String> m = (msg) ->
 						{
-
 							J.s(() ->
 							{
 								String mm = msg;
@@ -280,7 +280,6 @@ public class CommandIris implements CommandExecutor
 						{
 							J.s(() ->
 							{
-
 								World i = Bukkit.getWorld(fi);
 								CompiledDimension dim = c.getDimension(f.get(fi));
 
@@ -311,6 +310,7 @@ public class CommandIris implements CommandExecutor
 								ChronoLatch cl = new ChronoLatch(3000);
 								Player p = (Player) sender;
 								World ww = ((Player) sender).getWorld();
+								
 								msg(p, "Regenerating View Distance");
 
 								WorldReactor r = new WorldReactor(ww);

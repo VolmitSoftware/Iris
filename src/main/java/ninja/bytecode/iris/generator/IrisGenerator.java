@@ -18,9 +18,6 @@ import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
-import ninja.bytecode.iris.generator.layer.GenLayerCarving;
-import ninja.bytecode.iris.generator.layer.GenLayerCaverns;
-import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerCliffs;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerSnow;
@@ -34,6 +31,7 @@ import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
+import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
@@ -72,9 +70,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private GenObjectDecorator god;
 	private GenLayerLayeredNoise glLNoise;
 	private GenLayerBiome glBiome;
-	private GenLayerCaves glCaves;
-	private GenLayerCarving glCarving;
-	private GenLayerCaverns glCaverns;
 	private GenLayerSnow glSnow;
 	private GenLayerCliffs glCliffs;
 	private RNG rTerrain;
@@ -128,9 +123,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		rTerrain = new RNG(world.getSeed());
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
-		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(-1));
-		glCarving = new GenLayerCarving(this, world, random, rTerrain.nextParallelRNG(-2));
-		glCaverns = new GenLayerCaverns(this, world, random, rTerrain.nextParallelRNG(-3));
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
@@ -327,9 +319,30 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return hits;
 	}
 
+	PolygonGenerator pg = new PolygonGenerator(RNG.r, 2, 0.013, 1, (g) -> g);
+
 	@Override
 	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly)
 	{
+		/////////////////////////
+		if(false)
+		{
+			int height = 64;
+			int girth = 3;
+
+			for(int j = 1; j < (girth * 2) + 1; j++)
+			{
+				int i = j > girth ? girth - j : j;
+				if(pg.hasBorder(12, i, wxxf, wzxf))
+				{
+					data.setBlock(x, height + j, z, Material.STAINED_GLASS, (byte) 15);
+				}
+			}
+
+			return Biome.VOID;
+		}
+		/////////////////////////
+
 		PrecisionStopwatch s = getMetrics().start();
 		if(disposed)
 		{
@@ -405,20 +418,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 		getMetrics().stop("terrain:ms:x256:/chunk:..", s);
 
-		if(!surfaceOnly)
-		{
-			PrecisionStopwatch c = getMetrics().start();
-			glCaves.genCaves(wxx, wzx, x, z, height, this, data);
-			getMetrics().stop("caves:ms:x256:/terrain:..", c);
-			PrecisionStopwatch v = getMetrics().start();
-			glCaverns.genCaverns(wxx, wzx, x, z, height, this, biome, data);
-			getMetrics().stop("caverns:ms:x256:/terrain:..", v);
-		}
-
-		PrecisionStopwatch c = getMetrics().start();
-		glCarving.genCarves(wxx, wzx, x, z, height, this, biome, data);
-		getMetrics().stop("carving:ms:x256:/terrain:..", c);
-
 		int hw = 0;
 		int hl = 0;
 
@@ -482,9 +481,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		disposed = true;
 		dim = null;
 		glLNoise = null;
-		glCaves = null;
-		glCarving = null;
-		glCaverns = null;
 		glSnow = null;
 		glCliffs = null;
 		god.dispose();

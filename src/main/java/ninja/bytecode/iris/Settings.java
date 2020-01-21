@@ -28,8 +28,8 @@ public class Settings
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
-		public double landScale = 0.25;
-		public double landChance = 0.45;
+		public double landScale = 0.75;
+		public double landChance = 0.55;
 		public double roughness = 1.55;
 		public double biomeEdgeScrambleScale = 1;
 		public double heightMultiplier = 0.806;

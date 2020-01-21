@@ -1,11 +1,8 @@
 package ninja.bytecode.iris;
 
-import java.lang.reflect.Executable;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
-
-import com.amazonaws.http.ExecutionContext;
 
 import mortar.compute.math.M;
 import mortar.util.text.C;

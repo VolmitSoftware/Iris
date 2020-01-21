@@ -589,11 +589,11 @@ public class IrisBiome
 		return scatterChance;
 	}
 
-	public MB getScatterChanceSingle()
+	public MB getScatterChanceSingle(double d)
 	{
 		for(MB i : getScatterChance().keySet())
 		{
-			if(M.r(getScatterChance().get(i)))
+			if(d < getScatterChance().get(i))
 			{
 				return i;
 			}

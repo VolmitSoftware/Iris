@@ -12,7 +12,7 @@ public enum ObjectMode
 	 * 
 	 * Lighting is applied later with packets
 	 */
-	FAST_LIGHTING,
+	QUICK_N_DIRTY,
 
 	/**
 	 * Somewhat slow but produces near-perfect results. Updates lighting.

@@ -1,5 +1,8 @@
 package ninja.bytecode.iris;
 
+import java.util.function.Consumer;
+
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -10,13 +13,20 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import mortar.api.nms.NMP;
+import mortar.api.sched.J;
 import mortar.util.text.C;
-import ninja.bytecode.iris.controller.TimingsController;
+import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.WorldReactor;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
+import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
+import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.logging.L;
 
 public class CommandIris implements CommandExecutor
 {
@@ -34,6 +44,7 @@ public class CommandIris implements CommandExecutor
 			msg(sender, "/iris rtp [biome] - RTP to a biome");
 			msg(sender, "/iris otp [schematic] - RTP to a specific schematic");
 			msg(sender, "/iris info - Chunk info");
+			msg(sender, "/iris hotload - Recompile pack & inject into worlds");
 			msg(sender, "/iris reload - Reload & Recompile");
 			msg(sender, "/iris clean - Clean Pack Install in Iris Folder");
 			msg(sender, "/ish - Iris Schematic Commands");
@@ -214,6 +225,130 @@ public class CommandIris implements CommandExecutor
 						msg(sender, "Not in an Iris World");
 					}
 				}
+			}
+
+			if(args[0].equalsIgnoreCase("hotload"))
+			{
+				msg(sender, "=== Hotloading Pack ===");
+				PackController c = Iris.getController(PackController.class);
+				GMap<String, String> f = new GMap<>();
+
+				for(World i : Bukkit.getWorlds())
+				{
+					if(i.getGenerator() instanceof IrisGenerator)
+					{
+						String n = ((IrisGenerator) i.getGenerator()).getDimension().getName();
+						msg(sender, "Preparing " + n);
+						f.put(i.getName(), n);
+					}
+				}
+
+				if(f.isEmpty())
+				{
+					msg(sender, "No Worlds to inject!");
+					return true;
+				}
+
+				J.a(() ->
+				{
+					try
+					{
+						Consumer<String> m = (msg) ->
+						{
+
+							J.s(() ->
+							{
+								String mm = msg;
+
+								if(msg.contains("|"))
+								{
+									GList<String> fx = new GList<>();
+									fx.add(msg.split("\\Q|\\E"));
+									fx.remove(0);
+									fx.remove(0);
+									mm = fx.toString("");
+								}
+
+								msg(sender, mm.replaceAll("\\Q  \\E", ""));
+							});
+						};
+						L.addLogConsumer(m);
+						c.compile();
+						L.logConsumers.remove(m);
+
+						for(String fi : f.k())
+						{
+							J.s(() ->
+							{
+
+								World i = Bukkit.getWorld(fi);
+								CompiledDimension dim = c.getDimension(f.get(fi));
+
+								for(String k : c.getDimensions().k())
+								{
+									if(c.getDimension(k).getName().equals(f.get(fi)))
+									{
+										dim = c.getDimension(k);
+										break;
+									}
+								}
+
+								if(dim == null)
+								{
+									J.s(() -> msg(sender, "Cannot find dimnension: " + f.get(fi)));
+									return;
+								}
+								msg(sender, "Injecting " + i.getName());
+								IrisGenerator g = ((IrisGenerator) i.getGenerator());
+								g.inject(dim);
+							});
+						}
+
+						J.s(() ->
+						{
+							if(sender instanceof Player)
+							{
+								ChronoLatch cl = new ChronoLatch(3000);
+								Player p = (Player) sender;
+								World ww = ((Player) sender).getWorld();
+								msg(p, "Regenerating View Distance");
+
+								WorldReactor r = new WorldReactor(ww);
+								r.generateRegionNormal(p, true, 45, (pct) ->
+								{
+									if(cl.flip())
+									{
+										msg(p, "Regenerating " + F.pc(pct));
+									}
+								}, () ->
+								{
+									msg(p, "Done!");
+
+									for(Chunk i : p.getWorld().getLoadedChunks())
+									{
+										if(i.getWorld().isChunkInUse(i.getX(), i.getZ()))
+										{
+											NMP.CHUNK.refresh(p, i);
+										}
+									}
+								});
+							}
+						}, 5);
+					}
+
+					catch(Throwable e)
+					{
+						e.printStackTrace();
+						Consumer<String> m = (msg) ->
+						{
+							J.s(() -> msg(sender, msg.replaceAll("\\Q  \\E", "")));
+						};
+						L.addLogConsumer(m);
+						L.ex(e);
+						L.logConsumers.remove(m);
+					}
+				});
+
 			}
 
 			if(args[0].equalsIgnoreCase("reload"))

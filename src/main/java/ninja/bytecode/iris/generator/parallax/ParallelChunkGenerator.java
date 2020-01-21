@@ -73,6 +73,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
+		random = new Random(world.getSeed());
 		if(splicer != null)
 		{
 			AtomicChunkData d = splicer.onSpliceAvailable(world, random, x, z, biome);

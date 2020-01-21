@@ -12,14 +12,14 @@ public class Settings
 	public static class PerformanceSettings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
-		public ObjectMode objectMode = ObjectMode.FAST_LIGHTING;
+		public ObjectMode objectMode = ObjectMode.NONE;
 		public boolean fastMode = false;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;
 		public int decorationAccuracy = 2;
 		public boolean noObjectFail = false;
-		public boolean verbose = true;
+		public boolean verbose = false;
 		public int placeHistoryLimit = 8192;
 	}
 
@@ -43,10 +43,10 @@ public class Settings
 		public double caveDensity = 5;
 		public double caveScale = 1.2;
 		public double biomeScale = 0.65;
-		public boolean flatBedrock = true;
-		public boolean genCarving = true;
-		public boolean genCaverns = true;
-		public boolean genCaves = true;
+		public boolean flatBedrock = false;
+		public boolean genCarving = false;
+		public boolean genCaverns = false;
+		public boolean genCaves = false;
 		public double carvingChance = 0.352;
 		public double cavernChance = 0.321;
 		public int minCarvingHeight = 75;

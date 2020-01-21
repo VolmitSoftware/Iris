@@ -20,7 +20,7 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class BiomeLayer
 {
-	private static final IrisBiome VOID = new IrisBiome("Master", Biome.VOID).height(-1).dirt(MB.of(Material.END_BRICKS)).seal(RNG.r);
+	public static final IrisBiome VOID = new IrisBiome("Master", Biome.VOID).height(-1).dirt(MB.of(Material.END_BRICKS)).seal(RNG.r);
 	private GList<BiomeLayer> children;
 	private EnumPolygonGenerator<BiomeLayer> gen;
 	private IrisBiome biome;
@@ -46,18 +46,21 @@ public class BiomeLayer
 			return;
 		}
 
+		GList<BiomeLayer> b = new GList<>();
 		GMap<BiomeLayer, Double> rarities = new GMap<>();
 		for(BiomeLayer i : getChildren())
 		{
+			b.add(i);
 			rarities.put(i, i.getBiome().getRarity());
 		}
 
 		if(!getBiome().equals(VOID))
 		{
+			b.add(this);
 			rarities.put(this, getBiome().getRarity());
 		}
 
-		gen = new EnumPolygonGenerator<>(iris.getRTerrain().nextParallelRNG(1022 + getBiome().getRealBiome().ordinal() + getBiome().hashCode()), scale, octaves, rarities, factory).useRarity();
+		gen = new EnumPolygonGenerator<>(iris.getRTerrain().nextParallelRNG(1022 + getBiome().getRealBiome().ordinal()), scale, octaves, b, rarities, factory).useRarity();
 
 		for(BiomeLayer i : getChildren())
 		{

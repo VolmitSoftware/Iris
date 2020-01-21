@@ -64,7 +64,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	//@done
 
 	private boolean disposed;
-	private double[][][] scatterCache;
 	private CNG scatter;
 	private MB ICE = new MB(Material.ICE);
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
@@ -110,7 +109,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public double scatter(int x, int y, int z)
 	{
-		return scatterCache[Math.abs(x) % 16][Math.abs(y) % 16][Math.abs(z) % 16];
+		return scatter.noise(x, y, z);
 	}
 
 	public boolean scatterChance(int x, int y, int z, double chance)
@@ -125,8 +124,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		{
 			return;
 		}
-
-		//@builder
+		random = new Random(world.getSeed());
 		rTerrain = new RNG(world.getSeed());
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
@@ -135,27 +133,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		glCaverns = new GenLayerCaverns(this, world, random, rTerrain.nextParallelRNG(-3));
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
-		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
-		
+
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
 		{
 			god = new GenObjectDecorator(this);
-		}
-		//@done
-		for(int i = 0; i < 16; i++)
-		{
-			scatterCache[i] = new double[16][];
-
-			for(int j = 0; j < 16; j++)
-			{
-				scatterCache[i][j] = new double[16];
-
-				for(int k = 0; k < 16; k++)
-				{
-					scatterCache[i][j][k] = scatter.noise(i, j, k);
-				}
-			}
 		}
 	}
 
@@ -185,6 +167,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
+		random = new Random(world.getSeed());
 		PrecisionStopwatch s = getMetrics().start();
 		ChunkData d = super.generateChunkData(world, random, x, z, biome);
 		getMetrics().stop("chunk:ms", s);
@@ -312,7 +295,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	{
 		GList<BlockPopulator> p = new GList<>();
 
-		if(Iris.settings.performance.objectMode.equals(ObjectMode.FAST_LIGHTING) || Iris.settings.performance.objectMode.equals(ObjectMode.LIGHTING))
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.QUICK_N_DIRTY) || Iris.settings.performance.objectMode.equals(ObjectMode.LIGHTING))
 		{
 			p.add(god = new GenObjectDecorator(this));
 		}
@@ -406,7 +389,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 				else
 				{
-					MB mbx = biome.getScatterChanceSingle();
+					MB mbx = biome.getScatterChanceSingle(scatter(wxx, i, wzx));
 
 					if(!mbx.material.equals(Material.AIR))
 					{
@@ -548,5 +531,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	protected void onUnload()
 	{
 		dispose();
+	}
+
+	public void inject(CompiledDimension dimension)
+	{
+		this.dim = dimension;
+		onInit(getWorld(), rTerrain);
 	}
 }

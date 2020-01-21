@@ -9,6 +9,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.generator.BlockPopulator;
 
+import mortar.api.sched.S;
 import mortar.logic.format.F;
 import mortar.util.text.C;
 import net.md_5.bungee.api.ChatColor;
@@ -27,6 +28,7 @@ import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
@@ -102,44 +104,57 @@ public class GenObjectDecorator extends BlockPopulator
 	@Override
 	public void populate(World world, Random random, Chunk source)
 	{
-		try
+		Runnable m = () ->
 		{
-			if(g.isDisposed())
+			try
 			{
-				placeHistory.clear();
-				return;
-			}
-
-			GSet<IrisBiome> hits = new GSet<>();
-			int cx = source.getX();
-			int cz = source.getZ();
-
-			for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
-			{
-				int x = (cx << 4) + random.nextInt(16);
-				int z = (cz << 4) + random.nextInt(16);
-				IrisBiome biome = g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetZ(z));
-
-				if(hits.contains(biome))
+				if(g.isDisposed())
 				{
-					continue;
+					placeHistory.clear();
+					return;
 				}
 
-				GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
+				GSet<IrisBiome> hits = new GSet<>();
+				int cx = source.getX();
+				int cz = source.getZ();
 
-				if(objects == null)
+				for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
 				{
-					continue;
-				}
+					int x = (cx << 4) + random.nextInt(16);
+					int z = (cz << 4) + random.nextInt(16);
+					IrisBiome biome = g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetZ(z));
 
-				hits.add(biome);
-				populate(world, cx, cz, random, biome);
+					if(hits.contains(biome))
+					{
+						continue;
+					}
+
+					GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
+
+					if(objects == null)
+					{
+						continue;
+					}
+
+					hits.add(biome);
+					populate(world, cx, cz, random, biome);
+				}
 			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		};
+
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.QUICK_N_DIRTY))
+		{
+			J.a(m);
 		}
 
-		catch(Throwable e)
+		else
 		{
-			e.printStackTrace();
+			m.run();
 		}
 	}
 
@@ -195,7 +210,7 @@ public class GenObjectDecorator extends BlockPopulator
 						}
 					}
 
-					if(Iris.settings.performance.objectMode.equals(ObjectMode.FAST_LIGHTING))
+					if(Iris.settings.performance.objectMode.equals(ObjectMode.QUICK_N_DIRTY))
 					{
 						placer = new NMSPlacer(world);
 					}
@@ -210,28 +225,48 @@ public class GenObjectDecorator extends BlockPopulator
 						placer = new BukkitPlacer(world, false);
 					}
 
-					Location start = go.place(x, by, z, placer);
-
-					if(start != null)
+					Runnable rx = () ->
 					{
-						g.hitObject();
-						if(Iris.settings.performance.verbose)
-						{
-							L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + go.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
-						}
+						Location start = go.place(x, by, z, placer);
 
-						if(Iris.settings.performance.debugMode)
+						if(start != null)
 						{
-							placeHistory.add(new PlacedObject(start.getBlockX(), start.getBlockY(), start.getBlockZ(), i.getName() + ":" + go.getName()));
-
-							if(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+							g.hitObject();
+							if(Iris.settings.performance.verbose)
 							{
-								while(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+								L.v(C.GRAY + "Placed " + C.DARK_GREEN + i.getName() + C.WHITE + "/" + C.DARK_GREEN + go.getName() + C.GRAY + " at " + C.DARK_GREEN + F.f(start.getBlockX()) + " " + F.f(start.getBlockY()) + " " + F.f(start.getBlockZ()));
+							}
+
+							if(Iris.settings.performance.debugMode)
+							{
+								placeHistory.add(new PlacedObject(start.getBlockX(), start.getBlockY(), start.getBlockZ(), i.getName() + ":" + go.getName()));
+
+								if(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
 								{
-									placeHistory.remove(0);
+									while(placeHistory.size() > Iris.settings.performance.placeHistoryLimit)
+									{
+										placeHistory.remove(0);
+									}
 								}
 							}
 						}
+					};
+
+					if(Iris.settings.performance.objectMode.equals(ObjectMode.QUICK_N_DIRTY))
+					{
+						new S(20)
+						{
+							@Override
+							public void run()
+							{
+								rx.run();
+							}
+						};
+					}
+
+					else
+					{
+						rx.run();
 					}
 				}
 			}

@@ -1,5 +1,6 @@
 package ninja.bytecode.iris.util;
 
+import java.util.Collections;
 import java.util.function.Function;
 
 import mortar.lang.collection.GList;
@@ -155,10 +156,9 @@ public class PolygonGenerator
 		}
 
 		@SuppressWarnings("unchecked")
-		public EnumPolygonGenerator(RNG rng, double scale, int octaves, GMap<T, Double> choiceRarities, Function<CNG, CNG> factory)
+		public EnumPolygonGenerator(RNG rng, double scale, int octaves, GList<T> c, GMap<T, Double> choiceRarities, Function<CNG, CNG> factory)
 		{
 			super(rng, choiceRarities.size(), scale / (double) choiceRarities.size(), octaves, factory);
-			GList<T> c = choiceRarities.k();
 			this.choices = (T[]) c.toArray();
 			int m = 0;
 
@@ -182,7 +182,7 @@ public class PolygonGenerator
 
 		public T getChoice(double... dim)
 		{
-			return choices[super.getIndex(dim)];
+			return choices[getIndex(dim)];
 		}
 	}
 }

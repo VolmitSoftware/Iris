@@ -324,25 +324,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	@Override
 	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly)
 	{
-		/////////////////////////
-		if(false)
-		{
-			int height = 64;
-			int girth = 3;
-
-			for(int j = 1; j < (girth * 2) + 1; j++)
-			{
-				int i = j > girth ? girth - j : j;
-				if(pg.hasBorder(12, i, wxxf, wzxf))
-				{
-					data.setBlock(x, height + j, z, Material.STAINED_GLASS, (byte) 15);
-				}
-			}
-
-			return Biome.VOID;
-		}
-		/////////////////////////
-
 		PrecisionStopwatch s = getMetrics().start();
 		if(disposed)
 		{

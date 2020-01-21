@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.atomics;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;

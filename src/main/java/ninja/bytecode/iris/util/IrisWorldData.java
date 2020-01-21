@@ -8,27 +8,46 @@ import org.bukkit.World;
 import mortar.logic.format.F;
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
+import ninja.bytecode.iris.generator.atomics.AtomicRegionData;
+import ninja.bytecode.iris.generator.atomics.AtomicWorldData;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.logging.L;
 
 public class IrisWorldData
 {
 	private final World world;
 	private final AtomicWorldData data;
+	private boolean saving;
 	private final GMap<SMCAVector, AtomicChunkData> loadedChunks;
 
 	public IrisWorldData(World world)
 	{
 		this.world = world;
+		saving = true;
 		data = new AtomicWorldData(world);
 		loadedChunks = new GMap<>();
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::softUnloadWorld, 200, 20);
 	}
 
+	public void disableSaving()
+	{
+		saving = false;
+	}
+
+	public void enableSaving()
+	{
+		saving = true;
+	}
+
 	private void softUnloadWorld()
 	{
+		if(!saving)
+		{
+			return;
+		}
+
 		L.i("Load: " + F.f(getLoadedChunks().size()) + " Chunks in " + F.f(getLoadedRegions().size()) + " Regions");
 
 		for(SMCAVector i : getLoadedChunks())
@@ -56,6 +75,11 @@ public class IrisWorldData
 
 	private boolean softUnloadRegion(int rx, int rz)
 	{
+		if(!saving)
+		{
+			return false;
+		}
+
 		for(SMCAVector i : loadedChunks.keySet())
 		{
 			if(i.getX() >> 5 == rx && i.getZ() >> 5 == rz)
@@ -88,7 +112,7 @@ public class IrisWorldData
 
 		try
 		{
-			AtomicMCAData region = data.getSubregion(x >> 5, z >> 5);
+			AtomicRegionData region = data.getSubregion(x >> 5, z >> 5);
 			region.delete(x & 31, z & 31);
 			return true;
 		}
@@ -127,7 +151,7 @@ public class IrisWorldData
 
 		try
 		{
-			AtomicMCAData region = data.getSubregion(x >> 5, z >> 5);
+			AtomicRegionData region = data.getSubregion(x >> 5, z >> 5);
 			region.set(x & 31, z & 31, getChunk(x, z));
 			return true;
 		}
@@ -157,7 +181,7 @@ public class IrisWorldData
 		{
 			try
 			{
-				AtomicMCAData region = data.getSubregion(x >> 5, z >> 5);
+				AtomicRegionData region = data.getSubregion(x >> 5, z >> 5);
 
 				if(region.contains(x & 31, z & 31))
 				{

@@ -3,9 +3,9 @@ package ninja.bytecode.iris.generator.placer;
 import org.bukkit.Location;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.parallax.ParallaxCache;
 import ninja.bytecode.iris.util.IrisWorldData;
 import ninja.bytecode.iris.util.MB;
-import ninja.bytecode.iris.util.ParallaxCache;
 import ninja.bytecode.iris.util.Placer;
 
 public class AtomicParallaxPlacer extends Placer

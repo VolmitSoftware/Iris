@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.parallax;
 
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,9 +11,13 @@ import org.bukkit.generator.ChunkGenerator;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.iris.controller.TimingsController;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
+import ninja.bytecode.iris.util.ChunkPlan;
+import ninja.bytecode.iris.util.ChunkSpliceListener;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 
@@ -31,6 +35,12 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private World world;
 	private TaskExecutor genPool;
 	private TaskExecutor genPar;
+	private ChunkSpliceListener splicer;
+
+	public void setSplicer(ChunkSpliceListener splicer)
+	{
+		this.splicer = splicer;
+	}
 
 	public World getWorld()
 	{
@@ -64,6 +74,16 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
+		if(splicer != null)
+		{
+			AtomicChunkData d = splicer.onSpliceAvailable(world, random, x, z, biome);
+
+			if(d != null)
+			{
+				return d.toChunkData();
+			}
+		}
+
 		AtomicChunkData data = new AtomicChunkData(world);
 
 		try

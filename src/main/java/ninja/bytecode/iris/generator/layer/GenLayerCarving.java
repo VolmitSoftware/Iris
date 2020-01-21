@@ -7,8 +7,8 @@ import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.iris.util.AtomicChunkData;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;

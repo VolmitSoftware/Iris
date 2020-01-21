@@ -16,16 +16,27 @@ public class ChronoQueue
 	private Queue<Runnable> q;
 	private double limit;
 	private int jobLimit;
-	private ChronoLatch cl;
+	private boolean die;
+	private int j;
 
 	public ChronoQueue(double limit, int jobLimit)
 	{
+		die = false;
 		this.limit = limit;
 		this.jobLimit = jobLimit;
 		s = new PrecisionStopwatch();
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0);
+		j = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0);
 		q = new ShurikenQueue<>();
-		cl = new ChronoLatch(1);
+	}
+
+	public void close()
+	{
+		Bukkit.getScheduler().cancelTask(j);
+	}
+
+	public void dieSlowly()
+	{
+		die = true;
 	}
 
 	public void queue(Runnable r)
@@ -52,11 +63,11 @@ public class ChronoQueue
 			}
 		}
 
-		if(cl.flip())
-		{
-			System.out.println("Q: " + F.f(q.size()) + " T: " + F.duration(s.getMilliseconds(), 2) + " DID: " + F.f(m));
-		}
-
 		s.end();
+
+		if(q.size() == 0 && die)
+		{
+			close();
+		}
 	}
 }

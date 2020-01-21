@@ -1,5 +1,6 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.parallax;
 
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.pack.IrisBiome;
 
 public class ParallaxAnchor

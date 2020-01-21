@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.atomics;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,12 +15,12 @@ import org.jnbt.Tag;
 
 import ninja.bytecode.shuriken.collections.GMap;
 
-public class AtomicMCAData
+public class AtomicRegionData
 {
 	private final World world;
 	private GMap<String, Tag> tag;
 
-	public AtomicMCAData(World world)
+	public AtomicRegionData(World world)
 	{
 		this.world = world;
 		tag = new GMap<>();

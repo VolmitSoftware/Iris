@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.atomics;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -16,6 +16,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
 
 import mortar.compute.math.M;
+import ninja.bytecode.iris.util.MB;
 
 public final class AtomicChunkData implements ChunkGenerator.ChunkData
 {

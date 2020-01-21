@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.parallax;
 
 import java.util.Random;
 
@@ -16,6 +16,10 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import mortar.api.nms.NMP;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.TimingsController;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
+import ninja.bytecode.iris.util.ChunkPlan;
+import ninja.bytecode.iris.util.IrisWorldData;
+import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
@@ -31,11 +35,13 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	private AtomicChunkData buffer;
 	private GSet<Chunk> fix;
 	private ChronoLatch cl;
+	protected boolean saving;
 
 	@Override
 	public final void init(World world, Random random)
 	{
 		this.world = world;
+		saving = true;
 		cl = new ChronoLatch(3000);
 		fix = new GSet<>();
 		buffer = new AtomicChunkData(world);
@@ -45,9 +51,26 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 	}
 
+	public void disableSaving()
+	{
+		saving = false;
+		data.disableSaving();
+	}
+
+	public void enableSaving()
+	{
+		saving = true;
+		data.enableSaving();
+	}
+
 	@EventHandler
 	public void on(ChunkLoadEvent e)
 	{
+		if(!saving)
+		{
+			return;
+		}
+
 		if(!Iris.settings.performance.fastMode && e.getWorld().equals(world))
 		{
 			NMP.host.relight(e.getChunk());
@@ -81,6 +104,11 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	@EventHandler
 	public void on(WorldSaveEvent e)
 	{
+		if(!saving)
+		{
+			return;
+		}
+
 		if(e.getWorld().equals(world))
 		{
 			getWorldData().saveAll();
@@ -100,6 +128,12 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		onGenColumn(wx, wz, wx & 15, wz & 15, heightBuffer, buffer);
 
 		return new ParallaxAnchor(heightBuffer.getRealHeight(wx & 15, wz & 15), heightBuffer.getRealWaterHeight(wx & 15, wz & 15), heightBuffer.getBiome(wx & 15, wz & 15), buffer);
+	}
+
+	public void doGenParallax(int x, int z)
+	{
+		onGenParallax(x, z, getRMaster(x, z, -59328));
+		getWorldData().getChunk(x, z);
 	}
 
 	@Override
@@ -136,7 +170,10 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		double a = ps.getMilliseconds();
 		double b = g.execute().timeElapsed;
 
-		System.out.println("MS: " + F.duration(Iris.getController(TimingsController.class).getResult("terrain"), 2) + " \tQMS: " + F.duration(a, 2) + " " + " \tEMS: " + F.duration(b, 2) + "\tSCG: " + gg + " / " + gx + " (" + F.pc(((double) gg / (double) gx)) + ") " + " \tTC: " + F.f(getWorldData().getLoadedChunks().size()) + " \tTR: " + getWorldData().getLoadedRegions().size());
+		if(Iris.settings.performance.verbose)
+		{
+			System.out.println("MS: " + F.duration(Iris.getController(TimingsController.class).getResult("terrain"), 2) + " \tQMS: " + F.duration(a, 2) + " " + " \tEMS: " + F.duration(b, 2) + "\tSCG: " + gg + " / " + gx + " (" + F.pc(((double) gg / (double) gx)) + ") " + " \tTC: " + F.f(getWorldData().getLoadedChunks().size()) + " \tTR: " + getWorldData().getLoadedRegions().size());
+		}
 
 		return onInitChunk(world, x, z, random);
 	}

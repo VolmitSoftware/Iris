@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.atomics;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,13 +7,14 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
+import ninja.bytecode.iris.util.SMCAVector;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 
 public class AtomicWorldData
 {
 	private World world;
-	private GMap<SMCAVector, AtomicMCAData> loadedSections;
+	private GMap<SMCAVector, AtomicRegionData> loadedSections;
 
 	public AtomicWorldData(World world)
 	{
@@ -27,14 +28,14 @@ public class AtomicWorldData
 		return loadedSections.k();
 	}
 
-	public AtomicMCAData getSubregion(int x, int z) throws IOException
+	public AtomicRegionData getSubregion(int x, int z) throws IOException
 	{
 		if(!isSectionLoaded(x, z))
 		{
 			loadedSections.put(new SMCAVector(x, z), loadSection(x, z));
 		}
 
-		AtomicMCAData f = loadedSections.get(new SMCAVector(x, z));
+		AtomicRegionData f = loadedSections.get(new SMCAVector(x, z));
 
 		return f;
 	}
@@ -104,14 +105,14 @@ public class AtomicWorldData
 			return false;
 		}
 
-		AtomicMCAData data = loadedSections.get(s);
+		AtomicRegionData data = loadedSections.get(s);
 		FileOutputStream fos = new FileOutputStream(getSubregionFile(s.getX(), s.getZ()));
 		data.write(fos);
 		fos.close();
 		return true;
 	}
 
-	public AtomicMCAData loadSection(int x, int z) throws IOException
+	public AtomicRegionData loadSection(int x, int z) throws IOException
 	{
 		if(isSectionLoaded(x, z))
 		{
@@ -126,20 +127,20 @@ public class AtomicWorldData
 		}
 
 		FileInputStream fin = new FileInputStream(file);
-		AtomicMCAData data = new AtomicMCAData(world);
+		AtomicRegionData data = new AtomicRegionData(world);
 		data.read(fin);
 		fin.close();
 		return data;
 	}
 
-	public AtomicMCAData createSection(int x, int z)
+	public AtomicRegionData createSection(int x, int z)
 	{
 		if(isSectionLoaded(x, z))
 		{
 			return loadedSections.get(new SMCAVector(x, z));
 		}
 
-		AtomicMCAData data = new AtomicMCAData(world);
+		AtomicRegionData data = new AtomicRegionData(world);
 		loadedSections.put(new SMCAVector(x, z), data);
 
 		return data;

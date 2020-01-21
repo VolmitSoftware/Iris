@@ -1,7 +1,11 @@
-package ninja.bytecode.iris.util;
+package ninja.bytecode.iris.generator.parallax;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.iris.util.ChunkPlan;
+import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.SMCAVector;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.collections.GSet;
 

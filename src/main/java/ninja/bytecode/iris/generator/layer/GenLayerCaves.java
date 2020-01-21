@@ -7,7 +7,7 @@ import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
-import ninja.bytecode.iris.util.AtomicChunkData;
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.math.CNG;

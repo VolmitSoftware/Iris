@@ -2,6 +2,8 @@ package ninja.bytecode.iris.util;
 
 import org.bukkit.block.Biome;
 
+import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
+
 public class PrepackagedChunk
 {
 	private AtomicChunkData data;

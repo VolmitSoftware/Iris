@@ -9,8 +9,8 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
-		public boolean fastMode = true;
+		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
+		public boolean fastMode = false;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;

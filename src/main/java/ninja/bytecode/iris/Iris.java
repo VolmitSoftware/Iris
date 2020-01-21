@@ -17,7 +17,6 @@ import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.iris.util.IrisControllerSet;
 import ninja.bytecode.shuriken.logging.L;
-import ninja.bytecode.shuriken.math.CNG;
 
 public class Iris extends JavaPlugin implements Listener
 {

@@ -15,17 +15,16 @@ import org.bukkit.event.world.WorldUnloadEvent;
 
 import mortar.api.nms.NMP;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.IrisWorldData;
+import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
-import ninja.bytecode.shuriken.format.F;
 import ninja.bytecode.shuriken.math.RNG;
 
 public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator implements Listener
@@ -72,7 +71,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 			return;
 		}
 
-		if(!Iris.settings.performance.fastMode && e.getWorld().equals(world))
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && !Iris.settings.performance.fastMode && e.getWorld().equals(world))
 		{
 			NMP.host.relight(e.getChunk());
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> fix.add(e.getChunk()), 20);
@@ -141,10 +140,8 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	public final ChunkPlan initChunk(World world, int x, int z, Random random)
 	{
 		PrecisionStopwatch ps = PrecisionStopwatch.start();
-		int gg = 0;
-		int gx = 0;
 		TaskGroup g = startWork();
-		if(Iris.settings.gen.genObjects)
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
 		{
 			for(int ii = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getX() / 2) - 1; ii < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getX() / 2) + 1)); ii++)
 			{
@@ -152,7 +149,6 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 
 				for(int jj = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getZ() / 2) - 1; jj < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getZ() / 2) + 1)); jj++)
 				{
-					gx++;
 					int j = jj;
 					int cx = x + i;
 					int cz = z + j;
@@ -164,22 +160,13 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 							onGenParallax(cx, cz, getRMaster(cx, cz, -59328));
 							getWorldData().getChunk(cx, cz);
 						});
-
-						gg++;
 					}
 				}
 			}
 
 		}
 
-		double a = ps.getMilliseconds();
-		double b = g.execute().timeElapsed;
 		((IrisGenerator) this).getMetrics().put("parallax:ms:/chunk", ps.getMillis());
-
-		if(Iris.settings.performance.verbose)
-		{
-			System.out.println("MS: " + F.duration(Iris.getController(TimingsController.class).getResult("terrain"), 2) + " \tQMS: " + F.duration(a, 2) + " " + " \tEMS: " + F.duration(b, 2) + "\tSCG: " + gg + " / " + gx + " (" + F.pc(((double) gg / (double) gx)) + ") " + " \tTC: " + F.f(getWorldData().getLoadedChunks().size()) + " \tTR: " + getWorldData().getLoadedRegions().size());
-		}
 
 		return onInitChunk(world, x, z, random);
 	}

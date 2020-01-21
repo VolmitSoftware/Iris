@@ -1,6 +1,7 @@
 package ninja.bytecode.iris;
 
 import ninja.bytecode.iris.util.InterpolationMode;
+import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.PerformanceMode;
 
 public class Settings
@@ -10,14 +11,15 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
+		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
+		public ObjectMode objectMode = ObjectMode.FAST_LIGHTING;
 		public boolean fastMode = false;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;
 		public int decorationAccuracy = 2;
 		public boolean noObjectFail = false;
-		public boolean verbose = false;
+		public boolean verbose = true;
 		public int placeHistoryLimit = 8192;
 	}
 
@@ -42,7 +44,6 @@ public class Settings
 		public double caveScale = 1.2;
 		public double biomeScale = 0.65;
 		public boolean flatBedrock = true;
-		public boolean genObjects = true;
 		public boolean genCarving = true;
 		public boolean genCaverns = true;
 		public boolean genCaves = true;

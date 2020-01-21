@@ -1,13 +1,13 @@
 package ninja.bytecode.iris.generator;
 
+import java.util.List;
 import java.util.Random;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.generator.ChunkGenerator.BiomeGrid;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
+import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
@@ -28,12 +28,12 @@ import ninja.bytecode.iris.generator.parallax.ParallaxWorldGenerator;
 import ninja.bytecode.iris.pack.BiomeType;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
@@ -137,7 +137,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		scatterCache = new double[16][][];
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
-		god = new GenObjectDecorator(this);
+		
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
+		{
+			god = new GenObjectDecorator(this);
+		}
 		//@done
 		for(int i = 0; i < 16; i++)
 		{
@@ -304,12 +308,25 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	}
 
 	@Override
+	public List<BlockPopulator> getDefaultPopulators(World world)
+	{
+		GList<BlockPopulator> p = new GList<>();
+
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.FAST_LIGHTING) || Iris.settings.performance.objectMode.equals(ObjectMode.LIGHTING))
+		{
+			p.add(god = new GenObjectDecorator(this));
+		}
+
+		return p;
+	}
+
+	@Override
 	public void onGenParallax(int x, int z, Random random)
 	{
 		try
 		{
 			PrecisionStopwatch s = getMetrics().start();
-			god.decorateParallax(x, z, random);
+			god.populateParallax(x, z, random);
 			String xx = "x" + getParallaxSize().getX() * getParallaxSize().getZ();
 			getMetrics().stop("object:" + xx + ":.:ms:/parallax", s);
 		}

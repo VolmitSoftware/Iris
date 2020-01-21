@@ -10,6 +10,7 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.util.MB;
+import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
@@ -265,7 +266,7 @@ public class IrisBiome
 		J.attempt(() -> scatterSurfaceSub = o.getString("subSurfaceType").equalsIgnoreCase("scatter"));
 		J.attempt(() ->
 		{
-			if(Iris.settings.gen.genObjects)
+			if(!Iris.settings.performance.objectMode.equals(ObjectMode.NONE))
 			{
 				schematicGroups = strFromJSON(o.getJSONArray("objects"));
 			}
@@ -277,7 +278,7 @@ public class IrisBiome
 
 			if(chain)
 			{
-				if(Iris.settings.gen.genObjects)
+				if(!Iris.settings.performance.objectMode.equals(ObjectMode.NONE))
 				{
 					for(String i : schematicGroups.k())
 					{

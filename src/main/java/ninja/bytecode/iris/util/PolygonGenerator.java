@@ -90,7 +90,6 @@ public class PolygonGenerator
 		int current = getIndex(dims);
 		double ajump = 360D / (double) checks;
 		int hit = -1;
-		int hit2 = -1;
 
 		if(dims.length == 3)
 		{

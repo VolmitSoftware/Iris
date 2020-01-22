@@ -22,7 +22,6 @@ import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
-import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
@@ -228,30 +227,6 @@ public class CommandIris implements CommandExecutor
 				}
 			}
 
-			if(args[0].equalsIgnoreCase("regen"))
-			{
-				if(sender instanceof Player)
-				{
-					ChronoLatch cl = new ChronoLatch(3000);
-					Player p = (Player) sender;
-					World ww = ((Player) sender).getWorld();
-
-					msg(p, "Regenerating View Distance");
-
-					WorldReactor r = new WorldReactor(ww);
-					r.generateRegionNormal(p, true, 200, (pct) ->
-					{
-						if(cl.flip())
-						{
-							msg(p, "Regenerating " + F.pc(pct));
-						}
-					}, () ->
-					{
-						msg(p, "Done! Use F3 + A");
-					});
-				}
-			}
-
 			if(args[0].equalsIgnoreCase("hotload"))
 			{
 				msg(sender, "=== Hotloading Pack ===");
@@ -299,6 +274,30 @@ public class CommandIris implements CommandExecutor
 						L.addLogConsumer(m);
 						c.compile();
 						L.logConsumers.remove(m);
+
+						J.s(() ->
+						{
+							if(sender instanceof Player)
+							{
+								ChronoLatch cl = new ChronoLatch(3000);
+								Player p = (Player) sender;
+								World ww = ((Player) sender).getWorld();
+
+								msg(p, "Regenerating View Distance");
+
+								WorldReactor r = new WorldReactor(ww);
+								r.generateRegionNormal(p, true, 200, (pct) ->
+								{
+									if(cl.flip())
+									{
+										msg(p, "Regenerating " + F.pc(pct));
+									}
+								}, () ->
+								{
+									msg(p, "Done! Use F3 + A");
+								});
+							}
+						}, 5);
 
 						for(String fi : f.k())
 						{

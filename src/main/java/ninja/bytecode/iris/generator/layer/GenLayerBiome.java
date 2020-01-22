@@ -5,16 +5,18 @@ import java.util.function.Function;
 
 import org.bukkit.World;
 
+import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.iris.util.GenLayer;
+import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.GList;
 import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
-import ninja.bytecode.shuriken.math.M;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
@@ -23,17 +25,18 @@ public class GenLayerBiome extends GenLayer
 	private Function<CNG, CNG> factory;
 	private CNG fracture;
 	private CNG fuzz;
-	private CNG island;
+	private PolygonGenerator channel;
+	private PolygonGenerator ocean;
 	private BiomeLayer master;
 
 	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng, GList<IrisBiome> biomes)
 	{
 		super(iris, world, random, rng);
 		//@builder
-		island = new CNG(rng.nextParallelRNG(10334), 1D, 1)
-				.scale(0.003 * Iris.settings.gen.landScale)
-				.fractureWith(new CNG(rng.nextParallelRNG(1211), 1D, 1)
-						.scale(0.001 * Iris.settings.gen.landScale), 3600);
+		channel = new PolygonGenerator(rng.nextParallelRNG(-12), 2, 0.0005, 1, (g)->g.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
+				.scale(0.01), 30));
+		ocean = new PolygonGenerator(rng.nextParallelRNG(-11), 6, 0.005, 1, (g)->g.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
+				.scale(0.01), 150));
 		fuzz = new CNG(rng.nextParallelRNG(9112), 1D * 8 * Iris.settings.gen.biomeEdgeFuzzScale, 1).scale(6.5);
 		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021 * Iris.settings.gen.biomeEdgeScrambleScale)
 				.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
@@ -48,17 +51,17 @@ public class GenLayerBiome extends GenLayer
 
 		for(IrisBiome i : biomes)
 		{
-			if(i.getRegion().equals("default"))
+			if(i.getRegionID().equals("default"))
 			{
 				continue;
 			}
 
-			if(!regions.containsKey(i.getRegion()))
+			if(!regions.containsKey(i.getRegionID()))
 			{
-				regions.put(i.getRegion(), new IrisRegion(i.getRegion()));
+				regions.put(i.getRegionID(), new IrisRegion(i.getRegionID()));
 			}
 
-			regions.get(i.getRegion()).getBiomes().add(i);
+			regions.get(i.getRegionID()).getBiomes().add(i);
 		}
 
 		for(IrisRegion i : regions.values())
@@ -81,53 +84,6 @@ public class GenLayerBiome extends GenLayer
 		}
 	}
 
-	public boolean hasBorder(int checks, double distance, double... dims)
-	{
-		IrisBiome current = getBiome(dims[0], dims[1]);
-		double ajump = 360D / (double) checks;
-
-		if(dims.length == 2)
-		{
-			for(int i = 0; i < checks; i++)
-			{
-				double dx = M.sin((float) Math.toRadians(ajump * i));
-				double dz = M.cos((float) Math.toRadians(ajump * i));
-				if(!current.equals(getBiome((dx * distance) + dims[0], (dz * distance) + dims[1])))
-				{
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	public boolean hasHeightBorder(int checks, double distance, double... dims)
-	{
-		IrisBiome current = getBiome(dims[0], dims[1]);
-		double ajump = 360D / (double) checks;
-
-		if(dims.length == 2)
-		{
-			for(int i = 0; i < checks; i++)
-			{
-				double dx = M.sin((float) Math.toRadians(ajump * i));
-				double dz = M.cos((float) Math.toRadians(ajump * i));
-				if(current.getHeight() != getBiome((dx * distance) + dims[0], (dz * distance) + dims[1]).getHeight())
-				{
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	public boolean isBorder(int wx, int wz, double range)
-	{
-		return hasHeightBorder(6, range, wx, wz);
-	}
-
 	public IrisBiome getBiome(double wxx, double wzx)
 	{
 		return getBiome(wxx, wzx, false);
@@ -137,36 +93,56 @@ public class GenLayerBiome extends GenLayer
 	{
 		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
 		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
-		double x = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
-		double z = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
-		x -= fuzz.noise(wx, wz);
-		z += fuzz.noise(wz, wx);
+		double xf = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		double zf = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		double x = xf - fuzz.noise(wx, wz);
+		double z = zf + fuzz.noise(wz, wx);
+		IrisBiome biome = master.computeBiome(x, z);
 
 		if(real)
 		{
-			return master.computeBiome(x, z);
+			return biome;
 		}
 
-		IrisBiome cbi = iris.biome("Ocean");
-		double land = island.noise(x, z);
-		double landChance = 1D - M.clip(Iris.settings.gen.landChance, 0D, 1D);
-
-		if(land > landChance)
+		if(ocean.getIndex(x, z) == 0)
 		{
-			cbi = master.computeBiome(x, z);
+			IrisRegion region = getRegion(biome.getRegionID());
+
+			if(region == null)
+			{
+				L.f(C.YELLOW + "Cannot find Region " + C.RED + biome.getRegionID());
+				return biome;
+			}
+
+			if(region.getOcean() == null)
+			{
+				L.f(C.YELLOW + "Cannot find Ocean in Region" + C.RED + biome.getRegionID());
+				return biome;
+			}
+
+			return getRegion(biome.getRegionID()).getOcean();
 		}
 
-		else if(land < 0.1)
+		if(channel.hasBorder(3, 44, xf, zf))
 		{
-			cbi = iris.biome("Deep Ocean");
+			IrisRegion region = getRegion(biome.getRegionID());
+
+			if(region == null)
+			{
+				L.f(C.YELLOW + "Cannot find Region " + C.RED + biome.getRegionID());
+				return biome;
+			}
+
+			if(region.getChannel() == null)
+			{
+				L.f(C.YELLOW + "Cannot find Channel in Region" + C.RED + biome.getRegionID());
+				return biome;
+			}
+
+			return getRegion(biome.getRegionID()).getChannel();
 		}
 
-		else
-		{
-			cbi = iris.biome("Ocean");
-		}
-
-		return cbi;
+		return biome;
 	}
 
 	@Override

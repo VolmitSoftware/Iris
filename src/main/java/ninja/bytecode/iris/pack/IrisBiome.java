@@ -1,6 +1,7 @@
 package ninja.bytecode.iris.pack;
 
 import java.lang.reflect.Field;
+import java.util.Objects;
 
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -25,7 +26,7 @@ import ninja.bytecode.shuriken.math.RNG;
 public class IrisBiome
 {
 	public static final double MAX_HEIGHT = 0.77768;
-	public static final double IDEAL_HEIGHT = 0.0527;
+	public static final double IDEAL_HEIGHT = 0.138;
 	public static final double MIN_HEIGHT = -0.0218;
 	private static final GMap<Biome, IrisBiome> map = build();
 	private String name;
@@ -33,6 +34,7 @@ public class IrisBiome
 	private Biome realBiome;
 	private double height;
 	private GList<MB> rock;
+	private MB fluid;
 	private int rockDepth;
 	private GList<MB> surface;
 	private GList<MB> dirt;
@@ -118,6 +120,7 @@ public class IrisBiome
 		this.name = name;
 		type = BiomeType.LAND;
 		cliffs = false;
+		fluid = MB.of(Material.STATIONARY_WATER);
 		genScale = 1;
 		rarity = 1;
 		genAmplifier = 0.35;
@@ -236,14 +239,15 @@ public class IrisBiome
 		type = BiomeType.valueOf(o.getString("type").toUpperCase().replaceAll(" ", "_"));
 		J.attempt(() -> region = o.getString("region"));
 		J.attempt(() -> parent = o.getString("parent"));
-		J.attempt(() -> height = o.getDouble("height"));
-		J.attempt(() -> height = o.getDouble("genHeight"));
+		J.attempt(() -> height(o.getDouble("height")));
+		J.attempt(() -> height(o.getDouble("genHeight")));
 		J.attempt(() -> genAmplifier = o.getDouble("genAmplifier"));
 		J.attempt(() -> genSwirl = o.getDouble("genSwirl"));
 		J.attempt(() -> genSwirlScale = o.getDouble("genSwirlScale"));
 		J.attempt(() -> genScale = o.getDouble("genScale"));
 		J.attempt(() -> snow = o.getDouble("snow"));
 		J.attempt(() -> rarity = o.getDouble("rarity"));
+		J.attempt(() -> fluid = MB.of(o.getString("fluid")));
 		J.attempt(() -> dirtDepth = o.getInt("subSurfaceDepth"));
 		J.attempt(() -> dirtDepth = o.getInt("dirtDepth"));
 		J.attempt(() -> rockDepth = o.getInt("rockDepth"));
@@ -298,6 +302,7 @@ public class IrisBiome
 		J.attempt(() -> j.put("derivative", realBiome.name().toLowerCase().replaceAll("_", " ")));
 		J.attempt(() -> j.put("type", type.name().toLowerCase().replaceAll("_", " ")));
 		J.attempt(() -> j.put("rarity", rarity));
+		J.attempt(() -> j.put("fluid", fluid.toString()));
 		J.attempt(() -> j.put("genHeight", height));
 		J.attempt(() -> j.put("genScale", genScale));
 		J.attempt(() -> j.put("genSwirl", genSwirl));
@@ -479,7 +484,7 @@ public class IrisBiome
 
 		else
 		{
-			this.height = M.lerp(MIN_HEIGHT, IDEAL_HEIGHT, M.clip(height, -1D, 0D));
+			this.height = M.lerp(MIN_HEIGHT, IDEAL_HEIGHT, 1d - Math.abs(M.clip(height, -1D, 0D)));
 		}
 
 		return this;
@@ -635,7 +640,7 @@ public class IrisBiome
 		return false;
 	}
 
-	public String getRegion()
+	public String getRegionID()
 	{
 		return region;
 	}
@@ -1038,173 +1043,39 @@ public class IrisBiome
 		}
 	}
 
+	public MB getFluid()
+	{
+		return fluid;
+	}
+
+	public void setFluid(MB fluid)
+	{
+		this.fluid = fluid;
+	}
+
+	public void setRarity(double rarity)
+	{
+		this.rarity = rarity;
+	}
+
 	@Override
 	public int hashCode()
 	{
-		final int prime = 31;
-		int result = 1;
-		long temp;
-		temp = Double.doubleToLongBits(cliffChance);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(cliffScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + (cliffs ? 1231 : 1237);
-		result = prime * result + (core ? 1231 : 1237);
-		result = prime * result + ((dirt == null) ? 0 : dirt.hashCode());
-		result = prime * result + dirtDepth;
-		temp = Double.doubleToLongBits(genAmplifier);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(genScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(genSwirl);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(genSwirlScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(height);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
-		temp = Double.doubleToLongBits(rarity);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((realBiome == null) ? 0 : realBiome.hashCode());
-		result = prime * result + ((region == null) ? 0 : region.hashCode());
-		result = prime * result + ((rock == null) ? 0 : rock.hashCode());
-		result = prime * result + rockDepth;
-		temp = Double.doubleToLongBits(rockScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((scatterChance == null) ? 0 : scatterChance.hashCode());
-		result = prime * result + (scatterSurface ? 1231 : 1237);
-		result = prime * result + (scatterSurfaceRock ? 1231 : 1237);
-		result = prime * result + (scatterSurfaceSub ? 1231 : 1237);
-		result = prime * result + ((schematicGroups == null) ? 0 : schematicGroups.hashCode());
-		result = prime * result + (simplexScatter ? 1231 : 1237);
-		result = prime * result + (simplexScatterRock ? 1231 : 1237);
-		result = prime * result + (simplexScatterSub ? 1231 : 1237);
-		temp = Double.doubleToLongBits(snow);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		temp = Double.doubleToLongBits(subSurfaceScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((surface == null) ? 0 : surface.hashCode());
-		temp = Double.doubleToLongBits(surfaceScale);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
-		return result;
+		return Objects.hash(cliffChance, cliffScale, cliffs, core, dirt, dirtDepth, fluid, genAmplifier, genScale, genSwirl, genSwirlScale, height, name, parent, rarity, realBiome, region, rock, rockDepth, rockScale, scatterChance, scatterSurface, scatterSurfaceRock, scatterSurfaceSub, schematicGroups, simplexScatter, simplexScatterRock, simplexScatterSub, snow, subSurfaceScale, surface, surfaceScale, type);
 	}
 
 	@Override
 	public boolean equals(Object obj)
 	{
 		if(this == obj)
+		{
 			return true;
-		if(obj == null)
+		}
+		if(!(obj instanceof IrisBiome))
+		{
 			return false;
-		if(getClass() != obj.getClass())
-			return false;
+		}
 		IrisBiome other = (IrisBiome) obj;
-		if(Double.doubleToLongBits(cliffChance) != Double.doubleToLongBits(other.cliffChance))
-			return false;
-		if(Double.doubleToLongBits(cliffScale) != Double.doubleToLongBits(other.cliffScale))
-			return false;
-		if(cliffs != other.cliffs)
-			return false;
-		if(core != other.core)
-			return false;
-		if(dirt == null)
-		{
-			if(other.dirt != null)
-				return false;
-		}
-		else if(!dirt.equals(other.dirt))
-			return false;
-		if(dirtDepth != other.dirtDepth)
-			return false;
-		if(Double.doubleToLongBits(genAmplifier) != Double.doubleToLongBits(other.genAmplifier))
-			return false;
-		if(Double.doubleToLongBits(genScale) != Double.doubleToLongBits(other.genScale))
-			return false;
-		if(Double.doubleToLongBits(genSwirl) != Double.doubleToLongBits(other.genSwirl))
-			return false;
-		if(Double.doubleToLongBits(genSwirlScale) != Double.doubleToLongBits(other.genSwirlScale))
-			return false;
-		if(Double.doubleToLongBits(height) != Double.doubleToLongBits(other.height))
-			return false;
-		if(name == null)
-		{
-			if(other.name != null)
-				return false;
-		}
-		else if(!name.equals(other.name))
-			return false;
-		if(parent == null)
-		{
-			if(other.parent != null)
-				return false;
-		}
-		else if(!parent.equals(other.parent))
-			return false;
-		if(Double.doubleToLongBits(rarity) != Double.doubleToLongBits(other.rarity))
-			return false;
-		if(realBiome != other.realBiome)
-			return false;
-		if(region == null)
-		{
-			if(other.region != null)
-				return false;
-		}
-		else if(!region.equals(other.region))
-			return false;
-		if(rock == null)
-		{
-			if(other.rock != null)
-				return false;
-		}
-		else if(!rock.equals(other.rock))
-			return false;
-		if(rockDepth != other.rockDepth)
-			return false;
-		if(Double.doubleToLongBits(rockScale) != Double.doubleToLongBits(other.rockScale))
-			return false;
-		if(scatterChance == null)
-		{
-			if(other.scatterChance != null)
-				return false;
-		}
-		else if(!scatterChance.equals(other.scatterChance))
-			return false;
-		if(scatterSurface != other.scatterSurface)
-			return false;
-		if(scatterSurfaceRock != other.scatterSurfaceRock)
-			return false;
-		if(scatterSurfaceSub != other.scatterSurfaceSub)
-			return false;
-		if(schematicGroups == null)
-		{
-			if(other.schematicGroups != null)
-				return false;
-		}
-		else if(!schematicGroups.equals(other.schematicGroups))
-			return false;
-		if(simplexScatter != other.simplexScatter)
-			return false;
-		if(simplexScatterRock != other.simplexScatterRock)
-			return false;
-		if(simplexScatterSub != other.simplexScatterSub)
-			return false;
-		if(Double.doubleToLongBits(snow) != Double.doubleToLongBits(other.snow))
-			return false;
-		if(Double.doubleToLongBits(subSurfaceScale) != Double.doubleToLongBits(other.subSurfaceScale))
-			return false;
-		if(surface == null)
-		{
-			if(other.surface != null)
-				return false;
-		}
-		else if(!surface.equals(other.surface))
-			return false;
-		if(Double.doubleToLongBits(surfaceScale) != Double.doubleToLongBits(other.surfaceScale))
-			return false;
-		if(type != other.type)
-			return false;
-		return true;
+		return Double.doubleToLongBits(cliffChance) == Double.doubleToLongBits(other.cliffChance) && Double.doubleToLongBits(cliffScale) == Double.doubleToLongBits(other.cliffScale) && cliffs == other.cliffs && core == other.core && Objects.equals(dirt, other.dirt) && dirtDepth == other.dirtDepth && Objects.equals(fluid, other.fluid) && Double.doubleToLongBits(genAmplifier) == Double.doubleToLongBits(other.genAmplifier) && Double.doubleToLongBits(genScale) == Double.doubleToLongBits(other.genScale) && Double.doubleToLongBits(genSwirl) == Double.doubleToLongBits(other.genSwirl) && Double.doubleToLongBits(genSwirlScale) == Double.doubleToLongBits(other.genSwirlScale) && Double.doubleToLongBits(height) == Double.doubleToLongBits(other.height) && Objects.equals(name, other.name) && Objects.equals(parent, other.parent) && Double.doubleToLongBits(rarity) == Double.doubleToLongBits(other.rarity) && realBiome == other.realBiome && Objects.equals(region, other.region) && Objects.equals(rock, other.rock) && rockDepth == other.rockDepth && Double.doubleToLongBits(rockScale) == Double.doubleToLongBits(other.rockScale) && Objects.equals(scatterChance, other.scatterChance) && scatterSurface == other.scatterSurface && scatterSurfaceRock == other.scatterSurfaceRock && scatterSurfaceSub == other.scatterSurfaceSub && Objects.equals(schematicGroups, other.schematicGroups) && simplexScatter == other.simplexScatter && simplexScatterRock == other.simplexScatterRock && simplexScatterSub == other.simplexScatterSub && Double.doubleToLongBits(snow) == Double.doubleToLongBits(other.snow) && Double.doubleToLongBits(subSurfaceScale) == Double.doubleToLongBits(other.subSurfaceScale) && Objects.equals(surface, other.surface) && Double.doubleToLongBits(surfaceScale) == Double.doubleToLongBits(other.surfaceScale) && type == other.type;
 	}
 }

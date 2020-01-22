@@ -67,7 +67,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private CNG swirl;
 	private MB ICE = new MB(Material.ICE);
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
-	private MB WATER = new MB(Material.STATIONARY_WATER);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GenObjectDecorator god;
 	private GenLayerLayeredNoise glLNoise;
@@ -143,24 +142,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return new ChunkPlan();
 	}
 
-	public IrisBiome getBiome(int wxx, int wzx)
-	{
-		PrecisionStopwatch c = getMetrics().start();
-		IrisBiome biome = glBiome.getBiome(wxx, wzx);
-		IrisBiome real = glBiome.getBiome(wxx, wzx, true);
-		boolean frozen = getRegion(biome) != null ? getRegion(biome).isFrozen() : false;
-		int height = computeHeight(wxx, wzx, new ChunkPlan(), biome);
-		IrisBiome nbiome = height < 63 ? getOcean(real, height) : biome;
-		biome = nbiome;
-		int beach = (int) Math.round(65 + this.beach.noise(wxx, wzx));
-		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;
-		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(real) : biome;
-		biome = height >= beach && !biome.getType().equals(BiomeType.LAND) ? real : biome;
-		getMetrics().stop("biome:ms:x256:/terrain:..", c);
-
-		return biome;
-	}
-
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
 		random = new Random(world.getSeed());
@@ -193,32 +174,10 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return metrics;
 	}
 
-	public IrisBiome getOcean(IrisBiome biome, int height)
-	{
-		IrisRegion region = glBiome.getRegion(biome.getRegion());
-		if(region != null)
-		{
-			if(region.isFrozen())
-			{
-				return biome("Frozen Ocean");
-			}
-		}
-
-		if(height < 36)
-		{
-			return biome("Deep Ocean");
-		}
-
-		else
-		{
-			return biome("Ocean");
-		}
-	}
-
 	public IrisBiome getBeach(IrisBiome biome)
 	{
 		IrisBiome beach = null;
-		IrisRegion region = glBiome.getRegion(biome.getRegion());
+		IrisRegion region = glBiome.getRegion(biome.getRegionID());
 
 		if(region != null)
 		{
@@ -283,7 +242,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public IrisRegion getRegion(IrisBiome biome)
 	{
-		return glBiome.getRegion(biome.getRegion());
+		return glBiome.getRegion(biome.getRegionID());
 	}
 
 	@Override
@@ -341,27 +300,32 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		int wzx = (int) wz;
 		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
-		IrisBiome biome = getBiome(wxx, wzx);
-		IrisRegion r = getRegion(biome);
-		boolean frozen = r != null && r.isFrozen();
+		IrisBiome biome = glBiome.getBiome(wxx, wzx);
+		IrisBiome realBiome = glBiome.getBiome(wxx, wzx, true);
+		IrisRegion region = getRegion(realBiome);
+		MB FLUID = biome.getFluid();
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
+		boolean land = height >= seaLevel;
+		int beachHeight = land ? (int) Math.round(seaLevel + beach.noise(wx, wz)) : seaLevel;
+		boolean beach = height <= beachHeight + 2 && land;
+		biome = land && biome.getType().equals(BiomeType.FLUID) ? region.getBeach() : biome;
+		biome = !land && biome.getType().equals(BiomeType.LAND) ? region.getLake() : biome;
+		biome = beach && !land && biome.getType().equals(BiomeType.FLUID) ? region.getShore() : biome;
+		// biome = !beach && land && biome.getType().equals(BiomeType.FRONT) ? realBiome
+		// : biome;
 
 		for(int i = surfaceOnly ? max > seaLevel ? max - 2 : height - 2 : 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));
 			boolean underwater = i >= height && i < seaLevel;
-			boolean someunderwater = i >= height && i < seaLevel - (1 + scatterInt(x, i, z, 1));
-			boolean wayunderwater = i >= height && i < seaLevel - (3 + scatterInt(x, i, z, 2));
 			boolean underground = i < height;
 			int dheight = biome.getDirtDepth();
 			int rheight = biome.getRockDepth();
 			boolean dirt = (height - 1) - i < (dheight > 0 ? scatterInt(x, i, z, 4) : 0) + dheight;
 			boolean rocky = i > height - rheight && !dirt;
 			boolean bedrock = i == 0 || !Iris.settings.gen.flatBedrock ? i <= 2 : i < scatterInt(x, i, z, 3);
-			mb = underwater ? frozen ? PACKED_ICE : WATER : mb;
-			mb = someunderwater ? frozen ? ICE : WATER : mb;
-			mb = wayunderwater ? WATER : mb;
+			mb = underwater ? FLUID : mb;
 			mb = underground && dirt ? biome.getSubSurface(wxx, i, wzx, rTerrain) : mb;
 			mb = underground && rocky ? biome.getRock(wxx, i, wzx, rTerrain) : mb;
 			mb = bedrock ? BEDROCK : mb;
@@ -438,7 +402,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		{
 			IrisBiome biome = glBiome.getBiome(x, z);
 			double h = Iris.settings.gen.baseHeight + biome.getHeight();
-			h += biome.getGenerator().getHeight(x, z);
+			h += biome.getGenerator().getHeight(x, z) / 2D;
 			plan.setHeight(x, z, h);
 			return h;
 		}

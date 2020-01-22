@@ -29,7 +29,6 @@ public class BiomeNoiseGenerator
 		}
 
 		double r = block * 52;
-		double m = biome.getGenAmplifier() < 1D ? (r - (biome.getGenAmplifier() * r)) : 0;
-		return (gen.noise(x, z) * biome.getGenAmplifier() * r) + m;
+		return (gen.noise(x, z) * biome.getGenAmplifier() * r);
 	}
 }

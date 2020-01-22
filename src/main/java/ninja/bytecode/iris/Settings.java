@@ -25,8 +25,8 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
-		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
-		public int interpolationRadius = 3;
+		public InterpolationMode interpolationMode = InterpolationMode.BICUBIC;
+		public int interpolationRadius = 4;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
@@ -42,7 +42,7 @@ public class Settings
 		public double heightScale = 0.56;
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
-		public double biomeScale = 0.525;
+		public double biomeScale = 1;
 		public boolean flatBedrock = false;
 	}
 }

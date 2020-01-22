@@ -1,5 +1,6 @@
 package ninja.bytecode.iris.generator;
 
+import java.util.Collections;
 import java.util.function.Consumer;
 
 import org.bukkit.Chunk;
@@ -13,6 +14,9 @@ import mortar.lang.collection.FinalDouble;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChronoQueue;
 import ninja.bytecode.iris.util.ObjectMode;
+import ninja.bytecode.iris.util.SMCAVector;
+import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.GMap;
 
 public class WorldReactor
 {
@@ -28,7 +32,9 @@ public class WorldReactor
 		ChronoQueue q = new ChronoQueue(mst, 10240);
 		FinalDouble of = new FinalDouble(0D);
 		FinalDouble max = new FinalDouble(0D);
-
+		GMap<SMCAVector, Double> d = new GMap<>();
+		int mx = p.getLocation().getChunk().getX();
+		int mz = p.getLocation().getChunk().getZ();
 		for(int xx = p.getLocation().getChunk().getX() - 32; xx < p.getLocation().getChunk().getX() + 32; xx++)
 		{
 			int x = xx;
@@ -39,37 +45,47 @@ public class WorldReactor
 
 				if(world.isChunkLoaded(x, z) || world.loadChunk(x, z, false))
 				{
-					if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && world.getGenerator() instanceof IrisGenerator)
-					{
-						IrisGenerator gg = ((IrisGenerator) world.getGenerator());
-						gg.getWorldData().deleteChunk(x, z);
-					}
+					d.put(new SMCAVector(x, z), Math.sqrt(Math.pow(x - mx, 2) + Math.pow(z - mz, 2)));
+				}
+			}
+		}
 
-					max.add(1);
-					q.queue(() ->
-					{
-						world.regenerateChunk(x, z);
+		GList<SMCAVector> v = d.k();
+		Collections.sort(v, (a, b) -> (int) (10000 * (d.get(a) - d.get(b))));
 
-						Chunk cc = world.getChunkAt(x, z);
-						NMP.host.relight(cc);
-						of.add(1);
+		for(SMCAVector i : v)
+		{
+			int x = i.getX();
+			int z = i.getZ();
 
-						if(of.get() == max.get())
-						{
-							progress.accept(1D);
-							q.dieSlowly();
-							done.run();
-						}
+			if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && world.getGenerator() instanceof IrisGenerator)
+			{
+				IrisGenerator gg = ((IrisGenerator) world.getGenerator());
+				gg.getWorldData().deleteChunk(x, z);
+			}
 
-						else
-						{
-							progress.accept(M.clip(of.get() / max.get(), 0D, 1D));
-						}
+			max.add(1);
+			q.queue(() ->
+			{
+				world.regenerateChunk(x, z);
 
-					});
+				Chunk cc = world.getChunkAt(x, z);
+				NMP.host.relight(cc);
+				of.add(1);
+
+				if(of.get() == max.get())
+				{
+					progress.accept(1D);
+					q.dieSlowly();
+					done.run();
 				}
 
-			}
+				else
+				{
+					progress.accept(M.clip(of.get() / max.get(), 0D, 1D));
+				}
+
+			});
 		}
 
 		J.s(() ->

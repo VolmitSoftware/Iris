@@ -228,6 +228,30 @@ public class CommandIris implements CommandExecutor
 				}
 			}
 
+			if(args[0].equalsIgnoreCase("regen"))
+			{
+				if(sender instanceof Player)
+				{
+					ChronoLatch cl = new ChronoLatch(3000);
+					Player p = (Player) sender;
+					World ww = ((Player) sender).getWorld();
+
+					msg(p, "Regenerating View Distance");
+
+					WorldReactor r = new WorldReactor(ww);
+					r.generateRegionNormal(p, true, 200, (pct) ->
+					{
+						if(cl.flip())
+						{
+							msg(p, "Regenerating " + F.pc(pct));
+						}
+					}, () ->
+					{
+						msg(p, "Done! Use F3 + A");
+					});
+				}
+			}
+
 			if(args[0].equalsIgnoreCase("hotload"))
 			{
 				msg(sender, "=== Hotloading Pack ===");
@@ -297,55 +321,16 @@ public class CommandIris implements CommandExecutor
 									J.s(() -> msg(sender, "Cannot find dimnension: " + f.get(fi)));
 									return;
 								}
-								msg(sender, "Injecting " + i.getName());
+								msg(sender, "Hotloaded " + i.getName());
 								IrisGenerator g = ((IrisGenerator) i.getGenerator());
 								g.inject(dim);
 							});
 						}
-
-						J.s(() ->
-						{
-							if(sender instanceof Player)
-							{
-								ChronoLatch cl = new ChronoLatch(3000);
-								Player p = (Player) sender;
-								World ww = ((Player) sender).getWorld();
-
-								msg(p, "Regenerating View Distance");
-
-								WorldReactor r = new WorldReactor(ww);
-								r.generateRegionNormal(p, true, 45, (pct) ->
-								{
-									if(cl.flip())
-									{
-										msg(p, "Regenerating " + F.pc(pct));
-									}
-								}, () ->
-								{
-									msg(p, "Done!");
-
-									for(Chunk i : p.getWorld().getLoadedChunks())
-									{
-										if(i.getWorld().isChunkInUse(i.getX(), i.getZ()))
-										{
-											NMP.CHUNK.refresh(p, i);
-										}
-									}
-								});
-							}
-						}, 5);
 					}
 
 					catch(Throwable e)
 					{
 						e.printStackTrace();
-						Consumer<String> m = (msg) ->
-						{
-							J.s(() -> msg(sender, msg.replaceAll("\\Q  \\E", "")));
-						};
-						L.addLogConsumer(m);
-						L.ex(e);
-						L.logConsumers.remove(m);
 					}
 				});
 

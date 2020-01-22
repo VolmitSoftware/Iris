@@ -12,7 +12,7 @@ public class Settings
 	public static class PerformanceSettings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.DOUBLE_CPU;
-		public ObjectMode objectMode = ObjectMode.PARALLAX;
+		public ObjectMode objectMode = ObjectMode.NONE;
 		public boolean fastMode = false;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;

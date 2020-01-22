@@ -33,25 +33,16 @@ public class Settings
 		public double landScale = 0.75;
 		public double landChance = 0.55;
 		public double roughness = 1.55;
-		public double biomeEdgeScrambleScale = 1;
+		public double biomeEdgeFuzzScale = 1;
+		public double biomeEdgeScrambleScale = 0.3;
+		public double biomeEdgeScrambleRange = 0.9;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
 		public double heightScale = 0.56;
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
-		public double caveDensity = 5;
-		public double caveScale = 1.2;
-		public double biomeScale = 0.65;
+		public double biomeScale = 1;
 		public boolean flatBedrock = false;
-		public boolean genCarving = false;
-		public boolean genCaverns = false;
-		public boolean genCaves = false;
-		public double carvingChance = 0.352;
-		public double cavernChance = 0.321;
-		public int minCarvingHeight = 75;
-		public int maxCarvingHeight = 155;
-		public int minCavernHeight = 14;
-		public int maxCavernHeight = 54;
 	}
 }

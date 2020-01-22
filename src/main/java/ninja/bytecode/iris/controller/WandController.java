@@ -203,7 +203,7 @@ public class WandController implements IrisController
 			if(g != null)
 			{
 				Location point = new Location(l.getWorld(), po.getX(), po.getY(), po.getZ());
-				IrisBiome biome = generator.getBiome((int) generator.getOffsetX(po.getX()), (int) generator.getOffsetZ(po.getZ()));
+				IrisBiome biome = generator.getBiome((int) generator.getOffsetX(po.getX(), po.getZ()), (int) generator.getOffsetZ(po.getX(), po.getZ()));
 				String gg = po.getF().split("\\Q:\\E")[0];
 
 				for(int j = 0; j < 10; j++)

@@ -25,7 +25,7 @@ import ninja.bytecode.shuriken.math.RNG;
 public class IrisBiome
 {
 	public static final double MAX_HEIGHT = 0.77768;
-	public static final double IDEAL_HEIGHT = 0.053;
+	public static final double IDEAL_HEIGHT = 0.0527;
 	public static final double MIN_HEIGHT = -0.0218;
 	private static final GMap<Biome, IrisBiome> map = build();
 	private String name;

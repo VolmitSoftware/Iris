@@ -63,6 +63,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	private boolean disposed;
 	private CNG scatter;
+	private CNG swirl;
 	private MB ICE = new MB(Material.ICE);
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
 	private MB WATER = new MB(Material.STATIONARY_WATER);
@@ -121,6 +122,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		}
 		random = new Random(world.getSeed());
 		rTerrain = new RNG(world.getSeed());
+		swirl = new CNG(rTerrain.nextParallelRNG(0), 40, 1).scale(0.012);
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
@@ -174,14 +176,14 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return getDimension().getBiomeByName(name);
 	}
 
-	public double getOffsetX(double x)
+	public double getOffsetX(double x, double z)
 	{
-		return Math.round((double) x * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+		return Math.round((double) x * (Iris.settings.gen.horizontalZoom / 1.90476190476)) + swirl.noise(x, z);
 	}
 
-	public double getOffsetZ(double z)
+	public double getOffsetZ(double x, double z)
 	{
-		return Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476));
+		return Math.round((double) z * (Iris.settings.gen.horizontalZoom / 1.90476190476)) - swirl.noise(z, x);
 	}
 
 	public IrisMetrics getMetrics()
@@ -331,8 +333,8 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			return Biome.VOID;
 		}
 
-		double wx = getOffsetX(wxxf);
-		double wz = getOffsetZ(wzxf);
+		double wx = getOffsetX(wxxf, wzxf);
+		double wz = getOffsetZ(wxxf, wzxf);
 		int wxx = (int) wx;
 		int wzx = (int) wz;
 		int highest = 0;

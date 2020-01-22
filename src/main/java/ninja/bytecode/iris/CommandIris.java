@@ -82,7 +82,7 @@ public class CommandIris implements CommandExecutor
 					if(w.getGenerator() instanceof IrisGenerator)
 					{
 						IrisGenerator g = (IrisGenerator) w.getGenerator();
-						IrisBiome biome = g.getBiome((int) g.getOffsetX(p.getLocation().getX()), (int) g.getOffsetZ(p.getLocation().getZ()));
+						IrisBiome biome = g.getBiome((int) g.getOffsetX(p.getLocation().getX(), p.getLocation().getZ()), (int) g.getOffsetZ(p.getLocation().getX(), p.getLocation().getZ()));
 						BiomeLayer l = new BiomeLayer(g, biome);
 						msg(p, "Biome: " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " (" + C.GOLD + l.getBiome().getRarityString() + C.GRAY + ")");
 
@@ -183,7 +183,7 @@ public class CommandIris implements CommandExecutor
 									int x = (int) ((int) (29999983 / 1.2) * Math.random());
 									int z = (int) ((int) (29999983 / 1.2) * Math.random());
 
-									if(g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetZ(z)).equals(b))
+									if(g.getBiome((int) g.getOffsetX(x, z), (int) g.getOffsetZ(x, z)).equals(b))
 									{
 										f = true;
 
@@ -310,7 +310,7 @@ public class CommandIris implements CommandExecutor
 								ChronoLatch cl = new ChronoLatch(3000);
 								Player p = (Player) sender;
 								World ww = ((Player) sender).getWorld();
-								
+
 								msg(p, "Regenerating View Distance");
 
 								WorldReactor r = new WorldReactor(ww);

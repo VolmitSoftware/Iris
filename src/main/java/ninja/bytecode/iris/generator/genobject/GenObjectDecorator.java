@@ -122,7 +122,7 @@ public class GenObjectDecorator extends BlockPopulator
 				{
 					int x = (cx << 4) + random.nextInt(16);
 					int z = (cz << 4) + random.nextInt(16);
-					IrisBiome biome = g.getBiome((int) g.getOffsetX(x), (int) g.getOffsetZ(z));
+					IrisBiome biome = g.getBiome((int) g.getOffsetX(x, z), (int) g.getOffsetZ(x, z));
 
 					if(hits.contains(biome))
 					{

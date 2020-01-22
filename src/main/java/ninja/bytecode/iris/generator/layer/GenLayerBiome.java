@@ -22,6 +22,7 @@ public class GenLayerBiome extends GenLayer
 	private GMap<String, IrisRegion> regions;
 	private Function<CNG, CNG> factory;
 	private CNG fracture;
+	private CNG fuzz;
 	private CNG island;
 	private BiomeLayer master;
 
@@ -32,8 +33,9 @@ public class GenLayerBiome extends GenLayer
 		island = new CNG(rng.nextParallelRNG(10334), 1D, 1)
 				.scale(0.003 * Iris.settings.gen.landScale)
 				.fractureWith(new CNG(rng.nextParallelRNG(1211), 1D, 1)
-						.scale(0.001 * Iris.settings.gen.landScale), 600);
-		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021)
+						.scale(0.001 * Iris.settings.gen.landScale), 3600);
+		fuzz = new CNG(rng.nextParallelRNG(9112), 1D * 8 * Iris.settings.gen.biomeEdgeFuzzScale, 1).scale(6.5);
+		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021 * Iris.settings.gen.biomeEdgeScrambleScale)
 				.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
 						.scale(0.01), 12250);
 		factory = (g) -> g.fractureWith(new CNG(rng.nextParallelRNG(29), 1D, 3)
@@ -135,8 +137,10 @@ public class GenLayerBiome extends GenLayer
 	{
 		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
 		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
-		double x = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleScale);
-		double z = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleScale);
+		double x = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		double z = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		x -= fuzz.noise(wx, wz);
+		z += fuzz.noise(wz, wx);
 
 		if(real)
 		{

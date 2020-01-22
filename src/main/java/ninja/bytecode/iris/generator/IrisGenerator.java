@@ -63,6 +63,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	private boolean disposed;
 	private CNG scatter;
+	private CNG beach;
 	private CNG swirl;
 	private MB ICE = new MB(Material.ICE);
 	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
@@ -123,6 +124,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		random = new Random(world.getSeed());
 		rTerrain = new RNG(world.getSeed());
 		swirl = new CNG(rTerrain.nextParallelRNG(0), 40, 1).scale(0.012);
+		beach = new CNG(rTerrain.nextParallelRNG(0), 6, 1).scale(0.15);
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
@@ -150,7 +152,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		int height = computeHeight(wxx, wzx, new ChunkPlan(), biome);
 		IrisBiome nbiome = height < 63 ? getOcean(real, height) : biome;
 		biome = nbiome;
-		int beach = 65;
+		int beach = (int) Math.round(65 + this.beach.noise(wxx, wzx));
 		biome = height > 61 && height < 65 ? frozen ? biome : getBeach(real) : biome;
 		biome = height > 63 && biome.getType().equals(BiomeType.FLUID) ? getBeach(real) : biome;
 		biome = height >= beach && !biome.getType().equals(BiomeType.LAND) ? real : biome;

@@ -37,7 +37,7 @@ public class GenLayerBiome extends GenLayer
 				.scale(0.01), 30));
 		ocean = new PolygonGenerator(rng.nextParallelRNG(-11), 6, 0.005, 1, (g)->g.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
 				.scale(0.01), 150));
-		fuzz = new CNG(rng.nextParallelRNG(9112), 1D * 8 * Iris.settings.gen.biomeEdgeFuzzScale, 1).scale(6.5);
+		fuzz = new CNG(rng.nextParallelRNG(9112), 1D * 12 * Iris.settings.gen.biomeEdgeFuzzScale, 1).scale(6.5);
 		fracture = new CNG(rng.nextParallelRNG(28), 1D, 4).scale(0.0021 * Iris.settings.gen.biomeEdgeScrambleScale)
 				.fractureWith(new CNG(rng.nextParallelRNG(34), 1D, 2)
 						.scale(0.01), 12250);
@@ -87,6 +87,48 @@ public class GenLayerBiome extends GenLayer
 	public IrisBiome getBiome(double wxx, double wzx)
 	{
 		return getBiome(wxx, wzx, false);
+	}
+
+	public boolean isNearAquatic(int wxx, int wzx)
+	{
+		double wx = Math.round((double) wxx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
+		double wz = Math.round((double) wzx * (Iris.settings.gen.horizontalZoom / 1.90476190476)) * Iris.settings.gen.biomeScale;
+		double xf = wx + ((fracture.noise(wx, wz) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		double zf = wz - ((fracture.noise(wz, wx) / 2D) * 200D * Iris.settings.gen.biomeEdgeScrambleRange);
+		double x = xf - fuzz.noise(wx, wz);
+		double z = zf + fuzz.noise(wz, wx);
+
+		if(ocean.getIndex(x, z) == 0)
+		{
+			return true;
+		}
+
+		if(channel.hasBorder(3, 44, xf, zf))
+		{
+			return true;
+		}
+
+		if(ocean.getClosestNeighbor(x, z) > 0.2)
+		{
+			return true;
+		}
+
+		if(channel.getClosestNeighbor(x, z) > 0.2)
+		{
+			return true;
+		}
+
+		if(ocean.hasBorder(3, 7, x, z) || ocean.hasBorder(3, 3, x, z))
+		{
+			return true;
+		}
+
+		if(channel.hasBorder(3, 7, xf, zf) || channel.hasBorder(3, 3, xf, zf))
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	public IrisBiome getBiome(double wxx, double wzx, boolean real)

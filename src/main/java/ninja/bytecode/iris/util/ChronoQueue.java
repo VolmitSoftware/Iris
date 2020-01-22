@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.execution.Queue;
 import ninja.bytecode.shuriken.execution.ShurikenQueue;
 import ninja.bytecode.shuriken.logging.L;
@@ -29,7 +30,7 @@ public class ChronoQueue
 
 	public void close()
 	{
-		Bukkit.getScheduler().cancelTask(j);
+		J.attempt(() -> Bukkit.getScheduler().cancelTask(j));
 	}
 
 	public void dieSlowly()

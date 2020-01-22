@@ -31,7 +31,6 @@ import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
-import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.GList;
@@ -122,8 +121,8 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		}
 		random = new Random(world.getSeed());
 		rTerrain = new RNG(world.getSeed());
-		swirl = new CNG(rTerrain.nextParallelRNG(0), 40, 1).scale(0.012);
-		beach = new CNG(rTerrain.nextParallelRNG(0), 6, 1).scale(0.15);
+		swirl = new CNG(rTerrain.nextParallelRNG(0), 40, 1).scale(0.007);
+		beach = new CNG(rTerrain.nextParallelRNG(0), 3, 1).scale(0.15);
 		glLNoise = new GenLayerLayeredNoise(this, world, random, rTerrain.nextParallelRNG(2));
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
@@ -282,7 +281,46 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		return hits;
 	}
 
-	PolygonGenerator pg = new PolygonGenerator(RNG.r, 2, 0.013, 1, (g) -> g);
+	public IrisBiome getBiome(int x, int z)
+	{
+		IrisBiome biome = glBiome.getBiome(x, z);
+		int height = computeHeight((int) x, (int) z, new ChunkPlan(), biome);
+		biome = getBiome((int) x, height, (int) z);
+
+		return biome;
+	}
+
+	private IrisBiome getBiome(int x, int y, int z)
+	{
+		int seaLevel = Iris.settings.gen.seaLevel;
+		boolean land = y >= seaLevel;
+		int beachHeight = land ? 1 + (int) Math.round(seaLevel + beach.noise(x, z)) : seaLevel;
+		boolean beach = y <= beachHeight && land;
+		IrisBiome biome = glBiome.getBiome(x, z);
+		IrisBiome realBiome = glBiome.getBiome(x, z, true);
+		boolean nearAquatic = glBiome.isNearAquatic(x, z);
+		IrisRegion region = getRegion(realBiome);
+
+		// Remove Oceans from biomes above sea level
+		if(land && biome.getType().equals(BiomeType.FLUID))
+		{
+			biome = realBiome;
+		}
+
+		// Add Beaches & Shores
+		if(beach && biome.getType().equals(BiomeType.LAND))
+		{
+			biome = nearAquatic ? region.getBeach() : region.getShore();
+		}
+
+		// // Replace biomes under sea level with lakes
+		if(!land && biome.getType().equals(BiomeType.LAND))
+		{
+			biome = region.getLake();
+		}
+
+		return biome;
+	}
 
 	@Override
 	public Biome onGenColumn(int wxxf, int wzxf, int x, int z, ChunkPlan plan, AtomicChunkData data, boolean surfaceOnly)
@@ -301,19 +339,10 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		int highest = 0;
 		int seaLevel = Iris.settings.gen.seaLevel;
 		IrisBiome biome = glBiome.getBiome(wxx, wzx);
-		IrisBiome realBiome = glBiome.getBiome(wxx, wzx, true);
-		IrisRegion region = getRegion(realBiome);
-		MB FLUID = biome.getFluid();
 		int height = computeHeight(wxx, wzx, plan, biome);
 		int max = Math.max(height, seaLevel);
-		boolean land = height >= seaLevel;
-		int beachHeight = land ? (int) Math.round(seaLevel + beach.noise(wx, wz)) : seaLevel;
-		boolean beach = height <= beachHeight + 2 && land;
-		biome = land && biome.getType().equals(BiomeType.FLUID) ? region.getBeach() : biome;
-		biome = !land && biome.getType().equals(BiomeType.LAND) ? region.getLake() : biome;
-		biome = beach && !land && biome.getType().equals(BiomeType.FLUID) ? region.getShore() : biome;
-		// biome = !beach && land && biome.getType().equals(BiomeType.FRONT) ? realBiome
-		// : biome;
+		biome = getBiome(wxx, height, wzx);
+		MB FLUID = biome.getFluid();
 
 		for(int i = surfaceOnly ? max > seaLevel ? max - 2 : height - 2 : 0; i < max; i++)
 		{

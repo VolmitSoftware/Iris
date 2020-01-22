@@ -584,7 +584,7 @@ public class GenObject
 				{
 					BlockVector mbv = highest.toBlockVector().add(new Vector(0, 1, 0)).toBlockVector();
 					added = true;
-					getSchematic().put(new SBlockVector(mbv), MB.of(Material.SNOW, RNG.r.nextInt((int) M.clip(factor, 0, 8))));
+					getSchematic().put(new SBlockVector(mbv), MB.of(Material.SNOW, RNG.r.nextInt((int) M.clip(factor, 1, 8))));
 				}
 			}
 		}

@@ -20,6 +20,7 @@ import ninja.bytecode.shuriken.collections.GMap;
 
 public class WorldReactor
 {
+	private static GList<ChronoQueue> q = new GList<>();
 	private final World world;
 
 	public WorldReactor(World world)
@@ -29,7 +30,15 @@ public class WorldReactor
 
 	public void generateRegionNormal(Player p, boolean force, double mst, Consumer<Double> progress, Runnable done)
 	{
+		for(ChronoQueue i : WorldReactor.q)
+		{
+			i.close();
+		}
+
+		WorldReactor.q.clear();
+
 		ChronoQueue q = new ChronoQueue(mst, 10240);
+		WorldReactor.q.add(q);
 		FinalDouble of = new FinalDouble(0D);
 		FinalDouble max = new FinalDouble(0D);
 		GMap<SMCAVector, Double> d = new GMap<>();

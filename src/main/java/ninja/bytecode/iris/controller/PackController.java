@@ -126,11 +126,19 @@ public class PackController implements IrisController
 
 					if(j.isSnowy())
 					{
-						GenObjectGroup ggx = genObjectGroups.get(k).copy("-snowy-" + j.getSnow());
-						ggx.applySnowFilter((int) (j.getSnow() * 4));
-						d.registerObject(ggx);
-						j.getSchematicGroups().put(ggx.getName(), j.getSchematicGroups().get(k));
-						j.getSchematicGroups().remove(k);
+						try
+						{
+							GenObjectGroup ggx = genObjectGroups.get(k).copy("-snowy-" + j.getSnow());
+							ggx.applySnowFilter((int) (j.getSnow() * 4));
+							d.registerObject(ggx);
+							j.getSchematicGroups().put(ggx.getName(), j.getSchematicGroups().get(k));
+							j.getSchematicGroups().remove(k);
+						}
+
+						catch(Throwable e)
+						{
+							e.printStackTrace();
+						}
 					}
 				}
 			}

@@ -38,7 +38,7 @@ public class IrisRegion
 			J.attempt(() -> ocean = Iris.getController(PackController.class).getBiomeById(o.getString("ocean")));
 			J.attempt(() -> beach = Iris.getController(PackController.class).getBiomeById(o.getString("beach")));
 			J.attempt(() -> lake = Iris.getController(PackController.class).getBiomeById(o.getString("lake")));
-			J.attempt(() -> lakeBeach = Iris.getController(PackController.class).getBiomeById(o.getString("lakeBeach")));
+			J.attempt(() -> lakeBeach = Iris.getController(PackController.class).getBiomeById(o.getString("shore")));
 			J.attempt(() -> channel = Iris.getController(PackController.class).getBiomeById(o.getString("channel")));
 		});
 	}

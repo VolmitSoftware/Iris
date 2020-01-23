@@ -6,8 +6,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.format.Form;
 
 /**
  * Vector utilities
@@ -286,7 +286,7 @@ public class VectorMath
 
 	private static double round(double value, int precision)
 	{
-		return Double.valueOf(F.f(value, precision));
+		return Double.valueOf(Form.f(value, precision));
 	}
 
 	public static Vector clip(Vector v, int decimals)
@@ -323,9 +323,9 @@ public class VectorMath
 	 *            the block face
 	 * @return multiple faces, or one if the face is already simple
 	 */
-	public static GList<BlockFace> split(BlockFace f)
+	public static KList<BlockFace> split(BlockFace f)
 	{
-		GList<BlockFace> faces = new GList<BlockFace>();
+		KList<BlockFace> faces = new KList<BlockFace>();
 
 		switch(f)
 		{
@@ -527,9 +527,9 @@ public class VectorMath
 	 *            the vectors to be shifted
 	 * @return the shifted vectors
 	 */
-	public static GList<Vector> shift(Vector vector, GList<Vector> vectors)
+	public static KList<Vector> shift(Vector vector, KList<Vector> vectors)
 	{
-		return new GList<Vector>(new GListAdapter<Vector, Vector>()
+		return new KList<Vector>(new GListAdapter<Vector, Vector>()
 		{
 			@Override
 			public Vector onAdapt(Vector from)

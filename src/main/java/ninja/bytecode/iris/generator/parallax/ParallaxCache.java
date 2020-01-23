@@ -6,22 +6,22 @@ import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.SMCAVector;
-import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.collections.KSet;
 
 public class ParallaxCache
 {
-	private GMap<SMCAVector, ChunkPlan> cachePlan;
-	private GMap<SMCAVector, AtomicChunkData> cacheData;
-	private GSet<SMCAVector> contains;
+	private KMap<SMCAVector, ChunkPlan> cachePlan;
+	private KMap<SMCAVector, AtomicChunkData> cacheData;
+	private KSet<SMCAVector> contains;
 	private IrisGenerator gen;
 
 	public ParallaxCache(IrisGenerator gen)
 	{
 		this.gen = gen;
-		cacheData = new GMap<>();
-		cachePlan = new GMap<>();
-		contains = new GSet<>();
+		cacheData = new KMap<>();
+		cachePlan = new KMap<>();
+		contains = new KSet<>();
 	}
 
 	public MB get(int x, int y, int z)

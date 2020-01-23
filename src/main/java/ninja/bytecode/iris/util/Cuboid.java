@@ -17,7 +17,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.material.MaterialData;
 
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 
 /**
  * Cuboids
@@ -55,9 +55,9 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
 		z2 = Math.max(l1.getBlockZ(), l2.getBlockZ());
 	}
 
-	public GList<LivingEntity> getLivingEntities()
+	public KList<LivingEntity> getLivingEntities()
 	{
-		return new GList<LivingEntity>(new GListAdapter<Entity, LivingEntity>()
+		return new KList<LivingEntity>(new GListAdapter<Entity, LivingEntity>()
 		{
 			@Override
 			public LivingEntity onAdapt(Entity from)
@@ -72,9 +72,9 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
 		}.adapt(getEntities()));
 	}
 
-	public GList<Entity> getEntities()
+	public KList<Entity> getEntities()
 	{
-		GList<Entity> en = new GList<Entity>();
+		KList<Entity> en = new KList<Entity>();
 
 		for(Chunk i : getChunks())
 		{

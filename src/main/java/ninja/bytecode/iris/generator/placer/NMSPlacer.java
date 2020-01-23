@@ -11,17 +11,17 @@ import mortar.api.nms.NMP;
 import mortar.api.world.MaterialBlock;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.Placer;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.execution.J;
 
 public class NMSPlacer extends Placer
 {
-	private GSet<Chunk> c;
+	private KSet<Chunk> c;
 
 	public NMSPlacer(World world)
 	{
 		super(world);
-		c = new GSet<>();
+		c = new KSet<>();
 	}
 
 	@SuppressWarnings("deprecation")

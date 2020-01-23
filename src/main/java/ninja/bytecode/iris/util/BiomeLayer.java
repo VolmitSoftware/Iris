@@ -13,7 +13,7 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.BiomeType;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
@@ -179,7 +179,7 @@ public class BiomeLayer
 			}
 		}
 
-		GSet<String> deject = new GSet<>();
+		KSet<String> deject = new KSet<>();
 
 		for(String i : components.keySet())
 		{

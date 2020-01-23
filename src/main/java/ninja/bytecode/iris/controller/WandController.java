@@ -34,20 +34,20 @@ import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParticleEffect;
 import ninja.bytecode.iris.util.ParticleRedstone;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.format.Form;
 
 public class WandController implements IrisController
 {
-	private GMap<String, GenObject> goc;
-	private GMap<String, GenObjectGroup> gog;
+	private KMap<String, GenObject> goc;
+	private KMap<String, GenObjectGroup> gog;
 
 	@Override
 	public void onStart()
 	{
-		goc = new GMap<>();
-		gog = new GMap<>();
+		goc = new KMap<>();
+		gog = new KMap<>();
 		// TODO: Optimize
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
@@ -211,7 +211,7 @@ public class WandController implements IrisController
 					p.sendMessage(" ");
 				}
 
-				p.sendMessage(C.DARK_GREEN + C.BOLD.toString() + gg + C.GRAY + "/" + C.RESET + C.ITALIC + C.GRAY + g.getName() + C.RESET + C.WHITE + " (1 of " + F.f(generator.getDimension().getObjectGroup(gg).size()) + " variants)");
+				p.sendMessage(C.DARK_GREEN + C.BOLD.toString() + gg + C.GRAY + "/" + C.RESET + C.ITALIC + C.GRAY + g.getName() + C.RESET + C.WHITE + " (1 of " + Form.f(generator.getDimension().getObjectGroup(gg).size()) + " variants)");
 
 				if(biome.getSchematicGroups().containsKey(gg))
 				{
@@ -220,12 +220,12 @@ public class WandController implements IrisController
 
 					if(percent > 1D)
 					{
-						f = (int) percent + " + " + F.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
+						f = (int) percent + " + " + Form.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
 					}
 
 					else
 					{
-						f = F.pc(percent, percent >= 0.01 ? 0 : 3);
+						f = Form.pc(percent, percent >= 0.01 ? 0 : 3);
 					}
 
 					p.sendMessage(C.GOLD + "Spawn Chance in " + C.YELLOW + biome.getName() + C.RESET + ": " + C.BOLD + C.WHITE + f);
@@ -244,7 +244,7 @@ public class WandController implements IrisController
 					}
 
 					c = ((double) a / (double) b);
-					p.sendMessage(C.GRAY + "Grp: " + C.DARK_AQUA + F.f(a) + C.GRAY + " of " + C.AQUA + F.f(b) + C.GRAY + " placements (" + C.DARK_AQUA + F.pc(c, 0) + C.GRAY + ")");
+					p.sendMessage(C.GRAY + "Grp: " + C.DARK_AQUA + Form.f(a) + C.GRAY + " of " + C.AQUA + Form.f(b) + C.GRAY + " placements (" + C.DARK_AQUA + Form.pc(c, 0) + C.GRAY + ")");
 				}
 
 				catch(Throwable e)
@@ -252,7 +252,7 @@ public class WandController implements IrisController
 					e.printStackTrace();
 				}
 
-				p.sendMessage(C.GRAY + "Var: " + C.DARK_AQUA + F.f(g.getSuccesses()) + C.GRAY + " of " + C.AQUA + F.f(g.getPlaces()) + C.GRAY + " placements (" + C.DARK_AQUA + F.pc(g.getSuccess(), 0) + C.GRAY + ")");
+				p.sendMessage(C.GRAY + "Var: " + C.DARK_AQUA + Form.f(g.getSuccesses()) + C.GRAY + " of " + C.AQUA + Form.f(g.getPlaces()) + C.GRAY + " placements (" + C.DARK_AQUA + Form.pc(g.getSuccess(), 0) + C.GRAY + ")");
 
 				for(String i : ggg.getFlags())
 				{
@@ -397,7 +397,7 @@ public class WandController implements IrisController
 		im.setDisplayName(ChatColor.BOLD + "" + ChatColor.GOLD + "Wand of Iris");
 		im.setUnbreakable(true);
 		im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
-		im.setLore(new GList<String>().add(locationToString(a), locationToString(b)));
+		im.setLore(new KList<String>().add(locationToString(a), locationToString(b)));
 		is.setItemMeta(im);
 
 		return is;

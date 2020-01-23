@@ -10,15 +10,15 @@ import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.Direction;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 
 public class GenObjectGroup
 {
-	private GList<GenObject> schematics;
-	private GList<String> flags;
+	private KList<GenObject> schematics;
+	private KList<String> flags;
 	private String name;
 	private int priority;
 	private double worldChance;
@@ -26,8 +26,8 @@ public class GenObjectGroup
 
 	public GenObjectGroup(String name)
 	{
-		this.schematics = new GList<>();
-		this.flags = new GList<>();
+		this.schematics = new KList<>();
+		this.flags = new KList<>();
 		this.name = name;
 		priority = Integer.MIN_VALUE;
 		worldChance = Integer.MIN_VALUE;
@@ -104,7 +104,7 @@ public class GenObjectGroup
 	public GenObjectGroup copy(String suffix)
 	{
 		GenObjectGroup gog = new GenObjectGroup(name + suffix);
-		gog.schematics = new GList<>();
+		gog.schematics = new KList<>();
 		gog.flags = flags.copy();
 
 		for(GenObject i : schematics)
@@ -127,22 +127,22 @@ public class GenObjectGroup
 		this.name = name;
 	}
 
-	public GList<GenObject> getSchematics()
+	public KList<GenObject> getSchematics()
 	{
 		return schematics;
 	}
 
-	public void setSchematics(GList<GenObject> schematics)
+	public void setSchematics(KList<GenObject> schematics)
 	{
 		this.schematics = schematics;
 	}
 
-	public GList<String> getFlags()
+	public KList<String> getFlags()
 	{
 		return flags;
 	}
 
-	public void setFlags(GList<String> flags)
+	public void setFlags(KList<String> flags)
 	{
 		this.flags = flags;
 	}
@@ -228,7 +228,7 @@ public class GenObjectGroup
 
 		if(!flags.contains("no rotation"))
 		{
-			GList<GenObject> inject = new GList<>();
+			KList<GenObject> inject = new KList<>();
 			for(GenObject i : getSchematics())
 			{
 				for(Direction j : new Direction[] {Direction.S, Direction.E, Direction.W})
@@ -244,7 +244,7 @@ public class GenObjectGroup
 			getSchematics().add(inject);
 		}
 
-		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + F.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
+		L.i(ChatColor.LIGHT_PURPLE + "Processed " + ChatColor.WHITE + Form.f(schematics.size()) + ChatColor.LIGHT_PURPLE + " Schematics in " + ChatColor.WHITE + name);
 	}
 
 	public void dispose()

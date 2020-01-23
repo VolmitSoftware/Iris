@@ -4,14 +4,14 @@ import java.util.Objects;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONObject;
 
 public class IrisRegion
 {
 	private String name;
-	private GList<IrisBiome> biomes;
+	private KList<IrisBiome> biomes;
 	private IrisBiome ocean;
 	private IrisBiome lake;
 	private IrisBiome lakeBeach;
@@ -21,7 +21,7 @@ public class IrisRegion
 	public IrisRegion(String name)
 	{
 		this.name = name;
-		this.biomes = new GList<>();
+		this.biomes = new KList<>();
 		beach = null;
 		ocean = null;
 		lake = null;
@@ -53,12 +53,12 @@ public class IrisRegion
 		this.name = name;
 	}
 
-	public GList<IrisBiome> getBiomes()
+	public KList<IrisBiome> getBiomes()
 	{
 		return biomes;
 	}
 
-	public void setBiomes(GList<IrisBiome> biomes)
+	public void setBiomes(KList<IrisBiome> biomes)
 	{
 		this.biomes = biomes;
 	}

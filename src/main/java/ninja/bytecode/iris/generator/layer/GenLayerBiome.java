@@ -13,15 +13,15 @@ import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.BiomeLayer;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.PolygonGenerator;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private GMap<String, IrisRegion> regions;
+	private KMap<String, IrisRegion> regions;
 	private Function<CNG, CNG> factory;
 	private CNG fracture;
 	private CNG fuzz;
@@ -29,7 +29,7 @@ public class GenLayerBiome extends GenLayer
 	private PolygonGenerator ocean;
 	private BiomeLayer master;
 
-	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng, GList<IrisBiome> biomes)
+	public GenLayerBiome(IrisGenerator iris, World world, Random random, RNG rng, KList<IrisBiome> biomes)
 	{
 		super(iris, world, random, rng);
 		//@builder
@@ -47,7 +47,7 @@ public class GenLayerBiome extends GenLayer
 						.scale(0.04)
 						.fractureWith(new CNG(rng.nextParallelRNG(1216), 1D, 3).scale(0.0004), 266), 66);
 		//@done
-		regions = new GMap<>();
+		regions = new KMap<>();
 
 		for(IrisBiome i : biomes)
 		{

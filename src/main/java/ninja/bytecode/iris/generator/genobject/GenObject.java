@@ -32,8 +32,8 @@ import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.SBlockVector;
 import ninja.bytecode.iris.util.VectorMath;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RNG;
@@ -47,7 +47,7 @@ public class GenObject
 	private int failures;
 	private int successes;
 	private String name = "?";
-	private GMap<SBlockVector, MB> s;
+	private KMap<SBlockVector, MB> s;
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;
@@ -58,7 +58,7 @@ public class GenObject
 		this.h = h;
 		this.d = d;
 		shift = new BlockVector();
-		s = new GMap<>();
+		s = new KMap<>();
 		centeredHeight = false;
 	}
 
@@ -74,7 +74,7 @@ public class GenObject
 			}
 		}
 
-		GList<SBlockVector> fmount = new GList<>();
+		KList<SBlockVector> fmount = new KList<>();
 
 		for(SBlockVector i : s.keySet())
 		{
@@ -133,7 +133,7 @@ public class GenObject
 		return d;
 	}
 
-	public GMap<SBlockVector, MB> getSchematic()
+	public KMap<SBlockVector, MB> getSchematic()
 	{
 		return s;
 	}
@@ -227,7 +227,7 @@ public class GenObject
 		s.clear();
 	}
 
-	public void fill(GMap<SBlockVector, MB> b)
+	public void fill(KMap<SBlockVector, MB> b)
 	{
 		clear();
 		s.putAll(b);
@@ -272,7 +272,7 @@ public class GenObject
 		}
 
 		start.add(shift);
-		GMap<Location, MB> undo = new GMap<>();
+		KMap<Location, MB> undo = new KMap<>();
 
 		for(SBlockVector i : s.keySet())
 		{
@@ -349,7 +349,7 @@ public class GenObject
 
 	public void rotate(Direction from, Direction to)
 	{
-		GMap<SBlockVector, MB> g = new GMap<>();
+		KMap<SBlockVector, MB> g = new KMap<>();
 		g.putAll(s);
 		s.clear();
 

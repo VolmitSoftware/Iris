@@ -3,7 +3,7 @@ package ninja.bytecode.iris.util;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 
 public interface VisualEffect
 {
@@ -13,5 +13,5 @@ public interface VisualEffect
 
 	public void play(Location l, Player p);
 
-	public void play(Location l, GList<Player> p);
+	public void play(Location l, KList<Player> p);
 }

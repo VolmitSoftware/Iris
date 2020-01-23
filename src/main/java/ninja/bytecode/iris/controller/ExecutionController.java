@@ -4,17 +4,17 @@ import org.bukkit.World;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.IrisController;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
 public class ExecutionController implements IrisController
 {
-	GMap<String, TaskExecutor> executors;
+	KMap<String, TaskExecutor> executors;
 
 	@Override
 	public void onStart()
 	{
-		executors = new GMap<>();
+		executors = new KMap<>();
 	}
 
 	@Override

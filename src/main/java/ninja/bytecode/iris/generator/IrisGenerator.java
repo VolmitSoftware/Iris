@@ -33,7 +33,7 @@ import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.M;
@@ -42,7 +42,7 @@ import ninja.bytecode.shuriken.math.RNG;
 public class IrisGenerator extends ParallaxWorldGenerator
 {
 	//@builder
-	public static final GList<MB> ROCK = new GList<MB>().add(new MB[] {
+	public static final KList<MB> ROCK = new KList<MB>().add(new MB[] {
 			MB.of(Material.STONE),
 			MB.of(Material.STONE),
 			MB.of(Material.STONE),
@@ -246,7 +246,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	@Override
 	public List<BlockPopulator> getDefaultPopulators(World world)
 	{
-		GList<BlockPopulator> p = new GList<>();
+		KList<BlockPopulator> p = new KList<>();
 
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.QUICK_N_DIRTY) || Iris.settings.performance.objectMode.equals(ObjectMode.LIGHTING))
 		{

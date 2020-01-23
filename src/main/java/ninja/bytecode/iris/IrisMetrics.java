@@ -8,9 +8,9 @@ import mortar.compute.math.M;
 import mortar.util.text.C;
 import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.math.RollingSequence;
 
 public class IrisMetrics
@@ -18,54 +18,54 @@ public class IrisMetrics
 	private int size;
 	private int generators;
 	private double scale;
-	private GMap<String, RollingSequence> sequences;
+	private KMap<String, RollingSequence> sequences;
 
 	public IrisMetrics(int generators, int size)
 	{
 		scale = 1;
 		this.size = size;
 		this.generators = generators;
-		sequences = new GMap<>();
+		sequences = new KMap<>();
 	}
 
 	public String avgMS(String s, int dec)
 	{
-		return F.duration(get(s).getAverage(), dec);
+		return Form.duration(get(s).getAverage(), dec);
 	}
 
 	public String avg(String s, int dec)
 	{
-		return F.f(get(s).getAverage(), dec);
+		return Form.f(get(s).getAverage(), dec);
 	}
 
 	public String maxMS(String s, int dec)
 	{
-		return F.duration(get(s).getMax(), dec);
+		return Form.duration(get(s).getMax(), dec);
 	}
 
 	public String max(String s, int dec)
 	{
-		return F.f(get(s).getMax(), dec);
+		return Form.f(get(s).getMax(), dec);
 	}
 
 	public String minMS(String s, int dec)
 	{
-		return F.duration(get(s).getMin(), dec);
+		return Form.duration(get(s).getMin(), dec);
 	}
 
 	public String min(String s, int dec)
 	{
-		return F.f(get(s).getMin(), dec);
+		return Form.f(get(s).getMin(), dec);
 	}
 
 	public String medianMS(String s, int dec)
 	{
-		return F.duration(get(s).getMedian(), dec);
+		return Form.duration(get(s).getMedian(), dec);
 	}
 
 	public String median(String s, int dec)
 	{
-		return F.f(get(s).getMedian(), dec);
+		return Form.f(get(s).getMedian(), dec);
 	}
 
 	public RollingSequence get(String s)
@@ -108,12 +108,12 @@ public class IrisMetrics
 		this.generators = generators;
 	}
 
-	public GMap<String, RollingSequence> getSequences()
+	public KMap<String, RollingSequence> getSequences()
 	{
 		return sequences;
 	}
 
-	public void setSequences(GMap<String, RollingSequence> sequences)
+	public void setSequences(KMap<String, RollingSequence> sequences)
 	{
 		this.sequences = sequences;
 	}
@@ -130,11 +130,11 @@ public class IrisMetrics
 
 	public void send(Player p, Consumer<String> c, String parent, int ind)
 	{
-		GMap<String, String> out = new GMap<>();
+		KMap<String, String> out = new KMap<>();
 
 		looking: for(String i : getSequences().k())
 		{
-			GList<String> o = new GList<>();
+			KList<String> o = new KList<>();
 
 			if(i.contains(":"))
 			{
@@ -208,24 +208,24 @@ public class IrisMetrics
 				comma = true;
 			}
 
-			String af = ms ? F.duration(vmin, dot) : comma ? F.f((int) vmin) : F.f(vmin, dot);
-			String bf = ms ? F.duration(vmed, dot) : comma ? F.f((int) vmed) : F.f(vmed, dot);
-			String cf = ms ? F.duration(vavg, dot) : comma ? F.f((int) vavg) : F.f(vavg, dot);
-			String df = ms ? F.duration(vmax, dot) : comma ? F.f((int) vmax) : F.f(vmax, dot);
+			String af = ms ? Form.duration(vmin, dot) : comma ? Form.f((int) vmin) : Form.f(vmin, dot);
+			String bf = ms ? Form.duration(vmed, dot) : comma ? Form.f((int) vmed) : Form.f(vmed, dot);
+			String cf = ms ? Form.duration(vavg, dot) : comma ? Form.f((int) vavg) : Form.f(vavg, dot);
+			String df = ms ? Form.duration(vmax, dot) : comma ? Form.f((int) vmax) : Form.f(vmax, dot);
 
 			out.put(pf, C.DARK_GREEN.toString() + C.ITALIC + cf + C.RESET + C.GRAY + " (" + C.DARK_AQUA + C.ITALIC + af + C.RESET + C.GRAY + " > " + C.GOLD + C.ITALIC + bf + C.RESET + C.GRAY + " < " + C.DARK_RED + C.ITALIC + df + C.RESET + C.GRAY + ")");
 		}
 
 		if(ind == 0)
 		{
-			c.accept(C.WHITE.toString() + C.BOLD + "Total Generators: " + C.RESET + C.DARK_AQUA + C.ITALIC + F.f(generators));
-			c.accept(C.WHITE.toString() + C.BOLD + "Parallelism: " + C.RESET + C.DARK_PURPLE + C.ITALIC + F.pc(scale) + C.WHITE + C.BOLD + " Threads: " + C.RESET + C.BLUE + C.ITALIC + Iris.getController(ExecutionController.class).getTC());
+			c.accept(C.WHITE.toString() + C.BOLD + "Total Generators: " + C.RESET + C.DARK_AQUA + C.ITALIC + Form.f(generators));
+			c.accept(C.WHITE.toString() + C.BOLD + "Parallelism: " + C.RESET + C.DARK_PURPLE + C.ITALIC + Form.pc(scale) + C.WHITE + C.BOLD + " Threads: " + C.RESET + C.BLUE + C.ITALIC + Iris.getController(ExecutionController.class).getTC());
 		}
 
 		for(String i : out.k())
 		{
-			String g = F.capitalizeWords(i.replaceAll("\\Q-\\E", " ").toLowerCase());
-			c.accept(F.repeat("  ", M.iclip(ind, 0, 4)) + C.WHITE + C.BOLD + g + C.RESET + ": " + out.get(i));
+			String g = Form.capitalizeWords(i.replaceAll("\\Q-\\E", " ").toLowerCase());
+			c.accept(Form.repeat("  ", M.iclip(ind, 0, 4)) + C.WHITE + C.BOLD + g + C.RESET + ": " + out.get(i));
 
 			send(p, c, i, ind + 1);
 		}

@@ -13,14 +13,14 @@ import org.bukkit.event.Listener;
 
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.logging.L;
 
 public class WorldState implements Listener
 {
 	private int taskId;
-	private GMap<MCAPos, MCAState> stateCache;
+	private KMap<MCAPos, MCAState> stateCache;
 	private World world;
 
 	@SuppressWarnings("deprecation")

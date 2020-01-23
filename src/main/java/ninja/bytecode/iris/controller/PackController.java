@@ -15,10 +15,10 @@ import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisPack;
 import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -26,19 +26,19 @@ import ninja.bytecode.shuriken.logging.L;
 
 public class PackController implements IrisController
 {
-	private GMap<String, CompiledDimension> compiledDimensions;
-	private GMap<String, IrisDimension> dimensions;
-	private GMap<String, IrisBiome> biomes;
-	private GMap<String, GenObjectGroup> genObjectGroups;
+	private KMap<String, CompiledDimension> compiledDimensions;
+	private KMap<String, IrisDimension> dimensions;
+	private KMap<String, IrisBiome> biomes;
+	private KMap<String, GenObjectGroup> genObjectGroups;
 	private boolean ready;
 
 	@Override
 	public void onStart()
 	{
-		compiledDimensions = new GMap<>();
-		dimensions = new GMap<>();
-		biomes = new GMap<>();
-		genObjectGroups = new GMap<>();
+		compiledDimensions = new KMap<>();
+		dimensions = new KMap<>();
+		biomes = new KMap<>();
+		genObjectGroups = new KMap<>();
 		ready = false;
 	}
 
@@ -53,9 +53,9 @@ public class PackController implements IrisController
 		return ready;
 	}
 
-	public GList<File> getFiles(File folder)
+	public KList<File> getFiles(File folder)
 	{
-		GList<File> buf = new GList<File>();
+		KList<File> buf = new KList<File>();
 
 		if(!folder.exists())
 		{
@@ -83,9 +83,9 @@ public class PackController implements IrisController
 
 	public void compile()
 	{
-		dimensions = new GMap<>();
-		biomes = new GMap<>();
-		genObjectGroups = new GMap<>();
+		dimensions = new KMap<>();
+		biomes = new KMap<>();
+		genObjectGroups = new KMap<>();
 		ready = false;
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		File dims = new File(Iris.instance.getDataFolder(), "dimensions");
@@ -117,7 +117,7 @@ public class PackController implements IrisController
 			for(IrisBiome j : id.getBiomes())
 			{
 				d.registerBiome(j);
-				GList<String> g = j.getSchematicGroups().k();
+				KList<String> g = j.getSchematicGroups().k();
 				g.sort();
 
 				for(String k : g)
@@ -152,13 +152,13 @@ public class PackController implements IrisController
 			CompiledDimension d = compiledDimensions.get(i);
 			d.computeObjectSize();
 			L.i(ChatColor.GREEN + i + ChatColor.WHITE + " (" + d.getEnvironment().toString().toLowerCase() + ")");
-			L.i(ChatColor.DARK_GREEN + "  Biomes: " + ChatColor.GRAY + F.f(d.getBiomes().size()));
-			L.i(ChatColor.DARK_GREEN + "  Objects: " + ChatColor.GRAY + F.f(d.countObjects()));
+			L.i(ChatColor.DARK_GREEN + "  Biomes: " + ChatColor.GRAY + Form.f(d.getBiomes().size()));
+			L.i(ChatColor.DARK_GREEN + "  Objects: " + ChatColor.GRAY + Form.f(d.countObjects()));
 			L.flush();
 		}
 
 		L.i("");
-		L.i(ChatColor.LIGHT_PURPLE + "Compilation Time: " + ChatColor.WHITE + F.duration(p.getMilliseconds(), 2));
+		L.i(ChatColor.LIGHT_PURPLE + "Compilation Time: " + ChatColor.WHITE + Form.duration(p.getMilliseconds(), 2));
 		L.i(ChatColor.GREEN + "Iris Dimensions Successfully Compiled!");
 		L.i("");
 		L.flush();
@@ -166,22 +166,22 @@ public class PackController implements IrisController
 		ready = true;
 	}
 
-	public GMap<String, CompiledDimension> getCompiledDimensions()
+	public KMap<String, CompiledDimension> getCompiledDimensions()
 	{
 		return compiledDimensions;
 	}
 
-	public GMap<String, IrisDimension> getDimensions()
+	public KMap<String, IrisDimension> getDimensions()
 	{
 		return dimensions;
 	}
 
-	public GMap<String, IrisBiome> getBiomes()
+	public KMap<String, IrisBiome> getBiomes()
 	{
 		return biomes;
 	}
 
-	public GMap<String, GenObjectGroup> getGenObjectGroups()
+	public KMap<String, GenObjectGroup> getGenObjectGroups()
 	{
 		return genObjectGroups;
 	}

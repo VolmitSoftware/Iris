@@ -22,10 +22,10 @@ import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.logging.L;
 
 public class CommandIris implements CommandExecutor
@@ -92,15 +92,15 @@ public class CommandIris implements CommandExecutor
 
 							if(percent > 1D)
 							{
-								f = (int) percent + " + " + F.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
+								f = (int) percent + " + " + Form.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
 							}
 
 							else
 							{
-								f = F.pc(percent, percent >= 0.01 ? 0 : 3);
+								f = Form.pc(percent, percent >= 0.01 ? 0 : 3);
 							}
 
-							msg(p, "* " + C.DARK_GREEN + i + ": " + C.BOLD + C.WHITE + f + C.RESET + C.GRAY + " (" + F.f(g.getDimension().getObjectGroup(i).size()) + " variants)");
+							msg(p, "* " + C.DARK_GREEN + i + ": " + C.BOLD + C.WHITE + f + C.RESET + C.GRAY + " (" + Form.f(g.getDimension().getObjectGroup(i).size()) + " variants)");
 						}
 					}
 
@@ -231,7 +231,7 @@ public class CommandIris implements CommandExecutor
 			{
 				msg(sender, "=== Hotloading Pack ===");
 				PackController c = Iris.getController(PackController.class);
-				GMap<String, String> f = new GMap<>();
+				KMap<String, String> f = new KMap<>();
 
 				for(World i : Bukkit.getWorlds())
 				{
@@ -261,7 +261,7 @@ public class CommandIris implements CommandExecutor
 
 								if(msg.contains("|"))
 								{
-									GList<String> fx = new GList<>();
+									KList<String> fx = new KList<>();
 									fx.add(msg.split("\\Q|\\E"));
 									fx.remove(0);
 									fx.remove(0);
@@ -290,7 +290,7 @@ public class CommandIris implements CommandExecutor
 								{
 									if(cl.flip())
 									{
-										msg(p, "Regenerating " + F.pc(pct));
+										msg(p, "Regenerating " + Form.pc(pct));
 									}
 								}, () ->
 								{

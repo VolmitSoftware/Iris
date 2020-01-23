@@ -1,21 +1,21 @@
 package ninja.bytecode.iris.util;
 
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KMap;
 
 public class ChunkPlan
 {
-	private final GMap<SChunkVector, Integer> realHeightCache;
-	private final GMap<SChunkVector, Integer> realWaterHeightCache;
-	private final GMap<SChunkVector, Double> heightCache;
-	private final GMap<SChunkVector, IrisBiome> biomeCache;
+	private final KMap<SChunkVector, Integer> realHeightCache;
+	private final KMap<SChunkVector, Integer> realWaterHeightCache;
+	private final KMap<SChunkVector, Double> heightCache;
+	private final KMap<SChunkVector, IrisBiome> biomeCache;
 
 	public ChunkPlan()
 	{
-		this.realHeightCache = new GMap<>();
-		this.realWaterHeightCache = new GMap<>();
-		this.heightCache = new GMap<>();
-		this.biomeCache = new GMap<>();
+		this.realHeightCache = new KMap<>();
+		this.realWaterHeightCache = new KMap<>();
+		this.heightCache = new KMap<>();
+		this.biomeCache = new KMap<>();
 	}
 
 	public IrisBiome getBiome(int x, int z)

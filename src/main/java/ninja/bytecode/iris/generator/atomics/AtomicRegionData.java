@@ -13,23 +13,23 @@ import org.jnbt.NBTInputStream;
 import org.jnbt.NBTOutputStream;
 import org.jnbt.Tag;
 
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KMap;
 
 public class AtomicRegionData
 {
 	private final World world;
-	private GMap<String, Tag> tag;
+	private KMap<String, Tag> tag;
 
 	public AtomicRegionData(World world)
 	{
 		this.world = world;
-		tag = new GMap<>();
+		tag = new KMap<>();
 	}
 
 	public void read(InputStream in) throws IOException
 	{
 		NBTInputStream nin = new NBTInputStream(in);
-		tag = new GMap<>();
+		tag = new KMap<>();
 		tag.putAll(((CompoundTag) nin.readTag()).getValue());
 		nin.close();
 	}

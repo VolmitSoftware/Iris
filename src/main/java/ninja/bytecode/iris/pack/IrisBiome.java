@@ -13,8 +13,8 @@ import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.PolygonGenerator;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -28,17 +28,17 @@ public class IrisBiome
 	public static final double MAX_HEIGHT = 0.77768;
 	public static final double IDEAL_HEIGHT = 0.138;
 	public static final double MIN_HEIGHT = -0.0218;
-	private static final GMap<Biome, IrisBiome> map = build();
+	private static final KMap<Biome, IrisBiome> map = build();
 	private String name;
 	private String parent;
 	private Biome realBiome;
 	private double height;
-	private GList<MB> rock;
+	private KList<MB> rock;
 	private MB fluid;
 	private int rockDepth;
-	private GList<MB> surface;
-	private GList<MB> dirt;
-	private GMap<MB, Double> scatterChance;
+	private KList<MB> surface;
+	private KList<MB> dirt;
+	private KMap<MB, Double> scatterChance;
 	private boolean scatterSurface;
 	private boolean scatterSurfaceRock;
 	private boolean scatterSurfaceSub;
@@ -62,7 +62,7 @@ public class IrisBiome
 	private BiomeNoiseGenerator bng;
 	private BiomeType type;
 	private String region;
-	private GMap<String, Double> schematicGroups;
+	private KMap<String, Double> schematicGroups;
 	private PolygonGenerator.EnumPolygonGenerator<MB> poly;
 	private PolygonGenerator.EnumPolygonGenerator<MB> polySub;
 	private PolygonGenerator.EnumPolygonGenerator<MB> polyRock;
@@ -82,7 +82,7 @@ public class IrisBiome
 		return MIN_HEIGHT;
 	}
 
-	public static GMap<Biome, IrisBiome> getMap()
+	public static KMap<Biome, IrisBiome> getMap()
 	{
 		return map;
 	}
@@ -140,8 +140,8 @@ public class IrisBiome
 		scatterSurfaceRock = true;
 		simplexScatterSub = false;
 		scatterSurfaceSub = true;
-		scatterChance = new GMap<>();
-		schematicGroups = new GMap<>();
+		scatterChance = new KMap<>();
+		schematicGroups = new KMap<>();
 		//@builder
 		surface(new MB(Material.GRASS))
 		.dirt(new MB(Material.DIRT), new MB(Material.DIRT, 1))
@@ -277,7 +277,7 @@ public class IrisBiome
 
 			else
 			{
-				schematicGroups = new GMap<>();
+				schematicGroups = new KMap<>();
 			}
 
 			if(chain)
@@ -329,9 +329,9 @@ public class IrisBiome
 		return j;
 	}
 
-	private GList<MB> mbListFromJSON(JSONArray ja)
+	private KList<MB> mbListFromJSON(JSONArray ja)
 	{
-		GList<MB> mb = new GList<>();
+		KList<MB> mb = new KList<>();
 
 		for(int i = 0; i < ja.length(); i++)
 		{
@@ -341,7 +341,7 @@ public class IrisBiome
 		return mb;
 	}
 
-	private JSONArray mbListToJSON(GList<MB> mbs)
+	private JSONArray mbListToJSON(KList<MB> mbs)
 	{
 		JSONArray ja = new JSONArray();
 
@@ -359,9 +359,9 @@ public class IrisBiome
 		return this;
 	}
 
-	private GMap<MB, Double> scatterFromJSON(JSONArray ja)
+	private KMap<MB, Double> scatterFromJSON(JSONArray ja)
 	{
-		GMap<MB, Double> mb = new GMap<MB, Double>();
+		KMap<MB, Double> mb = new KMap<MB, Double>();
 
 		for(int i = 0; i < ja.length(); i++)
 		{
@@ -372,7 +372,7 @@ public class IrisBiome
 		return mb;
 	}
 
-	private JSONArray scatterToJson(GMap<MB, Double> mbs)
+	private JSONArray scatterToJson(KMap<MB, Double> mbs)
 	{
 		JSONArray ja = new JSONArray();
 
@@ -384,9 +384,9 @@ public class IrisBiome
 		return ja;
 	}
 
-	private GMap<String, Double> strFromJSON(JSONArray ja)
+	private KMap<String, Double> strFromJSON(JSONArray ja)
 	{
-		GMap<String, Double> mb = new GMap<String, Double>();
+		KMap<String, Double> mb = new KMap<String, Double>();
 
 		for(int i = 0; i < ja.length(); i++)
 		{
@@ -397,7 +397,7 @@ public class IrisBiome
 		return mb;
 	}
 
-	private JSONArray strToJson(GMap<String, Double> mbs)
+	private JSONArray strToJson(KMap<String, Double> mbs)
 	{
 		JSONArray ja = new JSONArray();
 
@@ -409,9 +409,9 @@ public class IrisBiome
 		return ja;
 	}
 
-	private static GMap<Biome, IrisBiome> build()
+	private static KMap<Biome, IrisBiome> build()
 	{
-		GMap<Biome, IrisBiome> g = new GMap<Biome, IrisBiome>();
+		KMap<Biome, IrisBiome> g = new KMap<Biome, IrisBiome>();
 
 		for(Field i : IrisBiome.class.getDeclaredFields())
 		{
@@ -459,19 +459,19 @@ public class IrisBiome
 
 	public IrisBiome surface(MB... mbs)
 	{
-		surface = new GList<>(mbs);
+		surface = new KList<>(mbs);
 		return this;
 	}
 
 	public IrisBiome dirt(MB... mbs)
 	{
-		dirt = new GList<>(mbs);
+		dirt = new KList<>(mbs);
 		return this;
 	}
 
 	public IrisBiome rock(MB... mbs)
 	{
-		rock = new GList<>(mbs);
+		rock = new KList<>(mbs);
 		return this;
 	}
 
@@ -505,17 +505,17 @@ public class IrisBiome
 		return height;
 	}
 
-	public GList<MB> getSurface()
+	public KList<MB> getSurface()
 	{
 		return surface;
 	}
 
-	public GList<MB> getRock()
+	public KList<MB> getRock()
 	{
 		return rock;
 	}
 
-	public GList<MB> getDirt()
+	public KList<MB> getDirt()
 	{
 		return dirt;
 	}
@@ -589,7 +589,7 @@ public class IrisBiome
 		return getSurface().getRandom();
 	}
 
-	public GMap<MB, Double> getScatterChance()
+	public KMap<MB, Double> getScatterChance()
 	{
 		return scatterChance;
 	}
@@ -607,7 +607,7 @@ public class IrisBiome
 		return MB.of(Material.AIR);
 	}
 
-	public static GList<IrisBiome> getBiomes()
+	public static KList<IrisBiome> getBiomes()
 	{
 		return map.v();
 	}
@@ -622,7 +622,7 @@ public class IrisBiome
 		return null;
 	}
 
-	public GMap<String, Double> getSchematicGroups()
+	public KMap<String, Double> getSchematicGroups()
 	{
 		return schematicGroups;
 	}
@@ -690,9 +690,9 @@ public class IrisBiome
 		return parent;
 	}
 
-	public GList<String> getParents()
+	public KList<String> getParents()
 	{
-		GList<String> f = new GList<>();
+		KList<String> f = new KList<>();
 
 		if(getParent().trim().isEmpty())
 		{
@@ -815,7 +815,7 @@ public class IrisBiome
 		this.height = height;
 	}
 
-	public void setRock(GList<MB> rock)
+	public void setRock(KList<MB> rock)
 	{
 		this.rock = rock;
 	}
@@ -825,17 +825,17 @@ public class IrisBiome
 		this.rockDepth = rockDepth;
 	}
 
-	public void setSurface(GList<MB> surface)
+	public void setSurface(KList<MB> surface)
 	{
 		this.surface = surface;
 	}
 
-	public void setDirt(GList<MB> dirt)
+	public void setDirt(KList<MB> dirt)
 	{
 		this.dirt = dirt;
 	}
 
-	public void setScatterChance(GMap<MB, Double> scatterChance)
+	public void setScatterChance(KMap<MB, Double> scatterChance)
 	{
 		this.scatterChance = scatterChance;
 	}
@@ -925,7 +925,7 @@ public class IrisBiome
 		this.region = region;
 	}
 
-	public void setSchematicGroups(GMap<String, Double> schematicGroups)
+	public void setSchematicGroups(KMap<String, Double> schematicGroups)
 	{
 		this.schematicGroups = schematicGroups;
 	}

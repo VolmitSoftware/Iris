@@ -6,7 +6,7 @@ import org.bukkit.block.Biome;
 import net.minecraft.server.v1_12_R1.BiomeBase;
 import net.minecraft.server.v1_12_R1.Block;
 import net.minecraft.server.v1_12_R1.IBlockData;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.format.Form;
 
 public class RealBiome
 {
@@ -30,7 +30,7 @@ public class RealBiome
 	
 	public String toString()
 	{
-		return F.capitalizeWords(b.toString().toLowerCase().replaceAll("\\Q_\\E", " ")) + " Temp: " + temperature + " Humidity: " + humidity + " Height: " + height + " Surf: " + F.capitalizeWords(surface.material.toString().replaceAll("_", " ").toLowerCase())+ " Dirt: " + F.capitalizeWords(dirt.material.toString().replaceAll("_", " ").toLowerCase());
+		return Form.capitalizeWords(b.toString().toLowerCase().replaceAll("\\Q_\\E", " ")) + " Temp: " + temperature + " Humidity: " + humidity + " Height: " + height + " Surf: " + Form.capitalizeWords(surface.material.toString().replaceAll("_", " ").toLowerCase())+ " Dirt: " + Form.capitalizeWords(dirt.material.toString().replaceAll("_", " ").toLowerCase());
 	}
 	
 	@SuppressWarnings("deprecation")

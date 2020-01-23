@@ -3,7 +3,7 @@ package ninja.bytecode.iris.util;
 
 import java.util.List;
 
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 
 /**
  * Adapts a list of objects into a list of other objects
@@ -25,7 +25,7 @@ public abstract class GListAdapter<FROM, TO>
 	 */
 	public List<TO> adapt(List<FROM> from)
 	{
-		List<TO> adapted = new GList<TO>();
+		List<TO> adapted = new KList<TO>();
 
 		for(FROM i : from)
 		{

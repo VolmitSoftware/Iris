@@ -22,7 +22,7 @@ import ninja.bytecode.iris.util.IrisWorldData;
 import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.math.RNG;
@@ -33,7 +33,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	private IrisWorldData data;
 	private RNG rMaster;
 	private AtomicChunkData buffer;
-	private GSet<Chunk> fix;
+	private KSet<Chunk> fix;
 	private ChronoLatch cl;
 	protected boolean saving;
 
@@ -43,7 +43,7 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		this.world = world;
 		saving = true;
 		cl = new ChronoLatch(3000);
-		fix = new GSet<>();
+		fix = new KSet<>();
 		buffer = new AtomicChunkData(world);
 		this.data = new IrisWorldData(world);
 		this.rMaster = new RNG(world.getSeed() + 1);

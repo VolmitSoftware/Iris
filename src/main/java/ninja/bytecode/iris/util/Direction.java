@@ -5,8 +5,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
 /**
  * Directions
@@ -22,7 +22,7 @@ public enum Direction
 	E(1, 0, 0, CuboidDirection.East),
 	W(-1, 0, 0, CuboidDirection.West);
 
-	private static GMap<GBiset<Direction, Direction>, DOP> permute = null;
+	private static KMap<GBiset<Direction, Direction>, DOP> permute = null;
 
 	private int x;
 	private int y;
@@ -143,7 +143,7 @@ public enum Direction
 		return s;
 	}
 
-	public static Direction closest(Vector v, GList<Direction> d)
+	public static Direction closest(Vector v, KList<Direction> d)
 	{
 		double m = Double.MAX_VALUE;
 		Direction s = null;
@@ -249,9 +249,9 @@ public enum Direction
 		return f;
 	}
 
-	public static GList<Direction> news()
+	public static KList<Direction> news()
 	{
-		return new GList<Direction>().add(N, E, W, S);
+		return new KList<Direction>().add(N, E, W, S);
 	}
 
 	public static Direction getDirection(Vector v)
@@ -269,9 +269,9 @@ public enum Direction
 		return Direction.N;
 	}
 
-	public static GList<Direction> udnews()
+	public static KList<Direction> udnews()
 	{
-		return new GList<Direction>().add(U, D, N, E, W, S);
+		return new KList<Direction>().add(U, D, N, E, W, S);
 	}
 
 	/**
@@ -356,7 +356,7 @@ public enum Direction
 			return;
 		}
 
-		permute = new GMap<GBiset<Direction, Direction>, DOP>();
+		permute = new KMap<GBiset<Direction, Direction>, DOP>();
 
 		for(Direction i : udnews())
 		{

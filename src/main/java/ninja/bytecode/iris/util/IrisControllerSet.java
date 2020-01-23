@@ -7,17 +7,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.tools.JarScanner;
 
 public class IrisControllerSet
 {
-	private GMap<Class<?>, IrisController> controllers;
+	private KMap<Class<?>, IrisController> controllers;
 	
 	public IrisControllerSet()
 	{
-		controllers = new GMap<>();
+		controllers = new KMap<>();
 	}
 	
 	public void startControllers(File jar) throws IOException

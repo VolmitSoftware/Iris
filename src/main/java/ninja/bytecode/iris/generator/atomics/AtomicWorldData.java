@@ -8,22 +8,22 @@ import java.io.IOException;
 import org.bukkit.World;
 
 import ninja.bytecode.iris.util.SMCAVector;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
 public class AtomicWorldData
 {
 	private World world;
-	private GMap<SMCAVector, AtomicRegionData> loadedSections;
+	private KMap<SMCAVector, AtomicRegionData> loadedSections;
 
 	public AtomicWorldData(World world)
 	{
 		this.world = world;
-		loadedSections = new GMap<>();
+		loadedSections = new KMap<>();
 		getSubregionFolder().mkdirs();
 	}
 
-	public GList<SMCAVector> getLoadedRegions()
+	public KList<SMCAVector> getLoadedRegions()
 	{
 		return loadedSections.k();
 	}

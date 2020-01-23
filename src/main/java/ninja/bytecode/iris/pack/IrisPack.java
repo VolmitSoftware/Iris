@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -12,15 +12,15 @@ import ninja.bytecode.shuriken.json.JSONObject;
 
 public class IrisPack
 {
-	private GList<String> dimensions;
-	private GList<String> biomes;
-	private GList<String> objects;
+	private KList<String> dimensions;
+	private KList<String> biomes;
+	private KList<String> objects;
 	
 	public IrisPack()
 	{
-		this.dimensions = new GList<>();
-		this.biomes = new GList<>();
-		this.objects = new GList<>();
+		this.dimensions = new KList<>();
+		this.biomes = new KList<>();
+		this.objects = new KList<>();
 	}
 	
 	public IrisPack(JSONObject o)
@@ -46,9 +46,9 @@ public class IrisPack
 		return o;
 	}
 	
-	public GList<String> fromArray(JSONArray ja)
+	public KList<String> fromArray(JSONArray ja)
 	{
-		GList<String> g = new GList<>();
+		KList<String> g = new KList<>();
 		
 		for(int i = 0; i < ja.length(); i++)
 		{
@@ -58,7 +58,7 @@ public class IrisPack
 		return g;
 	}
 	
-	public JSONArray toArray(GList<String> s)
+	public JSONArray toArray(KList<String> s)
 	{
 		JSONArray ja = new JSONArray();
 		

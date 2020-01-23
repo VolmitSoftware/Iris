@@ -21,7 +21,7 @@ import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.util.Cuboid;
 import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
 import ninja.bytecode.iris.util.Direction;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.format.Form;
 
 public class CommandIsh implements CommandExecutor
 {
@@ -74,7 +74,7 @@ public class CommandIsh implements CommandExecutor
 					{
 						FileOutputStream fos = new FileOutputStream(f);
 						s.write(fos, true);
-						msg(p, "Saved " + args[1] + " (" + F.f(s.getSchematic().size()) + " Entries)");
+						msg(p, "Saved " + args[1] + " (" + Form.f(s.getSchematic().size()) + " Entries)");
 						p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 0.45f);
 					}
 
@@ -118,7 +118,7 @@ public class CommandIsh implements CommandExecutor
 
 						WandController.pasteSchematic(s, at);
 						p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.25f);
-						msg(p, "Pasted " + args[1] + " (" + F.f(s.getSchematic().size()) + " Blocks Modified)");
+						msg(p, "Pasted " + args[1] + " (" + Form.f(s.getSchematic().size()) + " Blocks Modified)");
 					}
 
 					catch(Throwable e1)

@@ -6,7 +6,7 @@ import org.bukkit.World.Environment;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.controller.PackController;
-import ninja.bytecode.shuriken.collections.GList;
+import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
 import ninja.bytecode.shuriken.json.JSONException;
@@ -16,7 +16,7 @@ public class IrisDimension
 {
 	private String name;
 	private Environment environment;
-	GList<IrisBiome> biomes;
+	KList<IrisBiome> biomes;
 
 	public IrisDimension(JSONObject o) throws JSONException, IOException
 	{
@@ -26,7 +26,7 @@ public class IrisDimension
 
 	public IrisDimension()
 	{
-		biomes = new GList<IrisBiome>();
+		biomes = new KList<IrisBiome>();
 		environment = Environment.NORMAL;
 	}
 
@@ -42,7 +42,7 @@ public class IrisDimension
 
 		try
 		{
-			biomes = chain ? biomesFromArray(o.getJSONArray("biomes")) : new GList<>();
+			biomes = chain ? biomesFromArray(o.getJSONArray("biomes")) : new KList<>();
 		}
 
 		catch(Throwable e)
@@ -62,9 +62,9 @@ public class IrisDimension
 		return o;
 	}
 
-	private GList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
+	private KList<IrisBiome> biomesFromArray(JSONArray a) throws JSONException, IOException
 	{
-		GList<IrisBiome> b = new GList<>();
+		KList<IrisBiome> b = new KList<>();
 		for(int i = 0; i < a.length(); i++)
 		{
 			int ii = i;
@@ -76,7 +76,7 @@ public class IrisDimension
 		return b;
 	}
 
-	private JSONArray biomesToArray(GList<IrisBiome> b)
+	private JSONArray biomesToArray(KList<IrisBiome> b)
 	{
 		JSONArray a = new JSONArray();
 
@@ -88,7 +88,7 @@ public class IrisDimension
 		return a;
 	}
 
-	public GList<IrisBiome> getBiomes()
+	public KList<IrisBiome> getBiomes()
 	{
 		return biomes;
 	}

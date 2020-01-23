@@ -12,8 +12,8 @@ import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.IrisController;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.execution.J;
 
 public class DebugController implements IrisController
@@ -39,8 +39,8 @@ public class DebugController implements IrisController
 						{
 							if(Iris.settings.performance.debugMode)
 							{
-								GSet<String> ws = new GSet<>();
-								GList<World> destroy = new GList<>();
+								KSet<String> ws = new KSet<>();
+								KList<World> destroy = new KList<>();
 
 								for(World i : Bukkit.getWorlds())
 								{

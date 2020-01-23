@@ -17,8 +17,8 @@ import ninja.bytecode.iris.generator.genobject.GenObject;
 import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
 import ninja.bytecode.iris.util.SChunkVector;
 import ninja.bytecode.iris.util.SBlockVector;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
 import ninja.bytecode.shuriken.json.JSONObject;
 import ninja.bytecode.shuriken.logging.L;
@@ -29,18 +29,18 @@ public class CompiledDimension
 {
 	public static IrisBiome theVoid = new IrisBiome("Void", Biome.VOID).height(0).seal(RNG.r);
 	private IrisDimension dimension;
-	private GList<IrisBiome> biomes;
-	private GMap<String, IrisBiome> biomeCache;
-	private GMap<String, GenObjectGroup> objects;
+	private KList<IrisBiome> biomes;
+	private KMap<String, IrisBiome> biomeCache;
+	private KMap<String, GenObjectGroup> objects;
 	private SBlockVector maxSize;
 	private SChunkVector maxChunkSize;
 
 	public CompiledDimension(IrisDimension dimension)
 	{
 		this.dimension = dimension;
-		biomes = new GList<>();
-		biomeCache = new GMap<>();
-		objects = new GMap<>();
+		biomes = new KList<>();
+		biomeCache = new KMap<>();
+		objects = new KMap<>();
 		maxSize = new SBlockVector(0, 0, 0);
 		maxChunkSize = new SChunkVector(0, 0);
 	}
@@ -132,7 +132,7 @@ public class CompiledDimension
 		return dimension.getName();
 	}
 
-	public GList<IrisBiome> getBiomes()
+	public KList<IrisBiome> getBiomes()
 	{
 		return biomes;
 	}
@@ -222,12 +222,12 @@ public class CompiledDimension
 		return dimension;
 	}
 
-	public GMap<String, IrisBiome> getBiomeCache()
+	public KMap<String, IrisBiome> getBiomeCache()
 	{
 		return biomeCache;
 	}
 
-	public GMap<String, GenObjectGroup> getObjects()
+	public KMap<String, GenObjectGroup> getObjects()
 	{
 		return objects;
 	}

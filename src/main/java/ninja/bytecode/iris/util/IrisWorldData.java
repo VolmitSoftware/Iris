@@ -11,8 +11,8 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.atomics.AtomicRegionData;
 import ninja.bytecode.iris.generator.atomics.AtomicWorldData;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.logging.L;
 
 public class IrisWorldData
@@ -20,14 +20,14 @@ public class IrisWorldData
 	private final World world;
 	private final AtomicWorldData data;
 	private boolean saving;
-	private final GMap<SMCAVector, AtomicChunkData> loadedChunks;
+	private final KMap<SMCAVector, AtomicChunkData> loadedChunks;
 
 	public IrisWorldData(World world)
 	{
 		this.world = world;
 		saving = true;
 		data = new AtomicWorldData(world);
-		loadedChunks = new GMap<>();
+		loadedChunks = new KMap<>();
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::softUnloadWorld, 200, 20);
 	}
 
@@ -232,12 +232,12 @@ public class IrisWorldData
 		return false;
 	}
 
-	public GList<SMCAVector> getLoadedChunks()
+	public KList<SMCAVector> getLoadedChunks()
 	{
 		return loadedChunks.k();
 	}
 
-	public GList<SMCAVector> getLoadedRegions()
+	public KList<SMCAVector> getLoadedRegions()
 	{
 		return data.getLoadedRegions();
 	}

@@ -15,12 +15,12 @@ import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChronoQueue;
 import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SMCAVector;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
 public class WorldReactor
 {
-	private static GList<ChronoQueue> q = new GList<>();
+	private static KList<ChronoQueue> q = new KList<>();
 	private final World world;
 
 	public WorldReactor(World world)
@@ -41,7 +41,7 @@ public class WorldReactor
 		WorldReactor.q.add(q);
 		FinalDouble of = new FinalDouble(0D);
 		FinalDouble max = new FinalDouble(0D);
-		GMap<SMCAVector, Double> d = new GMap<>();
+		KMap<SMCAVector, Double> d = new KMap<>();
 		int mx = p.getLocation().getChunk().getX();
 		int mz = p.getLocation().getChunk().getZ();
 		for(int xx = p.getLocation().getChunk().getX() - 32; xx < p.getLocation().getChunk().getX() + 32; xx++)
@@ -59,7 +59,7 @@ public class WorldReactor
 			}
 		}
 
-		GList<SMCAVector> v = d.k();
+		KList<SMCAVector> v = d.k();
 		Collections.sort(v, (a, b) -> (int) (10000 * (d.get(a) - d.get(b))));
 
 		for(SMCAVector i : v)

@@ -24,9 +24,9 @@ import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
 import ninja.bytecode.iris.util.SMCAVector;
-import ninja.bytecode.shuriken.collections.GList;
-import ninja.bytecode.shuriken.collections.GMap;
-import ninja.bytecode.shuriken.collections.GSet;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.execution.ChronoLatch;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
@@ -35,9 +35,9 @@ import ninja.bytecode.shuriken.math.RNG;
 
 public class GenObjectDecorator extends BlockPopulator
 {
-	private GList<PlacedObject> placeHistory;
-	private GMap<IrisBiome, GList<GenObjectGroup>> orderCache;
-	private GMap<IrisBiome, GMap<GenObjectGroup, Double>> populationCache;
+	private KList<PlacedObject> placeHistory;
+	private KMap<IrisBiome, KList<GenObjectGroup>> orderCache;
+	private KMap<IrisBiome, KMap<GenObjectGroup, Double>> populationCache;
 	private IPlacer placer;
 	private IrisGenerator g;
 	private ChronoLatch cl = new ChronoLatch(250);
@@ -45,14 +45,14 @@ public class GenObjectDecorator extends BlockPopulator
 	public GenObjectDecorator(IrisGenerator generator)
 	{
 		this.g = generator;
-		placeHistory = new GList<>();
-		populationCache = new GMap<>();
-		orderCache = new GMap<>();
+		placeHistory = new KList<>();
+		populationCache = new KMap<>();
+		orderCache = new KMap<>();
 
 		for(IrisBiome i : generator.getDimension().getBiomes())
 		{
-			GMap<GenObjectGroup, Double> gc = new GMap<>();
-			GMap<Integer, GList<GenObjectGroup>> or = new GMap<>();
+			KMap<GenObjectGroup, Double> gc = new KMap<>();
+			KMap<Integer, KList<GenObjectGroup>> or = new KMap<>();
 			int ff = 0;
 			for(String j : i.getSchematicGroups().k())
 			{
@@ -66,7 +66,7 @@ public class GenObjectDecorator extends BlockPopulator
 
 					if(!or.containsKey(g.getPiority()))
 					{
-						or.put(g.getPiority(), new GList<>());
+						or.put(g.getPiority(), new KList<>());
 					}
 
 					or.get(g.getPiority()).add(g);
@@ -81,8 +81,8 @@ public class GenObjectDecorator extends BlockPopulator
 
 			if(!gc.isEmpty())
 			{
-				GList<GenObjectGroup> g = new GList<>();
-				for(GList<GenObjectGroup> j : or.v())
+				KList<GenObjectGroup> g = new KList<>();
+				for(KList<GenObjectGroup> j : or.v())
 				{
 					g.addAll(j);
 				}
@@ -114,7 +114,7 @@ public class GenObjectDecorator extends BlockPopulator
 					return;
 				}
 
-				GSet<IrisBiome> hits = new GSet<>();
+				KSet<IrisBiome> hits = new KSet<>();
 				int cx = source.getX();
 				int cz = source.getZ();
 
@@ -129,7 +129,7 @@ public class GenObjectDecorator extends BlockPopulator
 						continue;
 					}
 
-					GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
+					KMap<GenObjectGroup, Double> objects = populationCache.get(biome);
 
 					if(objects == null)
 					{
@@ -289,7 +289,7 @@ public class GenObjectDecorator extends BlockPopulator
 			}
 
 			ParallaxCache cache = new ParallaxCache(g);
-			GSet<IrisBiome> hits = new GSet<>();
+			KSet<IrisBiome> hits = new KSet<>();
 
 			for(int i = 0; i < Iris.settings.performance.decorationAccuracy; i++)
 			{
@@ -302,7 +302,7 @@ public class GenObjectDecorator extends BlockPopulator
 					continue;
 				}
 
-				GMap<GenObjectGroup, Double> objects = populationCache.get(biome);
+				KMap<GenObjectGroup, Double> objects = populationCache.get(biome);
 
 				if(objects == null)
 				{
@@ -426,7 +426,7 @@ public class GenObjectDecorator extends BlockPopulator
 		return floor;
 	}
 
-	public GList<PlacedObject> getHistory()
+	public KList<PlacedObject> getHistory()
 	{
 		return placeHistory;
 	}
@@ -438,7 +438,7 @@ public class GenObjectDecorator extends BlockPopulator
 
 	public PlacedObject randomObject(String string)
 	{
-		GList<PlacedObject> v = new GList<>();
+		KList<PlacedObject> v = new KList<>();
 
 		for(PlacedObject i : placeHistory)
 		{

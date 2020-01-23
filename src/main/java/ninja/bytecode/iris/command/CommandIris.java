@@ -15,7 +15,7 @@ import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.controller.WorldController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
-import ninja.bytecode.shuriken.format.F;
+import ninja.bytecode.shuriken.format.Form;
 
 public class CommandIris implements CommandExecutor
 {
@@ -41,9 +41,9 @@ public class CommandIris implements CommandExecutor
 			{
 				double t = Iris.getController(TimingsController.class).getResult("terrain");
 				double d = Iris.getController(TimingsController.class).getResult("decor");
-				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t + d, 2));
-				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(t, 2));
-				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + F.duration(d, 2));
+				msg(sender, "Generation: " + ChatColor.BOLD + ChatColor.WHITE + Form.duration(t + d, 2));
+				msg(sender, " \\Terrain: " + ChatColor.BOLD + ChatColor.WHITE + Form.duration(t, 2));
+				msg(sender, " \\Decor: " + ChatColor.BOLD + ChatColor.WHITE + Form.duration(d, 2));
 			}
 			
 			if(args[0].equalsIgnoreCase("rtp"))

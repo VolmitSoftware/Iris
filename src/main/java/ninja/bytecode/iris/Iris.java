@@ -1,82 +1,62 @@
 package ninja.bytecode.iris;
 
-import java.io.IOException;
-
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
+import mortar.bukkit.command.Command;
+import mortar.bukkit.plugin.Control;
+import mortar.bukkit.plugin.Instance;
+import mortar.bukkit.plugin.MortarPlugin;
+import mortar.util.text.C;
+import ninja.bytecode.iris.command.CommandIris;
+import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.Direction;
-import ninja.bytecode.iris.util.IrisController;
-import ninja.bytecode.iris.util.IrisControllerSet;
 import ninja.bytecode.shuriken.logging.L;
 
-public class Iris extends JavaPlugin implements Listener
+public class Iris extends MortarPlugin
 {
-	public IrisControllerSet controllerSet;
 	public static Thread primaryThread;
 	public static Settings settings;
-	public static Iris instance;
 	public static IrisMetrics metrics;
 
-	public void onEnable()
+	@Instance
+	public static Iris instance;
+
+	@Control
+	private ExecutionController executionController;
+
+	@Control
+	private PackController packController;
+
+	@Control
+	private WandController wandController;
+
+	@Command
+	private CommandIris commandIris;
+
+	@Override
+	public void start()
 	{
 		primaryThread = Thread.currentThread();
 		instance = this;
-		controllerSet = new IrisControllerSet();
 		L.consoleConsumer = (s) -> Bukkit.getConsoleSender().sendMessage(s);
-
-		try
-		{
-			controllerSet.startControllers(getFile());
-		}
-
-		catch(IOException e)
-		{
-			L.ex(e);
-		}
-
-		L.i("Controllers: " + controllerSet.size());
-
 		Direction.calculatePermutations();
 		settings = new Settings();
 		getServer().getPluginManager().registerEvents((Listener) this, this);
-		getCommand("iris").setExecutor(new CommandIris());
-		getCommand("ish").setExecutor(new CommandIsh());
-
-		if(!settings.performance.debugMode)
-		{
-			getController(PackController.class).compile();
-		}
+		packController.compile();
 	}
 
-	public void onDisable()
+	@Override
+	public void stop()
 	{
-		getController(PackController.class).dispose();
-		getController(WandController.class).dispose();
-		controllerSet.stopControllers();
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
-
-		if(Iris.settings.performance.debugMode)
-		{
-			for(World i : Bukkit.getWorlds())
-			{
-				if(i.getGenerator() instanceof IrisGenerator)
-				{
-					((IrisGenerator) i.getGenerator()).dispose();
-				}
-			}
-
-			System.gc();
-		}
 	}
 
 	public void reload()
@@ -88,15 +68,35 @@ public class Iris extends JavaPlugin implements Listener
 		});
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T extends IrisController> T getController(Class<? extends T> c)
-	{
-		return (T) instance.controllerSet.get(c);
-	}
-
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
 		return new IrisGenerator();
+	}
+
+	@Override
+	public String getTag(String arg0)
+	{
+		return makeTag(C.GREEN, C.DARK_GRAY, C.GRAY, C.BOLD + "Iris" + C.RESET);
+	}
+
+	public static String makeTag(C brace, C tag, C text, String tagName)
+	{
+		return brace + "\u3008" + tag + tagName + brace + "\u3009" + " " + text;
+	}
+
+	public static PackController pack()
+	{
+		return instance.packController;
+	}
+
+	public static ExecutionController exec()
+	{
+		return instance.executionController;
+	}
+
+	public static WandController wand()
+	{
+		return instance.wandController;
 	}
 }

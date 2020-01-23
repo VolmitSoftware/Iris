@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.format.Form;
@@ -171,7 +170,7 @@ public class GenObjectGroup
 
 	public static GenObjectGroup load(String string)
 	{
-		File folder = Iris.getController(PackController.class).loadFolder(string);
+		File folder = Iris.pack().loadFolder(string);
 
 		if(folder != null)
 		{

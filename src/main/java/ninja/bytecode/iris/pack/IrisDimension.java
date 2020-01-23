@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.bukkit.World.Environment;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONArray;
@@ -69,8 +68,8 @@ public class IrisDimension
 		{
 			int ii = i;
 
-			IrisBiome bb = Iris.getController(PackController.class).loadBiome(a.getString(ii));
-			Iris.getController(PackController.class).registerBiome(a.getString(ii), bb);
+			IrisBiome bb = Iris.pack().loadBiome(a.getString(ii));
+			Iris.pack().registerBiome(a.getString(ii), bb);
 			b.add(bb);
 		}
 		return b;

@@ -2,11 +2,10 @@ package ninja.bytecode.iris;
 
 import java.util.function.Consumer;
 
-import org.bukkit.entity.Player;
+import org.bukkit.command.CommandSender;
 
 import mortar.compute.math.M;
 import mortar.util.text.C;
-import ninja.bytecode.iris.controller.ExecutionController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
@@ -118,7 +117,7 @@ public class IrisMetrics
 		this.sequences = sequences;
 	}
 
-	public void send(Player p, Consumer<String> c)
+	public void send(CommandSender p, Consumer<String> c)
 	{
 		send(p, c, null, 0);
 	}
@@ -128,7 +127,7 @@ public class IrisMetrics
 		scale = sf;
 	}
 
-	public void send(Player p, Consumer<String> c, String parent, int ind)
+	public void send(CommandSender p, Consumer<String> c, String parent, int ind)
 	{
 		KMap<String, String> out = new KMap<>();
 
@@ -219,7 +218,7 @@ public class IrisMetrics
 		if(ind == 0)
 		{
 			c.accept(C.WHITE.toString() + C.BOLD + "Total Generators: " + C.RESET + C.DARK_AQUA + C.ITALIC + Form.f(generators));
-			c.accept(C.WHITE.toString() + C.BOLD + "Parallelism: " + C.RESET + C.DARK_PURPLE + C.ITALIC + Form.pc(scale) + C.WHITE + C.BOLD + " Threads: " + C.RESET + C.BLUE + C.ITALIC + Iris.getController(ExecutionController.class).getTC());
+			c.accept(C.WHITE.toString() + C.BOLD + "Parallelism: " + C.RESET + C.DARK_PURPLE + C.ITALIC + Form.pc(scale) + C.WHITE + C.BOLD + " Threads: " + C.RESET + C.BLUE + C.ITALIC + Iris.exec().getTC());
 		}
 
 		for(String i : out.k())

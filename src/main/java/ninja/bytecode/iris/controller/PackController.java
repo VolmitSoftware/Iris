@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import mortar.bukkit.plugin.Controller;
 import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.genobject.GenObject;
@@ -13,7 +14,6 @@ import ninja.bytecode.iris.pack.CompiledDimension;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisDimension;
 import ninja.bytecode.iris.pack.IrisPack;
-import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
@@ -24,7 +24,7 @@ import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
 import ninja.bytecode.shuriken.logging.L;
 
-public class PackController implements IrisController
+public class PackController extends Controller
 {
 	private KMap<String, CompiledDimension> compiledDimensions;
 	private KMap<String, IrisDimension> dimensions;
@@ -33,7 +33,7 @@ public class PackController implements IrisController
 	private boolean ready;
 
 	@Override
-	public void onStart()
+	public void start()
 	{
 		compiledDimensions = new KMap<>();
 		dimensions = new KMap<>();
@@ -43,7 +43,13 @@ public class PackController implements IrisController
 	}
 
 	@Override
-	public void onStop()
+	public void stop()
+	{
+
+	}
+
+	@Override
+	public void tick()
 	{
 
 	}
@@ -210,7 +216,7 @@ public class PackController implements IrisController
 
 		if(g != null)
 		{
-			Iris.getController(PackController.class).genObjectGroups.put(s, g);
+			genObjectGroups.put(s, g);
 			return g;
 		}
 
@@ -298,7 +304,7 @@ public class PackController implements IrisController
 		{
 			try
 			{
-				biomes.put(id, Iris.getController(PackController.class).loadBiome(id));
+				biomes.put(id, ((PackController) Iris.instance.getController(PackController.class)).loadBiome(id));
 			}
 
 			catch(JSONException | IOException e)

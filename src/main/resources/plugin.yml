@@ -1,7 +1,5 @@
 name: ${project.name}
 version: ${project.version}
 main: ninja.bytecode.iris.Iris
-commands:
-  iris:
-  ish:
+load: STARTUP
 depend: [Mortar]

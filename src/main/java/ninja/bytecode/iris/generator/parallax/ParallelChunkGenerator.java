@@ -9,12 +9,9 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.ExecutionController;
-import ninja.bytecode.iris.controller.TimingsController;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.ChunkSpliceListener;
-import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
 import ninja.bytecode.shuriken.math.RollingSequence;
@@ -32,8 +29,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	int cg = 0;
 	private RollingSequence rs = new RollingSequence(512);
 	private World world;
-	private TaskExecutor genPool;
-	private TaskExecutor genPar;
 	private ChunkSpliceListener splicer;
 
 	public void setSplicer(ChunkSpliceListener splicer)
@@ -53,22 +48,12 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 	public TaskGroup startParallaxWork()
 	{
-		if(genPar == null)
-		{
-			genPar = Iris.getController(ExecutionController.class).getExecutor(world, "Parallax");
-		}
-
-		return genPar.startWork();
+		return Iris.exec().getExecutor(world, "Parallax").startWork();
 	}
 
 	public TaskGroup startWork()
 	{
-		if(genPool == null)
-		{
-			genPool = Iris.getController(ExecutionController.class).getExecutor(world, "Generator");
-		}
-
-		return genPool.startWork();
+		return Iris.exec().getExecutor(world, "Generator").startWork();
 	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
@@ -88,8 +73,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		try
 		{
-			Iris.getController(TimingsController.class).started("terrain");
-
 			this.world = world;
 
 			if(!ready)
@@ -127,7 +110,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 			postChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
 			cg++;
-			Iris.getController(TimingsController.class).stopped("terrain");
 		}
 
 		catch(Throwable e)

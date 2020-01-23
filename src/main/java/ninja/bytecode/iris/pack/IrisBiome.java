@@ -8,7 +8,6 @@ import org.bukkit.block.Biome;
 
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.layer.BiomeNoiseGenerator;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ObjectMode;
@@ -286,7 +285,7 @@ public class IrisBiome
 				{
 					for(String i : schematicGroups.k())
 					{
-						Iris.getController(PackController.class).loadSchematicGroup(i);
+						Iris.pack().loadSchematicGroup(i);
 					}
 				}
 			}

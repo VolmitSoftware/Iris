@@ -3,7 +3,6 @@ package ninja.bytecode.iris.pack;
 import java.util.Objects;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -33,13 +32,13 @@ public class IrisRegion
 	{
 		J.attempt(() ->
 		{
-			JSONObject o = Iris.getController(PackController.class).loadJSON("pack/regions/" + name + ".json");
+			JSONObject o = Iris.pack().loadJSON("pack/regions/" + name + ".json");
 			J.attempt(() -> name = o.getString("name"));
-			J.attempt(() -> ocean = Iris.getController(PackController.class).getBiomeById(o.getString("ocean")));
-			J.attempt(() -> beach = Iris.getController(PackController.class).getBiomeById(o.getString("beach")));
-			J.attempt(() -> lake = Iris.getController(PackController.class).getBiomeById(o.getString("lake")));
-			J.attempt(() -> lakeBeach = Iris.getController(PackController.class).getBiomeById(o.getString("shore")));
-			J.attempt(() -> channel = Iris.getController(PackController.class).getBiomeById(o.getString("channel")));
+			J.attempt(() -> ocean = Iris.pack().getBiomeById(o.getString("ocean")));
+			J.attempt(() -> beach = Iris.pack().getBiomeById(o.getString("beach")));
+			J.attempt(() -> lake = Iris.pack().getBiomeById(o.getString("lake")));
+			J.attempt(() -> lakeBeach = Iris.pack().getBiomeById(o.getString("shore")));
+			J.attempt(() -> channel = Iris.pack().getBiomeById(o.getString("channel")));
 		});
 	}
 

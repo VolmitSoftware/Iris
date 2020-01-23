@@ -13,7 +13,6 @@ import org.bukkit.util.NumberConversions;
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.IrisMetrics;
-import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
@@ -63,8 +62,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private CNG scatter;
 	private CNG beach;
 	private CNG swirl;
-	private MB ICE = new MB(Material.ICE);
-	private MB PACKED_ICE = new MB(Material.PACKED_ICE);
 	private MB BEDROCK = new MB(Material.BEDROCK);
 	private GenObjectDecorator god;
 	private GenLayerLayeredNoise glLNoise;
@@ -78,7 +75,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 	public IrisGenerator()
 	{
-		this(Iris.getController(PackController.class).getDimension("overworld"));
+		this(Iris.pack().getDimension("overworld"));
 	}
 
 	public void hitObject()

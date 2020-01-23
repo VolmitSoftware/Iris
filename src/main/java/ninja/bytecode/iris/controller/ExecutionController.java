@@ -2,34 +2,49 @@ package ninja.bytecode.iris.controller;
 
 import org.bukkit.World;
 
+import mortar.bukkit.plugin.Controller;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
-public class ExecutionController implements IrisController
+public class ExecutionController extends Controller
 {
 	KMap<String, TaskExecutor> executors;
 
 	@Override
-	public void onStart()
+	public void start()
 	{
 		executors = new KMap<>();
 	}
 
 	@Override
-	public void onStop()
+	public void stop()
 	{
 		for(TaskExecutor i : executors.v())
 		{
 			i.close();
 		}
+
+		executors.clear();
+	}
+
+	@Override
+	public void tick()
+	{
+
 	}
 
 	public TaskExecutor getExecutor(World world, String f)
 	{
+		String k = world.getWorldFolder().getAbsolutePath() + " (" + world + ") " + f;
+
+		if(executors.containsKey(k))
+		{
+			return executors.get(k);
+		}
+
 		TaskExecutor x = new TaskExecutor(getTC(), Iris.settings.performance.threadPriority, "Iris " + f);
-		executors.put(world.getWorldFolder().getAbsolutePath() + " (" + world + ") " + f, x);
+		executors.put(k, x);
 		return x;
 	}
 

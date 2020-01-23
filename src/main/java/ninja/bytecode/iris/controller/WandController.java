@@ -21,33 +21,21 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import mortar.bukkit.plugin.Controller;
 import mortar.compute.math.M;
-import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.genobject.GenObject;
-import ninja.bytecode.iris.generator.genobject.GenObjectGroup;
-import ninja.bytecode.iris.generator.genobject.PlacedObject;
-import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.Cuboid;
-import ninja.bytecode.iris.util.IrisController;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.ParticleEffect;
 import ninja.bytecode.iris.util.ParticleRedstone;
 import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.format.Form;
 
-public class WandController implements IrisController
+public class WandController extends Controller
 {
-	private KMap<String, GenObject> goc;
-	private KMap<String, GenObjectGroup> gog;
-
 	@Override
-	public void onStart()
+	public void start()
 	{
-		goc = new KMap<>();
-		gog = new KMap<>();
 		// TODO: Optimize
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
@@ -55,11 +43,17 @@ public class WandController implements IrisController
 			{
 				tick(i);
 			}
-		}, 0, 5);
+		}, 0, 0);
 	}
 
 	@Override
-	public void onStop()
+	public void stop()
+	{
+
+	}
+
+	@Override
+	public void tick()
 	{
 
 	}
@@ -71,11 +65,6 @@ public class WandController implements IrisController
 		{
 			if(isWand(p.getInventory().getItemInMainHand()))
 			{
-				if(Iris.settings.performance.debugMode && p.getWorld().getGenerator() instanceof IrisGenerator)
-				{
-					tickHighlight(p, (IrisGenerator) p.getWorld().getGenerator());
-				}
-
 				Location[] d = getCuboid(p.getInventory().getItemInMainHand());
 				draw(d, p);
 			}
@@ -87,7 +76,7 @@ public class WandController implements IrisController
 		}
 	}
 
-	private void draw(Location[] d, Player p)
+	public void draw(Location[] d, Player p)
 	{
 		ParticleEffect.CRIT_MAGIC.display(0.1f, 1, d[0].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
 		ParticleEffect.CRIT.display(0.1f, 1, d[1].clone().add(0.5, 0.5, 0.5).clone().add(Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65)), p);
@@ -164,103 +153,6 @@ public class WandController implements IrisController
 						}
 					}
 				}
-			}
-		}
-	}
-
-	private void tickHighlight(Player p, IrisGenerator generator)
-	{
-		Location l = p.getTargetBlock(null, 32).getLocation();
-		PlacedObject po = generator.nearest(l, 12);
-
-		if(po != null)
-		{
-			if(!goc.containsKey(po.getF()))
-			{
-				String root = po.getF().split("\\Q:\\E")[0];
-				String n = po.getF().split("\\Q:\\E")[1];
-				GenObjectGroup gg = generator.getDimension().getObjectGroup(root);
-				gog.put(root, gg);
-
-				for(GenObject i : gg.getSchematics())
-				{
-					if(i.getName().equals(n))
-					{
-						goc.put(po.getF(), i);
-						break;
-					}
-				}
-
-				if(!goc.containsKey(po.getF()))
-				{
-					goc.put(po.getF(), new GenObject(0, 0, 0));
-				}
-			}
-
-			GenObjectGroup ggg = gog.get(po.getF().split("\\Q:\\E")[0]);
-			GenObject g = goc.get(po.getF());
-
-			if(g != null)
-			{
-				Location point = new Location(l.getWorld(), po.getX(), po.getY(), po.getZ());
-				IrisBiome biome = generator.getBiome((int) generator.getOffsetX(po.getX(), po.getZ()), (int) generator.getOffsetZ(po.getX(), po.getZ()));
-				String gg = po.getF().split("\\Q:\\E")[0];
-
-				for(int j = 0; j < 10; j++)
-				{
-					p.sendMessage(" ");
-				}
-
-				p.sendMessage(C.DARK_GREEN + C.BOLD.toString() + gg + C.GRAY + "/" + C.RESET + C.ITALIC + C.GRAY + g.getName() + C.RESET + C.WHITE + " (1 of " + Form.f(generator.getDimension().getObjectGroup(gg).size()) + " variants)");
-
-				if(biome.getSchematicGroups().containsKey(gg))
-				{
-					String f = "";
-					double percent = biome.getSchematicGroups().get(gg);
-
-					if(percent > 1D)
-					{
-						f = (int) percent + " + " + Form.pc(percent - (int) percent, percent - (int) percent >= 0.01 ? 0 : 3);
-					}
-
-					else
-					{
-						f = Form.pc(percent, percent >= 0.01 ? 0 : 3);
-					}
-
-					p.sendMessage(C.GOLD + "Spawn Chance in " + C.YELLOW + biome.getName() + C.RESET + ": " + C.BOLD + C.WHITE + f);
-				}
-
-				try
-				{
-					int a = 0;
-					int b = 0;
-					double c = 0;
-
-					for(GenObject i : ggg.getSchematics())
-					{
-						a += i.getSuccesses();
-						b += i.getPlaces();
-					}
-
-					c = ((double) a / (double) b);
-					p.sendMessage(C.GRAY + "Grp: " + C.DARK_AQUA + Form.f(a) + C.GRAY + " of " + C.AQUA + Form.f(b) + C.GRAY + " placements (" + C.DARK_AQUA + Form.pc(c, 0) + C.GRAY + ")");
-				}
-
-				catch(Throwable e)
-				{
-					e.printStackTrace();
-				}
-
-				p.sendMessage(C.GRAY + "Var: " + C.DARK_AQUA + Form.f(g.getSuccesses()) + C.GRAY + " of " + C.AQUA + Form.f(g.getPlaces()) + C.GRAY + " placements (" + C.DARK_AQUA + Form.pc(g.getSuccess(), 0) + C.GRAY + ")");
-
-				for(String i : ggg.getFlags())
-				{
-					p.sendMessage(C.GRAY + "- " + C.DARK_PURPLE + i);
-				}
-
-				draw(new Location[] {point.clone().add(g.getW() / 2, g.getH() / 2, g.getD() / 2), point.clone().subtract(g.getW() / 2, g.getH() / 2, g.getD() / 2)
-				}, p);
 			}
 		}
 	}
@@ -383,12 +275,6 @@ public class WandController implements IrisController
 		return createWand(left ? a : other, left ? other : a);
 	}
 
-	public void dispose()
-	{
-		goc.clear();
-		gog.clear();
-	}
-
 	public static ItemStack createWand(Location a, Location b)
 	{
 		ItemStack is = new ItemStack(Material.BLAZE_ROD);
@@ -401,6 +287,12 @@ public class WandController implements IrisController
 		is.setItemMeta(im);
 
 		return is;
+	}
+
+	public static boolean isWand(Player p)
+	{
+		ItemStack is = p.getInventory().getItemInMainHand();
+		return !(is == null || !isWand(is));
 	}
 
 	public static Location[] getCuboid(ItemStack is)

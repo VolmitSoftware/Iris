@@ -144,7 +144,7 @@
 		</repository>
 		<repository>
 			<id>volmit</id>
-			<url>http://nexus.volmit.com/content/repositories/volmit</url>
+			<url>http://nexus.volmit.com:8080/content/repositories/volmit</url>
 		</repository>
 	</repositories>
 	<dependencies>

@@ -47,7 +47,7 @@ public class GenObject
 	private int failures;
 	private int successes;
 	private String name = "?";
-	private final GMap<SBlockVector, MB> s;
+	private GMap<SBlockVector, MB> s;
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;

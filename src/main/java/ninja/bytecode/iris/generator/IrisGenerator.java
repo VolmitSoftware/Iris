@@ -59,7 +59,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			MB.of(Material.SMOOTH_BRICK, 3),
 	});
 	//@done
-
 	private boolean disposed;
 	private CNG scatter;
 	private CNG beach;

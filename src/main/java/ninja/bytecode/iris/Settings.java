@@ -13,7 +13,6 @@ public class Settings
 	{
 		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
 		public ObjectMode objectMode = ObjectMode.PARALLAX;
-		public boolean fastMode = false;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 4;
 		public boolean debugMode = true;
@@ -25,8 +24,8 @@ public class Settings
 
 	public static class GeneratorSettings
 	{
-		public InterpolationMode interpolationMode = InterpolationMode.BICUBIC;
-		public int interpolationRadius = 4;
+		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
+		public int interpolationRadius = 6;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;

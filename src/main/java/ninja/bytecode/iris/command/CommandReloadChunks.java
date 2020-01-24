@@ -25,7 +25,7 @@ public class CommandReloadChunks extends MortarCommand
 		}
 
 		sender.sendMessage("Resending Chunks in your view distance.");
-		Player p = ((Player) sender);
+		Player p = sender.player();
 
 		for(Chunk i : p.getWorld().getLoadedChunks())
 		{

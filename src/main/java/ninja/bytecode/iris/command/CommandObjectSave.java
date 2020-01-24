@@ -51,7 +51,7 @@ public class CommandObjectSave extends MortarCommand
 		{
 			FileOutputStream fos = new FileOutputStream(f);
 			s.write(fos, true);
-			p.sendMessage("Saved " + args[1] + " (" + Form.f(s.getSchematic().size()) + " Entries)");
+			p.sendMessage("Saved " + args[0] + " (" + Form.f(s.getSchematic().size()) + " Entries)");
 			p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 0.45f);
 		}
 

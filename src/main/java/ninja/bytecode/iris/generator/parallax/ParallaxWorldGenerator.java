@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -66,28 +65,9 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	@EventHandler
 	public void on(ChunkLoadEvent e)
 	{
-		if(!saving)
-		{
-			return;
-		}
-
-		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && !Iris.settings.performance.fastMode && e.getWorld().equals(world))
+		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX) && e.getWorld().equals(world))
 		{
 			NMP.host.relight(e.getChunk());
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> fix.add(e.getChunk()), 20);
-
-			if(cl.flip())
-			{
-				for(Chunk i : fix)
-				{
-					for(Player f : e.getWorld().getPlayers())
-					{
-						NMP.CHUNK.refreshIgnorePosition(f, i);
-					}
-				}
-
-				fix.clear();
-			}
 		}
 	}
 
@@ -143,11 +123,11 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 		TaskGroup g = startWork();
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
 		{
-			for(int ii = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getX() / 2) - 1; ii < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getX() / 2) + 1)); ii++)
+			for(int ii = -(getParallaxSize().getX() / 2) - 1; ii < (((getParallaxSize().getX() / 2) + 1)); ii++)
 			{
 				int i = ii;
 
-				for(int jj = Iris.settings.performance.fastMode ? -1 : -(getParallaxSize().getZ() / 2) - 1; jj < (Iris.settings.performance.fastMode ? 1 : ((getParallaxSize().getZ() / 2) + 1)); jj++)
+				for(int jj = -(getParallaxSize().getZ() / 2) - 1; jj < (((getParallaxSize().getZ() / 2) + 1)); jj++)
 				{
 					int j = jj;
 					int cx = x + i;

@@ -3,3 +3,4 @@ version: ${project.version}
 main: ninja.bytecode.iris.Iris
 load: STARTUP
 depend: [Mortar]
+hotload-dependencies: false

@@ -8,12 +8,15 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
+import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.ChunkSpliceListener;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.execution.TaskExecutor.TaskResult;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 
@@ -24,6 +27,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private int wx;
 	private int wz;
 	private ReentrantLock biomeLock;
+	private TaskExecutor backupService;
 	private TaskGroup tg;
 	private boolean ready = false;
 	int cg = 0;
@@ -46,14 +50,38 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 		return genColumn(a, b, c, d, p, data, false);
 	}
 
+	private TaskGroup work(String n)
+	{
+		if(Iris.instance == null || Iris.exec() == null)
+		{
+			if(backupService == null)
+			{
+				L.f(C.RED + "Cannot contact ExecutionController!" + C.YELLOW + " Did you reload iris?");
+				L.w(C.YELLOW + "Spinning up a temporary backup service until the issue resolves...");
+				backupService = new TaskExecutor(4, Thread.MAX_PRIORITY, "Iris Backup Handover");
+				Iris.instance.reload();
+			}
+
+			return backupService.startWork();
+		}
+
+		else if(backupService != null)
+		{
+			L.i(C.GREEN + "Reconnected to the execution service. Closing backup service now...");
+			backupService.close();
+		}
+
+		return Iris.exec().getExecutor(world, n).startWork();
+	}
+
 	public TaskGroup startParallaxWork()
 	{
-		return Iris.exec().getExecutor(world, "Parallax").startWork();
+		return work("Parallax");
 	}
 
 	public TaskGroup startWork()
 	{
-		return Iris.exec().getExecutor(world, "Generator").startWork();
+		return work("Generator");
 	}
 
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)

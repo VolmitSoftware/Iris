@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 
 import sun.misc.Unsafe;
 
+@SuppressWarnings("restriction")
 public class AtomicCharArray implements Serializable
 {
 	private static final long serialVersionUID = 2862133569453604235L;

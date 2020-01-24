@@ -2,22 +2,19 @@ package ninja.bytecode.iris.controller;
 
 import org.bukkit.World;
 
-import mortar.bukkit.plugin.Controller;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.TaskExecutor;
 
-public class ExecutionController extends Controller
+public class ExecutionController
 {
 	KMap<String, TaskExecutor> executors;
 
-	@Override
 	public void start()
 	{
 		executors = new KMap<>();
 	}
 
-	@Override
 	public void stop()
 	{
 		for(TaskExecutor i : executors.v())
@@ -26,12 +23,6 @@ public class ExecutionController extends Controller
 		}
 
 		executors.clear();
-	}
-
-	@Override
-	public void tick()
-	{
-
 	}
 
 	public TaskExecutor getExecutor(World world, String f)

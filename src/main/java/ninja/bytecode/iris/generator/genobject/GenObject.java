@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,6 +36,7 @@ import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
+import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -51,6 +53,62 @@ public class GenObject
 	private BlockVector mount;
 	private int mountHeight;
 	private BlockVector shift;
+
+	@SuppressWarnings("deprecation")
+	public void perfectRead(File folder, String name) throws IOException
+	{
+		File file = new File(folder, IO.hash(name));
+		FileInputStream fin = new FileInputStream(file);
+		DataInputStream din = new DataInputStream(fin);
+		centeredHeight = din.readBoolean();
+		w = din.readShort();
+		h = din.readShort();
+		d = din.readShort();
+		name = din.readUTF();
+		int size = din.readInt();
+		s.clear();
+		for(int i = 0; i < size; i++)
+		{
+			s.put(new SBlockVector(din.readShort(), din.readShort(), din.readShort()), MB.of(Material.getMaterial(din.readInt()), din.readByte()));
+		}
+
+		mount = new BlockVector(din.readShort(), din.readShort(), din.readShort());
+		mountHeight = din.readShort();
+		shift = new BlockVector(din.readShort(), din.readShort(), din.readShort());
+		din.close();
+	}
+
+	@SuppressWarnings("deprecation")
+	public void perfectWrite(File folder) throws IOException
+	{
+		File file = new File(folder, IO.hash(name));
+		FileOutputStream fos = new FileOutputStream(file);
+		DataOutputStream dos = new DataOutputStream(fos);
+		dos.writeBoolean(centeredHeight);
+		dos.writeShort(w);
+		dos.writeShort(h);
+		dos.writeShort(d);
+		dos.writeUTF(name);
+		dos.writeInt(s.size());
+
+		for(SBlockVector i : s.keySet())
+		{
+			dos.writeShort((short) i.getX());
+			dos.writeShort((short) i.getY());
+			dos.writeShort((short) i.getZ());
+			dos.writeInt(s.get(i).material.getId());
+			dos.writeByte(s.get(i).data);
+		}
+
+		dos.writeShort(mount.getBlockX());
+		dos.writeShort(mount.getBlockY());
+		dos.writeShort(mount.getBlockZ());
+		dos.writeShort(mountHeight);
+		dos.writeShort(shift.getBlockX());
+		dos.writeShort(shift.getBlockY());
+		dos.writeShort(shift.getBlockZ());
+		dos.close();
+	}
 
 	public GenObject(int w, int h, int d)
 	{

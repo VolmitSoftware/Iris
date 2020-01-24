@@ -135,16 +135,12 @@
 	</profiles>
 	<repositories>
 		<repository>
-			<id>pub</id>
-			<url>http://nexus.mpm.care/content/repositories/pub</url>
-		</repository>
-		<repository>
 			<id>spigot-repo</id>
 			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
 		</repository>
 		<repository>
-			<id>volmit</id>
-			<url>http://nexus.volmit.com:8080/content/repositories/volmit</url>
+			<id>bcn</id>
+			<url>http://bytecode.ninja/repository/bcn/</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -154,24 +150,21 @@
 			<version>1.1</version>
 		</dependency>
 		<dependency>
+			<groupId>com.volmit</groupId>
+			<artifactId>Mortar</artifactId>
+			<version>1.0.76</version>
+		</dependency>
+		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
 			<version>1.12.2-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<artifactId>mort</artifactId>
-			<groupId>cb</groupId>
-			<version>1</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/Mortar.jar</systemPath> 
-		</dependency>
-		<dependency>
-			<artifactId>cb12</artifactId>
-			<groupId>cb</groupId>
-			<version>1</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/craftbukkit-1.12.2.jar</systemPath>
+			<groupId>org.bukkit.craftbukkit</groupId>
+			<artifactId>cb-1.12.2</artifactId>
+			<version>1.12.2</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 </project>

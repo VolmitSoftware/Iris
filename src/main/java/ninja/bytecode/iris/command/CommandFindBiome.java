@@ -28,6 +28,11 @@ public class CommandFindBiome extends MortarCommand
 
 		else
 		{
+			if(sender.isPlayer())
+			{
+				sender.sendMessage(sender.player().getWorld().getGenerator().getClass().getCanonicalName());
+			}
+
 			sender.sendMessage("Console / Non-Iris World.");
 			return true;
 		}

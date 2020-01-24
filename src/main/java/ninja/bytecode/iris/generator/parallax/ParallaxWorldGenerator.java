@@ -148,8 +148,8 @@ public abstract class ParallaxWorldGenerator extends ParallelChunkGenerator impl
 	@Override
 	public final void postChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan)
 	{
-		getWorldData().inject(x, z, data);
 		onPostChunk(world, x, z, random, data, plan);
+		getWorldData().inject(x, z, data);
 	}
 
 	@Override

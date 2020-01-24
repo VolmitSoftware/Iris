@@ -130,11 +130,28 @@ public class PackController extends Controller
 				{
 					d.registerObject(genObjectGroups.get(k));
 
+					if(j.isLush())
+					{
+						try
+						{
+							GenObjectGroup ggx = genObjectGroups.get(k).copy("-lush-" + j.getLush());
+							ggx.applyLushFilter(j.getLush());
+							d.registerObject(ggx);
+							j.getSchematicGroups().put(ggx.getName(), j.getSchematicGroups().get(k));
+							j.getSchematicGroups().remove(k);
+						}
+
+						catch(Throwable e)
+						{
+							e.printStackTrace();
+						}
+					}
+					
 					if(j.isSnowy())
 					{
 						try
 						{
-							GenObjectGroup ggx = genObjectGroups.get(k).copy("-snowy-" + j.getSnow());
+							GenObjectGroup ggx = genObjectGroups.get(k).copy("-snow-" + j.getSnow());
 							ggx.applySnowFilter((int) (j.getSnow() * 4));
 							d.registerObject(ggx);
 							j.getSchematicGroups().put(ggx.getName(), j.getSchematicGroups().get(k));

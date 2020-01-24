@@ -448,4 +448,9 @@ public final class AtomicChunkData implements ChunkGenerator.ChunkData
 			}
 		}
 	}
+
+	public void setBlock(int x, int y, int z, MB mb)
+	{
+		setBlock(x, y, z, mb.material, mb.data);
+	}
 }

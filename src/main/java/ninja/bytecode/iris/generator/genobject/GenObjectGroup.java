@@ -84,6 +84,22 @@ public class GenObjectGroup
 		}
 	}
 
+	public void applyLushFilter(double factor)
+	{
+		if(flags.contains("no lush"))
+		{
+			L.i(ChatColor.DARK_GREEN + "Skipping Lush Filter for " + ChatColor.GRAY + getName());
+			return;
+		}
+
+		L.i(ChatColor.GREEN + "Applying Lush Filter to " + ChatColor.WHITE + getName());
+
+		for(GenObject i : schematics)
+		{
+			i.applyLushFilter(factor);
+		}
+	}
+
 	public void applySnowFilter(int factor)
 	{
 		if(flags.contains("no snow"))

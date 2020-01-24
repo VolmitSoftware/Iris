@@ -135,6 +135,25 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 			plan.set(initChunk(world, x, z, random));
 			TaskResult r = tg.execute();
+			onDecorateChunk(world, x, z, data, plan.get());
+			TaskGroup gd = startWork();
+
+			for(i = 0; i < 16; i++)
+			{
+				wx = (x << 4) + i;
+
+				for(j = 0; j < 16; j++)
+				{
+					wz = (z << 4) + j;
+					int a = wx;
+					int b = wz;
+					int c = i;
+					int d = j;
+					gd.queue(() -> onDecorateColumn(world, c, d, a, b, data, plan.get()));
+				}
+			}
+
+			gd.execute();
 			postChunk(world, x, z, random, data, plan.get());
 			rs.put(r.timeElapsed);
 			cg++;
@@ -162,6 +181,10 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 		return data.toChunkData();
 	}
+
+	protected abstract void onDecorateColumn(World world2, int i2, int j2, int wx2, int wz2, AtomicChunkData data, ChunkPlan chunkPlan);
+
+	protected abstract void onDecorateChunk(World world2, int x, int z, AtomicChunkData data, ChunkPlan chunkPlan);
 
 	public abstract void init(World world, Random random);
 

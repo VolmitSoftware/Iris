@@ -5,9 +5,11 @@ import java.util.Random;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.TreeSpecies;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BlockPopulator;
+import org.bukkit.material.Leaves;
 import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
@@ -358,32 +360,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			if(i == height - 1)
 			{
 				mb = biome.getSurface(wx, wz, rTerrain);
-
-				if(biome.getSnow() > 0)
-				{
-					double level = glSnow.getHeight(wx, wz) * biome.getSnow();
-					int blocks = (int) level;
-					level -= blocks;
-					int layers = (int) (level * 7D);
-					int snowHeight = blocks + (layers > 0 ? 1 : 0);
-
-					for(int j = 0; j < snowHeight; j++)
-					{
-						highest = j == snowHeight - 1 ? highest < j ? j : highest : highest < j + 1 ? j + 1 : highest;
-						data.setBlock(x, i + j + 1, z, j == snowHeight - 1 ? Material.SNOW : Material.SNOW_BLOCK, j == snowHeight - 1 ? (byte) layers : (byte) 0);
-					}
-				}
-
-				else
-				{
-					MB mbx = biome.getScatterChanceSingle(scatter(wxx, i, wzx));
-
-					if(!mbx.material.equals(Material.AIR))
-					{
-						highest = i > highest ? i : highest;
-						data.setBlock(x, i + 1, z, mbx.material, mbx.data);
-					}
-				}
 			}
 
 			highest = i > highest ? i : highest;
@@ -414,7 +390,181 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	}
 
 	@Override
-	public void onPostChunk(World world, int x, int z, Random random, AtomicChunkData data, ChunkPlan plan)
+	protected void onDecorateChunk(World world, int cx, int cz, AtomicChunkData data, ChunkPlan plan)
+	{
+		int x = 0;
+		int z = 0;
+		int h = 0;
+		int v = 0;
+		int border = 0;
+		int above = 0;
+		int below = 0;
+
+		for(int f = 0; f < Iris.settings.gen.blockSmoothing; f++)
+		{
+			for(x = 0; x < 16; x++)
+			{
+				for(z = 0; z < 16; z++)
+				{
+					h = plan.getRealHeight(x, z);
+					border = 0;
+
+					if(x == 0 || x == 15)
+					{
+						border++;
+					}
+
+					if(z == 0 || z == 15)
+					{
+						border++;
+					}
+
+					if(h > Iris.settings.gen.seaLevel)
+					{
+						above = 0;
+						below = 0;
+
+						if(x + 1 <= 15)
+						{
+							v = plan.getRealHeight(x + 1, z);
+
+							if(v > h)
+							{
+								above++;
+							}
+
+							else if(v < h)
+							{
+								below++;
+							}
+						}
+
+						if(x - 1 >= 0)
+						{
+							v = plan.getRealHeight(x - 1, z);
+
+							if(v > h)
+							{
+								above++;
+							}
+
+							else if(v < h)
+							{
+								below++;
+							}
+						}
+
+						if(z + 1 <= 15)
+						{
+							v = plan.getRealHeight(x, z + 1);
+
+							if(v > h)
+							{
+								above++;
+							}
+
+							else if(v < h)
+							{
+								below++;
+							}
+						}
+
+						if(z - 1 >= 0)
+						{
+							v = plan.getRealHeight(x, z - 1);
+
+							if(v > h)
+							{
+								above++;
+							}
+
+							else if(v < h)
+							{
+								below++;
+							}
+						}
+
+						// Patch Hole
+						if(above >= 4 - border)
+						{
+							data.setBlock(x, h + 1, z, data.getMB(x, h, z));
+							plan.setRealHeight(x, z, h + 1);
+						}
+
+						// Remove Nipple
+						else if(below >= 4 - border)
+						{
+							data.setBlock(x, h - 1, z, data.getMB(x, h, z));
+							data.setBlock(x, h, z, Material.AIR);
+							plan.setRealHeight(x, z, h - 1);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	protected void onDecorateColumn(World world, int x, int z, int wx, int wz, AtomicChunkData data, ChunkPlan plan)
+	{
+		int h = plan.getRealHeight(x, z);
+
+		if(h < 63)
+		{
+			return;
+		}
+
+		IrisBiome biome = plan.getBiome(x, z);
+
+		if(biome == null)
+		{
+			return;
+		}
+
+		if(biome.getSnow() > 0)
+		{
+			double level = glSnow.getHeight(wx, wz) * biome.getSnow();
+			int blocks = (int) level;
+			level -= blocks;
+			int layers = (int) (level * 7D);
+			int snowHeight = blocks + (layers > 0 ? 1 : 0);
+
+			for(int j = 0; j < snowHeight; j++)
+			{
+				data.setBlock(x, h + j + 1, z, j == snowHeight - 1 ? Material.SNOW : Material.SNOW_BLOCK, j == snowHeight - 1 ? (byte) layers : (byte) 0);
+			}
+		}
+
+		if(biome.getLush() > 0.33)
+		{
+			double cnd = (1D - biome.getLush() > 1 ? 1 : biome.getLush()) / 3.5D;
+			double g = glSnow.getHeight(wz, wx);
+
+			if(g > cnd)
+			{
+				double gx = glSnow.getHeight(wx * 2.25, wz * 2.25);
+				Leaves l = new Leaves(TreeSpecies.values()[(int) (gx * (TreeSpecies.values().length - 1))]);
+				l.setDecaying(false);
+				l.setDecayable(false);
+				data.setBlock(x, h - 1, z, data.getMB(x, h, z));
+				data.setBlock(x, h, z, l.getItemType(), l.getData());
+			}
+		}
+
+		else
+		{
+			MB mbx = biome.getScatterChanceSingle(scatter(wx, h, wz));
+
+			if(!mbx.material.equals(Material.AIR))
+			{
+				data.setBlock(x, h + 1, z, mbx.material, mbx.data);
+			}
+		}
+	}
+
+	@Override
+	public void onPostChunk(World world, int cx, int cz, Random random, AtomicChunkData data, ChunkPlan plan)
 	{
 
 	}

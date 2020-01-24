@@ -50,6 +50,7 @@ public class IrisBiome
 	private boolean simplexScatterRock;
 	private boolean simplexScatterSub;
 	private double snow;
+	private double lush;
 	private double cliffChance;
 	private double cliffScale;
 	private double genScale;
@@ -117,6 +118,7 @@ public class IrisBiome
 		this.region = "default";
 		this.core = false;
 		this.name = name;
+		lush = 0;
 		type = BiomeType.LAND;
 		cliffs = false;
 		fluid = MB.of(Material.STATIONARY_WATER);
@@ -245,6 +247,7 @@ public class IrisBiome
 		J.attempt(() -> genSwirlScale = o.getDouble("genSwirlScale"));
 		J.attempt(() -> genScale = o.getDouble("genScale"));
 		J.attempt(() -> snow = o.getDouble("snow"));
+		J.attempt(() -> lush = o.getDouble("lush"));
 		J.attempt(() -> rarity = o.getDouble("rarity"));
 		J.attempt(() -> fluid = MB.of(o.getString("fluid")));
 		J.attempt(() -> dirtDepth = o.getInt("subSurfaceDepth"));
@@ -308,6 +311,7 @@ public class IrisBiome
 		J.attempt(() -> j.put("genSwirlScale", genSwirlScale));
 		J.attempt(() -> j.put("genAmplifier", genAmplifier));
 		J.attempt(() -> j.put("snow", snow));
+		J.attempt(() -> j.put("lush", lush));
 		J.attempt(() -> j.put("cliffs", cliffs));
 		J.attempt(() -> j.put("cliffScale", cliffScale));
 		J.attempt(() -> j.put("rockScale", rockScale));
@@ -1057,10 +1061,20 @@ public class IrisBiome
 		this.rarity = rarity;
 	}
 
+	public double getLush()
+	{
+		return lush;
+	}
+
+	public String getRegion()
+	{
+		return region;
+	}
+
 	@Override
 	public int hashCode()
 	{
-		return Objects.hash(cliffChance, cliffScale, cliffs, core, dirt, dirtDepth, fluid, genAmplifier, genScale, genSwirl, genSwirlScale, height, name, parent, rarity, realBiome, region, rock, rockDepth, rockScale, scatterChance, scatterSurface, scatterSurfaceRock, scatterSurfaceSub, schematicGroups, simplexScatter, simplexScatterRock, simplexScatterSub, snow, subSurfaceScale, surface, surfaceScale, type);
+		return Objects.hash(bng, cliffChance, cliffScale, cliffs, core, dirt, dirtDepth, fluid, genAmplifier, genScale, genSwirl, genSwirlScale, height, lush, name, parent, poly, polyRock, polySub, rarity, realBiome, region, rock, rockDepth, rockScale, scatterChance, scatterSurface, scatterSurfaceRock, scatterSurfaceSub, schematicGroups, simplexScatter, simplexScatterRock, simplexScatterSub, snow, subSurfaceScale, surface, surfaceScale, type);
 	}
 
 	@Override
@@ -1075,6 +1089,11 @@ public class IrisBiome
 			return false;
 		}
 		IrisBiome other = (IrisBiome) obj;
-		return Double.doubleToLongBits(cliffChance) == Double.doubleToLongBits(other.cliffChance) && Double.doubleToLongBits(cliffScale) == Double.doubleToLongBits(other.cliffScale) && cliffs == other.cliffs && core == other.core && Objects.equals(dirt, other.dirt) && dirtDepth == other.dirtDepth && Objects.equals(fluid, other.fluid) && Double.doubleToLongBits(genAmplifier) == Double.doubleToLongBits(other.genAmplifier) && Double.doubleToLongBits(genScale) == Double.doubleToLongBits(other.genScale) && Double.doubleToLongBits(genSwirl) == Double.doubleToLongBits(other.genSwirl) && Double.doubleToLongBits(genSwirlScale) == Double.doubleToLongBits(other.genSwirlScale) && Double.doubleToLongBits(height) == Double.doubleToLongBits(other.height) && Objects.equals(name, other.name) && Objects.equals(parent, other.parent) && Double.doubleToLongBits(rarity) == Double.doubleToLongBits(other.rarity) && realBiome == other.realBiome && Objects.equals(region, other.region) && Objects.equals(rock, other.rock) && rockDepth == other.rockDepth && Double.doubleToLongBits(rockScale) == Double.doubleToLongBits(other.rockScale) && Objects.equals(scatterChance, other.scatterChance) && scatterSurface == other.scatterSurface && scatterSurfaceRock == other.scatterSurfaceRock && scatterSurfaceSub == other.scatterSurfaceSub && Objects.equals(schematicGroups, other.schematicGroups) && simplexScatter == other.simplexScatter && simplexScatterRock == other.simplexScatterRock && simplexScatterSub == other.simplexScatterSub && Double.doubleToLongBits(snow) == Double.doubleToLongBits(other.snow) && Double.doubleToLongBits(subSurfaceScale) == Double.doubleToLongBits(other.subSurfaceScale) && Objects.equals(surface, other.surface) && Double.doubleToLongBits(surfaceScale) == Double.doubleToLongBits(other.surfaceScale) && type == other.type;
+		return Objects.equals(bng, other.bng) && Double.doubleToLongBits(cliffChance) == Double.doubleToLongBits(other.cliffChance) && Double.doubleToLongBits(cliffScale) == Double.doubleToLongBits(other.cliffScale) && cliffs == other.cliffs && core == other.core && Objects.equals(dirt, other.dirt) && dirtDepth == other.dirtDepth && Objects.equals(fluid, other.fluid) && Double.doubleToLongBits(genAmplifier) == Double.doubleToLongBits(other.genAmplifier) && Double.doubleToLongBits(genScale) == Double.doubleToLongBits(other.genScale) && Double.doubleToLongBits(genSwirl) == Double.doubleToLongBits(other.genSwirl) && Double.doubleToLongBits(genSwirlScale) == Double.doubleToLongBits(other.genSwirlScale) && Double.doubleToLongBits(height) == Double.doubleToLongBits(other.height) && Double.doubleToLongBits(lush) == Double.doubleToLongBits(other.lush) && Objects.equals(name, other.name) && Objects.equals(parent, other.parent) && Objects.equals(poly, other.poly) && Objects.equals(polyRock, other.polyRock) && Objects.equals(polySub, other.polySub) && Double.doubleToLongBits(rarity) == Double.doubleToLongBits(other.rarity) && realBiome == other.realBiome && Objects.equals(region, other.region) && Objects.equals(rock, other.rock) && rockDepth == other.rockDepth && Double.doubleToLongBits(rockScale) == Double.doubleToLongBits(other.rockScale) && Objects.equals(scatterChance, other.scatterChance) && scatterSurface == other.scatterSurface && scatterSurfaceRock == other.scatterSurfaceRock && scatterSurfaceSub == other.scatterSurfaceSub && Objects.equals(schematicGroups, other.schematicGroups) && simplexScatter == other.simplexScatter && simplexScatterRock == other.simplexScatterRock && simplexScatterSub == other.simplexScatterSub && Double.doubleToLongBits(snow) == Double.doubleToLongBits(other.snow) && Double.doubleToLongBits(subSurfaceScale) == Double.doubleToLongBits(other.subSurfaceScale) && Objects.equals(surface, other.surface) && Double.doubleToLongBits(surfaceScale) == Double.doubleToLongBits(other.surfaceScale) && type == other.type;
+	}
+
+	public boolean isLush()
+	{
+		return lush > 0;
 	}
 }

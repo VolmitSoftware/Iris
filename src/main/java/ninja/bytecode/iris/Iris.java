@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -93,6 +94,7 @@ public class Iris extends MortarPlugin
 					r.setPhysicsThrottle(5);
 					r.setMonsterActivationRange(5);
 					r.setArrowDespawnRate(1);
+					r.setForcedGameMode(GameMode.CREATIVE);
 					r.load();
 
 					for(Player i : Bukkit.getOnlinePlayers())

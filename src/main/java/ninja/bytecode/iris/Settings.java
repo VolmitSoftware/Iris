@@ -25,6 +25,7 @@ public class Settings
 	public static class GeneratorSettings
 	{
 		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
+		public int blockSmoothing = 1;
 		public int interpolationRadius = 6;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;

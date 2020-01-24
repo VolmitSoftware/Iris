@@ -654,6 +654,182 @@ public class GenObject
 		}
 	}
 
+	@SuppressWarnings("deprecation")
+	public void applyLushFilter(double factor)
+	{
+		int minX = 0;
+		int maxX = 0;
+		int minY = 0;
+		int maxY = 0;
+		int minZ = 0;
+		int maxZ = 0;
+		boolean added = false;
+
+		for(SBlockVector i : getSchematic().keySet())
+		{
+			if(i.getX() > maxX)
+			{
+				maxX = (int) i.getX();
+			}
+
+			if(i.getY() > maxY)
+			{
+				maxY = (int) i.getY();
+			}
+
+			if(i.getZ() > maxZ)
+			{
+				maxZ = (int) i.getZ();
+			}
+
+			if(i.getX() < minX)
+			{
+				minX = (int) i.getX();
+			}
+
+			if(i.getY() < minY)
+			{
+				minY = (int) i.getY();
+			}
+
+			if(i.getZ() < minZ)
+			{
+				minZ = (int) i.getZ();
+			}
+		}
+
+		for(int i = minX; i <= maxX; i++)
+		{
+			for(int j = minY; j <= maxY; j++)
+			{
+				for(int k = minZ; k <= maxZ; k++)
+				{
+					SBlockVector at = new SBlockVector(i, j, k);
+
+					if(M.r(factor / 20D) && getSchematic().containsKey(at) && !getSchematic().get(at).material.equals(Material.VINE))
+					{
+						SBlockVector a = new SBlockVector(i + 1, j, k);
+						SBlockVector b = new SBlockVector(i - 1, j, k);
+						SBlockVector c = new SBlockVector(i, j, k + 1);
+						SBlockVector d = new SBlockVector(i, j, k - 1);
+						Vine v = null;
+						KMap<SBlockVector, MB> e = new KMap<>();
+
+						if(!getSchematic().containsKey(a))
+						{
+							v = new Vine(BlockFace.WEST);
+							SBlockVector ma = new SBlockVector(a.getX(), a.getY(), a.getZ() + 1);
+							SBlockVector mb = new SBlockVector(a.getX(), a.getY(), a.getZ() - 1);
+
+							if(getSchematic().containsKey(ma) && !getSchematic().get(ma).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.SOUTH, BlockFace.WEST);
+							}
+
+							else if(getSchematic().containsKey(mb) && !getSchematic().get(mb).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.NORTH, BlockFace.WEST);
+							}
+
+							e.put(a, MB.of(Material.VINE, v.getData()));
+						}
+
+						if(!getSchematic().containsKey(b))
+						{
+							v = new Vine(BlockFace.EAST);
+							SBlockVector ma = new SBlockVector(b.getX(), b.getY(), b.getZ() + 1);
+							SBlockVector mb = new SBlockVector(b.getX(), b.getY(), b.getZ() - 1);
+
+							if(getSchematic().containsKey(ma) && !getSchematic().get(ma).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.SOUTH, BlockFace.EAST);
+							}
+
+							else if(getSchematic().containsKey(mb) && !getSchematic().get(mb).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.NORTH, BlockFace.EAST);
+							}
+
+							e.put(b, MB.of(Material.VINE, v.getData()));
+						}
+
+						if(!getSchematic().containsKey(c))
+						{
+							v = new Vine(BlockFace.NORTH);
+							SBlockVector ma = new SBlockVector(c.getX() + 1, c.getY(), c.getZ());
+							SBlockVector mb = new SBlockVector(c.getX() - 1, c.getY(), c.getZ());
+
+							if(getSchematic().containsKey(ma) && !getSchematic().get(ma).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.NORTH, BlockFace.EAST);
+							}
+
+							else if(getSchematic().containsKey(mb) && !getSchematic().get(mb).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.NORTH, BlockFace.WEST);
+							}
+
+							e.put(c, MB.of(Material.VINE, v.getData()));
+						}
+
+						if(!getSchematic().containsKey(d))
+						{
+							v = new Vine(BlockFace.SOUTH);
+							SBlockVector ma = new SBlockVector(d.getX() + 1, d.getY(), d.getZ());
+							SBlockVector mb = new SBlockVector(d.getX() - 1, d.getY(), d.getZ());
+
+							if(getSchematic().containsKey(ma) && !getSchematic().get(ma).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.SOUTH, BlockFace.EAST);
+							}
+
+							else if(getSchematic().containsKey(mb) && !getSchematic().get(mb).material.equals(Material.VINE))
+							{
+								v = new Vine(BlockFace.SOUTH, BlockFace.WEST);
+							}
+
+							e.put(d, MB.of(Material.VINE, v.getData()));
+						}
+
+						if(!e.isEmpty())
+						{
+							added = true;
+						}
+
+						for(SBlockVector n : e.k())
+						{
+							for(int g = 0; g < (factor * 1.25) * RNG.r.nextDouble(); g++)
+							{
+								if(n.getY() - (g + 1) < minY)
+								{
+									break;
+								}
+
+								SBlockVector p = new SBlockVector(n.getX(), n.getY() - g, n.getZ());
+
+								if(e.containsKey(p) || getSchematic().containsKey(p))
+								{
+									break;
+								}
+
+								e.put(p, e.get(n));
+							}
+						}
+
+						getSchematic().putAll(e);
+					}
+				}
+			}
+		}
+
+		if(added)
+		{
+			w++;
+			d++;
+			recalculateMountShift();
+		}
+	}
+
 	public double getSuccess()
 	{
 		return (double) successes / ((double) successes + (double) failures);

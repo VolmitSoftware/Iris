@@ -101,4 +101,9 @@ public class ChunkPlan
 	{
 		setHeight(new SChunkVector(x, z), h);
 	}
+
+	public int biomeCacheSize()
+	{
+		return biomeCache.size();
+	}
 }

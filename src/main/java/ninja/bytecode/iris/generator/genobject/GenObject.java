@@ -57,7 +57,7 @@ public class GenObject
 	@SuppressWarnings("deprecation")
 	public void perfectRead(File folder, String name) throws IOException
 	{
-		File file = new File(folder, IO.hash(name));
+		File file = new File(folder, IO.hash(name) + ".ioc");
 		FileInputStream fin = new FileInputStream(file);
 		DataInputStream din = new DataInputStream(fin);
 		centeredHeight = din.readBoolean();
@@ -81,7 +81,7 @@ public class GenObject
 	@SuppressWarnings("deprecation")
 	public void perfectWrite(File folder) throws IOException
 	{
-		File file = new File(folder, IO.hash(name));
+		File file = new File(folder, IO.hash(name) + ".ioc");
 		FileOutputStream fos = new FileOutputStream(file);
 		DataOutputStream dos = new DataOutputStream(fos);
 		dos.writeBoolean(centeredHeight);

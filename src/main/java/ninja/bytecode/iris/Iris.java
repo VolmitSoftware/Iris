@@ -60,7 +60,7 @@ public class Iris extends MortarPlugin
 		super.onEnable();
 	}
 
-	public File getCacheFolder()
+	public File getObjectCacheFolder()
 	{
 		return getDataFolder("cache", "object");
 	}

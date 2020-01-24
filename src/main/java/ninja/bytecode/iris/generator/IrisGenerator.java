@@ -419,7 +419,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 						border++;
 					}
 
-					if(h > Iris.settings.gen.seaLevel)
+					if(h > Iris.settings.gen.seaLevel - 2)
 					{
 						above = 0;
 						below = 0;
@@ -498,6 +498,35 @@ public class IrisGenerator extends ParallaxWorldGenerator
 							data.setBlock(x, h, z, Material.AIR);
 							plan.setRealHeight(x, z, h - 1);
 						}
+
+						// Slab Smoothing
+						else if(below == 0 && above > 0 && f == Iris.settings.gen.blockSmoothing - 1)
+						{
+							MB d = data.getMB(x, h, z);
+
+							if(d.material.equals(Material.STAINED_CLAY) && d.data == 1)
+							{
+								data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+							}
+
+							else if(d.material.equals(Material.SAND))
+							{
+								if(d.data == 0)
+								{
+									data.setBlock(x, h + 1, z, Material.STEP, (byte) 1);
+								}
+
+								if(d.data == 1)
+								{
+									data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+								}
+							}
+
+							else if(d.material.equals(Material.SNOW_BLOCK))
+							{
+								data.setBlock(x, h + 1, z, Material.SNOW, (byte) 4);
+							}
+						}
 					}
 				}
 			}
@@ -536,22 +565,6 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			}
 		}
 
-		if(biome.getLush() > 0.33)
-		{
-			double cnd = (1D - biome.getLush() > 1 ? 1 : biome.getLush()) / 3.5D;
-			double g = glSnow.getHeight(wz, wx);
-
-			if(g > cnd)
-			{
-				double gx = glSnow.getHeight(wx * 2.25, wz * 2.25);
-				Leaves l = new Leaves(TreeSpecies.values()[(int) (gx * (TreeSpecies.values().length - 1))]);
-				l.setDecaying(false);
-				l.setDecayable(false);
-				data.setBlock(x, h - 1, z, data.getMB(x, h, z));
-				data.setBlock(x, h, z, l.getItemType(), l.getData());
-			}
-		}
-
 		else
 		{
 			MB mbx = biome.getScatterChanceSingle(scatter(wx, h, wz));
@@ -559,6 +572,35 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			if(!mbx.material.equals(Material.AIR))
 			{
 				data.setBlock(x, h + 1, z, mbx.material, mbx.data);
+			}
+		}
+
+		if(biome.getLush() > 0.33)
+		{
+			double lx = (biome.getLush() > 1 ? 1 : biome.getLush()) - 0.33;
+			double g = glSnow.getHeight(wz, wx);
+
+			if(lx / 1.18D > g)
+			{
+				double gx = glSnow.getHeight(wx * 2.25, wz * 2.25);
+				double gf = glSnow.getHeight(wx * 6.25, wz * 6.25);
+
+				if(gf > gx)
+				{
+					Leaves l = new Leaves(TreeSpecies.values()[(int) (gx * (TreeSpecies.values().length - 1))]);
+					l.setDecaying(false);
+					l.setDecayable(false);
+					data.setBlock(x, h - 1, z, data.getMB(x, h, z));
+					data.setBlock(x, h, z, l.getItemType(), l.getData());
+
+					if(gf - gx > 0.2)
+					{
+						l = new Leaves(TreeSpecies.values()[(int) (gf * (TreeSpecies.values().length - 1))]);
+						l.setDecaying(false);
+						l.setDecayable(false);
+						data.setBlock(x, h + 1, z, l.getItemType(), l.getData());
+					}
+				}
 			}
 		}
 	}

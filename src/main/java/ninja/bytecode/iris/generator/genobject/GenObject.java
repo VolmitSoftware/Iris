@@ -706,7 +706,7 @@ public class GenObject
 				{
 					SBlockVector at = new SBlockVector(i, j, k);
 
-					if(M.r(factor / 20D) && getSchematic().containsKey(at) && !getSchematic().get(at).material.equals(Material.VINE))
+					if(M.r(factor / 25D) && getSchematic().containsKey(at) && !getSchematic().get(at).material.equals(Material.VINE))
 					{
 						SBlockVector a = new SBlockVector(i + 1, j, k);
 						SBlockVector b = new SBlockVector(i - 1, j, k);
@@ -798,7 +798,7 @@ public class GenObject
 
 						for(SBlockVector n : e.k())
 						{
-							for(int g = 0; g < (factor * 1.25) * RNG.r.nextDouble(); g++)
+							for(int g = 0; g < (factor * 2) * RNG.r.nextDouble(); g++)
 							{
 								if(n.getY() - (g + 1) < minY)
 								{

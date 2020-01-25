@@ -12,6 +12,7 @@ public class IrisRegion
 	private String name;
 	private KList<IrisBiome> biomes;
 	private IrisBiome ocean;
+	private IrisBiome deepOcean;
 	private IrisBiome lake;
 	private IrisBiome lakeBeach;
 	private IrisBiome channel;
@@ -23,6 +24,7 @@ public class IrisRegion
 		this.biomes = new KList<>();
 		beach = null;
 		ocean = null;
+		deepOcean = null;
 		lake = null;
 		lakeBeach = null;
 		channel = null;
@@ -35,6 +37,7 @@ public class IrisRegion
 			JSONObject o = Iris.pack().loadJSON("pack/regions/" + name + ".json");
 			J.attempt(() -> name = o.getString("name"));
 			J.attempt(() -> ocean = Iris.pack().getBiomeById(o.getString("ocean")));
+			J.attempt(() -> deepOcean = Iris.pack().getBiomeById(o.getString("deepOcean")));
 			J.attempt(() -> beach = Iris.pack().getBiomeById(o.getString("beach")));
 			J.attempt(() -> lake = Iris.pack().getBiomeById(o.getString("lake")));
 			J.attempt(() -> lakeBeach = Iris.pack().getBiomeById(o.getString("shore")));
@@ -75,6 +78,11 @@ public class IrisRegion
 	public IrisBiome getOcean()
 	{
 		return ocean;
+	}
+	
+	public IrisBiome getDeepOcean()
+	{
+		return deepOcean;
 	}
 
 	public IrisBiome getLake()

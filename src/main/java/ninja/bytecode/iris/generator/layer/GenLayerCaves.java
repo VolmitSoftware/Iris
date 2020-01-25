@@ -82,11 +82,6 @@ public class GenLayerCaves extends GenLayer
 					}
 				}
 			}
-
-			if(lowest < 256)
-			{
-				plan.setCaveHeight(x, z, lowest);
-			}
 		}
 	}
 

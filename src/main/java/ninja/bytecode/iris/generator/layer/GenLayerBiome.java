@@ -11,6 +11,7 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.BiomeLayer;
+import ninja.bytecode.iris.util.Borders;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.PolygonGenerator;
 import ninja.bytecode.shuriken.collections.KList;
@@ -154,6 +155,17 @@ public class GenLayerBiome extends GenLayer
 			{
 				L.f(C.YELLOW + "Cannot find Region " + C.RED + biome.getRegionID());
 				return biome;
+			}
+
+			if(!Borders.isBorderWithin(x, z, 24, 45, (x / 10D) + (z / 10D), (a, b) -> ocean.getIndex(a, b)))
+			{
+				if(region.getDeepOcean() == null)
+				{
+					L.f(C.YELLOW + "Cannot find Deep Ocean in Region" + C.RED + biome.getRegionID());
+					return biome;
+				}
+
+				return getRegion(biome.getRegionID()).getDeepOcean();
 			}
 
 			if(region.getOcean() == null)

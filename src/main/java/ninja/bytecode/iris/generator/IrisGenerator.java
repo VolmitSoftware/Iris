@@ -526,6 +526,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 							{
 								data.setBlock(x, h + 1, z, Material.SNOW, (byte) 4);
 							}
+
+							else if(d.material.equals(Material.STONE) || d.material.equals(Material.COBBLESTONE) || d.material.equals(Material.GRAVEL))
+							{
+								data.setBlock(x, h + 1, z, Material.STEP, (byte) 3);
+							}
 						}
 					}
 				}

@@ -1,17 +1,20 @@
 package ninja.bytecode.iris.util;
 
 import ninja.bytecode.iris.pack.IrisBiome;
+import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 
 public class ChunkPlan
 {
 	private final KMap<SChunkVector, Integer> realHeightCache;
+	private final KMap<SChunkVector, KList<Integer>> caveHeightCache;
 	private final KMap<SChunkVector, Integer> realWaterHeightCache;
 	private final KMap<SChunkVector, Double> heightCache;
 	private final KMap<SChunkVector, IrisBiome> biomeCache;
 
 	public ChunkPlan()
 	{
+		this.caveHeightCache = new KMap<>();
 		this.realHeightCache = new KMap<>();
 		this.realWaterHeightCache = new KMap<>();
 		this.heightCache = new KMap<>();
@@ -50,6 +53,17 @@ public class ChunkPlan
 		return 0;
 	}
 
+	public KList<Integer> getCaveHeights(int x, int z)
+	{
+		SChunkVector c = new SChunkVector(x, z);
+		if(caveHeightCache.containsKey(c))
+		{
+			return caveHeightCache.get(c);
+		}
+
+		return null;
+	}
+
 	public int getRealWaterHeight(int x, int z)
 	{
 		SChunkVector c = new SChunkVector(x, z);
@@ -77,6 +91,16 @@ public class ChunkPlan
 		heightCache.put(c, h);
 	}
 
+	public void setCaveHeight(SChunkVector c, int h)
+	{
+		if(!caveHeightCache.containsKey(c))
+		{
+			caveHeightCache.put(c, new KList<>());
+		}
+
+		caveHeightCache.get(c).add(h);
+	}
+
 	public void setRealHeight(SChunkVector c, int h)
 	{
 		realHeightCache.put(c, h);
@@ -85,6 +109,11 @@ public class ChunkPlan
 	public void setRealHeight(int x, int z, int h)
 	{
 		setRealHeight(new SChunkVector(x, z), h);
+	}
+
+	public void setCaveHeight(int x, int z, int h)
+	{
+		setCaveHeight(new SChunkVector(x, z), h);
 	}
 
 	public void setRealWaterHeight(SChunkVector c, int h)

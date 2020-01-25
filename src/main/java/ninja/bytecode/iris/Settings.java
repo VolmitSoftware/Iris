@@ -42,7 +42,7 @@ public class Settings
 		public double heightScale = 0.56;
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
-		public double biomeScale = 1;
+		public double biomeScale = 0.5;
 		public boolean flatBedrock = false;
 	}
 }

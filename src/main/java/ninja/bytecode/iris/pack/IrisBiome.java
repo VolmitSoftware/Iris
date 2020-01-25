@@ -130,10 +130,10 @@ public class IrisBiome
 		cliffScale = 1;
 		cliffChance = 0.37;
 		parent = "";
-		dirtDepth = 2;
+		dirtDepth = 19;
 		this.realBiome = realBiome;
 		this.height = IDEAL_HEIGHT;
-		rockDepth = 11;
+		rockDepth = 23;
 		surfaceScale = 1;
 		subSurfaceScale = 1;
 		rockScale = 1;
@@ -147,19 +147,21 @@ public class IrisBiome
 		surface(new MB(Material.GRASS))
 		.dirt(new MB(Material.DIRT), new MB(Material.DIRT, 1))
 		.rock(MB.of(Material.STONE),
-			MB.of(Material.STONE),
-			MB.of(Material.STONE),
-			MB.of(Material.STONE),
-			MB.of(Material.STONE),
-			MB.of(Material.STONE),
-			MB.of(Material.STONE, 5),
-			MB.of(Material.STONE, 5),
-			MB.of(Material.COBBLESTONE),
-			MB.of(Material.COBBLESTONE),
-			MB.of(Material.SMOOTH_BRICK),
-			MB.of(Material.SMOOTH_BRICK, 1),
-			MB.of(Material.SMOOTH_BRICK, 2),
-			MB.of(Material.SMOOTH_BRICK, 3));
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE),
+				MB.of(Material.STONE, 5),
+				MB.of(Material.STONE, 5),
+				MB.of(Material.STONE, 5),
+				MB.of(Material.STONE, 5),
+				MB.of(Material.STONE, 5),
+				MB.of(Material.STONE, 5));
 		//@done
 	}
 

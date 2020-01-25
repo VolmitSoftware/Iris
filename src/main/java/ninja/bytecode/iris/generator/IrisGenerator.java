@@ -19,6 +19,7 @@ import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
+import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerCliffs;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
 import ninja.bytecode.iris.generator.layer.GenLayerSnow;
@@ -50,14 +51,15 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			MB.of(Material.STONE),
 			MB.of(Material.STONE),
 			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
+			MB.of(Material.STONE),
 			MB.of(Material.STONE, 5),
 			MB.of(Material.STONE, 5),
-			MB.of(Material.COBBLESTONE),
-			MB.of(Material.COBBLESTONE),
-			MB.of(Material.SMOOTH_BRICK),
-			MB.of(Material.SMOOTH_BRICK, 1),
-			MB.of(Material.SMOOTH_BRICK, 2),
-			MB.of(Material.SMOOTH_BRICK, 3),
+			MB.of(Material.STONE, 5),
+			MB.of(Material.STONE, 5),
+			MB.of(Material.STONE, 5),
+			MB.of(Material.STONE, 5)
 	});
 	//@done
 	private boolean disposed;
@@ -70,6 +72,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private GenLayerBiome glBiome;
 	private GenLayerSnow glSnow;
 	private GenLayerCliffs glCliffs;
+	private GenLayerCaves glCaves;
 	private RNG rTerrain;
 	private CompiledDimension dim;
 	private IrisMetrics metrics = new IrisMetrics(0, 512);
@@ -125,6 +128,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		glBiome = new GenLayerBiome(this, world, random, rTerrain.nextParallelRNG(4), dim.getBiomes());
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
+		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(10));
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
 
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
@@ -378,6 +382,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			hl = hl == 0 && !t.equals(Material.AIR) ? i : hl;
 		}
 
+		glCaves.genCaves(wxxf, wzxf, x, z, data, plan);
 		plan.setRealHeight(x, z, hl);
 		plan.setRealWaterHeight(x, z, hw == 0 ? seaLevel : hw);
 		plan.setBiome(x, z, biome);
@@ -394,9 +399,9 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	{
 		int x = 0;
 		int z = 0;
-		int h = 0;
+		int hhx = 0;
 		int v = 0;
-		int border = 0;
+		int borderh = 0;
 		int above = 0;
 		int below = 0;
 
@@ -406,20 +411,20 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			{
 				for(z = 0; z < 16; z++)
 				{
-					h = plan.getRealHeight(x, z);
-					border = 0;
+					hhx = plan.getRealHeight(x, z);
+					borderh = 0;
 
 					if(x == 0 || x == 15)
 					{
-						border++;
+						borderh++;
 					}
 
 					if(z == 0 || z == 15)
 					{
-						border++;
+						borderh++;
 					}
 
-					if(h > Iris.settings.gen.seaLevel - 2)
+					if(hhx > Iris.settings.gen.seaLevel - 2)
 					{
 						above = 0;
 						below = 0;
@@ -428,12 +433,12 @@ public class IrisGenerator extends ParallaxWorldGenerator
 						{
 							v = plan.getRealHeight(x + 1, z);
 
-							if(v > h)
+							if(v > hhx)
 							{
 								above++;
 							}
 
-							else if(v < h)
+							else if(v < hhx)
 							{
 								below++;
 							}
@@ -443,12 +448,12 @@ public class IrisGenerator extends ParallaxWorldGenerator
 						{
 							v = plan.getRealHeight(x - 1, z);
 
-							if(v > h)
+							if(v > hhx)
 							{
 								above++;
 							}
 
-							else if(v < h)
+							else if(v < hhx)
 							{
 								below++;
 							}
@@ -458,12 +463,12 @@ public class IrisGenerator extends ParallaxWorldGenerator
 						{
 							v = plan.getRealHeight(x, z + 1);
 
-							if(v > h)
+							if(v > hhx)
 							{
 								above++;
 							}
 
-							else if(v < h)
+							else if(v < hhx)
 							{
 								below++;
 							}
@@ -473,63 +478,201 @@ public class IrisGenerator extends ParallaxWorldGenerator
 						{
 							v = plan.getRealHeight(x, z - 1);
 
-							if(v > h)
+							if(v > hhx)
 							{
 								above++;
 							}
 
-							else if(v < h)
+							else if(v < hhx)
 							{
 								below++;
 							}
 						}
 
 						// Patch Hole
-						if(above >= 4 - border)
+						if(above >= 4 - borderh)
 						{
-							data.setBlock(x, h + 1, z, data.getMB(x, h, z));
-							plan.setRealHeight(x, z, h + 1);
+							data.setBlock(x, hhx + 1, z, data.getMB(x, hhx, z));
+							plan.setRealHeight(x, z, hhx + 1);
 						}
 
 						// Remove Nipple
-						else if(below >= 4 - border)
+						else if(below >= 4 - borderh)
 						{
-							data.setBlock(x, h - 1, z, data.getMB(x, h, z));
-							data.setBlock(x, h, z, Material.AIR);
-							plan.setRealHeight(x, z, h - 1);
+							data.setBlock(x, hhx - 1, z, data.getMB(x, hhx, z));
+							data.setBlock(x, hhx, z, Material.AIR);
+							plan.setRealHeight(x, z, hhx - 1);
 						}
 
 						// Slab Smoothing
 						else if(below == 0 && above > 0 && f == Iris.settings.gen.blockSmoothing - 1)
 						{
-							MB d = data.getMB(x, h, z);
+							MB d = data.getMB(x, hhx, z);
 
 							if(d.material.equals(Material.STAINED_CLAY) && d.data == 1)
 							{
-								data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+								data.setBlock(x, hhx + 1, z, Material.STONE_SLAB2);
 							}
 
 							else if(d.material.equals(Material.SAND))
 							{
 								if(d.data == 0)
 								{
-									data.setBlock(x, h + 1, z, Material.STEP, (byte) 1);
+									data.setBlock(x, hhx + 1, z, Material.STEP, (byte) 1);
 								}
 
 								if(d.data == 1)
 								{
-									data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+									data.setBlock(x, hhx + 1, z, Material.STONE_SLAB2);
 								}
 							}
 
 							else if(d.material.equals(Material.SNOW_BLOCK))
 							{
-								data.setBlock(x, h + 1, z, Material.SNOW, (byte) 4);
+								data.setBlock(x, hhx + 1, z, Material.SNOW, (byte) 4);
 							}
 
 							else if(d.material.equals(Material.STONE) || d.material.equals(Material.COBBLESTONE) || d.material.equals(Material.GRAVEL))
 							{
-								data.setBlock(x, h + 1, z, Material.STEP, (byte) 3);
+								data.setBlock(x, hhx + 1, z, Material.STEP, (byte) 3);
+							}
+						}
+					}
+
+					KList<Integer> hs = plan.getCaveHeights(x, z);
+
+					if(hs != null && !hs.isEmpty())
+					{
+						int h = 0;
+						int border = 0;
+						for(int hx : hs)
+						{
+							h = hx - 1;
+							border = 0;
+
+							if(x == 0 || x == 15)
+							{
+								border++;
+							}
+
+							if(z == 0 || z == 15)
+							{
+								border++;
+							}
+
+							if(h > 1)
+							{
+								above = 0;
+								below = 0;
+
+								if(x + 1 <= 15)
+								{
+									v = plan.getRealHeight(x + 1, z);
+
+									if(v > h)
+									{
+										above++;
+									}
+
+									else if(v < h)
+									{
+										below++;
+									}
+								}
+
+								if(x - 1 >= 0)
+								{
+									v = plan.getRealHeight(x - 1, z);
+
+									if(v > h)
+									{
+										above++;
+									}
+
+									else if(v < h)
+									{
+										below++;
+									}
+								}
+
+								if(z + 1 <= 15)
+								{
+									v = plan.getRealHeight(x, z + 1);
+
+									if(v > h)
+									{
+										above++;
+									}
+
+									else if(v < h)
+									{
+										below++;
+									}
+								}
+
+								if(z - 1 >= 0)
+								{
+									v = plan.getRealHeight(x, z - 1);
+
+									if(v > h)
+									{
+										above++;
+									}
+
+									else if(v < h)
+									{
+										below++;
+									}
+								}
+
+								// Patch Hole
+								if(above >= 4 - border)
+								{
+									data.setBlock(x, h + 1, z, data.getMB(x, h, z));
+									plan.setRealHeight(x, z, h + 1);
+								}
+
+								// Remove Nipple
+								else if(below >= 4 - border)
+								{
+									data.setBlock(x, h - 1, z, data.getMB(x, h, z));
+									data.setBlock(x, h, z, Material.AIR);
+									plan.setRealHeight(x, z, h - 1);
+								}
+
+								// Slab Smoothing
+								else if(below == 0 && above > 0 && f == Iris.settings.gen.blockSmoothing - 1)
+								{
+									MB d = data.getMB(x, h, z);
+
+									if(d.material.equals(Material.STAINED_CLAY) && d.data == 1)
+									{
+										data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+									}
+
+									else if(d.material.equals(Material.SAND))
+									{
+										if(d.data == 0)
+										{
+											data.setBlock(x, h + 1, z, Material.STEP, (byte) 1);
+										}
+
+										if(d.data == 1)
+										{
+											data.setBlock(x, h + 1, z, Material.STONE_SLAB2);
+										}
+									}
+
+									else if(d.material.equals(Material.SNOW_BLOCK))
+									{
+										data.setBlock(x, h + 1, z, Material.SNOW, (byte) 4);
+									}
+
+									else if(d.material.equals(Material.STONE) || d.material.equals(Material.SMOOTH_BRICK) || d.material.equals(Material.COBBLESTONE) || d.material.equals(Material.GRAVEL))
+									{
+										data.setBlock(x, h + 1, z, Material.STEP, (byte) 5);
+									}
+								}
 							}
 						}
 					}

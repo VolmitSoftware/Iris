@@ -16,6 +16,7 @@ import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Directional;
 import org.bukkit.material.Ladder;
+import org.bukkit.material.Leaves;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Stairs;
 import org.bukkit.material.Vine;
@@ -337,6 +338,7 @@ public class GenObject
 		return place(l.getBlockX(), l.getBlockY(), l.getBlockZ(), placer);
 	}
 
+	@SuppressWarnings("deprecation")
 	public Location place(int wx, int wy, int wz, IPlacer placer)
 	{
 		Location start = new Location(placer.getWorld(), wx, wy, wz).clone().add(0, sh(h) + 1, 0);
@@ -361,6 +363,15 @@ public class GenObject
 		for(SBlockVector i : s.keySet())
 		{
 			MB b = getSchematic().get(i);
+
+			if(b.material.equals(Material.LEAVES) || b.material.equals(Material.LEAVES_2))
+			{
+				Leaves l = new Leaves(b.material, b.data);
+				l.setDecayable(false);
+				l.setDecaying(false);
+				b = new MB(l.getItemType(), l.getData());
+			}
+
 			Location f = start.clone().add(i.toBlockVector());
 
 			if(gravity)

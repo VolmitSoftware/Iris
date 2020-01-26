@@ -10,7 +10,7 @@ import ninja.bytecode.iris.util.Placer;
 public class BukkitPlacer extends Placer
 {
 	private final boolean applyPhysics;
-	
+
 	public BukkitPlacer(World world, boolean applyPhysics)
 	{
 		super(world);
@@ -30,6 +30,29 @@ public class BukkitPlacer extends Placer
 	public void set(Location l, MB mb)
 	{
 		l.getBlock().setTypeIdAndData(mb.material.getId(), mb.data, applyPhysics);
+	}
+
+	@Override
+	public int getHighestYUnderwater(Location l)
+	{
+		int y = getHighestY(l);
+
+		while(y > 0)
+		{
+			y--;
+			Block b = l.getWorld().getBlockAt(l.getBlockX(), y, l.getBlockZ());
+			if(!b.isEmpty())
+			{
+				if(b.isLiquid())
+				{
+					continue;
+				}
+
+				return y + 1;
+			}
+		}
+
+		return y;
 	}
 
 	@Override

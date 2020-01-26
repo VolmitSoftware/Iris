@@ -382,7 +382,11 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			hl = hl == 0 && !t.equals(Material.AIR) ? i : hl;
 		}
 
-		glCaves.genCaves(wxxf, wzxf, x, z, data, plan);
+		if(!surfaceOnly)
+		{
+			glCaves.genCaves(wxxf, wzxf, x, z, data, plan);
+		}
+
 		plan.setRealHeight(x, z, hl);
 		plan.setRealWaterHeight(x, z, hw == 0 ? seaLevel : hw);
 		plan.setBiome(x, z, biome);
@@ -397,6 +401,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	@Override
 	protected void onDecorateChunk(World world, int cx, int cz, AtomicChunkData data, ChunkPlan plan)
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		int x = 0;
 		int z = 0;
 		int hhx = 0;
@@ -503,50 +508,19 @@ public class IrisGenerator extends ParallaxWorldGenerator
 							data.setBlock(x, hhx, z, Material.AIR);
 							plan.setRealHeight(x, z, hhx - 1);
 						}
-
-						// Slab Smoothing
-						else if(below == 0 && above > 0 && f == Iris.settings.gen.blockSmoothing - 1)
-						{
-							MB d = data.getMB(x, hhx, z);
-
-							if(d.material.equals(Material.STAINED_CLAY) && d.data == 1)
-							{
-								data.setBlock(x, hhx + 1, z, Material.STONE_SLAB2);
-							}
-
-							else if(d.material.equals(Material.SAND))
-							{
-								if(d.data == 0)
-								{
-									data.setBlock(x, hhx + 1, z, Material.STEP, (byte) 1);
-								}
-
-								if(d.data == 1)
-								{
-									data.setBlock(x, hhx + 1, z, Material.STONE_SLAB2);
-								}
-							}
-
-							else if(d.material.equals(Material.SNOW_BLOCK))
-							{
-								data.setBlock(x, hhx + 1, z, Material.SNOW, (byte) 4);
-							}
-
-							else if(d.material.equals(Material.STONE) || d.material.equals(Material.COBBLESTONE) || d.material.equals(Material.GRAVEL))
-							{
-								data.setBlock(x, hhx + 1, z, Material.STEP, (byte) 3);
-							}
-						}
 					}
 				}
 			}
 		}
+
+		getMetrics().stop("decoration:ms:/chunk:..", p);
 	}
 
 	@SuppressWarnings("deprecation")
 	@Override
 	protected void onDecorateColumn(World world, int x, int z, int wx, int wz, AtomicChunkData data, ChunkPlan plan)
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		int h = plan.getRealHeight(x, z);
 
 		if(h < 63)
@@ -613,6 +587,8 @@ public class IrisGenerator extends ParallaxWorldGenerator
 				}
 			}
 		}
+
+		getMetrics().stop("pardecoration:ms:x256:/chunk:..", p);
 	}
 
 	@Override

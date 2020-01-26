@@ -19,7 +19,7 @@ public class GenLayerLayeredNoise extends GenLayer
 		//@builder
 		super(iris, world, random, rng);
 		fract = new CNG(rng.nextParallelRNG(16), 1D, 9).scale(0.0181);
-		gen = new CNG(rng.nextParallelRNG(17), 0.19D, 12)
+		gen = new CNG(rng.nextParallelRNG(17), 0.19D, 8)
 			.scale(0.012)
 			.amp(0.5)
 			.freq(1.1)

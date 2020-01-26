@@ -1,6 +1,7 @@
 package ninja.bytecode.iris.generator.placer;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.parallax.ParallaxCache;
@@ -37,5 +38,11 @@ public class AtomicParallaxPlacer extends Placer
 	public int getHighestY(Location l)
 	{
 		return cache.getHeight(l.getBlockX(), l.getBlockZ());
+	}
+
+	@Override
+	public int getHighestYUnderwater(Location l)
+	{
+		return cache.getWaterHeight(l.getBlockX(), l.getBlockZ());
 	}
 }

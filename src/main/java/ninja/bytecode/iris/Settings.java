@@ -11,14 +11,14 @@ public class Settings
 
 	public static class PerformanceSettings
 	{
-		public PerformanceMode performanceMode = PerformanceMode.HALF_CPU;
+		public PerformanceMode performanceMode = PerformanceMode.EXPLICIT;
 		public ObjectMode objectMode = ObjectMode.PARALLAX;
 		public int threadPriority = Thread.MAX_PRIORITY;
-		public int threadCount = 4;
+		public int threadCount = 16;
 		public boolean debugMode = true;
-		public int decorationAccuracy = 2;
+		public int decorationAccuracy = 1;
 		public boolean noObjectFail = false;
-		public boolean verbose = false;
+		public boolean verbose = true;
 		public int placeHistoryLimit = 8192;
 	}
 

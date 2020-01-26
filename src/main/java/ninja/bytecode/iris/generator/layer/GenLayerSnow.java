@@ -17,7 +17,7 @@ public class GenLayerSnow extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		gen = new CNG(rng.nextParallelRNG(117), 1D, 16)
+		gen = new CNG(rng.nextParallelRNG(117), 1D, 1)
 			.scale(0.059)
 			.amp(0.5)
 			.freq(1.1)

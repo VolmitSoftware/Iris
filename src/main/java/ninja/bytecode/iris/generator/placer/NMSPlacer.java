@@ -46,9 +46,33 @@ public class NMSPlacer extends Placer
 		return world.getHighestBlockYAt(l);
 	}
 
+	@Override
+	public int getHighestYUnderwater(Location l)
+	{
+		int y = getHighestY(l);
+
+		while(y > 0)
+		{
+			y--;
+			Block b = l.getWorld().getBlockAt(l.getBlockX(), y, l.getBlockZ());
+			if(!b.isEmpty())
+			{
+				if(b.isLiquid())
+				{
+					continue;
+				}
+
+				return y + 1;
+			}
+		}
+
+		return y;
+	}
+
 	public void flush()
 	{
-		J.attempt(() -> {
+		J.attempt(() ->
+		{
 			for(Chunk i : c)
 			{
 				NMP.host.relight(i);

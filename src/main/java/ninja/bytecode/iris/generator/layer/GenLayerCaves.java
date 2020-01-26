@@ -11,6 +11,7 @@ import ninja.bytecode.iris.util.Borders;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.PolygonGenerator;
+import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.math.CNG;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -38,6 +39,7 @@ public class GenLayerCaves extends GenLayer
 
 	public void genCaves(double xxf, double zzf, int x, int z, AtomicChunkData data, ChunkPlan plan)
 	{
+		PrecisionStopwatch s = PrecisionStopwatch.start();
 		int wxxf = (int) (xxf + gfract.noise(xxf, zzf));
 		int wzxf = (int) (zzf - gfract.noise(zzf, xxf));
 		double itr = 2;
@@ -60,7 +62,7 @@ public class GenLayerCaves extends GenLayer
 			double n = incline * gincline.noise((wxxf + (m * 10000)), (wzxf - (m * 10000)));
 			for(double i = 1; i <= w / 3D; i++)
 			{
-				if(Borders.isBorderWithin((wxxf + (m * 10000)), (wzxf - (m * 10000)), 17, w / 2D / i, (wxxf / 3D) + (wzxf / 3D), (xx, zz) -> g.getIndex(xx, zz)))
+				if(Borders.isBorderWithin((wxxf + (m * 10000)), (wzxf - (m * 10000)), 5, w / 2D / i, (wxxf / 3D) + (wzxf / 3D), (xx, zz) -> g.getIndex(xx, zz)))
 				{
 					int h = (int) ((level + n) - drop);
 					if(dig(x, (int) (h + i), z, data) && h + i < lowest)
@@ -83,6 +85,8 @@ public class GenLayerCaves extends GenLayer
 				}
 			}
 		}
+
+		iris.getMetrics().stop("caves:ms:x256:/chunk:..", s);
 	}
 
 	public boolean dig(int x, int y, int z, AtomicChunkData data)

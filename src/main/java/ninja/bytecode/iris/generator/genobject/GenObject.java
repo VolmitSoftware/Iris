@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,11 +31,11 @@ import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.IPlacer;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.SBlockVector;
+import ninja.bytecode.iris.util.SChunkVectorShort;
 import ninja.bytecode.iris.util.VectorMath;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.io.CustomOutputStream;
-import ninja.bytecode.shuriken.io.IO;
 import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RNG;
 
@@ -48,67 +47,18 @@ public class GenObject
 	private int d;
 	private int failures;
 	private int successes;
+	private boolean gravity;
 	private String name = "?";
 	private KMap<SBlockVector, MB> s;
+	private KMap<SChunkVectorShort, SBlockVector> slopeCache;
+	private KMap<SChunkVectorShort, SBlockVector> gravityCache;
 	private BlockVector mount;
+	private int maxslope;
+	private int baseslope;
+	private boolean hydrophilic;
+	private boolean submerged;
 	private int mountHeight;
 	private BlockVector shift;
-
-	@SuppressWarnings("deprecation")
-	public void perfectRead(File folder, String name) throws IOException
-	{
-		File file = new File(folder, IO.hash(name) + ".ioc");
-		FileInputStream fin = new FileInputStream(file);
-		DataInputStream din = new DataInputStream(fin);
-		centeredHeight = din.readBoolean();
-		w = din.readShort();
-		h = din.readShort();
-		d = din.readShort();
-		name = din.readUTF();
-		int size = din.readInt();
-		s.clear();
-		for(int i = 0; i < size; i++)
-		{
-			s.put(new SBlockVector(din.readShort(), din.readShort(), din.readShort()), MB.of(Material.getMaterial(din.readInt()), din.readByte()));
-		}
-
-		mount = new BlockVector(din.readShort(), din.readShort(), din.readShort());
-		mountHeight = din.readShort();
-		shift = new BlockVector(din.readShort(), din.readShort(), din.readShort());
-		din.close();
-	}
-
-	@SuppressWarnings("deprecation")
-	public void perfectWrite(File folder) throws IOException
-	{
-		File file = new File(folder, IO.hash(name) + ".ioc");
-		FileOutputStream fos = new FileOutputStream(file);
-		DataOutputStream dos = new DataOutputStream(fos);
-		dos.writeBoolean(centeredHeight);
-		dos.writeShort(w);
-		dos.writeShort(h);
-		dos.writeShort(d);
-		dos.writeUTF(name);
-		dos.writeInt(s.size());
-
-		for(SBlockVector i : s.keySet())
-		{
-			dos.writeShort((short) i.getX());
-			dos.writeShort((short) i.getY());
-			dos.writeShort((short) i.getZ());
-			dos.writeInt(s.get(i).material.getId());
-			dos.writeByte(s.get(i).data);
-		}
-
-		dos.writeShort(mount.getBlockX());
-		dos.writeShort(mount.getBlockY());
-		dos.writeShort(mount.getBlockZ());
-		dos.writeShort(mountHeight);
-		dos.writeShort(shift.getBlockX());
-		dos.writeShort(shift.getBlockY());
-		dos.writeShort(shift.getBlockZ());
-		dos.close();
-	}
 
 	public GenObject(int w, int h, int d)
 	{
@@ -118,6 +68,11 @@ public class GenObject
 		shift = new BlockVector();
 		s = new KMap<>();
 		centeredHeight = false;
+		gravity = false;
+		maxslope = -1;
+		baseslope = 0;
+		hydrophilic = false;
+		submerged = false;
 	}
 
 	public void recalculateMountShift()
@@ -157,6 +112,77 @@ public class GenObject
 
 		mountHeight = avg(avy);
 		mount = new BlockVector(0, 0, 0);
+	}
+
+	private KMap<SChunkVectorShort, SBlockVector> getSlopeCache()
+	{
+		if(slopeCache == null)
+		{
+			computeSlopeCache();
+		}
+
+		return slopeCache;
+	}
+
+	private KMap<SChunkVectorShort, SBlockVector> getGravityCache()
+	{
+		if(gravityCache == null)
+		{
+			computeGravityCache();
+		}
+
+		return gravityCache;
+	}
+
+	private void computeGravityCache()
+	{
+		gravityCache = new KMap<>();
+
+		for(SBlockVector i : s.keySet())
+		{
+			SChunkVectorShort v = new SChunkVectorShort(i.getX(), i.getZ());
+
+			if(!gravityCache.containsKey(v) || gravityCache.get(v).getY() > i.getY())
+			{
+				gravityCache.put(v, i);
+			}
+		}
+	}
+
+	private void computeSlopeCache()
+	{
+		slopeCache = new KMap<>();
+		int low = Integer.MAX_VALUE;
+
+		for(SBlockVector i : s.keySet())
+		{
+			SChunkVectorShort v = new SChunkVectorShort(i.getX(), i.getZ());
+
+			if(!slopeCache.containsKey(v) || slopeCache.get(v).getY() > i.getY())
+			{
+				slopeCache.put(v, i);
+			}
+		}
+
+		for(SChunkVectorShort i : slopeCache.keySet())
+		{
+			int f = (int) slopeCache.get(i).getY();
+
+			if(f < low)
+			{
+				low = f;
+			}
+		}
+
+		for(SChunkVectorShort i : slopeCache.k())
+		{
+			int f = (int) slopeCache.get(i).getY();
+
+			if(f > low - baseslope)
+			{
+				slopeCache.remove(i);
+			}
+		}
 	}
 
 	private int avg(double[] v)
@@ -322,7 +348,7 @@ public class GenObject
 
 		start.subtract(mount);
 
-		int highestY = placer.getHighestY(start);
+		int highestY = submerged ? placer.getHighestYUnderwater(start) : placer.getHighestY(start);
 
 		if(start.getBlockY() + mountHeight > highestY)
 		{
@@ -337,7 +363,44 @@ public class GenObject
 			MB b = getSchematic().get(i);
 			Location f = start.clone().add(i.toBlockVector());
 
-			if(!Iris.settings.performance.noObjectFail)
+			if(gravity)
+			{
+				SChunkVectorShort v = new SChunkVectorShort(i.getX(), i.getZ());
+				int offset = (int) i.getY() - (int) getGravityCache().get(v).getY();
+				f.setY(f.getBlockY() - ((f.getBlockY() - offset) - (submerged ? placer.getHighestYUnderwater(f) : placer.getHighestY(f))));
+			}
+
+			else if(maxslope >= 0)
+			{
+				SChunkVectorShort v = new SChunkVectorShort(i.getX(), i.getZ());
+				SBlockVector m = getSlopeCache().get(v);
+
+				if(m == null)
+				{
+					continue;
+				}
+
+				int offset = (int) i.getY() - (int) m.getY();
+				int shift = ((f.getBlockY() - offset) - (submerged ? placer.getHighestYUnderwater(f) : placer.getHighestY(f)));
+
+				if(Math.abs(shift) > maxslope)
+				{
+					for(Location j : undo.k())
+					{
+						placer.set(j, undo.get(j));
+					}
+
+					if(Iris.settings.performance.verbose)
+					{
+						L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place on slope " + C.YELLOW + Math.abs(shift) + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
+					}
+
+					failures++;
+					return null;
+				}
+			}
+
+			if(!hydrophilic && !Iris.settings.performance.noObjectFail)
 			{
 				if(f.getBlockY() == 63 && i.getY() == mountHeight)
 				{
@@ -352,7 +415,7 @@ public class GenObject
 
 						if(Iris.settings.performance.verbose)
 						{
-							L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
+							L.w(C.WHITE + "Object " + C.YELLOW + getName() + C.WHITE + " (hydrophobic) failed to place in " + C.YELLOW + m.toString().toLowerCase() + C.WHITE + " at " + C.YELLOW + F.f(f.getBlockX()) + " " + F.f(f.getBlockY()) + " " + F.f(f.getBlockZ()));
 						}
 
 						failures++;
@@ -535,6 +598,32 @@ public class GenObject
 	{
 		try
 		{
+			if(j.equals("gravity"))
+			{
+				gravity = true;
+			}
+
+			if(j.equals("hydrophilic"))
+			{
+				hydrophilic = true;
+			}
+
+			if(j.equals("submerged"))
+			{
+				submerged = true;
+				hydrophilic = true;
+			}
+
+			if(j.startsWith("maxslope "))
+			{
+				maxslope = Integer.valueOf(j.split("\\Q \\E")[1]);
+			}
+
+			if(j.startsWith("baseslope "))
+			{
+				baseslope = Integer.valueOf(j.split("\\Q \\E")[1]);
+			}
+
 			if(j.startsWith("replace "))
 			{
 				String[] g = j.split("\\Q \\E");
@@ -853,5 +942,145 @@ public class GenObject
 	public void dispose()
 	{
 		s.clear();
+	}
+
+	public void setGravity(boolean gravity)
+	{
+		this.gravity = gravity;
+	}
+
+	public void setShift(int x, int y, int z)
+	{
+		shift = new BlockVector(x, y, z);
+	}
+
+	public boolean isCenteredHeight()
+	{
+		return centeredHeight;
+	}
+
+	public boolean isGravity()
+	{
+		return gravity;
+	}
+
+	public KMap<SBlockVector, MB> getS()
+	{
+		return s;
+	}
+
+	public BlockVector getMount()
+	{
+		return mount;
+	}
+
+	public int getMaxslope()
+	{
+		return maxslope;
+	}
+
+	public int getBaseslope()
+	{
+		return baseslope;
+	}
+
+	public boolean isHydrophilic()
+	{
+		return hydrophilic;
+	}
+
+	public boolean isSubmerged()
+	{
+		return submerged;
+	}
+
+	public int getMountHeight()
+	{
+		return mountHeight;
+	}
+
+	public BlockVector getShift()
+	{
+		return shift;
+	}
+
+	public void setCenteredHeight(boolean centeredHeight)
+	{
+		this.centeredHeight = centeredHeight;
+	}
+
+	public void setW(int w)
+	{
+		this.w = w;
+	}
+
+	public void setH(int h)
+	{
+		this.h = h;
+	}
+
+	public void setD(int d)
+	{
+		this.d = d;
+	}
+
+	public void setFailures(int failures)
+	{
+		this.failures = failures;
+	}
+
+	public void setSuccesses(int successes)
+	{
+		this.successes = successes;
+	}
+
+	public void setS(KMap<SBlockVector, MB> s)
+	{
+		this.s = s;
+	}
+
+	public void setSlopeCache(KMap<SChunkVectorShort, SBlockVector> slopeCache)
+	{
+		this.slopeCache = slopeCache;
+	}
+
+	public void setGravityCache(KMap<SChunkVectorShort, SBlockVector> gravityCache)
+	{
+		this.gravityCache = gravityCache;
+	}
+
+	public void setMount(BlockVector mount)
+	{
+		this.mount = mount;
+	}
+
+	public void setMaxslope(int maxslope)
+	{
+		this.maxslope = maxslope;
+	}
+
+	public void setBaseslope(int baseslope)
+	{
+		this.baseslope = baseslope;
+	}
+
+	public void setHydrophilic(boolean hydrophilic)
+	{
+		this.hydrophilic = hydrophilic;
+	}
+
+	public void setSubmerged(boolean submerged)
+	{
+		this.submerged = submerged;
+	}
+
+	public void setMountHeight(int mountHeight)
+	{
+		this.mountHeight = mountHeight;
+	}
+
+	public void setShift(BlockVector shift)
+	{
+		this.shift = shift;
 	}
 }

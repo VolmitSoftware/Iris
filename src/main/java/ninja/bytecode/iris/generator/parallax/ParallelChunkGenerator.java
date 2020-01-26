@@ -1,7 +1,6 @@
 package ninja.bytecode.iris.generator.parallax;
 
 import java.util.Random;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -26,7 +25,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 	private int j;
 	private int wx;
 	private int wz;
-	private ReentrantLock biomeLock;
 	private TaskExecutor backupService;
 	private TaskGroup tg;
 	private boolean ready = false;
@@ -105,7 +103,6 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 
 			if(!ready)
 			{
-				biomeLock = new ReentrantLock();
 				init(world, random);
 				ready = true;
 			}
@@ -126,9 +123,7 @@ public abstract class ParallelChunkGenerator extends ChunkGenerator
 					tg.queue(() ->
 					{
 						Biome f = generateFullColumn(a, b, c, d, plan.get(), data);
-						biomeLock.lock();
 						biome.setBiome(c, d, f);
-						biomeLock.unlock();
 					});
 				}
 			}

@@ -22,7 +22,7 @@ public class GenObjectGroup
 	private int priority;
 	private double worldChance;
 	private int worldRad;
-
+	
 	public GenObjectGroup(String name)
 	{
 		this.schematics = new KList<>();

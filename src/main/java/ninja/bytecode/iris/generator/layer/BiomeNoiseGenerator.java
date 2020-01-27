@@ -15,7 +15,7 @@ public class BiomeNoiseGenerator
 		this.biome = biome;
 		//@builder
 		gen = new CNG(rng.nextParallelRNG(31289 - biome.getName().length() * biome.getRealBiome().ordinal()), 1D, 1)
-			.scale(0.0075 * biome.getGenScale())
+			.scale(0.0025 * biome.getGenScale())
 			.fractureWith(new CNG(rng.nextParallelRNG(2922 * biome.getName().length() - biome.getRealBiome().ordinal()), 1D, 1)
 					.scale(0.0075 * biome.getGenSwirlScale()), 20D * biome.getGenSwirl());
 		//@done

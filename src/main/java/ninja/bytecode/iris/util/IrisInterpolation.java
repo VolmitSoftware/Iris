@@ -112,14 +112,14 @@ public class IrisInterpolation
 		return cubic(cubic(p00, p01, p02, p03, muy), cubic(p10, p11, p12, p13, muy), cubic(p20, p21, p22, p23, muy), cubic(p30, p31, p32, p33, muy), mux);
 	}
 
-	public static double getBilinearNoise(int x, int z, int rad, NoiseProvider n)
+	public static double getBilinearNoise(int x, int z, double rad, NoiseProvider n)
 	{
-		int fx = x >> rad;
-		int fz = z >> rad;
-		int x1 = (fx << rad);
-		int z1 = (fz << rad);
-		int x2 = ((fx + 1) << rad);
-		int z2 = ((fz + 1) << rad);
+		int fx = (int) Math.floor(x / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x1 = (int) Math.round(fx * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
 		double px = M.rangeScale(0, 1, x1, x2, x);
 		double pz = M.rangeScale(0, 1, z1, z2, z);
 		//@builder
@@ -132,18 +132,18 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double getBicubicNoise(int x, int z, int rad, NoiseProvider n)
+	public static double getBicubicNoise(int x, int z, double rad, NoiseProvider n)
 	{
-		int fx = x >> rad;
-		int fz = z >> rad;
-		int x0 = ((fx - 1) << rad);
-		int z0 = ((fz - 1) << rad);
-		int x1 = (fx << rad);
-		int z1 = (fz << rad);
-		int x2 = ((fx + 1) << rad);
-		int z2 = ((fz + 1) << rad);
-		int x3 = ((fx + 2) << rad);
-		int z3 = ((fz + 2) << rad);
+		int fx = (int) Math.floor(x / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x0 = (int) Math.round((fx - 1) * rad);
+		int z0 = (int) Math.round((fz - 1) * rad);
+		int x1 = (int) Math.round(fx * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
+		int x3 = (int) Math.round((fx + 2) * rad);
+		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = M.rangeScale(0, 1, x1, x2, x);
 		double pz = M.rangeScale(0, 1, z1, z2, z);
 		//@builder
@@ -168,18 +168,18 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double getHermiteNoise(int x, int z, int rad, NoiseProvider n)
+	public static double getHermiteNoise(int x, int z, double rad, NoiseProvider n)
 	{
-		int fx = x >> rad;
-		int fz = z >> rad;
-		int x0 = ((fx - 1) << rad);
-		int z0 = ((fz - 1) << rad);
-		int x1 = (fx << rad);
-		int z1 = (fz << rad);
-		int x2 = ((fx + 1) << rad);
-		int z2 = ((fz + 1) << rad);
-		int x3 = ((fx + 2) << rad);
-		int z3 = ((fz + 2) << rad);
+		int fx = (int) Math.floor(x / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x0 = (int) Math.round((fx - 1) * rad);
+		int z0 = (int) Math.round((fz - 1) * rad);
+		int x1 = (int) Math.round(fx * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
+		int x3 = (int) Math.round((fx + 2) * rad);
+		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = M.rangeScale(0, 1, x1, x2, x);
 		double pz = M.rangeScale(0, 1, z1, z2, z);
 		//@builder

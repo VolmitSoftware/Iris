@@ -25,13 +25,13 @@ public class Settings
 	public static class GeneratorSettings
 	{
 		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
+		public int interpolationRadius = 64;
 		public int blockSmoothing = 1;
-		public int interpolationRadius = 6;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
-		public double landScale = 0.75;
-		public double landChance = 0.65;
+		public double landScale = 0.5;
+		public double landChance = 0.56;
 		public double roughness = 1.55;
 		public double biomeEdgeFuzzScale = 1;
 		public double biomeEdgeScrambleScale = 0.3;

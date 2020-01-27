@@ -599,17 +599,29 @@ public class IrisBiome
 		return scatterChance;
 	}
 
-	public MB getScatterChanceSingle(double d)
+	public MB getScatterChanceSingle(double d, double aux)
 	{
+		KList<MB> a = new KList<>();
+
 		for(MB i : getScatterChance().keySet())
 		{
 			if(d < getScatterChance().get(i))
 			{
-				return i;
+				a.add(i);
 			}
 		}
 
-		return MB.of(Material.AIR);
+		if(a.isEmpty())
+		{
+			return MB.of(Material.AIR);
+		}
+
+		if(a.size() == 1)
+		{
+			return a.get(0);
+		}
+
+		return a.get((int) (aux * (a.size() - 1)));
 	}
 
 	public static KList<IrisBiome> getBiomes()

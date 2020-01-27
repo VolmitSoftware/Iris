@@ -556,11 +556,16 @@ public class IrisGenerator extends ParallaxWorldGenerator
 
 		else
 		{
-			MB mbx = biome.getScatterChanceSingle(scatter(wx, h, wz));
+			MB mbx = biome.getScatterChanceSingle(scatter(wx, h, wz), scatter(wz, h, wx));
 
 			if(!mbx.material.equals(Material.AIR))
 			{
 				data.setBlock(x, h + 1, z, mbx.material, mbx.data);
+
+				if(mbx.material.equals(Material.DOUBLE_PLANT))
+				{
+					data.setBlock(x, h + 2, z, mbx.material, (byte) 10);
+				}
 			}
 		}
 

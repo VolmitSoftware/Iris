@@ -22,6 +22,7 @@ import ninja.bytecode.iris.generator.layer.GenLayerBiome;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerCliffs;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
+import ninja.bytecode.iris.generator.layer.GenLayerOres;
 import ninja.bytecode.iris.generator.layer.GenLayerSnow;
 import ninja.bytecode.iris.generator.parallax.ParallaxWorldGenerator;
 import ninja.bytecode.iris.pack.BiomeType;
@@ -74,6 +75,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private GenLayerSnow glSnow;
 	private GenLayerCliffs glCliffs;
 	private GenLayerCaves glCaves;
+	private GenLayerOres glOres;
 	private RNG rTerrain;
 	private CompiledDimension dim;
 	private IrisMetrics metrics = new IrisMetrics(0, 512);
@@ -130,6 +132,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(10));
+		glOres = new GenLayerOres(this, world, random, rTerrain.nextParallelRNG(11));
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
 
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
@@ -390,6 +393,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		if(!surfaceOnly)
 		{
 			glCaves.genCaves(wxxf, wzxf, x, z, data, plan);
+			glOres.genOres(wxxf, wzxf, x, z, hl, data, plan);
 		}
 
 		plan.setRealHeight(x, z, hl);

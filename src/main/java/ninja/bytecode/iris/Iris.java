@@ -94,12 +94,12 @@ public class Iris extends MortarPlugin
 					r.setPhysicsThrottle(5);
 					r.setMonsterActivationRange(5);
 					r.setArrowDespawnRate(1);
-					r.setForcedGameMode(GameMode.CREATIVE);
 					r.load();
 
 					for(Player i : Bukkit.getOnlinePlayers())
 					{
 						i.teleport(r.getSpawn());
+						i.setGameMode(GameMode.CREATIVE);
 					}
 				}
 

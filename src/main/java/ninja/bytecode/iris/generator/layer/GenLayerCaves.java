@@ -25,9 +25,9 @@ public class GenLayerCaves extends GenLayer
 	{
 		//@builder
 		super(iris, world, random, rng);
-		g = new PolygonGenerator(RNG.r, 3, 0.014, 1, (c) -> c);
-		gincline = new CNG(RNG.r, 1D, 3).scale(0.00652);
-		gfract = new CNG(RNG.r, 24D, 1).scale(0.0152);
+		g = new PolygonGenerator(rng.nextParallelRNG(1111), 3, 0.014, 1, (c) -> c);
+		gincline = new CNG(rng.nextParallelRNG(1112), 1D, 3).scale(0.00652);
+		gfract = new CNG(rng.nextParallelRNG(1113), 24D, 1).scale(0.0152);
 		//@done
 	}
 
@@ -110,11 +110,11 @@ public class GenLayerCaves extends GenLayer
 
 	public boolean cann(Material m)
 	{
-		return m.isSolid() || m.equals(Material.AIR);
+		return m.isSolid() || m.equals(Material.AIR) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean can(Material m)
 	{
-		return m.isSolid();
+		return m.isSolid() && !m.equals(Material.BEDROCK);
 	}
 }

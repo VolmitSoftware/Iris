@@ -25,6 +25,16 @@ public class IrisInterpolation
 		return a + (bezier(f) * (b - a));
 	}
 
+	public static double sinCenter(double f)
+	{
+		return (M.sin((float) ((f * Math.PI * 2D) + 4.745555D)) + 1D) / 2D;
+	}
+
+	public static double lerpCenterSinBezier(double a, double b, double f)
+	{
+		return lerpBezier(a, b, sinCenter(f));
+	}
+
 	public static double lerpParametric(double a, double b, double f, double v)
 	{
 		return a + (parametric(f, v) * (b - a));

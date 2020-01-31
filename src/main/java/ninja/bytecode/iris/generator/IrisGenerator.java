@@ -123,6 +123,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		{
 			return;
 		}
+
 		random = new Random(world.getSeed());
 		rTerrain = new RNG(world.getSeed());
 		swirl = new CNG(rTerrain.nextParallelRNG(0), 40, 1).scale(0.007);
@@ -390,10 +391,21 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			hl = hl == 0 && !t.equals(Material.AIR) ? i : hl;
 		}
 
+		plan.setRealHeight(x, z, hl);
+		plan.setRealWaterHeight(x, z, hw == 0 ? seaLevel : hw);
+		plan.setBiome(x, z, biome);
+
 		if(!surfaceOnly)
 		{
 			glCaves.genCaves(wxxf, wzxf, x, z, data, plan);
 			glOres.genOres(wxxf, wzxf, x, z, hl, data, plan);
+		}
+
+		for(int i = highest; i > 0; i--)
+		{
+			Material t = data.getType(x, i, z);
+			hw = i > seaLevel && hw == 0 && (t.equals(Material.WATER) || t.equals(Material.STATIONARY_WATER)) ? i : hw;
+			hl = hl == 0 && !t.equals(Material.AIR) ? i : hl;
 		}
 
 		plan.setRealHeight(x, z, hl);

@@ -109,17 +109,17 @@ public class GenLayerBiome extends GenLayer
 			return true;
 		}
 
+		if(Borders.isBorderWithin(x, z, 7, 24D, (x + z) / 100D, (xx, zz) -> ocean.getIndex(xx, zz)))
+		{
+			return true;
+		}
+
 		if(ocean.getClosestNeighbor(x, z) > 0.2)
 		{
 			return true;
 		}
 
 		if(channel.getClosestNeighbor(x, z) > 0.2)
-		{
-			return true;
-		}
-
-		if(ocean.hasBorder(3, 7, x, z) || ocean.hasBorder(3, 3, x, z))
 		{
 			return true;
 		}

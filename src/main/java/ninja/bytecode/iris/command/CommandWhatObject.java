@@ -36,7 +36,7 @@ public class CommandWhatObject extends MortarCommand
 	{
 		World world = null;
 
-		if(sender.isPlayer() && sender.player().getWorld().getGenerator() instanceof IrisGenerator)
+		if(sender.isPlayer() && Iris.isGen(sender.player().getWorld()))
 		{
 			world = sender.player().getWorld();
 		}
@@ -48,7 +48,7 @@ public class CommandWhatObject extends MortarCommand
 		}
 
 		Player p = sender.player();
-		IrisGenerator generator = (IrisGenerator) world.getGenerator();
+		IrisGenerator generator = Iris.getGen(world);
 		Location l = p.getTargetBlock(null, 32).getLocation();
 		PlacedObject po = generator.nearest(l, 12);
 

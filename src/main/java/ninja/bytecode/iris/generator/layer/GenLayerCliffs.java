@@ -51,10 +51,10 @@ public class GenLayerCliffs extends GenLayer
 				continue;
 			}
 			
-			double var = 6.2 * block;
+			double var = 12.2 * block;
 			double varCombined = 15.45 * block;
 			double sep = (shift / 1.8D) * block;
-			double height = (47 + (i * shift)) * block;
+			double height = (67 + (i * shift)) * block;
 			double sh = ((gen.noise(dx + dz, dz - dx) - 0.5D) * 2D) * varCombined;
 			double shv = ((gen.noise(dz + dx, dx - dz) - 0.5D) * 2D) * varCombined;
 			double lo = (gen.noise(dx + (i * -1000), dz + (i * 1000)) * var) + height + sh;

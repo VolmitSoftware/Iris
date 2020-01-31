@@ -1,7 +1,6 @@
 package ninja.bytecode.iris.generator.placer;
 
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.generator.parallax.ParallaxCache;

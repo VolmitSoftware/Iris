@@ -1,12 +1,9 @@
 package ninja.bytecode.iris;
 
 import java.io.File;
-import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Difficulty;
-import org.bukkit.GameMode;
-import org.bukkit.entity.Player;
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -15,13 +12,11 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
 import mortar.api.rift.Rift;
-import mortar.api.sched.J;
+import mortar.api.sched.S;
 import mortar.bukkit.command.Command;
 import mortar.bukkit.plugin.Control;
-import mortar.bukkit.plugin.Instance;
-import mortar.bukkit.plugin.Mortar;
 import mortar.bukkit.plugin.MortarPlugin;
-import mortar.lib.control.RiftController;
+import mortar.util.reflection.V;
 import mortar.util.text.C;
 import ninja.bytecode.iris.command.CommandIris;
 import ninja.bytecode.iris.controller.ExecutionController;
@@ -29,6 +24,7 @@ import ninja.bytecode.iris.controller.PackController;
 import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.Direction;
+import ninja.bytecode.iris.util.HotswapGenerator;
 import ninja.bytecode.shuriken.logging.L;
 
 public class Iris extends MortarPlugin
@@ -38,7 +34,6 @@ public class Iris extends MortarPlugin
 	public static IrisMetrics metrics;
 	private ExecutionController executionController;
 
-	@Instance
 	public static Iris instance;
 
 	@Control
@@ -58,6 +53,11 @@ public class Iris extends MortarPlugin
 		instance = this;
 		executionController = new ExecutionController();
 		executionController.start();
+		primaryThread = Thread.currentThread();
+		L.consoleConsumer = (s) -> Bukkit.getConsoleSender().sendMessage(s);
+		Direction.calculatePermutations();
+		settings = new Settings();
+		getServer().getPluginManager().registerEvents((Listener) this, this);
 		super.onEnable();
 	}
 
@@ -66,49 +66,56 @@ public class Iris extends MortarPlugin
 		return getDataFolder("cache", "object");
 	}
 
+	public static boolean isGen(World world)
+	{
+		IrisGenerator g = getGen(world);
+		return g != null && g instanceof IrisGenerator;
+	}
+
+	public static IrisGenerator getGen(World world)
+	{
+		try
+		{
+			return (IrisGenerator) ((HotswapGenerator) world.getGenerator()).getGenerator();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return null;
+	}
+
 	@Override
 	public void start()
 	{
-		primaryThread = Thread.currentThread();
 		instance = this;
-		L.consoleConsumer = (s) -> Bukkit.getConsoleSender().sendMessage(s);
-		Direction.calculatePermutations();
-		settings = new Settings();
-		getServer().getPluginManager().registerEvents((Listener) this, this);
 		packController.compile();
 
-		J.s(() ->
+		new S(0)
 		{
-			if(settings.performance.debugMode)
+			@Override
+			public void run()
 			{
-				try
+				instance = Iris.this;
+				for(World i : Bukkit.getWorlds())
 				{
-					r = Mortar.getController(RiftController.class).createRift("iris/" + UUID.randomUUID().toString());
-					r.setGenerator(IrisGenerator.class);
-					r.setDifficulty(Difficulty.NORMAL);
-					r.setTemporary(true);
-					r.setSeed(0);
-					r.setViewDistance(10);
-					r.setTileTickLimit(0.1);
-					r.setEntityTickLimit(0.1);
-					r.setPhysicsThrottle(5);
-					r.setMonsterActivationRange(5);
-					r.setArrowDespawnRate(1);
-					r.load();
-
-					for(Player i : Bukkit.getOnlinePlayers())
+					try
 					{
-						i.teleport(r.getSpawn());
-						i.setGameMode(GameMode.CREATIVE);
+						new V(i.getGenerator()).invoke("setGenerator", new IrisGenerator());
+						L.i("Hotloading Generator for World " + i.getName());
+					}
+
+					catch(Throwable e)
+					{
+
 					}
 				}
-
-				catch(Throwable e)
-				{
-					e.printStackTrace();
-				}
 			}
-		}, 10);
+		};
+
+		instance = this;
 	}
 
 	@Override
@@ -122,6 +129,7 @@ public class Iris extends MortarPlugin
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
 		executionController.stop();
+		packController.dispose();
 	}
 
 	@EventHandler
@@ -145,7 +153,7 @@ public class Iris extends MortarPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisGenerator();
+		return new HotswapGenerator(new IrisGenerator());
 	}
 
 	@Override
@@ -166,6 +174,17 @@ public class Iris extends MortarPlugin
 
 	public static ExecutionController exec()
 	{
+		if(instance == null)
+		{
+			instance = (Iris) Bukkit.getPluginManager().getPlugin("Iris");
+		}
+
+		if(instance.executionController == null)
+		{
+			instance.executionController = new ExecutionController();
+			instance.executionController.start();
+		}
+
 		return instance.executionController;
 	}
 

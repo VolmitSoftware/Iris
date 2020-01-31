@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import mortar.bukkit.command.MortarCommand;
 import mortar.bukkit.command.MortarSender;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 
@@ -21,7 +22,7 @@ public class CommandFindBiome extends MortarCommand
 	{
 		World w = null;
 
-		if(sender.isPlayer() && sender.player().getWorld().getGenerator() instanceof IrisGenerator)
+		if(sender.isPlayer() && Iris.isGen(sender.player().getWorld()))
 		{
 			w = sender.player().getWorld();
 		}
@@ -38,7 +39,7 @@ public class CommandFindBiome extends MortarCommand
 		}
 
 		Player p = sender.player();
-		IrisGenerator g = (IrisGenerator) w.getGenerator();
+		IrisGenerator g = Iris.getGen(p.getWorld());
 		if(args.length > 0)
 		{
 			IrisBiome b = null;

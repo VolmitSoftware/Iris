@@ -29,7 +29,7 @@ public class CommandReloadChunks extends MortarCommand
 
 		for(Chunk i : p.getWorld().getLoadedChunks())
 		{
-			NMP.CHUNK.refresh(p, i);
+			NMP.CHUNK.refreshIgnorePosition(p, i);
 		}
 
 		return true;

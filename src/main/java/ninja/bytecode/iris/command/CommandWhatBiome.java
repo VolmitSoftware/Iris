@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import mortar.bukkit.command.MortarCommand;
 import mortar.bukkit.command.MortarSender;
 import mortar.util.text.C;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.pack.IrisBiome;
 import ninja.bytecode.iris.util.BiomeLayer;
@@ -24,7 +25,7 @@ public class CommandWhatBiome extends MortarCommand
 	{
 		World world = null;
 
-		if(sender.isPlayer() && sender.player().getWorld().getGenerator() instanceof IrisGenerator)
+		if(sender.isPlayer() && Iris.isGen(sender.player().getWorld()))
 		{
 			world = sender.player().getWorld();
 		}
@@ -36,7 +37,7 @@ public class CommandWhatBiome extends MortarCommand
 		}
 
 		Player p = sender.player();
-		IrisGenerator g = (IrisGenerator) world.getGenerator();
+		IrisGenerator g = Iris.getGen(world);
 		IrisBiome biome = g.getBiome((int) g.getOffsetX(p.getLocation().getX(), p.getLocation().getZ()), (int) g.getOffsetZ(p.getLocation().getX(), p.getLocation().getZ()));
 		BiomeLayer l = new BiomeLayer(g, biome);
 		sender.sendMessage("Biome: " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " (" + C.GOLD + l.getBiome().getRarityString() + C.GRAY + ")");

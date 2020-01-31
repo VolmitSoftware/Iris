@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import mortar.bukkit.command.MortarCommand;
 import mortar.bukkit.command.MortarSender;
 import mortar.util.text.C;
-import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
 
 public class CommandFindObject extends MortarCommand
@@ -23,7 +23,7 @@ public class CommandFindObject extends MortarCommand
 	{
 		World w = null;
 
-		if(sender.isPlayer() && sender.player().getWorld().getGenerator() instanceof IrisGenerator)
+		if(sender.isPlayer() && Iris.isGen(sender.player().getWorld()))
 		{
 			w = sender.player().getWorld();
 		}
@@ -38,7 +38,7 @@ public class CommandFindObject extends MortarCommand
 
 		if(args.length > 0)
 		{
-			PlacedObject o = ((IrisGenerator) w.getGenerator()).randomObject(args[0]);
+			PlacedObject o = Iris.getGen(w).randomObject(args[0]);
 
 			if(o != null)
 			{

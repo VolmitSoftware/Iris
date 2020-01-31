@@ -6,6 +6,7 @@ import org.bukkit.World;
 import mortar.bukkit.command.MortarCommand;
 import mortar.bukkit.command.MortarSender;
 import mortar.util.text.C;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.IrisGenerator;
 
 public class CommandTimings extends MortarCommand
@@ -21,7 +22,7 @@ public class CommandTimings extends MortarCommand
 	{
 		World world = null;
 
-		if(sender.isPlayer() && sender.player().getWorld().getGenerator() instanceof IrisGenerator)
+		if(sender.isPlayer() && Iris.isGen(sender.player().getWorld()))
 		{
 			world = sender.player().getWorld();
 		}
@@ -48,7 +49,7 @@ public class CommandTimings extends MortarCommand
 			return true;
 		}
 
-		((IrisGenerator) world.getGenerator()).getMetrics().send(sender, (m) -> sender.sendMessage(m));
+		Iris.getGen(world).getMetrics().send(sender, (m) -> sender.sendMessage(m));
 
 		return true;
 	}

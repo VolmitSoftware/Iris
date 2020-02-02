@@ -3,7 +3,9 @@ package ninja.bytecode.iris;
 import java.io.File;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -16,7 +18,6 @@ import mortar.api.sched.S;
 import mortar.bukkit.command.Command;
 import mortar.bukkit.plugin.Control;
 import mortar.bukkit.plugin.MortarPlugin;
-import mortar.util.reflection.V;
 import mortar.util.text.C;
 import ninja.bytecode.iris.command.CommandIris;
 import ninja.bytecode.iris.controller.ExecutionController;
@@ -25,6 +26,8 @@ import ninja.bytecode.iris.controller.WandController;
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.HotswapGenerator;
+import ninja.bytecode.iris.util.IrisMetrics;
+import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
 
 public class Iris extends MortarPlugin
@@ -32,7 +35,7 @@ public class Iris extends MortarPlugin
 	public static Thread primaryThread;
 	public static Settings settings;
 	public static IrisMetrics metrics;
-	private ExecutionController executionController;
+	private static ExecutionController executionController;
 
 	public static Iris instance;
 
@@ -69,7 +72,7 @@ public class Iris extends MortarPlugin
 	public static boolean isGen(World world)
 	{
 		IrisGenerator g = getGen(world);
-		return g != null && g instanceof IrisGenerator;
+		return g != null;
 	}
 
 	public static IrisGenerator getGen(World world)
@@ -92,30 +95,6 @@ public class Iris extends MortarPlugin
 	{
 		instance = this;
 		packController.compile();
-
-		new S(0)
-		{
-			@Override
-			public void run()
-			{
-				instance = Iris.this;
-				for(World i : Bukkit.getWorlds())
-				{
-					try
-					{
-						new V(i.getGenerator()).invoke("setGenerator", new IrisGenerator());
-						L.i("Hotloading Generator for World " + i.getName());
-					}
-
-					catch(Throwable e)
-					{
-
-					}
-				}
-			}
-		};
-
-		instance = this;
 	}
 
 	@Override
@@ -129,7 +108,6 @@ public class Iris extends MortarPlugin
 		HandlerList.unregisterAll((Plugin) this);
 		Bukkit.getScheduler().cancelTasks(this);
 		executionController.stop();
-		packController.dispose();
 	}
 
 	@EventHandler
@@ -174,18 +152,13 @@ public class Iris extends MortarPlugin
 
 	public static ExecutionController exec()
 	{
-		if(instance == null)
+		if(executionController == null)
 		{
-			instance = (Iris) Bukkit.getPluginManager().getPlugin("Iris");
+			executionController = new ExecutionController();
+			executionController.start();
 		}
 
-		if(instance.executionController == null)
-		{
-			instance.executionController = new ExecutionController();
-			instance.executionController.start();
-		}
-
-		return instance.executionController;
+		return executionController;
 	}
 
 	public static WandController wand()

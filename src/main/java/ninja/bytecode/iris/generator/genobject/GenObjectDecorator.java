@@ -334,6 +334,11 @@ public class GenObjectDecorator extends BlockPopulator
 			{
 				if(M.r(Iris.settings.gen.objectDensity))
 				{
+					if(i.getSchematics().isEmpty())
+					{
+						continue;
+					}
+
 					GenObject go = i.getSchematics().get(random.nextInt(i.getSchematics().size()));
 					int x = (cx << 4) + random.nextInt(16);
 					int z = (cz << 4) + random.nextInt(16);

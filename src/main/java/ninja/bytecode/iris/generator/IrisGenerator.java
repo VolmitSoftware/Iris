@@ -14,7 +14,6 @@ import org.bukkit.util.NumberConversions;
 
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.IrisMetrics;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
@@ -32,6 +31,7 @@ import ninja.bytecode.iris.pack.IrisRegion;
 import ninja.bytecode.iris.util.ChunkPlan;
 import ninja.bytecode.iris.util.InterpolationMode;
 import ninja.bytecode.iris.util.IrisInterpolation;
+import ninja.bytecode.iris.util.IrisMetrics;
 import ninja.bytecode.iris.util.MB;
 import ninja.bytecode.iris.util.NoiseProvider;
 import ninja.bytecode.iris.util.ObjectMode;

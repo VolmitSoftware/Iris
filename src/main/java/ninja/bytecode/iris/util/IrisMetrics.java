@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package ninja.bytecode.iris.util;
 
 import java.util.function.Consumer;
 
@@ -6,6 +6,7 @@ import org.bukkit.command.CommandSender;
 
 import mortar.compute.math.M;
 import mortar.util.text.C;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;

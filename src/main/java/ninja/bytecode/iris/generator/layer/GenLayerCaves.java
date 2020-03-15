@@ -19,6 +19,7 @@ public class GenLayerCaves extends GenLayer
 {
 	private PolygonGenerator g;
 	private CNG gincline;
+	private CNG scram;
 
 	public GenLayerCaves(IrisGenerator iris, World world, Random random, RNG rng)
 	{
@@ -26,6 +27,7 @@ public class GenLayerCaves extends GenLayer
 		super(iris, world, random, rng);
 		g = new PolygonGenerator(rng.nextParallelRNG(1111), 3, 0.024, 8, (c) -> c);
 		gincline = new CNG(rng.nextParallelRNG(1112), 1D, 3).scale(0.00652);
+		scram = new CNG(rng.nextParallelRNG(2639634), 1D, 1).scale(0.15);
 		//@done
 	}
 
@@ -35,19 +37,16 @@ public class GenLayerCaves extends GenLayer
 		return gnoise;
 	}
 
-	public void genCaves(double wxxf, double wzxf, int x, int z, AtomicChunkData data, ChunkPlan plan)
+	public void genCaves(double vwxxf, double vwzxf, int x, int z, AtomicChunkData data, ChunkPlan plan)
 	{
-		if(true)
-		{
-			return;
-		}
-		
 		PrecisionStopwatch s = PrecisionStopwatch.start();
 		double itr = 2;
 		double level = 8;
-		double incline = 157;
+		double incline = 187;
 		double baseWidth = 11;
-		double drop = 46;
+		double drop = 41;
+		double wxxf = (scram.noise(vwxxf, vwzxf) * 6) - vwzxf;
+		double wzxf = (scram.noise(vwzxf, vwxxf) * 6) + vwxxf;
 
 		for(double m = 1; m <= itr; m += 0.45)
 		{

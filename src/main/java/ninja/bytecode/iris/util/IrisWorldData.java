@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
-import mortar.logic.format.F;
 import mortar.util.text.C;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.atomics.AtomicChunkData;

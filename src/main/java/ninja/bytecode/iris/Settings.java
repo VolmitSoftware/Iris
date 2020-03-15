@@ -15,7 +15,7 @@ public class Settings
 		public PerformanceMode performanceMode = PerformanceMode.EXPLICIT;
 		public ObjectMode objectMode = ObjectMode.PARALLAX;
 		public int threadPriority = Thread.MAX_PRIORITY;
-		public int threadCount = 16;
+		public int threadCount = 32;
 		public boolean debugMode = true;
 		public int decorationAccuracy = 1;
 		public boolean noObjectFail = false;
@@ -26,24 +26,24 @@ public class Settings
 	public static class GeneratorSettings
 	{
 		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
-		public int interpolationRadius = 32;
+		public int interpolationRadius = 53;
 		public int blockSmoothing = 1;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
 		public double heightFracture = 155;
-		public double landScale = 0.5;
+		public double landScale = 0.44;
 		public double landChance = 0.56;
-		public double roughness = 1.55;
-		public double biomeEdgeFuzzScale = 1;
-		public double biomeEdgeScrambleScale = 0.3;
-		public double biomeEdgeScrambleRange = 0.9;
+		public double roughness = 1.25;
+		public double biomeEdgeFuzzScale = 1.75;
+		public double biomeEdgeScrambleScale = 0.2;
+		public double biomeEdgeScrambleRange = 2.5;
 		public double heightMultiplier = 0.806;
 		public double heightExponentBase = 1;
 		public double heightExponentMultiplier = 1.41;
 		public double heightScale = 0.56;
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
-		public double biomeScale = 1;
+		public double biomeScale = 0.8;
 		public boolean flatBedrock = false;
 	}
 

@@ -308,7 +308,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	{
 		int seaLevel = Iris.settings.gen.seaLevel;
 		boolean land = y >= seaLevel;
-		int beachHeight = land ? 1 + (int) Math.round(seaLevel + beach.noise(x, z)) : seaLevel;
+		int beachHeight = land ? 1 + (int) Math.round(seaLevel + beach.noise(x, z) + 1) : seaLevel;
 		boolean beach = y <= beachHeight && land;
 		IrisBiome biome = glBiome.getBiome(x, z);
 		IrisBiome realBiome = glBiome.getBiome(x, z, true);

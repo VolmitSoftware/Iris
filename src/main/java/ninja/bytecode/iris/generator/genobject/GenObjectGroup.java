@@ -17,12 +17,14 @@ import ninja.bytecode.shuriken.logging.L;
 public class GenObjectGroup
 {
 	private KList<GenObject> schematics;
+	private KList<GenObject> osSchematics;
+	private KList<GenObject> pxSchematics;
 	private KList<String> flags;
 	private String name;
 	private int priority;
 	private double worldChance;
 	private int worldRad;
-	
+
 	public GenObjectGroup(String name)
 	{
 		this.schematics = new KList<>();
@@ -145,6 +147,42 @@ public class GenObjectGroup
 	public KList<GenObject> getSchematics()
 	{
 		return schematics;
+	}
+
+	public KList<GenObject> getPXSchematics()
+	{
+		if(pxSchematics == null)
+		{
+			pxSchematics = new KList<>();
+
+			for(GenObject i : schematics)
+			{
+				if(!i.isOversized())
+				{
+					pxSchematics.add(i);
+				}
+			}
+		}
+		
+		return pxSchematics;
+	}
+	
+	public KList<GenObject> getOSSchematics()
+	{
+		if(osSchematics == null)
+		{
+			osSchematics = new KList<>();
+
+			for(GenObject i : schematics)
+			{
+				if(i.isOversized())
+				{
+					osSchematics.add(i);
+				}
+			}
+		}
+		
+		return pxSchematics;
 	}
 
 	public void setSchematics(KList<GenObject> schematics)

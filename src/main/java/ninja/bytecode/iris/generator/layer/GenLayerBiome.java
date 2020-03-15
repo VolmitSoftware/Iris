@@ -109,7 +109,7 @@ public class GenLayerBiome extends GenLayer
 			return true;
 		}
 
-		if(Borders.isBorderWithin(x, z, 7, 24D, (x + z) / 100D, (xx, zz) -> ocean.getIndex(xx, zz)))
+		if(Borders.isBorderWithin(x, z, 3, 24D, (x + z) / 100D, (xx, zz) -> ocean.getIndex(xx, zz)))
 		{
 			return true;
 		}

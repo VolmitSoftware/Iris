@@ -49,6 +49,7 @@ public class GenObject
 	private int failures;
 	private int successes;
 	private boolean gravity;
+	private boolean oversized;
 	private String name = "?";
 	private KMap<SBlockVector, MB> s;
 	private KMap<SChunkVectorShort, SBlockVector> slopeCache;
@@ -64,6 +65,7 @@ public class GenObject
 	public GenObject(int w, int h, int d)
 	{
 		this.w = w;
+		oversized = false;
 		this.h = h;
 		this.d = d;
 		shift = new BlockVector();
@@ -304,6 +306,7 @@ public class GenObject
 		s.fill(this.s);
 		s.centeredHeight = centeredHeight;
 		s.name = name;
+		s.oversized = oversized;
 		return s;
 	}
 
@@ -1093,5 +1096,15 @@ public class GenObject
 	public void setShift(BlockVector shift)
 	{
 		this.shift = shift;
+	}
+
+	public boolean isOversized()
+	{
+		return oversized;
+	}
+
+	public void setOversized(boolean oversized)
+	{
+		this.oversized = oversized;
 	}
 }

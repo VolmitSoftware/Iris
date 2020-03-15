@@ -37,6 +37,11 @@ public class GenLayerCaves extends GenLayer
 
 	public void genCaves(double wxxf, double wzxf, int x, int z, AtomicChunkData data, ChunkPlan plan)
 	{
+		if(true)
+		{
+			return;
+		}
+		
 		PrecisionStopwatch s = PrecisionStopwatch.start();
 		double itr = 2;
 		double level = 8;

@@ -16,7 +16,7 @@ public class Settings
 		public ObjectMode objectMode = ObjectMode.PARALLAX;
 		public int threadPriority = Thread.MAX_PRIORITY;
 		public int threadCount = 16;
-		public boolean debugMode = false;
+		public boolean debugMode = true;
 		public int decorationAccuracy = 1;
 		public boolean noObjectFail = false;
 		public boolean verbose = false;
@@ -26,7 +26,7 @@ public class Settings
 	public static class GeneratorSettings
 	{
 		public InterpolationMode interpolationMode = InterpolationMode.BILINEAR;
-		public int interpolationRadius = 64;
+		public int interpolationRadius = 32;
 		public int blockSmoothing = 1;
 		public double objectDensity = 1D;
 		public double horizontalZoom = 2;
@@ -43,7 +43,7 @@ public class Settings
 		public double heightScale = 0.56;
 		public double baseHeight = 0.065;
 		public int seaLevel = 63;
-		public double biomeScale = 0.75;
+		public double biomeScale = 1;
 		public boolean flatBedrock = false;
 	}
 

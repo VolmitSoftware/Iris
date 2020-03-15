@@ -48,14 +48,12 @@ public class IrisWorldData
 			return;
 		}
 
-		L.i("Load: " + F.f(getLoadedChunks().size()) + " Chunks in " + F.f(getLoadedRegions().size()) + " Regions");
-
 		for(SMCAVector i : getLoadedChunks())
 		{
 			try
 			{
 				AtomicChunkData d = getChunk(i.getX(), i.getZ());
-				if(d.getTimeSinceLastUse() > 10000)
+				if(d.getTimeSinceLastUse() > 15000)
 				{
 					unloadChunk(i.getX(), i.getZ(), true);
 				}

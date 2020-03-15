@@ -1,10 +1,12 @@
 package ninja.bytecode.iris;
 
 import java.io.File;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
+import org.bukkit.Difficulty;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -13,8 +15,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
+import mortar.api.rift.PhantomRift;
 import mortar.api.rift.Rift;
-import mortar.api.sched.S;
+import mortar.api.rift.RiftException;
 import mortar.bukkit.command.Command;
 import mortar.bukkit.plugin.Control;
 import mortar.bukkit.plugin.MortarPlugin;
@@ -27,7 +30,6 @@ import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.HotswapGenerator;
 import ninja.bytecode.iris.util.IrisMetrics;
-import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.logging.L;
 
 public class Iris extends MortarPlugin
@@ -95,6 +97,36 @@ public class Iris extends MortarPlugin
 	{
 		instance = this;
 		packController.compile();
+
+		if(Iris.settings.performance.debugMode)
+		{
+			try
+			{
+				//@builder
+				r = new PhantomRift("Iris-Debug/" + UUID.randomUUID().toString())
+						.setTileTickLimit(0.1)
+						.setEntityTickLimit(0.1)
+						.setAllowBosses(false)
+						.setEnvironment(Environment.NORMAL)
+						.setDifficulty(Difficulty.PEACEFUL)
+						.setRandomLightUpdates(false)
+						.setViewDistance(32)
+						.setHangingTickRate(2000)
+						.setGenerator(IrisGenerator.class)
+						.load();
+				
+				for(Player i : Bukkit.getOnlinePlayers())
+				{
+					r.send(i);
+				}
+				//@done
+			}
+
+			catch(RiftException e)
+			{
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@Override

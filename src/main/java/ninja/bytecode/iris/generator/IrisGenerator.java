@@ -18,6 +18,7 @@ import ninja.bytecode.iris.generator.atomics.AtomicChunkData;
 import ninja.bytecode.iris.generator.genobject.GenObjectDecorator;
 import ninja.bytecode.iris.generator.genobject.PlacedObject;
 import ninja.bytecode.iris.generator.layer.GenLayerBiome;
+import ninja.bytecode.iris.generator.layer.GenLayerCarving;
 import ninja.bytecode.iris.generator.layer.GenLayerCaves;
 import ninja.bytecode.iris.generator.layer.GenLayerCliffs;
 import ninja.bytecode.iris.generator.layer.GenLayerLayeredNoise;
@@ -75,6 +76,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 	private GenLayerSnow glSnow;
 	private GenLayerCliffs glCliffs;
 	private GenLayerCaves glCaves;
+	private GenLayerCarving glCarving;
 	private GenLayerOres glOres;
 	private RNG rTerrain;
 	private CompiledDimension dim;
@@ -133,7 +135,8 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		glSnow = new GenLayerSnow(this, world, random, rTerrain.nextParallelRNG(5));
 		glCliffs = new GenLayerCliffs(this, world, random, rTerrain.nextParallelRNG(9));
 		glCaves = new GenLayerCaves(this, world, random, rTerrain.nextParallelRNG(10));
-		glOres = new GenLayerOres(this, world, random, rTerrain.nextParallelRNG(11));
+		glCarving = new GenLayerCarving(this, world, random, rTerrain.nextParallelRNG(11));
+		glOres = new GenLayerOres(this, world, random, rTerrain.nextParallelRNG(12));
 		scatter = new CNG(rTerrain.nextParallelRNG(52), 1, 1).scale(10);
 
 		if(Iris.settings.performance.objectMode.equals(ObjectMode.PARALLAX))
@@ -358,6 +361,7 @@ public class IrisGenerator extends ParallaxWorldGenerator
 		for(int i = surfaceOnly ? max > seaLevel ? max - 2 : height - 2 : 0; i < max; i++)
 		{
 			MB mb = ROCK.get(scatterInt(wzx, i, wxx, ROCK.size()));
+			boolean carved = surfaceOnly ? false : glCarving.isCarved(wzx, wxx, x, z, i, data, plan);
 			boolean underwater = i >= height && i < seaLevel;
 			boolean underground = i < height;
 			int dheight = biome.getDirtDepth();
@@ -365,17 +369,26 @@ public class IrisGenerator extends ParallaxWorldGenerator
 			boolean dirt = (height - 1) - i < (dheight > 0 ? scatterInt(x, i, z, 4) : 0) + dheight;
 			boolean rocky = i > height - rheight && !dirt;
 			boolean bedrock = i == 0 || !Iris.settings.gen.flatBedrock ? i <= 2 : i < scatterInt(x, i, z, 3);
-			mb = underwater ? FLUID : mb;
-			mb = underground && dirt ? biome.getSubSurface(wxx, i, wzx, rTerrain) : mb;
-			mb = underground && rocky ? biome.getRock(wxx, i, wzx, rTerrain) : mb;
-			mb = bedrock ? BEDROCK : mb;
 
-			if(i == height - 1)
+			if(!carved)
 			{
-				mb = biome.getSurface(wx, wz, rTerrain);
+				mb = underwater ? FLUID : mb;
+				mb = underground && dirt ? biome.getSubSurface(wxx, i, wzx, rTerrain) : mb;
+				mb = underground && rocky ? biome.getRock(wxx, i, wzx, rTerrain) : mb;
+				mb = bedrock ? BEDROCK : mb;
+
+				if(i == height - 1)
+				{
+					mb = biome.getSurface(wx, wz, rTerrain);
+				}
+
+				highest = i > highest ? i : highest;
 			}
 
-			highest = i > highest ? i : highest;
+			else
+			{
+				mb = MB.of(Material.AIR);
+			}
 			data.setBlock(x, i, z, mb.material, mb.data);
 		}
 

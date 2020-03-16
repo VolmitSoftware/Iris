@@ -1,5 +1,6 @@
 package ninja.bytecode.iris;
 
+import java.io.File;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -13,8 +14,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import ninja.bytecode.iris.util.IO;
+
 public class Iris extends JavaPlugin
 {
+	public Iris()
+	{
+		IO.delete(new File("iris"));
+	}
+
 	public void onEnable()
 	{
 

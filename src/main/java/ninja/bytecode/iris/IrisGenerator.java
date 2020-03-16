@@ -7,18 +7,23 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
-import ninja.bytecode.iris.util.ING;
+import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
 import ninja.bytecode.iris.util.RNG;
 
 public class IrisGenerator extends ChunkGenerator
 {
 	private boolean initialized = false;
-	private ING sng;
+	private CNG gen;
+	private EnumPolygonGenerator<BlockData> pog;
+	private BlockData[] d = {Material.RED_CONCRETE.createBlockData(), Material.GREEN_CONCRETE.createBlockData(), Material.BLUE_CONCRETE.createBlockData(),
+	};
 
-	public void onInit()
+	public void onInit(World world, RNG rng)
 	{
 		if(initialized)
 		{
@@ -26,8 +31,8 @@ public class IrisGenerator extends ChunkGenerator
 		}
 
 		initialized = true;
-
-		sng = new ING(new RNG(), 2);
+		gen = CNG.signature(rng.nextParallelRNG(0));
+		pog = new EnumPolygonGenerator<BlockData>(rng.nextParallelRNG(1), 0.1, 1, d, (c) -> c);
 	}
 
 	@Override
@@ -37,9 +42,10 @@ public class IrisGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
+	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biome)
 	{
-		onInit();
+		RNG random = new RNG(world.getSeed());
+		onInit(world, random.nextParallelRNG(0));
 		ChunkData data = Bukkit.createChunkData(world);
 
 		for(int i = 0; i < 16; i++)
@@ -48,16 +54,8 @@ public class IrisGenerator extends ChunkGenerator
 			{
 				double wx = (x * 16) + i;
 				double wz = (z * 16) + j;
-				int y = (int) Math.round(sng.noise(wx / 30D, wz / 30D) * 20);
-				for(int k = 0; k < 4; k++)
-				{
-					if(k < 0)
-					{
-						continue;
-					}
 
-					data.setBlock(i, k + y, j, Material.STONE.createBlockData());
-				}
+				data.setBlock(i, 0, j, pog.getChoice(wx, wz));
 			}
 		}
 

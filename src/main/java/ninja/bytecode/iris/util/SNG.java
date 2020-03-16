@@ -363,7 +363,6 @@ public class SNG extends PerlinNoise
 	// (array access is a lot slower than member access)
 	private static class Grad
 	{
-
 		public double x;
 		public double y;
 		public double z;

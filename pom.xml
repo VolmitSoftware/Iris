@@ -145,25 +145,15 @@
 	</repositories>
 	<dependencies>
 		<dependency>
-			<groupId>ninja.bytecode</groupId>
-			<artifactId>Shuriken</artifactId>
-			<version>1.1.14</version>
-		</dependency>
-		<dependency>
-			<groupId>com.volmit</groupId>
-			<artifactId>Mortar</artifactId>
-			<version>1.0.76</version>
-		</dependency>
-		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
-			<version>1.12.2-R0.1-SNAPSHOT</version>
+			<version>1.15.1-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.12.2</artifactId>
-			<version>1.12.2</version>
+			<groupId>org.bukkit</groupId>
+			<artifactId>bukkit</artifactId>
+			<version>1.15.1-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>

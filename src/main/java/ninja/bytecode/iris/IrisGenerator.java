@@ -2,6 +2,7 @@ package ninja.bytecode.iris;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -11,17 +12,34 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
+import ninja.bytecode.iris.layer.GenLayerBiome;
+import ninja.bytecode.iris.object.IrisBiome;
+import ninja.bytecode.iris.object.IrisDimension;
+import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.PolygonGenerator.EnumPolygonGenerator;
+import ninja.bytecode.iris.util.IrisInterpolation;
+import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
 
 public class IrisGenerator extends ChunkGenerator
 {
+	// TODO REMOVE OR FIND A BETTER PLACE
+	private BlockData STONE = Material.STONE.createBlockData();
+	private String dimensionName;
+	private GenLayerBiome glBiome;
+	private CNG terrainNoise;
+
 	private boolean initialized = false;
-	private CNG gen;
-	private EnumPolygonGenerator<BlockData> pog;
-	private BlockData[] d = {Material.RED_CONCRETE.createBlockData(), Material.GREEN_CONCRETE.createBlockData(), Material.BLUE_CONCRETE.createBlockData(),
-	};
+
+	public IrisGenerator(String dimensionName)
+	{
+		this.dimensionName = dimensionName;
+	}
+
+	public IrisDimension getDimension()
+	{
+		return Iris.data.getDimensionLoader().load(dimensionName);
+	}
 
 	public void onInit(World world, RNG rng)
 	{
@@ -31,8 +49,8 @@ public class IrisGenerator extends ChunkGenerator
 		}
 
 		initialized = true;
-		gen = CNG.signature(rng.nextParallelRNG(0));
-		pog = new EnumPolygonGenerator<BlockData>(rng.nextParallelRNG(1), 0.1, 1, d, (c) -> c);
+		glBiome = new GenLayerBiome(this, rng.nextParallelRNG(1));
+		terrainNoise = CNG.signature(rng.nextParallelRNG(2));
 	}
 
 	@Override
@@ -42,24 +60,54 @@ public class IrisGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biome)
+	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
+		Iris.hotloader.check();
+		int i, j, k, height, depth;
+		double wx, wz, rx, rz, heightLow, heightHigh, heightExponent;
+		int fluidHeight = getDimension().getFluidHeight();
+		BiomeResult biomeResult;
+		IrisBiome biome;
 		RNG random = new RNG(world.getSeed());
 		onInit(world, random.nextParallelRNG(0));
 		ChunkData data = Bukkit.createChunkData(world);
 
-		for(int i = 0; i < 16; i++)
+		for(i = 0; i < 16; i++)
 		{
-			for(int j = 0; j < 16; j++)
+			rx = (x * 16) + i;
+			wx = ((double) (x * 16) + i) / getDimension().getTerrainZoom();
+			for(j = 0; j < 16; j++)
 			{
-				double wx = (x * 16) + i;
-				double wz = (z * 16) + j;
+				rz = (z * 16) + j;
+				wz = ((double) (z * 16) + j) / getDimension().getTerrainZoom();
+				depth = 0;
+				biomeResult = glBiome.generateData(wx, wz);
+				biome = biomeResult.getBiome();
+				heightLow = interpolate(rx, rz, (b) -> b.getLowHeight());
+				heightHigh = interpolate(rx, rz, (b) -> b.getHighHeight());
+				heightExponent = interpolate(rx, rz, (b) -> b.getHeightExponent());
+				height = (int) Math.round(terrainNoise.fitDoubleExponent(heightLow, heightHigh, heightExponent, wx, wz)) + fluidHeight;
+				KList<BlockData> layers = biome.generateLayers(wx, wz, random, height);
 
-				data.setBlock(i, 0, j, pog.getChoice(wx, wz));
+				for(k = Math.max(height, fluidHeight); k >= 0; k--)
+				{
+					biomeGrid.setBiome(i, k, j, biome.getDerivative());
+					data.setBlock(i, k, j, layers.hasIndex(depth) ? layers.get(depth) : STONE);
+					depth++;
+				}
 			}
 		}
 
 		return data;
+	}
+
+	public double interpolate(double rx, double rz, Function<IrisBiome, Double> property)
+	{
+		return IrisInterpolation.getNoise(getDimension().getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), getDimension().getInterpolationScale(), (xx, zz) ->
+		{
+			BiomeResult neighborResult = glBiome.generateData(xx / getDimension().getTerrainZoom(), zz / getDimension().getTerrainZoom());
+			return property.apply(neighborResult.getBiome());
+		});
 	}
 
 	@Override

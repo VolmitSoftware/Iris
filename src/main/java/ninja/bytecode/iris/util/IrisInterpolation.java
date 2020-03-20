@@ -1,5 +1,7 @@
 package ninja.bytecode.iris.util;
 
+import ninja.bytecode.iris.object.InterpolationMethod;
+
 public class IrisInterpolation
 {
 	public static double bezier(double t)
@@ -14,6 +16,11 @@ public class IrisInterpolation
 	}
 
 	public static double lerp(double a, double b, double f)
+	{
+		return a + (f * (b - a));
+	}
+
+	public static float lerpf(float a, float b, float f)
 	{
 		return a + (f * (b - a));
 	}
@@ -179,6 +186,26 @@ public class IrisInterpolation
 				n.noise(x3, z3), 
 				px, pz);
 		//@done
+	}
+
+	public static double getNoise(InterpolationMethod method, int x, int z, double rad, NoiseProvider n)
+	{
+		if(method.equals(InterpolationMethod.BILINEAR))
+		{
+			return getBilinearNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.BICUBIC))
+		{
+			return getBicubicNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE))
+		{
+			return getHermiteNoise(x, z, rad, n);
+		}
+
+		return n.noise(x, z);
 	}
 
 	public static double getHermiteNoise(int x, int z, double rad, NoiseProvider n)

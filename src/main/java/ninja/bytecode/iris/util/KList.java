@@ -639,4 +639,10 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		remove(t);
 		return this;
 	}
+
+	public KList<T> qadd(T t)
+	{
+		add(t);
+		return this;
+	}
 }

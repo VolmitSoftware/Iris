@@ -151,6 +151,11 @@ public class M
 		return (T) Double.valueOf(Math.min(max.doubleValue(), Math.max(min.doubleValue(), value.doubleValue())));
 	}
 
+	public static int iclip(int value, int min, int max)
+	{
+		return Math.min(max, Math.max(min, value));
+	}
+
 	/**
 	 * Get true or false based on random percent
 	 *

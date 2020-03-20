@@ -25,6 +25,9 @@ public class CNG
 	private NoiseInjector injector;
 	private RNG rng;
 	private int oct;
+	private double patch;
+	private double up;
+	private double down;
 	private double power;
 
 	public static CNG signature(RNG rng)
@@ -32,14 +35,12 @@ public class CNG
 		//@builder
 		return new CNG(rng.nextParallelRNG(17), 1D, 8)
 				.scale(0.012)
-				.amp(0.5)
-				.freq(1.1)
 				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 5)
 					.scale(0.018)
-					.child(new CNG(rng.nextParallelRNG(19), 0.745, 2)
+					.child(new CNG(rng.nextParallelRNG(19), 1, 2)
 						.scale(0.1))
 					.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 3)
-						.scale(0.15), 24), 44);
+						.scale(0.15), 24), 44).down(0.3).patch(2.5);
 		//@done
 	}
 
@@ -62,6 +63,7 @@ public class CNG
 		freq = 1;
 		amp = 1;
 		scale = 1;
+		patch = 1;
 		fscale = 1;
 		fracture = null;
 		generator = new SNG(random);
@@ -116,10 +118,64 @@ public class CNG
 		return this;
 	}
 
+	public CNG patch(double c)
+	{
+		patch = c;
+		return this;
+	}
+
+	public CNG up(double c)
+	{
+		up = c;
+		return this;
+	}
+
+	public CNG down(double c)
+	{
+		down = c;
+		return this;
+	}
+
 	public CNG injectWith(NoiseInjector i)
 	{
 		injector = i;
 		return this;
+	}
+
+	public int fit(int min, int max, double... dim)
+	{
+		if(min == max)
+		{
+			return min;
+		}
+
+		double noise = noise(dim);
+
+		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+	}
+
+	public int fitDouble(double min, double max, double... dim)
+	{
+		if(min == max)
+		{
+			return (int) Math.round(min);
+		}
+
+		double noise = noise(dim);
+
+		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
+	}
+
+	public int fitDoubleExponent(double min, double max, double exponent, double... dim)
+	{
+		if(min == max)
+		{
+			return (int) Math.round(min);
+		}
+
+		double noise = noise(dim);
+
+		return (int) Math.round(IrisInterpolation.lerp(min, max, exponent == 1 ? noise : Math.pow(noise, exponent)));
 	}
 
 	public double noise(double... dim)
@@ -134,7 +190,7 @@ public class CNG
 		hits += oct;
 		if(children == null)
 		{
-			return n;
+			return (n - down + up) * patch;
 		}
 
 		for(CNG i : children)
@@ -144,7 +200,7 @@ public class CNG
 			m += r[1];
 		}
 
-		return n / m;
+		return ((n / m) - down + up) * patch;
 	}
 
 	public CNG pow(double power)

@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -18,6 +19,10 @@ import ninja.bytecode.iris.util.IO;
 
 public class Iris extends JavaPlugin
 {
+	public static Iris instance;
+	public static IrisDataManager data;
+	public static IrisHotloadManager hotloader;
+
 	public Iris()
 	{
 		IO.delete(new File("iris"));
@@ -25,7 +30,9 @@ public class Iris extends JavaPlugin
 
 	public void onEnable()
 	{
-
+		instance = this;
+		hotloader = new IrisHotloadManager();
+		data = new IrisDataManager(getDataFolder());
 		Bukkit.getScheduler().scheduleSyncDelayedTask(this, () ->
 		{
 			for(World i : Bukkit.getWorlds())
@@ -36,7 +43,7 @@ public class Iris extends JavaPlugin
 				}
 			}
 
-			World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).generator(new IrisGenerator()));
+			World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).generator(new IrisGenerator("overworld")));
 
 			for(Player i : Bukkit.getOnlinePlayers())
 			{
@@ -48,6 +55,7 @@ public class Iris extends JavaPlugin
 				}, 5);
 			}
 		});
+
 	}
 
 	public void onDisable()
@@ -64,6 +72,36 @@ public class Iris extends JavaPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisGenerator();
+		return new IrisGenerator("overworld");
+	}
+
+	public static void msg(String string)
+	{
+		Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "[Iris]: " + ChatColor.GRAY + string);
+	}
+
+	public static void warn(String string)
+	{
+		msg(ChatColor.YELLOW + string);
+	}
+
+	public static void error(String string)
+	{
+		msg(ChatColor.RED + string);
+	}
+
+	public static void verbose(String string)
+	{
+		msg(ChatColor.GRAY + string);
+	}
+
+	public static void success(String string)
+	{
+		msg(ChatColor.GREEN + string);
+	}
+
+	public static void info(String string)
+	{
+		msg(ChatColor.WHITE + string);
 	}
 }

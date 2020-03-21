@@ -7,6 +7,7 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
 
@@ -17,11 +18,26 @@ public class IrisBiome
 	private Biome derivative = Biome.THE_VOID;
 	private double highHeight = 7;
 	private double lowHeight = 1;
-	private double heightExponent = 1;
+	private double childShrinkFactor = 1.5;
+	private KList<String> children = new KList<>();
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
+	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
 
+	private transient CellGenerator childrenCell;
+	private transient InferredType inferredType;
 	private transient KList<CNG> layerHeightGenerators;
 	private transient KList<CNG> layerSurfaceGenerators;
+
+	public CellGenerator getChildrenGenerator(RNG random, int sig, double scale)
+	{
+		if(childrenCell == null)
+		{
+			childrenCell = new CellGenerator(random.nextParallelRNG(sig * 213));
+			childrenCell.setCellScale(scale);
+		}
+
+		return childrenCell;
+	}
 
 	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth)
 	{
@@ -61,21 +77,15 @@ public class IrisBiome
 
 	public KList<CNG> getLayerSurfaceGenerators(RNG rng)
 	{
-		synchronized(this)
+		if(layerSurfaceGenerators == null)
 		{
-			if(layerSurfaceGenerators == null)
+			layerSurfaceGenerators = new KList<>();
+
+			int m = 91235;
+
+			for(IrisBiomePaletteLayer i : getLayers())
 			{
-				layerSurfaceGenerators = new KList<>();
-
-				synchronized(layerSurfaceGenerators)
-				{
-					int m = 91235;
-
-					for(IrisBiomePaletteLayer i : getLayers())
-					{
-						layerSurfaceGenerators.add(i.getGenerator(rng.nextParallelRNG((m += 3) * m * m * m)));
-					}
-				}
+				layerSurfaceGenerators.add(i.getGenerator(rng.nextParallelRNG((m += 3) * m * m * m)));
 			}
 		}
 
@@ -84,24 +94,33 @@ public class IrisBiome
 
 	public KList<CNG> getLayerHeightGenerators(RNG rng)
 	{
-		synchronized(this)
+		if(layerHeightGenerators == null)
 		{
-			if(layerHeightGenerators == null)
+			layerHeightGenerators = new KList<>();
+
+			int m = 7235;
+
+			for(IrisBiomePaletteLayer i : getLayers())
 			{
-				layerHeightGenerators = new KList<>();
-
-				synchronized(layerHeightGenerators)
-				{
-					int m = 7235;
-
-					for(IrisBiomePaletteLayer i : getLayers())
-					{
-						layerHeightGenerators.add(i.getGenerator(rng.nextParallelRNG((m++) * m * m * m)));
-					}
-				}
+				layerHeightGenerators.add(i.getGenerator(rng.nextParallelRNG((m++) * m * m * m)));
 			}
 		}
 
 		return layerHeightGenerators;
+	}
+
+	public boolean isLand()
+	{
+		return inferredType.equals(InferredType.LAND);
+	}
+
+	public boolean isSea()
+	{
+		return inferredType.equals(InferredType.SEA);
+	}
+
+	public boolean isShore()
+	{
+		return inferredType.equals(InferredType.SHORE);
 	}
 }

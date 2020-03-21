@@ -1,6 +1,7 @@
 package ninja.bytecode.iris.util;
 
 import ninja.bytecode.iris.object.InterpolationMethod;
+import ninja.bytecode.iris.object.IrisDimension;
 
 public class IrisInterpolation
 {
@@ -188,26 +189,6 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double getNoise(InterpolationMethod method, int x, int z, double rad, NoiseProvider n)
-	{
-		if(method.equals(InterpolationMethod.BILINEAR))
-		{
-			return getBilinearNoise(x, z, rad, n);
-		}
-
-		else if(method.equals(InterpolationMethod.BICUBIC))
-		{
-			return getBicubicNoise(x, z, rad, n);
-		}
-
-		else if(method.equals(InterpolationMethod.HERMITE))
-		{
-			return getHermiteNoise(x, z, rad, n);
-		}
-
-		return n.noise(x, z);
-	}
-
 	public static double getHermiteNoise(int x, int z, double rad, NoiseProvider n)
 	{
 		int fx = (int) Math.floor(x / rad);
@@ -240,8 +221,28 @@ public class IrisInterpolation
 				n.noise(x3, z1), 
 				n.noise(x3, z2), 
 				n.noise(x3, z3), 
-				px, pz, 0.00001, 0.5);
+				px, pz, 0.0000000001, 0.5);
 		//@done
+	}
+
+	public static double getNoise(InterpolationMethod method, int x, int z, double rad, NoiseProvider n)
+	{
+		if(method.equals(InterpolationMethod.BILINEAR))
+		{
+			return getBilinearNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.BICUBIC))
+		{
+			return getBicubicNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE))
+		{
+			return getHermiteNoise(x, z, rad, n);
+		}
+
+		return n.noise(x, z);
 	}
 
 	public static double rangeScale(double amin, double amax, double bmin, double bmax, double b)

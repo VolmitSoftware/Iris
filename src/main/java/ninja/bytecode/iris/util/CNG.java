@@ -166,6 +166,18 @@ public class CNG
 		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
 	}
 
+	public double fitDoubleD(double min, double max, double... dim)
+	{
+		if(min == max)
+		{
+			return min;
+		}
+
+		double noise = noise(dim);
+
+		return IrisInterpolation.lerp(min, max, noise);
+	}
+
 	public int fitDoubleExponent(double min, double max, double exponent, double... dim)
 	{
 		if(min == max)

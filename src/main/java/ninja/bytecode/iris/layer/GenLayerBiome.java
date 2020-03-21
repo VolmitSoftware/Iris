@@ -1,31 +1,141 @@
 package ninja.bytecode.iris.layer;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
+import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.CellGenerator2D;
+import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
 
 public class GenLayerBiome extends GenLayer
 {
-	private CellGenerator2D cells;
+	private CellGenerator region;
+	private CellGenerator bridge;
+	private CellGenerator land;
+	private CellGenerator shore;
+	private CellGenerator sea;
 
 	public GenLayerBiome(IrisGenerator iris, RNG rng)
 	{
 		super(iris, rng);
-		cells = new CellGenerator2D(rng.nextParallelRNG(2045662));
+		region = new CellGenerator(rng.nextParallelRNG(1188519));
+		bridge = new CellGenerator(rng.nextParallelRNG(1541462));
+		land = new CellGenerator(rng.nextParallelRNG(9045162));
+		shore = new CellGenerator(rng.nextParallelRNG(2342812));
+		sea = new CellGenerator(rng.nextParallelRNG(6135621));
 	}
 
-	public KList<IrisBiome> getBiomes()
+	public IrisRegion getRegion(double bx, double bz)
 	{
-		return iris.getDimension().buildBiomeList();
+		region.setShuffle(32);
+		region.setCellScale(0.33 / iris.getDimension().getRegionZoom());
+		double x = bx / iris.getDimension().getBiomeZoom();
+		double z = bz / iris.getDimension().getBiomeZoom();
+		String regionId = iris.getDimension().getRegions().get(region.getIndex(x, z, iris.getDimension().getRegions().size()));
+
+		return Iris.data.getRegionLoader().load(regionId);
 	}
 
-	public BiomeResult generateData(double x, double z)
+	public BiomeResult generateData(double bx, double bz)
 	{
-		return new BiomeResult(getBiomes().get(cells.getIndex(x / iris.getDimension().getBiomeZoom(), z / iris.getDimension().getBiomeZoom(), getBiomes().size())), cells.getDistance(x / iris.getDimension().getBiomeZoom(), z / iris.getDimension().getBiomeZoom()));
+		return generateRegionData(bx, bz, getRegion(bx, bz));
+	}
+
+	public BiomeResult generateRegionData(double bx, double bz, IrisRegion regionData)
+	{
+		bridge.setShuffle(32);
+		bridge.setCellScale(0.33 / iris.getDimension().getContinentZoom());
+		double x = bx / iris.getDimension().getBiomeZoom();
+		double z = bz / iris.getDimension().getBiomeZoom();
+
+		// Beach
+		if(bridge.getDistance(x, z) < regionData.getShoreRatio())
+		{
+			return generateShoreData(bx, bz, regionData);
+		}
+
+		// Sea
+		else if(bridge.getIndex(x, z, 5) == 1)
+		{
+			return generateSeaData(bx, bz, regionData);
+		}
+
+		// Land
+		else
+		{
+			return generateLandData(bx, bz, regionData);
+		}
+	}
+
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CellGenerator cell, KList<String> biomes, InferredType inferredType)
+	{
+		double x = bx / iris.getDimension().getBiomeZoom();
+		double z = bz / iris.getDimension().getBiomeZoom();
+		IrisBiome biome = Iris.data.getBiomeLoader().load(biomes.get(sea.getIndex(x, z, biomes.size())));
+		biome.setInferredType(inferredType);
+
+		return implode(bx, bz, regionData, cell, new BiomeResult(biome, cell.getDistance(x, z)));
+	}
+
+	public BiomeResult generateSeaData(double bx, double bz, IrisRegion regionData)
+	{
+		sea.setShuffle(32);
+		sea.setCellScale(0.56 / iris.getDimension().getSeaZoom());
+		return generateBiomeData(bx, bz, regionData, sea, regionData.getSeaBiomes(), InferredType.SEA);
+	}
+
+	public BiomeResult generateLandData(double bx, double bz, IrisRegion regionData)
+	{
+		land.setShuffle(32);
+		land.setCellScale(0.6 / iris.getDimension().getLandZoom());
+		return generateBiomeData(bx, bz, regionData, land, regionData.getLandBiomes(), InferredType.LAND);
+	}
+
+	public BiomeResult generateShoreData(double bx, double bz, IrisRegion regionData)
+	{
+		shore.setShuffle(32);
+		shore.setCellScale(0.8 / iris.getDimension().getShoreZoom());
+		return generateBiomeData(bx, bz, regionData, shore, regionData.getShoreBiomes(), InferredType.SHORE);
+	}
+
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CellGenerator parentCell, BiomeResult parent)
+	{
+		return implode(bx, bz, regionData, parentCell, parent, 1);
+	}
+
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CellGenerator parentCell, BiomeResult parent, int hits)
+	{
+		if(hits > 9)
+		{
+			return parent;
+		}
+
+		double x = bx / iris.getDimension().getBiomeZoom();
+		double z = bz / iris.getDimension().getBiomeZoom();
+		if(parent.getDistance() > regionData.getBiomeImplosionRatio())
+		{
+			if(!parent.getBiome().getChildren().isEmpty())
+			{
+				CellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
+				int r = childCell.getIndex(x, z, parent.getBiome().getChildren().size() + 1);
+
+				if(r == parent.getBiome().getChildren().size())
+				{
+					return new BiomeResult(parent.getBiome(), childCell.getDistance(x, z));
+				}
+
+				IrisBiome biome = Iris.data.getBiomeLoader().load(parent.getBiome().getChildren().get(r));
+				biome.setInferredType(parent.getBiome().getInferredType());
+
+				return implode(bx, bz, regionData, childCell, new BiomeResult(biome, childCell.getDistance(x, z)), hits + 1);
+			}
+		}
+
+		return parent;
 	}
 
 	@Override

@@ -10,13 +10,12 @@ import ninja.bytecode.iris.util.KMap;
 import ninja.bytecode.iris.util.RNG;
 
 @Data
-public class IrisBiomePaletteLayer
+public class IrisBiomeDecorator
 {
-	private Dispersion dispersion = Dispersion.WISPY;
-	private int minHeight = 1;
-	private int maxHeight = 1;
-	private double terrainZoom = 5;
-	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
+	private Dispersion dispersion = Dispersion.ZEBRA;
+	private int iterations = 5;
+	private double zoom = 1;
+	private KList<String> palette = new KList<String>().qadd("GRASS");
 
 	private transient KMap<Long, CNG> layerGenerators;
 	private transient KList<BlockData> blockData;
@@ -32,7 +31,7 @@ public class IrisBiomePaletteLayer
 
 		if(!layerGenerators.containsKey(key))
 		{
-			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG(minHeight + maxHeight + getBlockData().size())));
+			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG(iterations + getBlockData().size())));
 		}
 
 		return layerGenerators.get(key);

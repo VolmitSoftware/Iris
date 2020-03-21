@@ -6,7 +6,7 @@ import ninja.bytecode.iris.util.FastNoise.CellularDistanceFunction;
 import ninja.bytecode.iris.util.FastNoise.CellularReturnType;
 import ninja.bytecode.iris.util.FastNoise.NoiseType;
 
-public class CellGenerator2D
+public class CellGenerator
 {
 	private FastNoise fn;
 	private FastNoise fd;
@@ -20,7 +20,7 @@ public class CellGenerator2D
 	@Setter
 	private double shuffle;
 
-	public CellGenerator2D(RNG rng)
+	public CellGenerator(RNG rng)
 	{
 		shuffle = 128;
 		cellScale = 0.73;

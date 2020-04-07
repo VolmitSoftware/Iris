@@ -18,11 +18,12 @@ import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.ChronoLatch;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
 
-public class IrisGenerator extends ChunkGenerator
+public class IrisGenerator extends ChunkGenerator implements IrisContext
 {
 	// TODO REMOVE OR FIND A BETTER PLACE
 	private BlockData STONE = Material.STONE.createBlockData();
@@ -30,12 +31,16 @@ public class IrisGenerator extends ChunkGenerator
 	private String dimensionName;
 	private GenLayerBiome glBiome;
 	private CNG terrainNoise;
+	private IrisMetrics metrics;
+	private World world;
+	private ChronoLatch pushLatch;
 
 	private boolean initialized = false;
 
 	public IrisGenerator(String dimensionName)
 	{
 		this.dimensionName = dimensionName;
+		pushLatch = new ChronoLatch(3000);
 	}
 
 	public IrisDimension getDimension()
@@ -50,6 +55,8 @@ public class IrisGenerator extends ChunkGenerator
 			return;
 		}
 
+		this.world = world;
+		metrics = new IrisMetrics(1024);
 		initialized = true;
 		glBiome = new GenLayerBiome(this, rng.nextParallelRNG(1));
 		terrainNoise = CNG.signature(rng.nextParallelRNG(2));
@@ -64,7 +71,12 @@ public class IrisGenerator extends ChunkGenerator
 	@Override
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
-		Iris.hotloader.check();
+		if(pushLatch.flip())
+		{
+			Iris.hotloader.check();
+			IrisContext.pushContext(this);
+		}
+		
 		int i, j, k, height, depth;
 		double wx, wz, rx, rz, noise, ox, oz;
 		boolean underwater;
@@ -79,7 +91,6 @@ public class IrisGenerator extends ChunkGenerator
 
 		for(i = 0; i < 16; i++)
 		{
-
 			for(j = 0; j < 16; j++)
 			{
 				rx = (x * 16) + i;
@@ -164,8 +175,26 @@ public class IrisGenerator extends ChunkGenerator
 	}
 
 	@Override
+	public BiomeResult getBiome(int x, int z)
+	{
+		return null;
+	}
+
+	@Override
 	public boolean isParallelCapable()
 	{
 		return true;
+	}
+
+	@Override
+	public IrisMetrics getMetrics()
+	{
+		return metrics;
+	}
+
+	@Override
+	public World getWorld()
+	{
+		return world;
 	}
 }

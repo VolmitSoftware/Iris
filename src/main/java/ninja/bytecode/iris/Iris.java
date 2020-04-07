@@ -16,6 +16,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import ninja.bytecode.iris.util.IO;
+import ninja.bytecode.iris.util.KMap;
 
 public class Iris extends JavaPlugin
 {

@@ -6,16 +6,16 @@ import org.bukkit.Bukkit;
 
 import ninja.bytecode.iris.util.ChronoLatch;
 import ninja.bytecode.iris.util.FileWatcher;
-import ninja.bytecode.iris.util.KList;
+import ninja.bytecode.shuriken.collections.KSet;
 
 public class IrisHotloadManager
 {
 	private ChronoLatch latch;
-	private KList<FileWatcher> watchers;
+	private KSet<FileWatcher> watchers;
 
 	public IrisHotloadManager()
 	{
-		watchers = new KList<>();
+		watchers = new KSet<>();
 		latch = new ChronoLatch(3000);
 	}
 

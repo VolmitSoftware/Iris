@@ -1,0 +1,52 @@
+package ninja.bytecode.iris.object.atomics;
+
+import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.BiomeGrid;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
+
+public class AtomicSliver
+{
+	private BlockData[] block;
+	private Biome[] biome;
+	private int highestBlock = 0;
+	private int highestBiome = 0;
+	private int x;
+	private int z;
+
+	public AtomicSliver(int x, int z)
+	{
+		this.x = x;
+		this.z = z;
+		this.block = new BlockData[256];
+		this.biome = new Biome[256];
+	}
+
+	public void set(int h, BlockData d)
+	{
+		block[h] = d;
+		highestBlock = h > highestBlock ? h : highestBlock;
+	}
+
+	public void set(int h, Biome d)
+	{
+		biome[h] = d;
+		highestBiome = h > highestBiome ? h : highestBiome;
+	}
+
+	public void write(ChunkData d)
+	{
+		for(int i = 0; i <= highestBlock; i++)
+		{
+			d.setBlock(x, i, z, block[i]);
+		}
+	}
+
+	public void write(BiomeGrid d)
+	{
+		for(int i = 0; i <= highestBiome; i++)
+		{
+			d.setBiome(x, i, z, biome[i]);
+		}
+	}
+}

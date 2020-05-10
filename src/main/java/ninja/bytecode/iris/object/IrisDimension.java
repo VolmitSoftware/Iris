@@ -3,12 +3,14 @@ package ninja.bytecode.iris.object;
 import org.bukkit.World.Environment;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
+import ninja.bytecode.shuriken.collections.KList;
 
 @Data
-public class IrisDimension
+@EqualsAndHashCode(callSuper = false)
+public class IrisDimension extends IrisRegisteredObject
 {
 	private String name = "A Dimension";
 	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;

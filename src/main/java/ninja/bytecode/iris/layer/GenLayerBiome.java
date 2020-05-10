@@ -8,8 +8,8 @@ import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.GenLayer;
-import ninja.bytecode.iris.util.KList;
 import ninja.bytecode.iris.util.RNG;
+import ninja.bytecode.shuriken.collections.KList;
 
 public class GenLayerBiome extends GenLayer
 {

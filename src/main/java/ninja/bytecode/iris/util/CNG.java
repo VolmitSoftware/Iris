@@ -1,5 +1,7 @@
 package ninja.bytecode.iris.util;
 
+import ninja.bytecode.shuriken.collections.KList;
+
 public class CNG
 {
 	public static long hits = 0;
@@ -33,13 +35,13 @@ public class CNG
 	public static CNG signature(RNG rng)
 	{
 		//@builder
-		return new CNG(rng.nextParallelRNG(17), 1D, 8)
+		return new CNG(rng.nextParallelRNG(17), 1D, 3)
 				.scale(0.012)
-				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 5)
+				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 2)
 					.scale(0.018)
 					.child(new CNG(rng.nextParallelRNG(19), 1, 2)
 						.scale(0.1))
-					.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 3)
+					.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 2)
 						.scale(0.15), 24), 44).down(0.3).patch(2.5);
 		//@done
 	}

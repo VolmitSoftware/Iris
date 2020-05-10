@@ -3,7 +3,7 @@ package ninja.bytecode.iris;
 import org.bukkit.World;
 
 import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.KMap;
+import ninja.bytecode.shuriken.collections.KMap;
 
 public interface IrisContext
 {

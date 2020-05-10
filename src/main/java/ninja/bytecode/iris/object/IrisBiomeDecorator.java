@@ -5,9 +5,9 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.KList;
-import ninja.bytecode.iris.util.KMap;
 import ninja.bytecode.iris.util.RNG;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 public class IrisBiomeDecorator

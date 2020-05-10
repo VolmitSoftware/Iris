@@ -1,12 +1,16 @@
 package ninja.bytecode.iris.util;
 
 import java.io.File;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.Gson;
 
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.object.IrisRegisteredObject;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
-public class ResourceLoader<T>
+public class ResourceLoader<T extends IrisRegisteredObject>
 {
 	private File root;
 	private String folderName;
@@ -14,9 +18,11 @@ public class ResourceLoader<T>
 	private KMap<String, T> loadCache;
 	private KList<File> folderCache;
 	private Class<? extends T> objectClass;
+	private ReentrantLock lock;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
+		lock = new ReentrantLock();
 		this.objectClass = objectClass;
 		this.resourceTypeName = resourceTypeName;
 		this.root = root;
@@ -30,9 +36,11 @@ public class ResourceLoader<T>
 
 		if(loadCache.containsKey(key))
 		{
-			return loadCache.get(key);
+			T t = loadCache.get(key);
+			return t;
 		}
 
+		lock.lock();
 		for(File i : getFolders())
 		{
 			for(File j : i.listFiles())
@@ -45,12 +53,14 @@ public class ResourceLoader<T>
 						loadCache.put(key, t);
 						Iris.hotloader.track(j);
 						Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
-
+						t.setLoadKey(name);
+						lock.unlock();
 						return t;
 					}
 
 					catch(Throwable e)
 					{
+						lock.unlock();
 						Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
 					}
 				}
@@ -59,6 +69,7 @@ public class ResourceLoader<T>
 
 		Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
+		lock.unlock();
 		return null;
 	}
 

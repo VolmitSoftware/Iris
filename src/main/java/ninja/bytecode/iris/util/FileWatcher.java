@@ -2,8 +2,10 @@ package ninja.bytecode.iris.util;
 
 import java.io.File;
 
+import lombok.Data;
 import lombok.Getter;
 
+@Data
 public class FileWatcher
 {
 	@Getter

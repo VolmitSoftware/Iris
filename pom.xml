@@ -167,6 +167,11 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>ninja.bytecode</groupId>
+			<artifactId>Shuriken</artifactId>
+			<version>1.1.24</version>
+		</dependency>
+		<dependency>
 			<groupId>org.bukkit</groupId>
 			<artifactId>bukkit</artifactId>
 			<version>1.15.1-R0.1-SNAPSHOT</version>

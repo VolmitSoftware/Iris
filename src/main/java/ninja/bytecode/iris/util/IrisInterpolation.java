@@ -1,7 +1,6 @@
 package ninja.bytecode.iris.util;
 
 import ninja.bytecode.iris.object.InterpolationMethod;
-import ninja.bytecode.iris.object.IrisDimension;
 
 public class IrisInterpolation
 {

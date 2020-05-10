@@ -1,10 +1,12 @@
 package ninja.bytecode.iris.object;
 
 import lombok.Data;
-import ninja.bytecode.iris.util.KList;
+import lombok.EqualsAndHashCode;
+import ninja.bytecode.shuriken.collections.KList;
 
 @Data
-public class IrisRegion
+@EqualsAndHashCode(callSuper = false)
+public class IrisRegion extends IrisRegisteredObject
 {
 	private String name = "A Region";
 	private double shoreRatio = 0.13;

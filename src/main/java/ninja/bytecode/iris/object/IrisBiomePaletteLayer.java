@@ -1,13 +1,15 @@
 package ninja.bytecode.iris.object;
 
-import org.bukkit.Material;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
+import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.KList;
-import ninja.bytecode.iris.util.KMap;
 import ninja.bytecode.iris.util.RNG;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 public class IrisBiomePaletteLayer
@@ -18,6 +20,7 @@ public class IrisBiomePaletteLayer
 	private double terrainZoom = 5;
 	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
 
+	private transient ReentrantLock lock = new ReentrantLock();
 	private transient KMap<Long, CNG> layerGenerators;
 	private transient KList<BlockData> blockData;
 
@@ -47,26 +50,20 @@ public class IrisBiomePaletteLayer
 
 	public KList<BlockData> getBlockData()
 	{
+		lock.lock();
 		if(blockData == null)
 		{
 			blockData = new KList<>();
-			for(String i : palette)
+			for(String ix : palette)
 			{
-				try
+				BlockData bx = BlockDataTools.getBlockData(ix);
+				if(bx != null)
 				{
-					Material m = Material.valueOf(i);
-
-					if(m != null)
-					{
-						blockData.add(m.createBlockData());
-					}
-				}
-				catch(Throwable e)
-				{
-
+					blockData.add(bx);
 				}
 			}
 		}
+		lock.unlock();
 
 		return blockData;
 	}

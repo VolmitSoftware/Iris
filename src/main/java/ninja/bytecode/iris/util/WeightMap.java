@@ -1,5 +1,7 @@
 package ninja.bytecode.iris.util;
 
+import ninja.bytecode.shuriken.collections.KMap;
+
 public class WeightMap<T> extends KMap<T, Double>
 {
 	private static final long serialVersionUID = 87558033900969389L;

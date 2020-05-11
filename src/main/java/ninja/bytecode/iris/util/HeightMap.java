@@ -14,11 +14,11 @@ public class HeightMap
 
 	public void setHeight(int x, int z, int h)
 	{
-		height[(x & 15) * 16 + (z & 15)] = (byte) (h + Byte.MIN_VALUE);
+		height[x * 16 + z] = (byte) (h + Byte.MIN_VALUE);
 	}
 
 	public int getHeight(int x, int z)
 	{
-		return height[(x & 15) * 16 + (z & 15)] - Byte.MIN_VALUE;
+		return height[x * 16 + z] - Byte.MIN_VALUE;
 	}
 }

@@ -1,5 +1,11 @@
 package ninja.bytecode.iris.object.atomics;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
@@ -19,6 +25,34 @@ public class AtomicSliverMap
 			{
 				slivers[i * 16 + j] = new AtomicSliver(i, j);
 			}
+		}
+	}
+
+	public void insert(AtomicSliverMap map)
+	{
+		for(int i = 0; i < 256; i++)
+		{
+			slivers[i].insert(map.slivers[i]);
+		}
+	}
+	
+	public void write(OutputStream out) throws IOException
+	{
+		DataOutputStream dos = new DataOutputStream(out);
+		for(int i = 0; i < 256; i++)
+		{
+			slivers[i].write(dos);
+		}
+
+		dos.flush();
+	}
+
+	public void read(InputStream in) throws IOException
+	{
+		DataInputStream din = new DataInputStream(in);
+		for(int i = 0; i < 256; i++)
+		{
+			slivers[i].read(din);
 		}
 	}
 

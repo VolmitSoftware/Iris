@@ -1,5 +1,9 @@
 package ninja.bytecode.iris.object.atomics;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
@@ -67,5 +71,42 @@ public class AtomicSliver
 	public void write(HeightMap height)
 	{
 		height.setHeight(x, z, highestBlock);
+	}
+
+	public void read(DataInputStream din) throws IOException
+	{
+		this.block = new BlockData[256];
+		int h = din.readByte() - Byte.MIN_VALUE;
+		for(int i = 0; i <= h; i++)
+		{
+			block[i] = BlockDataTools.getBlockData(din.readUTF());
+		}
+	}
+
+	public void write(DataOutputStream dos) throws IOException
+	{
+		dos.writeByte(highestBlock + Byte.MIN_VALUE);
+
+		for(int i = 0; i <= highestBlock; i++)
+		{
+			dos.writeUTF(block[i].getAsString(true));
+		}
+	}
+
+	public void insert(AtomicSliver atomicSliver)
+	{
+		for(int i = 0; i < 256; i++)
+		{
+			if(block[i] == null || block[i].equals(AIR))
+			{
+				BlockData b = atomicSliver.block[i];
+				if(b == null || b.equals(AIR))
+				{
+					continue;
+				}
+
+				block[i] = b;
+			}
+		}
 	}
 }

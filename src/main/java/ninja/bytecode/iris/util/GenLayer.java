@@ -1,13 +1,13 @@
 package ninja.bytecode.iris.util;
 
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.DimensionChunkGenerator;
 
 public abstract class GenLayer
 {
 	protected final RNG rng;
-	protected final IrisGenerator iris;
+	protected final DimensionChunkGenerator iris;
 
-	public GenLayer(IrisGenerator iris, RNG rng)
+	public GenLayer(DimensionChunkGenerator iris, RNG rng)
 	{
 		this.iris = iris;
 		this.rng = rng;

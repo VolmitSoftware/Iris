@@ -5,8 +5,14 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import lombok.Data;
+import ninja.bytecode.iris.util.BlockDataTools;
+import ninja.bytecode.iris.util.HeightMap;
+
+@Data
 public class AtomicSliver
 {
+	private static final BlockData AIR = BlockDataTools.getBlockData("AIR");
 	private BlockData[] block;
 	private Biome[] biome;
 	private int highestBlock = 0;
@@ -38,7 +44,15 @@ public class AtomicSliver
 	{
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			d.setBlock(x, i, z, block[i]);
+			if(block[i] == null)
+			{
+				d.setBlock(x, i, z, AIR);
+			}
+
+			else
+			{
+				d.setBlock(x, i, z, block[i]);
+			}
 		}
 	}
 
@@ -48,5 +62,10 @@ public class AtomicSliver
 		{
 			d.setBiome(x, i, z, biome[i]);
 		}
+	}
+
+	public void write(HeightMap height)
+	{
+		height.setHeight(x, z, highestBlock);
 	}
 }

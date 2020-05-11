@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.util.BiomeResult;
@@ -154,7 +155,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						IrisGenerator gx = new IrisGenerator("overworld");
+						IrisGenerator gx = new IrisGenerator("overworld", 16);
 
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
@@ -207,7 +208,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisGenerator("overworld");
+		return new IrisGenerator("overworld", 16);
 	}
 
 	public static void msg(String string)

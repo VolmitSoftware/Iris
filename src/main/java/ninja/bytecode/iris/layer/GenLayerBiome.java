@@ -1,7 +1,7 @@
 package ninja.bytecode.iris.layer;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.IrisGenerator;
+import ninja.bytecode.iris.generator.DimensionChunkGenerator;
 import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisRegion;
@@ -19,7 +19,7 @@ public class GenLayerBiome extends GenLayer
 	private CellGenerator shore;
 	private CellGenerator sea;
 
-	public GenLayerBiome(IrisGenerator iris, RNG rng)
+	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
 	{
 		super(iris, rng);
 		region = new CellGenerator(rng.nextParallelRNG(1188519));

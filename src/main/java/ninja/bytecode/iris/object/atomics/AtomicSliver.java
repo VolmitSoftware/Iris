@@ -35,6 +35,11 @@ public class AtomicSliver
 
 	public void set(int h, BlockData d)
 	{
+		if(d == null)
+		{
+			return;
+		}
+
 		block.put(h, d);
 		highestBlock = h > highestBlock ? h : highestBlock;
 	}

@@ -1,12 +1,16 @@
 package ninja.bytecode.iris.object;
 
+import lombok.Data;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 
+@Data
 public class IrisObjectPlacement
 {
 	private KList<String> place = new KList<>();
+	private IrisObjectTranslate translate = new IrisObjectTranslate();
+	private IrisObjectRotation rotation = new IrisObjectRotation();
 	private double chance = 1;
 	private int density = 1;
 
@@ -14,14 +18,14 @@ public class IrisObjectPlacement
 	{
 
 	}
-	
+
 	public IrisObject getSchematic(RNG random)
 	{
 		if(place.isEmpty())
 		{
 			return null;
 		}
-		
+
 		return Iris.data.getObjectLoader().load(place.get(random.nextInt(place.size())));
 	}
 

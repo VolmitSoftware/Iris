@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.IObjectPlacer;
+import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
@@ -37,7 +38,7 @@ public class IrisObject extends IrisRegisteredObject
 		this.d = d;
 		center = new BlockVector(w / 2, h / 2, d / 2);
 	}
-	
+
 	public static BlockVector sampleSize(File file) throws IOException
 	{
 		FileInputStream in = new FileInputStream(file);
@@ -113,13 +114,21 @@ public class IrisObject extends IrisRegisteredObject
 		}
 	}
 
-	public void place(int x, int z, IObjectPlacer placer)
+	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
 	{
-		int y = placer.getHighest(x, z) + getCenter().getBlockY();
-
-		for(BlockVector i : blocks.k())
+		boolean yf = rng.nextBoolean();
+		boolean xf = rng.nextBoolean();
+		int spinx = rng.imax() / 1000;
+		int spiny = rng.imax() / 1000;
+		int spinz = rng.imax() / 1000;
+		int y = placer.getHighest(x, z) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY();
+		
+		for(BlockVector g : blocks.k())
 		{
-			placer.set(x + i.getBlockX(), y + i.getBlockY(), z + i.getBlockZ(), blocks.get(i));
+			BlockVector i = g.clone();
+			i = config.getRotation().rotate(i.clone(), yf, xf, spinx, spiny, spinz).clone();
+			i = config.getTranslate().translate(i.clone()).clone();
+			placer.set(x + i.getBlockX(), y + i.getBlockY(), z + i.getBlockZ(), blocks.get(g));
 		}
 	}
 

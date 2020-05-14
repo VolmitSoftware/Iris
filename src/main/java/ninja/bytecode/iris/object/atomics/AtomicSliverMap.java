@@ -9,14 +9,20 @@ import java.io.OutputStream;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import lombok.Data;
 import ninja.bytecode.iris.util.HeightMap;
 
+@Data
 public class AtomicSliverMap
 {
 	private final AtomicSliver[] slivers;
+	private boolean parallaxGenerated;
+	private boolean worldGenerated;
 
 	public AtomicSliverMap()
 	{
+		parallaxGenerated = false;
+		worldGenerated = false;
 		slivers = new AtomicSliver[256];
 
 		for(int i = 0; i < 16; i++)
@@ -35,10 +41,12 @@ public class AtomicSliverMap
 			slivers[i].insert(map.slivers[i]);
 		}
 	}
-	
+
 	public void write(OutputStream out) throws IOException
 	{
 		DataOutputStream dos = new DataOutputStream(out);
+		dos.writeBoolean(isParallaxGenerated());
+		dos.writeBoolean(isWorldGenerated());
 		for(int i = 0; i < 256; i++)
 		{
 			slivers[i].write(dos);
@@ -50,6 +58,9 @@ public class AtomicSliverMap
 	public void read(InputStream in) throws IOException
 	{
 		DataInputStream din = new DataInputStream(in);
+		parallaxGenerated = din.readBoolean();
+		worldGenerated = din.readBoolean();
+
 		for(int i = 0; i < 256; i++)
 		{
 			slivers[i].read(din);

@@ -186,7 +186,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		return super.canSpawn(world, x, z);
 	}
-
+	
 	protected ChunkData generateChunkDataFailure(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
 		ChunkData c = Bukkit.createChunkData(world);

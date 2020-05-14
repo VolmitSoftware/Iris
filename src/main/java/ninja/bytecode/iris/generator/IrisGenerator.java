@@ -40,7 +40,7 @@ public class IrisGenerator extends ParallaxChunkGenerator implements IrisContext
 	@Override
 	protected void onTick(int ticks)
 	{
-		super.onTick(ticks);
+		
 	}
 
 	@Override

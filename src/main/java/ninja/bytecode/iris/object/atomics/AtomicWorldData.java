@@ -7,7 +7,6 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.math.M;
@@ -172,8 +171,6 @@ public class AtomicWorldData
 		AtomicSliverMap m = dat.get(x & 31, z & 31);
 		loadedChunks.put(pos, m);
 
-		Iris.info("Loaded chunk: sections: " + loadedSections.size());
-		
 		return m;
 	}
 
@@ -237,11 +234,11 @@ public class AtomicWorldData
 		return loadedChunks;
 	}
 
-	public void clean()
+	public void clean(int j)
 	{
 		for(ChunkPosition i : lastRegion.k())
 		{
-			if(M.ms() - lastRegion.get(i) > 3000)
+			if(M.ms() - lastRegion.get(i) > 60000)
 			{
 				lastRegion.remove(i);
 

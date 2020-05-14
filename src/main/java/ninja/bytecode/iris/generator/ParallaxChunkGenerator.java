@@ -13,6 +13,7 @@ import ninja.bytecode.iris.object.IrisObjectPlacement;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.object.atomics.AtomicSliverMap;
 import ninja.bytecode.iris.object.atomics.AtomicWorldData;
+import ninja.bytecode.iris.object.atomics.MasterLock;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.iris.util.HeightMap;
@@ -26,12 +27,15 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 {
 	private KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
-	private int sliverBuffer = 0;
+	private MasterLock masterLock;
+	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
 		sliverCache = new KMap<>();
+		sliverBuffer = 0;
+		masterLock = new MasterLock();
 	}
 
 	public void onInit(World world, RNG rng)
@@ -64,7 +68,9 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	public void set(int x, int y, int z, BlockData d)
 	{
+		getMasterLock().lock((x >> 4) + "." + (z >> 4));
 		getParallaxSliver(x, z).set(y, d);
+		getMasterLock().unlock((x >> 4) + "." + (z >> 4));
 	}
 
 	@Override
@@ -76,22 +82,24 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 	public AtomicSliver getParallaxSliver(int wx, int wz)
 	{
-		return getParallaxChunk(wx >> 4, wz >> 4).getSliver(wx & 15, wz & 15);
+		getMasterLock().lock("gpc");
+		getMasterLock().lock((wx >> 4) + "." + (wz >> 4));
+		AtomicSliverMap map = getParallaxChunk(wx >> 4, wz >> 4);
+		getMasterLock().unlock("gpc");
+		AtomicSliver sliver = map.getSliver(wx & 15, wz & 15);
+		getMasterLock().unlock((wx >> 4) + "." + (wz >> 4));
+
+		return sliver;
 	}
 
-	public boolean hasParallaxChunk(int x, int z)
+	public boolean isParallaxGenerated(int x, int z)
 	{
-		try
-		{
-			return getParallaxMap().hasChunk(x, z);
-		}
+		return getParallaxChunk(x, z).isParallaxGenerated();
+	}
 
-		catch(IOException e)
-		{
-			fail(e);
-		}
-
-		return false;
+	public boolean isWorldGenerated(int x, int z)
+	{
+		return getParallaxChunk(x, z).isWorldGenerated();
 	}
 
 	public AtomicSliverMap getParallaxChunk(int x, int z)
@@ -112,45 +120,65 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
-		onGenerateParallax(random, x, z);
-		getParallaxChunk(x, z).inject(data);
-		sliverBuffer = sliverCache.size();
-		sliverCache.clear();
+		if(getDimension().isPlaceObjects())
+		{
+			onGenerateParallax(random, x, z);
+			getParallaxChunk(x, z).inject(data);
+			setSliverBuffer(getSliverCache().size());
+			getParallaxChunk(x, z).setWorldGenerated(true);
+			getParallaxMap().clean(x + z);
+			getSliverCache().clear();
+			getMasterLock().clear();
+		}
 	}
 
 	protected void onGenerateParallax(RNG random, int x, int z)
 	{
-		ChunkPosition pos = Iris.data.getObjectLoader().getParallaxSize();
+		String key = "par." + x + "." + "z";
+		ChunkPosition rad = Iris.data.getObjectLoader().getParallaxSize();
 
-		for(int i = x - pos.getX() / 2; i <= x + pos.getX() / 2; i++)
+		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
 		{
-			for(int j = z - pos.getZ() / 2; j <= z + pos.getZ() / 2; j++)
-			{
-				IrisBiome b = sampleBiome((i * 16) + 7, (j * 16) + 7).getBiome();
-				int g = 1;
+			int i = ii;
 
-				for(IrisObjectPlacement k : b.getObjects())
+			for(int jj = z - (rad.getZ() / 2); jj <= z + (rad.getZ() / 2); jj++)
+			{
+				int j = jj;
+
+				if(isParallaxGenerated(ii, jj))
 				{
-					placeObject(k, i, j, random.nextParallelRNG((i * 30) + (j * 30) + g++));
+					continue;
 				}
+
+				if(isWorldGenerated(ii, jj))
+				{
+					continue;
+				}
+
+				getTx().queue(key, () ->
+				{
+					IrisBiome b = sampleBiome((i * 16) + 7, (j * 16) + 7).getBiome();
+					int g = 1;
+
+					for(IrisObjectPlacement k : b.getObjects())
+					{
+						placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+					}
+				});
+
+				getParallaxChunk(ii, jj).setParallaxGenerated(true);
 			}
 		}
-	}
 
-	@Override
-	protected void onTick(int ticks)
-	{
-		if(ticks % 100 == 0)
-		{
-			parallaxMap.clean();
-		}
+		getTx().waitFor(key);
 	}
 
 	protected void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)
 	{
 		for(int i = 0; i < o.getTriesForChunk(rng); i++)
 		{
-			o.getSchematic(rng).place((x * 16) * rng.nextInt(16), (z * 16) + rng.nextInt(16), this);
+			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
+			o.getSchematic(rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
 		}
 	}
 

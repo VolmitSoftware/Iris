@@ -32,6 +32,7 @@ public class IrisDimension extends IrisRegisteredObject
 	private double seaZoom = 1;
 	private double continentZoom = 1;
 	private double regionZoom = 1;
+	private boolean placeObjects = true;
 
 	private transient CNG coordFracture;
 	private transient Double sinr;

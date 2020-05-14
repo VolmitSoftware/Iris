@@ -31,15 +31,15 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 	public IrisRegion sampleRegion(int x, int z)
 	{
-		double wx = getZoomed(getModifiedX(x, z));
-		double wz = getZoomed(getModifiedZ(x, z));
+		double wx = getModifiedX(x, z);
+		double wz = getModifiedZ(x, z);
 		return glBiome.getRegion(wx, wz);
 	}
 
 	public BiomeResult sampleBiome(int x, int z)
 	{
-		double wx = getZoomed(getModifiedX(x, z));
-		double wz = getZoomed(getModifiedZ(x, z));
+		double wx = getModifiedX(x, z);
+		double wz = getModifiedZ(x, z);
 		IrisRegion region = glBiome.getRegion(wx, wz);
 		return glBiome.generateRegionData(wx, wz, region);
 	}

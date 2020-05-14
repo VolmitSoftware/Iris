@@ -7,29 +7,36 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChunkPosition;
-import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.math.M;
 
 public class AtomicWorldData
 {
 	private World world;
+	private KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
+	private KMap<ChunkPosition, Long> lastRegion;
 
 	public AtomicWorldData(World world)
 	{
 		this.world = world;
 		loadedSections = new KMap<>();
+		loadedChunks = new KMap<>();
+		lastRegion = new KMap<>();
 		getSubregionFolder().mkdirs();
 	}
 
-	public KList<ChunkPosition> getLoadedRegions()
+	public KMap<ChunkPosition, AtomicRegionData> getLoadedRegions()
 	{
-		return loadedSections.k();
+		return loadedSections;
 	}
 
 	public AtomicRegionData getSubregion(int x, int z) throws IOException
 	{
+		lastRegion.put(new ChunkPosition(x, z), M.ms());
+
 		if(!isSectionLoaded(x, z))
 		{
 			loadedSections.put(new ChunkPosition(x, z), loadSection(x, z));
@@ -42,6 +49,8 @@ public class AtomicWorldData
 
 	public void saveAll() throws IOException
 	{
+		saveChunks();
+
 		for(ChunkPosition i : loadedSections.keySet())
 		{
 			saveSection(i);
@@ -50,10 +59,16 @@ public class AtomicWorldData
 
 	public void unloadAll(boolean save) throws IOException
 	{
+		saveChunks();
+
 		for(ChunkPosition i : loadedSections.keySet())
 		{
 			unloadSection(i, save);
 		}
+
+		loadedSections.clear();
+		loadedChunks.clear();
+		lastRegion.clear();
 	}
 
 	public void deleteSection(int x, int z) throws IOException
@@ -105,6 +120,7 @@ public class AtomicWorldData
 			return false;
 		}
 
+		saveChunks(s);
 		AtomicRegionData data = loadedSections.get(s);
 		FileOutputStream fos = new FileOutputStream(getSubregionFile(s.getX(), s.getZ()));
 		data.write(fos);
@@ -112,29 +128,84 @@ public class AtomicWorldData
 		return true;
 	}
 
+	public void saveChunks() throws IOException
+	{
+		for(ChunkPosition i : loadedChunks.k())
+		{
+			saveChunk(i);
+		}
+	}
+
+	public void saveChunks(ChunkPosition reg) throws IOException
+	{
+		for(ChunkPosition i : loadedChunks.k())
+		{
+			int x = i.getX();
+			int z = i.getZ();
+
+			if(x >> 5 == reg.getX() && z >> 5 == reg.getZ())
+			{
+				saveChunk(i);
+			}
+		}
+	}
+
+	public void saveChunk(ChunkPosition i) throws IOException
+	{
+		int x = i.getX();
+		int z = i.getZ();
+		AtomicRegionData dat = loadSection(x >> 5, z >> 5);
+		dat.set(x & 31, z & 31, loadedChunks.get(i));
+		loadedChunks.remove(i);
+	}
+
 	public AtomicSliverMap loadChunk(int x, int z) throws IOException
 	{
-		return loadSection(x >> 5, z >> 5).get(x & 31, z & 31);
+		ChunkPosition pos = new ChunkPosition(x, z);
+
+		if(loadedChunks.containsKey(pos))
+		{
+			return loadedChunks.get(pos);
+		}
+
+		AtomicRegionData dat = loadSection(x >> 5, z >> 5);
+		AtomicSliverMap m = dat.get(x & 31, z & 31);
+		loadedChunks.put(pos, m);
+
+		Iris.info("Loaded chunk: sections: " + loadedSections.size());
+		
+		return m;
+	}
+
+	public boolean hasChunk(int x, int z) throws IOException
+	{
+		return loadSection(x >> 5, z >> 5).contains(x & 31, z & 31);
 	}
 
 	public AtomicRegionData loadSection(int x, int z) throws IOException
 	{
+		ChunkPosition pos = new ChunkPosition(x, z);
+		lastRegion.put(pos, M.ms());
+
 		if(isSectionLoaded(x, z))
 		{
-			return loadedSections.get(new ChunkPosition(x, z));
+			return loadedSections.get(pos);
 		}
 
 		File file = getSubregionFile(x, z);
 
 		if(!file.exists())
 		{
-			return createSection(x, z);
+			AtomicRegionData dat = createSection(x, z);
+			loadedSections.put(pos, dat);
+			return dat;
 		}
 
 		FileInputStream fin = new FileInputStream(file);
 		AtomicRegionData data = new AtomicRegionData(world);
 		data.read(fin);
 		fin.close();
+		loadedSections.put(pos, data);
 		return data;
 	}
 
@@ -159,5 +230,31 @@ public class AtomicWorldData
 	public File getSubregionFolder()
 	{
 		return new File(world.getWorldFolder(), "subregion");
+	}
+
+	public KMap<ChunkPosition, AtomicSliverMap> getLoadedChunks()
+	{
+		return loadedChunks;
+	}
+
+	public void clean()
+	{
+		for(ChunkPosition i : lastRegion.k())
+		{
+			if(M.ms() - lastRegion.get(i) > 3000)
+			{
+				lastRegion.remove(i);
+
+				try
+				{
+					unloadSection(i, true);
+				}
+
+				catch(IOException e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }

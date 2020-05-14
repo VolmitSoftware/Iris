@@ -1,25 +1,32 @@
 package ninja.bytecode.iris;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
+import ninja.bytecode.iris.object.IrisObject;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.BoardManager;
 import ninja.bytecode.iris.util.BoardProvider;
@@ -28,6 +35,7 @@ import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.GroupedExecutor;
 import ninja.bytecode.iris.util.IO;
 import ninja.bytecode.iris.util.ScoreDirection;
+import ninja.bytecode.iris.wand.WandController;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.format.Form;
@@ -39,8 +47,9 @@ public class Iris extends JavaPlugin implements BoardProvider
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
 	public static IrisDataManager data;
-	private static String last = "";
 	public static IrisHotloadManager hotloader;
+	public static WandController wand;
+	private static String last = "";
 	private BoardManager manager;
 	private RollingSequence hits = new RollingSequence(20);
 
@@ -54,6 +63,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 		instance = this;
 		hotloader = new IrisHotloadManager();
 		data = new IrisDataManager(getDataFolder());
+		wand = new WandController();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
 	}
 
@@ -83,6 +93,9 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Loss" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.duration(g.getMetrics().getLoss().getAverage(), 4) + "");
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
+			lines.add(ChatColor.GREEN + "Parallax Regions" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedRegions().size()));
+			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
+			lines.add(ChatColor.GREEN + "Sliver Buffer" + ChatColor.GRAY + ": " + Form.f((int) g.getSliverBuffer()));
 
 			if(er != null && b != null)
 			{
@@ -110,6 +123,8 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 		executors.clear();
 		manager.onDisable();
+		Bukkit.getScheduler().cancelTasks(this);
+		HandlerList.unregisterAll((Plugin) this);
 	}
 
 	@Override
@@ -120,10 +135,79 @@ public class Iris extends JavaPlugin implements BoardProvider
 			if(args.length == 0)
 			{
 				imsg(sender, "/iris dev - Create a new dev world");
+				imsg(sender, "/iris wand - Get a wand");
 			}
 
 			if(args.length >= 1)
 			{
+				if(args[0].equalsIgnoreCase("wand"))
+				{
+					((Player) sender).getInventory().addItem(WandController.createWand());
+				}
+
+				if(args[0].equalsIgnoreCase("save") && args.length >= 2)
+				{
+					ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+					IrisObject o = WandController.createSchematic(wand);
+					try
+					{
+						o.write(new File(getDataFolder(), "objects/" + args[1] + ".iob"));
+						imsg(sender, "Saved " + "objects/" + args[1] + ".iob");
+					}
+
+					catch(IOException e)
+					{
+						imsg(sender, "Failed to save " + "objects/" + args[1] + ".iob");
+
+						e.printStackTrace();
+					}
+				}
+
+				if(args[0].equalsIgnoreCase("load") && args.length >= 2)
+				{
+					File file = new File(getDataFolder(), "objects/" + args[1] + ".iob");
+					boolean intoWand = false;
+
+					for(String i : args)
+					{
+						if(i.equalsIgnoreCase("-edit"))
+						{
+							intoWand = true;
+						}
+					}
+
+					if(!file.exists())
+					{
+						imsg(sender, "Can't find " + "objects/" + args[1] + ".iob");
+					}
+
+					ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+					IrisObject o = new IrisObject(0, 0, 0);
+
+					try
+					{
+						o.read(new File(getDataFolder(), "objects/" + args[1] + ".iob"));
+						imsg(sender, "Loaded " + "objects/" + args[1] + ".iob");
+						Location block = ((Player) sender).getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
+
+						if(intoWand && WandController.isWand(wand))
+						{
+							wand = WandController.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
+							((Player) sender).getInventory().setItemInMainHand(wand);
+							imsg(sender, "Updated wand for " + "objects/" + args[1] + ".iob");
+						}
+
+						WandController.pasteSchematic(o, block);
+						imsg(sender, "Placed " + "objects/" + args[1] + ".iob");
+					}
+
+					catch(IOException e)
+					{
+						imsg(sender, "Failed to load " + "objects/" + args[1] + ".iob");
+						e.printStackTrace();
+					}
+				}
+
 				if(args[0].equalsIgnoreCase("dev"))
 				{
 					String dim = "Overworld";

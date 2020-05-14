@@ -25,7 +25,7 @@ public class IrisBiome extends IrisRegisteredObject
 	private KList<String> children = new KList<>();
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
-
+	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;

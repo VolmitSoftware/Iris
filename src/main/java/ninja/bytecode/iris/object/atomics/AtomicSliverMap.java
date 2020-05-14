@@ -73,4 +73,12 @@ public class AtomicSliverMap
 			}
 		}
 	}
+
+	public void inject(ChunkData currentData)
+	{
+		for(AtomicSliver i : slivers)
+		{
+			i.inject(currentData);
+		}
+	}
 }

@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.object.atomics.AtomicSliverMap;
+import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.GroupedExecutor;
 import ninja.bytecode.iris.util.HeightMap;
 import ninja.bytecode.iris.util.RNG;
@@ -37,11 +38,11 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		}
 	}
 
-	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver);
+	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap);
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);
 
-	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height);
+	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap);
 
 	protected int sampleHeight(int x, int z)
 	{
@@ -53,6 +54,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		AtomicSliverMap map = new AtomicSliverMap();
 		HeightMap height = new HeightMap();
 		String key = "c" + x + "," + z;
+		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
 
 		for(ii = 0; ii < 16; ii++)
@@ -68,14 +70,19 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 
 				tx.queue(key, () ->
 				{
-					onGenerateColumn(x, z, wx, wz, i, j, sliver);
+					onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
 				});
 			}
 		}
 
 		tx.waitFor(key);
 		map.write(data, grid, height);
-		onPostGenerate(random, x, z, data, grid, height);
+		onPostGenerate(random, x, z, data, grid, height, biomeMap);
+	}
+
+	protected void onClose()
+	{
+		tx.close();
 	}
 
 	public void onInit(World world, RNG rng)
@@ -87,6 +94,6 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	@Override
 	public boolean isParallelCapable()
 	{
-		return true;
+		return false;
 	}
 }

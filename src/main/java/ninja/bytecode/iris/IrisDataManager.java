@@ -10,6 +10,7 @@ import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.IO;
+import ninja.bytecode.iris.util.ObjectResourceLoader;
 import ninja.bytecode.iris.util.ResourceLoader;
 
 @Data
@@ -17,10 +18,10 @@ public class IrisDataManager
 {
 	private File dataFolder;
 	private File packs;
-
 	private ResourceLoader<IrisBiome> biomeLoader;
 	private ResourceLoader<IrisRegion> regionLoader;
 	private ResourceLoader<IrisDimension> dimensionLoader;
+	private ObjectResourceLoader objectLoader;
 
 	public void hotloaded()
 	{
@@ -28,6 +29,7 @@ public class IrisDataManager
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
+		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
 		writeExamples();
 	}
 

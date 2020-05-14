@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.IrisContext;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
@@ -39,13 +40,14 @@ public class IrisGenerator extends ParallaxChunkGenerator implements IrisContext
 	@Override
 	protected void onTick(int ticks)
 	{
-
+		super.onTick(ticks);
 	}
 
 	@Override
 	protected void onClose()
 	{
-
+		super.onClose();
+		Iris.info("Closing Iris Dimension " + getWorld().getName());
 	}
 
 	@Override

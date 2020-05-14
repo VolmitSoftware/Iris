@@ -12,13 +12,13 @@ import ninja.bytecode.shuriken.collections.KMap;
 
 public class ResourceLoader<T extends IrisRegisteredObject>
 {
-	private File root;
-	private String folderName;
-	private String resourceTypeName;
-	private KMap<String, T> loadCache;
-	private KList<File> folderCache;
-	private Class<? extends T> objectClass;
-	private ReentrantLock lock;
+	protected File root;
+	protected String folderName;
+	protected String resourceTypeName;
+	protected KMap<String, T> loadCache;
+	protected KList<File> folderCache;
+	protected Class<? extends T> objectClass;
+	protected ReentrantLock lock;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{

@@ -53,6 +53,11 @@ public class AtomicRegionData
 
 	public void set(int rx, int rz, AtomicSliverMap data) throws IOException
 	{
+		if(data == null)
+		{
+			return;
+		}
+
 		ByteArrayOutputStream boas = new ByteArrayOutputStream();
 		data.write(boas);
 		tag.put(rx + "." + rz, new ByteArrayTag(rx + "." + rz, boas.toByteArray()));
@@ -60,12 +65,13 @@ public class AtomicRegionData
 
 	public AtomicSliverMap get(int rx, int rz) throws IOException
 	{
+		AtomicSliverMap data = new AtomicSliverMap();
+
 		if(!contains(rx, rz))
 		{
-			return null;
+			return data;
 		}
 
-		AtomicSliverMap data = new AtomicSliverMap();
 		ByteArrayTag btag = (ByteArrayTag) tag.get(rx + "." + rz);
 		ByteArrayInputStream in = new ByteArrayInputStream(btag.getValue());
 		data.read(in);

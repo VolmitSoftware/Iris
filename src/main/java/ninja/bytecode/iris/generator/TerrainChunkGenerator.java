@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
+import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.RNG;
@@ -18,6 +19,7 @@ import ninja.bytecode.shuriken.collections.KList;
 @EqualsAndHashCode(callSuper = false)
 public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 {
+	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData STONE = Material.STONE.createBlockData();
 	protected static final BlockData WATER = Material.WATER.createBlockData();
 	protected CNG terrainNoise;
@@ -34,7 +36,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver)
+	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
 	{
 		BlockData block;
 		int fluidHeight = getDimension().getFluidHeight();
@@ -64,7 +66,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		for(int k = Math.max(height, fluidHeight); k >= 0; k--)
 		{
 			boolean underwater = k > height && k <= fluidHeight;
-			sliver.set(k, biome.getDerivative());
+
+			if(biomeMap != null)
+			{
+				sliver.set(k, biome.getDerivative());
+				biomeMap.setBiome(x, z, biome);
+			}
 
 			if(underwater)
 			{
@@ -76,7 +83,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				block = layers.hasIndex(depth) ? layers.get(depth) : STONE;
 				depth++;
 			}
-
 			sliver.set(k, block);
 		}
 	}

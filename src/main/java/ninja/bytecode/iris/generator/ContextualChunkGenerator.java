@@ -250,27 +250,31 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			CNG.hits = 0;
 			Iris.instance.hit(hits);
 			metrics.getLoss().put(sx.getMilliseconds() - s.getMilliseconds());
-
 			return c;
 		}
 
 		catch(Throwable e)
 		{
-			failing = true;
-			Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
-
-			for(Player i : world.getPlayers())
-			{
-				Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has entered a failed state!");
-				Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
-				Iris.instance.imsg(i, ChatColor.RED + "- Then simply run /iris dev");
-			}
-
-			L.ex(e);
-			onFailure(e);
+			fail(e);
 		}
 
 		return generateChunkDataFailure(world, no, x, z, biomeGrid);
+	}
+
+	protected void fail(Throwable e)
+	{
+		failing = true;
+		Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
+
+		for(Player i : world.getPlayers())
+		{
+			Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has entered a failed state!");
+			Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
+			Iris.instance.imsg(i, ChatColor.RED + "- Then simply run /iris dev");
+		}
+
+		L.ex(e);
+		onFailure(e);
 	}
 
 	@Override

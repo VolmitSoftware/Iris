@@ -145,6 +145,19 @@ public class Iris extends JavaPlugin implements BoardProvider
 					((Player) sender).getInventory().addItem(WandController.createWand());
 				}
 
+				if(args[0].equalsIgnoreCase("gui"))
+				{
+					try
+					{
+
+					}
+
+					catch(Throwable e)
+					{
+
+					}
+				}
+
 				if(args[0].equalsIgnoreCase("save") && args.length >= 2)
 				{
 					ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();

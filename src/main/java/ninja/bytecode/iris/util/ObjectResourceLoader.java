@@ -58,6 +58,28 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		return parallaxSize;
 	}
 
+	public IrisObject loadFile(File j, String key, String name)
+	{
+		try
+		{
+			IrisObject t = new IrisObject(0, 0, 0);
+			t.read(j);
+			loadCache.put(key, t);
+			Iris.hotloader.track(j);
+			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
+			t.setLoadKey(name);
+			lock.unlock();
+			return t;
+		}
+
+		catch(Throwable e)
+		{
+			lock.unlock();
+			Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+			return null;
+		}
+	}
+
 	public IrisObject load(String name)
 	{
 		String key = name + "-" + objectClass.getCanonicalName();
@@ -75,24 +97,15 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			{
 				if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name))
 				{
-					try
-					{
-						IrisObject t = new IrisObject(0, 0, 0);
-						t.read(j);
-						loadCache.put(key, t);
-						Iris.hotloader.track(j);
-						Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
-						t.setLoadKey(name);
-						lock.unlock();
-						return t;
-					}
-
-					catch(Throwable e)
-					{
-						lock.unlock();
-						Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
-					}
+					return loadFile(j, key, name);
 				}
+			}
+
+			File file = new File(i, name + ".iob");
+
+			if(file.exists())
+			{
+				return loadFile(file, key, name);
 			}
 		}
 

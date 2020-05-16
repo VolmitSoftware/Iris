@@ -12,6 +12,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
@@ -22,6 +23,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 
 import ninja.bytecode.iris.generator.IrisGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
@@ -32,6 +34,9 @@ import ninja.bytecode.iris.util.BoardManager;
 import ninja.bytecode.iris.util.BoardProvider;
 import ninja.bytecode.iris.util.BoardSettings;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.Cuboid;
+import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
+import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.GroupedExecutor;
 import ninja.bytecode.iris.util.IO;
 import ninja.bytecode.iris.util.ScoreDirection;
@@ -127,6 +132,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 		HandlerList.unregisterAll((Plugin) this);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
 	{
@@ -134,28 +140,241 @@ public class Iris extends JavaPlugin implements BoardProvider
 		{
 			if(args.length == 0)
 			{
-				imsg(sender, "/iris dev - Create a new dev world");
-				imsg(sender, "/iris wand - Get a wand");
+				imsg(sender, "/iris dev [dimension] - Create a new dev world");
+				imsg(sender, "/iris wand [?] - Get a wand / help");
+				imsg(sender, "/iris save <name> - Save object");
+				imsg(sender, "/iris load <name> - Load & place object");
 			}
 
 			if(args.length >= 1)
 			{
 				if(args[0].equalsIgnoreCase("wand"))
 				{
-					((Player) sender).getInventory().addItem(WandController.createWand());
-				}
-
-				if(args[0].equalsIgnoreCase("gui"))
-				{
-					try
+					if(args.length == 1)
 					{
-
+						((Player) sender).getInventory().addItem(WandController.createWand());
 					}
 
-					catch(Throwable e)
+					else if(args[1].equalsIgnoreCase("x+y"))
 					{
+						Player p = (Player) sender;
 
+						if(!WandController.isWand(p))
+						{
+							sender.sendMessage("Ready your Wand.");
+							return true;
+						}
+						Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
+						b[0].add(new Vector(0, 1, 0));
+						b[1].add(new Vector(0, 1, 0));
+						Location a1 = b[0].clone();
+						Location a2 = b[1].clone();
+						Cuboid cursor = new Cuboid(a1, a2);
+
+						while(!cursor.containsOnly(Material.AIR))
+						{
+							a1.add(new Vector(0, 1, 0));
+							a2.add(new Vector(0, 1, 0));
+							cursor = new Cuboid(a1, a2);
+						}
+
+						a1.add(new Vector(0, -1, 0));
+						a2.add(new Vector(0, -1, 0));
+						b[0] = a1;
+						a2 = b[1];
+						cursor = new Cuboid(a1, a2);
+						cursor = cursor.contract(CuboidDirection.North);
+						cursor = cursor.contract(CuboidDirection.South);
+						cursor = cursor.contract(CuboidDirection.East);
+						cursor = cursor.contract(CuboidDirection.West);
+						b[0] = cursor.getLowerNE();
+						b[1] = cursor.getUpperSW();
+						p.getInventory().setItemInMainHand(WandController.createWand(b[0], b[1]));
+						p.updateInventory();
+						p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
 					}
+
+					else if(args[1].equalsIgnoreCase("x&y"))
+					{
+						Player p = (Player) sender;
+
+						if(!WandController.isWand(p))
+						{
+							sender.sendMessage("Ready your Wand.");
+							return true;
+						}
+
+						Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
+						Location a1 = b[0].clone();
+						Location a2 = b[1].clone();
+						Location a1x = b[0].clone();
+						Location a2x = b[1].clone();
+						Cuboid cursor = new Cuboid(a1, a2);
+						Cuboid cursorx = new Cuboid(a1, a2);
+
+						while(!cursor.containsOnly(Material.AIR))
+						{
+							a1.add(new Vector(0, 1, 0));
+							a2.add(new Vector(0, 1, 0));
+							cursor = new Cuboid(a1, a2);
+						}
+
+						a1.add(new Vector(0, -1, 0));
+						a2.add(new Vector(0, -1, 0));
+
+						while(!cursorx.containsOnly(Material.AIR))
+						{
+							a1x.add(new Vector(0, -1, 0));
+							a2x.add(new Vector(0, -1, 0));
+							cursorx = new Cuboid(a1x, a2x);
+						}
+
+						a1x.add(new Vector(0, 1, 0));
+						a2x.add(new Vector(0, 1, 0));
+						b[0] = a1;
+						b[1] = a2x;
+						cursor = new Cuboid(b[0], b[1]);
+						cursor = cursor.contract(CuboidDirection.North);
+						cursor = cursor.contract(CuboidDirection.South);
+						cursor = cursor.contract(CuboidDirection.East);
+						cursor = cursor.contract(CuboidDirection.West);
+						b[0] = cursor.getLowerNE();
+						b[1] = cursor.getUpperSW();
+						p.getInventory().setItemInMainHand(WandController.createWand(b[0], b[1]));
+						p.updateInventory();
+						p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+					}
+
+					else if(args[1].equalsIgnoreCase(">") && args.length > 2)
+					{
+						Player p = (Player) sender;
+
+						if(!WandController.isWand(p))
+						{
+							sender.sendMessage("Ready your Wand.");
+							return true;
+						}
+
+						int amt = Integer.valueOf(args[2]);
+						Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
+						Location a1 = b[0].clone();
+						Location a2 = b[1].clone();
+						Direction d = Direction.closest(p.getLocation().getDirection()).reverse();
+						a1.add(d.toVector().multiply(amt));
+						a2.add(d.toVector().multiply(amt));
+						Cuboid cursor = new Cuboid(a1, a2);
+						b[0] = cursor.getLowerNE();
+						b[1] = cursor.getUpperSW();
+						p.getInventory().setItemInMainHand(WandController.createWand(b[0], b[1]));
+						p.updateInventory();
+						p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+					}
+
+					else if(args[1].equalsIgnoreCase("+") && args.length > 2)
+					{
+						Player p = (Player) sender;
+
+						if(!WandController.isWand(p))
+						{
+							sender.sendMessage("Ready your Wand.");
+							return true;
+						}
+
+						int amt = Integer.valueOf(args[2]);
+						Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
+						Location a1 = b[0].clone();
+						Location a2 = b[1].clone();
+						Cuboid cursor = new Cuboid(a1, a2);
+						Direction d = Direction.closest(p.getLocation().getDirection()).reverse();
+						cursor = cursor.expand(d, amt);
+						b[0] = cursor.getLowerNE();
+						b[1] = cursor.getUpperSW();
+						p.getInventory().setItemInMainHand(WandController.createWand(b[0], b[1]));
+						p.updateInventory();
+						p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+					}
+
+					else if(args[1].equalsIgnoreCase("-") && args.length > 2)
+					{
+						Player p = (Player) sender;
+
+						if(!WandController.isWand(p))
+						{
+							sender.sendMessage("Ready your Wand.");
+							return true;
+						}
+
+						int amt = Integer.valueOf(args[2]);
+						Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
+						Location a1 = b[0].clone();
+						Location a2 = b[1].clone();
+						Cuboid cursor = new Cuboid(a1, a2);
+						Direction d = Direction.closest(p.getLocation().getDirection()).reverse();
+						cursor = cursor.expand(d, -amt);
+						b[0] = cursor.getLowerNE();
+						b[1] = cursor.getUpperSW();
+						p.getInventory().setItemInMainHand(WandController.createWand(b[0], b[1]));
+						p.updateInventory();
+						p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+					}
+
+					else if(args[1].equalsIgnoreCase("p1"))
+					{
+						ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+						if(WandController.isWand(wand))
+						{
+							Location[] g = WandController.getCuboid(wand);
+							g[0] = ((Player) sender).getLocation().getBlock().getLocation().clone().add(0, -1, 0);
+							((Player) sender).setItemInHand(WandController.createWand(g[0], g[1]));
+						}
+					}
+
+					else if(args[1].equalsIgnoreCase("p2"))
+					{
+						ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+						if(WandController.isWand(wand))
+						{
+							Location[] g = WandController.getCuboid(wand);
+							g[1] = ((Player) sender).getLocation().getBlock().getLocation().clone().add(0, -1, 0);
+							((Player) sender).setItemInHand(WandController.createWand(g[0], g[1]));
+						}
+					}
+
+					else if(args[1].equalsIgnoreCase("l1"))
+					{
+						ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+						if(WandController.isWand(wand))
+						{
+							Location[] g = WandController.getCuboid(wand);
+							g[0] = ((Player) sender).getTargetBlock((Set<Material>) null, 256).getLocation().clone();
+							((Player) sender).setItemInHand(WandController.createWand(g[0], g[1]));
+						}
+					}
+
+					else if(args[1].equalsIgnoreCase("l2"))
+					{
+						ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+						if(WandController.isWand(wand))
+						{
+							Location[] g = WandController.getCuboid(wand);
+							g[1] = ((Player) sender).getTargetBlock((Set<Material>) null, 256).getLocation().clone();
+							((Player) sender).setItemInHand(WandController.createWand(g[0], g[1]));
+						}
+					}
+
+					else
+					{
+						imsg(sender, "/iris wand x+y - Expand up and out");
+						imsg(sender, "/iris wand x&y - Expand up and down and out");
+						imsg(sender, "/iris wand > <amt> - Shift in looking direction");
+						imsg(sender, "/iris wand + <amt> - Expand in looking direction");
+						imsg(sender, "/iris wand - <amt> - Contract in looking direction");
+						imsg(sender, "/iris wand p1 - Set wand pos 1 where standing");
+						imsg(sender, "/iris wand p2 - Set wand pos 2 where standing");
+						imsg(sender, "/iris wand l1 - Set wand pos 1 where looking");
+						imsg(sender, "/iris wand l2 - Set wand pos 2 where looking");
+					}
+
 				}
 
 				if(args[0].equalsIgnoreCase("save") && args.length >= 2)
@@ -223,7 +442,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 				if(args[0].equalsIgnoreCase("dev"))
 				{
-					String dim = "Overworld";
+					String dim = "overworld";
 
 					if(args.length > 1)
 					{
@@ -247,13 +466,20 @@ public class Iris extends JavaPlugin implements BoardProvider
 							}
 						}
 
+						IrisDimension d = data.getDimensionLoader().load(dimm);
+
+						if(d == null)
+						{
+							imsg(sender, "Can't find dimension: " + dimm);
+							return;
+						}
+
 						for(Player i : Bukkit.getOnlinePlayers())
 						{
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						IrisGenerator gx = new IrisGenerator("overworld", 16);
-
+						IrisGenerator gx = new IrisGenerator(dimm, 16);
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
 

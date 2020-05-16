@@ -157,7 +157,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 				getTx().queue(key, () ->
 				{
-					IrisBiome b = sampleBiome((i * 16) + 7, (j * 16) + 7).getBiome();
+					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
 					int g = 1;
 
 					for(IrisObjectPlacement k : b.getObjects())

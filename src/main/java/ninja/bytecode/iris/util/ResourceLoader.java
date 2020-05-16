@@ -30,6 +30,27 @@ public class ResourceLoader<T extends IrisRegisteredObject>
 		loadCache = new KMap<>();
 	}
 
+	protected T loadFile(File j, String key, String name)
+	{
+		try
+		{
+			T t = new Gson().fromJson(IO.readAll(j), objectClass);
+			loadCache.put(key, t);
+			Iris.hotloader.track(j);
+			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
+			t.setLoadKey(name);
+			lock.unlock();
+			return t;
+		}
+
+		catch(Throwable e)
+		{
+			lock.unlock();
+			Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+			return null;
+		}
+	}
+
 	public T load(String name)
 	{
 		String key = name + "-" + objectClass.getCanonicalName();
@@ -47,23 +68,15 @@ public class ResourceLoader<T extends IrisRegisteredObject>
 			{
 				if(j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name))
 				{
-					try
-					{
-						T t = new Gson().fromJson(IO.readAll(j), objectClass);
-						loadCache.put(key, t);
-						Iris.hotloader.track(j);
-						Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
-						t.setLoadKey(name);
-						lock.unlock();
-						return t;
-					}
-
-					catch(Throwable e)
-					{
-						lock.unlock();
-						Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
-					}
+					return loadFile(j, key, name);
 				}
+			}
+
+			File file = new File(i, name + ".json");
+
+			if(file.exists())
+			{
+				return loadFile(file, key, name);
 			}
 		}
 

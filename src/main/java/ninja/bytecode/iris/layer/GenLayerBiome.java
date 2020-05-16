@@ -52,19 +52,11 @@ public class GenLayerBiome extends GenLayer
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
 
-		// Beach
-		if(bridge.getDistance(x, z) < regionData.getShoreRatio())
-		{
-			return generateShoreData(bx, bz, regionData);
-		}
-
-		// Sea
-		else if(bridge.getIndex(x, z, 5) == 1)
+		if(bridge.getIndex(x, z, 5) == 1)
 		{
 			return generateSeaData(bx, bz, regionData);
 		}
 
-		// Land
 		else
 		{
 			return generateLandData(bx, bz, regionData);

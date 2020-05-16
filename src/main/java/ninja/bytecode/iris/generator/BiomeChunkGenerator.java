@@ -44,6 +44,17 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		return glBiome.generateRegionData(wx, wz, region);
 	}
 
+	protected double interpolateAuxiliaryHeight(double rx, double rz)
+	{
+		return IrisInterpolation.getNoise(getDimension().getInterpolationAuxiliaryFunction(), (int) Math.round(rx), (int) Math.round(rz), getDimension().getInterpolationAuxiliaryScale(), (xx, zz) ->
+		{
+			double xv = xx / getDimension().getTerrainZoom();
+			double zv = zz / getDimension().getTerrainZoom();
+			BiomeResult neighborResult = glBiome.generateData(xv, zv);
+			return neighborResult.getBiome().getAuxiliaryHeight(xv, zv, getWorld().getSeed() * 3923);
+		});
+	}
+
 	protected double interpolateHeight(double rx, double rz, Function<IrisBiome, Double> property)
 	{
 		return IrisInterpolation.getNoise(getDimension().getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), getDimension().getInterpolationScale(), (xx, zz) ->

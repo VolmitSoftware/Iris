@@ -68,6 +68,16 @@ public class GroupedExecutor
 
 	public void waitFor(String g)
 	{
+		if(g == null)
+		{
+			return;
+		}
+
+		if(!mirror.containsKey(g))
+		{
+			return;
+		}
+
 		while(true)
 		{
 			J.sleep(1);

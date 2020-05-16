@@ -19,18 +19,42 @@ public class IrisBiome extends IrisRegisteredObject
 {
 	private String name = "A Biome";
 	private Biome derivative = Biome.THE_VOID;
-	private double highHeight = 7;
+	private double highHeight = 3;
 	private double lowHeight = 1;
 	private double childShrinkFactor = 1.5;
 	private KList<String> children = new KList<>();
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
+	private KList<IrisNoiseLayer> auxiliaryGenerators = new KList<IrisNoiseLayer>();
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;
 	private transient KList<CNG> layerHeightGenerators;
 	private transient KList<CNG> layerSurfaceGenerators;
+
+	public IrisBiome()
+	{
+
+	}
+
+	public double getAuxiliaryHeight(double rx, double rz, long superSeed)
+	{
+		if(auxiliaryGenerators.isEmpty())
+		{
+			return 0;
+		}
+
+		int hc = hashCode();
+		double h = 0;
+
+		for(IrisNoiseLayer i : auxiliaryGenerators)
+		{
+			h += i.getNoise(superSeed + hc, rx, rz);
+		}
+
+		return h;
+	}
 
 	public CellGenerator getChildrenGenerator(RNG random, int sig, double scale)
 	{

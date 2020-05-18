@@ -1,6 +1,5 @@
 package ninja.bytecode.iris.object;
 
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.block.Biome;
@@ -12,6 +11,7 @@ import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.logging.L;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -74,15 +74,12 @@ public class IrisBiome extends IrisRegisteredObject
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random).get(i);
-			CNG sgen = getLayerSurfaceGenerators(random).get(i);
 			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getTerrainZoom(), wz / layers.get(i).getTerrainZoom());
 
 			if(d < 0)
 			{
 				continue;
 			}
-
-			List<BlockData> palette = getLayers().get(i).getBlockData();
 
 			for(int j = 0; j < d; j++)
 			{
@@ -93,12 +90,12 @@ public class IrisBiome extends IrisRegisteredObject
 
 				try
 				{
-					data.add(palette.get(sgen.fit(0, palette.size() - 1, (wx + j) / layers.get(i).getTerrainZoom(), (wz - j) / layers.get(i).getTerrainZoom())));
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getTerrainZoom(), j, (wz - j) / layers.get(i).getTerrainZoom()));
 				}
 
 				catch(Throwable e)
 				{
-
+					L.ex(e);
 				}
 			}
 
@@ -109,25 +106,6 @@ public class IrisBiome extends IrisRegisteredObject
 		}
 
 		return data;
-	}
-
-	public KList<CNG> getLayerSurfaceGenerators(RNG rng)
-	{
-		lock.lock();
-		if(layerSurfaceGenerators == null)
-		{
-			layerSurfaceGenerators = new KList<>();
-
-			int m = 91235;
-
-			for(IrisBiomePaletteLayer i : getLayers())
-			{
-				layerSurfaceGenerators.add(i.getGenerator(rng.nextParallelRNG((m += 3) * m * m * m)));
-			}
-		}
-		lock.unlock();
-
-		return layerSurfaceGenerators;
 	}
 
 	public KList<CNG> getLayerHeightGenerators(RNG rng)
@@ -141,7 +119,7 @@ public class IrisBiome extends IrisRegisteredObject
 
 			for(IrisBiomePaletteLayer i : getLayers())
 			{
-				layerHeightGenerators.add(i.getGenerator(rng.nextParallelRNG((m++) * m * m * m)));
+				layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
 			}
 		}
 		lock.unlock();

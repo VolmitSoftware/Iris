@@ -12,7 +12,7 @@ import ninja.bytecode.shuriken.collections.KMap;
 @Data
 public class IrisBiomeDecorator
 {
-	private Dispersion dispersion = Dispersion.ZEBRA;
+	private Dispersion dispersion = Dispersion.SCATTER;
 	private int iterations = 5;
 	private double zoom = 1;
 	private KList<String> palette = new KList<String>().qadd("GRASS");

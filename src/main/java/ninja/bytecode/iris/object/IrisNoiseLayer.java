@@ -7,14 +7,14 @@ import ninja.bytecode.iris.util.RNG;
 
 public class IrisNoiseLayer
 {
-	private double zoom;
-	private double offsetX;
-	private double offsetZ;
-	private long seed;
-	private double min;
-	private double max;
-	private ReentrantLock lock;
+	private double zoom = 1;
+	private double offsetX = 0;
+	private double offsetZ = 0;
+	private long seed = 0;
+	private double min = 0;
+	private double max = 10;
 
+	private transient ReentrantLock lock;
 	private transient CNG generator;
 
 	public IrisNoiseLayer()

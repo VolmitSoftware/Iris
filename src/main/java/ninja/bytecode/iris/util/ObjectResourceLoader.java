@@ -91,7 +91,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		}
 
 		lock.lock();
-		for(File i : getFolders())
+		for(File i : getFolders(name))
 		{
 			for(File j : i.listFiles())
 			{

@@ -25,7 +25,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import ninja.bytecode.iris.generator.IrisGenerator;
+import ninja.bytecode.iris.generator.IrisChunkGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisObject;
@@ -84,15 +84,13 @@ public class Iris extends JavaPlugin implements BoardProvider
 		World world = player.getWorld();
 		List<String> lines = new ArrayList<>();
 
-		if(world.getGenerator() instanceof IrisGenerator)
+		if(world.getGenerator() instanceof IrisChunkGenerator)
 		{
-			IrisGenerator g = (IrisGenerator) world.getGenerator();
+			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 			int x = player.getLocation().getBlockX();
 			int z = player.getLocation().getBlockZ();
-			IrisDimension dim = g.getDimension();
-			BiomeResult er = g.getBiome(x, z);
+			BiomeResult er = g.sampleTrueBiome(x, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
-			int fh = dim.getFluidHeight();
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
 			lines.add(ChatColor.GREEN + "Loss" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.duration(g.getMetrics().getLoss().getAverage(), 4) + "");
@@ -106,8 +104,8 @@ public class Iris extends JavaPlugin implements BoardProvider
 			{
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
 				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey() + ".json");
-				lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) (b.getLowHeight() + fh) + " - " + (int) (b.getHighHeight() + fh) + " (" + (int) (b.getHighHeight() - b.getLowHeight()) + ")");
 			}
+			
 			lines.add("&7&m-----------------");
 		}
 
@@ -479,7 +477,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						IrisGenerator gx = new IrisGenerator(dimm, 16);
+						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, 16);
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
 
@@ -531,7 +529,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisGenerator("overworld", 16);
+		return new IrisChunkGenerator("overworld", 16);
 	}
 
 	public static void msg(String string)

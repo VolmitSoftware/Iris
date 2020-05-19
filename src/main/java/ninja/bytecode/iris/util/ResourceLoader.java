@@ -6,15 +6,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.gson.Gson;
 
 import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisRegisteredObject;
+import ninja.bytecode.iris.object.IrisRegistrant;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 
-public class ResourceLoader<T extends IrisRegisteredObject>
+public class ResourceLoader<T extends IrisRegistrant>
 {
 	protected File root;
 	protected String folderName;
 	protected String resourceTypeName;
+	protected KMap<String, File> folderMapCache;
 	protected KMap<String, T> loadCache;
 	protected KList<File> folderCache;
 	protected Class<? extends T> objectClass;
@@ -23,6 +24,7 @@ public class ResourceLoader<T extends IrisRegisteredObject>
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
 		lock = new ReentrantLock();
+		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
 		this.resourceTypeName = resourceTypeName;
 		this.root = root;
@@ -62,7 +64,7 @@ public class ResourceLoader<T extends IrisRegisteredObject>
 		}
 
 		lock.lock();
-		for(File i : getFolders())
+		for(File i : getFolders(name))
 		{
 			for(File j : i.listFiles())
 			{
@@ -111,9 +113,55 @@ public class ResourceLoader<T extends IrisRegisteredObject>
 		return folderCache;
 	}
 
+	public KList<File> getFolders(String rc)
+	{
+		KList<File> folders = getFolders().copy();
+
+		if(rc.contains(":"))
+		{
+			for(File i : folders.copy())
+			{
+				if(!rc.startsWith(i.getName() + ":"))
+				{
+					folders.remove(i);
+				}
+			}
+		}
+
+		return folders;
+	}
+
 	public void clearCache()
 	{
 		loadCache.clear();
 		folderCache = null;
+	}
+
+	public File fileFor(T b)
+	{
+		for(File i : getFolders())
+		{
+			for(File j : i.listFiles())
+			{
+				if(j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(b.getLoadKey()))
+				{
+					return j;
+				}
+			}
+
+			File file = new File(i, b.getLoadKey() + ".json");
+
+			if(file.exists())
+			{
+				return file;
+			}
+		}
+
+		return null;
+	}
+
+	public boolean isLoaded(String next)
+	{
+		return loadCache.containsKey(next);
 	}
 }

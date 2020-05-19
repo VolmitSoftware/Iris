@@ -32,4 +32,6 @@ public interface IrisContext
 	public int getHeight(int x, int z);
 
 	public World getWorld();
+
+	public void onHotloaded();
 }

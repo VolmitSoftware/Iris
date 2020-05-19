@@ -22,7 +22,7 @@ import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisObject extends IrisRegisteredObject
+public class IrisObject extends IrisRegistrant
 {
 	private KMap<BlockVector, BlockData> blocks;
 	private int w;

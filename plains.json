@@ -1,0 +1,69 @@
+{
+    "children": [],
+    "decorators": [],
+    "objects": [],
+    "name": "Plains",
+    "layers": [
+        {
+            "minHeight": 1,
+            "terrainZoom": 5,
+            "maxHeight": 3,
+            "palette": [
+                "GRASS_BLOCK"
+            ],
+            "dispersion": "SCATTER"
+        },
+        {
+            "minHeight": 1,
+            "terrainZoom": 5,
+            "maxHeight": 1,
+            "palette": [
+                "DIRT"
+            ],
+            "dispersion": "SCATTER"
+        },
+        {
+            "minHeight": 1,
+            "terrainZoom": 5,
+            "maxHeight": 3,
+            "palette": [
+                "DIRT",
+                "COARSE_DIRT"
+            ],
+            "dispersion": "SCATTER"
+        },
+        {
+            "minHeight": 6,
+            "terrainZoom": 5,
+            "maxHeight": 2341,
+            "palette": [
+                "STONE",
+                "ANDESITE",
+                "STONE"
+            ],
+            "dispersion": "SCATTER"
+        }
+    ],
+    "childShrinkFactor": 1.55,
+    "derivative": "THE_VOID",
+    "auxiliaryGenerators": [
+        {
+            "offsetX": 0,
+            "offsetZ": 0.01,
+            "min": 1,
+            "seed": 1336,
+            "max": 5,
+            "zoom": 3.065
+        },
+        {
+            "offsetX": 0,
+            "offsetZ": 0,
+            "min": 1.01,
+            "seed": 1339,
+            "max": 2,
+            "zoom": 1.6
+        }
+    ],
+    "highHeight": 3.66669,
+    "lowHeight": 31.5
+}

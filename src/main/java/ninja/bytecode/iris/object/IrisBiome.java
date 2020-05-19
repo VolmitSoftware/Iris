@@ -7,6 +7,7 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ninja.bytecode.iris.generator.BiomeChunkGenerator;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.RNG;
@@ -15,18 +16,16 @@ import ninja.bytecode.shuriken.logging.L;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisBiome extends IrisRegisteredObject
+public class IrisBiome extends IrisRegistrant
 {
 	private String name = "A Biome";
 	private Biome derivative = Biome.THE_VOID;
-	private double highHeight = 3;
-	private double lowHeight = 1;
 	private double childShrinkFactor = 1.5;
 	private KList<String> children = new KList<>();
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
-	private KList<IrisNoiseLayer> auxiliaryGenerators = new KList<IrisNoiseLayer>();
+	private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;
@@ -38,22 +37,16 @@ public class IrisBiome extends IrisRegisteredObject
 
 	}
 
-	public double getAuxiliaryHeight(double rx, double rz, long superSeed)
+	public double getHeight(double x, double z, long seed)
 	{
-		if(auxiliaryGenerators.isEmpty())
+		double height = 0;
+
+		for(IrisBiomeGeneratorLink i : generators)
 		{
-			return 0;
+			height += i.getHeight(x, z, seed);
 		}
 
-		int hc = hashCode();
-		double h = 0;
-
-		for(IrisNoiseLayer i : auxiliaryGenerators)
-		{
-			h += i.getNoise(superSeed + hc, rx, rz);
-		}
-
-		return h;
+		return Math.max(0, Math.min(height, 255));
 	}
 
 	public CellGenerator getChildrenGenerator(RNG random, int sig, double scale)

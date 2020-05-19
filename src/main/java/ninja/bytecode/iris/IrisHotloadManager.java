@@ -19,7 +19,7 @@ public class IrisHotloadManager
 		latch = new ChronoLatch(3000);
 	}
 
-	public void check()
+	public void check(IrisContext ch)
 	{
 		if(!latch.flip())
 		{
@@ -46,6 +46,7 @@ public class IrisHotloadManager
 				watchers.clear();
 				Iris.success("Hotloading Iris (" + c + " File" + (c == 1 ? "" : "s") + " changed)");
 				Iris.data.hotloaded();
+				ch.onHotloaded();
 			}
 		});
 	}

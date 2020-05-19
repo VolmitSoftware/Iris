@@ -12,9 +12,9 @@ import ninja.bytecode.iris.util.BiomeResult;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisGenerator extends ParallaxChunkGenerator implements IrisContext
+public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisContext
 {
-	public IrisGenerator(String dimensionName, int threads)
+	public IrisChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
 	}

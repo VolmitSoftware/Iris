@@ -10,15 +10,13 @@ import ninja.bytecode.shuriken.collections.KList;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisDimension extends IrisRegisteredObject
+public class IrisDimension extends IrisRegistrant
 {
 	private String name = "A Dimension";
 	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
 	private double interpolationScale = 63;
 	private InterpolationMethod interpolationSurfaceFunction = InterpolationMethod.BICUBIC;
 	private double interpolationSurfaceScale = 4;
-	private InterpolationMethod interpolationAuxiliaryFunction = InterpolationMethod.BICUBIC;
-	private double interpolationAuxiliaryScale = 7;
 	private Environment environment = Environment.NORMAL;
 	private KList<String> regions = new KList<>();
 	private int fluidHeight = 127;

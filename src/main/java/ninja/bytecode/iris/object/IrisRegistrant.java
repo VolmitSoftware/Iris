@@ -3,7 +3,7 @@ package ninja.bytecode.iris.object;
 import lombok.Data;
 
 @Data
-public class IrisRegisteredObject
+public class IrisRegistrant
 {
 	private String loadKey;
 }

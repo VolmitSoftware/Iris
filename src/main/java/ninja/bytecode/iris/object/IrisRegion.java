@@ -10,7 +10,7 @@ import ninja.bytecode.shuriken.collections.KList;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisRegion extends IrisRegisteredObject
+public class IrisRegion extends IrisRegistrant
 {
 	private String name = "A Region";
 	private double shoreRatio = 0.13;

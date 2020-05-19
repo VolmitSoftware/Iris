@@ -14,4 +14,9 @@ public class BiomeResult
 		this.biome = biome;
 		this.distance = distance;
 	}
+
+	public boolean is(BiomeResult r)
+	{
+		return biome.getName().equals(r.biome.getName());
+	}
 }

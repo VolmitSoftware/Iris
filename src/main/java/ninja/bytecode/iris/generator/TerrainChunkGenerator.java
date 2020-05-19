@@ -11,7 +11,6 @@ import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 
@@ -22,7 +21,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData STONE = Material.STONE.createBlockData();
 	protected static final BlockData WATER = Material.WATER.createBlockData();
-	protected CNG terrainNoise;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
@@ -32,7 +30,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		terrainNoise = CNG.signature(masterRandom.nextParallelRNG(2));
 	}
 
 	@Override
@@ -77,13 +74,10 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	protected double getNoiseHeight(int rx, int rz)
 	{
-		double ox = getModifiedX(rx, rz);
-		double oz = getModifiedZ(rx, rz);
-		double wx = getZoomed(ox);
-		double wz = getZoomed(oz);
-		double lo = interpolateHeight(ox, oz, (b) -> b.getLowHeight());
-		double hi = interpolateSurface(ox, oz, (b) -> b.getHighHeight());
-		return lo + (terrainNoise.fitDoubleD(0, hi - lo, wx, wz)) + interpolateAuxiliaryHeight(rx, rz);
+		double wx = getZoomed(rx);
+		double wz = getZoomed(rz);
+
+		return getBiomeHeight(wx, wz);
 	}
 
 	public BiomeResult sampleTrueBiome(int x, int z)

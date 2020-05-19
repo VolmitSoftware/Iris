@@ -186,7 +186,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		return super.canSpawn(world, x, z);
 	}
-	
+
 	protected ChunkData generateChunkDataFailure(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
 		ChunkData c = Bukkit.createChunkData(world);
@@ -231,7 +231,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 					this.world = world;
 				}
 
-				Iris.hotloader.check();
+				Iris.hotloader.check((IrisContext) this);
 
 				if(this instanceof IrisContext)
 				{
@@ -259,6 +259,11 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 
 		return generateChunkDataFailure(world, no, x, z, biomeGrid);
+	}
+	
+	public void onHotloaded()
+	{
+		
 	}
 
 	protected void fail(Throwable e)

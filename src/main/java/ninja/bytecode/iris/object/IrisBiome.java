@@ -7,7 +7,6 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.generator.BiomeChunkGenerator;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.RNG;

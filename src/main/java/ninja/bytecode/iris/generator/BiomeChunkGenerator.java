@@ -19,6 +19,7 @@ import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 
 @Data
@@ -92,7 +93,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 				}
 			}
 
-			return getDimension().getFluidHeight();
+			return 0;
 		});
 
 		double lo = IrisInterpolation.getNoise(gen.getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), gen.getInterpolationScale(), (xx, zz) ->
@@ -107,7 +108,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 				}
 			}
 
-			return getDimension().getFluidHeight();
+			return 0;
 		});
 
 		return M.lerp(lo, hi, gen.getHeight(rx, rz, world.getSeed() + 239945));

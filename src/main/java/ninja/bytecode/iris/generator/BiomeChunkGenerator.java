@@ -19,7 +19,6 @@ import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.M;
 
 @Data

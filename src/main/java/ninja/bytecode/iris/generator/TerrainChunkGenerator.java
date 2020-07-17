@@ -2,11 +2,14 @@ package ninja.bytecode.iris.generator;
 
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Bisected.Half;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.object.IrisBiome;
+import ninja.bytecode.iris.object.IrisBiomeDecorator;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
@@ -68,7 +71,38 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				block = layers.hasIndex(depth) ? layers.get(depth) : STONE;
 				depth++;
 			}
+
 			sliver.set(k, block);
+
+			if(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255)
+			{
+				int j = 0;
+
+				for(IrisBiomeDecorator i : biome.getDecorators())
+				{
+					BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
+
+					if(d != null)
+					{
+						if(d instanceof Bisected && k < 254)
+						{
+							Bisected t = ((Bisected) d.clone());
+							t.setHalf(Half.TOP);
+							Bisected b = ((Bisected) d.clone());
+							b.setHalf(Half.BOTTOM);
+							sliver.set(k + 1, b);
+							sliver.set(k + 2, t);
+						}
+
+						else
+						{
+							sliver.set(k + 1, d);
+						}
+
+						break;
+					}
+				}
+			}
 		}
 	}
 

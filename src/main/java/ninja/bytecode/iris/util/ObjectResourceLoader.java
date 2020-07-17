@@ -6,7 +6,6 @@ import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.object.IrisObject;
-import ninja.bytecode.shuriken.logging.L;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {

@@ -1,7 +1,6 @@
 package ninja.bytecode.iris.object;
 
 import lombok.Data;
-import net.md_5.bungee.api.ChatColor;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.IrisInterpolation;
 
@@ -28,8 +27,6 @@ public class IrisBiomeGeneratorLink
 			{
 				gen = new IrisGenerator();
 			}
-			
-			Iris.success("Registered Generator " + ChatColor.WHITE + gen.getLoadKey());
 		}
 
 		return gen;

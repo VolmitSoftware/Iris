@@ -9,12 +9,14 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,6 +32,7 @@ import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisObject;
 import ninja.bytecode.iris.util.BiomeResult;
+import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.BoardManager;
 import ninja.bytecode.iris.util.BoardProvider;
 import ninja.bytecode.iris.util.BoardSettings;
@@ -105,7 +108,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
 				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey() + ".json");
 			}
-			
+
 			lines.add("&7&m-----------------");
 		}
 
@@ -139,6 +142,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			if(args.length == 0)
 			{
 				imsg(sender, "/iris dev [dimension] - Create a new dev world");
+				imsg(sender, "/iris what <look/hand> - Data about items & blocks");
 				imsg(sender, "/iris wand [?] - Get a wand / help");
 				imsg(sender, "/iris save <name> - Save object");
 				imsg(sender, "/iris load <name> - Load & place object");
@@ -146,6 +150,47 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 			if(args.length >= 1)
 			{
+				if(args[0].equalsIgnoreCase("what"))
+				{
+					if(args.length != 2)
+					{
+						imsg(sender, "/iris what <look/hand> - Data about items & blocks");
+						return true;
+					}
+
+					BlockData bd = null;
+
+					try
+					{
+						if(args[1].toLowerCase().startsWith("h"))
+						{
+							bd = BlockDataTools.getBlockData(((Player) sender).getInventory().getItemInMainHand().getType().name());
+						}
+
+						else
+						{
+							bd = ((Player) sender).getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
+						}
+
+					}
+
+					catch(Throwable e)
+					{
+
+					}
+
+					if(bd == null)
+					{
+						imsg(sender, "No data found.");
+						return true;
+					}
+
+					imsg(sender, "Material: " + ChatColor.GREEN + bd.getMaterial().name());
+					imsg(sender, "Full: " + ChatColor.WHITE + bd.getAsString(true));
+
+					return true;
+				}
+
 				if(args[0].equalsIgnoreCase("wand"))
 				{
 					if(args.length == 1)

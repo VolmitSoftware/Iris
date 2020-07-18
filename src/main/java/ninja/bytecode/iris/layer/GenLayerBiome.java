@@ -31,7 +31,7 @@ public class GenLayerBiome extends GenLayer
 
 	public IrisRegion getRegion(double bx, double bz)
 	{
-		region.setShuffle(32);
+		region.setShuffle(8);
 		region.setCellScale(0.33 / iris.getDimension().getRegionZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
@@ -45,14 +45,18 @@ public class GenLayerBiome extends GenLayer
 		return generateRegionData(bx, bz, getRegion(bx, bz));
 	}
 
-	public BiomeResult generateRegionData(double bx, double bz, IrisRegion regionData)
+	public boolean isSea(double bx, double bz, IrisRegion regionData)
 	{
-		bridge.setShuffle(32);
+		bridge.setShuffle(0);
 		bridge.setCellScale(0.33 / iris.getDimension().getContinentZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
+		return bridge.getIndex(x, z, 5) == 1;
+	}
 
-		if(bridge.getIndex(x, z, 5) == 1)
+	public BiomeResult generateRegionData(double bx, double bz, IrisRegion regionData)
+	{
+		if(isSea(bx, bz, regionData))
 		{
 			return generateSeaData(bx, bz, regionData);
 		}
@@ -75,21 +79,21 @@ public class GenLayerBiome extends GenLayer
 
 	public BiomeResult generateSeaData(double bx, double bz, IrisRegion regionData)
 	{
-		sea.setShuffle(32);
+		sea.setShuffle(42);
 		sea.setCellScale(0.56 / iris.getDimension().getSeaZoom());
 		return generateBiomeData(bx, bz, regionData, sea, regionData.getSeaBiomes(), InferredType.SEA);
 	}
 
 	public BiomeResult generateLandData(double bx, double bz, IrisRegion regionData)
 	{
-		land.setShuffle(32);
+		land.setShuffle(12);
 		land.setCellScale(0.6 / iris.getDimension().getLandZoom());
 		return generateBiomeData(bx, bz, regionData, land, regionData.getLandBiomes(), InferredType.LAND);
 	}
 
 	public BiomeResult generateShoreData(double bx, double bz, IrisRegion regionData)
 	{
-		shore.setShuffle(32);
+		shore.setShuffle(4);
 		shore.setCellScale(0.8 / iris.getDimension().getShoreZoom());
 		return generateBiomeData(bx, bz, regionData, shore, regionData.getShoreBiomes(), InferredType.SHORE);
 	}

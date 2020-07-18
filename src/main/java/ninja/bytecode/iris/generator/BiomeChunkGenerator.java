@@ -14,6 +14,7 @@ import ninja.bytecode.iris.object.IrisGenerator;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.ChronoLatch;
 import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.iris.util.IrisInterpolation;
 import ninja.bytecode.iris.util.RNG;
@@ -30,6 +31,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 	protected GenLayerBiome glBiome;
 	protected CNG masterFracture;
 	protected KMap<ChunkPosition, BiomeResult> biomeHitCache;
+	protected ChronoLatch cwarn = new ChronoLatch(1000);
 
 	public BiomeChunkGenerator(String dimensionName)
 	{
@@ -88,7 +90,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 			{
 				if(i.getGenerator().equals(gen.getLoadKey()))
 				{
-					return i.getMin();
+					return i.getMax();
 				}
 			}
 
@@ -103,7 +105,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 			{
 				if(i.getGenerator().equals(gen.getLoadKey()))
 				{
-					return i.getMax();
+					return i.getMin();
 				}
 			}
 

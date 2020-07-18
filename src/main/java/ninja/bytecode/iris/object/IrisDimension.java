@@ -19,7 +19,7 @@ public class IrisDimension extends IrisRegistrant
 	private double interpolationSurfaceScale = 4;
 	private Environment environment = Environment.NORMAL;
 	private KList<String> regions = new KList<>();
-	private int fluidHeight = 127;
+	private int fluidHeight = 63;
 	private double biomeZoom = 5D;
 	private double terrainZoom = 2D;
 	private double dimensionAngleDeg = 0;

@@ -3,8 +3,8 @@ package ninja.bytecode.iris.generator;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.Bisected;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Bisected.Half;
+import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -129,8 +129,8 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return glBiome.generateLandData(wx, wz, region);
 		}
 
-		// Stop oceans from spawning on mountains
-		if(current.isShore() && height <= getDimension().getFluidHeight())
+		// Stop land & shore from spawning underwater
+		if(current.isShore() || current.isLand() && height <= getDimension().getFluidHeight())
 		{
 			return glBiome.generateSeaData(wx, wz, region);
 		}

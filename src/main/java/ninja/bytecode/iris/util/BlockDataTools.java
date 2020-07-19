@@ -20,18 +20,28 @@ public class BlockDataTools
 			return bdc.get(bd).clone();
 		}
 
-		BlockData bdx = parseBlockData(bd);
-
-		if(bdx == null)
+		try
 		{
-			Iris.warn("Unknown Block Data '" + bd + "'");
-			nulls.add(bd);
+			BlockData bdx = parseBlockData(bd);
+
+			if(bdx == null)
+			{
+				Iris.warn("Unknown Block Data '" + bd + "'");
+				nulls.add(bd);
+				return bdx;
+			}
+
+			bdc.put(bd, bdx);
+
 			return bdx;
 		}
-
-		bdc.put(bd, bdx);
-
-		return bdx;
+		
+		catch(Throwable e)
+		{
+			Iris.warn("Unknown Block Data '" + bd + "'");
+		}
+		
+		return null;
 	}
 
 	public static BlockData parseBlockData(String ix)

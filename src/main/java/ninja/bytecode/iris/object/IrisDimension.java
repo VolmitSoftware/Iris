@@ -20,6 +20,7 @@ public class IrisDimension extends IrisRegistrant
 	private Environment environment = Environment.NORMAL;
 	private KList<String> regions = new KList<>();
 	private int fluidHeight = 63;
+	private String focus = "";
 	private double biomeZoom = 5D;
 	private double terrainZoom = 2D;
 	private double dimensionAngleDeg = 0;

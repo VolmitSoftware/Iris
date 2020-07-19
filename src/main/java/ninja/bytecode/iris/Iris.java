@@ -101,7 +101,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Regions" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedRegions().size()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "Sliver Buffer" + ChatColor.GRAY + ": " + Form.f((int) g.getSliverBuffer()));
+			lines.add(ChatColor.GREEN + "BUD Requests" + ChatColor.GRAY + ": " + Form.f((int) g.getUpdateBlocks().size()));
 
 			if(er != null && b != null)
 			{

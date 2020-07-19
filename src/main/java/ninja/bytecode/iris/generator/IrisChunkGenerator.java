@@ -1,5 +1,7 @@
 package ninja.bytecode.iris.generator;
 
+import java.lang.reflect.Method;
+
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
@@ -14,6 +16,8 @@ import ninja.bytecode.iris.util.BiomeResult;
 @EqualsAndHashCode(callSuper = false)
 public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisContext
 {
+	private Method initLighting;
+
 	public IrisChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
@@ -40,7 +44,7 @@ public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisCo
 	@Override
 	protected void onTick(int ticks)
 	{
-		
+
 	}
 
 	@Override
@@ -59,7 +63,7 @@ public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisCo
 	@Override
 	protected void onChunkLoaded(Chunk c)
 	{
-
+		updateLights();
 	}
 
 	@Override

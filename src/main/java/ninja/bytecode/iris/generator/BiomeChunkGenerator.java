@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.layer.GenLayerBiome;
+import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeGeneratorLink;
 import ninja.bytecode.iris.object.IrisGenerator;
@@ -155,6 +156,36 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 	public BiomeResult sampleBiome(int x, int z)
 	{
+		if(!getDimension().getFocus().equals(""))
+		{
+			IrisBiome biome = Iris.data.getBiomeLoader().load(getDimension().getFocus());
+			
+			for(String i : getDimension().getRegions())
+			{
+				IrisRegion reg = Iris.data.getRegionLoader().load(i);
+				
+				if(reg.getLandBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.LAND);
+					break;
+				}
+				
+				if(reg.getSeaBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.SEA);
+					break;
+				}
+				
+				if(reg.getShoreBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.SHORE);
+					break;
+				}
+			}
+			
+			return new BiomeResult(biome, 0);
+		}
+
 		ChunkPosition pos = new ChunkPosition(x, z);
 
 		if(biomeHitCache.containsKey(pos))

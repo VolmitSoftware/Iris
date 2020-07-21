@@ -5,22 +5,40 @@ import org.bukkit.block.data.BlockData;
 import lombok.Data;
 import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 
+@Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisBiomeDecorator
 {
+	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
 	private Dispersion variance = Dispersion.SCATTER;
+
+	@Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
 	private Dispersion dispersion = Dispersion.SCATTER;
+
+	@Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
 	private Dispersion verticalVariance = Dispersion.SCATTER;
-	private int iterations = 5;
+
+	@Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
 	private int stackMin = 1;
+
+	@Desc("The maximum repeat stack height")
 	private int stackMax = 1;
+
+	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is/")
 	private double zoom = 1;
+
+	@Desc("The vertical zoom is for wispy stack heights. Zooming this in makes stack heights more slowly change over a distance")
 	private double verticalZoom = 1;
+
+	@Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)")
 	private double chance = 0.1;
+
+	@Desc("The palette of blocks to pick from when this decorator needs to place.")
 	private KList<String> palette = new KList<String>().qadd("GRASS");
 
 	private transient KMap<Long, CNG> layerGenerators;
@@ -41,7 +59,7 @@ public class IrisBiomeDecorator
 	{
 		if(heightGenerator == null)
 		{
-			heightGenerator = CNG.signature(rng.nextParallelRNG(iterations + getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
+			heightGenerator = CNG.signature(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
 		}
 
 		return heightGenerator;
@@ -58,7 +76,7 @@ public class IrisBiomeDecorator
 
 		if(!layerGenerators.containsKey(key))
 		{
-			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG(iterations + getBlockData().size())).scale(1D / zoom));
+			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG(getBlockData().size())).scale(1D / zoom));
 		}
 
 		return layerGenerators.get(key);

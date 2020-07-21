@@ -63,7 +63,7 @@ public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisCo
 	@Override
 	protected void onChunkLoaded(Chunk c)
 	{
-		updateLights();
+		// TODO: updateLights(); better
 	}
 
 	@Override

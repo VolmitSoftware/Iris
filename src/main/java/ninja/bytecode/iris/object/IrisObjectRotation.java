@@ -3,13 +3,19 @@ package ninja.bytecode.iris.object;
 import org.bukkit.util.BlockVector;
 
 import lombok.Data;
+import ninja.bytecode.iris.util.Desc;
 
+@Desc("Configures rotation for iris")
 @Data
 public class IrisObjectRotation
 {
+	@Desc("If this rotator is enabled or not")
 	private boolean enabled = true;
+	@Desc("The x axis rotation")
 	private IrisAxisRotationClamp xAxis = new IrisAxisRotationClamp();
+	@Desc("The y axis rotation")
 	private IrisAxisRotationClamp yAxis = new IrisAxisRotationClamp(true, 0, 0, 90);
+	@Desc("The z axis rotation")
 	private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();
 
 	public IrisObjectRotation()

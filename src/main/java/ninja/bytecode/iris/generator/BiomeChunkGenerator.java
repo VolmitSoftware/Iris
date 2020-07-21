@@ -159,30 +159,30 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		if(!getDimension().getFocus().equals(""))
 		{
 			IrisBiome biome = Iris.data.getBiomeLoader().load(getDimension().getFocus());
-			
+
 			for(String i : getDimension().getRegions())
 			{
 				IrisRegion reg = Iris.data.getRegionLoader().load(i);
-				
+
 				if(reg.getLandBiomes().contains(biome.getLoadKey()))
 				{
 					biome.setInferredType(InferredType.LAND);
 					break;
 				}
-				
+
 				if(reg.getSeaBiomes().contains(biome.getLoadKey()))
 				{
 					biome.setInferredType(InferredType.SEA);
 					break;
 				}
-				
+
 				if(reg.getShoreBiomes().contains(biome.getLoadKey()))
 				{
 					biome.setInferredType(InferredType.SHORE);
 					break;
 				}
 			}
-			
+
 			return new BiomeResult(biome, 0);
 		}
 
@@ -196,7 +196,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = glBiome.getRegion(wx, wz);
-		BiomeResult res = glBiome.generateRegionData(wx, wz, region);
+		BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
 		biomeHitCache.put(pos, res);
 
 		return res;

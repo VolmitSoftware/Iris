@@ -2,16 +2,22 @@ package ninja.bytecode.iris.object;
 
 import lombok.Data;
 import ninja.bytecode.iris.Iris;
+import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 
 @Data
 public class IrisObjectPlacement
 {
+	@Desc("List of objects to place")
 	private KList<String> place = new KList<>();
+	@Desc("Translate this object's placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
+	@Desc("Rotate this objects placement")
 	private IrisObjectRotation rotation = new IrisObjectRotation();
+	@Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
 	private double chance = 1;
+	@Desc("If the chance check passes, place this many in a single chunk")
 	private int density = 1;
 
 	public IrisObjectPlacement()

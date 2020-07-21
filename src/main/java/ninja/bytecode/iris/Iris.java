@@ -2,6 +2,7 @@ package ninja.bytecode.iris;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +28,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import com.google.gson.Gson;
+
 import ninja.bytecode.iris.generator.IrisChunkGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
@@ -39,16 +42,22 @@ import ninja.bytecode.iris.util.BoardSettings;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.Cuboid;
 import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
+import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.GroupedExecutor;
 import ninja.bytecode.iris.util.IO;
 import ninja.bytecode.iris.util.ScoreDirection;
 import ninja.bytecode.iris.wand.WandController;
 import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.format.Form;
+import ninja.bytecode.shuriken.json.JSONException;
+import ninja.bytecode.shuriken.json.JSONObject;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
+import ninja.bytecode.shuriken.tools.JarScanner;
 
 public class Iris extends JavaPlugin implements BoardProvider
 {
@@ -73,6 +82,17 @@ public class Iris extends JavaPlugin implements BoardProvider
 		data = new IrisDataManager(getDataFolder());
 		wand = new WandController();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
+		J.a(() ->
+		{
+			try
+			{
+				writeDocs();
+			}
+			catch(JSONException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | IOException e)
+			{
+				e.printStackTrace();
+			}
+		});
 	}
 
 	@Override
@@ -93,7 +113,9 @@ public class Iris extends JavaPlugin implements BoardProvider
 			int x = player.getLocation().getBlockX();
 			int z = player.getLocation().getBlockZ();
 			BiomeResult er = g.sampleTrueBiome(x, z);
+			BiomeResult erx = g.sampleBiome(x, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
+			IrisBiome bx = erx != null ? erx.getBiome() : null;
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
 			lines.add(ChatColor.GREEN + "Loss" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.duration(g.getMetrics().getLoss().getAverage(), 4) + "");
@@ -101,11 +123,11 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Regions" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedRegions().size()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "BUD Requests" + ChatColor.GRAY + ": " + Form.f((int) g.getUpdateBlocks().size()));
 
 			if(er != null && b != null)
 			{
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
+				lines.add(ChatColor.GREEN + "Real" + ChatColor.GRAY + ": " + bx.getName());
 				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey() + ".json");
 			}
 
@@ -118,6 +140,49 @@ public class Iris extends JavaPlugin implements BoardProvider
 		}
 
 		return lines;
+	}
+
+	public void writeDocs() throws IOException, JSONException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException
+	{
+		JarScanner j = new JarScanner(getFile(), "ninja.bytecode.iris.object");
+		j.scan();
+		File of = new File(getDataFolder(), "packs");
+		of.mkdirs();
+		KMap<String, String> files = new KMap<>();
+
+		for(Class<?> i : j.getClasses())
+		{
+			if(i.isAnnotationPresent(Desc.class))
+			{
+				Desc d = i.getAnnotation(Desc.class);
+				KList<String> page = new KList<>();
+				page.add("# " + i.getSimpleName());
+				page.add("> " + d.value());
+
+				page.add("```json");
+				page.add(new JSONObject(new Gson().toJson(i.getConstructor().newInstance())).toString(4));
+				page.add("```");
+
+				page.add("");
+				for(java.lang.reflect.Field k : i.getDeclaredFields())
+				{
+					if(k.isAnnotationPresent(Desc.class))
+					{
+						page.add("## " + k.getName());
+						page.add("> " + k.getAnnotation(Desc.class).value());
+						page.add("");
+					}
+				}
+
+				String pge = page.toString("\n");
+				files.put(i.getSimpleName(), pge);
+			}
+		}
+
+		for(String i : files.k())
+		{
+			IO.writeAll(new File(of, i + ".md"), files.get(i));
+		}
 	}
 
 	public void onDisable()

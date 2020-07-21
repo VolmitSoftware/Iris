@@ -11,8 +11,6 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeDecorator;
 import ninja.bytecode.iris.object.IrisRegion;
@@ -63,7 +61,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			updateBlocks.clear();
 		}
-		
+
 		for(BlockPosition i : updateBlocks.copy())
 		{
 			if(getWorld().isChunkLoaded(i.getChunkX(), i.getChunkZ()))
@@ -115,8 +113,26 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			double noise = getNoiseHeight(rx, rz);
 			int height = (int) Math.round(noise) + fluidHeight;
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
-
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height);
+
+			for(int k = Math.max(height, fluidHeight); k < 255; k++)
+			{
+				if(k < Math.max(height, fluidHeight) + 3)
+				{
+					if(biomeMap != null)
+					{
+						sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
+					}
+				}
+
+				else
+				{
+					if(biomeMap != null)
+					{
+						sliver.set(k, biome.getSkyBiome(masterRandom, rx, k, rz));
+					}
+				}
+			}
 
 			for(int k = Math.max(height, fluidHeight); k >= 0; k--)
 			{
@@ -124,7 +140,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				if(biomeMap != null)
 				{
-					sliver.set(k, biome.getDerivative());
+					sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
 					biomeMap.setBiome(x, z, biome);
 				}
 
@@ -236,32 +252,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
-			IrisBiome biome = Iris.data.getBiomeLoader().load(getDimension().getFocus());
-
-			for(String i : getDimension().getRegions())
-			{
-				IrisRegion reg = Iris.data.getRegionLoader().load(i);
-
-				if(reg.getLandBiomes().contains(biome.getLoadKey()))
-				{
-					biome.setInferredType(InferredType.LAND);
-					break;
-				}
-
-				if(reg.getSeaBiomes().contains(biome.getLoadKey()))
-				{
-					biome.setInferredType(InferredType.SEA);
-					break;
-				}
-
-				if(reg.getShoreBiomes().contains(biome.getLoadKey()))
-				{
-					biome.setInferredType(InferredType.SHORE);
-					break;
-				}
-			}
-
-			return new BiomeResult(biome, 0);
+			return focus();
 		}
 
 		double wx = getModifiedX(x, z);
@@ -274,34 +265,34 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		// Stop shores from spawning on land
 		if(current.isShore() && height > sh)
 		{
-			return glBiome.generateLandData(wx, wz, region);
+			return glBiome.generateLandData(wx, wz, x, z, region);
 		}
 
 		// Stop land & shore from spawning underwater
 		if(current.isShore() || current.isLand() && height <= getDimension().getFluidHeight())
 		{
-			return glBiome.generateSeaData(wx, wz, region);
+			return glBiome.generateSeaData(wx, wz, x, z, region);
 		}
 
 		// Stop oceans from spawning on land
 		if(current.isSea() && height > getDimension().getFluidHeight())
 		{
-			return glBiome.generateLandData(wx, wz, region);
+			return glBiome.generateLandData(wx, wz, x, z, region);
 		}
 
 		// Stop land from spawning underwater
 		if(height <= getDimension().getFluidHeight())
 		{
-			return glBiome.generateSeaData(wx, wz, region);
+			return glBiome.generateSeaData(wx, wz, x, z, region);
 		}
 
 		// Stop land from spawning where shores go
 		if(height <= getDimension().getFluidHeight() + sh)
 		{
-			return glBiome.generateShoreData(wx, wz, region);
+			return glBiome.generateShoreData(wx, wz, x, z, region);
 		}
 
-		return glBiome.generateRegionData(wx, wz, region);
+		return glBiome.generateRegionData(wx, wz, x, z, region);
 	}
 
 	@Override

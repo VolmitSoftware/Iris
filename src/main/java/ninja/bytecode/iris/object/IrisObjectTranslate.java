@@ -3,12 +3,19 @@ package ninja.bytecode.iris.object;
 import org.bukkit.util.BlockVector;
 
 import lombok.Data;
+import ninja.bytecode.iris.util.Desc;
 
+@Desc("Translate objects")
 @Data
 public class IrisObjectTranslate
 {
+	@Desc("The x shift in blocks")
 	private int x;
+
+	@Desc("The x shift in blocks")
 	private int y;
+
+	@Desc("The x shift in blocks")
 	private int z;
 
 	public IrisObjectTranslate()

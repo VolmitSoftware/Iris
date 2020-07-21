@@ -7,16 +7,27 @@ import org.bukkit.block.data.BlockData;
 import lombok.Data;
 import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.CNG;
+import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 
+@Desc("A layer of surface / subsurface material in biomes")
 @Data
 public class IrisBiomePaletteLayer
 {
+	@Desc("The dispersion of materials from the palette")
 	private Dispersion dispersion = Dispersion.SCATTER;
+
+	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
+
+	@Desc("The max thickness of this layer")
 	private int maxHeight = 1;
+
+	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
 	private double terrainZoom = 5;
+
+	@Desc("The palette of blocks to be used in this layer")
 	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
 
 	private transient ReentrantLock lock = new ReentrantLock();

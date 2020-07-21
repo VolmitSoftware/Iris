@@ -1,5 +1,4 @@
 package ninja.bytecode.iris.util;
-
 @FunctionalInterface
 public interface NoiseProvider
 {

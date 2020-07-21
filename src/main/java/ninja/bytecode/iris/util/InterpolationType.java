@@ -1,5 +1,4 @@
 package ninja.bytecode.iris.util;
-
 public enum InterpolationType
 {
 	LINEAR,

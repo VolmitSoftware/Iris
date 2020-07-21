@@ -14,8 +14,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.material.MaterialData;
 
 import ninja.bytecode.shuriken.collections.KList;
 
@@ -53,23 +51,6 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
 		x2 = Math.max(l1.getBlockX(), l2.getBlockX());
 		y2 = Math.max(l1.getBlockY(), l2.getBlockY());
 		z2 = Math.max(l1.getBlockZ(), l2.getBlockZ());
-	}
-
-	public KList<LivingEntity> getLivingEntities()
-	{
-		return new KList<LivingEntity>(new GListAdapter<Entity, LivingEntity>()
-		{
-			@Override
-			public LivingEntity onAdapt(Entity from)
-			{
-				if(from instanceof LivingEntity)
-				{
-					return (LivingEntity) from;
-				}
-
-				return null;
-			}
-		}.adapt(getEntities()));
 	}
 
 	public KList<Entity> getEntities()
@@ -761,24 +742,6 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
 			}
 		}
 		return res;
-	}
-
-	/**
-	 * Set all the blocks within the Cuboid to the given block ID and data byte.
-	 *
-	 * @param blockId
-	 *            the block ID
-	 * @param data
-	 *            the block data
-	 * @deprecated use {@link #fill(MaterialData, MassBlockUpdate)}
-	 */
-	@Deprecated
-	public void fill(int blockId, byte data)
-	{
-		for(Block b : this)
-		{
-			b.setTypeIdAndData(blockId, data, false);
-		}
 	}
 
 	/**

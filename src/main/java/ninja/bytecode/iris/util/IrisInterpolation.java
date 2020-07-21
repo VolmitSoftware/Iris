@@ -1,6 +1,6 @@
 package ninja.bytecode.iris.util;
 
-import ninja.bytecode.shuriken.math.M;
+import ninja.bytecode.iris.object.InterpolationMethod;
 
 public class IrisInterpolation
 {
@@ -16,6 +16,11 @@ public class IrisInterpolation
 	}
 
 	public static double lerp(double a, double b, double f)
+	{
+		return a + (f * (b - a));
+	}
+
+	public static float lerpf(float a, float b, float f)
 	{
 		return a + (f * (b - a));
 	}
@@ -135,8 +140,8 @@ public class IrisInterpolation
 		int z1 = (int) Math.round(fz * rad);
 		int x2 = (int) Math.round((fx + 1) * rad);
 		int z2 = (int) Math.round((fz + 1) * rad);
-		double px = M.rangeScale(0, 1, x1, x2, x);
-		double pz = M.rangeScale(0, 1, z1, z2, z);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
 		return blerpBezier( 
 				n.noise(x1, z1), 
@@ -159,8 +164,8 @@ public class IrisInterpolation
 		int z2 = (int) Math.round((fz + 1) * rad);
 		int x3 = (int) Math.round((fx + 2) * rad);
 		int z3 = (int) Math.round((fz + 2) * rad);
-		double px = M.rangeScale(0, 1, x1, x2, x);
-		double pz = M.rangeScale(0, 1, z1, z2, z);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
 		return bicubic(
 				n.noise(x0, z0), 
@@ -195,8 +200,8 @@ public class IrisInterpolation
 		int z2 = (int) Math.round((fz + 1) * rad);
 		int x3 = (int) Math.round((fx + 2) * rad);
 		int z3 = (int) Math.round((fz + 2) * rad);
-		double px = M.rangeScale(0, 1, x1, x2, x);
-		double pz = M.rangeScale(0, 1, z1, z2, z);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
 		return bihermite(
 				n.noise(x0, z0), 
@@ -215,7 +220,32 @@ public class IrisInterpolation
 				n.noise(x3, z1), 
 				n.noise(x3, z2), 
 				n.noise(x3, z3), 
-				px, pz, 0.00001, 0.5);
+				px, pz, 0.0000000001, 0.5);
 		//@done
+	}
+
+	public static double getNoise(InterpolationMethod method, int x, int z, double rad, NoiseProvider n)
+	{
+		if(method.equals(InterpolationMethod.BILINEAR))
+		{
+			return getBilinearNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.BICUBIC))
+		{
+			return getBicubicNoise(x, z, rad, n);
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE))
+		{
+			return getHermiteNoise(x, z, rad, n);
+		}
+
+		return n.noise(x, z);
+	}
+
+	public static double rangeScale(double amin, double amax, double bmin, double bmax, double b)
+	{
+		return amin + ((amax - amin) * ((b - bmin) / (bmax - bmin)));
 	}
 }

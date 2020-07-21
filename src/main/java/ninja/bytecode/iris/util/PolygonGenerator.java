@@ -2,11 +2,9 @@ package ninja.bytecode.iris.util;
 
 import java.util.function.Function;
 
-import mortar.lang.collection.GList;
-import mortar.lang.collection.GMap;
-import ninja.bytecode.shuriken.math.CNG;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.math.M;
-import ninja.bytecode.shuriken.math.RNG;
 
 public class PolygonGenerator
 {
@@ -174,6 +172,7 @@ public class PolygonGenerator
 	{
 		private T[] choices;
 
+
 		public EnumPolygonGenerator(RNG rng, double scale, int octaves, T[] choices, Function<CNG, CNG> factory)
 		{
 			super(rng, choices.length, scale / (double) choices.length, octaves, factory);
@@ -187,7 +186,7 @@ public class PolygonGenerator
 		}
 
 		@SuppressWarnings("unchecked")
-		public EnumPolygonGenerator(RNG rng, double scale, int octaves, GList<T> c, GMap<T, Double> choiceRarities, Function<CNG, CNG> factory)
+		public EnumPolygonGenerator(RNG rng, double scale, int octaves, KList<T> c, KMap<T, Double> choiceRarities, Function<CNG, CNG> factory)
 		{
 			super(rng, choiceRarities.size(), scale / (double) choiceRarities.size(), octaves, factory);
 			this.choices = (T[]) c.toArray();

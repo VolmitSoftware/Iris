@@ -1,5 +1,6 @@
 package ninja.bytecode.iris.util;
 
+import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;

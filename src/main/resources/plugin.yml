@@ -2,5 +2,7 @@ name: ${project.name}
 version: ${project.version}
 main: ninja.bytecode.iris.Iris
 load: STARTUP
-depend: [Mortar]
+commands:
+    iris:
+api-version: 1.15
 hotload-dependencies: false

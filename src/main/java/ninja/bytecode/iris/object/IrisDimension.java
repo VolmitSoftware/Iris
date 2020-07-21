@@ -23,6 +23,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The interpolation distance scale. Increase = more smooth, less detail")
 	private double interpolationScale = 63;
 
+	private double caveThickness = 1D;
+	private double caveScale = 1D;
+	private double caveShift = 0D;
+	private boolean caves = true;
+
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
 

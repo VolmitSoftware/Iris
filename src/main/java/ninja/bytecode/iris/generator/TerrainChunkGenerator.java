@@ -11,6 +11,7 @@ import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ninja.bytecode.iris.layer.GenLayerCave;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeDecorator;
 import ninja.bytecode.iris.object.IrisRegion;
@@ -18,6 +19,7 @@ import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.BlockPosition;
+import ninja.bytecode.iris.util.HeightMap;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.math.M;
@@ -33,6 +35,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private ReentrantLock relightLock = new ReentrantLock();
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
+	private GenLayerCave glCaves;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
@@ -42,6 +45,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
+		glCaves = new GenLayerCave(this, rng);
 	}
 
 	public void queueUpdate(int x, int y, int z)
@@ -215,14 +219,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 								if(stack == 1)
 								{
-									sliver.set(k + 1, d);
+									sliver.setSilently(k + 1, d);
 								}
 
 								else if(k < 255 - stack)
 								{
 									for(int l = 0; l < stack; l++)
 									{
-										sliver.set(k + l + 1, d);
+										sliver.setSilently(k + l + 1, d);
 									}
 								}
 							}
@@ -237,6 +241,18 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		catch(Throwable e)
 		{
 			fail(e);
+		}
+	}
+
+	@Override
+	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	{
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
+				glCaves.genCaves((x << 4) + i, (z << 4) + j, i, j, data, height);
+			}
 		}
 	}
 

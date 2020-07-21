@@ -44,6 +44,16 @@ public class AtomicSliver
 		highestBlock = h > highestBlock ? h : highestBlock;
 	}
 
+	public void setSilently(int h, BlockData d)
+	{
+		if(d == null)
+		{
+			return;
+		}
+
+		block.put(h, d);
+	}
+
 	public void set(int h, Biome d)
 	{
 		biome.put(h, d);

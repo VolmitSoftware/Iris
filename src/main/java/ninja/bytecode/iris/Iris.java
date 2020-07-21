@@ -54,7 +54,6 @@ import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
-import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 import ninja.bytecode.shuriken.tools.JarScanner;

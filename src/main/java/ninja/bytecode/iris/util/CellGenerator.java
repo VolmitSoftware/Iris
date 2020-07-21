@@ -42,6 +42,11 @@ public class CellGenerator
 		return ((fd.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle)))) + 1f) / 2f;
 	}
 
+	public float getDistance(double x, double y, double z)
+	{
+		return ((fd.GetCellular((float) ((x * cellScale) + (cng.noise(x, y, z) * shuffle)), (float) ((y * cellScale) + (cng.noise(x, y, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, y, x) * shuffle)))) + 1f) / 2f;
+	}
+
 	public float getValue(double x, double z, int possibilities)
 	{
 		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);

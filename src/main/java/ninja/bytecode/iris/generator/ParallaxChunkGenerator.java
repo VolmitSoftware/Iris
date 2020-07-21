@@ -120,8 +120,9 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
+		super.onPostGenerate(random, x, z, data, grid, height, biomeMap);
 		biomeHitCache.clear();
-		
+
 		if(getDimension().isPlaceObjects())
 		{
 			onGenerateParallax(random, x, z);

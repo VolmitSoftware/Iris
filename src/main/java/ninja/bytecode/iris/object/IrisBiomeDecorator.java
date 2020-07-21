@@ -44,6 +44,7 @@ public class IrisBiomeDecorator
 	private transient KMap<Long, CNG> layerGenerators;
 	private transient CNG heightGenerator;
 	private transient KList<BlockData> blockData;
+	private transient RNG nrng;
 
 	public int getHeight(RNG rng, double x, double z)
 	{
@@ -105,11 +106,19 @@ public class IrisBiomeDecorator
 			return null;
 		}
 
-		if(getGenerator(rng).fitDoubleD(0D, 1D, x * (dispersion.equals(Dispersion.SCATTER) ? 1000D : 1D), z * (dispersion.equals(Dispersion.SCATTER) ? 1000D : 1D)) <= chance)
+		if(nrng == null)
+		{
+			nrng = rng.nextParallelRNG(2398552 + hashCode());
+		}
+
+		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : x;
+		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : z;
+
+		if(getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance)
 		{
 			try
 			{
-				return getBlockData().get(getGenerator(rng.nextParallelRNG(53)).fit(0, getBlockData().size() - 1, x * (dispersion.equals(Dispersion.SCATTER) ? 1000D : 1D), z * (dispersion.equals(Dispersion.SCATTER) ? 1000D : 1D)));
+				return getBlockData().get(getGenerator(rng.nextParallelRNG(53)).fit(0, getBlockData().size() - 1, xx, zz));
 			}
 
 			catch(Throwable e)

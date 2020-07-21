@@ -46,6 +46,9 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 
+	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
+	private KList<IrisBiomePaletteLayer> seaLayers = new KList<IrisBiomePaletteLayer>();
+
 	@Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
 	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
 
@@ -60,7 +63,9 @@ public class IrisBiome extends IrisRegistrant
 	private transient InferredType inferredType;
 	private transient CNG biomeGenerator;
 	private transient KList<CNG> layerHeightGenerators;
+	private transient KList<CNG> layerSeaHeightGenerators;
 	private transient KList<CNG> layerSurfaceGenerators;
+	private transient KList<CNG> layerSeaSurfaceGenerators;
 
 	public IrisBiome()
 	{
@@ -141,6 +146,47 @@ public class IrisBiome extends IrisRegistrant
 		return data;
 	}
 
+	public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth)
+	{
+		KList<BlockData> data = new KList<>();
+
+		for(int i = 0; i < seaLayers.size(); i++)
+		{
+			CNG hgen = getLayerSeaHeightGenerators(random).get(i);
+			int d = hgen.fit(seaLayers.get(i).getMinHeight(), seaLayers.get(i).getMaxHeight(), wx / seaLayers.get(i).getTerrainZoom(), wz / seaLayers.get(i).getTerrainZoom());
+
+			if(d < 0)
+			{
+				continue;
+			}
+
+			for(int j = 0; j < d; j++)
+			{
+				if(data.size() >= maxDepth)
+				{
+					break;
+				}
+
+				try
+				{
+					data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getTerrainZoom(), j, (wz - j) / seaLayers.get(i).getTerrainZoom()));
+				}
+
+				catch(Throwable e)
+				{
+					L.ex(e);
+				}
+			}
+
+			if(data.size() >= maxDepth)
+			{
+				break;
+			}
+		}
+
+		return data;
+	}
+
 	public KList<CNG> getLayerHeightGenerators(RNG rng)
 	{
 		lock.lock();
@@ -158,6 +204,25 @@ public class IrisBiome extends IrisRegistrant
 		lock.unlock();
 
 		return layerHeightGenerators;
+	}
+
+	public KList<CNG> getLayerSeaHeightGenerators(RNG rng)
+	{
+		lock.lock();
+		if(layerSeaHeightGenerators == null)
+		{
+			layerSeaHeightGenerators = new KList<>();
+
+			int m = 7735;
+
+			for(IrisBiomePaletteLayer i : getSeaLayers())
+			{
+				layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
+			}
+		}
+		lock.unlock();
+
+		return layerSeaHeightGenerators;
 	}
 
 	public boolean isLand()

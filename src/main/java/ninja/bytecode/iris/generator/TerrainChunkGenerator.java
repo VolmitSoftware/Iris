@@ -118,6 +118,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			int height = (int) Math.round(noise) + fluidHeight;
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height);
+			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
 
 			for(int k = Math.max(height, fluidHeight); k < 255; k++)
 			{
@@ -150,7 +151,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				if(underwater)
 				{
-					block = WATER;
+					block = seaLayers.hasIndex(fluidHeight - k) ? layers.get(depth) : WATER;
 				}
 
 				else
@@ -219,14 +220,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 								if(stack == 1)
 								{
-									sliver.setSilently(k + 1, d);
+									sliver.set(k + 1, d);
 								}
 
 								else if(k < 255 - stack)
 								{
 									for(int l = 0; l < stack; l++)
 									{
-										sliver.setSilently(k + l + 1, d);
+										sliver.set(k + l + 1, d);
 									}
 								}
 							}

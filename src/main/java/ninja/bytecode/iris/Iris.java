@@ -46,6 +46,7 @@ import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.Direction;
 import ninja.bytecode.iris.util.GroupedExecutor;
 import ninja.bytecode.iris.util.IO;
+import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.iris.util.ScoreDirection;
 import ninja.bytecode.iris.wand.WandController;
 import ninja.bytecode.shuriken.collections.KList;
@@ -207,6 +208,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			{
 				imsg(sender, "/iris dev [dimension] - Create a new dev world");
 				imsg(sender, "/iris what <look/hand> - Data about items & blocks");
+				imsg(sender, "/iris goto <name> - Fast goto biome");
 				imsg(sender, "/iris wand [?] - Get a wand / help");
 				imsg(sender, "/iris save <name> - Save object");
 				imsg(sender, "/iris load <name> - Load & place object");
@@ -214,6 +216,41 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 			if(args.length >= 1)
 			{
+				if(args[0].equalsIgnoreCase("goto") && args.length == 2)
+				{
+					if(sender instanceof Player)
+					{
+						Player p = (Player) sender;
+						World world = p.getWorld();
+						IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+						int tries = 10000;
+						IrisBiome biome = data.getBiomeLoader().load(args[1]);
+
+						if(biome == null)
+						{
+							sender.sendMessage("Not a biome. Use the file name (without extension)");
+						}
+
+						while(tries > 0)
+						{
+							tries--;
+
+							int xx = (int) (RNG.r.i(-29999970, 29999970));
+							int zz = (int) (RNG.r.i(-29999970, 29999970));
+							if(g.sampleTrueBiome(xx, zz).getBiome().getLoadKey().equals(biome.getLoadKey()))
+							{
+								p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
+								sender.sendMessage("Found in " + (10000 - tries) + "!");
+								return true;
+							}
+						}
+
+						sender.sendMessage("Tried to find " + biome.getName() + " looked in 10,000 places no dice.");
+
+						return true;
+					}
+				}
+
 				if(args[0].equalsIgnoreCase("what"))
 				{
 					if(args.length != 2)

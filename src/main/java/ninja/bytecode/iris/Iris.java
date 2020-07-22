@@ -31,6 +31,7 @@ import org.bukkit.util.Vector;
 import com.google.gson.Gson;
 
 import ninja.bytecode.iris.generator.IrisChunkGenerator;
+import ninja.bytecode.iris.legacy.GenObject;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisObject;
@@ -52,6 +53,8 @@ import ninja.bytecode.iris.wand.WandController;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.execution.J;
+import ninja.bytecode.shuriken.execution.TaskExecutor;
+import ninja.bytecode.shuriken.execution.TaskExecutor.TaskGroup;
 import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
@@ -216,6 +219,52 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 			if(args.length >= 1)
 			{
+				if(args[0].equalsIgnoreCase("convert") && args.length == 1)
+				{
+					File folder = new File(getDataFolder(), "convert");
+
+					if(folder.exists() && folder.isDirectory())
+					{
+						KList<File> objects = new KList<>();
+						lookForObjects(folder, objects);
+						TaskExecutor tx = new TaskExecutor(32, Thread.MIN_PRIORITY, "Iris Converter");
+						TaskGroup g = tx.startWork();
+						info("Converting " + Form.f(objects.size()) + " Objects");
+						O<Integer> max = new O<Integer>().set(objects.size());
+						O<Integer> at = new O<Integer>().set(0);
+						for(File i : objects)
+						{
+							g.queue(() ->
+							{
+								try
+								{
+									IrisObject o = GenObject.loadAsModern(i);
+									File ff = new File(i.getParentFile(), o.getLoadKey() + ".iob");
+
+									o.write(new File(i.getParentFile(), o.getLoadKey() + ".iob"));
+
+									Iris.info("Converting [" + at.get() + " of " + max.get() + "]: " + i.getName() + " to " + ff.getName());
+								}
+
+								catch(Throwable e)
+								{
+									e.printStackTrace();
+									error("Failed to convert " + i.getName());
+								}
+
+								i.delete();
+								at.set(at.get() + 1);
+							});
+						}
+
+						J.a(() ->
+						{
+							g.execute();
+							Iris.info("Done!");
+						});
+					}
+				}
+
 				if(args[0].equalsIgnoreCase("goto") && args.length == 2)
 				{
 					if(sender instanceof Player)
@@ -665,6 +714,25 @@ public class Iris extends JavaPlugin implements BoardProvider
 		}
 
 		return false;
+	}
+
+	private void lookForObjects(File folder, KList<File> objects)
+	{
+		if(folder.isDirectory())
+		{
+			for(File i : folder.listFiles())
+			{
+				if(i.isDirectory())
+				{
+					lookForObjects(i, objects);
+				}
+
+				if(i.getName().endsWith(".ish"))
+				{
+					objects.add(i);
+				}
+			}
+		}
 	}
 
 	public void imsg(CommandSender s, String msg)

@@ -11,15 +11,16 @@ import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.GenLayer;
 import ninja.bytecode.iris.util.RNG;
+import ninja.bytecode.iris.util.RarityCellGenerator;
 import ninja.bytecode.shuriken.collections.KList;
 
 public class GenLayerBiome extends GenLayer
 {
 	private CellGenerator region;
 	private CellGenerator bridge;
-	private CellGenerator land;
-	private CellGenerator shore;
-	private CellGenerator sea;
+	private RarityCellGenerator<IrisBiome> land;
+	private RarityCellGenerator<IrisBiome> shore;
+	private RarityCellGenerator<IrisBiome> sea;
 	private DimensionChunkGenerator iris;
 
 	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
@@ -28,9 +29,9 @@ public class GenLayerBiome extends GenLayer
 		this.iris = iris;
 		region = new CellGenerator(rng.nextParallelRNG(1188519));
 		bridge = new CellGenerator(rng.nextParallelRNG(1541462));
-		land = new CellGenerator(rng.nextParallelRNG(9045162));
-		shore = new CellGenerator(rng.nextParallelRNG(2342812));
-		sea = new CellGenerator(rng.nextParallelRNG(6135621));
+		land = new RarityCellGenerator<>(rng.nextParallelRNG(9045162));
+		shore = new RarityCellGenerator<>(rng.nextParallelRNG(2342812));
+		sea = new RarityCellGenerator<>(rng.nextParallelRNG(6135621));
 	}
 
 	public IrisRegion getRegion(double bx, double bz)

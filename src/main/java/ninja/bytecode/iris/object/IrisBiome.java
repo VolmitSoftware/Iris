@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.CellGenerator;
 import ninja.bytecode.iris.util.Desc;
+import ninja.bytecode.iris.util.IRare;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.logging.L;
@@ -17,10 +18,13 @@ import ninja.bytecode.shuriken.logging.L;
 @Desc("Represents a biome in iris.")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisBiome extends IrisRegistrant
+public class IrisBiome extends IrisRegistrant implements IRare
 {
 	@Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
 	private String name = "A Biome";
+
+	@Desc("The weight of this biome. Higher than 1 is more common, less than 1 (above 0) is rarer")
+	private double weight = 1D;
 
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen")
 	private Dispersion biomeDispersion = Dispersion.SCATTER;

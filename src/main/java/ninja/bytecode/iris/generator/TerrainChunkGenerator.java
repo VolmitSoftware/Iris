@@ -258,13 +258,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	protected void onPostParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
-		// for(int i = 0; i < 16; i++)
-		// {
-		// for(int j = 0; j < 16; j++)
-		// {
-		// glCave.genCaves((x << 4) + i, (z << 4) + j, i, j, data, height);
-		// }
-		// }
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
+				glCave.genCaves((x << 4) + i, (z << 4) + j, i, j, data, height);
+			}
+		}
 	}
 
 	protected double getNoiseHeight(int rx, int rz)

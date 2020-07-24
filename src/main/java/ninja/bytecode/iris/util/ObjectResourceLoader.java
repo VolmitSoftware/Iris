@@ -50,7 +50,6 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			x = x % 2 == 0 ? x + 1 : x;
 			z = z % 2 == 0 ? z + 1 : z;
 			parallaxSize = new ChunkPosition(x, z);
-			Iris.info("Parallax View Distance: " + x + "x" + z);
 		}
 
 		lock.unlock();
@@ -68,6 +67,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			Iris.hotloader.track(j);
 			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
 			t.setLoadKey(name);
+			parallaxSize = null;
 			lock.unlock();
 			return t;
 		}

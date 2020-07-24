@@ -14,7 +14,7 @@ import ninja.bytecode.iris.util.BiomeResult;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisChunkGenerator extends ParallaxChunkGenerator implements IrisContext
+public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext
 {
 	private Method initLighting;
 

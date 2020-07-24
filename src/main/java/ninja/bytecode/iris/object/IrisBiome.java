@@ -58,6 +58,9 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
 	private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
 
+	@Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
+	private KList<IrisDepositGenerator> deposits = new KList<>();
+	
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;

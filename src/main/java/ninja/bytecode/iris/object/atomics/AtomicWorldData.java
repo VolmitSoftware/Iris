@@ -17,13 +17,15 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
 	private KMap<ChunkPosition, Long> lastRegion;
+	private String prefix;
 
-	public AtomicWorldData(World world)
+	public AtomicWorldData(World world, String prefix)
 	{
 		this.world = world;
 		loadedSections = new KMap<>();
 		loadedChunks = new KMap<>();
 		lastRegion = new KMap<>();
+		this.prefix = prefix;
 		getSubregionFolder().mkdirs();
 	}
 
@@ -226,7 +228,7 @@ public class AtomicWorldData
 
 	public File getSubregionFolder()
 	{
-		return new File(world.getWorldFolder(), "subregion");
+		return new File(world.getWorldFolder(), "subregion-" + prefix);
 	}
 
 	public KMap<ChunkPosition, AtomicSliverMap> getLoadedChunks()

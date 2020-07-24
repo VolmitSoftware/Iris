@@ -1,9 +1,13 @@
 package ninja.bytecode.iris.object;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.bukkit.World.Environment;
+import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.RNG;
@@ -23,10 +27,23 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The interpolation distance scale. Increase = more smooth, less detail")
 	private double interpolationScale = 63;
 
+	@Desc("The Thickness scale of cave veins")
 	private double caveThickness = 1D;
+
+	@Desc("The cave web scale. Smaller values means scaled up vein networks.")
 	private double caveScale = 1D;
+
+	@Desc("Shift the Y value of the cave networks up or down.")
 	private double caveShift = 0D;
+
+	@Desc("Generate caves or not.")
 	private boolean caves = true;
+
+	@Desc("The ceiling dimension. Leave blank for normal sky.")
+	private String ceiling = "";
+
+	@Desc("Mirrors the generator floor into the ceiling. Think nether but worse...")
+	private boolean mirrorCeiling = false;
 
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
@@ -79,10 +96,35 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Disable this to stop placing schematics in biomes")
 	private boolean placeObjects = true;
 
+	@Desc("Prevent Leaf decay as if placed in creative mode")
+	private boolean preventLeafDecay = false;
+
+	@Desc("Define global deposit generators")
+	private KList<IrisDepositGenerator> deposits = new KList<>();
+
+	@Desc("The dispersion of materials for the rock palette")
+	private Dispersion dispersion = Dispersion.SCATTER;
+
+	@Desc("The rock zoom mostly for zooming in on a wispy palette")
+	private double rockZoom = 5;
+
+	@Desc("The palette of blocks for 'stone'")
+	private KList<String> rockPalette = new KList<String>().qadd("STONE");
+
+	@Desc("The palette of blocks for 'water'")
+	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
+
+	private transient ReentrantLock rockLock = new ReentrantLock();
+	private transient ReentrantLock fluidLock = new ReentrantLock();
+	private transient KList<BlockData> rockData;
+	private transient KList<BlockData> fluidData;
+	private transient CNG rockLayerGenerator;
+	private transient CNG fluidLayerGenerator;
 	private transient CNG coordFracture;
 	private transient Double sinr;
 	private transient Double cosr;
 	private transient Double rad;
+	private transient boolean inverted;
 
 	public CNG getCoordFracture(RNG rng, int signature)
 	{
@@ -93,6 +135,126 @@ public class IrisDimension extends IrisRegistrant
 		}
 
 		return coordFracture;
+	}
+
+	public BlockData getRock(RNG rng, double x, double y, double z)
+	{
+		if(rockLayerGenerator == null)
+		{
+			cacheRockGenerator(rng);
+		}
+
+		if(rockLayerGenerator != null)
+		{
+			if(dispersion.equals(Dispersion.SCATTER))
+			{
+				return getRockData().get(rockLayerGenerator.fit(0, 30000000, x, y, z) % getRockData().size());
+			}
+
+			else
+			{
+				return getRockData().get(rockLayerGenerator.fit(0, getRockData().size() - 1, x, y, z));
+			}
+		}
+
+		return getRockData().get(0);
+	}
+
+	public void cacheRockGenerator(RNG rng)
+	{
+		RNG rngx = rng.nextParallelRNG(getRockData().size() * hashCode());
+
+		switch(dispersion)
+		{
+			case SCATTER:
+				rockLayerGenerator = CNG.signature(rngx).freq(1000000);
+				break;
+			case WISPY:
+				rockLayerGenerator = CNG.signature(rngx);
+				break;
+		}
+	}
+
+	public KList<BlockData> getRockData()
+	{
+		rockLock.lock();
+
+		if(rockData == null)
+		{
+			rockData = new KList<>();
+			for(String ix : rockPalette)
+			{
+				BlockData bx = BlockDataTools.getBlockData(ix);
+				if(bx != null)
+				{
+					rockData.add(bx);
+				}
+			}
+		}
+
+		rockLock.unlock();
+
+		return rockData;
+	}
+
+	public BlockData getFluid(RNG rng, double x, double y, double z)
+	{
+		if(fluidLayerGenerator == null)
+		{
+			cacheFluidGenerator(rng);
+		}
+
+		if(fluidLayerGenerator != null)
+		{
+			if(dispersion.equals(Dispersion.SCATTER))
+			{
+				return getFluidData().get(fluidLayerGenerator.fit(0, 30000000, x, y, z) % getFluidData().size());
+			}
+
+			else
+			{
+				return getFluidData().get(fluidLayerGenerator.fit(0, getFluidData().size() - 1, x, y, z));
+			}
+		}
+
+		return getFluidData().get(0);
+	}
+
+	public void cacheFluidGenerator(RNG rng)
+	{
+		RNG rngx = rng.nextParallelRNG(getFluidData().size() * hashCode());
+
+		switch(dispersion)
+		{
+			case SCATTER:
+				fluidLayerGenerator = CNG.signature(rngx).freq(1000000);
+				break;
+			case WISPY:
+				fluidLayerGenerator = CNG.signature(rngx);
+				break;
+		}
+	}
+
+	public KList<BlockData> getFluidData()
+	{
+		fluidLock.lock();
+
+		if(fluidData == null)
+		{
+			fluidData = new KList<>();
+			for(String ix : fluidPalette)
+			{
+				BlockData bx = BlockDataTools.getBlockData(ix);
+				if(bx != null)
+				{
+					fluidData.add(bx);
+				}
+			}
+		}
+
+		fluidLock.unlock();
+
+		return fluidData;
 	}
 
 	public double getDimensionAngle()

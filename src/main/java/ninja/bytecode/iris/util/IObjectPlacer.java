@@ -9,4 +9,6 @@ public interface IObjectPlacer
 	public void set(int x, int y, int z, BlockData d);
 
 	public BlockData get(int x, int y, int z);
+	
+	public boolean isPreventingDecay();
 }

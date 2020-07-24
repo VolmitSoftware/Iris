@@ -10,12 +10,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.util.BlockDataTools;
+import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.iris.util.IObjectPlacer;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KMap;
@@ -24,6 +27,8 @@ import ninja.bytecode.shuriken.collections.KMap;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
+	private static final Material SNOW = Material.SNOW;
+	private static final BlockData[] SNOW_LAYERS = new BlockData[] {BlockDataTools.getBlockData("minecraft:snow[layers=1]"), BlockDataTools.getBlockData("minecraft:snow[layers=2]"), BlockDataTools.getBlockData("minecraft:snow[layers=3]"), BlockDataTools.getBlockData("minecraft:snow[layers=4]"), BlockDataTools.getBlockData("minecraft:snow[layers=5]"), BlockDataTools.getBlockData("minecraft:snow[layers=6]"), BlockDataTools.getBlockData("minecraft:snow[layers=7]"), BlockDataTools.getBlockData("minecraft:snow[layers=8]")};
 	private KMap<BlockVector, BlockData> blocks;
 	private int w;
 	private int d;
@@ -116,19 +121,83 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
 	{
+		place(x, -1, z, placer, config, rng);
+	}
+
+	public void place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	{
 		boolean yf = rng.nextBoolean();
 		boolean xf = rng.nextBoolean();
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
 		int spinz = rng.imax() / 1000;
-		int y = placer.getHighest(x, z) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY();
-		
+		int y = yv < 0 ? placer.getHighest(x, z) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY() : yv;
+		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
+
 		for(BlockVector g : blocks.k())
 		{
 			BlockVector i = g.clone();
 			i = config.getRotation().rotate(i.clone(), yf, xf, spinx, spiny, spinz).clone();
 			i = config.getTranslate().translate(i.clone()).clone();
-			placer.set(x + i.getBlockX(), y + i.getBlockY(), z + i.getBlockZ(), blocks.get(g));
+			BlockData data = blocks.get(g);
+
+			if(placer.isPreventingDecay() && data instanceof Leaves && !((Leaves) data).isPersistent())
+			{
+				((Leaves) data).setPersistent(true);
+			}
+
+			for(IrisObjectReplace j : config.getEdit())
+			{
+				if(j.getFind().matches(data))
+				{
+					data = j.getReplace();
+				}
+			}
+
+			int xx = x + (int) Math.round(i.getX());
+			int yy = y + (int) Math.round(i.getY());
+			int zz = z + (int) Math.round(i.getZ());
+
+			if(heightmap != null)
+			{
+				ChunkPosition pos = new ChunkPosition(xx, zz);
+
+				if(!heightmap.containsKey(pos))
+				{
+					heightmap.put(pos, yy);
+				}
+
+				if(heightmap.get(pos) < yy)
+				{
+					heightmap.put(pos, yy);
+				}
+			}
+
+			placer.set(xx, yy, zz, data);
+		}
+
+		if(heightmap != null)
+		{
+			RNG rngx = rng.nextParallelRNG(3468854);
+
+			for(ChunkPosition i : heightmap.k())
+			{
+				int vx = i.getX();
+				int vy = heightmap.get(i);
+				int vz = i.getZ();
+
+				if(config.getSnow() > 0)
+				{
+					BlockData bd = placer.get(vx, vy, vz);
+					if(bd != null && bd.getMaterial().equals(SNOW))
+					{
+						continue;
+					}
+
+					int height = rngx.i(0, (int) (config.getSnow() * 7));
+					placer.set(vx, vy + 1, vz, SNOW_LAYERS[Math.max(Math.min(height, 7), 0)]);
+				}
+			}
 		}
 	}
 

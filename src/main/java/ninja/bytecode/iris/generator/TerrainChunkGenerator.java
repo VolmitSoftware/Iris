@@ -29,13 +29,12 @@ import ninja.bytecode.shuriken.math.M;
 public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 {
 	protected static final BlockData AIR = Material.AIR.createBlockData();
-	protected static final BlockData STONE = Material.STONE.createBlockData();
-	protected static final BlockData WATER = Material.WATER.createBlockData();
 	private KList<BlockPosition> updateBlocks = new KList<>();
 	private ReentrantLock relightLock = new ReentrantLock();
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
-	private GenLayerCave glCaves;
+	private GenLayerCave glCave;
+	private RNG rockRandom;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
@@ -45,7 +44,8 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		glCaves = new GenLayerCave(this, rng);
+		rockRandom = getMasterRandom().nextParallelRNG(2858678);
+		glCave = new GenLayerCave(this, rng.nextParallelRNG(238948));
 	}
 
 	public void queueUpdate(int x, int y, int z)
@@ -130,7 +130,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					}
 				}
 
-				else
+				else if(!getDimension().isInverted())
 				{
 					if(biomeMap != null)
 					{
@@ -151,12 +151,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				if(underwater)
 				{
-					block = seaLayers.hasIndex(fluidHeight - k) ? layers.get(depth) : WATER;
+					block = seaLayers.hasIndex(fluidHeight - k) ? layers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
 				}
 
 				else
 				{
-					block = layers.hasIndex(depth) ? layers.get(depth) : STONE;
+					block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRock(rockRandom, wx, k, wz);
 					depth++;
 				}
 
@@ -248,11 +248,21 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
+		onPreParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+	}
+
+	protected void onPreParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	{
+
+	}
+
+	protected void onPostParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	{
 		for(int i = 0; i < 16; i++)
 		{
 			for(int j = 0; j < 16; j++)
 			{
-				glCaves.genCaves((x << 4) + i, (z << 4) + j, i, j, data, height);
+				glCave.genCaves((x << 4) + i, (z << 4) + j, i, j, data, height);
 			}
 		}
 	}

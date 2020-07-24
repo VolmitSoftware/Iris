@@ -31,9 +31,9 @@ public class IrisBiomePaletteLayer
 	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
 
 	private transient ReentrantLock lock = new ReentrantLock();
+	private transient KList<BlockData> blockData;
 	private transient CNG layerGenerator;
 	private transient CNG heightGenerator;
-	private transient KList<BlockData> blockData;
 
 	public CNG getHeightGenerator(RNG rng)
 	{

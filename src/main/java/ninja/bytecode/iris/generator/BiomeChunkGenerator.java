@@ -11,6 +11,7 @@ import ninja.bytecode.iris.layer.GenLayerBiome;
 import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeGeneratorLink;
+import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.object.IrisGenerator;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
@@ -28,18 +29,22 @@ import ninja.bytecode.shuriken.math.M;
 public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 {
 	protected ReentrantLock regLock;
-	protected KMap<String, IrisGenerator> generators;
+	private KMap<String, IrisGenerator> generators;
+	private KMap<String, IrisGenerator> ceilingGenerators;
 	protected GenLayerBiome glBiome;
 	protected CNG masterFracture;
-	protected KMap<ChunkPosition, BiomeResult> biomeHitCache;
+	private KMap<ChunkPosition, BiomeResult> biomeHitCache;
+	private KMap<ChunkPosition, BiomeResult> ceilingBiomeHitCache;
 	protected ChronoLatch cwarn = new ChronoLatch(1000);
 
 	public BiomeChunkGenerator(String dimensionName)
 	{
 		super(dimensionName);
 		generators = new KMap<>();
+		ceilingGenerators = new KMap<>();
 		regLock = new ReentrantLock();
 		biomeHitCache = new KMap<>();
+		ceilingBiomeHitCache = new KMap<>();
 	}
 
 	public void onInit(World world, RNG rng)
@@ -49,15 +54,24 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);
 	}
 
+	public KMap<ChunkPosition, BiomeResult> getBiomeHitCache()
+	{
+		return getDimension().isInverted() ? ceilingBiomeHitCache : biomeHitCache;
+	}
+
+	@Override
 	public void onHotloaded()
 	{
+		super.onHotloaded();
 		biomeHitCache = new KMap<>();
-		generators.clear();
+		ceilingBiomeHitCache = new KMap<>();
 		loadGenerators();
 	}
 
-	public void registerGenerator(IrisGenerator g)
+	public void registerGenerator(IrisGenerator g, IrisDimension dim)
 	{
+		KMap<String, IrisGenerator> generators = dim.isInverted() ? ceilingGenerators : this.generators;
+
 		regLock.lock();
 		if(g.getLoadKey() == null || generators.containsKey(g.getLoadKey()))
 		{
@@ -69,11 +83,16 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		generators.put(g.getLoadKey(), g);
 	}
 
+	protected KMap<String, IrisGenerator> getGenerators()
+	{
+		return getDimension().isInverted() ? ceilingGenerators : generators;
+	}
+
 	protected double getBiomeHeight(double rx, double rz)
 	{
 		double h = 0;
 
-		for(IrisGenerator i : generators.values())
+		for(IrisGenerator i : getGenerators().values())
 		{
 			h += interpolateGenerator(rx, rz, i);
 		}
@@ -118,10 +137,23 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 	protected void loadGenerators()
 	{
+		generators.clear();
+		ceilingGenerators.clear();
+		loadGenerators(((CeilingChunkGenerator) this).getFloorDimension());
+		loadGenerators(((CeilingChunkGenerator) this).getCeilingDimension());
+	}
+
+	protected void loadGenerators(IrisDimension dim)
+	{
+		if(dim == null)
+		{
+			return;
+		}
+
 		KList<String> touch = new KList<>();
 		KList<String> loadQueue = new KList<>();
 
-		for(String i : getDimension().getRegions())
+		for(String i : dim.getRegions())
 		{
 			IrisRegion r = Iris.data.getRegionLoader().load(i);
 
@@ -141,7 +173,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 			{
 				touch.add(next);
 				IrisBiome biome = Iris.data.getBiomeLoader().load(next);
-				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator()));
+				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator(), dim));
 				loadQueue.addAll(biome.getChildren());
 			}
 		}
@@ -188,16 +220,16 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 		ChunkPosition pos = new ChunkPosition(x, z);
 
-		if(biomeHitCache.containsKey(pos))
+		if(getBiomeHitCache().containsKey(pos))
 		{
-			return biomeHitCache.get(pos);
+			return getBiomeHitCache().get(pos);
 		}
 
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = glBiome.getRegion(wx, wz);
 		BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
-		biomeHitCache.put(pos, res);
+		getBiomeHitCache().put(pos, res);
 
 		return res;
 	}

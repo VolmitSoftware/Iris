@@ -46,6 +46,9 @@ public class IrisRegion extends IrisRegistrant
 	@Desc("Spot biomes splotch themselves across this region like lakes")
 	private KList<IrisRegionSpot> spotBiomes = new KList<>();
 
+	@Desc("Define regional deposit generators that add onto the global deposit generators")
+	private KList<IrisDepositGenerator> deposits = new KList<>();
+
 	private transient CNG shoreHeightGenerator;
 	private transient ReentrantLock lock = new ReentrantLock();
 

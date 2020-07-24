@@ -1,6 +1,7 @@
 package ninja.bytecode.iris.generator;
 
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -9,7 +10,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.object.IrisBiome;
+import ninja.bytecode.iris.object.IrisDepositGenerator;
 import ninja.bytecode.iris.object.IrisObjectPlacement;
+import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.object.atomics.AtomicSliverMap;
 import ninja.bytecode.iris.object.atomics.AtomicWorldData;
@@ -27,13 +30,17 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 {
 	private KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
+	private KMap<ChunkPosition, AtomicSliver> ceilingSliverCache;
+	protected AtomicWorldData ceilingParallaxMap;
 	private MasterLock masterLock;
+	private ReentrantLock lock = new ReentrantLock();
 	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
 		sliverCache = new KMap<>();
+		ceilingSliverCache = new KMap<>();
 		sliverBuffer = 0;
 		masterLock = new MasterLock();
 	}
@@ -41,7 +48,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		parallaxMap = new AtomicWorldData(world);
+		parallaxMap = new AtomicWorldData(world, "floor");
+		ceilingParallaxMap = new AtomicWorldData(world, "ceiling");
+	}
+
+	protected KMap<ChunkPosition, AtomicSliver> getSliverCache()
+	{
+		return getDimension().isInverted() ? ceilingSliverCache : sliverCache;
 	}
 
 	protected void onClose()
@@ -51,6 +64,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		try
 		{
 			parallaxMap.unloadAll(true);
+			ceilingParallaxMap.unloadAll(true);
 		}
 
 		catch(IOException e)
@@ -63,6 +77,11 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public int getHighest(int x, int z)
 	{
 		return sampleSliver(x, z).getHighestBlock();
+	}
+
+	public int getHighestGround(int x, int z)
+	{
+		return sampleSliver(x, z).getHighestGround();
 	}
 
 	@Override
@@ -102,6 +121,11 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		return getParallaxChunk(x, z).isWorldGenerated();
 	}
 
+	public AtomicWorldData getParallaxMap()
+	{
+		return getDimension().isInverted() ? ceilingParallaxMap : parallaxMap;
+	}
+
 	public AtomicSliverMap getParallaxChunk(int x, int z)
 	{
 		try
@@ -121,7 +145,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
 		super.onPostGenerate(random, x, z, data, grid, height, biomeMap);
-		biomeHitCache.clear();
+		getBiomeHitCache().clear();
 
 		if(getDimension().isPlaceObjects())
 		{
@@ -133,6 +157,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			getSliverCache().clear();
 			getMasterLock().clear();
 		}
+
+		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
 	}
 
 	protected void onGenerateParallax(RNG random, int x, int z)
@@ -161,11 +187,38 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				getTx().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
+					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
+					RNG ro = random.nextParallelRNG(496888 + i + j);
+
 					int g = 1;
 
 					for(IrisObjectPlacement k : b.getObjects())
 					{
 						placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+					}
+
+					for(IrisDepositGenerator k : getDimension().getDeposits())
+					{
+						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+						{
+							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+						}
+					}
+
+					for(IrisDepositGenerator k : r.getDeposits())
+					{
+						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+						{
+							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+						}
+					}
+
+					for(IrisDepositGenerator k : b.getDeposits())
+					{
+						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+						{
+							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+						}
 					}
 				});
 
@@ -176,7 +229,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		getTx().waitFor(key);
 	}
 
-	protected void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)
+	public void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)
 	{
 		for(int i = 0; i < o.getTriesForChunk(rng); i++)
 		{
@@ -189,15 +242,21 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		ChunkPosition key = new ChunkPosition(x, z);
 
-		if(sliverCache.containsKey(key))
+		if(getSliverCache().containsKey(key))
 		{
-			return sliverCache.get(key);
+			return getSliverCache().get(key);
 		}
 
 		AtomicSliver s = new AtomicSliver(x & 15, z & 15);
 		onGenerateColumn(x >> 4, z >> 4, x, z, x & 15, z & 15, s, null);
-		sliverCache.put(key, s);
+		getSliverCache().put(key, s);
 
 		return s;
+	}
+
+	@Override
+	public boolean isPreventingDecay()
+	{
+		return getDimension().isPreventLeafDecay();
 	}
 }

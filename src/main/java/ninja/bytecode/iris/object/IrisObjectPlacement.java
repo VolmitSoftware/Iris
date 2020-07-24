@@ -11,12 +11,22 @@ public class IrisObjectPlacement
 {
 	@Desc("List of objects to place")
 	private KList<String> place = new KList<>();
+
+	@Desc("Find and replace blocks")
+	private KList<IrisObjectReplace> edit = new KList<>();
+
 	@Desc("Translate this object's placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
+
 	@Desc("Rotate this objects placement")
 	private IrisObjectRotation rotation = new IrisObjectRotation();
+
+	@Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
+	private double snow = 0;
+
 	@Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
 	private double chance = 1;
+
 	@Desc("If the chance check passes, place this many in a single chunk")
 	private int density = 1;
 

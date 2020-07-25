@@ -23,6 +23,9 @@ public class IrisBiomeDecorator
 	@Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
 	private Dispersion verticalVariance = Dispersion.SCATTER;
 
+	@Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE")
+	private DecorationPart partOf = DecorationPart.NONE;
+
 	@Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
 	private int stackMin = 1;
 

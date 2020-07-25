@@ -57,7 +57,6 @@ public class IrisDepositGenerator
 			for(int i = 0; i < varience; i++)
 			{
 				objects.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598)));
-				Iris.info("Generated Object: " + "plugins\\Iris\\virtual-pack\\deposit-" + rng.i(10000, 50000) + "-" + (i + 1));
 			}
 		}
 

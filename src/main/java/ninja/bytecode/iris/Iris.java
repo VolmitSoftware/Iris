@@ -113,22 +113,23 @@ public class Iris extends JavaPlugin implements BoardProvider
 			int x = player.getLocation().getBlockX();
 			int z = player.getLocation().getBlockZ();
 			BiomeResult er = g.sampleTrueBiome(x, z);
-			BiomeResult erx = g.sampleBiome(x, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
-			IrisBiome bx = erx != null ? erx.getBiome() : null;
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
 			lines.add(ChatColor.GREEN + "Loss" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.duration(g.getMetrics().getLoss().getAverage(), 4) + "");
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
-			lines.add(ChatColor.GREEN + "Parallax Regions" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedRegions().size()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
+			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
+			lines.add(ChatColor.GREEN + "Biomes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getBiomeLoader().count()));
+			lines.add(ChatColor.GREEN + "Regions" + ChatColor.GRAY + ": " + Form.f(Iris.data.getRegionLoader().count()));
+			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");
+			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");
 
 			if(er != null && b != null)
 			{
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
-				lines.add(ChatColor.GREEN + "Real" + ChatColor.GRAY + ": " + bx.getName());
-				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey() + ".json");
+				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey());
 			}
 
 			lines.add("&7&m-----------------");

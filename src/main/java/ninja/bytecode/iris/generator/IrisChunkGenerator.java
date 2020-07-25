@@ -63,7 +63,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onChunkLoaded(Chunk c)
 	{
-		updateLights();
+
 	}
 
 	@Override
@@ -82,5 +82,11 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	protected void onPlayerLeft(Player p)
 	{
 
+	}
+
+	@Override
+	public void onHotloaded()
+	{
+		onHotload();
 	}
 }

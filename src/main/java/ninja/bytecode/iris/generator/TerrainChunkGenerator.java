@@ -1,10 +1,7 @@
 package ninja.bytecode.iris.generator;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Bisected.Half;
 import org.bukkit.block.data.BlockData;
@@ -18,7 +15,6 @@ import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.BlockPosition;
 import ninja.bytecode.iris.util.HeightMap;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
@@ -29,8 +25,6 @@ import ninja.bytecode.shuriken.math.M;
 public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 {
 	protected static final BlockData AIR = Material.AIR.createBlockData();
-	private KList<BlockPosition> updateBlocks = new KList<>();
-	private ReentrantLock relightLock = new ReentrantLock();
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
@@ -46,60 +40,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		super.onInit(world, rng);
 		rockRandom = getMasterRandom().nextParallelRNG(2858678);
 		glCave = new GenLayerCave(this, rng.nextParallelRNG(238948));
-	}
-
-	public void queueUpdate(int x, int y, int z)
-	{
-		if(M.ms() - lastUpdateRequest > 3000 && M.ms() - lastChunkLoad > 3000)
-		{
-			updateBlocks.clear();
-		}
-
-		updateBlocks.add(new BlockPosition(x, y, z));
-		lastUpdateRequest = M.ms();
-	}
-
-	public void updateLights()
-	{
-		if(M.ms() - lastUpdateRequest > 3000 && M.ms() - lastChunkLoad > 3000)
-		{
-			updateBlocks.clear();
-		}
-
-		for(BlockPosition i : updateBlocks.copy())
-		{
-			if(getWorld().isChunkLoaded(i.getChunkX(), i.getChunkZ()))
-			{
-				updateBlocks.remove(i);
-				Block b = getWorld().getBlockAt(i.getX(), i.getY(), i.getZ());
-				BlockData bd = b.getBlockData();
-				b.setBlockData(AIR, false);
-				b.setBlockData(bd, true);
-			}
-		}
-
-		while(updateBlocks.size() > 5000)
-		{
-			updateBlocks.remove(0);
-		}
-
-		lastChunkLoad = M.ms();
-	}
-
-	public void checkUnderwater(int x, int y, int z, BlockData d)
-	{
-		if(d.getMaterial().equals(Material.SEA_PICKLE) || d.getMaterial().equals(Material.SOUL_SAND) || d.getMaterial().equals(Material.MAGMA_BLOCK))
-		{
-			queueUpdate(x, y, z);
-		}
-	}
-
-	public void checkSurface(int x, int y, int z, BlockData d)
-	{
-		if(d.getMaterial().equals(Material.SEA_PICKLE) || d.getMaterial().equals(Material.TORCH) || d.getMaterial().equals(Material.REDSTONE_TORCH) || d.getMaterial().equals(Material.TORCH))
-		{
-			queueUpdate(x, y, z);
-		}
 	}
 
 	@Override
@@ -119,22 +59,15 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height);
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
+			cacheBiome(x, z, biome);
 
-			for(int k = Math.max(height, fluidHeight); k < 255; k++)
+			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3; k++)
 			{
 				if(k < Math.max(height, fluidHeight) + 3)
 				{
 					if(biomeMap != null)
 					{
 						sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
-					}
-				}
-
-				else if(!getDimension().isInverted())
-				{
-					if(biomeMap != null)
-					{
-						sliver.set(k, biome.getSkyBiome(masterRandom, rx, k, rz));
 					}
 				}
 			}
@@ -177,7 +110,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 							if(stack == 1)
 							{
 								sliver.set(k + 1, d);
-								checkUnderwater(rx, k + 1, rz, d);
 							}
 
 							else if(k < fluidHeight - stack)
@@ -185,7 +117,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 								for(int l = 0; l < stack; l++)
 								{
 									sliver.set(k + l + 1, d);
-									checkUnderwater(rx, k + l + 1, rz, d);
 								}
 							}
 
@@ -329,5 +260,20 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double noise = getNoiseHeight(rx, rz);
 
 		return (int) Math.round(noise) + fluidHeight;
+	}
+
+	public int getFluidHeight()
+	{
+		return getDimension().getFluidHeight();
+	}
+
+	public double getTerrainHeight(int x, int z)
+	{
+		return getNoiseHeight(x, z) + getFluidHeight();
+	}
+
+	public double getTerrainWaterHeight(int x, int z)
+	{
+		return Math.max(getTerrainHeight(x, z), getFluidHeight());
 	}
 }

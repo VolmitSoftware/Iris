@@ -76,12 +76,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	public int getHighest(int x, int z)
 	{
-		return sampleSliver(x, z).getHighestBlock();
+		return getHighest(x, z, false);
 	}
 
-	public int getHighestGround(int x, int z)
+	@Override
+	public int getHighest(int x, int z, boolean ignoreFluid)
 	{
-		return sampleSliver(x, z).getHighestGround();
+		return (int) Math.round(ignoreFluid ? getTerrainHeight(x, z) : getTerrainWaterHeight(x, z));
 	}
 
 	@Override
@@ -150,6 +151,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		if(getDimension().isPlaceObjects())
 		{
 			onGenerateParallax(random, x, z);
+			injectBiomeSky(x, z, grid);
 			getParallaxChunk(x, z).inject(data);
 			setSliverBuffer(getSliverCache().size());
 			getParallaxChunk(x, z).setWorldGenerated(true);
@@ -159,6 +161,39 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+	}
+
+	protected void injectBiomeSky(int x, int z, BiomeGrid grid)
+	{
+		if(getDimension().isInverted())
+		{
+			return;
+		}
+
+		int rx;
+		int rz;
+
+		for(int i = 0; i < 16; i++)
+		{
+			rx = (x * 16) + i;
+			for(int j = 0; j < 16; j++)
+			{
+				rz = (z * 16) + j;
+
+				int min = sampleSliver(rx, rz).getHighestBiome();
+				int max = getParallaxSliver(rx, rz).getHighestBlock();
+
+				if(min < max)
+				{
+					IrisBiome biome = getCachedBiome(i, j);
+
+					for(int g = min; g <= max; g++)
+					{
+						grid.setBiome(i, g, j, biome.getSkyBiome(masterRandom, rz, g, rx));
+					}
+				}
+			}
+		}
 	}
 
 	protected void onGenerateParallax(RNG random, int x, int z)

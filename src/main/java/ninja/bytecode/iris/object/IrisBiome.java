@@ -60,7 +60,7 @@ public class IrisBiome extends IrisRegistrant
 
 	@Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
-	
+
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;
@@ -258,14 +258,14 @@ public class IrisBiome extends IrisRegistrant
 
 	public Biome getSkyBiome(RNG rng, double x, double y, double z)
 	{
-		if(biomeSkyScatter.isEmpty())
-		{
-			return getGroundBiome(rng, x, y, z);
-		}
-
 		if(biomeSkyScatter.size() == 1)
 		{
 			return biomeSkyScatter.get(0);
+		}
+
+		if(biomeSkyScatter.isEmpty())
+		{
+			return getGroundBiome(rng, x, y, z);
 		}
 
 		return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));

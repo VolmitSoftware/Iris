@@ -30,6 +30,9 @@ public class IrisObjectPlacement
 	@Desc("If the chance check passes, place this many in a single chunk")
 	private int density = 1;
 
+	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
+	private boolean underwater = false;
+
 	public IrisObjectPlacement()
 	{
 

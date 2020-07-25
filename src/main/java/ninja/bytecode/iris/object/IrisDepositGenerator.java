@@ -83,6 +83,7 @@ public class IrisDepositGenerator
 		rot.setYAxis(yc);
 		rot.setZAxis(zc);
 		p.setRotation(rot);
+		p.setUnderwater(true);
 
 		return p;
 	}
@@ -145,8 +146,22 @@ public class IrisDepositGenerator
 	public void generate(int x, int z, RNG rng, ParallaxChunkGenerator g)
 	{
 		IrisObject clump = getClump(rng);
-		int height = (int) (g.getHighestGround(x, z) - (clump.getH() * 1.5));
-		int h = rng.i(Math.max(0, minHeight), Math.min(height, Math.min(256, maxHeight)));
+		int height = (int) (Math.round(g.getTerrainHeight(x, z)));
+		int i = Math.max(0, minHeight);
+		int a = Math.min(height, Math.min(256, maxHeight));
+
+		if(i >= a)
+		{
+			return;
+		}
+
+		int h = rng.i(i, a);
+
+		if(h > maxHeight || h < minHeight)
+		{
+			return;
+		}
+
 		clump.place(x, h, z, g, config, rng);
 	}
 }

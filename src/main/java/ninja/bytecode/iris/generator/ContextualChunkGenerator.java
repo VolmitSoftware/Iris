@@ -260,10 +260,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		return generateChunkDataFailure(world, no, x, z, biomeGrid);
 	}
-	
-	public void onHotloaded()
+
+	public void onHotload()
 	{
-		
+
 	}
 
 	protected void fail(Throwable e)

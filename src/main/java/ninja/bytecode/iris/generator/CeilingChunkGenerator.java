@@ -11,6 +11,9 @@ import ninja.bytecode.iris.util.RNG;
 public abstract class CeilingChunkGenerator extends ParallaxChunkGenerator
 {
 	protected boolean generatingCeiling = false;
+	protected boolean ceilingCached = false;
+	protected IrisDimension cacheCeiling = null;
+	protected IrisDimension cacheFloor = null;
 
 	public CeilingChunkGenerator(String dimensionName, int threads)
 	{
@@ -38,6 +41,15 @@ public abstract class CeilingChunkGenerator extends ParallaxChunkGenerator
 		}
 	}
 
+	@Override
+	public void onHotload()
+	{
+		super.onHotload();
+		ceilingCached = false;
+		cacheCeiling = null;
+		cacheFloor = null;
+	}
+
 	private void targetFloor()
 	{
 		generatingCeiling = false;
@@ -61,11 +73,21 @@ public abstract class CeilingChunkGenerator extends ParallaxChunkGenerator
 
 	public IrisDimension getFloorDimension()
 	{
-		return super.getDimension();
+		if(cacheFloor != null)
+		{
+			return cacheFloor;
+		}
+
+		return cacheFloor = super.getDimension();
 	}
 
 	public IrisDimension getCeilingDimension()
 	{
+		if(ceilingCached)
+		{
+			return cacheCeiling;
+		}
+
 		if(getFloorDimension().getCeiling().isEmpty())
 		{
 			return null;
@@ -77,6 +99,9 @@ public abstract class CeilingChunkGenerator extends ParallaxChunkGenerator
 		{
 			c.setInverted(true);
 		}
+
+		ceilingCached = true;
+		cacheCeiling = c;
 
 		return c;
 	}

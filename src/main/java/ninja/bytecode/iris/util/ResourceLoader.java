@@ -32,6 +32,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 		loadCache = new KMap<>();
 	}
 
+	public long count()
+	{
+		return loadCache.size();
+	}
+
 	protected T loadFile(File j, String key, String name)
 	{
 		try

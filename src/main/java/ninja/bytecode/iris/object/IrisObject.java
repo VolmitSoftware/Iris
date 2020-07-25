@@ -131,7 +131,7 @@ public class IrisObject extends IrisRegistrant
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
 		int spinz = rng.imax() / 1000;
-		int y = yv < 0 ? placer.getHighest(x, z) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY() : yv;
+		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY() : yv;
 		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 
 		for(BlockVector g : blocks.k())

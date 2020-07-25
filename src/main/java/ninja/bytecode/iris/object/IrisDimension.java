@@ -139,6 +139,11 @@ public class IrisDimension extends IrisRegistrant
 
 	public BlockData getRock(RNG rng, double x, double y, double z)
 	{
+		if(getRockData().size() == 1)
+		{
+			return getRockData().get(0);
+		}
+
 		if(rockLayerGenerator == null)
 		{
 			cacheRockGenerator(rng);
@@ -199,6 +204,11 @@ public class IrisDimension extends IrisRegistrant
 
 	public BlockData getFluid(RNG rng, double x, double y, double z)
 	{
+		if(getFluidData().size() == 1)
+		{
+			return getFluidData().get(0);
+		}
+
 		if(fluidLayerGenerator == null)
 		{
 			cacheFluidGenerator(rng);

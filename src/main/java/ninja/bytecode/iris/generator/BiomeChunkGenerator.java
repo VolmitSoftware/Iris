@@ -36,6 +36,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 	private KMap<ChunkPosition, BiomeResult> biomeHitCache;
 	private KMap<ChunkPosition, BiomeResult> ceilingBiomeHitCache;
 	protected ChronoLatch cwarn = new ChronoLatch(1000);
+	private IrisBiome[] biomeCache;
 
 	public BiomeChunkGenerator(String dimensionName)
 	{
@@ -45,6 +46,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		regLock = new ReentrantLock();
 		biomeHitCache = new KMap<>();
 		ceilingBiomeHitCache = new KMap<>();
+		biomeCache = new IrisBiome[256];
 	}
 
 	public void onInit(World world, RNG rng)
@@ -54,15 +56,25 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);
 	}
 
+	protected IrisBiome getCachedBiome(int x, int z)
+	{
+		return biomeCache[(z << 4) | x];
+	}
+
+	protected void cacheBiome(int x, int z, IrisBiome b)
+	{
+		biomeCache[(z << 4) | x] = b;
+	}
+
 	public KMap<ChunkPosition, BiomeResult> getBiomeHitCache()
 	{
 		return getDimension().isInverted() ? ceilingBiomeHitCache : biomeHitCache;
 	}
 
 	@Override
-	public void onHotloaded()
+	public void onHotload()
 	{
-		super.onHotloaded();
+		super.onHotload();
 		biomeHitCache = new KMap<>();
 		ceilingBiomeHitCache = new KMap<>();
 		loadGenerators();

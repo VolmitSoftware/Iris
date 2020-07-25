@@ -9,6 +9,7 @@ import org.bukkit.block.data.BlockData;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.layer.GenLayerCave;
+import ninja.bytecode.iris.object.DecorationPart;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeDecorator;
 import ninja.bytecode.iris.object.IrisRegion;
@@ -131,6 +132,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 					for(IrisBiomeDecorator i : biome.getDecorators())
 					{
+						if(i.getPartOf().equals(DecorationPart.SHORE_LINE) && !touchesSea(rx, rz))
+						{
+							continue;
+						}
+
 						BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
 
 						if(d != null)
@@ -206,7 +212,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return getBiomeHeight(wx, wz);
 	}
 
-	public BiomeResult sampleTrueBiome(int x, int z)
+	public BiomeResult sampleTrueBiomeBase(int x, int z)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
@@ -253,6 +259,30 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return glBiome.generateRegionData(wx, wz, x, z, region);
 	}
 
+	public BiomeResult sampleTrueBiome(int x, int z)
+	{
+		if(!getDimension().getFocus().equals(""))
+		{
+			return focus();
+		}
+
+		double wx = getModifiedX(x, z);
+		double wz = getModifiedZ(x, z);
+		IrisRegion region = sampleRegion(x, z);
+		int height = sampleHeight(x, z);
+		double sh = region.getShoreHeight(wx, wz);
+		BiomeResult res = sampleTrueBiomeBase(x, z);
+		IrisBiome current = res.getBiome();
+
+		// Stop oceans from spawning on the first level of beach
+		if(current.isSea() && height > getDimension().getFluidHeight() - sh)
+		{
+			return glBiome.generateShoreData(wx, wz, x, z, region);
+		}
+
+		return res;
+	}
+
 	@Override
 	protected int onSampleColumnHeight(int cx, int cz, int rx, int rz, int x, int z)
 	{
@@ -260,6 +290,16 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double noise = getNoiseHeight(rx, rz);
 
 		return (int) Math.round(noise) + fluidHeight;
+	}
+
+	private boolean touchesSea(int rx, int rz)
+	{
+		return isFluidAtHeight(rx + 1, rz) || isFluidAtHeight(rx - 1, rz) || isFluidAtHeight(rx, rz - 1) || isFluidAtHeight(rx, rz + 1);
+	}
+
+	public boolean isFluidAtHeight(int x, int z)
+	{
+		return Math.round(getTerrainHeight(x, z)) < getFluidHeight();
 	}
 
 	public int getFluidHeight()

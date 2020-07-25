@@ -6,7 +6,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import lombok.Data;
-import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.generator.ParallaxChunkGenerator;
 import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.Desc;

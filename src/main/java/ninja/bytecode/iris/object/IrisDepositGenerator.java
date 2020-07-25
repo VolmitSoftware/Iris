@@ -146,7 +146,13 @@ public class IrisDepositGenerator
 	public void generate(int x, int z, RNG rng, ParallaxChunkGenerator g)
 	{
 		IrisObject clump = getClump(rng);
-		int height = (int) (Math.round(g.getTerrainHeight(x, z)));
+		int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 5;
+
+		if(height < 0)
+		{
+			return;
+		}
+
 		int i = Math.max(0, minHeight);
 		int a = Math.min(height, Math.min(256, maxHeight));
 

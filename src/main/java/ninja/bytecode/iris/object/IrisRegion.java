@@ -40,9 +40,6 @@ public class IrisRegion extends IrisRegistrant
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> shoreBiomes = new KList<>();
 
-	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
-	private KList<String> caveBiomes = new KList<>();
-
 	@Desc("Ridge biomes create a vein-like network like rivers through this region")
 	private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
 

@@ -6,13 +6,13 @@ import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.object.IrisObject;
-import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.math.M;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {
 	private ChunkPosition parallaxSize;
+	private ChronoLatch useFlip = new ChronoLatch(2863);
 	private KMap<String, Long> useCache = new KMap<>();
 
 	public ObjectResourceLoader(File root, String folderName, String resourceTypeName)
@@ -34,25 +34,46 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 
 	public void clean()
 	{
-		if(loadCache.size() > 15 && getTotalStorage() > 20000)
+		if(useFlip.flip())
 		{
-			unloadLast(30000);
+			if(loadCache.size() > 15 && getTotalStorage() > 20000)
+			{
+				unloadLast(30000);
+			}
 		}
 	}
 
 	public void unloadLast(long age)
 	{
-		KList<String> g = useCache.sortKNumber();
+		String v = getOldest();
 
-		if(!g.isEmpty())
+		if(v == null)
 		{
-			String v = g.get(0);
+			return;
+		}
 
-			if(M.ms() - useCache.get(v) > age)
+		if(M.ms() - useCache.get(v) > age)
+		{
+			unload(v);
+		}
+	}
+
+	private String getOldest()
+	{
+		long min = M.ms();
+		String v = null;
+
+		for(String i : useCache.k())
+		{
+			long t = useCache.get(i);
+			if(t < min)
 			{
-				unload(v);
+				min = t;
+				v = i;
 			}
 		}
+
+		return v;
 	}
 
 	private void unload(String v)

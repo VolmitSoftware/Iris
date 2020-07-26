@@ -42,6 +42,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	protected boolean initialized;
 	protected RNG masterRandom;
 	protected ChronoLatch perSecond;
+	protected ChronoLatch tickLatch;
 	protected ChronoLatch pushLatch;
 	protected IrisMetrics metrics;
 	protected World world;
@@ -52,6 +53,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	public ContextualChunkGenerator()
 	{
 		pushLatch = new ChronoLatch(3000);
+		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
 		CNG.creates = 0;
 		generated = 0;
@@ -120,11 +122,13 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(e.getFrom().getWorld().equals(world) && !e.getTo().getWorld().equals(world))
 		{
+			tick();
 			onPlayerLeft(e.getPlayer());
 		}
 
 		if(!e.getFrom().getWorld().equals(world) && e.getTo().getWorld().equals(world))
 		{
+			tick();
 			onPlayerJoin(e.getPlayer());
 		}
 	}
@@ -134,6 +138,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(e.getPlayer().getWorld().equals(world))
 		{
+			tick();
 			onPlayerLeft(e.getPlayer());
 		}
 	}
@@ -143,6 +148,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(e.getPlayer().getWorld().equals(world))
 		{
+			tick();
 			onPlayerJoin(e.getPlayer());
 		}
 	}
@@ -152,6 +158,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(e.getWorld().equals(world))
 		{
+			tick();
 			onChunkLoaded(e.getChunk());
 		}
 	}
@@ -161,6 +168,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(e.getWorld().equals(world))
 		{
+			tick();
 			onChunkUnloaded(e.getChunk());
 		}
 	}

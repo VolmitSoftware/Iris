@@ -161,7 +161,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			getParallaxChunk(x, z).inject(data);
 			setSliverBuffer(getSliverCache().size());
 			getParallaxChunk(x, z).setWorldGenerated(true);
-			getParallaxMap().clean(x + z);
 			getSliverCache().clear();
 			getMasterLock().clear();
 		}
@@ -225,7 +224,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					continue;
 				}
 
-				getTx().queue(key, () ->
+				getAccelerant().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
 					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
@@ -267,7 +266,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			}
 		}
 
-		getTx().waitFor(key);
+		getAccelerant().waitFor(key);
 	}
 
 	public void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)
@@ -277,6 +276,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
 			o.getSchematic(rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
 		}
+	}
+
+	@Override
+	protected void onTick(int ticks)
+	{
+		getParallaxMap().clean(ticks);
+		Iris.data.getObjectLoader().clean();
 	}
 
 	public AtomicSliver sampleSliver(int x, int z)

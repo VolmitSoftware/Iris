@@ -174,7 +174,6 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 				loadQueue.addAll(r.getLandBiomes());
 				loadQueue.addAll(r.getSeaBiomes());
 				loadQueue.addAll(r.getShoreBiomes());
-				loadQueue.addAll(r.getCaveBiomes());
 				loadQueue.addAll(r.getRidgeBiomeKeys());
 				loadQueue.addAll(r.getSpotBiomeKeys());
 			}
@@ -245,16 +244,6 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		IrisRegion region = glBiome.getRegion(wx, wz);
 		BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
 		getBiomeHitCache().put(pos, res);
-
-		return res;
-	}
-
-	public BiomeResult sampleCaveBiome(int x, int y, int z)
-	{
-		double wx = getModifiedX(x - y, z + y);
-		double wz = getModifiedZ(x + y, z - y);
-		IrisRegion region = glBiome.getRegion(wx, wz);
-		BiomeResult res = glBiome.generateCaveData(wx, wz, x, z, region);
 
 		return res;
 	}

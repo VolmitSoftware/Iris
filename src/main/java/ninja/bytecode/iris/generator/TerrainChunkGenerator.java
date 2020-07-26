@@ -10,13 +10,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.layer.GenLayerCave;
 import ninja.bytecode.iris.object.DecorationPart;
+import ninja.bytecode.iris.object.InferredType;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisBiomeDecorator;
 import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.CaveResult;
 import ninja.bytecode.iris.util.HeightMap;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
@@ -26,8 +26,6 @@ import ninja.bytecode.shuriken.math.M;
 @EqualsAndHashCode(callSuper = false)
 public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 {
-	protected static final BlockData AIR = Material.AIR.createBlockData();
-	protected static final BlockData WEB = Material.COBWEB.createBlockData();
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
@@ -77,6 +75,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			for(int k = Math.max(height, fluidHeight); k >= 0; k--)
 			{
+				if(k == 0)
+				{
+					sliver.set(0, BEDROCK);
+					continue;
+				}
+
 				boolean underwater = k > height && k <= fluidHeight;
 
 				if(biomeMap != null)
@@ -109,47 +113,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
-			KList<CaveResult> r = glCave.genCaves(rx, rz, x, z, sliver);
-
-			for(CaveResult c : r)
-			{
-				if(c.getCeiling() <= 0 || c.getFloor() >= 255 || c.getFloor() >= c.getCeiling())
-				{
-					continue;
-				}
-
-				IrisBiome caveBiome = sampleCaveBiome(x, 0, z).getBiome();
-
-				if(caveBiome.getLoadKey().equals("default"))
-				{
-					continue;
-				}
-
-				KList<BlockData> ceilingLayers = caveBiome.generateLayers(wx + c.getCeiling(), wz + c.getCeiling(), masterRandom, (height - c.getCeiling()) - 1);
-				KList<BlockData> floorLayers = caveBiome.generateLayers(wx - c.getFloor(), wz - c.getFloor(), masterRandom, c.getFloor());
-
-				for(int k = c.getFloor(); k <= c.getCeiling(); k++)
-				{
-					if(k >= height || k < 0 || k > 255)
-					{
-						continue;
-					}
-
-					sliver.set(k, caveBiome.getGroundBiome(masterRandom, rx, k, rz));
-				}
-
-				for(int k = 0; k < ceilingLayers.size(); k++)
-				{
-					sliver.set(k + c.getCeiling(), caveBiome.getGroundBiome(masterRandom, rx, k, rz));
-					sliver.set(k + c.getCeiling(), ceilingLayers.get(k));
-				}
-
-				for(int k = 0; k < floorLayers.size(); k++)
-				{
-					sliver.set(c.getFloor() - k, caveBiome.getGroundBiome(masterRandom, rx, k, rz));
-					sliver.set(c.getFloor() - k, floorLayers.get(k));
-				}
-			}
+			glCave.genCaves(rx, rz, x, z, sliver);
 		}
 
 		catch(Throwable e)
@@ -230,6 +194,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
 		{
+			if(biome.getInferredType().equals(InferredType.SHORE))
+			{
+				continue;
+			}
+
 			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
 
 			if(d != null)

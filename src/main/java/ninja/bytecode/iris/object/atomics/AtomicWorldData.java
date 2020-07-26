@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
+import ninja.bytecode.iris.util.ChronoLatch;
 import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.shuriken.collections.KMap;
 import ninja.bytecode.shuriken.math.M;
@@ -18,6 +19,7 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
 	private KMap<ChunkPosition, Long> lastRegion;
 	private String prefix;
+	private ChronoLatch cl = new ChronoLatch(15000);
 
 	public AtomicWorldData(World world, String prefix)
 	{
@@ -238,6 +240,11 @@ public class AtomicWorldData
 
 	public void clean(int j)
 	{
+		if(!cl.flip())
+		{
+			return;
+		}
+
 		for(ChunkPosition i : lastRegion.k())
 		{
 			if(M.ms() - lastRegion.get(i) > 60000)

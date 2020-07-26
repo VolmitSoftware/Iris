@@ -8,7 +8,7 @@ import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.util.InvertedBiomeGrid;
 import ninja.bytecode.iris.util.RNG;
 
-public abstract class CeilingChunkGenerator extends ParallaxChunkGenerator
+public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
 {
 	protected boolean generatingCeiling = false;
 	protected boolean ceilingCached = false;

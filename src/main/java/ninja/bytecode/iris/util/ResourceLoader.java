@@ -19,6 +19,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected KMap<String, T> loadCache;
 	protected KList<File> folderCache;
 	protected Class<? extends T> objectClass;
+	protected String cname;
 	protected ReentrantLock lock;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
@@ -26,6 +27,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		lock = new ReentrantLock();
 		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
+		cname = objectClass.getCanonicalName();
 		this.resourceTypeName = resourceTypeName;
 		this.root = root;
 		this.folderName = folderName;
@@ -60,7 +62,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public T load(String name)
 	{
-		String key = name + "-" + objectClass.getCanonicalName();
+		String key = name + "-" + cname;
 
 		if(loadCache.containsKey(key))
 		{

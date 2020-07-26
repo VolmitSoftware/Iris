@@ -44,7 +44,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onTick(int ticks)
 	{
-
+		super.onTick(ticks);
 	}
 
 	@Override

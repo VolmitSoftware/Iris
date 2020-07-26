@@ -20,9 +20,7 @@ public class GenLayerBiome extends GenLayer
 	private CellGenerator land;
 	private CellGenerator shore;
 	private CellGenerator sea;
-	private CellGenerator cave;
 	private DimensionChunkGenerator iris;
-	private IrisBiome defaultCave;
 
 	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
 	{
@@ -33,10 +31,6 @@ public class GenLayerBiome extends GenLayer
 		land = new CellGenerator(rng.nextParallelRNG(9045162));
 		shore = new CellGenerator(rng.nextParallelRNG(2342812));
 		sea = new CellGenerator(rng.nextParallelRNG(6135621));
-		cave = new CellGenerator(rng.nextParallelRNG(9985621));
-		defaultCave = new IrisBiome();
-		defaultCave.getLayers().clear();
-		defaultCave.setLoadKey("default");
 	}
 
 	public IrisRegion getRegion(double bx, double bz)
@@ -142,18 +136,6 @@ public class GenLayerBiome extends GenLayer
 	public BiomeResult generateShoreData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		return generateImpureData(rawX, rawZ, InferredType.SHORE, regionData, generatePureShoreData(bx, bz, rawX, rawZ, regionData));
-	}
-
-	public BiomeResult generateCaveData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
-	{
-		if(regionData.getCaveBiomes().isEmpty())
-		{
-			return new BiomeResult(defaultCave, 0);
-		}
-
-		cave.setShuffle(12);
-		cave.setCellScale(0.6 / iris.getDimension().getCaveBiomeZoom());
-		return generateBiomeData(bx, bz, regionData, cave, regionData.getCaveBiomes(), InferredType.CAVE);
 	}
 
 	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CellGenerator parentCell, BiomeResult parent)

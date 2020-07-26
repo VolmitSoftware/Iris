@@ -28,6 +28,9 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("This zooms in the biome colors if multiple derivatives are chosen")
 	private double biomeZoom = 1;
 
+	@Desc("The rarity of this biome (integer)")
+	private int rarity = 1;
+
 	@Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
 	private Biome derivative = Biome.THE_VOID;
 

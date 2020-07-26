@@ -120,8 +120,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
-			lines.add(ChatColor.GREEN + "Objects Nodes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().getTotalStorage()));
+			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()) + " (~" + Form.memSize(752 * Iris.data.getObjectLoader().getTotalStorage(), 0) + ")");
 			lines.add(ChatColor.GREEN + "Biomes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getBiomeLoader().count()));
 			lines.add(ChatColor.GREEN + "Regions" + ChatColor.GRAY + ": " + Form.f(Iris.data.getRegionLoader().count()));
 			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");
@@ -627,7 +626,9 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, 16);
+						int tc = Math.max(Runtime.getRuntime().availableProcessors(), 4);
+						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, tc);
+						info("Generating with " + tc + " threads per chunk");
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
 

@@ -1,5 +1,8 @@
 package ninja.bytecode.iris.generator;
 
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ninja.bytecode.iris.Iris;
@@ -14,6 +17,8 @@ import ninja.bytecode.iris.util.BiomeResult;
 public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 {
 	protected final String dimensionName;
+	protected static final BlockData AIR = Material.AIR.createBlockData();
+	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
 
 	public DimensionChunkGenerator(String dimensionName)
 	{

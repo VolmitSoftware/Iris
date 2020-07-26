@@ -16,7 +16,7 @@ import ninja.bytecode.iris.util.RNG;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 {
-	private GroupedExecutor tx;
+	private GroupedExecutor accelerant;
 	private int threads;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
@@ -28,9 +28,9 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	public void changeThreadCount(int tc)
 	{
 		threads = tc;
-		GroupedExecutor e = tx;
-		tx = new GroupedExecutor(threads, Thread.NORM_PRIORITY, "Iris Generator - " + world.getName());
-		Iris.executors.add(tx);
+		GroupedExecutor e = accelerant;
+		accelerant = new GroupedExecutor(threads, Thread.NORM_PRIORITY, "Iris Generator - " + world.getName());
+		Iris.executors.add(accelerant);
 
 		if(e != null)
 		{
@@ -68,21 +68,21 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 				int wz = (z * 16) + j;
 				AtomicSliver sliver = map.getSliver(i, j);
 
-				tx.queue(key, () ->
+				accelerant.queue(key, () ->
 				{
 					onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
 				});
 			}
 		}
 
-		tx.waitFor(key);
+		accelerant.waitFor(key);
 		map.write(data, grid, height);
 		onPostGenerate(random, x, z, data, grid, height, biomeMap);
 	}
 
 	protected void onClose()
 	{
-		tx.close();
+		accelerant.close();
 	}
 
 	public void onInit(World world, RNG rng)

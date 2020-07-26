@@ -6,14 +6,62 @@ import org.bukkit.util.BlockVector;
 
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.object.IrisObject;
+import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.math.M;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {
 	private ChunkPosition parallaxSize;
+	private KMap<String, Long> useCache = new KMap<>();
 
 	public ObjectResourceLoader(File root, String folderName, String resourceTypeName)
 	{
 		super(root, folderName, resourceTypeName, IrisObject.class);
+	}
+
+	public int getTotalStorage()
+	{
+		int m = 0;
+
+		for(IrisObject i : loadCache.values())
+		{
+			m += i.getBlocks().size();
+		}
+
+		return m;
+	}
+
+	public void clean()
+	{
+		if(loadCache.size() > 15 && getTotalStorage() > 20000)
+		{
+			unloadLast(30000);
+		}
+	}
+
+	public void unloadLast(long age)
+	{
+		KList<String> g = useCache.sortKNumber();
+
+		if(!g.isEmpty())
+		{
+			String v = g.get(0);
+
+			if(M.ms() - useCache.get(v) > age)
+			{
+				unload(v);
+			}
+		}
+	}
+
+	private void unload(String v)
+	{
+		lock.lock();
+		useCache.remove(v);
+		loadCache.remove(v);
+		lock.unlock();
+		Iris.info("Unloaded Object: " + v);
 	}
 
 	public ChunkPosition getParallaxSize()
@@ -87,6 +135,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		if(loadCache.containsKey(key))
 		{
 			IrisObject t = loadCache.get(key);
+			useCache.put(key, M.ms());
 			return t;
 		}
 
@@ -97,6 +146,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			{
 				if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name))
 				{
+					useCache.put(key, M.ms());
 					return loadFile(j, key, name);
 				}
 			}
@@ -105,6 +155,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 
 			if(file.exists())
 			{
+				useCache.put(key, M.ms());
 				return loadFile(file, key, name);
 			}
 		}

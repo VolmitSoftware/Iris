@@ -121,6 +121,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
 			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
+			lines.add(ChatColor.GREEN + "Objects Nodes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().getTotalStorage()));
 			lines.add(ChatColor.GREEN + "Biomes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getBiomeLoader().count()));
 			lines.add(ChatColor.GREEN + "Regions" + ChatColor.GRAY + ": " + Form.f(Iris.data.getRegionLoader().count()));
 			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");

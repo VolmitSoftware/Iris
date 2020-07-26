@@ -82,6 +82,7 @@ public class IrisDepositGenerator
 		rot.setZAxis(zc);
 		p.setRotation(rot);
 		p.setUnderwater(true);
+		p.setMeld(true);
 
 		return p;
 	}

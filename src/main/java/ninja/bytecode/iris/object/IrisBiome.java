@@ -112,6 +112,11 @@ public class IrisBiome extends IrisRegistrant
 	{
 		KList<BlockData> data = new KList<>();
 
+		if(maxDepth <= 0)
+		{
+			return data;
+		}
+
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random).get(i);
@@ -147,6 +152,12 @@ public class IrisBiome extends IrisRegistrant
 		}
 
 		return data;
+	}
+
+	public IrisBiome infer(InferredType t, InferredType type)
+	{
+		setInferredType(t.equals(InferredType.DEFER) ? type : t);
+		return this;
 	}
 
 	public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth)

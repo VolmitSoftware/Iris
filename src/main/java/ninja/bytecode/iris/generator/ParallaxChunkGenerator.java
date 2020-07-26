@@ -100,6 +100,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		return b == null ? AIR : b;
 	}
 
+	@Override
+	public boolean isSolid(int x, int y, int z)
+	{
+		return get(x, y, z).getMaterial().isSolid();
+	}
+
 	public AtomicSliver getParallaxSliver(int wx, int wz)
 	{
 		getMasterLock().lock("gpc");

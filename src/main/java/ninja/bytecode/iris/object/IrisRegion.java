@@ -40,6 +40,9 @@ public class IrisRegion extends IrisRegistrant
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> shoreBiomes = new KList<>();
 
+	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
+	private KList<String> caveBiomes = new KList<>();
+
 	@Desc("Ridge biomes create a vein-like network like rivers through this region")
 	private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
 
@@ -49,8 +52,36 @@ public class IrisRegion extends IrisRegistrant
 	@Desc("Define regional deposit generators that add onto the global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
+	private transient KList<String> cacheRidge;
+	private transient KList<String> cacheSpot;
 	private transient CNG shoreHeightGenerator;
 	private transient ReentrantLock lock = new ReentrantLock();
+
+	public KList<String> getRidgeBiomeKeys()
+	{
+		lock.lock();
+		if(cacheRidge == null)
+		{
+			cacheRidge = new KList<String>();
+			ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
+		}
+		lock.unlock();
+
+		return cacheRidge;
+	}
+
+	public KList<String> getSpotBiomeKeys()
+	{
+		lock.lock();
+		if(cacheSpot == null)
+		{
+			cacheSpot = new KList<String>();
+			spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
+		}
+		lock.unlock();
+
+		return cacheSpot;
+	}
 
 	public double getShoreHeight(double x, double z)
 	{

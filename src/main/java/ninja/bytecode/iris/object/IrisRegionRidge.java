@@ -13,6 +13,8 @@ public class IrisRegionRidge
 	private String biome;
 	@Desc("The type this biome should override (land sea or shore)")
 	private InferredType type = InferredType.LAND;
+	@Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
+	private InferredType as = InferredType.DEFER;
 	@Desc("The chance this biome will be placed in a given spot")
 	private double chance = 0.75;
 	@Desc("The scale of the biome ridge. Higher values = wider veins & bigger connected cells")

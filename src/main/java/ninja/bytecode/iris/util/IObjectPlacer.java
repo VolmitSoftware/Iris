@@ -13,4 +13,6 @@ public interface IObjectPlacer
 	public BlockData get(int x, int y, int z);
 
 	public boolean isPreventingDecay();
+
+	public boolean isSolid(int x, int y, int z);
 }

@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
@@ -17,7 +18,7 @@ import ninja.bytecode.shuriken.collections.KMap;
 @Data
 public class AtomicSliver
 {
-	private static final BlockData AIR = BlockDataTools.getBlockData("AIR");
+	public static final BlockData AIR = BlockDataTools.getBlockData("AIR");
 	private KMap<Integer, BlockData> block;
 	private KMap<Integer, Biome> biome;
 	private int highestBlock = 0;
@@ -31,6 +32,23 @@ public class AtomicSliver
 		this.z = z;
 		this.block = new KMap<>();
 		this.biome = new KMap<>();
+	}
+
+	public Material getType(int h)
+	{
+		return get(h).getMaterial();
+	}
+
+	public BlockData get(int h)
+	{
+		BlockData b = block.get(h);
+
+		if(b == null)
+		{
+			return AIR;
+		}
+
+		return b;
 	}
 
 	public void set(int h, BlockData d)
@@ -52,6 +70,11 @@ public class AtomicSliver
 		}
 
 		block.put(h, d);
+	}
+
+	public boolean isSolid(int h)
+	{
+		return getType(h).isSolid();
 	}
 
 	public void set(int h, Biome d)

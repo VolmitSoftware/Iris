@@ -4,5 +4,7 @@ public enum InferredType
 {
 	SHORE,
 	LAND,
-	SEA
+	SEA,
+	CAVE,
+	DEFER;
 }

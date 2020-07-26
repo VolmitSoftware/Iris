@@ -173,6 +173,11 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
+			if(config.isMeld() && !placer.isSolid(xx, yy, zz))
+			{
+				continue;
+			}
+
 			placer.set(xx, yy, zz, data);
 		}
 

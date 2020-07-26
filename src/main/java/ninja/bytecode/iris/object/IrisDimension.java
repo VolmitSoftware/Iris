@@ -81,6 +81,9 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("This zooms in the land space")
 	private double landZoom = 1;
 
+	@Desc("This zooms in the cave biome space")
+	private double caveBiomeZoom = 1;
+
 	@Desc("This can zoom the shores")
 	private double shoreZoom = 1;
 

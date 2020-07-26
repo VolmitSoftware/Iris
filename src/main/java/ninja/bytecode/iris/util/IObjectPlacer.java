@@ -15,4 +15,6 @@ public interface IObjectPlacer
 	public boolean isPreventingDecay();
 
 	public boolean isSolid(int x, int y, int z);
+
+	public boolean isUnderwater(int x, int z);
 }

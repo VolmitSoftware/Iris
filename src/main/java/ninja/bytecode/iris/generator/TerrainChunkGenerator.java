@@ -98,12 +98,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				sliver.set(k, block);
 
-				if(k == height && block.getMaterial().isSolid() && k < fluidHeight && biome.isSea())
+				if(k == height && block.getMaterial().isSolid() && k < fluidHeight)
 				{
 					decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
 				}
 
-				if(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && !biome.isSea())
+				if(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k > fluidHeight)
 				{
 					decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
 				}
@@ -238,14 +238,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				if(stack == 1)
 				{
-					sliver.set(y + 1, d);
+					sliver.set(i.getPartOf().equals(DecorationPart.SEA_SURFACE) ? (getFluidHeight() + 1) : (y + 1), d);
 				}
 
 				else if(y < getFluidHeight() - stack)
 				{
 					for(int l = 0; l < stack; l++)
 					{
-						sliver.set(y + l + 1, d);
+						sliver.set(i.getPartOf().equals(DecorationPart.SEA_SURFACE) ? (getFluidHeight() + 1 + l) : (y + l + 1), d);
 					}
 				}
 
@@ -361,6 +361,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private boolean touchesSea(int rx, int rz)
 	{
 		return isFluidAtHeight(rx + 1, rz) || isFluidAtHeight(rx - 1, rz) || isFluidAtHeight(rx, rz - 1) || isFluidAtHeight(rx, rz + 1);
+	}
+
+	public boolean isUnderwater(int x, int z)
+	{
+		return isFluidAtHeight(x, z);
 	}
 
 	public boolean isFluidAtHeight(int x, int z)

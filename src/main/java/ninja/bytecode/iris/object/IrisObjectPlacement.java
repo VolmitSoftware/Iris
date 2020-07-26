@@ -33,6 +33,9 @@ public class IrisObjectPlacement
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
 	private boolean underwater = false;
 
+	@Desc("If set to true, objects will place on the fluid height level Such as boats.")
+	private boolean onwater = false;
+
 	@Desc("If set to true, this object will only place parts of itself where blocks already exist.")
 	private boolean meld = false;
 

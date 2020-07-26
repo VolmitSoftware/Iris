@@ -4,4 +4,5 @@ public enum DecorationPart
 {
 	NONE,
 	SHORE_LINE,
+	SEA_SURFACE
 }

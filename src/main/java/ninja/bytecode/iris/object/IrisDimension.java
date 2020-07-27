@@ -39,6 +39,15 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Generate caves or not.")
 	private boolean caves = true;
 
+	@Desc("Carve terrain or not")
+	private boolean carving = true;
+
+	@Desc("Generate decorations or not")
+	private boolean decorate = true;
+
+	@Desc("Use post processing features. Usually for production only as there is a gen speed cost.")
+	private boolean postProcess = true;
+
 	@Desc("The ceiling dimension. Leave blank for normal sky.")
 	private String ceiling = "";
 

@@ -61,7 +61,7 @@ public class IO
 	 * The system line separator string.
 	 */
 	public static final String LINE_SEPARATOR;
-	
+
 	/**
 	 * The default buffer size to use.
 	 */
@@ -128,7 +128,7 @@ public class IO
 
 		return new String(hexChars).toUpperCase();
 	}
-	
+
 	/**
 	 * Transfers the length of the buffer amount of data from the input stream to
 	 * the output stream
@@ -378,6 +378,7 @@ public class IO
 
 	public static void writeAll(File f, Object c) throws IOException
 	{
+		f.getParentFile().mkdirs();
 		PrintWriter pw = new PrintWriter(new FileWriter(f));
 		pw.println(c.toString());
 		pw.close();
@@ -567,13 +568,13 @@ public class IO
 			destFile.setLastModified(srcFile.lastModified());
 		}
 	}
-	
+
 	// -----------------------------------------------------------------------
 	/**
 	 * Unconditionally close an <code>Reader</code>.
 	 * <p>
-	 * Equivalent to {@link Reader#close()}, except any exceptions will be
-	 * ignored. This is typically used in finally blocks.
+	 * Equivalent to {@link Reader#close()}, except any exceptions will be ignored.
+	 * This is typically used in finally blocks.
 	 *
 	 * @param input
 	 *            the Reader to close, may be null or already closed
@@ -586,17 +587,18 @@ public class IO
 			{
 				input.close();
 			}
-		} catch(IOException ioe)
+		}
+		catch(IOException ioe)
 		{
 			// ignore
 		}
 	}
-	
+
 	/**
 	 * Unconditionally close a <code>Writer</code>.
 	 * <p>
-	 * Equivalent to {@link Writer#close()}, except any exceptions will be
-	 * ignored. This is typically used in finally blocks.
+	 * Equivalent to {@link Writer#close()}, except any exceptions will be ignored.
+	 * This is typically used in finally blocks.
 	 *
 	 * @param output
 	 *            the Writer to close, may be null or already closed
@@ -609,12 +611,13 @@ public class IO
 			{
 				output.close();
 			}
-		} catch(IOException ioe)
+		}
+		catch(IOException ioe)
 		{
 			// ignore
 		}
 	}
-	
+
 	/**
 	 * Unconditionally close an <code>InputStream</code>.
 	 * <p>
@@ -632,12 +635,13 @@ public class IO
 			{
 				input.close();
 			}
-		} catch(IOException ioe)
+		}
+		catch(IOException ioe)
 		{
 			// ignore
 		}
 	}
-	
+
 	/**
 	 * Unconditionally close an <code>OutputStream</code>.
 	 * <p>
@@ -655,12 +659,13 @@ public class IO
 			{
 				output.close();
 			}
-		} catch(IOException ioe)
+		}
+		catch(IOException ioe)
 		{
 			// ignore
 		}
 	}
-	
+
 	// read toByteArray
 	// -----------------------------------------------------------------------
 	/**
@@ -683,10 +688,10 @@ public class IO
 		copy(input, output);
 		return output.toByteArray();
 	}
-	
+
 	/**
-	 * Get the contents of a <code>Reader</code> as a <code>byte[]</code> using
-	 * the default character encoding of the platform.
+	 * Get the contents of a <code>Reader</code> as a <code>byte[]</code> using the
+	 * default character encoding of the platform.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedReader</code>.
@@ -705,10 +710,10 @@ public class IO
 		copy(input, output);
 		return output.toByteArray();
 	}
-	
+
 	/**
-	 * Get the contents of a <code>Reader</code> as a <code>byte[]</code> using
-	 * the specified character encoding.
+	 * Get the contents of a <code>Reader</code> as a <code>byte[]</code> using the
+	 * specified character encoding.
 	 * <p>
 	 * Character encoding names can be found at
 	 * <a href="http://www.iana.org/assignments/character-sets">IANA</a>.
@@ -733,10 +738,10 @@ public class IO
 		copy(input, output, encoding);
 		return output.toByteArray();
 	}
-	
+
 	/**
-	 * Get the contents of a <code>String</code> as a <code>byte[]</code> using
-	 * the default character encoding of the platform.
+	 * Get the contents of a <code>String</code> as a <code>byte[]</code> using the
+	 * default character encoding of the platform.
 	 * <p>
 	 * This is the same as {@link String#getBytes()}.
 	 * 
@@ -753,12 +758,12 @@ public class IO
 	{
 		return input.getBytes();
 	}
-	
+
 	// read char[]
 	// -----------------------------------------------------------------------
 	/**
-	 * Get the contents of an <code>InputStream</code> as a character array
-	 * using the default character encoding of the platform.
+	 * Get the contents of an <code>InputStream</code> as a character array using
+	 * the default character encoding of the platform.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedInputStream</code>.
@@ -778,10 +783,10 @@ public class IO
 		copy(is, output);
 		return output.toCharArray();
 	}
-	
+
 	/**
-	 * Get the contents of an <code>InputStream</code> as a character array
-	 * using the specified character encoding.
+	 * Get the contents of an <code>InputStream</code> as a character array using
+	 * the specified character encoding.
 	 * <p>
 	 * Character encoding names can be found at
 	 * <a href="http://www.iana.org/assignments/character-sets">IANA</a>.
@@ -806,7 +811,7 @@ public class IO
 		copy(is, output, encoding);
 		return output.toCharArray();
 	}
-	
+
 	/**
 	 * Get the contents of a <code>Reader</code> as a character array.
 	 * <p>
@@ -828,12 +833,12 @@ public class IO
 		copy(input, sw);
 		return sw.toCharArray();
 	}
-	
+
 	// read toString
 	// -----------------------------------------------------------------------
 	/**
-	 * Get the contents of an <code>InputStream</code> as a String using the
-	 * default character encoding of the platform.
+	 * Get the contents of an <code>InputStream</code> as a String using the default
+	 * character encoding of the platform.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedInputStream</code>.
@@ -852,7 +857,7 @@ public class IO
 		copy(input, sw);
 		return sw.toString();
 	}
-	
+
 	/**
 	 * Get the contents of an <code>InputStream</code> as a String using the
 	 * specified character encoding.
@@ -879,7 +884,7 @@ public class IO
 		copy(input, sw, encoding);
 		return sw.toString();
 	}
-	
+
 	/**
 	 * Get the contents of a <code>Reader</code> as a String.
 	 * <p>
@@ -900,7 +905,7 @@ public class IO
 		copy(input, sw);
 		return sw.toString();
 	}
-	
+
 	/**
 	 * Get the contents of a <code>byte[]</code> as a String using the default
 	 * character encoding of the platform.
@@ -918,7 +923,7 @@ public class IO
 	{
 		return new String(input);
 	}
-	
+
 	/**
 	 * Get the contents of a <code>byte[]</code> as a String using the specified
 	 * character encoding.
@@ -942,12 +947,13 @@ public class IO
 		if(encoding == null)
 		{
 			return new String(input);
-		} else
+		}
+		else
 		{
 			return new String(input, encoding);
 		}
 	}
-	
+
 	// readLines
 	// -----------------------------------------------------------------------
 	/**
@@ -971,7 +977,7 @@ public class IO
 		InputStreamReader reader = new InputStreamReader(input);
 		return readLines(reader);
 	}
-	
+
 	/**
 	 * Get the contents of an <code>InputStream</code> as a list of Strings, one
 	 * entry per line, using the specified character encoding.
@@ -998,16 +1004,17 @@ public class IO
 		if(encoding == null)
 		{
 			return readLines(input);
-		} else
+		}
+		else
 		{
 			InputStreamReader reader = new InputStreamReader(input, encoding);
 			return readLines(reader);
 		}
 	}
-	
+
 	/**
-	 * Get the contents of a <code>Reader</code> as a list of Strings, one entry
-	 * per line.
+	 * Get the contents of a <code>Reader</code> as a list of Strings, one entry per
+	 * line.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedReader</code>.
@@ -1033,11 +1040,11 @@ public class IO
 		}
 		return list;
 	}
-	
+
 	// -----------------------------------------------------------------------
 	/**
-	 * Convert the specified string to an input stream, encoded as bytes using
-	 * the default character encoding of the platform.
+	 * Convert the specified string to an input stream, encoded as bytes using the
+	 * default character encoding of the platform.
 	 *
 	 * @param input
 	 *            the string to convert
@@ -1049,10 +1056,10 @@ public class IO
 		byte[] bytes = input.getBytes();
 		return new ByteArrayInputStream(bytes);
 	}
-	
+
 	/**
-	 * Convert the specified string to an input stream, encoded as bytes using
-	 * the specified character encoding.
+	 * Convert the specified string to an input stream, encoded as bytes using the
+	 * specified character encoding.
 	 * <p>
 	 * Character encoding names can be found at
 	 * <a href="http://www.iana.org/assignments/character-sets">IANA</a>.
@@ -1071,15 +1078,14 @@ public class IO
 		byte[] bytes = encoding != null ? input.getBytes(encoding) : input.getBytes();
 		return new ByteArrayInputStream(bytes);
 	}
-	
+
 	// write byte[]
 	// -----------------------------------------------------------------------
 	/**
 	 * Writes bytes from a <code>byte[]</code> to an <code>OutputStream</code>.
 	 * 
 	 * @param data
-	 *            the byte array to write, do not modify during output, null
-	 *            ignored
+	 *            the byte array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>OutputStream</code> to write to
 	 * @throws NullPointerException
@@ -1095,7 +1101,7 @@ public class IO
 			output.write(data);
 		}
 	}
-	
+
 	/**
 	 * Writes bytes from a <code>byte[]</code> to chars on a <code>Writer</code>
 	 * using the default character encoding of the platform.
@@ -1103,8 +1109,7 @@ public class IO
 	 * This method uses {@link String#String(byte[])}.
 	 * 
 	 * @param data
-	 *            the byte array to write, do not modify during output, null
-	 *            ignored
+	 *            the byte array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>Writer</code> to write to
 	 * @throws NullPointerException
@@ -1120,7 +1125,7 @@ public class IO
 			output.write(new String(data));
 		}
 	}
-	
+
 	/**
 	 * Writes bytes from a <code>byte[]</code> to chars on a <code>Writer</code>
 	 * using the specified character encoding.
@@ -1131,8 +1136,7 @@ public class IO
 	 * This method uses {@link String#String(byte[], String)}.
 	 * 
 	 * @param data
-	 *            the byte array to write, do not modify during output, null
-	 *            ignored
+	 *            the byte array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>Writer</code> to write to
 	 * @param encoding
@@ -1150,22 +1154,22 @@ public class IO
 			if(encoding == null)
 			{
 				write(data, output);
-			} else
+			}
+			else
 			{
 				output.write(new String(data, encoding));
 			}
 		}
 	}
-	
+
 	// write char[]
 	// -----------------------------------------------------------------------
 	/**
-	 * Writes chars from a <code>char[]</code> to a <code>Writer</code> using
-	 * the default character encoding of the platform.
+	 * Writes chars from a <code>char[]</code> to a <code>Writer</code> using the
+	 * default character encoding of the platform.
 	 * 
 	 * @param data
-	 *            the char array to write, do not modify during output, null
-	 *            ignored
+	 *            the char array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>Writer</code> to write to
 	 * @throws NullPointerException
@@ -1181,17 +1185,15 @@ public class IO
 			output.write(data);
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>char[]</code> to bytes on an
 	 * <code>OutputStream</code>.
 	 * <p>
-	 * This method uses {@link String#String(char[])} and
-	 * {@link String#getBytes()}.
+	 * This method uses {@link String#String(char[])} and {@link String#getBytes()}.
 	 * 
 	 * @param data
-	 *            the char array to write, do not modify during output, null
-	 *            ignored
+	 *            the char array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>OutputStream</code> to write to
 	 * @throws NullPointerException
@@ -1207,7 +1209,7 @@ public class IO
 			output.write(new String(data).getBytes());
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>char[]</code> to bytes on an
 	 * <code>OutputStream</code> using the specified character encoding.
@@ -1219,8 +1221,7 @@ public class IO
 	 * {@link String#getBytes(String)}.
 	 * 
 	 * @param data
-	 *            the char array to write, do not modify during output, null
-	 *            ignored
+	 *            the char array to write, do not modify during output, null ignored
 	 * @param output
 	 *            the <code>OutputStream</code> to write to
 	 * @param encoding
@@ -1238,13 +1239,14 @@ public class IO
 			if(encoding == null)
 			{
 				write(data, output);
-			} else
+			}
+			else
 			{
 				output.write(new String(data).getBytes(encoding));
 			}
 		}
 	}
-	
+
 	// write String
 	// -----------------------------------------------------------------------
 	/**
@@ -1267,7 +1269,7 @@ public class IO
 			output.write(data);
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>String</code> to bytes on an
 	 * <code>OutputStream</code> using the default character encoding of the
@@ -1292,7 +1294,7 @@ public class IO
 			output.write(data.getBytes());
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>String</code> to bytes on an
 	 * <code>OutputStream</code> using the specified character encoding.
@@ -1321,13 +1323,14 @@ public class IO
 			if(encoding == null)
 			{
 				write(data, output);
-			} else
+			}
+			else
 			{
 				output.write(data.getBytes(encoding));
 			}
 		}
 	}
-	
+
 	// write StringBuffer
 	// -----------------------------------------------------------------------
 	/**
@@ -1350,7 +1353,7 @@ public class IO
 			output.write(data.toString());
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>StringBuffer</code> to bytes on an
 	 * <code>OutputStream</code> using the default character encoding of the
@@ -1375,7 +1378,7 @@ public class IO
 			output.write(data.toString().getBytes());
 		}
 	}
-	
+
 	/**
 	 * Writes chars from a <code>StringBuffer</code> to bytes on an
 	 * <code>OutputStream</code> using the specified character encoding.
@@ -1404,27 +1407,27 @@ public class IO
 			if(encoding == null)
 			{
 				write(data, output);
-			} else
+			}
+			else
 			{
 				output.write(data.toString().getBytes(encoding));
 			}
 		}
 	}
-	
+
 	// writeLines
 	// -----------------------------------------------------------------------
 	/**
-	 * Writes the <code>toString()</code> value of each item in a collection to
-	 * an <code>OutputStream</code> line by line, using the default character
-	 * encoding of the platform and the specified line ending.
+	 * Writes the <code>toString()</code> value of each item in a collection to an
+	 * <code>OutputStream</code> line by line, using the default character encoding
+	 * of the platform and the specified line ending.
 	 *
 	 * @param lines
 	 *            the lines to write, null entries produce blank lines
 	 * @param lineEnding
 	 *            the line separator to use, null is system default
 	 * @param output
-	 *            the <code>OutputStream</code> to write to, not null, not
-	 *            closed
+	 *            the <code>OutputStream</code> to write to, not null, not closed
 	 * @throws NullPointerException
 	 *             if the output is null
 	 * @throws IOException
@@ -1451,10 +1454,10 @@ public class IO
 			output.write(lineEnding.getBytes());
 		}
 	}
-	
+
 	/**
-	 * Writes the <code>toString()</code> value of each item in a collection to
-	 * an <code>OutputStream</code> line by line, using the specified character
+	 * Writes the <code>toString()</code> value of each item in a collection to an
+	 * <code>OutputStream</code> line by line, using the specified character
 	 * encoding and the specified line ending.
 	 * <p>
 	 * Character encoding names can be found at
@@ -1465,8 +1468,7 @@ public class IO
 	 * @param lineEnding
 	 *            the line separator to use, null is system default
 	 * @param output
-	 *            the <code>OutputStream</code> to write to, not null, not
-	 *            closed
+	 *            the <code>OutputStream</code> to write to, not null, not closed
 	 * @param encoding
 	 *            the encoding to use, null means platform default
 	 * @throws NullPointerException
@@ -1480,7 +1482,8 @@ public class IO
 		if(encoding == null)
 		{
 			writeLines(lines, lineEnding, output);
-		} else
+		}
+		else
 		{
 			if(lines == null)
 			{
@@ -1501,10 +1504,10 @@ public class IO
 			}
 		}
 	}
-	
+
 	/**
-	 * Writes the <code>toString()</code> value of each item in a collection to
-	 * a <code>Writer</code> line by line, using the specified line ending.
+	 * Writes the <code>toString()</code> value of each item in a collection to a
+	 * <code>Writer</code> line by line, using the specified line ending.
 	 *
 	 * @param lines
 	 *            the lines to write, null entries produce blank lines
@@ -1538,19 +1541,18 @@ public class IO
 			writer.write(lineEnding);
 		}
 	}
-	
+
 	// copy from InputStream
 	// -----------------------------------------------------------------------
 	/**
-	 * Copy bytes from an <code>InputStream</code> to an
-	 * <code>OutputStream</code>.
+	 * Copy bytes from an <code>InputStream</code> to an <code>OutputStream</code>.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedInputStream</code>.
 	 * <p>
-	 * Large streams (over 2GB) will return a bytes copied value of
-	 * <code>-1</code> after the copy has completed since the correct number of
-	 * bytes cannot be returned as an int. For large streams use the
+	 * Large streams (over 2GB) will return a bytes copied value of <code>-1</code>
+	 * after the copy has completed since the correct number of bytes cannot be
+	 * returned as an int. For large streams use the
 	 * <code>copyLarge(InputStream, OutputStream)</code> method.
 	 * 
 	 * @param input
@@ -1575,7 +1577,7 @@ public class IO
 		}
 		return (int) count;
 	}
-	
+
 	/**
 	 * Copy bytes from a large (over 2GB) <code>InputStream</code> to an
 	 * <code>OutputStream</code>.
@@ -1606,10 +1608,10 @@ public class IO
 		}
 		return count;
 	}
-	
+
 	/**
-	 * Copy bytes from an <code>InputStream</code> to chars on a
-	 * <code>Writer</code> using the default character encoding of the platform.
+	 * Copy bytes from an <code>InputStream</code> to chars on a <code>Writer</code>
+	 * using the default character encoding of the platform.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedInputStream</code>.
@@ -1631,10 +1633,10 @@ public class IO
 		InputStreamReader in = new InputStreamReader(input);
 		copy(in, output);
 	}
-	
+
 	/**
-	 * Copy bytes from an <code>InputStream</code> to chars on a
-	 * <code>Writer</code> using the specified character encoding.
+	 * Copy bytes from an <code>InputStream</code> to chars on a <code>Writer</code>
+	 * using the specified character encoding.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedInputStream</code>.
@@ -1661,13 +1663,14 @@ public class IO
 		if(encoding == null)
 		{
 			copy(input, output);
-		} else
+		}
+		else
 		{
 			InputStreamReader in = new InputStreamReader(input, encoding);
 			copy(in, output);
 		}
 	}
-	
+
 	// copy from Reader
 	// -----------------------------------------------------------------------
 	/**
@@ -1676,9 +1679,9 @@ public class IO
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedReader</code>.
 	 * <p>
-	 * Large streams (over 2GB) will return a chars copied value of
-	 * <code>-1</code> after the copy has completed since the correct number of
-	 * chars cannot be returned as an int. For large streams use the
+	 * Large streams (over 2GB) will return a chars copied value of <code>-1</code>
+	 * after the copy has completed since the correct number of chars cannot be
+	 * returned as an int. For large streams use the
 	 * <code>copyLarge(Reader, Writer)</code> method.
 	 *
 	 * @param input
@@ -1703,7 +1706,7 @@ public class IO
 		}
 		return (int) count;
 	}
-	
+
 	/**
 	 * Copy chars from a large (over 2GB) <code>Reader</code> to a
 	 * <code>Writer</code>.
@@ -1734,7 +1737,7 @@ public class IO
 		}
 		return count;
 	}
-	
+
 	/**
 	 * Copy chars from a <code>Reader</code> to bytes on an
 	 * <code>OutputStream</code> using the default character encoding of the
@@ -1765,11 +1768,11 @@ public class IO
 		// have to flush here.
 		out.flush();
 	}
-	
+
 	/**
 	 * Copy chars from a <code>Reader</code> to bytes on an
-	 * <code>OutputStream</code> using the specified character encoding, and
-	 * calling flush.
+	 * <code>OutputStream</code> using the specified character encoding, and calling
+	 * flush.
 	 * <p>
 	 * This method buffers the input internally, so there is no need to use a
 	 * <code>BufferedReader</code>.
@@ -1799,7 +1802,8 @@ public class IO
 		if(encoding == null)
 		{
 			copy(input, output);
-		} else
+		}
+		else
 		{
 			OutputStreamWriter out = new OutputStreamWriter(output, encoding);
 			copy(input, out);
@@ -1807,12 +1811,11 @@ public class IO
 			out.flush();
 		}
 	}
-	
+
 	// content equals
 	// -----------------------------------------------------------------------
 	/**
-	 * Compare the contents of two Streams to determine if they are equal or
-	 * not.
+	 * Compare the contents of two Streams to determine if they are equal or not.
 	 * <p>
 	 * This method buffers the input internally using
 	 * <code>BufferedInputStream</code> if they are not already buffered.
@@ -1838,7 +1841,7 @@ public class IO
 		{
 			input2 = new BufferedInputStream(input2);
 		}
-		
+
 		int ch = input1.read();
 		while(-1 != ch)
 		{
@@ -1849,17 +1852,16 @@ public class IO
 			}
 			ch = input1.read();
 		}
-		
+
 		int ch2 = input2.read();
 		return (ch2 == -1);
 	}
-	
+
 	/**
-	 * Compare the contents of two Readers to determine if they are equal or
-	 * not.
+	 * Compare the contents of two Readers to determine if they are equal or not.
 	 * <p>
-	 * This method buffers the input internally using
-	 * <code>BufferedReader</code> if they are not already buffered.
+	 * This method buffers the input internally using <code>BufferedReader</code> if
+	 * they are not already buffered.
 	 *
 	 * @param input1
 	 *            the first reader
@@ -1883,7 +1885,7 @@ public class IO
 		{
 			input2 = new BufferedReader(input2);
 		}
-		
+
 		int ch = input1.read();
 		while(-1 != ch)
 		{
@@ -1894,11 +1896,11 @@ public class IO
 			}
 			ch = input1.read();
 		}
-		
+
 		int ch2 = input2.read();
 		return (ch2 == -1);
 	}
-	
+
 	static
 	{
 		// avoid security issues

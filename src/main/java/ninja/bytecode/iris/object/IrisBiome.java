@@ -49,6 +49,12 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
 	private KList<String> children = new KList<>();
 
+	@Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
+	private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
+
+	@Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
+	private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
+
 	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 

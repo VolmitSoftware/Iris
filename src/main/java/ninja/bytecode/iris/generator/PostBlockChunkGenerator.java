@@ -8,6 +8,8 @@ import org.bukkit.block.data.BlockData;
 import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.layer.post.PostNippleSmoother;
 import ninja.bytecode.iris.layer.post.PostPotholeFiller;
+import ninja.bytecode.iris.layer.post.PostSlabber;
+import ninja.bytecode.iris.layer.post.PostWallPatcher;
 import ninja.bytecode.iris.object.IrisDimension;
 import ninja.bytecode.iris.util.IPostBlockAccess;
 import ninja.bytecode.iris.util.IrisPostBlockFilter;
@@ -40,12 +42,20 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 		super.onInit(world, rng);
 		filters.add(new PostNippleSmoother(this));
 		filters.add(new PostPotholeFiller(this));
+		filters.add(new PostWallPatcher(this));
+		filters.add(new PostSlabber(this));
 	}
 
 	@Override
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
 		super.onGenerate(random, x, z, data, grid);
+
+		if(!getDimension().isPostProcess())
+		{
+			return;
+		}
+
 		currentData = data;
 		currentPostX = x;
 		currentPostZ = z;
@@ -64,7 +74,10 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 				{
 					for(IrisPostBlockFilter f : filters)
 					{
-						f.onPost(rxx, rzz);
+						int rxxx = rxx;
+						int rzzx = rzz;
+
+						f.onPost(rxxx, rzzx);
 					}
 				});
 			}

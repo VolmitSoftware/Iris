@@ -27,13 +27,17 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
+import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
 
 import ninja.bytecode.iris.generator.IrisChunkGenerator;
 import ninja.bytecode.iris.object.IrisBiome;
 import ninja.bytecode.iris.object.IrisDimension;
+import ninja.bytecode.iris.object.IrisGenerator;
 import ninja.bytecode.iris.object.IrisObject;
+import ninja.bytecode.iris.object.IrisObjectPlacement;
+import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.util.BiomeResult;
 import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.BoardManager;
@@ -51,10 +55,12 @@ import ninja.bytecode.iris.util.ScoreDirection;
 import ninja.bytecode.iris.wand.WandController;
 import ninja.bytecode.shuriken.collections.KList;
 import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.collections.KSet;
 import ninja.bytecode.shuriken.execution.J;
 import ninja.bytecode.shuriken.format.Form;
 import ninja.bytecode.shuriken.json.JSONException;
 import ninja.bytecode.shuriken.json.JSONObject;
+import ninja.bytecode.shuriken.logging.L;
 import ninja.bytecode.shuriken.math.RollingSequence;
 import ninja.bytecode.shuriken.reaction.O;
 import ninja.bytecode.shuriken.tools.JarScanner;
@@ -585,6 +591,114 @@ public class Iris extends JavaPlugin implements BoardProvider
 						imsg(sender, "Failed to load " + "objects/" + args[1] + ".iob");
 						e.printStackTrace();
 					}
+				}
+
+				if(args[0].equalsIgnoreCase("package") || args[0].equalsIgnoreCase("pkg"))
+				{
+					String dim = "overworld";
+
+					if(args.length > 1)
+					{
+						dim = args[1];
+					}
+
+					boolean obfuscate = false;
+
+					for(String i : args)
+					{
+						if(i.equalsIgnoreCase("-o"))
+						{
+							obfuscate = true;
+						}
+					}
+
+					String dimm = dim;
+					IrisDimension dimension = data.getDimensionLoader().load(dimm);
+					File folder = new File(getDataFolder(), "exports/" + dimension.getLoadKey());
+					folder.mkdirs();
+					Iris.info("Packaging Dimension " + dimension.getName());
+					KSet<IrisRegion> regions = new KSet<>();
+					KSet<IrisBiome> biomes = new KSet<>();
+					KSet<IrisGenerator> generators = new KSet<>();
+					dimension.getRegions().forEach((i) -> regions.add(data.getRegionLoader().load(i)));
+					regions.forEach((i) -> biomes.addAll(i.getAllBiomes()));
+					biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator())));
+					KMap<String, String> renameObjects = new KMap<>();
+
+					for(IrisBiome i : biomes)
+					{
+						for(IrisObjectPlacement j : i.getObjects())
+						{
+							KList<String> newNames = new KList<>();
+
+							for(String k : j.getPlace())
+							{
+								if(renameObjects.containsKey(k))
+								{
+									newNames.add(renameObjects.get(k));
+									continue;
+								}
+
+								String name = obfuscate ? UUID.randomUUID().toString().replaceAll("-", "") : k;
+								newNames.add(name);
+								renameObjects.put(k, name);
+							}
+
+							if(obfuscate)
+							{
+								j.setPlace(newNames);
+							}
+						}
+					}
+					
+					KMap<String, KList<String>> lookupObjects = renameObjects.flip();
+
+					biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
+					{
+						try
+						{
+							Iris.info("- " + k + " (Object)");
+							IO.copyFile(Iris.data.getObjectLoader().findFile(lookupObjects.get(k).get(0)), new File(folder, "objects/" + k + ".iob"));
+						}
+
+						catch(Throwable e)
+						{
+
+						}
+					})));
+
+					try
+					{
+						IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(0));
+
+						for(IrisGenerator i : generators)
+						{
+							Iris.info("- " + i.getLoadKey() + " (Generator)");
+							IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(i)).toString(0));
+						}
+
+						for(IrisRegion i : regions)
+						{
+							Iris.info("- " + i.getName() + " (Region)");
+							IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(i)).toString(0));
+						}
+
+						for(IrisBiome i : biomes)
+						{
+							Iris.info("- " + i.getName() + " (Biome)");
+							IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(i)).toString(0));
+						}
+
+						ZipUtil.pack(folder, new File(getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris"));
+						IO.delete(folder);
+					}
+
+					catch(Throwable e)
+					{
+						L.ex(e);
+					}
+
+					sender.sendMessage("Done!");
 				}
 
 				if(args[0].equalsIgnoreCase("dev"))

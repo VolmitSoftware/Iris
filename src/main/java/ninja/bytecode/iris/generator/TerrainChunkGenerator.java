@@ -17,6 +17,7 @@ import ninja.bytecode.iris.object.IrisRegion;
 import ninja.bytecode.iris.object.atomics.AtomicSliver;
 import ninja.bytecode.iris.util.BiomeMap;
 import ninja.bytecode.iris.util.BiomeResult;
+import ninja.bytecode.iris.util.BlockDataTools;
 import ninja.bytecode.iris.util.HeightMap;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
@@ -132,11 +133,24 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			}
 		}
 
+		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES) || onto.equals(Material.DARK_OAK_LEAVES) || onto.equals(Material.JUNGLE_LEAVES) || onto.equals(Material.OAK_LEAVES) || onto.equals(Material.SPRUCE_LEAVES))
+		{
+			if(!mat.isSolid())
+			{
+				return false;
+			}
+		}
+
 		return true;
 	}
 
 	private void decorateLand(IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
 	{
+		if(!getDimension().isDecorate())
+		{
+			return;
+		}
+
 		int j = 0;
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
@@ -153,6 +167,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				if(!canPlace(d.getMaterial(), block.getMaterial()))
 				{
 					continue;
+				}
+
+				if(d.getMaterial().equals(Material.CACTUS))
+				{
+					if(!block.getMaterial().equals(Material.SAND) && !block.getMaterial().equals(Material.RED_SAND))
+					{
+						sliver.set(k, BlockDataTools.getBlockData("RED_SAND"));
+					}
 				}
 
 				if(d instanceof Bisected && k < 254)
@@ -190,6 +212,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	private void decorateUnderwater(IrisBiome biome, AtomicSliver sliver, double wx, int y, double wz, int rx, int rz, BlockData block)
 	{
+		if(!getDimension().isDecorate())
+		{
+			return;
+		}
+
 		int j = 0;
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
@@ -257,7 +284,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
-		int height = sampleHeight(x, z);
+		int height = (int) Math.round(getTerrainHeight(x, z));
 		double sh = region.getShoreHeight(wx, wz);
 		IrisBiome current = sampleBiome(x, z).getBiome();
 

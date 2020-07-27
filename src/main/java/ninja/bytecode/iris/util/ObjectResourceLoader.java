@@ -149,6 +149,33 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		}
 	}
 
+	public File findFile(String name)
+	{
+		lock.lock();
+		for(File i : getFolders(name))
+		{
+			for(File j : i.listFiles())
+			{
+				if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name))
+				{
+					return j;
+				}
+			}
+
+			File file = new File(i, name + ".iob");
+
+			if(file.exists())
+			{
+				return file;
+			}
+		}
+
+		Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
+
+		lock.unlock();
+		return null;
+	}
+
 	public IrisObject load(String name)
 	{
 		String key = name + "-" + objectClass.getCanonicalName();

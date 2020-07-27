@@ -65,6 +65,11 @@ public class IrisBiomePaletteLayer
 			}
 		}
 
+		if(getBlockData().isEmpty())
+		{
+			return null;
+		}
+
 		return getBlockData().get(0);
 	}
 
@@ -108,5 +113,11 @@ public class IrisBiomePaletteLayer
 		lock.unlock();
 
 		return blockData;
+	}
+
+	public IrisBiomePaletteLayer zero()
+	{
+		palette.clear();
+		return this;
 	}
 }

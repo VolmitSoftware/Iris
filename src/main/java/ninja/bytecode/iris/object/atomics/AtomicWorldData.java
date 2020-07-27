@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.ChronoLatch;
 import ninja.bytecode.iris.util.ChunkPosition;
 import ninja.bytecode.shuriken.collections.KMap;
@@ -18,6 +19,7 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
 	private KMap<ChunkPosition, Long> lastRegion;
+	private KMap<ChunkPosition, Long> lastChunk;
 	private String prefix;
 	private ChronoLatch cl = new ChronoLatch(15000);
 
@@ -27,6 +29,7 @@ public class AtomicWorldData
 		loadedSections = new KMap<>();
 		loadedChunks = new KMap<>();
 		lastRegion = new KMap<>();
+		lastChunk = new KMap<>();
 		this.prefix = prefix;
 		getSubregionFolder().mkdirs();
 	}
@@ -165,7 +168,7 @@ public class AtomicWorldData
 	public AtomicSliverMap loadChunk(int x, int z) throws IOException
 	{
 		ChunkPosition pos = new ChunkPosition(x, z);
-
+		lastChunk.put(pos, M.ms());
 		if(loadedChunks.containsKey(pos))
 		{
 			return loadedChunks.get(pos);
@@ -259,6 +262,22 @@ public class AtomicWorldData
 				catch(IOException e)
 				{
 					e.printStackTrace();
+				}
+			}
+		}
+
+		for(ChunkPosition i : lastChunk.k())
+		{
+			if(M.ms() - lastChunk.get(i) > 60000)
+			{
+				try
+				{
+					saveChunk(i);
+				}
+
+				catch(IOException e)
+				{
+					Iris.warn("Failed to save chunk");
 				}
 			}
 		}

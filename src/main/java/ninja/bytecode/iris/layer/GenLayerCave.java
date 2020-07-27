@@ -29,9 +29,9 @@ public class GenLayerCave extends GenLayer
 	{
 		//@builder
 		super(iris, rng);
-		shuffle = CNG.signature(rng.nextParallelRNG(2348566));
-		gincline = new CNG(rng.nextParallelRNG(1112), 1D, 3).scale(0.00452);
-		gg = new FastNoise(324895 * rng.nextParallelRNG(45678).imax());
+		shuffle = CNG.signature(rng.nextParallelRNG(1348566));
+		gincline = new CNG(rng.nextParallelRNG(26512), 1D, 3).scale(0.00452);
+		gg = new FastNoise(324895 * rng.nextParallelRNG(49678).imax());
 		//@done
 	}
 

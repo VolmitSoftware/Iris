@@ -4,10 +4,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import ninja.bytecode.iris.Iris;
 import ninja.bytecode.iris.util.CNG;
 import ninja.bytecode.iris.util.Desc;
 import ninja.bytecode.iris.util.RNG;
 import ninja.bytecode.shuriken.collections.KList;
+import ninja.bytecode.shuriken.collections.KMap;
+import ninja.bytecode.shuriken.collections.KSet;
 
 @Desc("Represents an iris region")
 @Data
@@ -90,5 +93,35 @@ public class IrisRegion extends IrisRegistrant
 		}
 
 		return shoreHeightGenerator.fitDoubleD(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
+	}
+
+	public KList<IrisBiome> getAllBiomes()
+	{
+		KMap<String, IrisBiome> b = new KMap<>();
+		KSet<String> names = new KSet<>();
+		names.addAll(landBiomes);
+		names.addAll(seaBiomes);
+		names.addAll(shoreBiomes);
+		spotBiomes.forEach((i) -> names.add(i.getBiome()));
+		ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
+
+		while(!names.isEmpty())
+		{
+			for(String i : new KList<>(names))
+			{
+				if(b.containsKey(i))
+				{
+					names.remove(i);
+					continue;
+				}
+
+				IrisBiome biome = Iris.data.getBiomeLoader().load(i);
+				b.put(biome.getLoadKey(), biome);
+				names.remove(i);
+				names.addAll(biome.getChildren());
+			}
+		}
+
+		return b.v();
 	}
 }

@@ -28,6 +28,9 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("This zooms in the biome colors if multiple derivatives are chosen")
 	private double biomeZoom = 1;
 
+	@Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
+	private boolean lockLayers = false;
+
 	@Desc("The rarity of this biome (integer)")
 	private int rarity = 1;
 
@@ -68,6 +71,8 @@ public class IrisBiome extends IrisRegistrant
 	private transient CellGenerator childrenCell;
 	private transient InferredType inferredType;
 	private transient CNG biomeGenerator;
+	private transient int maxHeight = Integer.MIN_VALUE;
+	private transient KList<BlockData> fullLayerSpec;
 	private transient KList<CNG> layerHeightGenerators;
 	private transient KList<CNG> layerSeaHeightGenerators;
 	private transient KList<CNG> layerSurfaceGenerators;
@@ -111,8 +116,13 @@ public class IrisBiome extends IrisRegistrant
 		return childrenCell;
 	}
 
-	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth)
+	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height)
 	{
+		if(isLockLayers())
+		{
+			return generateLockedLayers(wx, wz, random, maxDepth, height);
+		}
+
 		KList<BlockData> data = new KList<>();
 
 		if(maxDepth <= 0)
@@ -155,6 +165,74 @@ public class IrisBiome extends IrisRegistrant
 		}
 
 		return data;
+	}
+
+	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepth, int height)
+	{
+		KList<BlockData> data = new KList<>();
+		KList<BlockData> real = new KList<>();
+
+		if(maxDepth <= 0)
+		{
+			return data;
+		}
+
+		for(int i = 0; i < layers.size(); i++)
+		{
+			CNG hgen = getLayerHeightGenerators(random).get(i);
+			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getTerrainZoom(), wz / layers.get(i).getTerrainZoom());
+
+			if(d < 0)
+			{
+				continue;
+			}
+
+			for(int j = 0; j < d; j++)
+			{
+				try
+				{
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getTerrainZoom(), j, (wz - j) / layers.get(i).getTerrainZoom()));
+				}
+
+				catch(Throwable e)
+				{
+					L.ex(e);
+				}
+			}
+		}
+
+		if(data.isEmpty())
+		{
+			return real;
+		}
+
+		for(int i = 0; i < maxDepth; i++)
+		{
+			int offset = (getMaxHeight() - height) - i;
+			int index = offset % data.size();
+			real.add(data.get(index < 0 ? 0 : index));
+		}
+
+		return real;
+	}
+
+	private int getMaxHeight()
+	{
+		if(maxHeight == Integer.MIN_VALUE)
+		{
+			lock.lock();
+
+			maxHeight = 0;
+
+			for(IrisBiomeGeneratorLink i : getGenerators())
+			{
+				maxHeight += i.getMax();
+			}
+
+			lock.unlock();
+		}
+
+		return maxHeight;
 	}
 
 	public IrisBiome infer(InferredType t, InferredType type)

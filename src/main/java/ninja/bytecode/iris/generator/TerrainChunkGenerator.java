@@ -58,7 +58,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			double noise = getNoiseHeight(rx, rz);
 			int height = (int) Math.round(noise) + fluidHeight;
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
-			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height);
+			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height, height - getFluidHeight());
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
 			cacheBiome(x, z, biome);
 

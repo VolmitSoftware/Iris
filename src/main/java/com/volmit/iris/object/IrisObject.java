@@ -135,9 +135,12 @@ public class IrisObject extends IrisRegistrant
 		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY() : yv;
 		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 
-		if(!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z))
+		if(yv < 0)
 		{
-			return;
+			if(!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z))
+			{
+				return;
+			}
 		}
 
 		for(BlockVector g : blocks.k())

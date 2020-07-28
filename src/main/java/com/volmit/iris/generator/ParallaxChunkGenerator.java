@@ -16,9 +16,11 @@ import com.volmit.iris.object.atomics.AtomicSliverMap;
 import com.volmit.iris.object.atomics.AtomicWorldData;
 import com.volmit.iris.object.atomics.MasterLock;
 import com.volmit.iris.util.BiomeMap;
+import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -242,7 +244,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
 						}
 					}
 
@@ -250,7 +252,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
 						}
 					}
 
@@ -258,7 +260,30 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((x * 16) + ro.nextInt(16), (z * 16) + ro.nextInt(16), ro, this);
+							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+						}
+					}
+
+					if(getDimension().isCaves())
+					{
+						int bx = (i * 16) + ro.nextInt(16);
+						int bz = (j * 16) + ro.nextInt(16);
+
+						IrisBiome biome = sampleCaveBiome(bx, bz).getBiome();
+
+						if(biome == null)
+						{
+							return;
+						}
+
+						if(biome.getObjects().isEmpty())
+						{
+							return;
+						}
+
+						for(IrisObjectPlacement k : biome.getObjects())
+						{
+							placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 1869322));
 						}
 					}
 				});
@@ -276,6 +301,24 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		{
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
 			o.getSchematic(rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
+		}
+	}
+
+	public void placeCaveObject(IrisObjectPlacement o, int x, int z, RNG rng)
+	{
+		for(int i = 0; i < o.getTriesForChunk(rng); i++)
+		{
+			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
+			int xx = (x * 16) + rng.nextInt(16);
+			int zz = (z * 16) + rng.nextInt(16);
+			KList<CaveResult> res = getCaves(xx, zz);
+
+			if(res.isEmpty())
+			{
+				continue;
+			}
+
+			o.getSchematic(rng).place(xx, res.get(rng.nextParallelRNG(29345 * (i + 234)).nextInt(res.size())).getFloor() + 2, zz, this, o, rng);
 		}
 	}
 

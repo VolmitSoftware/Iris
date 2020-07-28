@@ -50,11 +50,21 @@ public class CellGenerator
 
 	public float getValue(double x, double z, int possibilities)
 	{
+		if(possibilities == 1)
+		{
+			return 0;
+		}
+		
 		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
 	}
 
 	public int getIndex(double x, double z, int possibilities)
 	{
+		if(possibilities == 1)
+		{
+			return 0;
+		}
+
 		return (int) Math.round(getValue(x, z, possibilities));
 	}
 }

@@ -54,15 +54,15 @@ public class GenLayerCave extends GenLayer
 			double wx = wxx + (shuffle.noise(wxx, wzz) * shuffleDistance);
 			double wz = wzz + (shuffle.noise(wzz, wxx) * shuffleDistance);
 			double incline = 157;
-			double baseWidth = (9 * iris.getDimension().getCaveScale());
+			double baseWidth = (14 * iris.getDimension().getCaveScale());
 			double distanceCheck = 0.0132 * baseWidth;
-			double distanceTake = 0.0032 * baseWidth;
+			double distanceTake = 0.0022 * baseWidth;
 			double drop = (-i * 7) + 44 + iris.getDimension().getCaveShift();
 			double caveHeightNoise = incline * gincline.noise((wx + (10000 * i)), (wz - (10000 * i)));
 			caveHeightNoise += shuffle.fitDoubleD(-1, 1, wxx - caveHeightNoise, wzz + caveHeightNoise) * 3;
 
-			int ceiling = 0;
-			int floor = 256;
+			int ceiling = -256;
+			int floor = 512;
 
 			for(double tunnelHeight = 1; tunnelHeight <= baseWidth; tunnelHeight++)
 			{
@@ -72,30 +72,51 @@ public class GenLayerCave extends GenLayer
 					int caveHeight = (int) Math.round(caveHeightNoise - drop);
 					int pu = (int) (caveHeight + tunnelHeight);
 					int pd = (int) (caveHeight - tunnelHeight);
-					if(dig(x, pu, z, data))
+
+					if(data == null)
 					{
 						ceiling = pu > ceiling ? pu : ceiling;
 						floor = pu < floor ? pu : floor;
-					}
-
-					if(dig(x, pd, z, data))
-					{
 						ceiling = pd > ceiling ? pd : ceiling;
 						floor = pd < floor ? pd : floor;
-					}
 
-					if(tunnelHeight == 1)
-					{
-						if(dig(x, (int) (caveHeight), z, data))
+						if(tunnelHeight == 1)
 						{
 							ceiling = caveHeight > ceiling ? caveHeight : ceiling;
 							floor = caveHeight < floor ? caveHeight : floor;
 						}
 					}
+
+					else
+					{
+						if(dig(x, pu, z, data))
+						{
+							ceiling = pu > ceiling ? pu : ceiling;
+							floor = pu < floor ? pu : floor;
+						}
+
+						if(dig(x, pd, z, data))
+						{
+							ceiling = pd > ceiling ? pd : ceiling;
+							floor = pd < floor ? pd : floor;
+						}
+
+						if(tunnelHeight == 1)
+						{
+							if(dig(x, (int) (caveHeight), z, data))
+							{
+								ceiling = caveHeight > ceiling ? caveHeight : ceiling;
+								floor = caveHeight < floor ? caveHeight : floor;
+							}
+						}
+					}
 				}
 			}
 
-			result.add(new CaveResult(floor, ceiling));
+			if(floor >= 0 && ceiling <= 255)
+			{
+				result.add(new CaveResult(floor, ceiling));
+			}
 		}
 
 		return result;

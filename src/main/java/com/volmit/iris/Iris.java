@@ -115,8 +115,9 @@ public class Iris extends JavaPlugin implements BoardProvider
 		{
 			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 			int x = player.getLocation().getBlockX();
+			int y = player.getLocation().getBlockY();
 			int z = player.getLocation().getBlockZ();
-			BiomeResult er = g.sampleTrueBiome(x, z);
+			BiomeResult er = g.sampleTrueBiome(x, y, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");

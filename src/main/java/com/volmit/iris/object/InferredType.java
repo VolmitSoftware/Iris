@@ -17,5 +17,11 @@ public enum InferredType
 	CAVE,
 
 	@DontObfuscate
+	ISLAND,
+
+	@DontObfuscate
+	SKYLAND,
+
+	@DontObfuscate
 	DEFER;
 }

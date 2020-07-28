@@ -10,6 +10,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.KMap;
@@ -21,6 +22,7 @@ public class AtomicSliver
 {
 	public static final BlockData AIR = BlockDataTools.getBlockData("AIR");
 	private KMap<Integer, BlockData> block;
+	private KMap<Integer, IrisBiome> truebiome;
 	private KMap<Integer, Biome> biome;
 	private int highestBlock = 0;
 	private int highestBiome = 0;
@@ -33,6 +35,7 @@ public class AtomicSliver
 		this.z = z;
 		this.block = new KMap<>();
 		this.biome = new KMap<>();
+		this.truebiome = new KMap<>();
 	}
 
 	public Material getType(int h)
@@ -78,10 +81,25 @@ public class AtomicSliver
 		return getType(h).isSolid();
 	}
 
+	public Biome getBiome(int h)
+	{
+		return biome.containsKey(h) ? biome.get(h) : Biome.THE_VOID;
+	}
+
+	public IrisBiome getTrueBiome(int h)
+	{
+		return truebiome.get(h);
+	}
+
 	public void set(int h, Biome d)
 	{
 		biome.put(h, d);
 		highestBiome = h > highestBiome ? h : highestBiome;
+	}
+
+	public void set(int h, IrisBiome d)
+	{
+		truebiome.put(h, d);
 	}
 
 	public void write(ChunkData d)

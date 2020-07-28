@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Objective;

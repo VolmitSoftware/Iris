@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -6,10 +6,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.locks.ReentrantLock;
-
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.execution.NastyRunnable;
 
 public class GroupedExecutor
 {

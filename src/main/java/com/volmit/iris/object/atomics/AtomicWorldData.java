@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.object.atomics;
+package com.volmit.iris.object.atomics;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,11 +7,11 @@ import java.io.IOException;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.ChronoLatch;
-import ninja.bytecode.iris.util.ChunkPosition;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.math.M;
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
 
 public class AtomicWorldData
 {

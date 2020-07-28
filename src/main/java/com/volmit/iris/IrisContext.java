@@ -1,11 +1,11 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.KMap;
 
 public interface IrisContext
 {

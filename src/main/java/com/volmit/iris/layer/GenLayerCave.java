@@ -1,20 +1,20 @@
-package ninja.bytecode.iris.layer;
+package com.volmit.iris.layer;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.generator.DimensionChunkGenerator;
-import ninja.bytecode.iris.object.atomics.AtomicSliver;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.CaveResult;
-import ninja.bytecode.iris.util.FastNoise;
-import ninja.bytecode.iris.util.FastNoise.CellularDistanceFunction;
-import ninja.bytecode.iris.util.FastNoise.CellularReturnType;
-import ninja.bytecode.iris.util.FastNoise.NoiseType;
-import ninja.bytecode.iris.util.GenLayer;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
+import com.volmit.iris.generator.DimensionChunkGenerator;
+import com.volmit.iris.object.atomics.AtomicSliver;
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.CaveResult;
+import com.volmit.iris.util.FastNoise;
+import com.volmit.iris.util.GenLayer;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.FastNoise.CellularDistanceFunction;
+import com.volmit.iris.util.FastNoise.CellularReturnType;
+import com.volmit.iris.util.FastNoise.NoiseType;
 
 public class GenLayerCave extends GenLayer
 {

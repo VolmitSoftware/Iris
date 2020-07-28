@@ -1,47 +1,60 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
+
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.util.KList;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.IrisInterpolation;
-import ninja.bytecode.shuriken.collections.KList;
 
 @Desc("Represents a composite generator of noise gens")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant
 {
+	@DontObfuscate
 	@Desc("The zoom or frequency.")
 	private double zoom = 1;
 
+	@DontObfuscate
 	@Desc("The opacity, essentially a multiplier on the output.")
 	private double opacity = 1;
 
+	@DontObfuscate
 	@Desc("The offset to shift this noise x")
 	private double offsetX = 0;
 
+	@DontObfuscate
 	@Desc("The offset to shift this noise z")
 	private double offsetZ = 0;
 
+	@DontObfuscate
 	@Desc("The seed for this generator")
 	private long seed = 1;
 
+	@DontObfuscate
 	@Desc("The interpolation method when two biomes use different heights but this same generator")
 	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
 
+	@DontObfuscate
 	@Desc("The interpolation distance scale (blocks) when two biomes use different heights but this same generator")
 	private double interpolationScale = 7;
 
+	@DontObfuscate
 	@Desc("Cliff Height Max. Disable with 0 for min and max")
 	private double cliffHeightMax = 0;
 
+	@DontObfuscate
 	@Desc("Cliff Height Min. Disable with 0 for min and max")
 	private double cliffHeightMin = 0;
 
+	@DontObfuscate
 	@Desc("The list of noise gens this gen contains.")
 	private KList<IrisNoiseGenerator> composite = new KList<IrisNoiseGenerator>();
 
+	@DontObfuscate
 	@Desc("The noise gen for cliff height.")
 	private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 

@@ -1,12 +1,10 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.Iris;
 
 public class BlockDataTools
 {

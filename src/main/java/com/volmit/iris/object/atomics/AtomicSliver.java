@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.object.atomics;
+package com.volmit.iris.object.atomics;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,10 +10,11 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.KMap;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.HeightMap;
-import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 public class AtomicSliver

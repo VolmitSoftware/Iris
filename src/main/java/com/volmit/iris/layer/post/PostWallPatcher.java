@@ -1,12 +1,12 @@
-package ninja.bytecode.iris.layer.post;
+package com.volmit.iris.layer.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.generator.PostBlockChunkGenerator;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.util.IrisPostBlockFilter;
-import ninja.bytecode.iris.util.RNG;
+import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.RNG;
 
 public class PostWallPatcher extends IrisPostBlockFilter
 {

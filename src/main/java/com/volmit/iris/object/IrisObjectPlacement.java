@@ -1,41 +1,53 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
+
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 
 import lombok.Data;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
 
 @Data
 public class IrisObjectPlacement
 {
+	@DontObfuscate
 	@Desc("List of objects to place")
 	private KList<String> place = new KList<>();
 
+	@DontObfuscate
 	@Desc("Find and replace blocks")
 	private KList<IrisObjectReplace> edit = new KList<>();
 
+	@DontObfuscate
 	@Desc("Translate this object's placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
 
+	@DontObfuscate
 	@Desc("Rotate this objects placement")
 	private IrisObjectRotation rotation = new IrisObjectRotation();
 
+	@DontObfuscate
 	@Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
 	private double snow = 0;
 
+	@DontObfuscate
 	@Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
 	private double chance = 1;
 
+	@DontObfuscate
 	@Desc("If the chance check passes, place this many in a single chunk")
 	private int density = 1;
 
+	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
 	private boolean underwater = false;
 
+	@DontObfuscate
 	@Desc("If set to true, objects will place on the fluid height level Such as boats.")
 	private boolean onwater = false;
 
+	@DontObfuscate
 	@Desc("If set to true, this object will only place parts of itself where blocks already exist.")
 	private boolean meld = false;
 

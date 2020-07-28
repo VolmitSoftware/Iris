@@ -1,20 +1,25 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
+
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IrisInterpolation;
 
 import lombok.Data;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.IrisInterpolation;
 
 @Desc("This represents a link to a generator for a biome")
 @Data
 public class IrisBiomeGeneratorLink
 {
+	@DontObfuscate
 	@Desc("The generator id")
 	private String generator = "default";
 
+	@DontObfuscate
 	@Desc("The min block value (value + fluidHeight)")
 	private int min = 0;
 
+	@DontObfuscate
 	@Desc("The max block value (value + fluidHeight)")
 	private int max = 0;
 

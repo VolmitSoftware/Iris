@@ -1,28 +1,29 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.layer.GenLayerBiome;
+import com.volmit.iris.object.InferredType;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeGeneratorLink;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.layer.GenLayerBiome;
-import ninja.bytecode.iris.object.InferredType;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisBiomeGeneratorLink;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.object.IrisGenerator;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.ChronoLatch;
-import ninja.bytecode.iris.util.ChunkPosition;
-import ninja.bytecode.iris.util.IrisInterpolation;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.math.M;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

@@ -1,6 +1,6 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
-import ninja.bytecode.iris.generator.DimensionChunkGenerator;
+import com.volmit.iris.generator.DimensionChunkGenerator;
 
 public abstract class GenLayer
 {

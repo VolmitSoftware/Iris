@@ -1,12 +1,12 @@
-package ninja.bytecode.iris.layer.post;
+package com.volmit.iris.layer.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 
-import ninja.bytecode.iris.generator.PostBlockChunkGenerator;
-import ninja.bytecode.iris.util.IrisPostBlockFilter;
-import ninja.bytecode.iris.util.RNG;
+import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.RNG;
 
 public class PostSlabber extends IrisPostBlockFilter
 {

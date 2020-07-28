@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -6,23 +6,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDepositGenerator;
+import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.atomics.AtomicSliver;
+import com.volmit.iris.object.atomics.AtomicSliverMap;
+import com.volmit.iris.object.atomics.AtomicWorldData;
+import com.volmit.iris.object.atomics.MasterLock;
+import com.volmit.iris.util.BiomeMap;
+import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisDepositGenerator;
-import ninja.bytecode.iris.object.IrisObjectPlacement;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.object.atomics.AtomicSliver;
-import ninja.bytecode.iris.object.atomics.AtomicSliverMap;
-import ninja.bytecode.iris.object.atomics.AtomicWorldData;
-import ninja.bytecode.iris.object.atomics.MasterLock;
-import ninja.bytecode.iris.util.BiomeMap;
-import ninja.bytecode.iris.util.ChunkPosition;
-import ninja.bytecode.iris.util.HeightMap;
-import ninja.bytecode.iris.util.IObjectPlacer;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

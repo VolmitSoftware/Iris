@@ -1,14 +1,11 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import java.io.File;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.Gson;
-
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisRegistrant;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisRegistrant;
 
 public class ResourceLoader<T extends IrisRegistrant>
 {

@@ -1,21 +1,27 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
+
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
 
 import lombok.Data;
-import ninja.bytecode.iris.util.Desc;
 
 @Desc("Represents a rotation axis with intervals and maxes")
 @Data
 public class IrisAxisRotationClamp
 {
+	@DontObfuscate
 	@Desc("Should this axis be rotated at all?")
 	private boolean enabled = false;
 
+	@DontObfuscate
 	@Desc("The minimum angle (from) or set this and max to zero for any angle degrees")
 	private double min = 0;
 
+	@DontObfuscate
 	@Desc("The maximum angle (to) or set this and min to zero for any angle degrees")
 	private double max = 0;
 
+	@DontObfuscate
 	@Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees")
 	private double interval = 0;
 

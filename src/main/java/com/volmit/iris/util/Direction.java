@@ -1,13 +1,11 @@
 
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
-import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.util.Cuboid.CuboidDirection;
 
 /**
  * Directions

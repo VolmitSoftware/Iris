@@ -1,6 +1,4 @@
-package ninja.bytecode.iris.util;
-
-import ninja.bytecode.shuriken.math.M;
+package com.volmit.iris.util;
 
 public class Borders
 {

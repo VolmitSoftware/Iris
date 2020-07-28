@@ -1,18 +1,23 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.Desc;
 
 @Desc("Find and replace object materials")
 @Data
 public class IrisObjectReplace
 {
+	@DontObfuscate
 	private String find;
+
+	@DontObfuscate
 	private String replace;
 
 	private transient ReentrantLock lock = new ReentrantLock();

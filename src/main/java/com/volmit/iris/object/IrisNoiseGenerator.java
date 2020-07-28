@@ -1,56 +1,73 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.IrisInterpolation;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
 
 @Desc("A noise generator")
 @Data
 public class IrisNoiseGenerator
 {
+	@DontObfuscate
 	@Desc("The coordinate input zoom")
 	private double zoom = 1;
 
+	@DontObfuscate
 	@Desc("The output multiplier")
 	private double opacity = 1;
 
+	@DontObfuscate
 	@Desc("Coordinate offset x")
 	private double offsetX = 0;
 
+	@DontObfuscate
 	@Desc("Height output offset y")
 	private double offsetY = 0;
 
+	@DontObfuscate
 	@Desc("Coordinate offset z")
 	private double offsetZ = 0;
 
+	@DontObfuscate
 	@Desc("The seed")
 	private long seed = 0;
 
+	@DontObfuscate
 	@Desc("Apply a parametric curve on the output")
 	private boolean parametric = false;
+
+	@DontObfuscate
 	@Desc("Apply a bezier curve on the output")
 	private boolean bezier = false;
 
+	@DontObfuscate
 	@Desc("Apply a sin-center curve on the output (0, and 1 = 0 and 0.5 = 1.0 using a sinoid shape.)")
 	private boolean sinCentered = false;
 
+	@DontObfuscate
 	@Desc("The exponent noise^EXPONENT")
 	private double exponent = 1;
 
+	@DontObfuscate
 	@Desc("Enable / disable. Outputs offsetY if disabled")
 	private boolean enabled = true;
 
+	@DontObfuscate
 	@Desc("If this generator uses the default iris swirly/wispy noise generator. Set to false for pure simplex.")
 	private boolean irisBased = true;
 
+	@DontObfuscate
 	@Desc("Multiple octaves for multple generators of changing zooms added together")
 	private int octaves = 1;
 
+	@DontObfuscate
 	@Desc("Apply a child noise generator to fracture the input coordinates of this generator")
 	private KList<IrisNoiseGenerator> fracture = new KList<>();
 

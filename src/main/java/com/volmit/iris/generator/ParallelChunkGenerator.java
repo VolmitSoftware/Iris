@@ -1,16 +1,17 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import org.bukkit.World;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.atomics.AtomicSliver;
+import com.volmit.iris.object.atomics.AtomicSliverMap;
+import com.volmit.iris.util.BiomeMap;
+import com.volmit.iris.util.GroupedExecutor;
+import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.atomics.AtomicSliver;
-import ninja.bytecode.iris.object.atomics.AtomicSliverMap;
-import ninja.bytecode.iris.util.BiomeMap;
-import ninja.bytecode.iris.util.GroupedExecutor;
-import ninja.bytecode.iris.util.HeightMap;
-import ninja.bytecode.iris.util.RNG;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,8 +14,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
-
-import ninja.bytecode.shuriken.collections.KList;
 
 /**
  * Cuboids

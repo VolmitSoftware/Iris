@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.object.atomics;
+package com.volmit.iris.object.atomics;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,12 +8,12 @@ import java.io.OutputStream;
 
 import org.bukkit.World;
 
-import ninja.bytecode.iris.util.ByteArrayTag;
-import ninja.bytecode.iris.util.CompoundTag;
-import ninja.bytecode.iris.util.NBTInputStream;
-import ninja.bytecode.iris.util.NBTOutputStream;
-import ninja.bytecode.iris.util.Tag;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.util.ByteArrayTag;
+import com.volmit.iris.util.CompoundTag;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.NBTInputStream;
+import com.volmit.iris.util.NBTOutputStream;
+import com.volmit.iris.util.Tag;
 
 public class AtomicRegionData
 {

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import org.bukkit.Axis;
 import org.bukkit.Bukkit;
@@ -6,9 +6,6 @@ import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
-
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.format.Form;
 
 /**
  * Vector utilities

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.object.atomics;
+package com.volmit.iris.object.atomics;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -9,8 +9,9 @@ import java.io.OutputStream;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.util.HeightMap;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.HeightMap;
 
 @Data
 public class AtomicSliverMap

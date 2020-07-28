@@ -1,27 +1,29 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Bisected.Half;
+
+import com.volmit.iris.layer.GenLayerCave;
+import com.volmit.iris.object.DecorationPart;
+import com.volmit.iris.object.InferredType;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.atomics.AtomicSliver;
+import com.volmit.iris.util.BiomeMap;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.RNG;
+
 import org.bukkit.block.data.BlockData;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.layer.GenLayerCave;
-import ninja.bytecode.iris.object.DecorationPart;
-import ninja.bytecode.iris.object.InferredType;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisBiomeDecorator;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.object.atomics.AtomicSliver;
-import ninja.bytecode.iris.util.BiomeMap;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.HeightMap;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.math.M;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

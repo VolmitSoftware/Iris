@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.wand;
+package com.volmit.iris.wand;
 
 import java.awt.Color;
 import java.util.Iterator;
@@ -23,11 +23,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisObject;
-import ninja.bytecode.iris.util.Cuboid;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.math.M;
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
 
 public class WandController implements Listener
 {

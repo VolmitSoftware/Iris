@@ -1,17 +1,17 @@
-package ninja.bytecode.iris.layer;
+package com.volmit.iris.layer;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.generator.DimensionChunkGenerator;
-import ninja.bytecode.iris.object.InferredType;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.object.IrisRegionRidge;
-import ninja.bytecode.iris.object.IrisRegionSpot;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.CellGenerator;
-import ninja.bytecode.iris.util.GenLayer;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.DimensionChunkGenerator;
+import com.volmit.iris.object.InferredType;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisRegionRidge;
+import com.volmit.iris.object.IrisRegionSpot;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.CellGenerator;
+import com.volmit.iris.util.GenLayer;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 
 public class GenLayerBiome extends GenLayer
 {

@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 /**
  * Provides an incredibly fast averaging object. It swaps values from a sum

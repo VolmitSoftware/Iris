@@ -1,7 +1,6 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.object.IrisBiome;
 
 public class BiomeDominance extends KMap<IrisBiome, Double>
 {

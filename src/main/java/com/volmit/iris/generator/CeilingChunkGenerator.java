@@ -1,12 +1,12 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.util.InvertedBiomeGrid;
-import ninja.bytecode.iris.util.RNG;
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.InvertedBiomeGrid;
+import com.volmit.iris.util.RNG;
 
 public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
 {

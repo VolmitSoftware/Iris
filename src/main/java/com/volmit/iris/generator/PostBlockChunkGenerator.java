@@ -1,20 +1,20 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.layer.post.PostNippleSmoother;
-import ninja.bytecode.iris.layer.post.PostPotholeFiller;
-import ninja.bytecode.iris.layer.post.PostSlabber;
-import ninja.bytecode.iris.layer.post.PostWallPatcher;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.util.IPostBlockAccess;
-import ninja.bytecode.iris.util.IrisPostBlockFilter;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
+import com.volmit.iris.Iris;
+import com.volmit.iris.layer.post.PostNippleSmoother;
+import com.volmit.iris.layer.post.PostPotholeFiller;
+import com.volmit.iris.layer.post.PostSlabber;
+import com.volmit.iris.layer.post.PostWallPatcher;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.IPostBlockAccess;
+import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 
 public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator implements IPostBlockAccess
 {

@@ -1,18 +1,19 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import java.lang.reflect.Method;
 
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisContext;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.KMap;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.IrisContext;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

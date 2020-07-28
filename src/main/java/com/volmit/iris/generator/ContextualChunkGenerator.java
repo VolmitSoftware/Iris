@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import java.util.List;
 import java.util.Random;
@@ -20,18 +20,18 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisContext;
+import com.volmit.iris.IrisMetrics;
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.PrecisionStopwatch;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import net.md_5.bungee.api.ChatColor;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.IrisContext;
-import ninja.bytecode.iris.IrisMetrics;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.ChronoLatch;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.bench.PrecisionStopwatch;
-import ninja.bytecode.shuriken.logging.L;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -286,7 +286,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			Iris.instance.imsg(i, ChatColor.RED + "- Then simply run /iris dev");
 		}
 
-		L.ex(e);
+		e.printStackTrace();
 		onFailure(e);
 	}
 

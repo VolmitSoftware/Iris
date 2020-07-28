@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 @FunctionalInterface
 public interface Consumer3<A, B, C>

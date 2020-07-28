@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import java.io.File;
 
@@ -6,19 +6,19 @@ import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 
 import com.google.gson.Gson;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisNoiseGenerator;
+import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.IO;
+import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.util.ObjectResourceLoader;
+import com.volmit.iris.util.ResourceLoader;
 
 import lombok.Data;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisBiomeDecorator;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.object.IrisGenerator;
-import ninja.bytecode.iris.object.IrisNoiseGenerator;
-import ninja.bytecode.iris.object.IrisObjectPlacement;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.IO;
-import ninja.bytecode.iris.util.ObjectResourceLoader;
-import ninja.bytecode.iris.util.ResourceLoader;
-import ninja.bytecode.shuriken.json.JSONObject;
 
 @Data
 public class IrisDataManager

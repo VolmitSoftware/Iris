@@ -1,7 +1,7 @@
-package ninja.bytecode.iris.layer.post;
+package com.volmit.iris.layer.post;
 
-import ninja.bytecode.iris.generator.PostBlockChunkGenerator;
-import ninja.bytecode.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.util.IrisPostBlockFilter;
 
 public class PostPotholeFiller extends IrisPostBlockFilter
 {

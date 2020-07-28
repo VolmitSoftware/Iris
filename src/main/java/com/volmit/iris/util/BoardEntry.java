@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import lombok.Getter;
 import org.apache.commons.lang.StringUtils;

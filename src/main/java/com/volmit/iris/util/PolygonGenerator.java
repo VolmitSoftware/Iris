@@ -1,10 +1,6 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import java.util.function.Function;
-
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.math.M;
 
 public class PolygonGenerator
 {

@@ -1,9 +1,7 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 
 import java.util.List;
-
-import ninja.bytecode.shuriken.collections.KList;
 
 /**
  * Adapts a list of objects into a list of other objects

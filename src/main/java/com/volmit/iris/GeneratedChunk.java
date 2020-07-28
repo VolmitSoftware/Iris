@@ -1,10 +1,11 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.util.ChunkPosition;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.ChunkPosition;
 
 @Data
 public class GeneratedChunk

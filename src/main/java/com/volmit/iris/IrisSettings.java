@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import lombok.Data;
 

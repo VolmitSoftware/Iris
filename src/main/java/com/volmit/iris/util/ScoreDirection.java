@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 /**
  * @author Missionary (missionarymc@gmail.com)

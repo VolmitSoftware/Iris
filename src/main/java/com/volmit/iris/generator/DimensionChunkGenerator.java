@@ -1,16 +1,17 @@
-package ninja.bytecode.iris.generator;
+package com.volmit.iris.generator;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.InferredType;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeResult;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.InferredType;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.BiomeResult;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

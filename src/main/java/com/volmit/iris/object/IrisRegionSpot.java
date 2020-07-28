@@ -1,24 +1,37 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
+
+import com.volmit.iris.util.CellGenerator;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.RNG;
 
 import lombok.Data;
-import ninja.bytecode.iris.util.CellGenerator;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.RNG;
 
 @Desc("A spot config")
 @Data
 public class IrisRegionSpot
 {
+	@DontObfuscate
 	@Desc("The biome to be placed")
 	private String biome;
+
+	@DontObfuscate
 	@Desc("Where this spot overrides. Land sea or shore")
 	private InferredType type = InferredType.LAND;
+
+	@DontObfuscate
 	@Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
 	private InferredType as = InferredType.DEFER;
+
+	@DontObfuscate
 	@Desc("The scale of splotches")
 	private double scale = 1;
+
+	@DontObfuscate
 	@Desc("Rarity is how often this splotch appears. higher = less often")
 	private double rarity = 1;
+
+	@DontObfuscate
 	@Desc("The shuffle or how natural the splotch looks like (anti-polygon)")
 	private double shuffle = 128;
 

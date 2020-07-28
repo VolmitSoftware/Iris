@@ -1,8 +1,8 @@
-package ninja.bytecode.iris.object.atomics;
+package com.volmit.iris.object.atomics;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import ninja.bytecode.shuriken.collections.KMap;
+import com.volmit.iris.util.KMap;
 
 public class MasterLock
 {

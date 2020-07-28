@@ -1,6 +1,6 @@
 name: ${project.name}
 version: ${project.version}
-main: ninja.bytecode.iris.Iris
+main: com.volmit.iris.Iris
 load: STARTUP
 commands:
     iris:

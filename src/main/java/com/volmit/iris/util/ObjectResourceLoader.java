@@ -1,13 +1,11 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import java.io.File;
 
 import org.bukkit.util.BlockVector;
 
-import ninja.bytecode.iris.Iris;
-import ninja.bytecode.iris.object.IrisObject;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.math.M;
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisObject;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {

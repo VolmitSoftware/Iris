@@ -1,7 +1,8 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
+
+import com.volmit.iris.object.IrisBiome;
 
 import lombok.Data;
-import ninja.bytecode.iris.object.IrisBiome;
 
 @Data
 public class BiomeResult

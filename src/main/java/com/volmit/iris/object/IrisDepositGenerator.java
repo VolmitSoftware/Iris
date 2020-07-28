@@ -1,41 +1,51 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
+import com.volmit.iris.generator.ParallaxChunkGenerator;
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
-import ninja.bytecode.iris.generator.ParallaxChunkGenerator;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
 
 @Data
 public class IrisDepositGenerator
 {
+	@DontObfuscate
 	@Desc("The minimum height this deposit can generate at")
 	private int minHeight = 7;
 
+	@DontObfuscate
 	@Desc("The maximum height this deposit can generate at")
 	private int maxHeight = 55;
 
+	@DontObfuscate
 	@Desc("The minimum amount of deposit blocks per clump")
 	private int minSize = 3;
 
+	@DontObfuscate
 	@Desc("The maximum amount of deposit blocks per clump")
 	private int maxSize = 5;
 
+	@DontObfuscate
 	@Desc("The maximum amount of clumps per chunk")
 	private int maxPerChunk = 3;
 
+	@DontObfuscate
 	@Desc("The minimum amount of clumps per chunk")
 	private int minPerChunk = 1;
 
+	@DontObfuscate
 	@Desc("The palette of blocks to be used in this deposit generator")
 	private KList<String> palette = new KList<String>();
 
+	@DontObfuscate
 	@Desc("Ore varience is how many different objects clumps iris will create")
 	private int varience = 8;
 

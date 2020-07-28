@@ -1,20 +1,25 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import org.bukkit.util.BlockVector;
 
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.Desc;
 
 @Desc("Translate objects")
 @Data
 public class IrisObjectTranslate
 {
+	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int x;
 
+	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int y;
 
+	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int z;
 

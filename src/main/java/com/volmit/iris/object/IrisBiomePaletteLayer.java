@@ -1,32 +1,39 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KList;
 
 @Desc("A layer of surface / subsurface material in biomes")
 @Data
 public class IrisBiomePaletteLayer
 {
+	@DontObfuscate
 	@Desc("The dispersion of materials from the palette")
 	private Dispersion dispersion = Dispersion.SCATTER;
 
+	@DontObfuscate
 	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
 
+	@DontObfuscate
 	@Desc("The max thickness of this layer")
 	private int maxHeight = 1;
 
+	@DontObfuscate
 	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
 	private double terrainZoom = 5;
 
+	@DontObfuscate
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
 

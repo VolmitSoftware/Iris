@@ -1,6 +1,6 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
-public interface Callback<T>
+public interface CallbackCV<T>
 {
 	public void run(T t);
 }

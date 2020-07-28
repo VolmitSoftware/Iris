@@ -1,8 +1,8 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
 import org.bukkit.block.data.BlockData;
 
-import ninja.bytecode.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.generator.PostBlockChunkGenerator;
 
 public abstract class IrisPostBlockFilter implements IPostBlockAccess
 {

@@ -1,12 +1,12 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import java.io.File;
 
 import org.bukkit.Bukkit;
 
-import ninja.bytecode.iris.util.ChronoLatch;
-import ninja.bytecode.iris.util.FileWatcher;
-import ninja.bytecode.shuriken.collections.KSet;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.FileWatcher;
+import com.volmit.iris.util.KSet;
 
 public class IrisHotloadManager
 {

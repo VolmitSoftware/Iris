@@ -1,4 +1,4 @@
-package ninja.bytecode.iris;
+package com.volmit.iris;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,40 +30,38 @@ import org.bukkit.util.Vector;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
-
-import ninja.bytecode.iris.generator.IrisChunkGenerator;
-import ninja.bytecode.iris.object.IrisBiome;
-import ninja.bytecode.iris.object.IrisDimension;
-import ninja.bytecode.iris.object.IrisGenerator;
-import ninja.bytecode.iris.object.IrisObject;
-import ninja.bytecode.iris.object.IrisObjectPlacement;
-import ninja.bytecode.iris.object.IrisRegion;
-import ninja.bytecode.iris.util.BiomeResult;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.BoardManager;
-import ninja.bytecode.iris.util.BoardProvider;
-import ninja.bytecode.iris.util.BoardSettings;
-import ninja.bytecode.iris.util.CNG;
-import ninja.bytecode.iris.util.Cuboid;
-import ninja.bytecode.iris.util.Cuboid.CuboidDirection;
-import ninja.bytecode.iris.util.Desc;
-import ninja.bytecode.iris.util.Direction;
-import ninja.bytecode.iris.util.GroupedExecutor;
-import ninja.bytecode.iris.util.IO;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.iris.util.ScoreDirection;
-import ninja.bytecode.iris.wand.WandController;
-import ninja.bytecode.shuriken.collections.KList;
-import ninja.bytecode.shuriken.collections.KMap;
-import ninja.bytecode.shuriken.collections.KSet;
-import ninja.bytecode.shuriken.execution.J;
-import ninja.bytecode.shuriken.format.Form;
-import ninja.bytecode.shuriken.json.JSONException;
-import ninja.bytecode.shuriken.json.JSONObject;
-import ninja.bytecode.shuriken.logging.L;
-import ninja.bytecode.shuriken.math.RollingSequence;
-import ninja.bytecode.shuriken.reaction.O;
-import ninja.bytecode.shuriken.tools.JarScanner;
+import com.volmit.iris.generator.IrisChunkGenerator;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.BoardManager;
+import com.volmit.iris.util.BoardProvider;
+import com.volmit.iris.util.BoardSettings;
+import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.Direction;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.GroupedExecutor;
+import com.volmit.iris.util.IO;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.JSONException;
+import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.util.JarScanner;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.O;
+import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RollingSequence;
+import com.volmit.iris.util.ScoreDirection;
+import com.volmit.iris.util.Cuboid.CuboidDirection;
+import com.volmit.iris.wand.WandController;
 
 public class Iris extends JavaPlugin implements BoardProvider
 {
@@ -602,16 +600,6 @@ public class Iris extends JavaPlugin implements BoardProvider
 						dim = args[1];
 					}
 
-					boolean obfuscate = false;
-
-					for(String i : args)
-					{
-						if(i.equalsIgnoreCase("-o"))
-						{
-							obfuscate = true;
-						}
-					}
-
 					String dimm = dim;
 					IrisDimension dimension = data.getDimensionLoader().load(dimm);
 					File folder = new File(getDataFolder(), "exports/" + dimension.getLoadKey());
@@ -639,18 +627,15 @@ public class Iris extends JavaPlugin implements BoardProvider
 									continue;
 								}
 
-								String name = obfuscate ? UUID.randomUUID().toString().replaceAll("-", "") : k;
+								String name = UUID.randomUUID().toString().replaceAll("-", "");
 								newNames.add(name);
 								renameObjects.put(k, name);
 							}
 
-							if(obfuscate)
-							{
-								j.setPlace(newNames);
-							}
+							j.setPlace(newNames);
 						}
 					}
-					
+
 					KMap<String, KList<String>> lookupObjects = renameObjects.flip();
 
 					biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
@@ -689,13 +674,13 @@ public class Iris extends JavaPlugin implements BoardProvider
 							IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(i)).toString(0));
 						}
 
-						ZipUtil.pack(folder, new File(getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris"));
+						ZipUtil.pack(folder, new File(getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris"), 9);
 						IO.delete(folder);
 					}
 
 					catch(Throwable e)
 					{
-						L.ex(e);
+						e.printStackTrace();
 					}
 
 					sender.sendMessage("Done!");

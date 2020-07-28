@@ -1,10 +1,11 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
+
+import com.volmit.iris.util.FastNoise.CellularDistanceFunction;
+import com.volmit.iris.util.FastNoise.CellularReturnType;
+import com.volmit.iris.util.FastNoise.NoiseType;
 
 import lombok.Getter;
 import lombok.Setter;
-import ninja.bytecode.iris.util.FastNoise.CellularDistanceFunction;
-import ninja.bytecode.iris.util.FastNoise.CellularReturnType;
-import ninja.bytecode.iris.util.FastNoise.NoiseType;
 
 public class CellGenerator
 {

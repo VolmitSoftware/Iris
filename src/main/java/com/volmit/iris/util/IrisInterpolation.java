@@ -1,6 +1,6 @@
-package ninja.bytecode.iris.util;
+package com.volmit.iris.util;
 
-import ninja.bytecode.iris.object.InterpolationMethod;
+import com.volmit.iris.object.InterpolationMethod;
 
 public class IrisInterpolation
 {

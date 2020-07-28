@@ -1,4 +1,4 @@
-package ninja.bytecode.iris.object;
+package com.volmit.iris.object;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -15,13 +15,14 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
+import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.RNG;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import ninja.bytecode.iris.util.BlockDataTools;
-import ninja.bytecode.iris.util.ChunkPosition;
-import ninja.bytecode.iris.util.IObjectPlacer;
-import ninja.bytecode.iris.util.RNG;
-import ninja.bytecode.shuriken.collections.KMap;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

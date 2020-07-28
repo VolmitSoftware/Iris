@@ -20,6 +20,7 @@ public class GenLayerBiome extends GenLayer
 	private CellGenerator land;
 	private CellGenerator shore;
 	private CellGenerator sea;
+
 	private DimensionChunkGenerator iris;
 
 	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)

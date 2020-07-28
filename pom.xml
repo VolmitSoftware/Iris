@@ -13,7 +13,7 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<development.location.dan>${user.home}\Documents\development\server\plugins\${project.name}.jar</development.location.dan>
-		<development.location.brian>D:\Dan\MinecraftDevelopment\server\plugins\${project.name}.jar</development.location.brian>
+		<lint.in>${project.basedir}\lint\in.jar</lint.in>
 	</properties>
 	<profiles>
 		<profile>
@@ -75,7 +75,7 @@
 			</build>
 		</profile>
 		<profile>
-			<id>brian</id>
+			<id>release</id>
 			<build>
 				<resources>
 					<resource>
@@ -102,7 +102,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
-									<minimizeJar>true</minimizeJar>
+									<minimizeJar>false</minimizeJar>
 								</configuration>
 							</execution>
 						</executions>
@@ -122,10 +122,11 @@
 						</executions>
 						<configuration>
 							<skip>${skip.copy}</skip>
-							<executable>${project.basedir}/scripts/copy.bat</executable>
+							<executable>${project.basedir}/scripts/release.bat</executable>
 							<arguments>
 								<argument>${project.basedir}\target\${project.name}-${project.version}.jar</argument>
-								<argument>${development.location.brian}</argument>
+								<argument>${lint.in}</argument>
+								<argument>${project.version}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -151,6 +152,12 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.10</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>javax.vecmath</groupId>
 			<artifactId>vecmath</artifactId>
 			<version>1.5.2</version>
@@ -161,27 +168,9 @@
 			<version>2.8.5</version>
 		</dependency>
 		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.18.10</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>ninja.bytecode</groupId>
-			<artifactId>Shuriken</artifactId>
-			<version>1.1.24</version>
-		</dependency>
-		<dependency>
-			<groupId>org.bukkit</groupId>
-			<artifactId>bukkit</artifactId>
-			<version>1.16.1-R0.1-SNAPSHOT</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.16.1</artifactId>
-			<version>1.16.1</version>
-			<scope>provided</scope>
+			<groupId>org.zeroturnaround</groupId>
+			<artifactId>zt-zip</artifactId>
+			<version>1.14</version>
 		</dependency>
 	</dependencies>
 </project>

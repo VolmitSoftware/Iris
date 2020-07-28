@@ -3,3 +3,11 @@
 lib/
 
 dependency-reduced-pom.xml
+
+release/
+
+lint/in.jar
+
+lint/out.jar
+
+lint/mapping.txt

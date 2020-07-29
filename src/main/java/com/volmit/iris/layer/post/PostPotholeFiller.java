@@ -13,15 +13,21 @@ public class PostPotholeFiller extends IrisPostBlockFilter
 	@Override
 	public void onPost(int x, int z)
 	{
+		int g = 0;
 		int h = highestTerrainBlock(x, z);
 		int ha = highestTerrainBlock(x + 1, z);
 		int hb = highestTerrainBlock(x, z + 1);
 		int hc = highestTerrainBlock(x - 1, z);
 		int hd = highestTerrainBlock(x, z - 1);
+		g += ha == h + 1 ? 1 : 0;
+		g += hb == h + 1 ? 1 : 0;
+		g += hc == h + 1 ? 1 : 0;
+		g += hd == h + 1 ? 1 : 0;
 
-		if(ha == h + 1 && hb == h + 1 && hc == h + 1 && hd == h + 1)
+		if(g >= 3)
 		{
 			setPostBlock(x, h + 1, z, getPostBlock(x, h, z));
+			updateHeight(x, z, h + 1);
 		}
 	}
 }

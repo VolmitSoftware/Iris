@@ -1,5 +1,6 @@
 package com.volmit.iris.util;
 
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.generator.PostBlockChunkGenerator;
@@ -37,5 +38,29 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 	public int highestTerrainBlock(int x, int z)
 	{
 		return gen.highestTerrainBlock(x, z);
+	}
+
+	public boolean isAir(int x, int y, int z)
+	{
+		BlockData d = getPostBlock(x, y, z);
+		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR);
+	}
+
+	public boolean isWater(int x, int y, int z)
+	{
+		BlockData d = getPostBlock(x, y, z);
+		return d.getMaterial().equals(Material.WATER);
+	}
+
+	@Override
+	public KList<CaveResult> caveFloors(int x, int z)
+	{
+		return gen.caveFloors(x, z);
+	}
+
+	@Override
+	public void updateHeight(int x, int z, int h)
+	{
+		gen.updateHeight(x, z, h);
 	}
 }

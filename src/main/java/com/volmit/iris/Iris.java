@@ -257,6 +257,25 @@ public class Iris extends JavaPlugin implements BoardProvider
 					}
 				}
 
+				if(args[0].equalsIgnoreCase("metrics"))
+				{
+					if(sender instanceof Player)
+					{
+						Player p = (Player) sender;
+						World world = p.getWorld();
+						IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+						IrisMetrics m = g.getMetrics();
+
+						imsg(sender, "Thread Count: " + ChatColor.BOLD + "" + ChatColor.WHITE + g.getThreads());
+						imsg(sender, "Total     : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getTotal().getAverage(), 2));
+						imsg(sender, "  Terrain : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getTerrain().getAverage(), 2));
+						imsg(sender, "  Parallax: " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getParallax().getAverage(), 2));
+						imsg(sender, "  Post    : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getPost().getAverage(), 2));
+
+						return true;
+					}
+				}
+
 				if(args[0].equalsIgnoreCase("what"))
 				{
 					if(args.length != 2)

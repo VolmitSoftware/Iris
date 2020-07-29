@@ -1,5 +1,7 @@
 package com.volmit.iris.generator;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.Bisected;
@@ -33,10 +35,18 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
 	private RNG rockRandom;
+	private int[] cacheHeightMap;
+	private IrisBiome[] cacheTrueBiome;
+	private ReentrantLock cacheLock;
+	private boolean caching;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
+		cacheHeightMap = new int[256];
+		cacheTrueBiome = new IrisBiome[256];
+		caching = true;
+		cacheLock = new ReentrantLock();
 	}
 
 	public void onInit(World world, RNG rng)
@@ -67,9 +77,16 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			int height = (int) Math.round(noise) + fluidHeight;
 			IrisRegion region = sampleRegion(rx, rz);
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
+			if(caching)
+			{
+				cacheLock.lock();
+				cacheTrueBiome[(z << 4) | x] = biome;
+				cacheHeightMap[(z << 4) | x] = height;
+				cacheLock.unlock();
+			}
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height, height - getFluidHeight());
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
-			cacheBiome(x, z, biome);
+			cacheInternalBiome(x, z, biome);
 
 			// Set ground biome (color) to HEIGHT - HEIGHT+3
 			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3; k++)
@@ -461,6 +478,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return focus();
 		}
 
+		if(isSafe() && x >> 4 == cacheX && z >> 4 == cacheZ)
+		{
+			return new BiomeResult(cacheTrueBiome[((z & 15) << 4) | (x & 15)], 0);
+		}
+
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
@@ -508,6 +530,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	public double getTerrainHeight(int x, int z)
 	{
+		if(isSafe() && x >> 4 == cacheX && z >> 4 == cacheZ)
+		{
+			return cacheHeightMap[((z & 15) << 4) | (x & 15)];
+		}
+
 		return getNoiseHeight(x, z) + getFluidHeight();
 	}
 

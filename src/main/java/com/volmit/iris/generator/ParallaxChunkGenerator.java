@@ -22,6 +22,8 @@ import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.NastyRunnable;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -37,6 +39,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected AtomicWorldData ceilingParallaxMap;
 	private MasterLock masterLock;
 	private ReentrantLock lock = new ReentrantLock();
+	private ReentrantLock lockq = new ReentrantLock();
 	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
@@ -154,7 +157,10 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
+		setCaching(false);
+		getSliverCache().clear();
 		super.onPostGenerate(random, x, z, data, grid, height, biomeMap);
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		getBiomeHitCache().clear();
 
 		if(getDimension().isPlaceObjects())
@@ -164,11 +170,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			getParallaxChunk(x, z).inject(data);
 			setSliverBuffer(getSliverCache().size());
 			getParallaxChunk(x, z).setWorldGenerated(true);
-			getSliverCache().clear();
 			getMasterLock().clear();
 		}
 
+		p.end();
+		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+		setCaching(true);
 	}
 
 	protected void injectBiomeSky(int x, int z, BiomeGrid grid)
@@ -193,7 +201,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 				if(min < max)
 				{
-					IrisBiome biome = getCachedBiome(i, j);
+					IrisBiome biome = getCachedInternalBiome(i, j);
 
 					for(int g = min; g <= max; g++)
 					{
@@ -208,6 +216,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		String key = "par." + x + "." + "z";
 		ChunkPosition rad = Iris.data.getObjectLoader().getParallaxSize();
+		KList<NastyRunnable> q = new KList<>();
 
 		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
 		{
@@ -237,14 +246,25 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 					for(IrisObjectPlacement k : b.getObjects())
 					{
-						placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+						int gg = g++;
+						lockq.lock();
+						q.add(() ->
+						{
+							placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 3569222));
+						});
+						lockq.unlock();
 					}
 
 					for(IrisDepositGenerator k : getDimension().getDeposits())
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							lockq.lock();
+							q.add(() ->
+							{
+								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							});
+							lockq.unlock();
 						}
 					}
 
@@ -252,7 +272,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							lockq.lock();
+							q.add(() ->
+							{
+								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							});
+							lockq.unlock();
 						}
 					}
 
@@ -260,7 +285,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 						{
-							k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							lockq.lock();
+							q.add(() ->
+							{
+								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
+							});
+							lockq.unlock();
 						}
 					}
 
@@ -283,7 +313,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 						for(IrisObjectPlacement k : biome.getObjects())
 						{
-							placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 1869322));
+							int gg = g++;
+							lockq.lock();
+							q.add(() ->
+							{
+								placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
+							});
+							lockq.unlock();
 						}
 					}
 				});
@@ -293,6 +329,15 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		getAccelerant().waitFor(key);
+
+		lockq.lock();
+		for(NastyRunnable i : q)
+		{
+			getAccelerant().queue(key + "-obj", i);
+		}
+		lockq.unlock();
+
+		getAccelerant().waitFor(key + "-obj");
 	}
 
 	public void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)

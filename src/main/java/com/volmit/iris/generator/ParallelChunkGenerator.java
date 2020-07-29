@@ -1,5 +1,7 @@
 package com.volmit.iris.generator;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
@@ -8,6 +10,7 @@ import com.volmit.iris.object.atomics.AtomicSliverMap;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -19,11 +22,19 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 {
 	private GroupedExecutor accelerant;
 	private int threads;
+	protected boolean unsafe;
+	protected int cacheX;
+	protected int cacheZ;
+	private ReentrantLock genlock;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName);
+		unsafe = false;
+		cacheX = 0;
+		cacheZ = 0;
 		this.threads = threads;
+		genlock = new ReentrantLock();
 	}
 
 	public void changeThreadCount(int tc)
@@ -52,11 +63,16 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
+		genlock.lock();
+		cacheX = x;
+		cacheZ = z;
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = new AtomicSliverMap();
 		HeightMap height = new HeightMap();
 		String key = "c" + x + "," + z;
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
+		unsafe = true;
 
 		for(ii = 0; ii < 16; ii++)
 		{
@@ -78,7 +94,11 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 
 		accelerant.waitFor(key);
 		map.write(data, grid, height);
+		getMetrics().getTerrain().put(p.getMilliseconds());
+		p = PrecisionStopwatch.start();
+		unsafe = false;
 		onPostGenerate(random, x, z, data, grid, height, biomeMap);
+		genlock.unlock();
 	}
 
 	protected void onClose()
@@ -90,6 +110,11 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	{
 		super.onInit(world, rng);
 		changeThreadCount(threads);
+	}
+
+	public boolean isSafe()
+	{
+		return !unsafe;
 	}
 
 	@Override

@@ -6,14 +6,18 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.layer.post.PostFloatingNippleDeleter;
 import com.volmit.iris.layer.post.PostNippleSmoother;
 import com.volmit.iris.layer.post.PostPotholeFiller;
 import com.volmit.iris.layer.post.PostSlabber;
 import com.volmit.iris.layer.post.PostWallPatcher;
+import com.volmit.iris.layer.post.PostWaterlogger;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator implements IPostBlockAccess
@@ -41,9 +45,11 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	{
 		super.onInit(world, rng);
 		filters.add(new PostNippleSmoother(this));
+		filters.add(new PostFloatingNippleDeleter(this));
 		filters.add(new PostPotholeFiller(this));
-		filters.add(new PostWallPatcher(this));
 		filters.add(new PostSlabber(this));
+		filters.add(new PostWallPatcher(this));
+		filters.add(new PostWaterlogger(this));
 	}
 
 	@Override
@@ -60,6 +66,8 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 		currentPostX = x;
 		currentPostZ = z;
 		int rx, i, j;
+
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		for(i = 0; i < 16; i++)
 		{
@@ -84,6 +92,14 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 		}
 
 		getAccelerant().waitFor(postKey);
+		p.end();
+		getMetrics().getPost().put(p.getMilliseconds());
+	}
+
+	@Override
+	public void updateHeight(int x, int z, int h)
+	{
+		getCacheHeightMap()[(z << 4) | x] = h;
 	}
 
 	@Override
@@ -126,5 +142,11 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	public int highestTerrainBlock(int x, int z)
 	{
 		return getHighest(x, z, true);
+	}
+
+	@Override
+	public KList<CaveResult> caveFloors(int x, int z)
+	{
+		return getCaves(x, z);
 	}
 }

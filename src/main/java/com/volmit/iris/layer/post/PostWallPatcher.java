@@ -23,18 +23,26 @@ public class PostWallPatcher extends IrisPostBlockFilter
 	public void onPost(int x, int z)
 	{
 		IrisBiome biome = gen.sampleTrueBiome(x, z).getBiome();
+		int h, ha, hb, hc, hd;
 
 		if(!biome.getWall().getPalette().isEmpty())
 		{
-			int h = highestTerrainBlock(x, z);
-			int ha = highestTerrainBlock(x + 1, z);
-			int hb = highestTerrainBlock(x, z + 1);
-			int hc = highestTerrainBlock(x - 1, z);
-			int hd = highestTerrainBlock(x, z - 1);
+			h = highestTerrainBlock(x, z);
+			ha = highestTerrainBlock(x + 1, z);
+			hb = highestTerrainBlock(x, z + 1);
+			hc = highestTerrainBlock(x - 1, z);
+			hd = highestTerrainBlock(x, z - 1);
 
 			if(ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2)
 			{
 				int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
+				BlockData s = gen.sampleTrueBiome(x, z).getBiome().getSlab().get(rng, x, h, z);
+
+				if(s != null)
+				{
+					setPostBlock(x, h + 1, z, s);
+					updateHeight(x, z, h + 1);
+				}
 
 				for(int i = h; i > h - max; i--)
 				{

@@ -57,12 +57,12 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);
 	}
 
-	protected IrisBiome getCachedBiome(int x, int z)
+	protected IrisBiome getCachedInternalBiome(int x, int z)
 	{
 		return biomeCache[(z << 4) | x];
 	}
 
-	protected void cacheBiome(int x, int z, IrisBiome b)
+	protected void cacheInternalBiome(int x, int z, IrisBiome b)
 	{
 		biomeCache[(z << 4) | x] = b;
 	}

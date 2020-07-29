@@ -59,6 +59,16 @@ public class IrisBiomePaletteLayer
 			cacheGenerator(rng);
 		}
 
+		if(getBlockData().isEmpty())
+		{
+			return null;
+		}
+
+		if(getBlockData().size() == 1)
+		{
+			return getBlockData().get(0);
+		}
+
 		if(layerGenerator != null)
 		{
 			if(dispersion.equals(Dispersion.SCATTER))
@@ -70,11 +80,6 @@ public class IrisBiomePaletteLayer
 			{
 				return getBlockData().get(layerGenerator.fit(0, getBlockData().size() - 1, x, y, z));
 			}
-		}
-
-		if(getBlockData().isEmpty())
-		{
-			return null;
 		}
 
 		return getBlockData().get(0);

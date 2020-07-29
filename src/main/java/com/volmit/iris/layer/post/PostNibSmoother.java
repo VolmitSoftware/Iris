@@ -6,11 +6,17 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
-public class PostNippleSmoother extends IrisPostBlockFilter
+@Post("nib-smoother")
+public class PostNibSmoother extends IrisPostBlockFilter
 {
-	public PostNippleSmoother(PostBlockChunkGenerator gen)
+	public PostNibSmoother(PostBlockChunkGenerator gen, int phase)
 	{
-		super(gen);
+		super(gen, phase);
+	}
+
+	public PostNibSmoother(PostBlockChunkGenerator gen)
+	{
+		this(gen, 0);
 	}
 
 	@Override

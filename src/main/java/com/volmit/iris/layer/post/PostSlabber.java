@@ -7,16 +7,22 @@ import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.RNG;
 
+@Post("slabber")
 public class PostSlabber extends IrisPostBlockFilter
 {
 	public static final Material AIR = Material.AIR;
 	public static final Material WATER = Material.WATER;
 	private RNG rng;
 
+	public PostSlabber(PostBlockChunkGenerator gen, int phase)
+	{
+		super(gen, phase);
+		rng = gen.getMasterRandom().nextParallelRNG(166456);
+	}
+
 	public PostSlabber(PostBlockChunkGenerator gen)
 	{
-		super(gen);
-		rng = gen.getMasterRandom().nextParallelRNG(1239456);
+		this(gen, 0);
 	}
 
 	@Override
@@ -41,8 +47,11 @@ public class PostSlabber extends IrisPostBlockFilter
 
 				if(isAir(x, h + 2, z) || getPostBlock(x, h + 2, z).getMaterial().equals(WATER))
 				{
-					setPostBlock(x, h + 1, z, d);
-					updateHeight(x, z, h + 1);
+					queue(() ->
+					{
+						setPostBlock(x, h + 1, z, d);
+						updateHeight(x, z, h + 1);
+					});
 				}
 			}
 		}

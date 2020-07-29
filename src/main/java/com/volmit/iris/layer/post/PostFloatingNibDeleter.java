@@ -6,13 +6,19 @@ import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
-public class PostFloatingNippleDeleter extends IrisPostBlockFilter
+@Post("floating-block-remover")
+public class PostFloatingNibDeleter extends IrisPostBlockFilter
 {
 	private static final BlockData AIR = BlockDataTools.getBlockData("AIR");
 
-	public PostFloatingNippleDeleter(PostBlockChunkGenerator gen)
+	public PostFloatingNibDeleter(PostBlockChunkGenerator gen, int phase)
 	{
-		super(gen);
+		super(gen, phase);
+	}
+
+	public PostFloatingNibDeleter(PostBlockChunkGenerator gen)
+	{
+		this(gen, 0);
 	}
 
 	@Override

@@ -3,11 +3,17 @@ package com.volmit.iris.layer.post;
 import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
+@Post("pothole-filler")
 public class PostPotholeFiller extends IrisPostBlockFilter
 {
+	public PostPotholeFiller(PostBlockChunkGenerator gen, int phase)
+	{
+		super(gen, phase);
+	}
+
 	public PostPotholeFiller(PostBlockChunkGenerator gen)
 	{
-		super(gen);
+		this(gen, 0);
 	}
 
 	@Override

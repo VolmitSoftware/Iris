@@ -8,15 +8,21 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.RNG;
 
+@Post("wall-painter")
 public class PostWallPatcher extends IrisPostBlockFilter
 {
 	public static final Material AIR = Material.AIR;
 	private RNG rng;
 
+	public PostWallPatcher(PostBlockChunkGenerator gen, int phase)
+	{
+		super(gen, phase);
+		rng = gen.getMasterRandom().nextParallelRNG(1239456);
+	}
+
 	public PostWallPatcher(PostBlockChunkGenerator gen)
 	{
-		super(gen);
-		rng = gen.getMasterRandom().nextParallelRNG(1239456);
+		this(gen, 0);
 	}
 
 	@Override
@@ -40,8 +46,11 @@ public class PostWallPatcher extends IrisPostBlockFilter
 
 				if(s != null)
 				{
-					setPostBlock(x, h + 1, z, s);
-					updateHeight(x, z, h + 1);
+					if(!s.getMaterial().equals(AIR))
+					{
+						setPostBlock(x, h + 1, z, s);
+						updateHeight(x, z, h + 1);
+					}
 				}
 
 				for(int i = h; i > h - max; i--)

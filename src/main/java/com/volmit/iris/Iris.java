@@ -31,6 +31,12 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
 import com.volmit.iris.generator.IrisChunkGenerator;
+import com.volmit.iris.layer.post.PostFloatingNibDeleter;
+import com.volmit.iris.layer.post.PostNibSmoother;
+import com.volmit.iris.layer.post.PostPotholeFiller;
+import com.volmit.iris.layer.post.PostSlabber;
+import com.volmit.iris.layer.post.PostWallPatcher;
+import com.volmit.iris.layer.post.PostWaterlogger;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
@@ -44,11 +50,13 @@ import com.volmit.iris.util.BoardProvider;
 import com.volmit.iris.util.BoardSettings;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.Cuboid.CuboidDirection;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Direction;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
+import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
@@ -60,7 +68,6 @@ import com.volmit.iris.util.O;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.util.ScoreDirection;
-import com.volmit.iris.util.Cuboid.CuboidDirection;
 import com.volmit.iris.wand.WandController;
 
 public class Iris extends JavaPlugin implements BoardProvider
@@ -73,6 +80,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 	private static String last = "";
 	private BoardManager manager;
 	private RollingSequence hits = new RollingSequence(20);
+	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
 
 	public Iris()
 	{
@@ -85,6 +93,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 		hotloader = new IrisHotloadManager();
 		data = new IrisDataManager(getDataFolder());
 		wand = new WandController();
+		postProcessors = loadPostProcessors();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
 		J.a(() ->
 		{
@@ -146,6 +155,20 @@ public class Iris extends JavaPlugin implements BoardProvider
 		}
 
 		return lines;
+	}
+
+	private static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors()
+	{
+		KList<Class<? extends IrisPostBlockFilter>> g = new KList<Class<? extends IrisPostBlockFilter>>();
+
+		g.add(PostFloatingNibDeleter.class);
+		g.add(PostNibSmoother.class);
+		g.add(PostPotholeFiller.class);
+		g.add(PostSlabber.class);
+		g.add(PostWallPatcher.class);
+		g.add(PostWaterlogger.class);
+
+		return g;
 	}
 
 	public void writeDocs() throws IOException, JSONException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException

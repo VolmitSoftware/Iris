@@ -7,6 +7,7 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
 import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.layer.post.Post;
 
 import lombok.Data;
 
@@ -15,6 +16,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 {
 	public PostBlockChunkGenerator gen;
 	private int phase;
+	private String key;
 	private KList<Runnable> queue;
 
 	public IrisPostBlockFilter(PostBlockChunkGenerator gen, int phase)
@@ -22,6 +24,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		this.gen = gen;
 		this.phase = phase;
 		queue = new KList<>();
+		key = getClass().getDeclaredAnnotation(Post.class).value();
 	}
 
 	public IrisPostBlockFilter(PostBlockChunkGenerator gen)

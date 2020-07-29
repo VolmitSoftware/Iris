@@ -6,12 +6,6 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.layer.post.PostFloatingNibDeleter;
-import com.volmit.iris.layer.post.PostNibSmoother;
-import com.volmit.iris.layer.post.PostPotholeFiller;
-import com.volmit.iris.layer.post.PostSlabber;
-import com.volmit.iris.layer.post.PostWallPatcher;
-import com.volmit.iris.layer.post.PostWaterlogger;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
@@ -34,7 +28,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	private int currentPostX;
 	private int currentPostZ;
 	private ChunkData currentData;
-	private KList<IrisPostBlockFilter> filters;
+	private KList<IrisPostBlockFilter> availableFilters;
 	private String postKey;
 	private ReentrantLock lock;
 	private int minPhase;
@@ -43,7 +37,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	public PostBlockChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		filters = new KList<>();
+		availableFilters = new KList<>();
 		postKey = "post-" + dimensionName;
 		lock = new ReentrantLock();
 	}
@@ -51,23 +45,20 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		filters.add(new PostNibSmoother(this));
-		filters.add(new PostFloatingNibDeleter(this));
-		filters.add(new PostPotholeFiller(this));
-		filters.add(new PostWallPatcher(this));
-		filters.add(new PostSlabber(this));
-		filters.add(new PostWaterlogger(this, 2));
 
-		setMinPhase(0);
-		setMaxPhase(0);
-
-		for(IrisPostBlockFilter i : filters)
+		for(Class<? extends IrisPostBlockFilter> i : Iris.postProcessors)
 		{
-			setMinPhase(Math.min(getMinPhase(), i.getPhase()));
-			setMaxPhase(Math.max(getMaxPhase(), i.getPhase()));
-		}
+			try
+			{
+				availableFilters.add(i.getConstructor(PostBlockChunkGenerator.class).newInstance(this));
+			}
 
-		Iris.info("Post Processing: " + filters.size() + " filters. Phases: " + getMinPhase() + " - " + getMaxPhase());
+			catch(Throwable e)
+			{
+				Iris.error("Failed to initialize post processor: " + i.getCanonicalName());
+				fail(e);
+			}
+		}
 	}
 
 	@Override
@@ -75,16 +66,16 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	{
 		super.onGenerate(random, x, z, data, grid);
 
-		if(!getDimension().isPostProcess())
+		if(!getDimension().isPostProcessing())
 		{
 			return;
 		}
 
+		KList<IrisPostBlockFilter> filters = getDimension().getPostBlockProcessors(this);
 		currentData = data;
 		currentPostX = x;
 		currentPostZ = z;
 		int rx, i, j;
-
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		for(int h = getMinPhase(); h <= getMaxPhase(); h++)
@@ -122,6 +113,30 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 
 		p.end();
 		getMetrics().getPost().put(p.getMilliseconds());
+	}
+
+	public IrisPostBlockFilter createProcessor(String processor, int phase)
+	{
+		for(IrisPostBlockFilter i : availableFilters)
+		{
+			if(i.getKey().equals(processor))
+			{
+				try
+				{
+					return i.getClass().getConstructor(PostBlockChunkGenerator.class, int.class).newInstance(this, phase);
+				}
+
+				catch(Throwable e)
+				{
+					Iris.error("Failed initialize find post processor: " + processor);
+					fail(e);
+				}
+			}
+		}
+
+		Iris.error("Failed to find post processor: " + processor);
+		fail(new RuntimeException("Failed to find post processor: " + processor));
+		return null;
 	}
 
 	@Override

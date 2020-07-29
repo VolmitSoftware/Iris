@@ -5,10 +5,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 
@@ -57,8 +60,12 @@ public class IrisDimension extends IrisRegistrant
 	private boolean decorate = true;
 
 	@DontObfuscate
-	@Desc("Use post processing features. Usually for production only as there is a gen speed cost.")
-	private boolean postProcess = true;
+	@Desc("Use post processing or not")
+	private boolean postProcessing = true;
+
+	@DontObfuscate
+	@Desc("Post Processors")
+	private KList<IrisPostProcessor> postProcessors = getDefaultPostProcessors();
 
 	@DontObfuscate
 	@Desc("The ceiling dimension. Leave blank for normal sky.")
@@ -168,6 +175,7 @@ public class IrisDimension extends IrisRegistrant
 	private transient ReentrantLock fluidLock = new ReentrantLock();
 	private transient KList<BlockData> rockData;
 	private transient KList<BlockData> fluidData;
+	private transient KList<IrisPostBlockFilter> cacheFilters;
 	private transient CNG rockLayerGenerator;
 	private transient CNG fluidLayerGenerator;
 	private transient CNG coordFracture;
@@ -175,6 +183,32 @@ public class IrisDimension extends IrisRegistrant
 	private transient Double cosr;
 	private transient Double rad;
 	private transient boolean inverted;
+
+	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
+	{
+		if(cacheFilters == null)
+		{
+			cacheFilters = new KList<>();
+
+			for(IrisPostProcessor i : getPostProcessors())
+			{
+				cacheFilters.add(g.createProcessor(i.getProcessor(), i.getPhase()));
+			}
+
+			g.setMinPhase(0);
+			g.setMaxPhase(0);
+
+			for(IrisPostBlockFilter i : cacheFilters)
+			{
+				g.setMinPhase(Math.min(g.getMinPhase(), i.getPhase()));
+				g.setMaxPhase(Math.max(g.getMaxPhase(), i.getPhase()));
+			}
+
+			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - " + g.getMaxPhase());
+		}
+
+		return cacheFilters;
+	}
 
 	public CNG getCoordFracture(RNG rng, int signature)
 	{
@@ -185,6 +219,20 @@ public class IrisDimension extends IrisRegistrant
 		}
 
 		return coordFracture;
+	}
+
+	private KList<IrisPostProcessor> getDefaultPostProcessors()
+	{
+		KList<IrisPostProcessor> p = new KList<IrisPostProcessor>();
+
+		p.add(new IrisPostProcessor("nib-smoother"));
+		p.add(new IrisPostProcessor("floating-block-remover"));
+		p.add(new IrisPostProcessor("pothole-filler"));
+		p.add(new IrisPostProcessor("wall-painter"));
+		p.add(new IrisPostProcessor("slabber"));
+		p.add(new IrisPostProcessor("waterlogger", 1));
+
+		return p;
 	}
 
 	public BlockData getRock(RNG rng, double x, double y, double z)

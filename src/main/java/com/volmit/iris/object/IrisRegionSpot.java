@@ -46,7 +46,7 @@ public class IrisRegionSpot
 	{
 		if(spot == null)
 		{
-			spot = new CellGenerator(rng.nextParallelRNG(168583 * hashCode()));
+			spot = new CellGenerator(rng.nextParallelRNG((int) (168583 * (shuffle + 102) + rarity + (scale * 10465) + biome.length() + type.ordinal() + as.ordinal())));
 			spot.setCellScale(scale);
 			spot.setShuffle(shuffle);
 		}

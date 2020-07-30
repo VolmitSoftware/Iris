@@ -59,14 +59,14 @@ public class IrisRegionRidge
 	{
 		if(ridge == null)
 		{
-			ridge = new CellGenerator(rng.nextParallelRNG(165583 * hashCode()));
+			ridge = new CellGenerator(rng.nextParallelRNG((int) (465583 * getChance())));
 			ridge.setCellScale(scale);
 			ridge.setShuffle(shuffle);
 		}
 
 		if(spot == null)
 		{
-			spot = new CellGenerator(rng.nextParallelRNG(168523 * hashCode()));
+			spot = new CellGenerator(rng.nextParallelRNG((int) (198523 * getChance())));
 			spot.setCellScale(chanceScale);
 			spot.setShuffle(shuffle);
 		}

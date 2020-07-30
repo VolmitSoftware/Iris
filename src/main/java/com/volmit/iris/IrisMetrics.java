@@ -25,4 +25,9 @@ public class IrisMetrics
 		perSecond = new RollingSequence(5);
 		loss = new RollingSequence(memory);
 	}
+
+	public double getSpeed()
+	{
+		return (double) Iris.instance.hits.getAverage() / (double) total.getAverage();
+	}
 }

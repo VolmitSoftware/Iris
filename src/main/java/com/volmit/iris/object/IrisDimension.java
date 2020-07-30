@@ -4,15 +4,18 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.PostBlockChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -171,7 +174,13 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The palette of blocks for 'water'")
 	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
 
+	@DontObfuscate
+	@Desc("Define biome mutations for this dimension")
+	private KList<IrisBiomeMutation> mutations = new KList<>();
+
+	private transient ChunkPosition parallaxSize;
 	private transient ReentrantLock rockLock = new ReentrantLock();
+	private transient ReentrantLock parLock = new ReentrantLock();
 	private transient ReentrantLock fluidLock = new ReentrantLock();
 	private transient KList<BlockData> rockData;
 	private transient KList<BlockData> fluidData;
@@ -265,7 +274,7 @@ public class IrisDimension extends IrisRegistrant
 
 	public void cacheRockGenerator(RNG rng)
 	{
-		RNG rngx = rng.nextParallelRNG(getRockData().size() * hashCode());
+		RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 
 		switch(dispersion)
 		{
@@ -330,7 +339,7 @@ public class IrisDimension extends IrisRegistrant
 
 	public void cacheFluidGenerator(RNG rng)
 	{
-		RNG rngx = rng.nextParallelRNG(getFluidData().size() * hashCode());
+		RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 
 		switch(dispersion)
 		{
@@ -393,5 +402,104 @@ public class IrisDimension extends IrisRegistrant
 		}
 
 		return cosr;
+	}
+
+	public KList<IrisRegion> getAllRegions()
+	{
+		KList<IrisRegion> r = new KList<>();
+
+		for(String i : getRegions())
+		{
+			r.add(Iris.data.getRegionLoader().load(i));
+		}
+
+		return r;
+	}
+
+	public KList<IrisBiome> getAllBiomes()
+	{
+		KList<IrisBiome> r = new KList<>();
+
+		for(IrisRegion i : getAllRegions())
+		{
+			r.addAll(i.getAllBiomes());
+		}
+
+		return r;
+	}
+
+	public ChunkPosition getParallaxSize()
+	{
+		parLock.lock();
+
+		if(parallaxSize == null)
+		{
+			int x = 0;
+			int z = 0;
+
+			KSet<String> objects = new KSet<>();
+			KList<IrisRegion> r = getAllRegions();
+			KList<IrisBiome> b = getAllBiomes();
+
+			for(IrisBiome i : b)
+			{
+				for(IrisObjectPlacement j : i.getObjects())
+				{
+					objects.addAll(j.getPlace());
+				}
+			}
+
+			for(String i : objects)
+			{
+				try
+				{
+					BlockVector bv = IrisObject.sampleSize(Iris.data.getObjectLoader().findFile(i));
+					x = bv.getBlockX() > x ? bv.getBlockX() : x;
+					z = bv.getBlockZ() > z ? bv.getBlockZ() : z;
+				}
+
+				catch(Throwable e)
+				{
+
+				}
+			}
+
+			for(IrisDepositGenerator i : getDeposits())
+			{
+				int max = i.getMaxDimension();
+				x = max > x ? max : x;
+				z = max > z ? max : z;
+			}
+
+			for(IrisRegion v : r)
+			{
+				for(IrisDepositGenerator i : v.getDeposits())
+				{
+					int max = i.getMaxDimension();
+					x = max > x ? max : x;
+					z = max > z ? max : z;
+				}
+			}
+
+			for(IrisBiome v : b)
+			{
+				for(IrisDepositGenerator i : v.getDeposits())
+				{
+					int max = i.getMaxDimension();
+					x = max > x ? max : x;
+					z = max > z ? max : z;
+				}
+			}
+
+			x = (Math.max(x, 16) + 16) >> 4;
+			z = (Math.max(z, 16) + 16) >> 4;
+			x = x % 2 == 0 ? x + 1 : x;
+			z = z % 2 == 0 ? z + 1 : z;
+			parallaxSize = new ChunkPosition(x, z);
+			Iris.info("Parallax Size: " + x + ", " + z);
+		}
+
+		parLock.unlock();
+		return parallaxSize;
 	}
 }

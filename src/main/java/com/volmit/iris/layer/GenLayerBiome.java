@@ -119,7 +119,7 @@ public class GenLayerBiome extends GenLayer
 		return bridgeGenerator.getIndex(x, z, 5) == 1 ? InferredType.SEA : InferredType.LAND;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CellGenerator cell, KList<String> biomes, InferredType inferredType)
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
 	{
 		if(biomes.isEmpty())
 		{
@@ -128,7 +128,7 @@ public class GenLayerBiome extends GenLayer
 
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
-		IrisBiome biome = Iris.data.getBiomeLoader().load(biomes.get(cell.getIndex(x, z, biomes.size())));
+		IrisBiome biome = biomes.get(cell.getIndex(x, z, biomes.size()));
 		biome.setInferredType(inferredType);
 
 		return implode(bx, bz, regionData, cell, new BiomeResult(biome, cell.getDistance(x, z)));
@@ -169,19 +169,20 @@ public class GenLayerBiome extends GenLayer
 
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
+
 		if(parent.getDistance() > regionData.getBiomeImplosionRatio())
 		{
-			if(!parent.getBiome().getChildren().isEmpty())
+			if(!parent.getBiome().getRealChildren().isEmpty())
 			{
 				CellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
-				int r = childCell.getIndex(x, z, parent.getBiome().getChildren().size() + 1);
+				int r = childCell.getIndex(x, z, parent.getBiome().getRealChildren().size() + 1);
 
-				if(r == parent.getBiome().getChildren().size())
+				if(r == parent.getBiome().getRealChildren().size())
 				{
 					return new BiomeResult(parent.getBiome(), childCell.getDistance(x, z));
 				}
 
-				IrisBiome biome = Iris.data.getBiomeLoader().load(parent.getBiome().getChildren().get(r));
+				IrisBiome biome = parent.getBiome().getRealChildren().get(r);
 				biome.setInferredType(parent.getBiome().getInferredType());
 
 				return implode(bx, bz, regionData, childCell, new BiomeResult(biome, childCell.getDistance(x, z)), hits + 1);

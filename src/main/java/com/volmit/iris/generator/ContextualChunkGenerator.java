@@ -26,6 +26,7 @@ import com.volmit.iris.IrisMetrics;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
@@ -276,17 +277,31 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	protected void fail(Throwable e)
 	{
-		failing = true;
-		Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
-
-		for(Player i : world.getPlayers())
+		if(failing)
 		{
-			Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has entered a failed state!");
-			Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
-			Iris.instance.imsg(i, ChatColor.RED + "- Then simply run /iris dev");
+			return;
 		}
 
+		failing = true;
+
 		e.printStackTrace();
+		J.a(() ->
+		{
+			J.sleep(1000);
+			Iris.error("---------------------------------------------------------------------------------------------------------");
+			e.printStackTrace();
+			Iris.error("---------------------------------------------------------------------------------------------------------");
+			Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
+			Iris.error("---------------------------------------------------------------------------------------------------------");
+
+			for(Player i : world.getPlayers())
+			{
+				Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has entered a failed state!");
+				Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
+				Iris.instance.imsg(i, ChatColor.RED + "- Then simply run /iris dev");
+			}
+		});
+
 		onFailure(e);
 	}
 

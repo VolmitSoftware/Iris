@@ -26,6 +26,11 @@ public class AtomicRegionData
 		tag = new KMap<>();
 	}
 
+	public int size()
+	{
+		return tag.size();
+	}
+
 	public void read(InputStream in) throws IOException
 	{
 		NBTInputStream nin = new NBTInputStream(in);

@@ -8,6 +8,7 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
@@ -158,7 +159,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
 		setCaching(false);
-		getSliverCache().clear();
+
+		if(getSliverCache().size() > 20000)
+		{
+			getSliverCache().clear();
+		}
+
 		super.onPostGenerate(random, x, z, data, grid, height, biomeMap);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		getBiomeHitCache().clear();
@@ -215,7 +221,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected void onGenerateParallax(RNG random, int x, int z)
 	{
 		String key = "par." + x + "." + "z";
-		ChunkPosition rad = Iris.data.getObjectLoader().getParallaxSize();
+		ChunkPosition rad = getDimension().getParallaxSize();
 		KList<NastyRunnable> q = new KList<>();
 
 		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
@@ -243,6 +249,36 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					RNG ro = random.nextParallelRNG(496888 + i + j);
 
 					int g = 1;
+
+					searching: for(IrisBiomeMutation k : getDimension().getMutations())
+					{
+						for(int l = 0; l < k.getChecks(); l++)
+						{
+							IrisBiome sa = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius())).getBiome();
+							IrisBiome sb = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius())).getBiome();
+
+							if(sa.getLoadKey().equals(sb.getLoadKey()))
+							{
+								continue;
+							}
+
+							if(k.getRealSideA().contains(sa.getLoadKey()) && k.getRealSideB().contains(sb.getLoadKey()))
+							{
+								for(IrisObjectPlacement m : k.getObjects())
+								{
+									int gg = g++;
+									lockq.lock();
+									q.add(() ->
+									{
+										placeObject(m, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1569962));
+									});
+									lockq.unlock();
+								}
+
+								continue searching;
+							}
+						}
+					}
 
 					for(IrisObjectPlacement k : b.getObjects())
 					{

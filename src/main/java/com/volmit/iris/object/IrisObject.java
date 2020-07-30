@@ -157,7 +157,7 @@ public class IrisObject extends IrisRegistrant
 
 			for(IrisObjectReplace j : config.getEdit())
 			{
-				if(j.getFind().matches(data))
+				if(j.isExact() ? j.getFind().matches(data) : j.getFind().getMaterial().equals(data.getMaterial()))
 				{
 					data = j.getReplace();
 				}

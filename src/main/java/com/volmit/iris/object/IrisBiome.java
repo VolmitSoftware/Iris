@@ -5,11 +5,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -103,6 +105,7 @@ public class IrisBiome extends IrisRegistrant
 	private transient KList<CNG> layerSeaHeightGenerators;
 	private transient KList<CNG> layerSurfaceGenerators;
 	private transient KList<CNG> layerSeaSurfaceGenerators;
+	private transient KList<IrisBiome> realChildren;
 
 	public IrisBiome()
 	{
@@ -125,7 +128,7 @@ public class IrisBiome extends IrisRegistrant
 	{
 		if(biomeGenerator == null)
 		{
-			biomeGenerator = CNG.signature(random.nextParallelRNG(213949 + hashCode())).scale(biomeDispersion.equals(Dispersion.SCATTER) ? 1000D : 0.1D);
+			biomeGenerator = CNG.signature(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())).scale(biomeDispersion.equals(Dispersion.SCATTER) ? 1000D : 0.1D);
 		}
 
 		return biomeGenerator;
@@ -387,6 +390,44 @@ public class IrisBiome extends IrisRegistrant
 		}
 
 		return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));
+	}
+
+	public KList<IrisBiome> getRealChildren()
+	{
+		lock.lock();
+
+		if(realChildren == null)
+		{
+			realChildren = new KList<>();
+
+			for(String i : getChildren())
+			{
+				realChildren.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realChildren;
+	}
+
+	public KList<String> getAllChildren(int limit)
+	{
+		KSet<String> m = new KSet<>();
+		m.addAll(getChildren());
+		limit--;
+
+		if(limit > 0)
+		{
+			for(String i : getChildren())
+			{
+				IrisBiome b = Iris.data.getBiomeLoader().load(i);
+				int l = limit;
+				m.addAll(b.getAllChildren(l));
+			}
+		}
+
+		return new KList<String>(m);
 	}
 
 	public Biome getGroundBiome(RNG rng, double x, double y, double z)

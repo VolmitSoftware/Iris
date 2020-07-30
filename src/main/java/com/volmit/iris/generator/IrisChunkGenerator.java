@@ -11,6 +11,7 @@ import com.volmit.iris.IrisContext;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -103,6 +104,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	public void onHotloaded()
 	{
+		CNG.creates = 0;
 		onHotload();
 	}
 }

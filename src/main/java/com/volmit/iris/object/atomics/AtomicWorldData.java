@@ -21,7 +21,7 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, Long> lastRegion;
 	private KMap<ChunkPosition, Long> lastChunk;
 	private String prefix;
-	private ChronoLatch cl = new ChronoLatch(15000);
+	private ChronoLatch cl = new ChronoLatch(3000);
 
 	public AtomicWorldData(World world, String prefix)
 	{
@@ -102,6 +102,7 @@ public class AtomicWorldData
 	{
 		if(!isSectionLoaded(s))
 		{
+			Iris.warn("Cant unload because section isnt loaded?");
 			return false;
 		}
 
@@ -111,6 +112,7 @@ public class AtomicWorldData
 		}
 
 		loadedSections.remove(s);
+		lastRegion.remove(s);
 		return true;
 	}
 
@@ -123,6 +125,8 @@ public class AtomicWorldData
 	{
 		if(!isSectionLoaded(s.getX(), s.getZ()))
 		{
+			Iris.warn("Cant save section " + s.getX() + " " + s.getZ() + " because section isnt loaded?");
+
 			return false;
 		}
 
@@ -160,9 +164,10 @@ public class AtomicWorldData
 	{
 		int x = i.getX();
 		int z = i.getZ();
-		AtomicRegionData dat = loadSection(x >> 5, z >> 5);
+		AtomicRegionData dat = loadSection(x >> 5, z >> 5, true);
 		dat.set(x & 31, z & 31, loadedChunks.get(i));
 		loadedChunks.remove(i);
+		lastChunk.remove(i);
 	}
 
 	public AtomicSliverMap loadChunk(int x, int z) throws IOException
@@ -186,10 +191,13 @@ public class AtomicWorldData
 		return loadSection(x >> 5, z >> 5).contains(x & 31, z & 31);
 	}
 
-	public AtomicRegionData loadSection(int x, int z) throws IOException
+	public AtomicRegionData loadSection(int x, int z, boolean anonymous) throws IOException
 	{
 		ChunkPosition pos = new ChunkPosition(x, z);
-		lastRegion.put(pos, M.ms());
+		if(!anonymous)
+		{
+			lastRegion.put(pos, M.ms());
+		}
 
 		if(isSectionLoaded(x, z))
 		{
@@ -211,6 +219,11 @@ public class AtomicWorldData
 		fin.close();
 		loadedSections.put(pos, data);
 		return data;
+	}
+
+	public AtomicRegionData loadSection(int x, int z) throws IOException
+	{
+		return loadSection(x, z, false);
 	}
 
 	public AtomicRegionData createSection(int x, int z)

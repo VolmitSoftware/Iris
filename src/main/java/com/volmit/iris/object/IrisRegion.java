@@ -107,6 +107,13 @@ public class IrisRegion extends IrisRegistrant
 	private transient CNG shoreHeightGenerator;
 	private transient ReentrantLock lock = new ReentrantLock();
 
+	private transient KList<IrisBiome> realLandBiomes;
+	private transient KList<IrisBiome> realSeaBiomes;
+	private transient KList<IrisBiome> realShoreBiomes;
+	private transient KList<IrisBiome> realIslandBiomes;
+	private transient KList<IrisBiome> realSkylandBiomes;
+	private transient KList<IrisBiome> realCaveBiomes;
+
 	public double getBiomeZoom(InferredType t)
 	{
 		switch(t)
@@ -165,7 +172,7 @@ public class IrisRegion extends IrisRegistrant
 		if(shoreHeightGenerator == null)
 		{
 			lock.lock();
-			shoreHeightGenerator = CNG.signature(new RNG(hashCode()));
+			shoreHeightGenerator = CNG.signature(new RNG((long) (getName().length() + getIslandBiomes().size() + getLandBiomeZoom() + getLandBiomes().size() + 3458612)));
 			lock.unlock();
 		}
 
@@ -202,38 +209,152 @@ public class IrisRegion extends IrisRegistrant
 		return b.v();
 	}
 
-	public KList<String> getBiomes(InferredType type)
+	public KList<IrisBiome> getBiomes(InferredType type)
 	{
 		if(type.equals(InferredType.LAND))
 		{
-			return getLandBiomes();
+			return getRealLandBiomes();
 		}
 
 		else if(type.equals(InferredType.SEA))
 		{
-			return getSeaBiomes();
+			return getRealSeaBiomes();
 		}
 
 		else if(type.equals(InferredType.SHORE))
 		{
-			return getShoreBiomes();
+			return getRealShoreBiomes();
 		}
 
 		else if(type.equals(InferredType.CAVE))
 		{
-			return getCaveBiomes();
+			return getRealCaveBiomes();
 		}
 
 		else if(type.equals(InferredType.ISLAND))
 		{
-			return getIslandBiomes();
+			return getRealIslandBiomes();
 		}
 
 		else if(type.equals(InferredType.SKYLAND))
 		{
-			return getSkylandBiomes();
+			return getRealSkylandBiomes();
 		}
 
 		return new KList<>();
+	}
+
+	public KList<IrisBiome> getRealCaveBiomes()
+	{
+		lock.lock();
+
+		if(realCaveBiomes == null)
+		{
+			realCaveBiomes = new KList<>();
+
+			for(String i : getCaveBiomes())
+			{
+				realCaveBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realCaveBiomes;
+	}
+
+	public KList<IrisBiome> getRealSkylandBiomes()
+	{
+		lock.lock();
+
+		if(realSkylandBiomes == null)
+		{
+			realSkylandBiomes = new KList<>();
+
+			for(String i : getSkylandBiomes())
+			{
+				realSkylandBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realSkylandBiomes;
+	}
+
+	public KList<IrisBiome> getRealIslandBiomes()
+	{
+		lock.lock();
+
+		if(realIslandBiomes == null)
+		{
+			realIslandBiomes = new KList<>();
+
+			for(String i : getIslandBiomes())
+			{
+				realIslandBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realIslandBiomes;
+	}
+
+	public KList<IrisBiome> getRealShoreBiomes()
+	{
+		lock.lock();
+
+		if(realShoreBiomes == null)
+		{
+			realShoreBiomes = new KList<>();
+
+			for(String i : getShoreBiomes())
+			{
+				realShoreBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realShoreBiomes;
+	}
+
+	public KList<IrisBiome> getRealSeaBiomes()
+	{
+		lock.lock();
+
+		if(realSeaBiomes == null)
+		{
+			realSeaBiomes = new KList<>();
+
+			for(String i : getSeaBiomes())
+			{
+				realSeaBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realSeaBiomes;
+	}
+
+	public KList<IrisBiome> getRealLandBiomes()
+	{
+		lock.lock();
+
+		if(realLandBiomes == null)
+		{
+			realLandBiomes = new KList<>();
+
+			for(String i : getLandBiomes())
+			{
+				realLandBiomes.add(Iris.data.getBiomeLoader().load(i));
+			}
+
+		}
+
+		lock.unlock();
+		return realLandBiomes;
 	}
 }

@@ -8,6 +8,7 @@ import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Bisected.Half;
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.layer.GenLayerCave;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
@@ -62,8 +63,19 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
+	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
+		super.onGenerate(random, x, z, data, grid);
+	}
+
+	@Override
+	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, int onlyY)
+	{
+		if(x > 15 || x < 0 || z > 15 || z < 0)
+		{
+			throw new RuntimeException("Invalid OnGenerate call: x:" + x + " z:" + z);
+		}
+
 		try
 		{
 			BlockData block;
@@ -77,13 +89,27 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			int height = (int) Math.round(noise) + fluidHeight;
 			IrisRegion region = sampleRegion(rx, rz);
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
+
+			if(biome == null)
+			{
+				throw new RuntimeException("Null Biome!");
+			}
+
 			if(caching)
 			{
-				cacheLock.lock();
-				cacheTrueBiome[(z << 4) | x] = biome;
-				cacheHeightMap[(z << 4) | x] = height;
-				cacheLock.unlock();
+				try
+				{
+					cacheTrueBiome[(z << 4) | x] = biome;
+					cacheHeightMap[(z << 4) | x] = height;
+				}
+
+				catch(Throwable e)
+				{
+					Iris.error("Failed to write cache at " + x + " " + z + " in chunk " + cx + " " + cz);
+				}
+
 			}
+
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height, height - getFluidHeight());
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
 			cacheInternalBiome(x, z, biome);
@@ -100,12 +126,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
-			// Set Biomes & Blocks from HEIGHT/FLUIDHEIGHT to 0
 			for(int k = Math.max(height, fluidHeight); k >= 0; k--)
 			{
 				if(k == 0)
 				{
-					sliver.set(0, BEDROCK);
+					sliver.set(k, BEDROCK);
 					continue;
 				}
 
@@ -225,7 +250,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				continue;
 			}
 
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
+			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG((int) (wx + wz + 38888 + biome.getRarity() + biome.getName().length() + j++)), wx, wz);
 
 			if(d != null)
 			{
@@ -254,7 +279,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				else
 				{
-					int stack = i.getHeight(getMasterRandom().nextParallelRNG(39456 + i.hashCode()), wx, wz);
+					int stack = i.getHeight(getMasterRandom().nextParallelRNG((int) (39456 + (10000 * i.getChance()) + i.getStackMax() + i.getStackMin() + i.getZoom())), wx, wz);
 
 					if(stack == 1)
 					{
@@ -286,7 +311,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
 		{
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
+			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), wx, wz);
 
 			if(d != null)
 			{
@@ -315,7 +340,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				else
 				{
-					int stack = i.getHeight(getMasterRandom().nextParallelRNG(39456 + i.hashCode()), wx, wz);
+					int stack = i.getHeight(getMasterRandom().nextParallelRNG((int) (39456 + (1000 * i.getChance()) + i.getZoom() * 10)), wx, wz);
 
 					if(stack == 1)
 					{
@@ -357,11 +382,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				continue;
 			}
 
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(biome.hashCode() + j++), wx, wz);
+			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), wx, wz);
 
 			if(d != null)
 			{
-				int stack = i.getHeight(getMasterRandom().nextParallelRNG(39456 + i.hashCode()), wx, wz);
+				int stack = i.getHeight(getMasterRandom().nextParallelRNG((int) (239456 + i.getStackMax() + i.getStackMin() + i.getVerticalZoom() + i.getZoom() + i.getBlockData().size() + j)), wx, wz);
 
 				if(stack == 1)
 				{

@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -79,7 +80,8 @@ public class Iris extends JavaPlugin implements BoardProvider
 	public static WandController wand;
 	private static String last = "";
 	private BoardManager manager;
-	private RollingSequence hits = new RollingSequence(20);
+	public RollingSequence hits = new RollingSequence(20);
+	public RollingSequence tp = new RollingSequence(100);
 	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
 
 	public Iris()
@@ -95,12 +97,14 @@ public class Iris extends JavaPlugin implements BoardProvider
 		wand = new WandController();
 		postProcessors = loadPostProcessors();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
+
 		J.a(() ->
 		{
 			try
 			{
 				writeDocs();
 			}
+
 			catch(JSONException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | IOException e)
 			{
 				e.printStackTrace();
@@ -128,9 +132,10 @@ public class Iris extends JavaPlugin implements BoardProvider
 			int z = player.getLocation().getBlockZ();
 			BiomeResult er = g.sampleTrueBiome(x, y, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
+			tp.put(g.getMetrics().getSpeed());
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
-			lines.add(ChatColor.GREEN + "Loss" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.duration(g.getMetrics().getLoss().getAverage(), 4) + "");
+			lines.add(ChatColor.GREEN + "Throughput" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f((long) tp.getAverage()) + "");
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
@@ -237,7 +242,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			{
 				imsg(sender, "/iris dev [dimension] - Create a new dev world");
 				imsg(sender, "/iris what <look/hand> - Data about items & blocks");
-				imsg(sender, "/iris goto <name> - Fast goto biome");
+				imsg(sender, "/iris goto <biome> [other-biome] [-cave] - Fast goto biome");
 				imsg(sender, "/iris wand [?] - Get a wand / help");
 				imsg(sender, "/iris save <name> - Save object");
 				imsg(sender, "/iris load <name> - Load & place object");
@@ -245,7 +250,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 			if(args.length >= 1)
 			{
-				if(args[0].equalsIgnoreCase("goto") && args.length == 2)
+				if(args[0].equalsIgnoreCase("goto") && args.length >= 2)
 				{
 					if(sender instanceof Player)
 					{
@@ -253,11 +258,41 @@ public class Iris extends JavaPlugin implements BoardProvider
 						World world = p.getWorld();
 						IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 						int tries = 10000;
+						boolean cave = false;
+						IrisBiome biome2 = null;
+						if(args.length > 2)
+						{
+							if(args[2].equalsIgnoreCase("-cave"))
+							{
+								cave = true;
+							}
+
+							else
+							{
+								biome2 = data.getBiomeLoader().load(args[2]);
+
+								if(biome2 == null)
+								{
+									sender.sendMessage(args[2] + " is not a biome. Use the file name (without extension)");
+									return true;
+								}
+							}
+						}
+
+						for(String i : args)
+						{
+							if(i.equalsIgnoreCase("-cave"))
+							{
+								cave = true;
+							}
+						}
+
 						IrisBiome biome = data.getBiomeLoader().load(args[1]);
 
 						if(biome == null)
 						{
-							sender.sendMessage("Not a biome. Use the file name (without extension)");
+							sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
+							return true;
 						}
 
 						while(tries > 0)
@@ -266,11 +301,31 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 							int xx = (int) (RNG.r.i(-29999970, 29999970));
 							int zz = (int) (RNG.r.i(-29999970, 29999970));
-							if(g.sampleTrueBiome(xx, zz).getBiome().getLoadKey().equals(biome.getLoadKey()))
+							if((cave ? g.sampleCaveBiome(xx, zz) : g.sampleTrueBiome(xx, zz)).getBiome().getLoadKey().equals(biome.getLoadKey()))
 							{
-								p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
-								sender.sendMessage("Found in " + (10000 - tries) + "!");
-								return true;
+								if(biome2 != null)
+								{
+									for(int i = 0; i < 64; i++)
+									{
+										int ax = xx + RNG.r.i(-64, 32);
+										int az = zz + RNG.r.i(-64, 32);
+
+										if((cave ? g.sampleCaveBiome(ax, az) : g.sampleTrueBiome(ax, az)).getBiome().getLoadKey().equals(biome2.getLoadKey()))
+										{
+											tries--;
+											p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
+											sender.sendMessage("Found border in " + (10000 - tries) + " tries!");
+											return true;
+										}
+									}
+								}
+
+								else
+								{
+									p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
+									sender.sendMessage("Found in " + (10000 - tries) + " tries!");
+									return true;
+								}
 							}
 						}
 
@@ -776,17 +831,32 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 						J.a(() ->
 						{
+							double last = 0;
 							int req = 740;
 							while(!done.get())
 							{
+								boolean derp = false;
+								double v = (double) gx.getGenerated() / (double) req;
+
+								if(last > v || v > 1)
+								{
+									derp = true;
+									v = last;
+								}
+
+								else
+								{
+									last = v;
+								}
+
 								for(Player i : Bukkit.getOnlinePlayers())
 								{
-									imsg(i, "Generating " + Form.pc((double) gx.getGenerated() / (double) req));
+									imsg(i, "Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
 								}
 								J.sleep(3000);
 							}
 						});
-						World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).generator(gx));
+						World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx).generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
 						done.set(true);
 
 						for(Player i : Bukkit.getOnlinePlayers())

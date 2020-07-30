@@ -14,6 +14,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
 
 import lombok.Data;
 
@@ -26,6 +27,7 @@ public class AtomicSliver
 	private KMap<Integer, Biome> biome;
 	private int highestBlock = 0;
 	private int highestBiome = 0;
+	private long last = M.ms();
 	private int x;
 	private int z;
 
@@ -46,6 +48,7 @@ public class AtomicSliver
 	public BlockData get(int h)
 	{
 		BlockData b = block.get(h);
+		last = M.ms();
 
 		if(b == null)
 		{
@@ -83,11 +86,13 @@ public class AtomicSliver
 
 	public Biome getBiome(int h)
 	{
+		last = M.ms();
 		return biome.containsKey(h) ? biome.get(h) : Biome.THE_VOID;
 	}
 
 	public IrisBiome getTrueBiome(int h)
 	{
+		last = M.ms();
 		return truebiome.get(h);
 	}
 
@@ -184,5 +189,10 @@ public class AtomicSliver
 				currentData.setBlock(x, i, z, b);
 			}
 		}
+	}
+
+	public boolean isOlderThan(long m)
+	{
+		return M.ms() - last > m;
 	}
 }

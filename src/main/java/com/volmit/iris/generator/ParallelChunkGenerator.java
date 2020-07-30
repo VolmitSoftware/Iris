@@ -50,7 +50,12 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		}
 	}
 
-	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap);
+	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, int onlyY);
+
+	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
+	{
+		onGenerateColumn(cx, cz, wx, wz, x, z, sliver, biomeMap, -1);
+	}
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);
 

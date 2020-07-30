@@ -97,6 +97,11 @@ public class IrisDepositGenerator
 		return p;
 	}
 
+	public int getMaxDimension()
+	{
+		return (int) Math.round(Math.pow(maxSize, 1D / 3D));
+	}
+
 	private IrisObject generateClumpObject(RNG rngv)
 	{
 		int s = rngv.i(minSize, maxSize);

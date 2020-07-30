@@ -20,6 +20,9 @@ public class IrisObjectReplace
 	@DontObfuscate
 	private String replace;
 
+	@DontObfuscate
+	private boolean exact = false;
+
 	private transient ReentrantLock lock = new ReentrantLock();
 	private transient BlockData findData;
 	private transient BlockData replaceData;

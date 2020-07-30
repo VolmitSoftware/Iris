@@ -76,7 +76,7 @@ public class IrisGenerator extends IrisRegistrant
 			return 0;
 		}
 
-		int hc = hashCode();
+		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax + interpolationScale * seed + offsetX + offsetZ);
 		double h = 0;
 		double tp = 0;
 
@@ -93,12 +93,12 @@ public class IrisGenerator extends IrisRegistrant
 			Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity + " ZOOM = " + zoom);
 		}
 
-		return hasCliffs() ? cliff(rx, rz, v, superSeed + 294596) : v;
+		return hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
 	}
 
 	public double getCliffHeight(double rx, double rz, double superSeed)
 	{
-		int hc = hashCode();
+		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax + interpolationScale * seed + offsetX + offsetZ);
 		double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
 		return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
 	}

@@ -2,14 +2,11 @@ package com.volmit.iris.util;
 
 import java.io.File;
 
-import org.bukkit.util.BlockVector;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {
-	private ChunkPosition parallaxSize;
 	private ChronoLatch useFlip = new ChronoLatch(2863);
 	private KMap<String, Long> useCache = new KMap<>();
 
@@ -83,49 +80,9 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		Iris.info("Unloaded Object: " + v);
 	}
 
-	public ChunkPosition getParallaxSize()
-	{
-		lock.lock();
-		if(parallaxSize == null)
-		{
-			int x = 0;
-			int z = 0;
-
-			for(File i : getFolders())
-			{
-				for(File j : i.listFiles())
-				{
-					if(j.isFile() && j.getName().endsWith(".iob"))
-					{
-						try
-						{
-							BlockVector b = IrisObject.sampleSize(j);
-							x = b.getBlockX() > x ? b.getBlockX() : x;
-							z = b.getBlockZ() > z ? b.getBlockZ() : z;
-						}
-
-						catch(Throwable e)
-						{
-
-						}
-					}
-				}
-			}
-
-			x = (Math.max(x, 16) + 16) >> 4;
-			z = (Math.max(z, 16) + 16) >> 4;
-			x = x % 2 == 0 ? x + 1 : x;
-			z = z % 2 == 0 ? z + 1 : z;
-			parallaxSize = new ChunkPosition(x, z);
-		}
-
-		lock.unlock();
-
-		return parallaxSize;
-	}
-
 	public IrisObject loadFile(File j, String key, String name)
 	{
+		lock.lock();
 		try
 		{
 			IrisObject t = new IrisObject(0, 0, 0);
@@ -134,7 +91,6 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			Iris.hotloader.track(j);
 			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
 			t.setLoadKey(name);
-			parallaxSize = null;
 			lock.unlock();
 			return t;
 		}
@@ -156,6 +112,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			{
 				if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name))
 				{
+					lock.unlock();
 					return j;
 				}
 			}
@@ -164,6 +121,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 
 			if(file.exists())
 			{
+				lock.unlock();
 				return file;
 			}
 		}
@@ -193,6 +151,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 				if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name))
 				{
 					useCache.put(key, M.ms());
+					lock.unlock();
 					return loadFile(j, key, name);
 				}
 			}
@@ -202,6 +161,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			if(file.exists())
 			{
 				useCache.put(key, M.ms());
+				lock.unlock();
 				return loadFile(file, key, name);
 			}
 		}

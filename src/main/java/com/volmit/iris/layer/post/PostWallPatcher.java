@@ -64,6 +64,11 @@ public class PostWallPatcher extends IrisPostBlockFilter
 							continue;
 						}
 
+						if(isAirOrWater(x, i, z))
+						{
+							continue;
+						}
+
 						setPostBlock(x, i, z, d);
 					}
 				}

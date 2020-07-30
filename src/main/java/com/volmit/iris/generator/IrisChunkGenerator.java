@@ -1,9 +1,11 @@
 package com.volmit.iris.generator;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
@@ -40,6 +42,19 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		lock.unlock();
 	}
 
+	public void onInit(World world, RNG rng)
+	{
+		try
+		{
+			super.onInit(world, rng);
+		}
+
+		catch(Throwable e)
+		{
+			fail(e);
+		}
+	}
+
 	@Override
 	public BiomeResult getBiome(int x, int z)
 	{
@@ -68,6 +83,29 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	protected void onClose()
 	{
 		super.onClose();
+
+		try
+		{
+			parallaxMap.saveAll();
+			ceilingParallaxMap.saveAll();
+			parallaxMap.getLoadedChunks().clear();
+			parallaxMap.getLoadedRegions().clear();
+			ceilingParallaxMap.getLoadedChunks().clear();
+			ceilingParallaxMap.getLoadedRegions().clear();
+		}
+
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		setBiomeCache(null);
+		setAvailableFilters(null);
+		setBiomeHitCache(null);
+		setCacheTrueBiome(null);
+		setCacheHeightMap(null);
+		setCeilingSliverCache(null);
+		setSliverCache(null);
 		Iris.info("Closing Iris Dimension " + getWorld().getName());
 	}
 

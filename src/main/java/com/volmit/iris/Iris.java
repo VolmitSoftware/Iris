@@ -226,6 +226,14 @@ public class Iris extends JavaPlugin implements BoardProvider
 			i.close();
 		}
 
+		for(World i : Bukkit.getWorlds())
+		{
+			if(i.getGenerator() instanceof IrisChunkGenerator)
+			{
+				((IrisChunkGenerator) i).close();
+			}
+		}
+
 		executors.clear();
 		manager.onDisable();
 		Bukkit.getScheduler().cancelTasks(this);

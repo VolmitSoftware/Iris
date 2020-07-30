@@ -34,7 +34,7 @@ public class PostSlabber extends IrisPostBlockFilter
 		int hc = highestTerrainBlock(x - 1, z);
 		int hd = highestTerrainBlock(x, z - 1);
 
-		if(ha == h + 1 || hb == h + 1 || hc == h + 1 || hd == h + 1)
+		if((ha == h + 1 && isSolid(x + 1, ha, z)) || (hb == h + 1 && isSolid(x, hb, z + 1)) || (hc == h + 1 && isSolid(x - 1, hc, z)) || (hd == h + 1 && isSolid(x, hd, z - 1)))
 		{
 			BlockData d = gen.sampleTrueBiome(x, z).getBiome().getSlab().get(rng, x, h, z);
 

@@ -183,7 +183,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	protected void close()
+	public void close()
 	{
 		HandlerList.unregisterAll(this);
 		Bukkit.getScheduler().cancelTask(getTask());

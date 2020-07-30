@@ -64,6 +64,18 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR);
 	}
 
+	public boolean isSolid(int x, int y, int z)
+	{
+		BlockData d = getPostBlock(x, y, z);
+		return d.getMaterial().isSolid();
+	}
+
+	public boolean isAirOrWater(int x, int y, int z)
+	{
+		BlockData d = getPostBlock(x, y, z);
+		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR);
+	}
+
 	public boolean isSlab(int x, int y, int z)
 	{
 		BlockData d = getPostBlock(x, y, z);

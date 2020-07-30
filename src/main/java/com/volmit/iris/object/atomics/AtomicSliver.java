@@ -3,6 +3,7 @@ package com.volmit.iris.object.atomics;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -25,6 +26,7 @@ public class AtomicSliver
 	private KMap<Integer, BlockData> block;
 	private KMap<Integer, IrisBiome> truebiome;
 	private KMap<Integer, Biome> biome;
+	private ReentrantLock lock = new ReentrantLock();
 	private int highestBlock = 0;
 	private int highestBiome = 0;
 	private long last = M.ms();
@@ -65,8 +67,17 @@ public class AtomicSliver
 			return;
 		}
 
+		lock.lock();
 		block.put(h, d);
+
+		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR))
+		{
+			lock.unlock();
+			return;
+		}
+
 		highestBlock = h > highestBlock ? h : highestBlock;
+		lock.unlock();
 	}
 
 	public void setSilently(int h, BlockData d)
@@ -76,7 +87,9 @@ public class AtomicSliver
 			return;
 		}
 
+		lock.lock();
 		block.put(h, d);
+		lock.unlock();
 	}
 
 	public boolean isSolid(int h)
@@ -98,17 +111,22 @@ public class AtomicSliver
 
 	public void set(int h, Biome d)
 	{
+		lock.lock();
 		biome.put(h, d);
 		highestBiome = h > highestBiome ? h : highestBiome;
+		lock.unlock();
 	}
 
 	public void set(int h, IrisBiome d)
 	{
+		lock.lock();
 		truebiome.put(h, d);
+		lock.unlock();
 	}
 
 	public void write(ChunkData d)
 	{
+		lock.lock();
 		for(int i = 0; i <= highestBlock; i++)
 		{
 			if(block.get(i) == null)
@@ -121,10 +139,12 @@ public class AtomicSliver
 				d.setBlock(x, i, z, block.get(i));
 			}
 		}
+		lock.unlock();
 	}
 
 	public void write(BiomeGrid d)
 	{
+		lock.lock();
 		for(int i = 0; i <= highestBiome; i++)
 		{
 			if(biome.get(i) != null)
@@ -132,15 +152,19 @@ public class AtomicSliver
 				d.setBiome(x, i, z, biome.get(i));
 			}
 		}
+		lock.unlock();
 	}
 
 	public void write(HeightMap height)
 	{
+		lock.lock();
 		height.setHeight(x, z, highestBlock);
+		lock.unlock();
 	}
 
 	public void read(DataInputStream din) throws IOException
 	{
+		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
 		int h = din.readByte() - Byte.MIN_VALUE;
 		highestBlock = h;
@@ -149,10 +173,12 @@ public class AtomicSliver
 		{
 			block.put(i, BlockDataTools.getBlockData(din.readUTF()));
 		}
+		lock.unlock();
 	}
 
 	public void write(DataOutputStream dos) throws IOException
 	{
+		lock.lock();
 		dos.writeByte(highestBlock + Byte.MIN_VALUE);
 
 		for(int i = 0; i <= highestBlock; i++)
@@ -160,10 +186,12 @@ public class AtomicSliver
 			BlockData dat = block.get(i);
 			dos.writeUTF((dat == null ? AIR : dat).getAsString(true));
 		}
+		lock.unlock();
 	}
 
 	public void insert(AtomicSliver atomicSliver)
 	{
+		lock.lock();
 		for(int i = 0; i < 256; i++)
 		{
 			if(block.get(i) == null || block.get(i).equals(AIR))
@@ -177,10 +205,12 @@ public class AtomicSliver
 				block.put(i, b);
 			}
 		}
+		lock.unlock();
 	}
 
 	public void inject(ChunkData currentData)
 	{
+		lock.lock();
 		for(int i = 0; i < 256; i++)
 		{
 			if(block.get(i) != null && !block.get(i).equals(AIR))
@@ -189,6 +219,7 @@ public class AtomicSliver
 				currentData.setBlock(x, i, z, b);
 			}
 		}
+		lock.unlock();
 	}
 
 	public boolean isOlderThan(long m)

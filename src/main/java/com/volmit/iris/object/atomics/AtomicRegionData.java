@@ -77,9 +77,17 @@ public class AtomicRegionData
 			return data;
 		}
 
-		ByteArrayTag btag = (ByteArrayTag) tag.get(rx + "." + rz);
-		ByteArrayInputStream in = new ByteArrayInputStream(btag.getValue());
-		data.read(in);
+		try
+		{
+			ByteArrayTag btag = (ByteArrayTag) tag.get(rx + "." + rz);
+			ByteArrayInputStream in = new ByteArrayInputStream(btag.getValue());
+			data.read(in);
+		}
+
+		catch(Throwable e)
+		{
+
+		}
 
 		return data;
 	}

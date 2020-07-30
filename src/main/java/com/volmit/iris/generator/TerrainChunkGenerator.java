@@ -9,6 +9,7 @@ import org.bukkit.block.data.Bisected.Half;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.layer.GenLayerCarve;
 import com.volmit.iris.layer.GenLayerCave;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
@@ -35,6 +36,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
+	private GenLayerCarve glCarve;
 	private RNG rockRandom;
 	private int[] cacheHeightMap;
 	private IrisBiome[] cacheTrueBiome;
@@ -55,6 +57,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		super.onInit(world, rng);
 		rockRandom = getMasterRandom().nextParallelRNG(2858678);
 		glCave = new GenLayerCave(this, rng.nextParallelRNG(238948));
+		glCarve = new GenLayerCarve(this, rng.nextParallelRNG(968346576));
 	}
 
 	public KList<CaveResult> getCaves(int x, int z)
@@ -78,6 +81,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		try
 		{
+			int highestPlaced = 0;
 			BlockData block;
 			int fluidHeight = getDimension().getFluidHeight();
 			double ox = getModifiedX(rx, rz);
@@ -87,6 +91,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			int depth = 0;
 			double noise = getNoiseHeight(rx, rz);
 			int height = (int) Math.round(noise) + fluidHeight;
+			boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
 			IrisRegion region = sampleRegion(rx, rz);
 			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
 
@@ -107,14 +112,15 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				{
 					Iris.error("Failed to write cache at " + x + " " + z + " in chunk " + cx + " " + cz);
 				}
-
 			}
 
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height, height - getFluidHeight());
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
 			cacheInternalBiome(x, z, biome);
+			boolean caverning = false;
+			KList<Integer> cavernHeights = new KList<>();
+			int lastCavernHeight = -1;
 
-			// Set ground biome (color) to HEIGHT - HEIGHT+3
 			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3; k++)
 			{
 				if(k < Math.max(height, fluidHeight) + 3)
@@ -128,10 +134,39 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			for(int k = Math.max(height, fluidHeight); k >= 0; k--)
 			{
+				boolean cavernSurface = false;
+
 				if(k == 0)
 				{
+					if(biomeMap != null)
+					{
+						sliver.set(k, biome.getDerivative());
+						biomeMap.setBiome(x, z, biome);
+					}
+
 					sliver.set(k, BEDROCK);
 					continue;
+				}
+
+				if(carvable && glCarve.isCarved(rx, k, rz))
+				{
+					if(biomeMap != null)
+					{
+						sliver.set(k, biome.getDerivative());
+						biomeMap.setBiome(x, z, biome);
+					}
+
+					sliver.set(k, CAVE_AIR);
+					caverning = true;
+					continue;
+				}
+
+				else if(carvable && caverning)
+				{
+					lastCavernHeight = k;
+					cavernSurface = true;
+					cavernHeights.add(k);
+					caverning = false;
 				}
 
 				boolean underwater = k > height && k <= fluidHeight;
@@ -147,6 +182,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					block = seaLayers.hasIndex(fluidHeight - k) ? layers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
 				}
 
+				else if(layers.hasIndex(lastCavernHeight - k))
+				{
+					block = layers.get(lastCavernHeight - k);
+				}
+
 				else
 				{
 					block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRock(rockRandom, wx, k, wz);
@@ -154,15 +194,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 
 				sliver.set(k, block);
+				highestPlaced = Math.max(highestPlaced, k);
 
-				// Decorate underwater
-				if(k == height && block.getMaterial().isSolid() && k < fluidHeight)
+				if(!cavernSurface && (k == height && block.getMaterial().isSolid() && k < fluidHeight))
 				{
 					decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
 				}
 
-				// Decorate land
-				if(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k > fluidHeight)
+				if((carvable && cavernSurface) || (k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k > fluidHeight))
 				{
 					decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
 				}
@@ -204,6 +243,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 						decorateCave(caveBiome, sliver, wx, i.getFloor(), wz, rx, rz, blockc);
 					}
 				}
+			}
+
+			if(caching && highestPlaced < height)
+			{
+				cacheHeightMap[(z << 4) | x] = highestPlaced;
 			}
 		}
 

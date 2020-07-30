@@ -56,6 +56,30 @@ public class IrisDimension extends IrisRegistrant
 
 	@DontObfuscate
 	@Desc("Carve terrain or not")
+	private double carvingZoom = 3.5;
+
+	@DontObfuscate
+	@Desc("Carving starts at this height")
+	private int carvingMin = 115;
+
+	@DontObfuscate
+	@Desc("The maximum height carving happens at")
+	private int carvingMax = 239;
+
+	@DontObfuscate
+	@Desc("The thickness of carvings (vertical)")
+	private double carvingSliverThickness = 5.5D;
+
+	@DontObfuscate
+	@Desc("The thickness of ripples on carved walls")
+	private double carvingRippleThickness = 3D;
+
+	@DontObfuscate
+	@Desc("How much of 3D space is carved out. Higher values make carvings cross into 3d space more often (bigger)")
+	private double carvingEnvelope = 0.335D;
+
+	@DontObfuscate
+	@Desc("Carve terrain or not")
 	private boolean carving = true;
 
 	@DontObfuscate

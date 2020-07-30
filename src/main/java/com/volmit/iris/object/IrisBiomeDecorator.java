@@ -124,7 +124,7 @@ public class IrisBiomeDecorator
 		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : x;
 		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : z;
 
-		if(getGenerator(nrng).fitDoubleD(0D, 1D, xx, zz) <= chance)
+		if(getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance)
 		{
 			try
 			{

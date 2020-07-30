@@ -128,7 +128,7 @@ public class IrisBiomeDecorator
 		{
 			try
 			{
-				return getBlockData().get(getGenerator(rng.nextParallelRNG((int) (5369431 + z + x + xx + zz))).fit(0, getBlockData().size() - 1, xx, zz));
+				return getBlockData().get(getGenerator(rng.nextParallelRNG(45622222)).fit(0, getBlockData().size() - 1, xx, zz));
 			}
 
 			catch(Throwable e)

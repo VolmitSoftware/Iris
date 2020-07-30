@@ -7,6 +7,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisRegionRidge;
 import com.volmit.iris.object.IrisRegionSpot;
+import com.volmit.iris.util.BiomeRarityCellGenerator;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.GenLayer;
@@ -119,7 +120,7 @@ public class GenLayerBiome extends GenLayer
 		return bridgeGenerator.getIndex(x, z, 5) == 1 ? InferredType.SEA : InferredType.LAND;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
 	{
 		if(biomes.isEmpty())
 		{
@@ -128,7 +129,7 @@ public class GenLayerBiome extends GenLayer
 
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
-		IrisBiome biome = biomes.get(cell.getIndex(x, z, biomes.size()));
+		IrisBiome biome = cell.get(x, z, biomes);
 		biome.setInferredType(inferredType);
 
 		return implode(bx, bz, regionData, cell, new BiomeResult(biome, cell.getDistance(x, z)));
@@ -155,12 +156,12 @@ public class GenLayerBiome extends GenLayer
 		return pureResult;
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CellGenerator parentCell, BiomeResult parent)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator parentCell, BiomeResult parent)
 	{
 		return implode(bx, bz, regionData, parentCell, parent, 1);
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CellGenerator parentCell, BiomeResult parent, int hits)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator parentCell, BiomeResult parent, int hits)
 	{
 		if(hits > 9)
 		{
@@ -174,15 +175,10 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(!parent.getBiome().getRealChildren().isEmpty())
 			{
-				CellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
-				int r = childCell.getIndex(x, z, parent.getBiome().getRealChildren().size() + 1);
-
-				if(r == parent.getBiome().getRealChildren().size())
-				{
-					return new BiomeResult(parent.getBiome(), childCell.getDistance(x, z));
-				}
-
-				IrisBiome biome = parent.getBiome().getRealChildren().get(r);
+				BiomeRarityCellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
+				KList<IrisBiome> chx = parent.getBiome().getRealChildren().copy();
+				chx.add(parent.getBiome());
+				IrisBiome biome = childCell.get(x, z, chx);
 				biome.setInferredType(parent.getBiome().getInferredType());
 
 				return implode(bx, bz, regionData, childCell, new BiomeResult(biome, childCell.getDistance(x, z)), hits + 1);

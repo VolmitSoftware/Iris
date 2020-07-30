@@ -6,8 +6,8 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.BiomeRarityCellGenerator;
 import com.volmit.iris.util.CNG;
-import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -96,7 +96,7 @@ public class IrisBiome extends IrisRegistrant
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient ReentrantLock lock = new ReentrantLock();
-	private transient CellGenerator childrenCell;
+	private transient BiomeRarityCellGenerator childrenCell;
 	private transient InferredType inferredType;
 	private transient CNG biomeGenerator;
 	private transient int maxHeight = Integer.MIN_VALUE;
@@ -134,11 +134,11 @@ public class IrisBiome extends IrisRegistrant
 		return biomeGenerator;
 	}
 
-	public CellGenerator getChildrenGenerator(RNG random, int sig, double scale)
+	public BiomeRarityCellGenerator getChildrenGenerator(RNG random, int sig, double scale)
 	{
 		if(childrenCell == null)
 		{
-			childrenCell = new CellGenerator(random.nextParallelRNG(sig * 213));
+			childrenCell = new BiomeRarityCellGenerator(random.nextParallelRNG(sig * 2137));
 			childrenCell.setCellScale(scale);
 		}
 

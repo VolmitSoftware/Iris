@@ -2,8 +2,8 @@ package com.volmit.iris.layer;
 
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.BiomeRarityCellGenerator;
 import com.volmit.iris.util.BiomeResult;
-import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -12,14 +12,14 @@ import lombok.Data;
 public class BiomeDataProvider
 {
 	private InferredType type;
-	private CellGenerator generator;
+	private BiomeRarityCellGenerator generator;
 	private GenLayerBiome layer;
 
 	public BiomeDataProvider(GenLayerBiome layer, InferredType type, RNG rng)
 	{
 		this.type = type;
 		this.layer = layer;
-		generator = new CellGenerator(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
+		generator = new BiomeRarityCellGenerator(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
 	}
 
 	public BiomeResult generatePureData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)

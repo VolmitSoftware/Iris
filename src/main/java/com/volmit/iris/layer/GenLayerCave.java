@@ -49,7 +49,7 @@ public class GenLayerCave extends GenLayer
 		gg.SetCellularReturnType(CellularReturnType.Distance2Sub);
 		gg.SetCellularDistanceFunction(CellularDistanceFunction.Natural);
 
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < 3; i++)
 		{
 			double wx = wxx + (shuffle.noise(wxx, wzz) * shuffleDistance);
 			double wz = wzz + (shuffle.noise(wzz, wxx) * shuffleDistance);
@@ -57,7 +57,7 @@ public class GenLayerCave extends GenLayer
 			double baseWidth = (14 * iris.getDimension().getCaveScale());
 			double distanceCheck = 0.0132 * baseWidth;
 			double distanceTake = 0.0022 * baseWidth;
-			double drop = (-i * 7) + 44 + iris.getDimension().getCaveShift();
+			double drop = (-i * 17) + 44 + iris.getDimension().getCaveShift();
 			double caveHeightNoise = incline * gincline.noise((wx + (10000 * i)), (wz - (10000 * i)));
 			caveHeightNoise += shuffle.fitDoubleD(-1, 1, wxx - caveHeightNoise, wzz + caveHeightNoise) * 3;
 
@@ -72,6 +72,11 @@ public class GenLayerCave extends GenLayer
 					int caveHeight = (int) Math.round(caveHeightNoise - drop);
 					int pu = (int) (caveHeight + tunnelHeight);
 					int pd = (int) (caveHeight - tunnelHeight);
+
+					if((pu > 255 && pd > 255) || (pu < 0 && pd < 0))
+					{
+						continue;
+					}
 
 					if(data == null)
 					{

@@ -26,6 +26,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	protected int cacheX;
 	protected int cacheZ;
 	private ReentrantLock genlock;
+	protected boolean cachingAllowed;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
 	{
@@ -77,7 +78,6 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		String key = "c" + x + "," + z;
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
-		unsafe = true;
 
 		for(ii = 0; ii < 16; ii++)
 		{
@@ -97,11 +97,14 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 			}
 		}
 
+		setCachingAllowed(true);
+		setUnsafe(true);
 		accelerant.waitFor(key);
+		setUnsafe(false);
+		setCachingAllowed(false);
 		map.write(data, grid, height);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
-		unsafe = false;
 		onPostGenerate(random, x, z, data, grid, height, biomeMap);
 		genlock.unlock();
 	}

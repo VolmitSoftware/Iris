@@ -170,8 +170,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
 	{
-		setCaching(false);
-
 		if(getSliverCache().size() > 20000)
 		{
 			getSliverCache().clear();
@@ -194,7 +192,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
-		setCaching(true);
 	}
 
 	protected void injectBiomeSky(int x, int z, BiomeGrid grid)

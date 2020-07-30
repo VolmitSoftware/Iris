@@ -41,14 +41,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private int[] cacheHeightMap;
 	private IrisBiome[] cacheTrueBiome;
 	private ReentrantLock cacheLock;
-	private boolean caching;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
 		cacheHeightMap = new int[256];
 		cacheTrueBiome = new IrisBiome[256];
-		caching = true;
+		cachingAllowed = true;
 		cacheLock = new ReentrantLock();
 	}
 
@@ -100,7 +99,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				throw new RuntimeException("Null Biome!");
 			}
 
-			if(caching)
+			if(cachingAllowed)
 			{
 				try
 				{
@@ -245,7 +244,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
-			if(caching && highestPlaced < height)
+			if(cachingAllowed && highestPlaced < height)
 			{
 				cacheHeightMap[(z << 4) | x] = highestPlaced;
 			}

@@ -831,7 +831,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						int tc = Math.max(Runtime.getRuntime().availableProcessors(), 4);
+						int tc = Math.max(Runtime.getRuntime().availableProcessors() * 4, 4);
 						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, tc);
 						info("Generating with " + tc + " threads per chunk");
 						O<Boolean> done = new O<Boolean>();

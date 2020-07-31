@@ -120,21 +120,20 @@ public class IrisBiomeDecorator
 			return null;
 		}
 
-		RNG nrng = rng.nextParallelRNG((int) (z - (int) ((x + 34856) * (int) (x + z + (int) (28835521 + (getChance() * 1000) + getStackMin() + getStackMax() + (getZoom() * 556))))));
-		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) : x;
-		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) : z;
+		RNG nrng = dispersion.equals(Dispersion.SCATTER) ? rng.nextParallelRNG((int) (z - (int) ((x + 34856) * (int) (x + z + (int) (28835521 + (getChance() * 1000) + getStackMin() + getStackMax() + (getZoom() * 556)))))) : null;
+		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) + z : x;
+		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) - x : z;
+		xx /= getZoom();
+		zz /= getZoom();
 
 		if(getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance)
 		{
-			try
+			if(getBlockData().size() == 1)
 			{
-				return getBlockData().get(getGenerator(rng.nextParallelRNG(45622222)).fit(0, getBlockData().size() - 1, xx, zz));
+				return getBlockData().get(0);
 			}
 
-			catch(Throwable e)
-			{
-
-			}
+			return getBlockData().get(getGenerator(rng.nextParallelRNG(44)).fit(0, getBlockData().size() - 1, xx, zz));
 		}
 
 		return null;

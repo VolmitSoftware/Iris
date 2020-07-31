@@ -42,6 +42,7 @@ public class GenLayerCave extends GenLayer
 			return EMPTY;
 		}
 
+		int surface = data.getHighestBlock();
 		KList<CaveResult> result = new KList<>();
 		shuffle.scale(0.01);
 		double shuffleDistance = 72;
@@ -73,6 +74,11 @@ public class GenLayerCave extends GenLayer
 					int pu = (int) (caveHeight + tunnelHeight);
 					int pd = (int) (caveHeight - tunnelHeight);
 
+					if(pd > surface + 1)
+					{
+						continue;
+					}
+
 					if((pu > 255 && pd > 255) || (pu < 0 && pd < 0))
 					{
 						continue;
@@ -98,6 +104,27 @@ public class GenLayerCave extends GenLayer
 						{
 							ceiling = pu > ceiling ? pu : ceiling;
 							floor = pu < floor ? pu : floor;
+
+							if(pu > surface - 2)
+							{
+								if(dig(x, pu + 1, z, data))
+								{
+									ceiling = pu + 1 > ceiling ? pu + 1 : ceiling;
+									floor = pu + 1 < floor ? pu + 1 : floor;
+
+									if(dig(x, pu + 2, z, data))
+									{
+										ceiling = pu + 2 > ceiling ? pu + 2 : ceiling;
+										floor = pu + 2 < floor ? pu + 2 : floor;
+
+										if(dig(x, pu + 3, z, data))
+										{
+											ceiling = pu + 3 > ceiling ? pu + 3 : ceiling;
+											floor = pu + 3 < floor ? pu + 3 : floor;
+										}
+									}
+								}
+							}
 						}
 
 						if(dig(x, pd, z, data))

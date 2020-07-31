@@ -16,6 +16,7 @@ public class M
 	private static final int precision = 128;
 	private static final int modulus = 360 * precision;
 	private static final float[] sin = new float[modulus];
+	public static int tick = 0;
 
 	/**
 	 * Scales B by an external range change so that <br/>
@@ -438,6 +439,11 @@ public class M
 	private static float sinLookup(int a)
 	{
 		return a >= 0 ? sin[a % (modulus)] : -sin[-a % (modulus)];
+	}
+
+	public static boolean interval(int tickInterval)
+	{
+		return tick % (tickInterval <= 0 ? 1 : tickInterval) == 0;
 	}
 
 }

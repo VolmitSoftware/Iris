@@ -7,6 +7,7 @@ package com.volmit.iris.util;
  * @param <K> the key type
  * @param <V> the value type
  */
+@SuppressWarnings("hiding")
 public class KeyPair<K, V>
 {
 	private K k;

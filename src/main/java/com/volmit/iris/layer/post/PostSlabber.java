@@ -45,7 +45,17 @@ public class PostSlabber extends IrisPostBlockFilter
 					return;
 				}
 
-				if(isAir(x, h + 2, z) || getPostBlock(x, h + 2, z).getMaterial().equals(WATER))
+				if(d.getMaterial().equals(Material.SNOW) && h + 1 <= gen.getFluidHeight())
+				{
+					return;
+				}
+
+				if(isSnowLayer(x, h, z))
+				{
+					return;
+				}
+
+				if(isAirOrWater(x, h + 2, z))
 				{
 					queue(() ->
 					{

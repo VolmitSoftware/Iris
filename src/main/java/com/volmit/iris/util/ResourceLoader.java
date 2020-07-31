@@ -45,6 +45,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			Iris.hotloader.track(j);
 			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
 			t.setLoadKey(name);
+			t.setLoadFile(j);
 			lock.unlock();
 			return t;
 		}

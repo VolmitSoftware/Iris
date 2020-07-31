@@ -26,11 +26,14 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
+import com.volmit.iris.command.CommandIris;
+import com.volmit.iris.command.PermissionIris;
+import com.volmit.iris.command.util.MortarPlugin;
+import com.volmit.iris.command.util.Permission;
 import com.volmit.iris.generator.IrisChunkGenerator;
 import com.volmit.iris.layer.post.PostFloatingNibDeleter;
 import com.volmit.iris.layer.post.PostNibSmoother;
@@ -72,11 +75,12 @@ import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.util.ScoreDirection;
 import com.volmit.iris.wand.WandController;
 
-public class Iris extends JavaPlugin implements BoardProvider
+public class Iris extends MortarPlugin implements BoardProvider
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
 	public static IrisDataManager data;
+	public static ProjectManager proj;
 	public static IrisHotloadManager hotloader;
 	public static WandController wand;
 	private static String last = "";
@@ -87,9 +91,33 @@ public class Iris extends JavaPlugin implements BoardProvider
 	public RollingSequence tp = new RollingSequence(100);
 	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
 
+	@Permission
+	public static PermissionIris perm;
+
+	@com.volmit.iris.command.util.Command
+	public CommandIris commandIris;
+
 	public Iris()
 	{
 		IO.delete(new File("iris"));
+	}
+
+	@Override
+	public void start()
+	{
+
+	}
+
+	@Override
+	public void stop()
+	{
+
+	}
+
+	@Override
+	public String getTag(String subTag)
+	{
+		return ChatColor.BOLD + "" + ChatColor.DARK_GRAY + "[" + ChatColor.BOLD + "" + ChatColor.GREEN + "Iris" + ChatColor.BOLD + ChatColor.DARK_GRAY + "]" + ChatColor.RESET + "" + ChatColor.GRAY + ": ";
 	}
 
 	public void onEnable()
@@ -99,6 +127,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 		data = new IrisDataManager(getDataFolder());
 		wand = new WandController();
 		postProcessors = loadPostProcessors();
+		proj = new ProjectManager();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
 
 		J.a(() ->
@@ -113,6 +142,31 @@ public class Iris extends JavaPlugin implements BoardProvider
 				e.printStackTrace();
 			}
 		});
+		super.onEnable();
+	}
+
+	public void onDisable()
+	{
+		proj.close();
+
+		for(GroupedExecutor i : executors)
+		{
+			i.close();
+		}
+
+		for(World i : Bukkit.getWorlds())
+		{
+			if(i.getGenerator() instanceof IrisChunkGenerator)
+			{
+				((IrisChunkGenerator) i).close();
+			}
+		}
+
+		executors.clear();
+		manager.onDisable();
+		Bukkit.getScheduler().cancelTasks(this);
+		HandlerList.unregisterAll((Plugin) this);
+		super.onDisable();
 	}
 
 	@Override
@@ -227,31 +281,15 @@ public class Iris extends JavaPlugin implements BoardProvider
 		}
 	}
 
-	public void onDisable()
-	{
-		for(GroupedExecutor i : executors)
-		{
-			i.close();
-		}
-
-		for(World i : Bukkit.getWorlds())
-		{
-			if(i.getGenerator() instanceof IrisChunkGenerator)
-			{
-				((IrisChunkGenerator) i).close();
-			}
-		}
-
-		executors.clear();
-		manager.onDisable();
-		Bukkit.getScheduler().cancelTasks(this);
-		HandlerList.unregisterAll((Plugin) this);
-	}
-
 	@SuppressWarnings("deprecation")
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
 	{
+		if(super.onCommand(sender, command, label, args))
+		{
+			return true;
+		}
+
 		if(command.getName().equals("iris"))
 		{
 			if(args.length == 0)
@@ -805,22 +843,33 @@ public class Iris extends JavaPlugin implements BoardProvider
 					String dim = "overworld";
 
 					boolean fast = false;
-
+					boolean first = true;
+					int tc = (int) Math.max(Runtime.getRuntime().availableProcessors(), 4);
 					for(String i : args)
 					{
+						if(first)
+						{
+							first = false;
+							continue;
+						}
+
+						if(i.startsWith("-t:"))
+						{
+							tc = Integer.valueOf(i.split("\\Q:\\E")[1]);
+							continue;
+						}
+
 						if(i.equals("--fast") || i.equals("-f"))
 						{
 							fast = true;
+							continue;
 						}
 
-						else
-						{
-							dim = args[1];
-						}
+						dim = i;
 					}
 
 					String dimm = dim;
-
+					int tcc = tc;
 					boolean ff = fast;
 					Bukkit.getScheduler().scheduleSyncDelayedTask(this, () ->
 					{
@@ -850,11 +899,11 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						int tc = (int) Math.max(Runtime.getRuntime().availableProcessors() * IrisSettings.get().threadAggression, 4);
-						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, tc);
+						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, tcc);
+						gx.setDev(true);
 						gx.setFastPregen(ff);
 
-						info("Generating with " + tc + " threads per chunk");
+						info("Generating with " + tcc + " threads per chunk");
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
 
@@ -910,7 +959,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 			return true;
 		}
 
-		return false;
+		return super.onCommand(sender, command, label, args);
 	}
 
 	public void imsg(CommandSender s, String msg)

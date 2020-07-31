@@ -168,4 +168,28 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 
 		return bytes;
 	}
+
+	@Override
+	public boolean shouldGenerateCaves()
+	{
+		return false;
+	}
+
+	@Override
+	public boolean shouldGenerateDecorations()
+	{
+		return false;
+	}
+
+	@Override
+	public boolean shouldGenerateMobs()
+	{
+		return true;
+	}
+
+	@Override
+	public boolean shouldGenerateStructures()
+	{
+		return true;
+	}
 }

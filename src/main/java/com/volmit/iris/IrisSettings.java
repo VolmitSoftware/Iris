@@ -8,8 +8,8 @@ public class IrisSettings
 	public static transient IrisSettings settings;
 
 	@DontObfuscate
-	@Desc("Iris creates (aggression X CPU threads) generator threads.")
-	public double threadAggression = 2;
+	@Desc("Iris generator threads (must be 2 or higher).")
+	public int threads = 8;
 
 	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")

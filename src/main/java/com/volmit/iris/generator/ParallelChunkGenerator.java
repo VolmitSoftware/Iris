@@ -112,6 +112,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	protected void onClose()
 	{
 		accelerant.close();
+		Iris.executors.remove(accelerant);
 	}
 
 	public void onInit(World world, RNG rng)

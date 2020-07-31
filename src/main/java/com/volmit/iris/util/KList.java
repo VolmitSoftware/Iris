@@ -91,6 +91,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	 *            the function
 	 * @return the new map
 	 */
+	@SuppressWarnings("hiding")
 	public <V> KMap<T, V> asKeys(Function<T, V> f)
 	{
 		KMap<T, V> m = new KMap<T, V>();
@@ -274,6 +275,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	 *            the converter that converts the forign type into this list type
 	 * @return this list (builder)
 	 */
+	@SuppressWarnings("hiding")
 	public <V> KList<T> addFrom(List<V> v, Function<V, T> converter)
 	{
 		v.forEach((g) -> add(converter.apply(g)));
@@ -288,6 +290,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	 * @param converter
 	 * @return
 	 */
+	@SuppressWarnings("hiding")
 	public <V> KList<V> convert(Function<T, V> converter)
 	{
 		KList<V> v = new KList<V>();
@@ -662,5 +665,14 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	{
 		add(t);
 		return this;
+	}
+
+	public KList<T> removeDuplicates()
+	{
+		KSet<T> v = new KSet<>();
+		v.addAll(this);
+		KList<T> m = new KList<>();
+		m.addAll(v);
+		return m;
 	}
 }

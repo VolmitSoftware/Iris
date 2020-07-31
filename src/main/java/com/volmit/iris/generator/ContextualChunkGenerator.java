@@ -40,6 +40,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 {
 	protected boolean failing;
 	protected int task;
+	protected boolean dev;
 	protected boolean initialized;
 	protected RNG masterRandom;
 	protected ChronoLatch perSecond;
@@ -64,6 +65,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		initialized = false;
 		failing = false;
 		pregenDone = false;
+		dev = false;
 	}
 
 	protected abstract void onGenerate(RNG masterRandom, int x, int z, ChunkData data, BiomeGrid grid);
@@ -102,18 +104,27 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	private void tick()
 	{
-		if(perSecond.flip())
+		if(dev)
 		{
-			if(generated > (fastPregen ? 1950 : 770))
+			if(perSecond.flip())
 			{
-				pregenDone = true;
-			}
+				if(generated > (fastPregen ? 1950 : 770))
+				{
+					pregenDone = true;
+				}
 
-			if(pregenDone)
-			{
-				metrics.getPerSecond().put(generated);
-				generated = 0;
+				if(pregenDone)
+				{
+					metrics.getPerSecond().put(generated);
+					generated = 0;
+				}
 			}
+		}
+
+		else
+		{
+			pregenDone = true;
+			fastPregen = false;
 		}
 
 		onTick(ticks++);
@@ -250,6 +261,12 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@Override
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
+		if(!dev)
+		{
+			pregenDone = true;
+			fastPregen = false;
+		}
+
 		PrecisionStopwatch sx = PrecisionStopwatch.start();
 
 		if(failing)

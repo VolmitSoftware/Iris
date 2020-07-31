@@ -21,7 +21,7 @@ public class J
 		{
 			tid++;
 			Thread t = new Thread(r);
-			t.setName("Actuator " + tid);
+			t.setName("Iris Preemptive Generator " + tid);
 			t.setPriority(Thread.MIN_PRIORITY);
 			t.setUncaughtExceptionHandler((et, e) ->
 			{

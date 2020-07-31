@@ -1,0 +1,32 @@
+package com.volmit.iris;
+
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+
+public class IrisSettings
+{
+	public static transient IrisSettings settings;
+
+	@DontObfuscate
+	@Desc("Iris creates (aggression X CPU threads) generator threads.")
+	public double threadAggression = 2;
+
+	@DontObfuscate
+	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
+	public boolean parallaxCompression = true;
+
+	@DontObfuscate
+	@Desc("Compression level (0-9) lower is faster, but is not as good compression. Best results around 3-5")
+	public int parallaxCompressionLevel = 9;
+
+	public static IrisSettings get()
+	{
+		if(settings == null)
+		{
+			settings = new IrisSettings();
+			// TODO LOAD
+		}
+
+		return settings;
+	}
+}

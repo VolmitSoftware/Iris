@@ -31,10 +31,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 	{
 		if(useFlip.flip())
 		{
-			if(loadCache.size() > 15 && getTotalStorage() > 20000)
-			{
-				unloadLast(30000);
-			}
+			unloadLast(60000);
 		}
 	}
 

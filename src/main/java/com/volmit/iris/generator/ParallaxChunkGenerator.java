@@ -34,9 +34,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator implements IObjectPlacer
 {
-	private KMap<ChunkPosition, AtomicSliver> sliverCache;
+	protected KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
-	private KMap<ChunkPosition, AtomicSliver> ceilingSliverCache;
+	protected KMap<ChunkPosition, AtomicSliver> ceilingSliverCache;
 	protected AtomicWorldData ceilingParallaxMap;
 	private MasterLock masterLock;
 	private ReentrantLock lock = new ReentrantLock();

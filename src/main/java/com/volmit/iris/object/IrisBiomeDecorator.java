@@ -91,7 +91,7 @@ public class IrisBiomeDecorator
 
 		if(!layerGenerators.containsKey(key))
 		{
-			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG(getBlockData().size())).scale(1D / zoom));
+			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / zoom));
 		}
 
 		return layerGenerators.get(key);
@@ -121,8 +121,8 @@ public class IrisBiomeDecorator
 		}
 
 		RNG nrng = rng.nextParallelRNG((int) (z - (int) ((x + 34856) * (int) (x + z + (int) (28835521 + (getChance() * 1000) + getStackMin() + getStackMax() + (getZoom() * 556))))));
-		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : x;
-		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-100000, 100000) : z;
+		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) : x;
+		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) : z;
 
 		if(getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance)
 		{

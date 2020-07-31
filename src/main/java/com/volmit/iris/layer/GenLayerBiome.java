@@ -47,6 +47,12 @@ public class GenLayerBiome extends GenLayer
 
 	public IrisRegion getRegion(double bx, double bz)
 	{
+		if(iris.getDimension().getRegions().isEmpty())
+		{
+			Iris.error("NO REGIONS!");
+			return null;
+		}
+
 		regionGenerator.setShuffle(8);
 		regionGenerator.setCellScale(0.33 / iris.getDimension().getRegionZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();

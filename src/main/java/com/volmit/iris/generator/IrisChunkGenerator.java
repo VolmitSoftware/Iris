@@ -12,6 +12,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.atomics.AtomicRegionData;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.KMap;
@@ -144,5 +145,27 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	{
 		CNG.creates = 0;
 		onHotload();
+	}
+
+	public long guessMemoryUsage()
+	{
+		long bytes = 1024 * 1024 * (8 + (getThreads() / 4));
+
+		for(AtomicRegionData i : parallaxMap.getLoadedRegions().values())
+		{
+			bytes += i.guessMemoryUsage();
+		}
+
+		for(AtomicRegionData i : ceilingParallaxMap.getLoadedRegions().values())
+		{
+			bytes += i.guessMemoryUsage();
+		}
+
+		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
+		bytes += ceilingParallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
+		bytes += getSliverBuffer() * 220;
+		bytes += 752 * Iris.data.getObjectLoader().getTotalStorage();
+
+		return bytes;
 	}
 }

@@ -10,6 +10,7 @@ import org.bukkit.World;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
 
@@ -20,8 +21,10 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
 	private KMap<ChunkPosition, Long> lastRegion;
 	private KMap<ChunkPosition, Long> lastChunk;
+	private KList<ChunkPosition> unloadRegions;
+	private KList<ChunkPosition> unloadChunks;
 	private String prefix;
-	private ChronoLatch cl = new ChronoLatch(3000);
+	private ChronoLatch cl = new ChronoLatch(333);
 
 	public AtomicWorldData(World world, String prefix)
 	{
@@ -30,6 +33,8 @@ public class AtomicWorldData
 		loadedChunks = new KMap<>();
 		lastRegion = new KMap<>();
 		lastChunk = new KMap<>();
+		unloadRegions = new KList<>();
+		unloadChunks = new KList<>();
 		this.prefix = prefix;
 		getSubregionFolder().mkdirs();
 	}
@@ -162,10 +167,16 @@ public class AtomicWorldData
 
 	public void saveChunk(ChunkPosition i) throws IOException
 	{
-		int x = i.getX();
-		int z = i.getZ();
-		AtomicRegionData dat = loadSection(x >> 5, z >> 5, true);
-		dat.set(x & 31, z & 31, loadedChunks.get(i));
+		AtomicSliverMap m = loadedChunks.get(i);
+
+		if(m.isModified())
+		{
+			int x = i.getX();
+			int z = i.getZ();
+			AtomicRegionData dat = loadSection(x >> 5, z >> 5, true);
+			dat.set(x & 31, z & 31, m);
+		}
+
 		loadedChunks.remove(i);
 		lastChunk.remove(i);
 	}
@@ -261,38 +272,68 @@ public class AtomicWorldData
 			return;
 		}
 
-		for(ChunkPosition i : lastRegion.k())
+		int m = 0;
+
+		for(ChunkPosition i : lastRegion.keySet())
 		{
+			if(m > 1)
+			{
+				break;
+			}
+
 			if(M.ms() - lastRegion.get(i) > 60000)
 			{
-				lastRegion.remove(i);
-
-				try
-				{
-					unloadSection(i, true);
-				}
-
-				catch(IOException e)
-				{
-					e.printStackTrace();
-				}
+				unloadRegions.add(i);
+				m++;
 			}
 		}
 
-		for(ChunkPosition i : lastChunk.k())
+		m = 0;
+
+		for(ChunkPosition i : unloadRegions)
 		{
-			if(M.ms() - lastChunk.get(i) > 60000)
-			{
-				try
-				{
-					saveChunk(i);
-				}
+			lastRegion.remove(i);
 
-				catch(IOException e)
-				{
-					Iris.warn("Failed to save chunk");
-				}
+			try
+			{
+				unloadSection(i, true);
+			}
+
+			catch(IOException e)
+			{
+				e.printStackTrace();
 			}
 		}
+
+		unloadRegions.clear();
+
+		for(ChunkPosition i : lastChunk.keySet())
+		{
+			if(m > 7)
+			{
+				break;
+			}
+
+			if(M.ms() - lastChunk.get(i) > 15000)
+			{
+				m++;
+				unloadChunks.add(i);
+			}
+		}
+
+		for(ChunkPosition i : unloadChunks)
+		{
+			try
+			{
+				saveChunk(i);
+			}
+
+			catch(IOException e)
+			{
+				Iris.warn("Failed to save chunk");
+			}
+		}
+
+		unloadChunks.clear();
 	}
 }

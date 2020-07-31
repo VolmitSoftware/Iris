@@ -50,6 +50,7 @@ import com.volmit.iris.util.BoardManager;
 import com.volmit.iris.util.BoardProvider;
 import com.volmit.iris.util.BoardSettings;
 import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.Cuboid;
 import com.volmit.iris.util.Cuboid.CuboidDirection;
 import com.volmit.iris.util.Desc;
@@ -80,6 +81,8 @@ public class Iris extends JavaPlugin implements BoardProvider
 	public static WandController wand;
 	private static String last = "";
 	private BoardManager manager;
+	private String mem = "...";
+	private ChronoLatch cl = new ChronoLatch(1000);
 	public RollingSequence hits = new RollingSequence(20);
 	public RollingSequence tp = new RollingSequence(100);
 	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
@@ -127,6 +130,12 @@ public class Iris extends JavaPlugin implements BoardProvider
 		if(world.getGenerator() instanceof IrisChunkGenerator)
 		{
 			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+
+			if(cl.flip())
+			{
+				mem = Form.memSize(g.guessMemoryUsage(), 2);
+			}
+
 			int x = player.getLocation().getBlockX();
 			int y = player.getLocation().getBlockY();
 			int z = player.getLocation().getBlockZ();
@@ -139,11 +148,10 @@ public class Iris extends JavaPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()) + " (~" + Form.memSize(752 * Iris.data.getObjectLoader().getTotalStorage(), 0) + ")");
+			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
 			lines.add(ChatColor.GREEN + "Biomes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getBiomeLoader().count()));
 			lines.add(ChatColor.GREEN + "Regions" + ChatColor.GRAY + ": " + Form.f(Iris.data.getRegionLoader().count()));
-			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");
-			lines.add(ChatColor.GREEN + "Height" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z) + " (" + (int) g.getTerrainWaterHeight(x, z) + ")");
+			lines.add(ChatColor.GREEN + "Memory" + ChatColor.GRAY + ": " + mem);
 
 			if(er != null && b != null)
 			{
@@ -796,13 +804,24 @@ public class Iris extends JavaPlugin implements BoardProvider
 				{
 					String dim = "overworld";
 
-					if(args.length > 1)
+					boolean fast = false;
+
+					for(String i : args)
 					{
-						dim = args[1];
+						if(i.equals("--fast") || i.equals("-f"))
+						{
+							fast = true;
+						}
+
+						else
+						{
+							dim = args[1];
+						}
 					}
 
 					String dimm = dim;
 
+					boolean ff = fast;
 					Bukkit.getScheduler().scheduleSyncDelayedTask(this, () ->
 					{
 						for(World i : Bukkit.getWorlds())
@@ -831,8 +850,10 @@ public class Iris extends JavaPlugin implements BoardProvider
 							imsg(i, "Creating Iris " + dimm + "...");
 						}
 
-						int tc = Math.max(Runtime.getRuntime().availableProcessors() * 4, 4);
+						int tc = (int) Math.max(Runtime.getRuntime().availableProcessors() * IrisSettings.get().threadAggression, 4);
 						IrisChunkGenerator gx = new IrisChunkGenerator(dimm, tc);
+						gx.setFastPregen(ff);
+
 						info("Generating with " + tc + " threads per chunk");
 						O<Boolean> done = new O<Boolean>();
 						done.set(false);
@@ -874,7 +895,7 @@ public class Iris extends JavaPlugin implements BoardProvider
 
 						for(Player i : Bukkit.getOnlinePlayers())
 						{
-							i.teleport(new Location(world, 0, 100, 0));
+							i.teleport(new Location(world, 150, 150, 275));
 
 							Bukkit.getScheduler().scheduleSyncDelayedTask(this, () ->
 							{

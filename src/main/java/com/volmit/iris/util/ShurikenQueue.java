@@ -85,4 +85,10 @@ public class ShurikenQueue<T> implements Queue<T>
 	{
 		return queue.size();
 	}
+
+	@Override
+	public boolean contains(T p)
+	{
+		return queue.contains(p);
+	}
 }

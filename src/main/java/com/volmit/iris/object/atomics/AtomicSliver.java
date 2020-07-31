@@ -32,6 +32,7 @@ public class AtomicSliver
 	private long last = M.ms();
 	private int x;
 	private int z;
+	boolean modified = false;
 
 	public AtomicSliver(int x, int z)
 	{
@@ -69,7 +70,8 @@ public class AtomicSliver
 
 		lock.lock();
 		block.put(h, d);
-
+		modified = true;
+		
 		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR))
 		{
 			lock.unlock();
@@ -88,6 +90,7 @@ public class AtomicSliver
 		}
 
 		lock.lock();
+		modified = true;
 		block.put(h, d);
 		lock.unlock();
 	}
@@ -113,6 +116,7 @@ public class AtomicSliver
 	{
 		lock.lock();
 		biome.put(h, d);
+		modified = true;
 		highestBiome = h > highestBiome ? h : highestBiome;
 		lock.unlock();
 	}
@@ -120,6 +124,7 @@ public class AtomicSliver
 	public void set(int h, IrisBiome d)
 	{
 		lock.lock();
+		modified = true;
 		truebiome.put(h, d);
 		lock.unlock();
 	}
@@ -173,6 +178,7 @@ public class AtomicSliver
 		{
 			block.put(i, BlockDataTools.getBlockData(din.readUTF()));
 		}
+		modified = false;
 		lock.unlock();
 	}
 

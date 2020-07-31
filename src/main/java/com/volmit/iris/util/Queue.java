@@ -28,4 +28,6 @@ public interface Queue<T>
 	{
 		return new ShurikenQueue<T>().queue(new KList<T>().add(t));
 	}
+
+	public boolean contains(T p);
 }

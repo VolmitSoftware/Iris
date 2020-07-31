@@ -93,4 +93,17 @@ public class AtomicSliverMap
 			i.inject(currentData);
 		}
 	}
+	
+	public boolean isModified()
+	{
+		for(AtomicSliver i : slivers)
+		{
+			if(i.isModified())
+			{
+				return true;
+			}
+		}
+		
+		return false;
+	}
 }

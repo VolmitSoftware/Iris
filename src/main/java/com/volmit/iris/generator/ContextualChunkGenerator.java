@@ -49,6 +49,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	protected World world;
 	protected int generated;
 	protected int ticks;
+	private boolean fastPregen = false;
 	protected boolean pregenDone;
 
 	public ContextualChunkGenerator()
@@ -103,7 +104,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	{
 		if(perSecond.flip())
 		{
-			if(generated > 770)
+			if(generated > (fastPregen ? 1950 : 770))
 			{
 				pregenDone = true;
 			}
@@ -221,6 +222,31 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		return c;
 	}
 
+	protected ChunkData generateChunkFastPregen(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	{
+		ChunkData c = Bukkit.createChunkData(world);
+
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
+				int h = 0;
+
+				if(j == i || j + i == 16)
+				{
+					c.setBlock(i, h, j, BlockDataTools.getBlockData("BLUE_TERRACOTTA"));
+				}
+
+				else
+				{
+					c.setBlock(i, h, j, BlockDataTools.getBlockData("WHITE_TERRACOTTA"));
+				}
+			}
+		}
+
+		return c;
+	}
+
 	@Override
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
@@ -251,8 +277,19 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			PrecisionStopwatch s = PrecisionStopwatch.start();
 			RNG random = new RNG(world.getSeed());
 			init(world, random.nextParallelRNG(0));
+
 			ChunkData c = Bukkit.createChunkData(world);
-			onGenerate(random, x, z, c, biomeGrid);
+
+			if(!pregenDone && fastPregen)
+			{
+				c = generateChunkFastPregen(world, no, x, z, biomeGrid);
+			}
+
+			else
+			{
+				onGenerate(random, x, z, c, biomeGrid);
+			}
+
 			metrics.getTotal().put(s.getMilliseconds());
 			generated++;
 			long hits = CNG.hits;

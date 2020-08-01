@@ -21,6 +21,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -109,6 +110,25 @@ public class IO
 		}
 
 		catch(NoSuchAlgorithmException e)
+		{
+			e.printStackTrace();
+		}
+
+		return "¯\\_(ツ)_/¯";
+	}
+
+	public static String hash(File b)
+	{
+		try
+		{
+			MessageDigest d = MessageDigest.getInstance("SHA-256");
+			DigestInputStream din = new DigestInputStream(new FileInputStream(b), d);
+			fullTransfer(din, new VoidOutputStream(), 8192);
+			din.close();
+			return bytesToHex(din.getMessageDigest().digest());
+		}
+
+		catch(Throwable e)
 		{
 			e.printStackTrace();
 		}

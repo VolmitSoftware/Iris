@@ -10,12 +10,23 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
+import org.zeroturnaround.zip.ZipUtil;
 
+import com.google.gson.Gson;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
+import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.M;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 
@@ -150,5 +161,120 @@ public class ProjectManager
 			Iris.data.getDimensionLoader().clearCache();
 			J.attemptAsync(() -> IO.delete(folder));
 		}
+	}
+
+	public void compilePackage(MortarSender sender, String dim, boolean obfuscate)
+	{
+		String dimm = dim;
+		IrisDimension dimension = Iris.data.getDimensionLoader().load(dimm);
+		File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
+		folder.mkdirs();
+		Iris.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
+		KSet<IrisRegion> regions = new KSet<>();
+		KSet<IrisBiome> biomes = new KSet<>();
+		KSet<IrisGenerator> generators = new KSet<>();
+		dimension.getRegions().forEach((i) -> regions.add(Iris.data.getRegionLoader().load(i)));
+		regions.forEach((i) -> biomes.addAll(i.getAllBiomes()));
+		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator())));
+		KMap<String, String> renameObjects = new KMap<>();
+		String a = "";
+		StringBuilder b = new StringBuilder();
+		StringBuilder c = new StringBuilder();
+
+		for(IrisBiome i : biomes)
+		{
+			for(IrisObjectPlacement j : i.getObjects())
+			{
+				b.append(j.hashCode());
+				KList<String> newNames = new KList<>();
+
+				for(String k : j.getPlace())
+				{
+					if(renameObjects.containsKey(k))
+					{
+						newNames.add(renameObjects.get(k));
+						continue;
+					}
+
+					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					b.append(name);
+					newNames.add(name);
+					renameObjects.put(k, name);
+				}
+
+				j.setPlace(newNames);
+			}
+		}
+
+		KMap<String, KList<String>> lookupObjects = renameObjects.flip();
+		StringBuilder gb = new StringBuilder();
+
+		biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
+		{
+			try
+			{
+				File f = Iris.data.getObjectLoader().findFile(lookupObjects.get(k).get(0));
+				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
+				gb.append(IO.hash(f));
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		})));
+
+		b.append(IO.hash(gb.toString()));
+		c.append(IO.hash(b.toString()));
+		b = new StringBuilder();
+
+		try
+		{
+			a = new JSONObject(new Gson().toJson(dimension)).toString(0);
+			IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
+			b.append(IO.hash(a));
+
+			for(IrisGenerator i : generators)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			c.append(IO.hash(b.toString()));
+			b = new StringBuilder();
+
+			for(IrisRegion i : regions)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			for(IrisBiome i : biomes)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			c.append(IO.hash(b.toString()));
+			b = new StringBuilder();
+			String finalHash = IO.hash(c.toString());
+			JSONObject meta = new JSONObject();
+			meta.put("hash", finalHash);
+			meta.put("time", M.ms());
+			meta.put("version", dimension.getVersion());
+			IO.writeAll(new File(folder, "package.json"), meta.toString(0));
+			ZipUtil.pack(folder, new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris"), 9);
+			IO.delete(folder);
+		}
+
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
+
+		sender.sendMessage("Done!");
 	}
 }

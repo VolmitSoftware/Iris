@@ -43,6 +43,10 @@ public class IrisDimension extends IrisRegistrant
 	private double caveThickness = 1D;
 
 	@DontObfuscate
+	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
+	private int version = 1;
+
+	@DontObfuscate
 	@Desc("The cave web scale. Smaller values means scaled up vein networks.")
 	private double caveScale = 1D;
 

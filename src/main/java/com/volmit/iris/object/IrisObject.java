@@ -143,7 +143,7 @@ public class IrisObject extends IrisRegistrant
 			}
 		}
 
-		for(BlockVector g : blocks.k())
+		for(BlockVector g : blocks.keySet())
 		{
 			BlockVector i = g.clone();
 			i = config.getRotation().rotate(i.clone(), yf, xf, spinx, spiny, spinz).clone();
@@ -217,7 +217,7 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(Location at)
 	{
-		for(BlockVector i : blocks.k())
+		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);
 		}

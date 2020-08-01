@@ -9,7 +9,7 @@ public class IrisSettings
 
 	@DontObfuscate
 	@Desc("Iris generator threads (must be 2 or higher).")
-	public int threads = 8;
+	public int threads = 16;
 
 	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
@@ -17,7 +17,7 @@ public class IrisSettings
 
 	@DontObfuscate
 	@Desc("Compression level (0-9) lower is faster, but is not as good compression. Best results around 3-5")
-	public int parallaxCompressionLevel = 9;
+	public int parallaxCompressionLevel = 3;
 
 	public static IrisSettings get()
 	{

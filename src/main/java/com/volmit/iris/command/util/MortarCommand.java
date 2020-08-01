@@ -55,7 +55,7 @@ public abstract class MortarCommand implements ICommand
 				}
 			}
 			b = true;
-			sender.sendMessage("/" + ChatColor.GREEN + i.getAllNodes().toString(",") + " " + ChatColor.WHITE + getArgsUsage() + ChatColor.GRAY + " - " + getDescription());
+			sender.sendMessage(ChatColor.GREEN + i.getNode() + " " + ChatColor.WHITE + i.getArgsUsage() + ChatColor.GRAY + " - " + i.getDescription());
 		}
 
 		if(!b)

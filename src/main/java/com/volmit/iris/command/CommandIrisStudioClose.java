@@ -15,6 +15,7 @@ public class CommandIrisStudioClose extends MortarCommand
 		super("close", "x");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Close the existing dimension");
+		setCategory("Studio");
 	}
 
 	@Override

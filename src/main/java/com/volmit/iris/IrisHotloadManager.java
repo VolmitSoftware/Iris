@@ -31,14 +31,22 @@ public class IrisHotloadManager
 			boolean modified = false;
 			int c = 0;
 
-			for(FileWatcher i : watchers)
+			try
 			{
-				if(i.checkModified())
+				for(FileWatcher i : watchers)
 				{
-					c++;
-					Iris.info("File Modified: " + i.getFile().getPath());
-					modified = true;
+					if(i.checkModified())
+					{
+						c++;
+						Iris.info("File Modified: " + i.getFile().getPath());
+						modified = true;
+					}
 				}
+			}
+
+			catch(Throwable e)
+			{
+
 			}
 
 			if(modified)

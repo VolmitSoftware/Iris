@@ -15,6 +15,7 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.atomics.AtomicSliver;
 import com.volmit.iris.util.BiomeMap;
@@ -62,12 +63,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	public KList<CaveResult> getCaves(int x, int z)
 	{
 		return glCave.genCaves(x, z, x & 15, z & 15, null);
-	}
-
-	@Override
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
-	{
-		super.onGenerate(random, x, z, data, grid);
 	}
 
 	@Override
@@ -253,6 +248,36 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		catch(Throwable e)
 		{
 			fail(e);
+		}
+	}
+
+	@Override
+	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	{
+		super.onGenerate(random, x, z, data, grid);
+		RNG ro = random.nextParallelRNG((x * x * x) - z);
+		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
+		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7).getBiome();
+
+		for(IrisDepositGenerator k : getDimension().getDeposits())
+		{
+			k.generate(data, ro, this);
+		}
+
+		for(IrisDepositGenerator k : region.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(data, ro, this);
+			}
+		}
+
+		for(IrisDepositGenerator k : biome.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(data, ro, this);
+			}
 		}
 	}
 

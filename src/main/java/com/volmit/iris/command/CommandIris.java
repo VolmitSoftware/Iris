@@ -10,6 +10,15 @@ public class CommandIris extends MortarCommand
 	@Command
 	private CommandIrisStudio studio;
 
+	@Command
+	private CommandIrisWorld world;
+
+	@Command
+	private CommandIrisWhat what;
+
+	@Command
+	private CommandIrisObject object;
+
 	public CommandIris()
 	{
 		super("iris", "ir", "irs");

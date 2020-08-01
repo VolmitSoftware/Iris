@@ -5,41 +5,35 @@ import com.volmit.iris.command.util.Command;
 import com.volmit.iris.command.util.MortarCommand;
 import com.volmit.iris.command.util.MortarSender;
 
-public class CommandIrisStudio extends MortarCommand
+public class CommandIrisWorld extends MortarCommand
 {
 	@Command
-	private CommandIrisStudioCreate create;
+	private CommandIrisGoto got0;
 
 	@Command
-	private CommandIrisStudioOpen open;
+	private CommandIrisMetrics metrics;
 
-	@Command
-	private CommandIrisStudioClose close;
-
-	@Command
-	private CommandIrisStudioPackage pkg;
-
-	@Command
-	private CommandIrisStudioList list;
-
-	public CommandIrisStudio()
+	public CommandIrisWorld()
 	{
-		super("studio", "std");
+		super("world", "wrld");
+		setDescription("Commands while in an iris world.");
 		requiresPermission(Iris.perm.studio);
-		setCategory("Studio");
+		setCategory("World");
+		setDescription("Worldly commands");
 	}
 
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		sender.sendMessage("Iris Studio Commands");
+		sender.sendMessage("Iris In-World Commands");
 		printHelp(sender);
+
 		return true;
 	}
 
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[subcommand]";
+		return "[biome] [otherbiome] [-cave]";
 	}
 }

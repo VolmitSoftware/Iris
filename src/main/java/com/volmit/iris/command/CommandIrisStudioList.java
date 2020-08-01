@@ -14,6 +14,7 @@ public class CommandIrisStudioList extends MortarCommand
 		super("list", "l");
 		requiresPermission(Iris.perm.studio);
 		setDescription("List projects that can be opened.");
+		setCategory("Studio");
 	}
 
 	@Override

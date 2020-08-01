@@ -3,9 +3,10 @@ package com.volmit.iris.object;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.generator.ParallaxChunkGenerator;
+import com.volmit.iris.generator.TerrainChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -99,13 +100,13 @@ public class IrisDepositGenerator
 
 	public int getMaxDimension()
 	{
-		return (int) Math.round(Math.pow(maxSize, 1D / 3D));
+		return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
 	}
 
 	private IrisObject generateClumpObject(RNG rngv)
 	{
 		int s = rngv.i(minSize, maxSize);
-		int dim = (int) Math.round(Math.pow(s, 1D / 3D));
+		int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
 		int w = dim / 2;
 		IrisObject o = new IrisObject(dim, dim, dim);
 
@@ -157,31 +158,65 @@ public class IrisDepositGenerator
 		return blockData;
 	}
 
-	public void generate(int x, int z, RNG rng, ParallaxChunkGenerator g)
+	public void generate(ChunkData data, RNG rng, TerrainChunkGenerator g)
 	{
-		IrisObject clump = getClump(rng);
-		int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 5;
-
-		if(height < 0)
+		for(int l = 0; l < rng.i(getMinPerChunk(), getMaxPerChunk()); l++)
 		{
-			return;
+			IrisObject clump = getClump(rng);
+
+			int af = (int) Math.ceil(clump.getW() / 2D);
+			int bf = (int) Math.floor(16D - (clump.getW() / 2D));
+
+			if(af > bf || af < 0 || bf > 15 || af > 15 || bf < 0)
+			{
+				af = 6;
+				bf = 9;
+			}
+
+			int x = rng.i(af, bf);
+			int z = rng.i(af, bf);
+			int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 5;
+
+			if(height <= 0)
+			{
+				return;
+			}
+
+			int i = Math.max(0, minHeight);
+			int a = Math.min(height, Math.min(256, maxHeight));
+
+			if(i >= a)
+			{
+				return;
+			}
+
+			int h = rng.i(i, a);
+
+			if(h > maxHeight || h < minHeight)
+			{
+				return;
+			}
+
+			for(BlockVector j : clump.getBlocks().keySet())
+			{
+				int nx = j.getBlockX() + x;
+				int ny = j.getBlockY() + h;
+				int nz = j.getBlockZ() + z;
+
+				if(nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
+				{
+					continue;
+				}
+
+				BlockData b = data.getBlockData(nx, ny, nz);
+
+				if(!b.getMaterial().isSolid())
+				{
+					continue;
+				}
+
+				data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
+			}
 		}
-
-		int i = Math.max(0, minHeight);
-		int a = Math.min(height, Math.min(256, maxHeight));
-
-		if(i >= a)
-		{
-			return;
-		}
-
-		int h = rng.i(i, a);
-
-		if(h > maxHeight || h < minHeight)
-		{
-			return;
-		}
-
-		clump.place(x, h, z, g, config, rng);
 	}
 }

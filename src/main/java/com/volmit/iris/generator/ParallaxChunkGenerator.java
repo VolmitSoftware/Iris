@@ -9,9 +9,7 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
-import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
-import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.atomics.AtomicSliver;
 import com.volmit.iris.object.atomics.AtomicSliverMap;
 import com.volmit.iris.object.atomics.AtomicWorldData;
@@ -254,7 +252,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				getAccelerant().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
-					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
 					RNG ro = random.nextParallelRNG(496888 + i + j);
 
 					int g = 1;
@@ -298,45 +295,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 							placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 3569222));
 						});
 						lockq.unlock();
-					}
-
-					for(IrisDepositGenerator k : getDimension().getDeposits())
-					{
-						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-						{
-							lockq.lock();
-							q.add(() ->
-							{
-								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
-							});
-							lockq.unlock();
-						}
-					}
-
-					for(IrisDepositGenerator k : r.getDeposits())
-					{
-						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-						{
-							lockq.lock();
-							q.add(() ->
-							{
-								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
-							});
-							lockq.unlock();
-						}
-					}
-
-					for(IrisDepositGenerator k : b.getDeposits())
-					{
-						for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-						{
-							lockq.lock();
-							q.add(() ->
-							{
-								k.generate((i * 16) + ro.nextInt(16), (j * 16) + ro.nextInt(16), ro, this);
-							});
-							lockq.unlock();
-						}
 					}
 
 					if(getDimension().isCaves())

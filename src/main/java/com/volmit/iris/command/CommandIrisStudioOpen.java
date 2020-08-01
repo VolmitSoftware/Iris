@@ -11,6 +11,7 @@ public class CommandIrisStudioOpen extends MortarCommand
 		super("open", "o");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Create a new temporary world to design a dimension.");
+		setCategory("Studio");
 	}
 
 	@Override

@@ -8,7 +8,6 @@ import java.io.IOException;
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -23,8 +22,8 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, Long> lastChunk;
 	private KList<ChunkPosition> unloadRegions;
 	private KList<ChunkPosition> unloadChunks;
+	private long last = M.ms();
 	private String prefix;
-	private ChronoLatch cl = new ChronoLatch(333);
 
 	public AtomicWorldData(World world, String prefix)
 	{
@@ -267,7 +266,7 @@ public class AtomicWorldData
 
 	public void clean(int j)
 	{
-		if(!cl.flip())
+		if(M.ms() - last < getUnloadBatchSpeed())
 		{
 			return;
 		}
@@ -309,7 +308,7 @@ public class AtomicWorldData
 
 		for(ChunkPosition i : lastChunk.keySet())
 		{
-			if(m > 7)
+			if(m > getUnloadBatchSize())
 			{
 				break;
 			}
@@ -335,5 +334,15 @@ public class AtomicWorldData
 		}
 
 		unloadChunks.clear();
+	}
+
+	private int getUnloadBatchSize()
+	{
+		return Math.max(3, getLoadedRegions().size() / 125);
+	}
+
+	private int getUnloadBatchSpeed()
+	{
+		return Math.max(250, 2000 - getLoadedRegions().size());
 	}
 }

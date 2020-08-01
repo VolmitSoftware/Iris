@@ -45,20 +45,20 @@ public class CommandIrisGoto extends MortarCommand
 			int tries = 10000;
 			boolean cave = false;
 			IrisBiome biome2 = null;
-			if(args.length > 2)
+			if(args.length > 1)
 			{
-				if(args[2].equalsIgnoreCase("-cave"))
+				if(args[1].equalsIgnoreCase("-cave"))
 				{
 					cave = true;
 				}
 
 				else
 				{
-					biome2 = Iris.data.getBiomeLoader().load(args[2]);
+					biome2 = Iris.data.getBiomeLoader().load(args[1]);
 
 					if(biome2 == null)
 					{
-						sender.sendMessage(args[2] + " is not a biome. Use the file name (without extension)");
+						sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
 						return true;
 					}
 				}
@@ -72,11 +72,11 @@ public class CommandIrisGoto extends MortarCommand
 				}
 			}
 
-			IrisBiome biome = Iris.data.getBiomeLoader().load(args[1]);
+			IrisBiome biome = Iris.data.getBiomeLoader().load(args[0]);
 
 			if(biome == null)
 			{
-				sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
+				sender.sendMessage(args[0] + " is not a biome. Use the file name (without extension)");
 				return true;
 			}
 

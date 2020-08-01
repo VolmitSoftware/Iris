@@ -38,7 +38,7 @@ public class CommandIrisObjectShift extends MortarCommand
 			return true;
 		}
 
-		int amt = Integer.valueOf(args[2]);
+		int amt = Integer.valueOf(args[0]);
 		Location[] b = WandController.getCuboid(p.getInventory().getItemInMainHand());
 		Location a1 = b[0].clone();
 		Location a2 = b[1].clone();

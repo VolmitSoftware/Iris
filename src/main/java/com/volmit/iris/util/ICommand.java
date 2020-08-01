@@ -1,6 +1,4 @@
-package com.volmit.iris.command.util;
-
-import com.volmit.iris.util.KList;
+package com.volmit.iris.util;
 
 /**
  * Represents a pawn command

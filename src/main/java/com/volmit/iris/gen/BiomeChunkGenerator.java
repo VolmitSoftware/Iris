@@ -1,11 +1,11 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.layer.GenLayerBiome;
+import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;

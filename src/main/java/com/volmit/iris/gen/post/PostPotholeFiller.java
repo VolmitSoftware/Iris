@@ -1,6 +1,6 @@
-package com.volmit.iris.layer.post;
+package com.volmit.iris.gen.post;
 
-import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
 @Post("pothole-filler")

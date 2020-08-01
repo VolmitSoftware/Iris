@@ -1,4 +1,4 @@
-package com.volmit.iris.command.util;
+package com.volmit.iris.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,11 +22,6 @@ import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.M;
 
 public abstract class MortarPlugin extends JavaPlugin implements Listener
 {
@@ -419,13 +414,13 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 		for(Field i : getClass().getDeclaredFields())
 		{
-			if(i.isAnnotationPresent(com.volmit.iris.command.util.Command.class))
+			if(i.isAnnotationPresent(com.volmit.iris.util.Command.class))
 			{
 				try
 				{
 					i.setAccessible(true);
 					MortarCommand pc = (MortarCommand) i.getType().getConstructor().newInstance();
-					com.volmit.iris.command.util.Command c = i.getAnnotation(com.volmit.iris.command.util.Command.class);
+					com.volmit.iris.util.Command c = i.getAnnotation(com.volmit.iris.util.Command.class);
 					registerCommand(pc, c.value());
 					commandCache.add(pc);
 					v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");

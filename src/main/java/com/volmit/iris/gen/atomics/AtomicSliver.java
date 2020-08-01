@@ -1,4 +1,4 @@
-package com.volmit.iris.object.atomics;
+package com.volmit.iris.gen.atomics;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

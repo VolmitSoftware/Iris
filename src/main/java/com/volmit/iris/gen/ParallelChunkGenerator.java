@@ -1,12 +1,12 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.atomics.AtomicSliver;
-import com.volmit.iris.object.atomics.AtomicSliverMap;
+import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.HeightMap;

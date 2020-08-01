@@ -1,4 +1,4 @@
-package com.volmit.iris.command.util;
+package com.volmit.iris.util;
 
 import java.lang.reflect.Field;
 
@@ -7,9 +7,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.V;
 
 /**
  * Represents a virtual command. A chain of iterative processing through

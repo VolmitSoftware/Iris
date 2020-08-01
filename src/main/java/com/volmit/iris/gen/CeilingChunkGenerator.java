@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -8,7 +8,7 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.InvertedBiomeGrid;
 import com.volmit.iris.util.RNG;
 
-public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
+public abstract class CeilingChunkGenerator extends LitChunkGenerator
 {
 	protected boolean generatingCeiling = false;
 	protected boolean ceilingCached = false;

@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.util.List;
 import java.util.Random;

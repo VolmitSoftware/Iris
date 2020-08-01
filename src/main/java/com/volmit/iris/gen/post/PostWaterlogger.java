@@ -1,10 +1,10 @@
-package com.volmit.iris.layer.post;
+package com.volmit.iris.gen.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 
-import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.IrisPostBlockFilter;
 

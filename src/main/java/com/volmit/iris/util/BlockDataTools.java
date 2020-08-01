@@ -78,6 +78,21 @@ public class BlockDataTools
 		return null;
 	}
 
+	public static boolean isLit(BlockData mat)
+	{
+		return isLit(mat.getMaterial());
+	}
+
+	public static boolean isLit(Material mat)
+	{
+		if(mat.equals(Material.GLOWSTONE) || mat.equals(Material.TORCH) || mat.equals(Material.REDSTONE_TORCH) || mat.equals(Material.SOUL_TORCH) || mat.equals(Material.REDSTONE_WALL_TORCH) || mat.equals(Material.WALL_TORCH) || mat.equals(Material.SOUL_WALL_TORCH) || mat.equals(Material.LANTERN) || mat.equals(Material.JACK_O_LANTERN) || mat.equals(Material.REDSTONE_LAMP) || mat.equals(Material.MAGMA_BLOCK) || mat.equals(Material.SEA_LANTERN) || mat.equals(Material.SOUL_LANTERN) || mat.equals(Material.FIRE) || mat.equals(Material.SOUL_FIRE) || mat.equals(Material.SEA_PICKLE) || mat.equals(Material.BREWING_STAND) || mat.equals(Material.REDSTONE_ORE))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	public static boolean canPlaceOnto(Material mat, Material onto)
 	{
 		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))

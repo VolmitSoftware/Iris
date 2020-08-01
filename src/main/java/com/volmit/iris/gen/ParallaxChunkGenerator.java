@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -7,13 +7,13 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.gen.atomics.AtomicSliverMap;
+import com.volmit.iris.gen.atomics.AtomicWorldData;
+import com.volmit.iris.gen.atomics.MasterLock;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
-import com.volmit.iris.object.atomics.AtomicSliver;
-import com.volmit.iris.object.atomics.AtomicSliverMap;
-import com.volmit.iris.object.atomics.AtomicWorldData;
-import com.volmit.iris.object.atomics.MasterLock;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;

@@ -1,4 +1,4 @@
-package com.volmit.iris.command.util;
+package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
 

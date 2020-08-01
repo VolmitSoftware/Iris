@@ -1,12 +1,10 @@
-package com.volmit.iris.command.util;
+package com.volmit.iris.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 
 import org.bukkit.command.CommandSender;
-
-import com.volmit.iris.util.KList;
 
 public abstract class MortarPermission
 {

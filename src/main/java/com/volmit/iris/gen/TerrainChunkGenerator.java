@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -9,15 +9,15 @@ import org.bukkit.block.data.Bisected.Half;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.layer.GenLayerCarve;
-import com.volmit.iris.layer.GenLayerCave;
+import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.gen.layer.GenLayerCarve;
+import com.volmit.iris.gen.layer.GenLayerCave;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.object.atomics.AtomicSliver;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.BlockDataTools;
@@ -188,6 +188,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 
 				sliver.set(k, block);
+				lit(rx, k, rz, block);
 				highestPlaced = Math.max(highestPlaced, k);
 
 				if(!cavernSurface && (k == height && block.getMaterial().isSolid() && k < fluidHeight))
@@ -281,40 +282,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		}
 	}
 
-	protected boolean canPlace(Material mat, Material onto)
-	{
-		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
-		{
-			return false;
-		}
-
-		if(onto.equals(Material.GRASS_PATH))
-		{
-			if(!mat.isSolid())
-			{
-				return false;
-			}
-		}
-
-		if(onto.equals(Material.STONE) || onto.equals(Material.GRAVEL) || onto.equals(Material.GRAVEL) || onto.equals(Material.ANDESITE) || onto.equals(Material.GRANITE) || onto.equals(Material.DIORITE) || onto.equals(Material.BLACKSTONE) || onto.equals(Material.BASALT))
-		{
-			if(mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(Material.CORNFLOWER) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS))
-			{
-				return false;
-			}
-		}
-
-		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES) || onto.equals(Material.DARK_OAK_LEAVES) || onto.equals(Material.JUNGLE_LEAVES) || onto.equals(Material.OAK_LEAVES) || onto.equals(Material.SPRUCE_LEAVES))
-		{
-			if(!mat.isSolid())
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	private void decorateLand(IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
 	{
 		if(!getDimension().isDecorate())
@@ -335,7 +302,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			if(d != null)
 			{
-				if(!canPlace(d.getMaterial(), block.getMaterial()))
+				if(!BlockDataTools.canPlaceOnto(d.getMaterial(), block.getMaterial()))
 				{
 					continue;
 				}
@@ -396,7 +363,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			if(d != null)
 			{
-				if(!canPlace(d.getMaterial(), block.getMaterial()))
+				if(!BlockDataTools.canPlaceOnto(d.getMaterial(), block.getMaterial()))
 				{
 					continue;
 				}

@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -10,9 +10,9 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
+import com.volmit.iris.gen.atomics.AtomicRegionData;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.object.atomics.AtomicRegionData;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.KMap;
@@ -119,7 +119,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onChunkLoaded(Chunk c)
 	{
-
+		super.onChunkLoaded(c);
 	}
 
 	@Override

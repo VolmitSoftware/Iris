@@ -1,11 +1,9 @@
-package com.volmit.iris.command.util;
+package com.volmit.iris.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import org.bukkit.ChatColor;
-
-import com.volmit.iris.util.KList;
 
 /**
  * Represents a pawn command

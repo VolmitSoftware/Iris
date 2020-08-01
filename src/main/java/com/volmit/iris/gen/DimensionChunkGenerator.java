@@ -1,4 +1,4 @@
-package com.volmit.iris.generator;
+package com.volmit.iris.gen;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -21,11 +21,18 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
+	protected LitChunkGenerator thisLight;
 
 	public DimensionChunkGenerator(String dimensionName)
 	{
 		super();
 		this.dimensionName = dimensionName;
+		thisLight = (LitChunkGenerator) this;
+	}
+
+	protected void lit(int x, int y, int z, BlockData d)
+	{
+		thisLight.queueLight(x, y, z, d);
 	}
 
 	public IrisDimension getDimension()

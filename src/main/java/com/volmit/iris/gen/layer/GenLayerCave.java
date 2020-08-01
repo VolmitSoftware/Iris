@@ -1,10 +1,10 @@
-package com.volmit.iris.layer;
+package com.volmit.iris.gen.layer;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.generator.DimensionChunkGenerator;
-import com.volmit.iris.object.atomics.AtomicSliver;
+import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.CaveResult;

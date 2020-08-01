@@ -1,4 +1,4 @@
-package com.volmit.iris.layer.post;
+package com.volmit.iris.gen.post;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;

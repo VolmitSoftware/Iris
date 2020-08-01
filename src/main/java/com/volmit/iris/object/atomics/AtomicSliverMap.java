@@ -64,7 +64,15 @@ public class AtomicSliverMap
 
 		for(int i = 0; i < 256; i++)
 		{
-			slivers[i].read(din);
+			try
+			{
+				slivers[i].read(din);
+			}
+
+			catch(Throwable e)
+			{
+
+			}
 		}
 	}
 
@@ -93,7 +101,7 @@ public class AtomicSliverMap
 			i.inject(currentData);
 		}
 	}
-	
+
 	public boolean isModified()
 	{
 		for(AtomicSliver i : slivers)
@@ -103,7 +111,7 @@ public class AtomicSliverMap
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 }

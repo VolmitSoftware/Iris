@@ -71,7 +71,7 @@ public class AtomicSliver
 		lock.lock();
 		block.put(h, d);
 		modified = true;
-		
+
 		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR))
 		{
 			lock.unlock();
@@ -176,7 +176,15 @@ public class AtomicSliver
 
 		for(int i = 0; i <= h; i++)
 		{
-			block.put(i, BlockDataTools.getBlockData(din.readUTF()));
+			BlockData v = BlockDataTools.getBlockData(din.readUTF());
+
+			if(v == null)
+			{
+				block.put(i, AIR);
+				continue;
+			}
+
+			block.put(i, v);
 		}
 		modified = false;
 		lock.unlock();

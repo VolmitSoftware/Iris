@@ -25,15 +25,6 @@ public class BlockDataTools
 			if(bdx == null)
 			{
 				Iris.warn("Unknown Block Data '" + bd + "'");
-				try
-				{
-					throw new RuntimeException("Unknown Block Data");
-				}
-
-				catch(Throwable e)
-				{
-					e.printStackTrace();
-				}
 				nulls.add(bd);
 				return bdx;
 			}
@@ -46,7 +37,6 @@ public class BlockDataTools
 		catch(Throwable e)
 		{
 			Iris.warn("Unknown Block Data '" + bd + "'");
-			e.printStackTrace();
 		}
 
 		return null;

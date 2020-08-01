@@ -2,6 +2,7 @@ package com.volmit.iris.object;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
@@ -175,7 +176,7 @@ public class IrisDepositGenerator
 
 			int x = rng.i(af, bf);
 			int z = rng.i(af, bf);
-			int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 5;
+			int height = (int) (Math.round(g.getTerrainWaterHeight(x, z))) - 5;
 
 			if(height <= 0)
 			{
@@ -210,7 +211,7 @@ public class IrisDepositGenerator
 
 				BlockData b = data.getBlockData(nx, ny, nz);
 
-				if(!b.getMaterial().isSolid())
+				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !b.getMaterial().isSolid())
 				{
 					continue;
 				}

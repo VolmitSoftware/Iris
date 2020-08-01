@@ -8,7 +8,7 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.InvertedBiomeGrid;
 import com.volmit.iris.util.RNG;
 
-public abstract class CeilingChunkGenerator extends LitChunkGenerator
+public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
 {
 	protected boolean generatingCeiling = false;
 	protected boolean ceilingCached = false;

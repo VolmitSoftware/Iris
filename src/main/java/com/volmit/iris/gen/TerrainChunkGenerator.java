@@ -188,7 +188,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 
 				sliver.set(k, block);
-				lit(rx, k, rz, block);
 				highestPlaced = Math.max(highestPlaced, k);
 
 				if(!cavernSurface && (k == height && block.getMaterial().isSolid() && k < fluidHeight))

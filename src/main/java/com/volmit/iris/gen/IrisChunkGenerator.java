@@ -119,7 +119,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onChunkLoaded(Chunk c)
 	{
-		super.onChunkLoaded(c);
+
 	}
 
 	@Override

@@ -6,8 +6,8 @@ import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
-import com.volmit.iris.generator.PostBlockChunkGenerator;
-import com.volmit.iris.layer.post.Post;
+import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.post.Post;
 
 import lombok.Data;
 

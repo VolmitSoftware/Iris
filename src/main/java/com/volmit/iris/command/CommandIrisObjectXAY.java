@@ -7,11 +7,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
+import com.volmit.iris.WandController;
 import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.Cuboid.CuboidDirection;
-import com.volmit.iris.wand.WandController;
 
 public class CommandIrisObjectXAY extends MortarCommand
 {

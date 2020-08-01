@@ -7,7 +7,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.generator.TerrainChunkGenerator;
+import com.volmit.iris.gen.TerrainChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

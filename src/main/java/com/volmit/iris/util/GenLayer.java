@@ -1,6 +1,6 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.generator.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionChunkGenerator;
 
 public abstract class GenLayer
 {

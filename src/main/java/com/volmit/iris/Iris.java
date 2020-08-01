@@ -18,15 +18,13 @@ import org.bukkit.plugin.Plugin;
 import com.google.gson.Gson;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
-import com.volmit.iris.command.util.MortarPlugin;
-import com.volmit.iris.command.util.Permission;
-import com.volmit.iris.generator.IrisChunkGenerator;
-import com.volmit.iris.layer.post.PostFloatingNibDeleter;
-import com.volmit.iris.layer.post.PostNibSmoother;
-import com.volmit.iris.layer.post.PostPotholeFiller;
-import com.volmit.iris.layer.post.PostSlabber;
-import com.volmit.iris.layer.post.PostWallPatcher;
-import com.volmit.iris.layer.post.PostWaterlogger;
+import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.post.PostFloatingNibDeleter;
+import com.volmit.iris.gen.post.PostNibSmoother;
+import com.volmit.iris.gen.post.PostPotholeFiller;
+import com.volmit.iris.gen.post.PostSlabber;
+import com.volmit.iris.gen.post.PostWallPatcher;
+import com.volmit.iris.gen.post.PostWaterlogger;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.BoardManager;
@@ -45,9 +43,10 @@ import com.volmit.iris.util.JSONObject;
 import com.volmit.iris.util.JarScanner;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.MortarPlugin;
+import com.volmit.iris.util.Permission;
 import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.util.ScoreDirection;
-import com.volmit.iris.wand.WandController;
 
 public class Iris extends MortarPlugin implements BoardProvider
 {
@@ -70,7 +69,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 	@Permission
 	public static PermissionIris perm;
 
-	@com.volmit.iris.command.util.Command
+	@com.volmit.iris.util.Command
 	public CommandIris commandIris;
 
 	public Iris()

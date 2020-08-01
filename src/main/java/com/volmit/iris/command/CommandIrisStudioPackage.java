@@ -7,8 +7,6 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
@@ -20,6 +18,8 @@ import com.volmit.iris.util.JSONObject;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisStudioPackage extends MortarCommand
 {

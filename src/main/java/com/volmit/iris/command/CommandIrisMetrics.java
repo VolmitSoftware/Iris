@@ -6,10 +6,10 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisMetrics;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
-import com.volmit.iris.generator.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.util.Form;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisMetrics extends MortarCommand
 {

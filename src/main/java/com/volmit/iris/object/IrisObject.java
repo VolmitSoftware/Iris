@@ -127,12 +127,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
 	{
-		boolean yf = rng.nextBoolean();
-		boolean xf = rng.nextBoolean();
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
 		int spinz = rng.imax() / 1000;
-		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), yf, xf, spinx, spiny, spinz).getBlockY() : yv;
+		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), spinx, spiny, spinz).getBlockY() : yv;
 		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 
 		if(yv < 0)
@@ -146,9 +144,9 @@ public class IrisObject extends IrisRegistrant
 		for(BlockVector g : blocks.keySet())
 		{
 			BlockVector i = g.clone();
-			i = config.getRotation().rotate(i.clone(), yf, xf, spinx, spiny, spinz).clone();
+			i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
 			i = config.getTranslate().translate(i.clone()).clone();
-			BlockData data = blocks.get(g);
+			BlockData data = blocks.get(g).clone();
 
 			if(placer.isPreventingDecay() && data instanceof Leaves && !((Leaves) data).isPersistent())
 			{
@@ -163,6 +161,7 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
+			data = config.getRotation().rotate(data, spinx, spiny, spinz);
 			int xx = x + (int) Math.round(i.getX());
 			int yy = y + (int) Math.round(i.getY());
 			int zz = z + (int) Math.round(i.getZ());

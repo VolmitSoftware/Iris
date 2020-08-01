@@ -5,8 +5,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisStudioClose extends MortarCommand
 {

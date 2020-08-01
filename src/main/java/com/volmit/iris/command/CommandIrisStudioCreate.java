@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
@@ -17,6 +15,8 @@ import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -43,6 +43,12 @@ public class CommandIrisStudioCreate extends MortarCommand
 		IrisDimension dimension = new IrisDimension();
 		dimension.setLoadKey(args[0]);
 		dimension.setName(Form.capitalizeWords(args[0].replaceAll("\\Q-\\E", " ")));
+
+		if(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json").exists())
+		{
+			sender.sendMessage("Project Already Exists! Open it instead!");
+			return true;
+		}
 		sender.sendMessage("Creating New Project \"" + dimension.getName() + "\"...");
 		IrisRegion exampleRegion = new IrisRegion();
 		exampleRegion.setName("Example Region");

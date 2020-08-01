@@ -77,4 +77,38 @@ public class BlockDataTools
 
 		return null;
 	}
+
+	public static boolean canPlaceOnto(Material mat, Material onto)
+	{
+		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
+		{
+			return false;
+		}
+
+		if(onto.equals(Material.GRASS_PATH))
+		{
+			if(!mat.isSolid())
+			{
+				return false;
+			}
+		}
+
+		if(onto.equals(Material.STONE) || onto.equals(Material.GRAVEL) || onto.equals(Material.GRAVEL) || onto.equals(Material.ANDESITE) || onto.equals(Material.GRANITE) || onto.equals(Material.DIORITE) || onto.equals(Material.BLACKSTONE) || onto.equals(Material.BASALT))
+		{
+			if(mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(Material.CORNFLOWER) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS))
+			{
+				return false;
+			}
+		}
+
+		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES) || onto.equals(Material.DARK_OAK_LEAVES) || onto.equals(Material.JUNGLE_LEAVES) || onto.equals(Material.OAK_LEAVES) || onto.equals(Material.SPRUCE_LEAVES))
+		{
+			if(!mat.isSolid())
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 }

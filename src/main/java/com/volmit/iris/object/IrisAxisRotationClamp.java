@@ -2,6 +2,7 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.M;
 
 import lombok.Data;
 
@@ -47,10 +48,14 @@ public class IrisAxisRotationClamp
 	{
 		if(isUnlimited())
 		{
-			return Math.toRadians((rng * interval) % 360D);
+			if(interval < 1)
+			{
+				interval = 1;
+			}
+
+			return Math.toRadians(((double) interval * (Math.ceil(Math.abs((rng % 360D) / (double) interval)))) % 360D);
 		}
 
-		double deg = min + (rng * interval) % (Math.abs(max - min) / 360D);
-		return Math.toRadians(deg);
+		return Math.toRadians(M.clip(((double) interval * (Math.ceil(Math.abs((rng % 360D) / (double) interval)))) % 360D, Math.min(min, max), Math.max(min, max)));
 	}
 }

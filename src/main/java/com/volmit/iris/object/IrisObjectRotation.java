@@ -1,9 +1,17 @@
 package com.volmit.iris.object;
 
+import java.util.List;
+
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.KList;
 
 import lombok.Data;
 
@@ -14,7 +22,7 @@ public class IrisObjectRotation
 	@DontObfuscate
 	@Desc("If this rotator is enabled or not")
 	private boolean enabled = true;
-	
+
 	@DontObfuscate
 	@Desc("The x axis rotation")
 	private IrisAxisRotationClamp xAxis = new IrisAxisRotationClamp();
@@ -62,7 +70,117 @@ public class IrisObjectRotation
 		return clamp.getRadians(spin);
 	}
 
-	public BlockVector rotate(BlockVector b, boolean yf, boolean xf, int spinx, int spiny, int spinz)
+	public BlockFace getFace(BlockVector v)
+	{
+		int x = (int) Math.round(v.getX());
+		int y = (int) Math.round(v.getY());
+		int z = (int) Math.round(v.getZ());
+
+		if(x == 0 && z == -1)
+		{
+			return BlockFace.NORTH;
+		}
+
+		if(x == 0 && z == 1)
+		{
+			return BlockFace.SOUTH;
+		}
+
+		if(x == 1 && z == 0)
+		{
+			return BlockFace.EAST;
+		}
+
+		if(x == -1 && z == 0)
+		{
+			return BlockFace.WEST;
+		}
+
+		if(y > 0)
+		{
+			return BlockFace.UP;
+		}
+
+		if(y < 0)
+		{
+			return BlockFace.DOWN;
+		}
+
+		return BlockFace.SOUTH;
+	}
+
+	public BlockData rotate(BlockData d, int spinxx, int spinyy, int spinzz)
+	{
+		int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
+		int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
+		int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
+
+		if(!canRotate())
+		{
+			return d;
+		}
+
+		if(d instanceof Directional)
+		{
+			Directional g = ((Directional) d);
+			BlockFace f = g.getFacing();
+			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+			bv = rotate(bv.clone(), spinx, spiny, spinz);
+			BlockFace t = getFace(bv);
+
+			if(g.getFaces().contains(t))
+			{
+				g.setFacing(t);
+			}
+
+			else if(!g.getMaterial().isSolid())
+			{
+				d = null;
+			}
+		}
+
+		else if(d instanceof Rotatable)
+		{
+			Rotatable g = ((Rotatable) d);
+			BlockFace f = g.getRotation();
+			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+			bv = rotate(bv.clone(), spinx, spiny, spinz);
+			BlockFace t = getFace(bv);
+			g.setRotation(t);
+		}
+
+		else if(d instanceof MultipleFacing)
+		{
+			List<BlockFace> faces = new KList<>();
+			MultipleFacing g = (MultipleFacing) d;
+
+			for(BlockFace i : g.getFaces())
+			{
+				BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
+				bv = rotate(bv.clone(), spinx, spiny, spinz);
+				BlockFace r = getFace(bv);
+
+				if(g.getAllowedFaces().contains(r))
+				{
+					faces.add(r);
+				}
+			}
+
+			for(BlockFace i : g.getFaces())
+			{
+				g.setFace(i, false);
+			}
+
+			for(BlockFace i : faces)
+			{
+				g.setFace(i, true);
+			}
+		}
+
+		return d;
+	}
+
+	public BlockVector rotate(BlockVector b, int spinx, int spiny, int spinz)
 	{
 		if(!canRotate())
 		{
@@ -71,12 +189,7 @@ public class IrisObjectRotation
 
 		BlockVector v = b.clone();
 
-		if(yf && canRotateY())
-		{
-			v.rotateAroundY(getYRotation(spiny));
-		}
-
-		if(xf && canRotateX())
+		if(canRotateX())
 		{
 			v.rotateAroundX(getXRotation(spinx));
 		}
@@ -86,12 +199,7 @@ public class IrisObjectRotation
 			v.rotateAroundZ(getZRotation(spinz));
 		}
 
-		if(!xf && canRotateX())
-		{
-			v.rotateAroundX(getXRotation(spinx));
-		}
-
-		if(!yf && canRotateY())
+		if(canRotateY())
 		{
 			v.rotateAroundY(getYRotation(spiny));
 		}

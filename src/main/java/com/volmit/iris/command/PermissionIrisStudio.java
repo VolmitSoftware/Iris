@@ -1,6 +1,6 @@
 package com.volmit.iris.command;
 
-import com.volmit.iris.command.util.MortarPermission;
+import com.volmit.iris.util.MortarPermission;
 
 public class PermissionIrisStudio extends MortarPermission
 {

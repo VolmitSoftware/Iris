@@ -8,10 +8,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.command.util.MortarCommand;
-import com.volmit.iris.command.util.MortarSender;
+import com.volmit.iris.WandController;
 import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.wand.WandController;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisObjectSave extends MortarCommand
 {
@@ -38,14 +38,14 @@ public class CommandIrisObjectSave extends MortarCommand
 
 		try
 		{
-			o.write(new File(Iris.instance.getDataFolder(), "objects/" + args[1] + ".iob"));
-			sender.sendMessage("Saved " + "objects/" + args[1] + ".iob");
+			o.write(new File(Iris.instance.getDataFolder(), "objects/" + args[0] + ".iob"));
+			sender.sendMessage("Saved " + "objects/" + args[0] + ".iob");
 			p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
 		}
 
 		catch(IOException e)
 		{
-			sender.sendMessage("Failed to save " + "objects/" + args[1] + ".iob. Are you holding your wand?");
+			sender.sendMessage("Failed to save " + "objects/" + args[0] + ".iob. Are you holding your wand?");
 
 			e.printStackTrace();
 		}

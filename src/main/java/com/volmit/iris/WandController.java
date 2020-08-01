@@ -1,4 +1,4 @@
-package com.volmit.iris.wand;
+package com.volmit.iris;
 
 import java.awt.Color;
 import java.util.Iterator;
@@ -23,7 +23,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.Cuboid;
 import com.volmit.iris.util.KList;

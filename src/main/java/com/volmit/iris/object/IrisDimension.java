@@ -7,7 +7,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChunkPosition;

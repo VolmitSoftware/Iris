@@ -11,12 +11,12 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 
-import com.volmit.iris.command.util.MortarSender;
-import com.volmit.iris.generator.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
+import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 
 import lombok.Data;

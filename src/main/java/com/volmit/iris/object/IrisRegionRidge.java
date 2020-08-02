@@ -24,6 +24,10 @@ public class IrisRegionRidge
 	private InferredType as = InferredType.DEFER;
 
 	@DontObfuscate
+	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
+	private double noiseMultiplier = 0;
+
+	@DontObfuscate
 	@Desc("The chance this biome will be placed in a given spot")
 	private double chance = 0.75;
 
@@ -47,12 +51,40 @@ public class IrisRegionRidge
 	@Desc("The thickness of the vein")
 	private double thickness = 0.125;
 
+	@DontObfuscate
+	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
+	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
+
 	private transient CellGenerator spot;
 	private transient CellGenerator ridge;
 
 	public IrisRegionRidge()
 	{
 
+	}
+
+	public double getRidgeHeight(RNG rng, double x, double z)
+	{
+		if(getNoiseMultiplier() == 0)
+		{
+			return 0;
+		}
+
+		if(ridge == null)
+		{
+			ridge = new CellGenerator(rng.nextParallelRNG((int) (465583 * getChance())));
+			ridge.setCellScale(scale);
+			ridge.setShuffle(shuffle);
+		}
+
+		if(spot == null)
+		{
+			spot = new CellGenerator(rng.nextParallelRNG((int) (198523 * getChance())));
+			spot.setCellScale(chanceScale);
+			spot.setShuffle(shuffle);
+		}
+
+		return spot.getDistance(x, z) * ridge.getDistance(x, z) * getNoiseMultiplier();
 	}
 
 	public boolean isRidge(RNG rng, double x, double z)

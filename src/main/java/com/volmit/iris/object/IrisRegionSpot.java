@@ -24,6 +24,10 @@ public class IrisRegionSpot
 	private InferredType as = InferredType.DEFER;
 
 	@DontObfuscate
+	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
+	private double noiseMultiplier = 0;
+
+	@DontObfuscate
 	@Desc("The scale of splotches")
 	private double scale = 1;
 
@@ -35,11 +39,32 @@ public class IrisRegionSpot
 	@Desc("The shuffle or how natural the splotch looks like (anti-polygon)")
 	private double shuffle = 128;
 
+	@DontObfuscate
+	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
+	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
+
 	private transient CellGenerator spot;
 
 	public IrisRegionSpot()
 	{
 
+	}
+
+	public double getSpotHeight(RNG rng, double x, double z)
+	{
+		if(getNoiseMultiplier() == 0)
+		{
+			return 0;
+		}
+
+		if(spot == null)
+		{
+			spot = new CellGenerator(rng.nextParallelRNG((int) (168583 * (shuffle + 102) + rarity + (scale * 10465) + biome.length() + type.ordinal() + as.ordinal())));
+			spot.setCellScale(scale);
+			spot.setShuffle(shuffle);
+		}
+
+		return spot.getDistance(x, z) * getNoiseMultiplier();
 	}
 
 	public boolean isSpot(RNG rng, double x, double z)

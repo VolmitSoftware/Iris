@@ -40,14 +40,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private GenLayerCarve glCarve;
 	private RNG rockRandom;
 	private int[] cacheHeightMap;
-	private IrisBiome[] cacheTrueBiome;
+	private BiomeResult[] cacheTrueBiome;
 	private ReentrantLock cacheLock;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
 		cacheHeightMap = new int[256];
-		cacheTrueBiome = new IrisBiome[256];
+		cacheTrueBiome = new BiomeResult[256];
 		cachingAllowed = true;
 		cacheLock = new ReentrantLock();
 	}
@@ -87,7 +87,9 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			int height = (int) Math.round(noise) + fluidHeight;
 			boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
 			IrisRegion region = sampleRegion(rx, rz);
-			IrisBiome biome = sampleTrueBiome(rx, rz).getBiome();
+			BiomeResult biomeResult = sampleTrueBiome(rx, rz);
+			IrisBiome biome = biomeResult.getBiome();
+			double airReversal = biomeResult.getHeightOffset();
 
 			if(biome == null)
 			{
@@ -98,7 +100,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				try
 				{
-					cacheTrueBiome[(z << 4) | x] = biome;
+					cacheTrueBiome[(z << 4) | x] = biomeResult;
 					cacheHeightMap[(z << 4) | x] = height;
 				}
 
@@ -115,7 +117,18 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			KList<Integer> cavernHeights = new KList<>();
 			int lastCavernHeight = -1;
 
-			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3; k++)
+			if(height > fluidHeight && airReversal < 0 && biomeResult.getAir() != null && biomeResult.getAir().getBlockData().isNotEmpty())
+			{
+				RNG randomx = masterRandom.nextParallelRNG(95288);
+				int realHeight = (int) Math.floor(height - airReversal);
+
+				for(int k = height + 1; k < realHeight; k++)
+				{
+					sliver.set(k, biomeResult.getAir().get(randomx, wx, k, wz));
+				}
+			}
+
+			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3 + Math.abs(airReversal); k++)
 			{
 				if(k < Math.max(height, fluidHeight) + 3)
 				{
@@ -474,7 +487,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wx = getZoomed(rx);
 		double wz = getZoomed(rz);
 
-		return getBiomeHeight(wx, wz);
+		return getBiomeHeight(wx, wz, rx, rz);
 	}
 
 	public BiomeResult sampleTrueBiomeBase(int x, int z)
@@ -552,7 +565,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		if(isSafe() && x >> 4 == cacheX && z >> 4 == cacheZ)
 		{
-			return new BiomeResult(cacheTrueBiome[((z & 15) << 4) | (x & 15)], 0);
+			return cacheTrueBiome[((z & 15) << 4) | (x & 15)];
 		}
 
 		double wx = getModifiedX(x, z);

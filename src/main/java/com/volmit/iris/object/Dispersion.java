@@ -6,7 +6,7 @@ public enum Dispersion
 {
 	@DontObfuscate
 	SCATTER,
-	
+
 	@DontObfuscate
-	WISPY,
+	WISPY;
 }

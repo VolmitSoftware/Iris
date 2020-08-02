@@ -14,6 +14,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
 
@@ -166,40 +167,60 @@ public class AtomicSliver
 		height.setHeight(x, z, highestBlock);
 		lock.unlock();
 	}
-
+	
 	public void read(DataInputStream din) throws IOException
 	{
 		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
 		int h = din.readByte() - Byte.MIN_VALUE;
+		int p = din.readByte() - Byte.MIN_VALUE;
+		KList<BlockData> palette = new KList<BlockData>();
 		highestBlock = h;
-
+		
+		for(int i = 0; i < p; i++)
+		{
+			palette.add(BlockDataTools.getBlockData(din.readUTF()));
+		}
+		
 		for(int i = 0; i <= h; i++)
 		{
-			BlockData v = BlockDataTools.getBlockData(din.readUTF());
-
-			if(v == null)
-			{
-				block.put(i, AIR);
-				continue;
-			}
-
-			block.put(i, v);
+			block.put(i, palette.get(din.readByte() - Byte.MIN_VALUE).clone());
 		}
 		modified = false;
 		lock.unlock();
 	}
-
+	
 	public void write(DataOutputStream dos) throws IOException
 	{
 		lock.lock();
 		dos.writeByte(highestBlock + Byte.MIN_VALUE);
-
+		KList<String> palette = new KList<>();
+		
 		for(int i = 0; i <= highestBlock; i++)
 		{
 			BlockData dat = block.get(i);
-			dos.writeUTF((dat == null ? AIR : dat).getAsString(true));
+			String d = (dat == null ? AIR : dat).getAsString(true);
+			
+			if(!palette.contains(d))
+			{
+				palette.add(d);
+			}
 		}
+		
+		dos.writeByte(palette.size() + Byte.MIN_VALUE);
+		
+		for(String i : palette)
+		{
+			dos.writeUTF(i);
+		}
+		
+		for(int i = 0; i <= highestBlock; i++)
+		{
+			BlockData dat = block.get(i);
+			String d = (dat == null ? AIR : dat).getAsString(true);
+			dos.writeByte(palette.indexOf(d) + Byte.MIN_VALUE);
+		}
+		
 		lock.unlock();
 	}
 

@@ -8,18 +8,19 @@ import com.volmit.iris.Iris;
 
 public class BlockDataTools
 {
+	private static final BlockData AIR = Material.AIR.createBlockData();
 	private static final KMap<String, BlockData> bdc = new KMap<>();
 	private static final KList<String> nulls = new KList<>();
 
 	public static BlockData getBlockData(String bd)
+	{try
 	{
 		if(bdc.containsKey(bd))
 		{
 			return bdc.get(bd).clone();
 		}
 
-		try
-		{
+		
 			BlockData bdx = parseBlockData(bd);
 
 			if(bdx == null)
@@ -39,7 +40,7 @@ public class BlockDataTools
 			Iris.warn("Unknown Block Data '" + bd + "'");
 		}
 
-		return null;
+		return AIR;
 	}
 
 	public static BlockData parseBlockData(String ix)
@@ -75,7 +76,7 @@ public class BlockDataTools
 
 		}
 
-		return null;
+		return AIR;
 	}
 
 	public static boolean isLit(BlockData mat)

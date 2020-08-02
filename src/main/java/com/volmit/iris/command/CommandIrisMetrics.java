@@ -26,7 +26,7 @@ public class CommandIrisMetrics extends MortarCommand
 	{
 		if(sender.isPlayer())
 		{
-			Player p = (Player) sender;
+			Player p = sender.player();
 			World world = p.getWorld();
 			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 			IrisMetrics m = g.getMetrics();

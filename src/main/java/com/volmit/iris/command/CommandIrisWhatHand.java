@@ -1,7 +1,6 @@
 package com.volmit.iris.command;
 
 import org.bukkit.ChatColor;
-import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
@@ -9,10 +8,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisWhatHand extends MortarCommand
-{
-	public CommandIrisWhatHand()
-	{
+public class CommandIrisWhatHand extends MortarCommand {
+	public CommandIrisWhatHand() {
 		super("hand", "h");
 		setDescription("Get the block data for holding.");
 		requiresPermission(Iris.perm.studio);
@@ -24,8 +21,9 @@ public class CommandIrisWhatHand extends MortarCommand
 	public boolean handle(MortarSender sender, String[] args)
 	{
 		if(sender.isPlayer())
-		{
-			BlockData bd = ((Player) sender).getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
+		{			
+			Player p = sender.player();
+			BlockData bd = p.getInventory().getItemInMainHand().getType().createBlockData();
 			sender.sendMessage("Material: " + ChatColor.GREEN + bd.getMaterial().name());
 			sender.sendMessage("Full: " + ChatColor.WHITE + bd.getAsString(true));
 		}
@@ -39,8 +37,7 @@ public class CommandIrisWhatHand extends MortarCommand
 	}
 
 	@Override
-	protected String getArgsUsage()
-	{
+	protected String getArgsUsage() {
 		return "";
 	}
 }

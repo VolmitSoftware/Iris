@@ -25,7 +25,8 @@ public class CommandIrisWhatBlock extends MortarCommand
 	{
 		if(sender.isPlayer())
 		{
-			BlockData bd = ((Player) sender).getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
+			Player p = sender.player();
+			BlockData bd = p.getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
 			sender.sendMessage("Material: " + ChatColor.GREEN + bd.getMaterial().name());
 			sender.sendMessage("Full: " + ChatColor.WHITE + bd.getAsString(true));
 		}

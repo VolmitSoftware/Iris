@@ -15,40 +15,44 @@
 		<development.location.dan>${user.home}\Documents\development\server\plugins\${project.name}.jar</development.location.dan>
 		<lint.in>${project.basedir}\lint\in.jar</lint.in>
 	</properties>
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>**/*.xml</include>
+					<include>**/*.yml</include>
+					<include>**/*.txt</include>
+					<include>**/*.properties</include>
+					<include>**/*.json</include>
+				</includes>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<minimizeJar>false</minimizeJar>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 	<profiles>
 		<profile>
 			<id>dan</id>
 			<build>
-				<resources>
-					<resource>
-						<directory>src/main/resources</directory>
-						<filtering>true</filtering>
-						<includes>
-							<include>**/*.xml</include>
-							<include>**/*.yml</include>
-							<include>**/*.txt</include>
-							<include>**/*.properties</include>
-							<include>**/*.json</include>
-						</includes>
-					</resource>
-				</resources>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-shade-plugin</artifactId>
-						<version>3.1.0</version>
-						<executions>
-							<execution>
-								<phase>package</phase>
-								<goals>
-									<goal>shade</goal>
-								</goals>
-								<configuration>
-									<minimizeJar>true</minimizeJar>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -77,36 +81,7 @@
 		<profile>
 			<id>release</id>
 			<build>
-				<resources>
-					<resource>
-						<directory>src/main/resources</directory>
-						<filtering>true</filtering>
-						<includes>
-							<include>**/*.xml</include>
-							<include>**/*.yml</include>
-							<include>**/*.txt</include>
-							<include>**/*.properties</include>
-							<include>**/*.html</include>
-						</includes>
-					</resource>
-				</resources>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-shade-plugin</artifactId>
-						<version>3.1.0</version>
-						<executions>
-							<execution>
-								<phase>package</phase>
-								<goals>
-									<goal>shade</goal>
-								</goals>
-								<configuration>
-									<minimizeJar>false</minimizeJar>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>

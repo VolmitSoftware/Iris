@@ -24,7 +24,7 @@ public class CommandIrisGoto extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(args.length <= 1)
+		if(args.length < 1)
 		{
 			sender.sendMessage("/iris world goto " + getArgsUsage());
 			return true;

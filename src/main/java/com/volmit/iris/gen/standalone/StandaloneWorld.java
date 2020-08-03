@@ -54,6 +54,17 @@ import org.bukkit.util.Vector;
 @SuppressWarnings("deprecation")
 public class StandaloneWorld implements World
 {
+	private final long seed;
+	private final String name;
+	private final File folder;
+
+	public StandaloneWorld(String name, long seed, File folder)
+	{
+		this.seed = seed;
+		this.name = name;
+		this.folder = folder;
+	}
+
 	@Override
 	public Set<String> getListeningPluginChannels()
 	{
@@ -484,8 +495,7 @@ public class StandaloneWorld implements World
 	@Override
 	public String getName()
 	{
-		throw new UnsupportedOperationException();
-
+		return name;
 	}
 
 	@Override
@@ -568,8 +578,7 @@ public class StandaloneWorld implements World
 	@Override
 	public long getSeed()
 	{
-		throw new UnsupportedOperationException();
-
+		return seed;
 	}
 
 	@Override
@@ -687,8 +696,7 @@ public class StandaloneWorld implements World
 	@Override
 	public File getWorldFolder()
 	{
-		throw new UnsupportedOperationException();
-
+		return folder;
 	}
 
 	@Override

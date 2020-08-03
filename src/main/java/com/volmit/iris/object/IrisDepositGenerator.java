@@ -1,13 +1,12 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.gen.TerrainChunkGenerator;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -51,52 +50,24 @@ public class IrisDepositGenerator
 	@Desc("Ore varience is how many different objects clumps iris will create")
 	private int varience = 8;
 
-	private transient IrisObjectPlacement config = createDepositConfig();
-	private transient ReentrantLock lock = new ReentrantLock();
-	private transient KList<IrisObject> objects;
-	private transient KList<BlockData> blockData;
+	private transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
+	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
 	public IrisObject getClump(RNG rng)
 	{
-		lock.lock();
-
-		if(objects == null)
+		KList<IrisObject> objects = this.objects.aquire(() ->
 		{
 			RNG rngv = rng.nextParallelRNG(3957778);
-			objects = new KList<>();
+			KList<IrisObject> objectsf = new KList<>();
 
 			for(int i = 0; i < varience; i++)
 			{
-				objects.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598)));
+				objectsf.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598)));
 			}
-		}
 
-		lock.unlock();
+			return objectsf;
+		});
 		return objects.get(rng.i(0, objects.size() - 1));
-	}
-
-	private IrisObjectPlacement createDepositConfig()
-	{
-		IrisObjectPlacement p = new IrisObjectPlacement();
-		IrisObjectRotation rot = new IrisObjectRotation();
-		rot.setEnabled(true);
-		IrisAxisRotationClamp xc = new IrisAxisRotationClamp();
-		IrisAxisRotationClamp yc = new IrisAxisRotationClamp();
-		IrisAxisRotationClamp zc = new IrisAxisRotationClamp();
-		xc.setEnabled(true);
-		xc.setInterval(45);
-		yc.setEnabled(true);
-		yc.setInterval(45);
-		zc.setEnabled(true);
-		zc.setInterval(45);
-		rot.setXAxis(xc);
-		rot.setYAxis(yc);
-		rot.setZAxis(zc);
-		p.setRotation(rot);
-		p.setUnderwater(true);
-		p.setMeld(true);
-
-		return p;
 	}
 
 	public int getMaxDimension()
@@ -137,11 +108,9 @@ public class IrisDepositGenerator
 
 	public KList<BlockData> getBlockData()
 	{
-		lock.lock();
-
-		if(blockData == null)
+		return blockData.aquire(() ->
 		{
-			blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 
 			for(String ix : palette)
 			{
@@ -152,11 +121,9 @@ public class IrisDepositGenerator
 					blockData.add(bx);
 				}
 			}
-		}
 
-		lock.unlock();
-
-		return blockData;
+			return blockData;
+		});
 	}
 
 	public void generate(ChunkData data, RNG rng, TerrainChunkGenerator g)

@@ -1,13 +1,13 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
+import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChunkPosition;
@@ -26,6 +26,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisDimension extends IrisRegistrant
 {
+	public static final BlockData STONE = Material.STONE.createBlockData();
+	public static final BlockData WATER = Material.WATER.createBlockData();
+
 	@DontObfuscate
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
@@ -206,26 +209,23 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();
 
-	private transient ChunkPosition parallaxSize;
-	private transient ReentrantLock rockLock = new ReentrantLock();
-	private transient ReentrantLock parLock = new ReentrantLock();
-	private transient ReentrantLock fluidLock = new ReentrantLock();
-	private transient KList<BlockData> rockData;
-	private transient KList<BlockData> fluidData;
-	private transient KList<IrisPostBlockFilter> cacheFilters;
-	private transient CNG rockLayerGenerator;
-	private transient CNG fluidLayerGenerator;
-	private transient CNG coordFracture;
-	private transient Double sinr;
-	private transient Double cosr;
-	private transient Double rad;
-	private transient boolean inverted;
+	private transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
+	private transient AtomicCache<KList<BlockData>> rockData = new AtomicCache<>();
+	private transient AtomicCache<KList<BlockData>> fluidData = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
+	private transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
+	private transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
+	private transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
+	private transient AtomicCache<Double> sinr = new AtomicCache<>();
+	private transient AtomicCache<Double> cosr = new AtomicCache<>();
+	private transient AtomicCache<Double> rad = new AtomicCache<>();
+	private transient boolean inverted = false;
 
 	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
 	{
-		if(cacheFilters == null)
+		return cacheFilters.aquire(() ->
 		{
-			cacheFilters = new KList<>();
+			KList<IrisPostBlockFilter> cacheFilters = new KList<>();
 
 			for(IrisPostProcessor i : getPostProcessors())
 			{
@@ -242,20 +242,18 @@ public class IrisDimension extends IrisRegistrant
 			}
 
 			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - " + g.getMaxPhase());
-		}
-
-		return cacheFilters;
+			return cacheFilters;
+		});
 	}
 
 	public CNG getCoordFracture(RNG rng, int signature)
 	{
-		if(coordFracture == null)
+		return coordFracture.aquire(() ->
 		{
-			coordFracture = CNG.signature(rng.nextParallelRNG(signature));
+			CNG coordFracture = CNG.signature(rng.nextParallelRNG(signature));
 			coordFracture.scale(0.012 / coordFractureZoom);
-		}
-
-		return coordFracture;
+			return coordFracture;
+		});
 	}
 
 	private KList<IrisPostProcessor> getDefaultPostProcessors()
@@ -274,54 +272,52 @@ public class IrisDimension extends IrisRegistrant
 
 	public BlockData getRock(RNG rng, double x, double y, double z)
 	{
+		if(getRockData().isEmpty())
+		{
+			return STONE;
+		}
+
 		if(getRockData().size() == 1)
 		{
 			return getRockData().get(0);
 		}
 
-		if(rockLayerGenerator == null)
+		if(dispersion.equals(Dispersion.SCATTER))
 		{
-			cacheRockGenerator(rng);
+			return getRockData().get(getRockGenerator(rng).fit(0, 30000000, x, y, z) % getRockData().size());
 		}
 
-		if(rockLayerGenerator != null)
+		else
 		{
-			if(dispersion.equals(Dispersion.SCATTER))
-			{
-				return getRockData().get(rockLayerGenerator.fit(0, 30000000, x, y, z) % getRockData().size());
-			}
-
-			else
-			{
-				return getRockData().get(rockLayerGenerator.fit(0, getRockData().size() - 1, x, y, z));
-			}
+			return getRockData().get(getRockGenerator(rng).fit(0, getRockData().size() - 1, x, y, z));
 		}
-
-		return getRockData().get(0);
 	}
 
-	public void cacheRockGenerator(RNG rng)
+	public CNG getRockGenerator(RNG rng)
 	{
-		RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
-
-		switch(dispersion)
+		return rockLayerGenerator.aquire(() ->
 		{
-			case SCATTER:
-				rockLayerGenerator = CNG.signature(rngx).freq(1000000);
-				break;
-			case WISPY:
-				rockLayerGenerator = CNG.signature(rngx);
-				break;
-		}
+			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+			CNG rockLayerGenerator = new CNG(rng);
+			switch(dispersion)
+			{
+				case SCATTER:
+					rockLayerGenerator = CNG.signature(rngx).freq(1000000);
+					break;
+				case WISPY:
+					rockLayerGenerator = CNG.signature(rngx);
+					break;
+			}
+
+			return rockLayerGenerator;
+		});
 	}
 
 	public KList<BlockData> getRockData()
 	{
-		rockLock.lock();
-
-		if(rockData == null)
+		return rockData.aquire(() ->
 		{
-			rockData = new KList<>();
+			KList<BlockData> rockData = new KList<>();
 			for(String ix : rockPalette)
 			{
 				BlockData bx = BlockDataTools.getBlockData(ix);
@@ -330,63 +326,59 @@ public class IrisDimension extends IrisRegistrant
 					rockData.add(bx);
 				}
 			}
-		}
 
-		rockLock.unlock();
-
-		return rockData;
+			return rockData;
+		});
 	}
 
 	public BlockData getFluid(RNG rng, double x, double y, double z)
 	{
+		if(getFluidData().isEmpty())
+		{
+			return WATER;
+		}
+
 		if(getFluidData().size() == 1)
 		{
 			return getFluidData().get(0);
 		}
 
-		if(fluidLayerGenerator == null)
+		if(dispersion.equals(Dispersion.SCATTER))
 		{
-			cacheFluidGenerator(rng);
+			return getFluidData().get(getFluidGenerator(rng).fit(0, 30000000, x, y, z) % getFluidData().size());
 		}
 
-		if(fluidLayerGenerator != null)
+		else
 		{
-			if(dispersion.equals(Dispersion.SCATTER))
-			{
-				return getFluidData().get(fluidLayerGenerator.fit(0, 30000000, x, y, z) % getFluidData().size());
-			}
-
-			else
-			{
-				return getFluidData().get(fluidLayerGenerator.fit(0, getFluidData().size() - 1, x, y, z));
-			}
+			return getFluidData().get(getFluidGenerator(rng).fit(0, getFluidData().size() - 1, x, y, z));
 		}
-
-		return getFluidData().get(0);
 	}
 
-	public void cacheFluidGenerator(RNG rng)
+	public CNG getFluidGenerator(RNG rng)
 	{
-		RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
-
-		switch(dispersion)
+		return fluidLayerGenerator.aquire(() ->
 		{
-			case SCATTER:
-				fluidLayerGenerator = CNG.signature(rngx).freq(1000000);
-				break;
-			case WISPY:
-				fluidLayerGenerator = CNG.signature(rngx);
-				break;
-		}
+			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+			CNG fluidLayerGenerator = new CNG(rng);
+			switch(dispersion)
+			{
+				case SCATTER:
+					fluidLayerGenerator = CNG.signature(rngx).freq(1000000);
+					break;
+				case WISPY:
+					fluidLayerGenerator = CNG.signature(rngx);
+					break;
+			}
+
+			return fluidLayerGenerator;
+		});
 	}
 
 	public KList<BlockData> getFluidData()
 	{
-		fluidLock.lock();
-
-		if(fluidData == null)
+		return fluidData.aquire(() ->
 		{
-			fluidData = new KList<>();
+			KList<BlockData> fluidData = new KList<>();
 			for(String ix : fluidPalette)
 			{
 				BlockData bx = BlockDataTools.getBlockData(ix);
@@ -395,41 +387,24 @@ public class IrisDimension extends IrisRegistrant
 					fluidData.add(bx);
 				}
 			}
-		}
 
-		fluidLock.unlock();
-
-		return fluidData;
+			return fluidData;
+		});
 	}
 
 	public double getDimensionAngle()
 	{
-		if(rad == null)
-		{
-			rad = Math.toRadians(dimensionAngleDeg);
-		}
-
-		return rad;
+		return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
 	}
 
 	public double sinRotate()
 	{
-		if(sinr == null)
-		{
-			sinr = Math.sin(getDimensionAngle());
-		}
-
-		return sinr;
+		return sinr.aquire(() -> Math.sin(getDimensionAngle()));
 	}
 
 	public double cosRotate()
 	{
-		if(cosr == null)
-		{
-			cosr = Math.cos(getDimensionAngle());
-		}
-
-		return cosr;
+		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
 	public KList<IrisRegion> getAllRegions()
@@ -458,9 +433,7 @@ public class IrisDimension extends IrisRegistrant
 
 	public ChunkPosition getParallaxSize()
 	{
-		parLock.lock();
-
-		if(parallaxSize == null)
+		return parallaxSize.aquire(() ->
 		{
 			int x = 0;
 			int z = 0;
@@ -523,11 +496,8 @@ public class IrisDimension extends IrisRegistrant
 			z = (Math.max(z, 16) + 16) >> 4;
 			x = x % 2 == 0 ? x + 1 : x;
 			z = z % 2 == 0 ? z + 1 : z;
-			parallaxSize = new ChunkPosition(x, z);
 			Iris.info("Parallax Size: " + x + ", " + z);
-		}
-
-		parLock.unlock();
-		return parallaxSize;
+			return new ChunkPosition(x, z);
+		});
 	}
 }

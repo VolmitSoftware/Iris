@@ -1,8 +1,7 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -102,17 +101,15 @@ public class IrisRegion extends IrisRegistrant
 	@Desc("Define regional deposit generators that add onto the global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
-	private transient KList<String> cacheRidge;
-	private transient KList<String> cacheSpot;
-	private transient CNG shoreHeightGenerator;
-	private transient ReentrantLock lock = new ReentrantLock();
-
-	private transient KList<IrisBiome> realLandBiomes;
-	private transient KList<IrisBiome> realSeaBiomes;
-	private transient KList<IrisBiome> realShoreBiomes;
-	private transient KList<IrisBiome> realIslandBiomes;
-	private transient KList<IrisBiome> realSkylandBiomes;
-	private transient KList<IrisBiome> realCaveBiomes;
+	private transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
+	private transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
+	private transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realLandBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realSeaBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realShoreBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realIslandBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realSkylandBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realCaveBiomes = new AtomicCache<>();
 
 	public double getBiomeZoom(InferredType t)
 	{
@@ -139,44 +136,36 @@ public class IrisRegion extends IrisRegistrant
 
 	public KList<String> getRidgeBiomeKeys()
 	{
-		lock.lock();
-
-		if(cacheRidge == null)
+		return cacheRidge.aquire(() ->
 		{
-			cacheRidge = new KList<String>();
+			KList<String> cacheRidge = new KList<String>();
 			ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
-		}
 
-		lock.unlock();
-
-		return cacheRidge;
+			return cacheRidge;
+		});
 	}
 
 	public KList<String> getSpotBiomeKeys()
 	{
-		lock.lock();
-
-		if(cacheSpot == null)
+		return cacheSpot.aquire(() ->
 		{
-			cacheSpot = new KList<String>();
+			KList<String> cacheSpot = new KList<String>();
 			spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
-		}
+			return cacheSpot;
+		});
+	}
 
-		lock.unlock();
-
-		return cacheSpot;
+	public CNG getShoreHeightGenerator()
+	{
+		return shoreHeightGenerator.aquire(() ->
+		{
+			return CNG.signature(new RNG((long) (getName().length() + getIslandBiomes().size() + getLandBiomeZoom() + getLandBiomes().size() + 3458612)));
+		});
 	}
 
 	public double getShoreHeight(double x, double z)
 	{
-		if(shoreHeightGenerator == null)
-		{
-			lock.lock();
-			shoreHeightGenerator = CNG.signature(new RNG((long) (getName().length() + getIslandBiomes().size() + getLandBiomeZoom() + getLandBiomes().size() + 3458612)));
-			lock.unlock();
-		}
-
-		return shoreHeightGenerator.fitDoubleD(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
+		return getShoreHeightGenerator().fitDoubleD(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
 	}
 
 	public KList<IrisBiome> getAllBiomes()
@@ -246,115 +235,91 @@ public class IrisRegion extends IrisRegistrant
 
 	public KList<IrisBiome> getRealCaveBiomes()
 	{
-		lock.lock();
-
-		if(realCaveBiomes == null)
+		return realCaveBiomes.aquire(() ->
 		{
-			realCaveBiomes = new KList<>();
+			KList<IrisBiome> realCaveBiomes = new KList<>();
 
 			for(String i : getCaveBiomes())
 			{
 				realCaveBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realCaveBiomes;
+			return realCaveBiomes;
+		});
 	}
 
 	public KList<IrisBiome> getRealSkylandBiomes()
 	{
-		lock.lock();
-
-		if(realSkylandBiomes == null)
+		return realSkylandBiomes.aquire(() ->
 		{
-			realSkylandBiomes = new KList<>();
+			KList<IrisBiome> realSkylandBiomes = new KList<>();
 
 			for(String i : getSkylandBiomes())
 			{
 				realSkylandBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realSkylandBiomes;
+			return realSkylandBiomes;
+		});
 	}
 
 	public KList<IrisBiome> getRealIslandBiomes()
 	{
-		lock.lock();
-
-		if(realIslandBiomes == null)
+		return realIslandBiomes.aquire(() ->
 		{
-			realIslandBiomes = new KList<>();
+			KList<IrisBiome> realIslandBiomes = new KList<>();
 
 			for(String i : getIslandBiomes())
 			{
 				realIslandBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realIslandBiomes;
+			return realIslandBiomes;
+		});
 	}
 
 	public KList<IrisBiome> getRealShoreBiomes()
 	{
-		lock.lock();
-
-		if(realShoreBiomes == null)
+		return realShoreBiomes.aquire(() ->
 		{
-			realShoreBiomes = new KList<>();
+			KList<IrisBiome> realShoreBiomes = new KList<>();
 
 			for(String i : getShoreBiomes())
 			{
 				realShoreBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realShoreBiomes;
+			return realShoreBiomes;
+		});
 	}
 
 	public KList<IrisBiome> getRealSeaBiomes()
 	{
-		lock.lock();
-
-		if(realSeaBiomes == null)
+		return realSeaBiomes.aquire(() ->
 		{
-			realSeaBiomes = new KList<>();
+			KList<IrisBiome> realSeaBiomes = new KList<>();
 
 			for(String i : getSeaBiomes())
 			{
 				realSeaBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realSeaBiomes;
+			return realSeaBiomes;
+		});
 	}
 
 	public KList<IrisBiome> getRealLandBiomes()
 	{
-		lock.lock();
-
-		if(realLandBiomes == null)
+		return realLandBiomes.aquire(() ->
 		{
-			realLandBiomes = new KList<>();
+			KList<IrisBiome> realLandBiomes = new KList<>();
 
 			for(String i : getLandBiomes())
 			{
 				realLandBiomes.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realLandBiomes;
+			return realLandBiomes;
+		});
 	}
 }

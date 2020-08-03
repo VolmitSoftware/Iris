@@ -338,7 +338,7 @@ public class AtomicWorldData
 
 	private int getUnloadBatchSize()
 	{
-		return Math.max(3, getLoadedRegions().size() / 125);
+		return Math.max(3, getLoadedRegions().size() / 85);
 	}
 
 	private int getUnloadBatchSpeed()

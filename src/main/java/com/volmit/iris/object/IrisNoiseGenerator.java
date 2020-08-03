@@ -1,7 +1,6 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -71,12 +70,11 @@ public class IrisNoiseGenerator
 	@Desc("Apply a child noise generator to fracture the input coordinates of this generator")
 	private KList<IrisNoiseGenerator> fracture = new KList<>();
 
-	private transient ReentrantLock lock;
-	private transient CNG generator;
+	private transient AtomicCache<CNG> generator = new AtomicCache<>();
 
 	public IrisNoiseGenerator()
 	{
-		lock = new ReentrantLock();
+
 	}
 
 	public IrisNoiseGenerator(boolean enabled)
@@ -87,14 +85,7 @@ public class IrisNoiseGenerator
 
 	protected CNG getGenerator(long superSeed)
 	{
-		if(generator == null)
-		{
-			lock.lock();
-			generator = irisBased ? CNG.signature(new RNG(superSeed + 33955677 - seed)) : new CNG(new RNG(superSeed + 33955677 - seed), 1D, octaves);
-			lock.unlock();
-		}
-
-		return generator;
+		return generator.aquire(() -> irisBased ? CNG.signature(new RNG(superSeed + 33955677 - seed)) : new CNG(new RNG(superSeed + 33955677 - seed), 1D, octaves));
 	}
 
 	public double getMax()

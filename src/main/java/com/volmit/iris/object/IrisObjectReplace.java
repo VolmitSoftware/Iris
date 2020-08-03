@@ -1,9 +1,8 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -23,9 +22,8 @@ public class IrisObjectReplace
 	@DontObfuscate
 	private boolean exact = false;
 
-	private transient ReentrantLock lock = new ReentrantLock();
-	private transient BlockData findData;
-	private transient BlockData replaceData;
+	private transient AtomicCache<BlockData> findData = new AtomicCache<>();
+	private transient AtomicCache<BlockData> replaceData = new AtomicCache<>();
 
 	public IrisObjectReplace()
 	{
@@ -34,21 +32,11 @@ public class IrisObjectReplace
 
 	public BlockData getFind()
 	{
-		if(findData == null)
-		{
-			findData = BlockDataTools.getBlockData(find);
-		}
-
-		return findData;
+		return findData.aquire(() -> BlockDataTools.getBlockData(find));
 	}
 
 	public BlockData getReplace()
 	{
-		if(replaceData == null)
-		{
-			replaceData = BlockDataTools.getBlockData(replace);
-		}
-
-		return replaceData;
+		return replaceData.aquire(() -> BlockDataTools.getBlockData(replace));
 	}
 }

@@ -1,18 +1,17 @@
 package com.volmit.iris.gen.atomics;
 
-import java.util.concurrent.locks.ReentrantLock;
-
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
 
 public class MasterLock
 {
-	private KMap<String, ReentrantLock> locks;
-	private ReentrantLock lock;
+	private KMap<String, IrisLock> locks;
+	private IrisLock lock;
 
 	public MasterLock()
 	{
 		locks = new KMap<>();
-		lock = new ReentrantLock();
+		lock = new IrisLock("MasterLock");
 	}
 
 	public void clear()
@@ -25,10 +24,10 @@ public class MasterLock
 		lock.lock();
 		if(!locks.containsKey(key))
 		{
-			locks.put(key, new ReentrantLock());
+			locks.put(key, new IrisLock("Locker"));
 		}
 
-		ReentrantLock l = locks.get(key);
+		IrisLock l = locks.get(key);
 		lock.unlock();
 		l.lock();
 	}
@@ -38,10 +37,10 @@ public class MasterLock
 		lock.lock();
 		if(!locks.containsKey(key))
 		{
-			locks.put(key, new ReentrantLock());
+			locks.put(key, new IrisLock("Unlocker"));
 		}
 
-		ReentrantLock l = locks.get(key);
+		IrisLock l = locks.get(key);
 		lock.unlock();
 		l.unlock();
 	}

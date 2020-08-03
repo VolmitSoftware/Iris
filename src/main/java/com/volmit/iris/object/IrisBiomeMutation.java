@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -32,27 +33,17 @@ public class IrisBiomeMutation
 	@Desc("Objects define what schematics (iob files) iris will place in this biome mutation")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 
-	private transient KList<String> sideACache;
-	private transient KList<String> sideBCache;
+	private transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
+	private transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
 
 	public KList<String> getRealSideA()
 	{
-		if(sideACache == null)
-		{
-			sideACache = processList(getSideA());
-		}
-
-		return sideACache;
+		return sideACache.aquire(() -> processList(getSideA()));
 	}
 
 	public KList<String> getRealSideB()
 	{
-		if(sideBCache == null)
-		{
-			sideBCache = processList(getSideB());
-		}
-
-		return sideBCache;
+		return sideBCache.aquire(() -> processList(getSideB()));
 	}
 
 	public KList<String> processList(KList<String> s)

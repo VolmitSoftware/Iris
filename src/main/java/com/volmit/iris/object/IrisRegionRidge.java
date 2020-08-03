@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -55,12 +56,34 @@ public class IrisRegionRidge
 	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
 	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
 
-	private transient CellGenerator spot;
-	private transient CellGenerator ridge;
+	private transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
+	private transient AtomicCache<CellGenerator> ridge = new AtomicCache<>();
 
 	public IrisRegionRidge()
 	{
 
+	}
+
+	public CellGenerator getSpotGenerator(RNG rng)
+	{
+		return spot.aquire(() ->
+		{
+			CellGenerator spot = new CellGenerator(rng.nextParallelRNG((int) (198523 * getChance())));
+			spot.setCellScale(chanceScale);
+			spot.setShuffle(shuffle);
+			return spot;
+		});
+	}
+
+	public CellGenerator getRidgeGenerator(RNG rng)
+	{
+		return spot.aquire(() ->
+		{
+			CellGenerator ridge = new CellGenerator(rng.nextParallelRNG((int) (465583 * getChance())));
+			ridge.setCellScale(scale);
+			ridge.setShuffle(shuffle);
+			return ridge;
+		});
 	}
 
 	public double getRidgeHeight(RNG rng, double x, double z)
@@ -70,48 +93,20 @@ public class IrisRegionRidge
 			return 0;
 		}
 
-		if(ridge == null)
-		{
-			ridge = new CellGenerator(rng.nextParallelRNG((int) (465583 * getChance())));
-			ridge.setCellScale(scale);
-			ridge.setShuffle(shuffle);
-		}
-
-		if(spot == null)
-		{
-			spot = new CellGenerator(rng.nextParallelRNG((int) (198523 * getChance())));
-			spot.setCellScale(chanceScale);
-			spot.setShuffle(shuffle);
-		}
-
-		return spot.getDistance(x, z) * ridge.getDistance(x, z) * getNoiseMultiplier();
+		return getSpotGenerator(rng).getDistance(x, z) * getRidgeGenerator(rng).getDistance(x, z) * getNoiseMultiplier();
 	}
 
 	public boolean isRidge(RNG rng, double x, double z)
 	{
-		if(ridge == null)
-		{
-			ridge = new CellGenerator(rng.nextParallelRNG((int) (465583 * getChance())));
-			ridge.setCellScale(scale);
-			ridge.setShuffle(shuffle);
-		}
-
-		if(spot == null)
-		{
-			spot = new CellGenerator(rng.nextParallelRNG((int) (198523 * getChance())));
-			spot.setCellScale(chanceScale);
-			spot.setShuffle(shuffle);
-		}
-
 		if(chance < 1)
 		{
-			if(spot.getIndex(x, z, 1000) > chance * 1000)
+			if(getSpotGenerator(rng).getIndex(x, z, 1000) > chance * 1000)
 			{
 				return false;
 			}
 		}
 
-		if(ridge.getDistance(x, z) <= thickness)
+		if(getRidgeGenerator(rng).getDistance(x, z) <= thickness)
 		{
 			return true;
 		}

@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -43,11 +44,22 @@ public class IrisRegionSpot
 	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
 	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
 
-	private transient CellGenerator spot;
+	private transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
 
 	public IrisRegionSpot()
 	{
 
+	}
+
+	public CellGenerator getSpotGenerator(RNG rng)
+	{
+		return spot.aquire(() ->
+		{
+			CellGenerator spot = new CellGenerator(rng.nextParallelRNG((int) (168583 * (shuffle + 102) + rarity + (scale * 10465) + biome.length() + type.ordinal() + as.ordinal())));
+			spot.setCellScale(scale);
+			spot.setShuffle(shuffle);
+			return spot;
+		});
 	}
 
 	public double getSpotHeight(RNG rng, double x, double z)
@@ -57,26 +69,12 @@ public class IrisRegionSpot
 			return 0;
 		}
 
-		if(spot == null)
-		{
-			spot = new CellGenerator(rng.nextParallelRNG((int) (168583 * (shuffle + 102) + rarity + (scale * 10465) + biome.length() + type.ordinal() + as.ordinal())));
-			spot.setCellScale(scale);
-			spot.setShuffle(shuffle);
-		}
-
-		return spot.getDistance(x, z) * getNoiseMultiplier();
+		return getSpotGenerator(rng).getDistance(x, z) * getNoiseMultiplier();
 	}
 
 	public boolean isSpot(RNG rng, double x, double z)
 	{
-		if(spot == null)
-		{
-			spot = new CellGenerator(rng.nextParallelRNG((int) (168583 * (shuffle + 102) + rarity + (scale * 10465) + biome.length() + type.ordinal() + as.ordinal())));
-			spot.setCellScale(scale);
-			spot.setShuffle(shuffle);
-		}
-
-		if(spot.getIndex(x, z, (int) (Math.round(rarity) + 8)) == (int) ((Math.round(rarity) + 8) / 2))
+		if(getSpotGenerator(rng).getIndex(x, z, (int) (Math.round(rarity) + 8)) == (int) ((Math.round(rarity) + 8) / 2))
 		{
 			return true;
 		}

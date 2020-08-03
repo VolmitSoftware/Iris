@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisInterpolation;
@@ -23,7 +24,7 @@ public class IrisBiomeGeneratorLink
 	@Desc("The max block value (value + fluidHeight)")
 	private int max = 0;
 
-	private transient IrisGenerator gen;
+	private transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
 	public IrisBiomeGeneratorLink()
 	{
@@ -32,17 +33,17 @@ public class IrisBiomeGeneratorLink
 
 	public IrisGenerator getCachedGenerator()
 	{
-		if(gen == null)
+		return gen.aquire(() ->
 		{
-			gen = Iris.data.getGeneratorLoader().load(getGenerator());
+			IrisGenerator gen = Iris.data.getGeneratorLoader().load(getGenerator());
 
 			if(gen == null)
 			{
 				gen = new IrisGenerator();
 			}
-		}
 
-		return gen;
+			return gen;
+		});
 	}
 
 	public double getHeight(double x, double z, long seed)

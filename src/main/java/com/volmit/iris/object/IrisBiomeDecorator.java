@@ -2,6 +2,7 @@ package com.volmit.iris.object;
 
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
@@ -57,8 +58,8 @@ public class IrisBiomeDecorator
 	private KList<String> palette = new KList<String>().qadd("GRASS");
 
 	private transient KMap<Long, CNG> layerGenerators;
-	private transient CNG heightGenerator;
-	private transient KList<BlockData> blockData;
+	private transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
+	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
 	public int getHeight(RNG rng, double x, double z)
 	{
@@ -72,12 +73,10 @@ public class IrisBiomeDecorator
 
 	public CNG getHeightGenerator(RNG rng)
 	{
-		if(heightGenerator == null)
+		return heightGenerator.aquire(() ->
 		{
-			heightGenerator = CNG.signature(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
-		}
-
-		return heightGenerator;
+			return CNG.signature(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
+		});
 	}
 
 	public CNG getGenerator(RNG rng)
@@ -141,9 +140,9 @@ public class IrisBiomeDecorator
 
 	public KList<BlockData> getBlockData()
 	{
-		if(blockData == null)
+		return blockData.aquire(() ->
 		{
-			blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 			for(String i : palette)
 			{
 				BlockData bx = BlockDataTools.getBlockData(i);
@@ -152,8 +151,8 @@ public class IrisBiomeDecorator
 					blockData.add(bx);
 				}
 			}
-		}
 
-		return blockData;
+			return blockData;
+		});
 	}
 }

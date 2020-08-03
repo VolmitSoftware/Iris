@@ -1,11 +1,10 @@
 package com.volmit.iris.object;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.BiomeRarityCellGenerator;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
@@ -95,17 +94,13 @@ public class IrisBiome extends IrisRegistrant
 	@Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
-	private transient ReentrantLock lock = new ReentrantLock();
-	private transient BiomeRarityCellGenerator childrenCell;
 	private transient InferredType inferredType;
-	private transient CNG biomeGenerator;
-	private transient int maxHeight = Integer.MIN_VALUE;
-	private transient KList<BlockData> fullLayerSpec;
-	private transient KList<CNG> layerHeightGenerators;
-	private transient KList<CNG> layerSeaHeightGenerators;
-	private transient KList<CNG> layerSurfaceGenerators;
-	private transient KList<CNG> layerSeaSurfaceGenerators;
-	private transient KList<IrisBiome> realChildren;
+	private transient AtomicCache<BiomeRarityCellGenerator> childrenCell = new AtomicCache<>();
+	private transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
+	private transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
+	private transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
+	private transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
 
 	public IrisBiome()
 	{
@@ -126,23 +121,20 @@ public class IrisBiome extends IrisRegistrant
 
 	public CNG getBiomeGenerator(RNG random)
 	{
-		if(biomeGenerator == null)
+		return biomeGenerator.aquire(() ->
 		{
-			biomeGenerator = CNG.signature(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())).scale(biomeDispersion.equals(Dispersion.SCATTER) ? 1000D : 0.1D);
-		}
-
-		return biomeGenerator;
+			return CNG.signature(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())).scale(biomeDispersion.equals(Dispersion.SCATTER) ? 1000D : 0.1D);
+		});
 	}
 
 	public BiomeRarityCellGenerator getChildrenGenerator(RNG random, int sig, double scale)
 	{
-		if(childrenCell == null)
+		return childrenCell.aquire(() ->
 		{
-			childrenCell = new BiomeRarityCellGenerator(random.nextParallelRNG(sig * 2137));
+			BiomeRarityCellGenerator childrenCell = new BiomeRarityCellGenerator(random.nextParallelRNG(sig * 2137));
 			childrenCell.setCellScale(scale);
-		}
-
-		return childrenCell;
+			return childrenCell;
+		});
 	}
 
 	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height)
@@ -247,21 +239,17 @@ public class IrisBiome extends IrisRegistrant
 
 	private int getMaxHeight()
 	{
-		if(maxHeight == Integer.MIN_VALUE)
+		return maxHeight.aquire(() ->
 		{
-			lock.lock();
-
-			maxHeight = 0;
+			int maxHeight = 0;
 
 			for(IrisBiomeGeneratorLink i : getGenerators())
 			{
 				maxHeight += i.getMax();
 			}
 
-			lock.unlock();
-		}
-
-		return maxHeight;
+			return maxHeight;
+		});
 	}
 
 	public IrisBiome infer(InferredType t, InferredType type)
@@ -313,10 +301,9 @@ public class IrisBiome extends IrisRegistrant
 
 	public KList<CNG> getLayerHeightGenerators(RNG rng)
 	{
-		lock.lock();
-		if(layerHeightGenerators == null)
+		return layerHeightGenerators.aquire(() ->
 		{
-			layerHeightGenerators = new KList<>();
+			KList<CNG> layerHeightGenerators = new KList<>();
 
 			int m = 7235;
 
@@ -324,18 +311,16 @@ public class IrisBiome extends IrisRegistrant
 			{
 				layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
 			}
-		}
-		lock.unlock();
 
-		return layerHeightGenerators;
+			return layerHeightGenerators;
+		});
 	}
 
 	public KList<CNG> getLayerSeaHeightGenerators(RNG rng)
 	{
-		lock.lock();
-		if(layerSeaHeightGenerators == null)
+		return layerSeaHeightGenerators.aquire(() ->
 		{
-			layerSeaHeightGenerators = new KList<>();
+			KList<CNG> layerSeaHeightGenerators = new KList<>();
 
 			int m = 7735;
 
@@ -343,10 +328,9 @@ public class IrisBiome extends IrisRegistrant
 			{
 				layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
 			}
-		}
-		lock.unlock();
 
-		return layerSeaHeightGenerators;
+			return layerSeaHeightGenerators;
+		});
 	}
 
 	public boolean isLand()
@@ -394,21 +378,17 @@ public class IrisBiome extends IrisRegistrant
 
 	public KList<IrisBiome> getRealChildren()
 	{
-		lock.lock();
-
-		if(realChildren == null)
+		return realChildren.aquire(() ->
 		{
-			realChildren = new KList<>();
+			KList<IrisBiome> realChildren = new KList<>();
 
 			for(String i : getChildren())
 			{
 				realChildren.add(Iris.data.getBiomeLoader().load(i));
 			}
 
-		}
-
-		lock.unlock();
-		return realChildren;
+			return realChildren;
+		});
 	}
 
 	public KList<String> getAllChildren(int limit)

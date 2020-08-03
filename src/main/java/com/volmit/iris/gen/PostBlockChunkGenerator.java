@@ -87,16 +87,22 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 				{
 					int rxx = rx;
 					int rzz = (z << 4) + j;
+					int hh = h;
 
-					for(IrisPostBlockFilter f : filters)
+					getAccelerant().queue("post", () ->
 					{
-						if(f.getPhase() == h)
+						for(IrisPostBlockFilter f : filters)
 						{
-							f.onPost(rxx, rzz);
+							if(f.getPhase() == hh)
+							{
+								f.onPost(rxx, rzz);
+							}
 						}
-					}
+					});
 				}
 			}
+
+			getAccelerant().waitFor("post");
 
 			for(IrisPostBlockFilter f : filters)
 			{

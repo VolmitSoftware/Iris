@@ -1,7 +1,5 @@
 package com.volmit.iris.gen;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.Bisected;
@@ -23,6 +21,7 @@ import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;
@@ -41,7 +40,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private RNG rockRandom;
 	private int[] cacheHeightMap;
 	private BiomeResult[] cacheTrueBiome;
-	private ReentrantLock cacheLock;
+	private IrisLock cacheLock;
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
@@ -49,7 +48,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		cacheHeightMap = new int[256];
 		cacheTrueBiome = new BiomeResult[256];
 		cachingAllowed = true;
-		cacheLock = new ReentrantLock();
+		cacheLock = new IrisLock("TerrainCacheLock");
 	}
 
 	public void onInit(World world, RNG rng)
@@ -66,7 +65,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, int onlyY)
+	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
 	{
 		if(x > 15 || x < 0 || z > 15 || z < 0)
 		{
@@ -96,7 +95,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				throw new RuntimeException("Null Biome!");
 			}
 
-			if(cachingAllowed)
+			if(cachingAllowed && !sampled)
 			{
 				try
 				{
@@ -112,7 +111,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			KList<BlockData> layers = biome.generateLayers(wx, wz, masterRandom, height, height - getFluidHeight());
 			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(wx, wz, masterRandom, fluidHeight - height) : new KList<>();
-			cacheInternalBiome(x, z, biome);
+
+			if(cachingAllowed && !sampled)
+			{
+				cacheInternalBiome(x, z, biome);
+			}
+
 			boolean caverning = false;
 			KList<Integer> cavernHeights = new KList<>();
 			int lastCavernHeight = -1;
@@ -252,7 +256,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
-			if(cachingAllowed && highestPlaced < height)
+			if(!sampled && cachingAllowed && highestPlaced < height)
 			{
 				cacheHeightMap[(z << 4) | x] = highestPlaced;
 			}
@@ -324,6 +328,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					if(!block.getMaterial().equals(Material.SAND) && !block.getMaterial().equals(Material.RED_SAND))
 					{
 						sliver.set(k, BlockDataTools.getBlockData("RED_SAND"));
+					}
+				}
+
+				if(d.getMaterial().equals(Material.WHEAT) || d.getMaterial().equals(Material.CARROTS) || d.getMaterial().equals(Material.POTATOES) || d.getMaterial().equals(Material.MELON_STEM) || d.getMaterial().equals(Material.PUMPKIN_STEM))
+				{
+					if(!block.getMaterial().equals(Material.FARMLAND))
+					{
+						sliver.set(k, BlockDataTools.getBlockData("FARMLAND"));
 					}
 				}
 

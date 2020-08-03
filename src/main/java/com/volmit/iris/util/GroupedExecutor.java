@@ -5,19 +5,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
-import java.util.concurrent.locks.ReentrantLock;
+
+import com.volmit.iris.Iris;
 
 public class GroupedExecutor
 {
 	private int xc;
 	private ExecutorService service;
-	private ReentrantLock lock;
+	private IrisLock lock;
 	private KMap<String, Integer> mirror;
 
 	public GroupedExecutor(int threadLimit, int priority, String name)
 	{
 		xc = 1;
-		lock = new ReentrantLock();
+		lock = new IrisLock("GX");
 		mirror = new KMap<String, Integer>();
 
 		if(threadLimit == 1)
@@ -74,12 +75,21 @@ public class GroupedExecutor
 			return;
 		}
 
+		PrecisionStopwatch s = PrecisionStopwatch.start();
+
 		while(true)
 		{
-			J.sleep(1);
+			J.sleep(0);
 
 			if(mirror.get(g) == 0)
 			{
+				break;
+			}
+
+			if(s.getMilliseconds() > 30000)
+			{
+				Iris.warn("Couldn't unlock grouped task: " + g + "! Clearing Task Group Forcibly and timing out!");
+				mirror.remove(g);
 				break;
 			}
 		}

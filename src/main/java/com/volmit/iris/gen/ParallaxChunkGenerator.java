@@ -1,7 +1,6 @@
 package com.volmit.iris.gen;
 
 import java.io.IOException;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -19,6 +18,7 @@ import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.NastyRunnable;
@@ -37,8 +37,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected KMap<ChunkPosition, AtomicSliver> ceilingSliverCache;
 	protected AtomicWorldData ceilingParallaxMap;
 	private MasterLock masterLock;
-	private ReentrantLock lock = new ReentrantLock();
-	private ReentrantLock lockq = new ReentrantLock();
+	private IrisLock lock = new IrisLock("ParallaxLock");
+	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
 	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
@@ -190,6 +190,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+		getParallaxMap().clean(ticks);
+		Iris.data.getObjectLoader().clean();
 	}
 
 	protected void injectBiomeSky(int x, int z, BiomeGrid grid)
@@ -370,13 +372,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 	}
 
-	@Override
-	protected void onTick(int ticks)
-	{
-		getParallaxMap().clean(ticks);
-		Iris.data.getObjectLoader().clean();
-	}
-
 	public AtomicSliver sampleSliver(int x, int z)
 	{
 		ChunkPosition key = new ChunkPosition(x, z);
@@ -387,7 +382,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		AtomicSliver s = new AtomicSliver(x & 15, z & 15);
-		onGenerateColumn(x >> 4, z >> 4, x, z, x & 15, z & 15, s, null);
+		onGenerateColumn(x >> 4, z >> 4, x, z, x & 15, z & 15, s, null, true);
 		getSliverCache().put(key, s);
 
 		return s;

@@ -2,7 +2,6 @@ package com.volmit.iris.gen;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -15,6 +14,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CNG;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -26,13 +26,13 @@ import lombok.EqualsAndHashCode;
 public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext
 {
 	private Method initLighting;
-	private ReentrantLock lock;
+	private IrisLock lock;
 	private KMap<Player, IrisBiome> b = new KMap<>();
 
 	public IrisChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		lock = new ReentrantLock();
+		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	@Override
@@ -77,7 +77,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onTick(int ticks)
 	{
-		super.onTick(ticks);
+		
 	}
 
 	@Override

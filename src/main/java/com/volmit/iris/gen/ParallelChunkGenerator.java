@@ -1,7 +1,5 @@
 package com.volmit.iris.gen;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
@@ -10,6 +8,7 @@ import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
@@ -25,7 +24,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 	protected boolean unsafe;
 	protected int cacheX;
 	protected int cacheZ;
-	private ReentrantLock genlock;
+	private IrisLock genlock;
 	protected boolean cachingAllowed;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
@@ -35,7 +34,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		cacheX = 0;
 		cacheZ = 0;
 		this.threads = threads;
-		genlock = new ReentrantLock();
+		genlock = new IrisLock("ParallelGenLock");
 	}
 
 	public void changeThreadCount(int tc)
@@ -51,11 +50,11 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
 		}
 	}
 
-	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, int onlyY);
+	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
 
 	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
 	{
-		onGenerateColumn(cx, cz, wx, wz, x, z, sliver, biomeMap, -1);
+		onGenerateColumn(cx, cz, wx, wz, x, z, sliver, biomeMap, false);
 	}
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);

@@ -1,7 +1,5 @@
 package com.volmit.iris.gen;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
@@ -17,6 +15,7 @@ import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
@@ -29,7 +28,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 {
-	protected ReentrantLock regLock;
+	protected IrisLock regLock;
 	private KMap<String, IrisGenerator> generators;
 	private KMap<String, IrisGenerator> ceilingGenerators;
 	protected GenLayerBiome glBiome;
@@ -44,7 +43,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 		super(dimensionName);
 		generators = new KMap<>();
 		ceilingGenerators = new KMap<>();
-		regLock = new ReentrantLock();
+		regLock = new IrisLock("BiomeChunkGenerator");
 		biomeHitCache = new KMap<>();
 		ceilingBiomeHitCache = new KMap<>();
 		biomeCache = new IrisBiome[256];
@@ -119,29 +118,45 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 	{
 		double hi = IrisInterpolation.getNoise(gen.getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), gen.getInterpolationScale(), (xx, zz) ->
 		{
-			IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
-
-			for(IrisBiomeGeneratorLink i : b.getGenerators())
+			try
 			{
-				if(i.getGenerator().equals(gen.getLoadKey()))
+				IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
+
+				for(IrisBiomeGeneratorLink i : b.getGenerators())
 				{
-					return i.getMax();
+					if(i.getGenerator().equals(gen.getLoadKey()))
+					{
+						return i.getMax();
+					}
 				}
+
 			}
 
+			catch(Throwable e)
+			{
+				Iris.warn("Failed to sample biome at " + rx + " " + rz + " using the generator " + gen.getLoadKey());
+			}
 			return 0;
 		});
 
 		double lo = IrisInterpolation.getNoise(gen.getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), gen.getInterpolationScale(), (xx, zz) ->
 		{
-			IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
-
-			for(IrisBiomeGeneratorLink i : b.getGenerators())
+			try
 			{
-				if(i.getGenerator().equals(gen.getLoadKey()))
+				IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
+
+				for(IrisBiomeGeneratorLink i : b.getGenerators())
 				{
-					return i.getMin();
+					if(i.getGenerator().equals(gen.getLoadKey()))
+					{
+						return i.getMin();
+					}
 				}
+			}
+
+			catch(Throwable e)
+			{
+				Iris.warn("Failed to sample biome at " + rx + " " + rz + " using the generator " + gen.getLoadKey());
 			}
 
 			return 0;

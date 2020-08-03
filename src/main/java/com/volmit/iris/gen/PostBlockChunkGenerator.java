@@ -1,7 +1,5 @@
 package com.volmit.iris.gen;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
@@ -9,6 +7,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -30,7 +29,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	private ChunkData currentData;
 	private KList<IrisPostBlockFilter> availableFilters;
 	private String postKey;
-	private ReentrantLock lock;
+	private IrisLock lock;
 	private int minPhase;
 	private int maxPhase;
 
@@ -39,7 +38,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 		super(dimensionName, threads);
 		availableFilters = new KList<>();
 		postKey = "post-" + dimensionName;
-		lock = new ReentrantLock();
+		lock = new IrisLock("PostChunkGenerator");
 	}
 
 	public void onInit(World world, RNG rng)

@@ -31,7 +31,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 	{
 		if(useFlip.flip())
 		{
-			unloadLast(60000);
+			unloadLast(60000 * 5);
 		}
 	}
 

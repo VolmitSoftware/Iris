@@ -1,7 +1,6 @@
 package com.volmit.iris.util;
 
 import java.io.File;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
@@ -17,11 +16,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected KList<File> folderCache;
 	protected Class<? extends T> objectClass;
 	protected String cname;
-	protected ReentrantLock lock;
+	protected IrisLock lock;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
-		lock = new ReentrantLock();
+		lock = new IrisLock("Res");
 		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
 		cname = objectClass.getCanonicalName();

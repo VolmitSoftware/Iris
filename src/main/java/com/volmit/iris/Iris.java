@@ -36,6 +36,7 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONException;
@@ -64,6 +65,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 	private KList<String> lines = new KList<>();
 	public RollingSequence hits = new RollingSequence(20);
 	public RollingSequence tp = new RollingSequence(100);
+	private static IrisLock lock = new IrisLock("Iris");
 	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
 
 	@Permission
@@ -97,6 +99,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 
 	public void onEnable()
 	{
+		lock = new IrisLock("Iris");
 		instance = this;
 		hotloader = new IrisHotloadManager();
 		data = new IrisDataManager(getDataFolder());
@@ -122,6 +125,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 
 	public void onDisable()
 	{
+		lock.unlock();
 		proj.close();
 
 		for(GroupedExecutor i : executors)
@@ -280,16 +284,18 @@ public class Iris extends MortarPlugin implements BoardProvider
 
 	public static void msg(String string)
 	{
+		lock.lock();
 		String msg = ChatColor.GREEN + "[Iris]: " + ChatColor.GRAY + string;
 
 		if(last.equals(msg))
 		{
+			lock.unlock();
 			return;
 		}
 
 		last = msg;
-
-		Bukkit.getConsoleSender().sendMessage(msg);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Bukkit.getConsoleSender().sendMessage(msg));
+		lock.unlock();
 	}
 
 	public static void warn(String string)

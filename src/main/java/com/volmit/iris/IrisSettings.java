@@ -9,7 +9,7 @@ public class IrisSettings
 
 	@DontObfuscate
 	@Desc("Iris generator threads (must be 2 or higher).")
-	public int threads = 16;
+	public int threads = 128;
 
 	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")

@@ -162,9 +162,11 @@ public class GenLayerCave extends GenLayer
 		Material e = data.getType(y + 3);
 		Material f = data.getType(y - 1);
 
-		if(can(a) && canAir(c) && canAir(f) && canWater(d) && canWater(e))
+		if(can(a) && canAir(c) && canAir(f) && canWater(d) && canAir(d) && canWater(e))
 		{
 			data.set(y, CAVE_AIR);
+			data.set(y + 1, CAVE_AIR);
+			data.set(y + 2, CAVE_AIR);
 			return true;
 		}
 
@@ -173,7 +175,7 @@ public class GenLayerCave extends GenLayer
 
 	public boolean canAir(Material m)
 	{
-		return (m.isSolid() || m.equals(Material.AIR) || m.equals(Material.CAVE_AIR)) && !m.equals(Material.BEDROCK);
+		return (m.isSolid() || (BlockDataTools.isDecorant(m)) || m.equals(Material.AIR) || m.equals(Material.CAVE_AIR)) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean canWater(Material m)

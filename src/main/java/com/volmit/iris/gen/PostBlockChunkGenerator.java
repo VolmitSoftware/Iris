@@ -110,7 +110,15 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 				{
 					while(f.getQueue().size() > 0)
 					{
-						f.getQueue().pop().run();
+						try
+						{
+							f.getQueue().pop().run();
+						}
+
+						catch(Throwable e)
+						{
+
+						}
 					}
 				}
 			}

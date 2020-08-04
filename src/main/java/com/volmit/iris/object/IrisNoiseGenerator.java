@@ -19,6 +19,10 @@ public class IrisNoiseGenerator
 	private double zoom = 1;
 
 	@DontObfuscate
+	@Desc("Reverse the output. So that noise = -noise + opacity")
+	private boolean negative = false;
+
+	@DontObfuscate
 	@Desc("The output multiplier")
 	private double opacity = 1;
 
@@ -115,6 +119,7 @@ public class IrisNoiseGenerator
 		}
 
 		double n = getGenerator(superSeed).fitDoubleD(0, opacity, (x / zoom) + offsetX, (z / zoom) + offsetZ);
+		n = negative ? (-n + opacity) : n;
 		n = (exponent != 1 ? n < 0 ? -Math.pow(-n, exponent) : Math.pow(n, exponent) : n) + offsetY;
 		n = parametric ? IrisInterpolation.parametric(n, 1) : n;
 		n = bezier ? IrisInterpolation.bezier(n) : n;

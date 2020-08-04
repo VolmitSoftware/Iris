@@ -13,14 +13,14 @@ public class BlockDataTools
 	private static final KList<String> nulls = new KList<>();
 
 	public static BlockData getBlockData(String bd)
-	{try
 	{
-		if(bdc.containsKey(bd))
+		try
 		{
-			return bdc.get(bd).clone();
-		}
+			if(bdc.containsKey(bd))
+			{
+				return bdc.get(bd).clone();
+			}
 
-		
 			BlockData bdx = parseBlockData(bd);
 
 			if(bdx == null)
@@ -96,6 +96,11 @@ public class BlockDataTools
 
 	public static boolean canPlaceOnto(Material mat, Material onto)
 	{
+		if(onto.equals(Material.AIR) || onto.equals(Material.CAVE_AIR))
+		{
+			return false;
+		}
+
 		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
 		{
 			return false;
@@ -126,5 +131,63 @@ public class BlockDataTools
 		}
 
 		return true;
+	}
+
+	public static boolean isDecorant(Material m)
+	{
+		//@builder
+		return m.equals(Material.GRASS) 
+				|| m.equals(Material.TALL_GRASS)
+				|| m.equals(Material.CORNFLOWER)
+				|| m.equals(Material.SUNFLOWER)
+				|| m.equals(Material.CHORUS_FLOWER)
+				|| m.equals(Material.POPPY)
+				|| m.equals(Material.DANDELION)
+				|| m.equals(Material.OXEYE_DAISY)
+				|| m.equals(Material.ORANGE_TULIP)
+				|| m.equals(Material.PINK_TULIP)
+				|| m.equals(Material.RED_TULIP)
+				|| m.equals(Material.WHITE_TULIP)
+				|| m.equals(Material.LILAC)
+				|| m.equals(Material.DEAD_BUSH)
+				|| m.equals(Material.SWEET_BERRY_BUSH)
+				|| m.equals(Material.ROSE_BUSH)
+				|| m.equals(Material.WITHER_ROSE)
+				|| m.equals(Material.ALLIUM)
+				|| m.equals(Material.BLUE_ORCHID)
+				|| m.equals(Material.LILY_OF_THE_VALLEY)
+				|| m.equals(Material.CRIMSON_FUNGUS)
+				|| m.equals(Material.WARPED_FUNGUS)
+				|| m.equals(Material.RED_MUSHROOM)
+				|| m.equals(Material.BROWN_MUSHROOM)
+				|| m.equals(Material.CRIMSON_ROOTS)
+				|| m.equals(Material.AZURE_BLUET)
+				|| m.equals(Material.WEEPING_VINES)
+				|| m.equals(Material.WEEPING_VINES_PLANT)
+				|| m.equals(Material.WARPED_ROOTS)
+				|| m.equals(Material.NETHER_SPROUTS)
+				|| m.equals(Material.TWISTING_VINES)
+				|| m.equals(Material.TWISTING_VINES_PLANT)
+				|| m.equals(Material.SUGAR_CANE)
+				|| m.equals(Material.WHEAT)
+				|| m.equals(Material.POTATOES)
+				|| m.equals(Material.CARROTS)
+				|| m.equals(Material.BEETROOTS)
+				|| m.equals(Material.NETHER_WART)
+				|| m.equals(Material.SEA_PICKLE)
+				|| m.equals(Material.SEAGRASS)
+				|| m.equals(Material.ACACIA_BUTTON)
+				|| m.equals(Material.BIRCH_BUTTON)
+				|| m.equals(Material.CRIMSON_BUTTON)
+				|| m.equals(Material.DARK_OAK_BUTTON)
+				|| m.equals(Material.JUNGLE_BUTTON)
+				|| m.equals(Material.OAK_BUTTON)
+				|| m.equals(Material.POLISHED_BLACKSTONE_BUTTON)
+				|| m.equals(Material.SPRUCE_BUTTON)
+				|| m.equals(Material.STONE_BUTTON)
+				|| m.equals(Material.WARPED_BUTTON)
+				|| m.equals(Material.TORCH)
+				|| m.equals(Material.SOUL_TORCH);
+		//@done
 	}
 }

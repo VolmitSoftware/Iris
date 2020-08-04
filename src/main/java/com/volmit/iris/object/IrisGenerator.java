@@ -1,10 +1,13 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,6 +24,22 @@ public class IrisGenerator extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The opacity, essentially a multiplier on the output.")
 	private double opacity = 1;
+
+	@DontObfuscate
+	@Desc("The size of the cell fractures")
+	private double cellFractureZoom = 1D;
+
+	@DontObfuscate
+	@Desc("Cell Fracture Coordinate Shuffling")
+	private double cellFractureShuffle = 12D;
+
+	@DontObfuscate
+	@Desc("The height of fracture cells. Set to 0 to disable")
+	private double cellFractureHeight = 0D;
+
+	@DontObfuscate
+	@Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
+	private double cellPercentSize = 0.75D;
 
 	@DontObfuscate
 	@Desc("The offset to shift this noise x")
@@ -58,6 +77,8 @@ public class IrisGenerator extends IrisRegistrant
 	@Desc("The noise gen for cliff height.")
 	private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 
+	private transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
+
 	public double getMax()
 	{
 		return opacity;
@@ -66,6 +87,11 @@ public class IrisGenerator extends IrisRegistrant
 	public boolean hasCliffs()
 	{
 		return cliffHeightMax > 0;
+	}
+
+	public CellGenerator getCellGenerator(long seed)
+	{
+		return cellGen.aquire(() -> new CellGenerator(new RNG(seed + 239466)));
 	}
 
 	public double getHeight(double rx, double rz, long superSeed)
@@ -93,7 +119,21 @@ public class IrisGenerator extends IrisRegistrant
 			Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity + " ZOOM = " + zoom);
 		}
 
-		return hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
+		v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
+		v = hasCellCracks() ? cell(rx, rz, v, superSeed + 48622 + hc) : v;
+
+		return v;
+	}
+
+	public double cell(double rx, double rz, double v, double superSeed)
+	{
+		getCellGenerator(seed + 46222).setShuffle(getCellFractureShuffle());
+		return getCellGenerator(seed + 46222).getDistance(rx / getCellFractureZoom(), rz / getCellFractureZoom()) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
+	}
+
+	private boolean hasCellCracks()
+	{
+		return getCellFractureHeight() != 0;
 	}
 
 	public double getCliffHeight(double rx, double rz, double superSeed)

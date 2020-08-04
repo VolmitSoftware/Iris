@@ -143,7 +143,7 @@ public class IrisDepositGenerator
 
 			int x = rng.i(af, bf);
 			int z = rng.i(af, bf);
-			int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 7;
+			int height = (int) (Math.round(g.getTerrainWaterHeight(x, z))) - 2;
 
 			if(height <= 0)
 			{
@@ -160,7 +160,7 @@ public class IrisDepositGenerator
 
 			int h = rng.i(i, a);
 
-			if(h > maxHeight || h < minHeight || h > height - 7)
+			if(h > maxHeight || h < minHeight)
 			{
 				return;
 			}
@@ -171,7 +171,7 @@ public class IrisDepositGenerator
 				int ny = j.getBlockY() + h;
 				int nz = j.getBlockZ() + z;
 
-				if(ny > height - 7 || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
+				if(ny > height || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
 				{
 					continue;
 				}

@@ -53,7 +53,7 @@ public class GenLayerBiome extends GenLayer
 			return null;
 		}
 
-		regionGenerator.setShuffle(8);
+		regionGenerator.setShuffle(11);
 		regionGenerator.setCellScale(0.33 / iris.getDimension().getRegionZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
@@ -133,8 +133,8 @@ public class GenLayerBiome extends GenLayer
 			return new BiomeResult(null, 0);
 		}
 
-		double x = bx / iris.getDimension().getBiomeZoom();
-		double z = bz / iris.getDimension().getBiomeZoom();
+		double x = bx / (iris.getDimension().getBiomeZoom() * regionData.getBiomeZoom(inferredType));
+		double z = bz / (iris.getDimension().getBiomeZoom() * regionData.getBiomeZoom(inferredType));
 		IrisBiome biome = cell.get(x, z, biomes);
 		biome.setInferredType(inferredType);
 

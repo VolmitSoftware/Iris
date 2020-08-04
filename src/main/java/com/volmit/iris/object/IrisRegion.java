@@ -29,6 +29,10 @@ public class IrisRegion extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The min shore height")
 	private double shoreHeightMin = 1.2;
+	@DontObfuscate
+
+	@Desc("The scrambling between biomes")
+	private double biomeShuffle = 11;
 
 	@DontObfuscate
 	@Desc("The the max shore height")

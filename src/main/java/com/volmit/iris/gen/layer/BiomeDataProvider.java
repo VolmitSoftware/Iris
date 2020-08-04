@@ -24,9 +24,7 @@ public class BiomeDataProvider
 
 	public BiomeResult generatePureData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		getGenerator().setShuffle(12);
-		double zoom = (layer.getIris().getDimension().getBiomeZoom() * regionData.getBiomeZoom(getType())) * 3.15;
-		getGenerator().setCellScale(1D / zoom);
+		getGenerator().setShuffle(regionData.getBiomeShuffle());
 		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(getType()), getType());
 	}
 

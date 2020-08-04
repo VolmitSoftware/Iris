@@ -635,11 +635,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return getNoiseHeight(x, z) + getFluidHeight();
 	}
 
-	public double getTerrainHeightUncached(int x, int z)
-	{
-		return getNoiseHeight(x, z) + getFluidHeight();
-	}
-
 	public double getTerrainWaterHeight(int x, int z)
 	{
 		return Math.max(getTerrainHeight(x, z), getFluidHeight());

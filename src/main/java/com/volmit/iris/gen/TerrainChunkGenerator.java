@@ -212,7 +212,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
 				}
 
-				if((carvable && cavernSurface) || (k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k > fluidHeight))
+				if((carvable && cavernSurface) || (k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
 				{
 					decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
 				}
@@ -309,7 +309,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
 		{
-			if(i.getPartOf().equals(DecorationPart.SHORE_LINE) && !touchesSea(rx, rz))
+			if(i.getPartOf().equals(DecorationPart.SHORE_LINE) && (!touchesSea(rx, rz) || k != getFluidHeight()))
 			{
 				continue;
 			}
@@ -632,6 +632,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return cacheHeightMap[((z & 15) << 4) | (x & 15)];
 		}
 
+		return getNoiseHeight(x, z) + getFluidHeight();
+	}
+
+	public double getTerrainHeightUncached(int x, int z)
+	{
 		return getNoiseHeight(x, z) + getFluidHeight();
 	}
 

@@ -41,7 +41,7 @@ public class IrisAxisRotationClamp
 
 	public boolean isUnlimited()
 	{
-		return min == max;
+		return min == max && min == 0;
 	}
 
 	public double getRadians(int rng)
@@ -54,6 +54,11 @@ public class IrisAxisRotationClamp
 			}
 
 			return Math.toRadians(((double) interval * (Math.ceil(Math.abs((rng % 360D) / (double) interval)))) % 360D);
+		}
+
+		if(min == max && min != 0)
+		{
+			return Math.toRadians(max);
 		}
 
 		return Math.toRadians(M.clip(((double) interval * (Math.ceil(Math.abs((rng % 360D) / (double) interval)))) % 360D, Math.min(min, max), Math.max(min, max)));

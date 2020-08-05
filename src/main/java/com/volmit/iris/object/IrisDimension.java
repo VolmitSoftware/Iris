@@ -102,6 +102,10 @@ public class IrisDimension extends IrisRegistrant
 	private KList<IrisPostProcessor> postProcessors = getDefaultPostProcessors();
 
 	@DontObfuscate
+	@Desc("Compatability filters")
+	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
+
+	@DontObfuscate
 	@Desc("The ceiling dimension. Leave blank for normal sky.")
 	private String ceiling = "";
 
@@ -244,6 +248,112 @@ public class IrisDimension extends IrisRegistrant
 			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - " + g.getMaxPhase());
 			return cacheFilters;
 		});
+	}
+
+	private KList<IrisCompatabilityFilter> getDefaultCompatability()
+	{
+		KList<IrisCompatabilityFilter> filters = new KList<>();
+
+		// Below 1.16
+		// TODO MORE
+		filters.add(new IrisCompatabilityFilter("CHISELED_NETHER_BRICKS", "NETHER_BRICKS"));
+		filters.add(new IrisCompatabilityFilter("NETHER_FENCE", "LEGACY_NETHER_FENCE"));
+		filters.add(new IrisCompatabilityFilter("CHAIN", "LEGACY_NETHER_FENCE"));
+		filters.add(new IrisCompatabilityFilter("NETHERITE_BLOCK", "QUARTZ_BLOCK"));
+		filters.add(new IrisCompatabilityFilter("BLACKSTONE", "COBBLESTONE"));
+		filters.add(new IrisCompatabilityFilter("BASALT", "STONE"));
+		filters.add(new IrisCompatabilityFilter("ANCIENT_DEBRIS", "NETHERRACK"));
+		filters.add(new IrisCompatabilityFilter("NETHERRACK", "LEGACY_NETHERRACK"));
+
+		// Below 1.15
+		filters.add(new IrisCompatabilityFilter("HONEY_BLOCK", "OAK_LEAVES"));
+		filters.add(new IrisCompatabilityFilter("BEEHIVE", "OAK_LEAVES"));
+		filters.add(new IrisCompatabilityFilter("BEE_NEST", "OAK_LEAVES"));
+
+		// Below 1.14
+		filters.add(new IrisCompatabilityFilter("GRANITE_WALL", "COBBLESTONE_WALL"));
+		filters.add(new IrisCompatabilityFilter("DIORITE_WALL", "COBBLESTONE_WALL"));
+		filters.add(new IrisCompatabilityFilter("ANDESITE_WALL", "COBBLESTONE_WALL"));
+		filters.add(new IrisCompatabilityFilter("SWEET_BERRY_BUSH", "GRASS"));
+		filters.add(new IrisCompatabilityFilter("STONECUTTER", "CRAFTING_TABLE"));
+		filters.add(new IrisCompatabilityFilter("SANDSTONE_STAIRS", "LEGACY_SANDSTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_SANDSTONE_STAIRS", "LEGACY_SANDSTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("MOSSY_COBBLESTONE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("MOSSY_STONE_BRICK_STAIRS", "STONE_BRICK_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_GRANITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("GRANITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_DIORITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("DIORITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_ANDESITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("ANDESITE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("STONE_STAIRS", "COBBLESTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("END_STONE_BRICK_STAIRS", "LEGACY_SANDSTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("NETHER_BRICK_STAIRS", "LEGACY_NETHER_BRICK_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("RED_NETHER_BRICK_STAIRS", "NETHER_BRICK_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_QUARTZ_STAIRS", "LEGACY_QUARTZ_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("QUARTZ_STAIRS", "LEGACY_QUARTZ_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("RED_SANDSTONE_STAIRS", "LEGACY_RED_SANDSTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_RED_SANDSTONE_STAIRS", "LEGACY_RED_SANDSTONE_STAIRS"));
+		filters.add(new IrisCompatabilityFilter("STONE_SLAB", "SMOOTH_STONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("SMOKER", "FURNACE"));
+		filters.add(new IrisCompatabilityFilter("SMITHING_TABLE", "CRAFTING_TABLE"));
+		filters.add(new IrisCompatabilityFilter("END_STONE_BRICK_SLAB", "SANDSTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("RED_NETHER_BRICK_SLAB", "NETHER_BRICK_SLAB"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_QUARTZ_SLAB", "QUARTZ_SLAB"));
+		filters.add(new IrisCompatabilityFilter("CUT_SANDSTONE_SLAB", "SANDSTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("CUT_RED_SANDSTONE_SLAB", "RED_SANDSTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_RED_SANDSTONE_SLAB", "RED_SANDSTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("SMOOTH_SANDSTONE_SLAB", "SANDSTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("MOSSY_COBBLESTONE_SLAB", "COBBLESTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("MOSSY_STONE_BRICK_SLAB", "STONE_BRICK_SLAB"));
+		filters.add(new IrisCompatabilityFilter("STONE_SLAB", "SMOOTH_STONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("ANDESITE_SLAB", "COBBLESTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("ANDESITE_SLAB", "COBBLESTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("DIORITE_SLAB", "COBBLESTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("GRANITE_SLAB", "COBBLESTONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_ANDESITE_SLAB", "SMOOTH_STONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_DIORITE_SLAB", "SMOOTH_STONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("POLISHED_GRANITE_SLAB", "SMOOTH_STONE_SLAB"));
+		filters.add(new IrisCompatabilityFilter("WARPED_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("WARPED_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("SPRUCE_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("SPRUCE_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("OAK_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("OAK_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("JUNGLE_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("JUNGLE_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("DARK_OAK_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("DARK_OAK_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("BIRCH_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("BIRCH_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("ACACIA_WALL_SIGN", "LEGACY_WALL_SIGN"));
+		filters.add(new IrisCompatabilityFilter("ACACIA_SIGN", "LEGACY_SIGN_POST"));
+		filters.add(new IrisCompatabilityFilter("SCAFFOLDING", "BIRCH_FENCE"));
+		filters.add(new IrisCompatabilityFilter("LOOM", "LOOM"));
+		filters.add(new IrisCompatabilityFilter("LECTERN", "BOOKSHELF"));
+		filters.add(new IrisCompatabilityFilter("LANTERN", "REDSTONE_LAMP"));
+		filters.add(new IrisCompatabilityFilter("JIGSAW", "AIR"));
+		filters.add(new IrisCompatabilityFilter("GRINDSTONE", "COBBLESTONE"));
+		filters.add(new IrisCompatabilityFilter("FLETCHING_TABLE", "CRAFTING_TABLE"));
+		filters.add(new IrisCompatabilityFilter("COMPOSTER", "CHEST"));
+		filters.add(new IrisCompatabilityFilter("CARTOGRAPHY_TABLE", "CRAFTING_TABLE"));
+		filters.add(new IrisCompatabilityFilter("CAMPFIRE", "DARK_OAK_SLAB"));
+		filters.add(new IrisCompatabilityFilter("BLAST_FURNACE", "FURNACE"));
+		filters.add(new IrisCompatabilityFilter("BELL", "REDSTONE_LAMP"));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=south]", "minecraft:hay_bale[axis=z]", true));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=north]", "minecraft:hay_bale[axis=z]", true));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=east]", "minecraft:hay_bale[axis=x]", true));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=west]", "minecraft:hay_bale[axis=x]", true));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=up]", "minecraft:hay_bale[axis=y]", true));
+		filters.add(new IrisCompatabilityFilter("minecraft:barrel[facing=down]", "minecraft:hay_bale[axis=y]", true));
+		filters.add(new IrisCompatabilityFilter("BAMBOO", "BIRCH_FENCE"));
+		filters.add(new IrisCompatabilityFilter("BAMBOO_SAPLING", "BIRCH_SAPLING"));
+		filters.add(new IrisCompatabilityFilter("POTTED_BAMBOO", "POTTED_BIRCH_SAPLING"));
+		filters.add(new IrisCompatabilityFilter("*", "STONE"));
+
+		return filters;
 	}
 
 	public CNG getCoordFracture(RNG rng, int signature)

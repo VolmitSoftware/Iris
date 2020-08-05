@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class IrisRegistrant
 {
-	private String loadKey;
+	private transient String loadKey;
 
-	private File loadFile;
+	private transient File loadFile;
 }

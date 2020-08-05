@@ -51,6 +51,14 @@ public class IrisObjectPlacement
 	@Desc("If set to true, this object will only place parts of itself where blocks already exist.")
 	private boolean meld = false;
 
+	@DontObfuscate
+	@Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface.")
+	private boolean bottom = false;
+
+	@DontObfuscate
+	@Desc("If set to true, air will be placed before the schematic places.")
+	private boolean bore = false;
+
 	public IrisObjectPlacement()
 	{
 

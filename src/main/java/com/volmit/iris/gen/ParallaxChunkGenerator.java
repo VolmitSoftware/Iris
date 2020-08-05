@@ -13,6 +13,8 @@ import com.volmit.iris.gen.atomics.MasterLock;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisStructurePlacement;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
@@ -220,6 +222,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				getAccelerant().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
+
 					RNG ro = random.nextParallelRNG(496888 + i + j);
 
 					int g = 1;
@@ -252,6 +255,18 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 								continue searching;
 							}
 						}
+					}
+
+					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
+
+					for(IrisStructurePlacement k : r.getStructures())
+					{
+						k.place(this, random, i, j);
+					}
+
+					for(IrisStructurePlacement k : b.getStructures())
+					{
+						k.place(this, random, i, j);
 					}
 
 					for(IrisObjectPlacement k : b.getObjects())

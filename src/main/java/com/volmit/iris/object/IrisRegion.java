@@ -71,6 +71,10 @@ public class IrisRegion extends IrisRegistrant
 	private double biomeImplosionRatio = 0.4;
 
 	@DontObfuscate
+	@Desc("A list of structure tilesets")
+	private KList<IrisStructurePlacement> structures = new KList<>();
+
+	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> landBiomes = new KList<>();
 

@@ -54,8 +54,22 @@ public class CellGenerator
 		{
 			return 0;
 		}
-		
+
 		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
+	}
+
+	public float getValue(double x, double y, double z, int possibilities)
+	{
+		if(possibilities == 1)
+		{
+			return 0;
+		}
+
+		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)),
+
+				(float) ((y * cellScale) + (cng.noise(x, y) * shuffle))
+
+				, (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
 	}
 
 	public int getIndex(double x, double z, int possibilities)
@@ -66,5 +80,15 @@ public class CellGenerator
 		}
 
 		return (int) Math.round(getValue(x, z, possibilities));
+	}
+
+	public int getIndex(double x, double y, double z, int possibilities)
+	{
+		if(possibilities == 1)
+		{
+			return 0;
+		}
+
+		return (int) Math.round(getValue(x, y, z, possibilities));
 	}
 }

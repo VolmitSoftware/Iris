@@ -2,9 +2,9 @@ package com.volmit.iris.util;
 
 import com.volmit.iris.object.IrisBiome;
 
-public class BiomeRarityCellGenerator extends CellGenerator
+public class RarityCellGenerator extends CellGenerator
 {
-	public BiomeRarityCellGenerator(RNG rng)
+	public RarityCellGenerator(RNG rng)
 	{
 		super(rng);
 	}

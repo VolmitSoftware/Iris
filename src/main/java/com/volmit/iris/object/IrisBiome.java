@@ -5,7 +5,7 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.BiomeRarityCellGenerator;
+import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -91,11 +91,15 @@ public class IrisBiome extends IrisRegistrant
 	private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
 
 	@DontObfuscate
+	@Desc("A list of structure tilesets")
+	private KList<IrisStructurePlacement> structures = new KList<>();
+
+	@DontObfuscate
 	@Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient InferredType inferredType;
-	private transient AtomicCache<BiomeRarityCellGenerator> childrenCell = new AtomicCache<>();
+	private transient AtomicCache<RarityCellGenerator> childrenCell = new AtomicCache<>();
 	private transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
 	private transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
@@ -127,11 +131,11 @@ public class IrisBiome extends IrisRegistrant
 		});
 	}
 
-	public BiomeRarityCellGenerator getChildrenGenerator(RNG random, int sig, double scale)
+	public RarityCellGenerator getChildrenGenerator(RNG random, int sig, double scale)
 	{
 		return childrenCell.aquire(() ->
 		{
-			BiomeRarityCellGenerator childrenCell = new BiomeRarityCellGenerator(random.nextParallelRNG(sig * 2137));
+			RarityCellGenerator childrenCell = new RarityCellGenerator(random.nextParallelRNG(sig * 2137));
 			childrenCell.setCellScale(scale);
 			return childrenCell;
 		});

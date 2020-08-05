@@ -13,6 +13,7 @@ import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.JSONObject;
 import com.volmit.iris.util.ObjectResourceLoader;
@@ -29,6 +30,7 @@ public class IrisDataManager
 	private ResourceLoader<IrisRegion> regionLoader;
 	private ResourceLoader<IrisDimension> dimensionLoader;
 	private ResourceLoader<IrisGenerator> generatorLoader;
+	private ResourceLoader<IrisStructure> structureLoader;
 	private ObjectResourceLoader objectLoader;
 
 	public void hotloaded()
@@ -37,6 +39,7 @@ public class IrisDataManager
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
+		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
 		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
 		writeExamples();

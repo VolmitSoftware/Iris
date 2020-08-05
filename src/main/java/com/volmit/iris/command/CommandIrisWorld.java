@@ -13,6 +13,9 @@ public class CommandIrisWorld extends MortarCommand
 	@Command
 	private CommandIrisMetrics metrics;
 
+	@Command
+	private CommandIrisPregen pregen;
+
 	public CommandIrisWorld()
 	{
 		super("world", "wrld");

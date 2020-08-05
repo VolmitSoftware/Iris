@@ -132,9 +132,9 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
-			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 3 + Math.abs(airReversal); k++)
+			for(int k = Math.max(height, fluidHeight); k < Math.max(height, fluidHeight) + 12 + Math.abs(airReversal); k++)
 			{
-				if(k < Math.max(height, fluidHeight) + 3)
+				if(k < Math.max(height, fluidHeight) + 12)
 				{
 					if(biomeMap != null)
 					{

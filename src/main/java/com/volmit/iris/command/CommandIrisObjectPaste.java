@@ -52,7 +52,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 			sender.sendMessage("Can't find " + "objects/" + args[0] + ".iob");
 		}
 
-		ItemStack wand = ((Player) sender).getInventory().getItemInMainHand();
+		ItemStack wand = sender.player().getInventory().getItemInMainHand();
 		IrisObject o = new IrisObject(0, 0, 0);
 
 		try
@@ -60,8 +60,8 @@ public class CommandIrisObjectPaste extends MortarCommand
 			o.read(new File(Iris.instance.getDataFolder(), "objects/" + args[0] + ".iob"));
 			sender.sendMessage("Loaded " + "objects/" + args[0] + ".iob");
 
-			((Player) sender).getWorld().playSound(((Player) sender).getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
-			Location block = ((Player) sender).getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
+			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+			Location block = sender.player().getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
 
 			if(intoWand && WandController.isWand(wand))
 			{

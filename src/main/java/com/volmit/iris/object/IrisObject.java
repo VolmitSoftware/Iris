@@ -29,6 +29,7 @@ import lombok.EqualsAndHashCode;
 public class IrisObject extends IrisRegistrant
 {
 	private static final Material SNOW = Material.SNOW;
+	private static final BlockData AIR = BlockDataTools.getBlockData("CAVE_AIR");
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {BlockDataTools.getBlockData("minecraft:snow[layers=1]"), BlockDataTools.getBlockData("minecraft:snow[layers=2]"), BlockDataTools.getBlockData("minecraft:snow[layers=3]"), BlockDataTools.getBlockData("minecraft:snow[layers=4]"), BlockDataTools.getBlockData("minecraft:snow[layers=5]"), BlockDataTools.getBlockData("minecraft:snow[layers=6]"), BlockDataTools.getBlockData("minecraft:snow[layers=7]"), BlockDataTools.getBlockData("minecraft:snow[layers=8]")};
 	private KMap<BlockVector, BlockData> blocks;
 	private int w;
@@ -131,6 +132,12 @@ public class IrisObject extends IrisRegistrant
 		int spiny = rng.imax() / 1000;
 		int spinz = rng.imax() / 1000;
 		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), spinx, spiny, spinz).getBlockY() : yv;
+
+		if(yv >= 0 && config.isBottom())
+		{
+			y += Math.floorDiv(h, 2);
+		}
+
 		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 
 		if(yv < 0)
@@ -138,6 +145,20 @@ public class IrisObject extends IrisRegistrant
 			if(!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z))
 			{
 				return;
+			}
+		}
+
+		if(config.isBore())
+		{
+			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2); i++)
+			{
+				for(int j = y - 1; j <= y + h - 2; j++)
+				{
+					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2); k++)
+					{
+						placer.set(i, j, k, AIR);
+					}
+				}
 			}
 		}
 

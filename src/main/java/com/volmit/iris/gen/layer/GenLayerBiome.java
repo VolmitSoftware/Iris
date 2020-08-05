@@ -7,7 +7,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisRegionRidge;
 import com.volmit.iris.object.IrisRegionSpot;
-import com.volmit.iris.util.BiomeRarityCellGenerator;
+import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.GenLayer;
@@ -123,10 +123,10 @@ public class GenLayerBiome extends GenLayer
 		bridgeGenerator.setCellScale(0.33 / iris.getDimension().getContinentZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
-		return bridgeGenerator.getIndex(x, z, 5) == 1 ? InferredType.SEA : InferredType.LAND;
+		return bridgeGenerator.getIndex(x, z, 2) == 1 ? InferredType.SEA : InferredType.LAND;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, RarityCellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
 	{
 		if(biomes.isEmpty())
 		{
@@ -162,12 +162,12 @@ public class GenLayerBiome extends GenLayer
 		return pureResult;
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator parentCell, BiomeResult parent)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator parentCell, BiomeResult parent)
 	{
 		return implode(bx, bz, regionData, parentCell, parent, 1);
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, BiomeRarityCellGenerator parentCell, BiomeResult parent, int hits)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator parentCell, BiomeResult parent, int hits)
 	{
 		if(hits > 9)
 		{
@@ -181,7 +181,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(!parent.getBiome().getRealChildren().isEmpty())
 			{
-				BiomeRarityCellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
+				RarityCellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
 				KList<IrisBiome> chx = parent.getBiome().getRealChildren().copy();
 				chx.add(parent.getBiome());
 				IrisBiome biome = childCell.get(x, z, chx);

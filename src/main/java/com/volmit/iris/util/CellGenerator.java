@@ -67,7 +67,7 @@ public class CellGenerator
 
 		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)),
 
-				(float) ((y * cellScale) + (cng.noise(x, y) * shuffle))
+				(float) ((y * 8 * cellScale) + (cng.noise(x, y * 8) * shuffle))
 
 				, (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
 	}

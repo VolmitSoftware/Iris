@@ -103,15 +103,13 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 	protected double getBiomeHeight(double rx, double rz, int x, int z)
 	{
 		double h = 0;
-		IrisRegion region = glBiome.getRegion(rx, rz);
-		BiomeResult r = glBiome.generateRegionData(rx, rz, x, z, region);
 
 		for(IrisGenerator i : getGenerators().values())
 		{
 			h += interpolateGenerator(rx, rz, i);
 		}
 
-		return h + r.getHeightOffset();
+		return h;
 	}
 
 	protected double interpolateGenerator(double rx, double rz, IrisGenerator gen)

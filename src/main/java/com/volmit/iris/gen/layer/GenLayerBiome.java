@@ -147,7 +147,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(i.getType().equals(type) && i.isRidge(rng, rawX, rawZ))
 			{
-				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5, i.getRidgeHeight(rng, rawX, rawZ), i.getAir());
+				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
 
@@ -155,7 +155,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(i.getType().equals(type) && i.isSpot(rng, rawX, rawZ))
 			{
-				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5, i.getSpotHeight(rng, rawX, rawZ), i.getAir());
+				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
 

@@ -45,6 +45,16 @@ public class IrisStructureTile
 	{
 
 	}
+	
+	public String toString()
+	{
+		return (ceiling.required() ? "C" : "") + 
+				(floor.required() ? "F" : "") + "| "+
+				(north.required() ? "X" : "-") + 
+				(south.required() ? "X" : "-") + 
+				(east.required() ? "X" : "-") + 
+				(west.required() ? "X" : "-") + " |";
+	}
 
 	public boolean likeAGlove(boolean floor, boolean ceiling, KList<StructureTileFace> walls)
 	{

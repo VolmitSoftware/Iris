@@ -112,17 +112,25 @@ public class IrisStructure extends IrisRegistrant
 
 	public boolean isWall(RNG rng, double x, double y, double z, StructureTileFace face)
 	{
-		if(face == StructureTileFace.DOWN && maxLayers == 1)
+		if((face == StructureTileFace.DOWN || face == StructureTileFace.UP) && maxLayers == 1)
 		{
 			return true;
 		}
 
-		return isWall(rng, x, y, z, (face.ordinal() + 12) * 3);
-	}
+		int gs = getGridSize() + 1;
+		int gh = getGridHeight() + 1;
+		int gx = getTileHorizon(x);
+		int gy = getTileVertical(y);
+		int gz = getTileHorizon(z);
+		int hx = face.x();
+		int hy = face.y();
+		int hz = face.z();
 
-	private boolean isWall(RNG rng, double x, double y, double z, int side)
-	{
-		return getWallGenerator(rng).fitDoubleD(0, 1, (getTileHorizon(x) + side) / wallChanceZoom, (getTileVertical(y) + side) / wallChanceZoom, (getTileHorizon(z) - side) / wallChanceZoom) < getWallChance();
+		int tx = (gx * 2) + (hx * gs);
+		int ty = (gy * 2) + (hy * gh);
+		int tz = (gz * 2) + (hz * gs);
+
+		return getWallGenerator(rng).fitDoubleD(0, 1, (tx) / wallChanceZoom, ty / wallChanceZoom, tz / wallChanceZoom) < getWallChance();
 	}
 
 	public int getTileHorizon(double v)

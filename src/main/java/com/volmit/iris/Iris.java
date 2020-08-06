@@ -38,6 +38,7 @@ import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
@@ -179,22 +180,27 @@ public class Iris extends MortarPlugin implements BoardProvider
 			int z = player.getLocation().getBlockZ();
 			BiomeResult er = g.sampleTrueBiome(x, y, z);
 			IrisBiome b = er != null ? er.getBiome() : null;
+			IrisStructureResult st = g.getStructure(x, y, z);
+
 			tp.put(g.getMetrics().getSpeed());
 			lines.add("&7&m-----------------");
 			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
-			lines.add(ChatColor.GREEN + "Throughput" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f((long) tp.getAverage()) + "");
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
 			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
-			lines.add(ChatColor.GREEN + "Biomes" + ChatColor.GRAY + ": " + Form.f(Iris.data.getBiomeLoader().count()));
-			lines.add(ChatColor.GREEN + "Regions" + ChatColor.GRAY + ": " + Form.f(Iris.data.getRegionLoader().count()));
 			lines.add(ChatColor.GREEN + "Memory" + ChatColor.GRAY + ": " + mem);
 
 			if(er != null && b != null)
 			{
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
 				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey());
+			}
+
+			if(st != null)
+			{
+				lines.add(ChatColor.GREEN + "Structure" + ChatColor.GRAY + ": " + st.getStructure().getName());
+				lines.add(ChatColor.GREEN + "Tile" + ChatColor.GRAY + ": " + st.getTile().toString());
 			}
 
 			lines.add("&7&m-----------------");

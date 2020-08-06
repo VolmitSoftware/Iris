@@ -55,19 +55,20 @@ public class IrisStructurePlacement
 			int h;
 			RNG rnp = rng.nextParallelRNG(cx - (cz * cz));
 			int s = gridSize() - (getStructure().isMergeEdges() ? 1 : 0);
+			int sh = gridHeight() - (getStructure().isMergeEdges() ? 1 : 0);
 
 			for(int i = cx << 4; i < (cx << 4) + 15; i += Math.max(s / 2, 1))
 			{
 				for(int j = cz << 4; j < (cz << 4) + 15; j += Math.max(s / 2, 1))
 				{
-					for(int k = 0; k < s * getStructure().getMaxLayers(); k += Math.max(s, 1))
+					for(int k = 0; k < s * getStructure().getMaxLayers(); k += Math.max(sh, 1))
 					{
 						if(!hasStructure(rng, i, k, j))
 						{
 							continue;
 						}
 
-						h = (height == -1 ? 0 : height) + (Math.floorDiv(k, s) * s);
+						h = (height == -1 ? 0 : height) + (Math.floorDiv(k, sh) * sh);
 						t = getStructure().getTile(rng, i / zoom, h / zoom, j / zoom);
 
 						if(t != null)
@@ -104,6 +105,11 @@ public class IrisStructurePlacement
 	public int gridSize()
 	{
 		return getStructure().getGridSize();
+	}
+
+	public int gridHeight()
+	{
+		return getStructure().getGridHeight();
 	}
 
 	public IrisStructure getStructure()

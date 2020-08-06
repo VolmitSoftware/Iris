@@ -15,12 +15,14 @@ import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructurePlacement;
+import com.volmit.iris.object.TileResult;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
+import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.NastyRunnable;
@@ -195,6 +197,65 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		Iris.data.getObjectLoader().clean();
 	}
 
+	public IrisStructureResult getStructure(int x, int y, int z)
+	{
+		IrisBiome b = sampleTrueBiome(x, z).getBiome();
+		IrisRegion r = sampleRegion(x, z);
+		RNG ro = getMasterRandom().nextParallelRNG(496888 + (x >> 4) + (z >> 4));
+		int h = (int) Math.round(getTerrainHeight(x, z));
+		KList<IrisStructurePlacement> p = new KList<>();
+
+		for(IrisStructurePlacement i : r.getStructures())
+		{
+			if(i.getHeight() > -1)
+			{
+				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure().getGridHeight() * i.getStructure().getMaxLayers()))
+				{
+					p.add(i);
+				}
+			}
+
+			else if(y >= h && y <= i.getStructure().getGridHeight() + h)
+			{
+				p.add(i);
+			}
+		}
+
+		for(IrisStructurePlacement i : b.getStructures())
+		{
+			if(i.getHeight() > -1)
+			{
+				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure().getGridHeight() * i.getStructure().getMaxLayers()))
+				{
+					p.add(i);
+				}
+			}
+
+			else if(y >= h && y <= i.getStructure().getGridHeight() + h)
+			{
+				p.add(i);
+			}
+		}
+
+		for(IrisStructurePlacement i : p)
+		{
+			if(!i.hasStructure(ro, x, y, z))
+			{
+				continue;
+			}
+
+			int hv = (i.getHeight() == -1 ? 0 : i.getHeight()) + (Math.floorDiv(y, i.getStructure().getGridHeight()) * i.getStructure().getGridHeight());
+			TileResult tile = i.getStructure().getTile(ro, Math.floorDiv(i.gridSize(), x) * i.gridSize(), hv, Math.floorDiv(i.gridSize(), z) * i.gridSize());
+
+			if(tile != null && tile.getTile() != null)
+			{
+				return new IrisStructureResult(tile.getTile(), i.getStructure());
+			}
+		}
+
+		return null;
+	}
+
 	protected void onGenerateParallax(RNG random, int x, int z)
 	{
 		String key = "par." + x + "." + "z";
@@ -222,8 +283,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				getAccelerant().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
-
-					RNG ro = random.nextParallelRNG(496888 + i + j);
+					RNG ro = getMasterRandom().nextParallelRNG(496888 + i + j);
 
 					int g = 1;
 
@@ -261,12 +321,20 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 					for(IrisStructurePlacement k : r.getStructures())
 					{
-						k.place(this, random, i, j);
+						q.add(() ->
+						{
+							k.place(this, random, i, j);
+						});
+						lockq.unlock();
 					}
 
 					for(IrisStructurePlacement k : b.getStructures())
 					{
-						k.place(this, random, i, j);
+						q.add(() ->
+						{
+							k.place(this, random, i, j);
+						});
+						lockq.unlock();
 					}
 
 					for(IrisObjectPlacement k : b.getObjects())

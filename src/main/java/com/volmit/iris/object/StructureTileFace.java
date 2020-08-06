@@ -9,6 +9,21 @@ public enum StructureTileFace
 	EAST,
 	WEST;
 
+	public int x()
+	{
+		return this.equals(EAST) ? 1 : this.equals(WEST) ? -1 : 0;
+	}
+
+	public int y()
+	{
+		return this.equals(UP) ? 1 : this.equals(DOWN) ? -1 : 0;
+	}
+
+	public int z()
+	{
+		return this.equals(SOUTH) ? 1 : this.equals(NORTH) ? -1 : 0;
+	}
+
 	public StructureTileFace rotate90CW()
 	{
 		switch(this)

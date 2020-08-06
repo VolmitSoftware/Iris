@@ -1,6 +1,5 @@
 package com.volmit.iris.util;
 
-@SuppressWarnings("hiding")
 @FunctionalInterface
 public interface Function4<A, B, C, D, R>
 {

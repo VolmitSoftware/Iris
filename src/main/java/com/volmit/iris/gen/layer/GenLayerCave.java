@@ -5,7 +5,7 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.DimensionChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicSliver;
-import com.volmit.iris.util.B;
+import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.FastNoise;
@@ -18,8 +18,8 @@ import com.volmit.iris.util.FastNoise.NoiseType;
 
 public class GenLayerCave extends GenLayer
 {
-	public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
-	public static final BlockData AIR = B.getBlockData("AIR");
+	public static final BlockData CAVE_AIR = BlockDataTools.getBlockData("CAVE_AIR");
+	public static final BlockData AIR = BlockDataTools.getBlockData("AIR");
 	private static final KList<CaveResult> EMPTY = new KList<>();
 	private CNG gincline;
 	private CNG shuffle;
@@ -174,7 +174,7 @@ public class GenLayerCave extends GenLayer
 
 	public boolean canAir(Material m)
 	{
-		return (m.isSolid() || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
+		return (m.isSolid() || (BlockDataTools.isDecorant(m)) || m.equals(Material.AIR) || m.equals(Material.CAVE_AIR)) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean canWater(Material m)

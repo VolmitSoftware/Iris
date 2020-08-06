@@ -2,9 +2,8 @@ package com.volmit.iris.object;
 
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.B;
+import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 
@@ -23,8 +22,8 @@ public class IrisCompatabilityFilter
 	@DontObfuscate
 	private boolean exact = false;
 
-	private transient AtomicCache<BlockData> findData = new AtomicCache<>(true);
-	private transient AtomicCache<BlockData> replaceData = new AtomicCache<>(true);
+	private transient AtomicCache<BlockData> findData = new AtomicCache<>();
+	private transient AtomicCache<BlockData> replaceData = new AtomicCache<>();
 
 	public IrisCompatabilityFilter(String when, String supplement)
 	{
@@ -45,18 +44,11 @@ public class IrisCompatabilityFilter
 
 	public BlockData getFind()
 	{
-		return findData.aquire(() -> B.getBlockData(when));
+		return findData.aquire(() -> BlockDataTools.getBlockData(when));
 	}
 
 	public BlockData getReplace()
 	{
-		return replaceData.aquire(() ->
-		{
-			BlockData b = B.getBlockData(supplement);
-
-			Iris.warn("Compat: Using " + supplement + " in place of " + when + " since this server doesnt support '" + supplement + "'");
-
-			return b;
-		});
+		return replaceData.aquire(() -> BlockDataTools.getBlockData(supplement));
 	}
 }

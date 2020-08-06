@@ -18,7 +18,7 @@ import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.BiomeResult;
-import com.volmit.iris.util.B;
+import com.volmit.iris.util.BlockDataTools;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
@@ -323,7 +323,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			if(d != null)
 			{
-				if(!B.canPlaceOnto(d.getMaterial(), block.getMaterial()))
+				if(!BlockDataTools.canPlaceOnto(d.getMaterial(), block.getMaterial()))
 				{
 					continue;
 				}
@@ -332,7 +332,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				{
 					if(!block.getMaterial().equals(Material.SAND) && !block.getMaterial().equals(Material.RED_SAND))
 					{
-						sliver.set(k, B.getBlockData("RED_SAND"));
+						sliver.set(k, BlockDataTools.getBlockData("RED_SAND"));
 					}
 				}
 
@@ -340,7 +340,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				{
 					if(!block.getMaterial().equals(Material.FARMLAND))
 					{
-						sliver.set(k, B.getBlockData("FARMLAND"));
+						sliver.set(k, BlockDataTools.getBlockData("FARMLAND"));
 					}
 				}
 
@@ -392,7 +392,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			if(d != null)
 			{
-				if(!B.canPlaceOnto(d.getMaterial(), block.getMaterial()))
+				if(!BlockDataTools.canPlaceOnto(d.getMaterial(), block.getMaterial()))
 				{
 					continue;
 				}
@@ -401,7 +401,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				{
 					if(!block.getMaterial().equals(Material.SAND) && !block.getMaterial().equals(Material.RED_SAND))
 					{
-						sliver.set(k, B.getBlockData("SAND"));
+						sliver.set(k, BlockDataTools.getBlockData("SAND"));
 					}
 				}
 

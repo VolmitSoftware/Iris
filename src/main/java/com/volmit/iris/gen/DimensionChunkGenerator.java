@@ -8,7 +8,6 @@ import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeResult;
 
 import lombok.Data;
@@ -20,7 +19,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 {
 	protected final String dimensionName;
 	protected static final BlockData AIR = Material.AIR.createBlockData();
-	protected static final BlockData CAVE_AIR = B.get("CAVE_AIR");
+	protected static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
 
 	public DimensionChunkGenerator(String dimensionName)

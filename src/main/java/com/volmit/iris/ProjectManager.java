@@ -19,6 +19,8 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisStructure;
+import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
@@ -57,7 +59,27 @@ public class ProjectManager
 	public void open(MortarSender sender, String dimm, Runnable onDone)
 	{
 		IrisDimension d = Iris.data.getDimensionLoader().load(dimm);
+		J.attemptAsync(() ->
+		{
+			try
+			{
+				File f = d.getLoadFile().getParentFile().getParentFile();
 
+				for(File i : f.listFiles())
+				{
+					if(i.getName().endsWith(".code-workspace"))
+					{
+						Desktop.getDesktop().open(i);
+						break;
+					}
+				}
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		});
 		if(d == null)
 		{
 			sender.sendMessage("Can't find dimension: " + dimm);
@@ -121,27 +143,6 @@ public class ProjectManager
 				sender.player().setGameMode(GameMode.SPECTATOR);
 			}
 
-			J.attemptAsync(() ->
-			{
-				try
-				{
-					File f = d.getLoadFile().getParentFile().getParentFile();
-
-					for(File i : f.listFiles())
-					{
-						if(i.getName().endsWith(".code-workspace"))
-						{
-							Desktop.getDesktop().open(i);
-							break;
-						}
-					}
-				}
-
-				catch(Throwable e)
-				{
-					e.printStackTrace();
-				}
-			});
 			onDone.run();
 		}, 0);
 	}
@@ -172,14 +173,42 @@ public class ProjectManager
 		Iris.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
 		KSet<IrisRegion> regions = new KSet<>();
 		KSet<IrisBiome> biomes = new KSet<>();
+		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
 		dimension.getRegions().forEach((i) -> regions.add(Iris.data.getRegionLoader().load(i)));
 		regions.forEach((i) -> biomes.addAll(i.getAllBiomes()));
 		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator())));
+		regions.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure())));
+		biomes.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure())));
 		KMap<String, String> renameObjects = new KMap<>();
 		String a = "";
 		StringBuilder b = new StringBuilder();
 		StringBuilder c = new StringBuilder();
+
+		for(IrisStructure i : structures)
+		{
+			for(IrisStructureTile j : i.getTiles())
+			{
+				b.append(j.hashCode());
+				KList<String> newNames = new KList<>();
+
+				for(String k : j.getObjects())
+				{
+					if(renameObjects.containsKey(k))
+					{
+						newNames.add(renameObjects.get(k));
+						continue;
+					}
+
+					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					b.append(name);
+					newNames.add(name);
+					renameObjects.put(k, name);
+				}
+
+				j.setObjects(newNames);
+			}
+		}
 
 		for(IrisBiome i : biomes)
 		{
@@ -224,6 +253,21 @@ public class ProjectManager
 			}
 		})));
 
+		structures.forEach((i) -> i.getTiles().forEach((j) -> j.getObjects().forEach((k) ->
+		{
+			try
+			{
+				File f = Iris.data.getObjectLoader().findFile(lookupObjects.get(k).get(0));
+				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
+				gb.append(IO.hash(f));
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		})));
+
 		b.append(IO.hash(gb.toString()));
 		c.append(IO.hash(b.toString()));
 		b = new StringBuilder();
@@ -248,6 +292,13 @@ public class ProjectManager
 			{
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			for(IrisStructure i : structures)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				IO.writeAll(new File(folder, "structures/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 

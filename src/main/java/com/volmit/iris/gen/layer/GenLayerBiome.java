@@ -119,11 +119,11 @@ public class GenLayerBiome extends GenLayer
 
 	public InferredType getType(double bx, double bz, IrisRegion regionData)
 	{
-		bridgeGenerator.setShuffle(0);
+		bridgeGenerator.setShuffle(47);
 		bridgeGenerator.setCellScale(0.33 / iris.getDimension().getContinentZoom());
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
-		return bridgeGenerator.getIndex(x, z, 2) == 1 ? InferredType.SEA : InferredType.LAND;
+		return bridgeGenerator.getIndex(x, z, 2) == 1 ? InferredType.LAND : InferredType.SEA;
 	}
 
 	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, RarityCellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)

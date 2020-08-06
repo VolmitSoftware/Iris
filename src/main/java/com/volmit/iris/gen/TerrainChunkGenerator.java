@@ -74,6 +74,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		try
 		{
+			KList<Runnable> surfaces = new KList<>();
 			int highestPlaced = 0;
 			BlockData block;
 			int fluidHeight = getDimension().getFluidHeight();
@@ -82,11 +83,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			double wx = getZoomed(ox);
 			double wz = getZoomed(oz);
 			int depth = 0;
-			double noise = getNoiseHeight(rx, rz);
-			int height = (int) Math.round(noise) + fluidHeight;
+			double noise = getNoiseHeight(rx, rz) + fluidHeight;
+			int height = (int) Math.round(noise);
 			boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
 			IrisRegion region = sampleRegion(rx, rz);
-			BiomeResult biomeResult = sampleTrueBiome(rx, rz);
+			BiomeResult biomeResult = sampleTrueBiome(rx, rz, noise);
 			IrisBiome biome = biomeResult.getBiome();
 			double airReversal = biomeResult.getHeightOffset();
 
@@ -206,13 +207,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				sliver.set(k, block);
 				highestPlaced = Math.max(highestPlaced, k);
-
 				if(!cavernSurface && (k == height && block.getMaterial().isSolid() && k < fluidHeight))
 				{
 					decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
 				}
 
-				if((carvable && cavernSurface) || (k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
+				if((carvable && cavernSurface) && !(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
 				{
 					decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
 				}
@@ -256,9 +256,21 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 			}
 
+			block = sliver.get(Math.max(height, fluidHeight));
+
+			if(block.getMaterial().isSolid())
+			{
+				decorateLand(biome, sliver, wx, Math.max(height, fluidHeight), wz, rx, rz, block);
+			}
+
 			if(!sampled && cachingAllowed && highestPlaced < height)
 			{
 				cacheHeightMap[(z << 4) | x] = highestPlaced;
+			}
+
+			for(Runnable i : surfaces)
+			{
+				i.run();
 			}
 		}
 
@@ -502,7 +514,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return getBiomeHeight(wx, wz, rx, rz);
 	}
 
-	public BiomeResult sampleTrueBiomeBase(int x, int z)
+	public BiomeResult sampleTrueBiomeBase(int x, int z, int height)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
@@ -512,7 +524,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
-		int height = (int) Math.round(getTerrainHeight(x, z));
 		double sh = region.getShoreHeight(wx, wz);
 		IrisBiome current = sampleBiome(x, z).getBiome();
 
@@ -570,6 +581,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	public BiomeResult sampleTrueBiome(int x, int z)
 	{
+		return sampleTrueBiome(x, z, getTerrainHeight(x, z));
+	}
+
+	public BiomeResult sampleTrueBiome(int x, int z, double noise)
+	{
 		if(!getDimension().getFocus().equals(""))
 		{
 			return focus();
@@ -583,9 +599,9 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
-		int height = sampleHeight(x, z);
+		int height = (int) Math.round(noise);
 		double sh = region.getShoreHeight(wx, wz);
-		BiomeResult res = sampleTrueBiomeBase(x, z);
+		BiomeResult res = sampleTrueBiomeBase(x, z, height);
 		IrisBiome current = res.getBiome();
 
 		if(current.isSea() && height > getDimension().getFluidHeight() - sh)

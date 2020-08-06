@@ -3,7 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -145,7 +145,7 @@ public class IrisBiomeDecorator
 			KList<BlockData> blockData = new KList<>();
 			for(String i : palette)
 			{
-				BlockData bx = BlockDataTools.getBlockData(i);
+				BlockData bx = B.getBlockData(i);
 				if(bx != null)
 				{
 					blockData.add(bx);

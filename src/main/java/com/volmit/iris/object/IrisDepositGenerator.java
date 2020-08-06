@@ -7,7 +7,7 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.gen.TerrainChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -114,7 +114,7 @@ public class IrisDepositGenerator
 
 			for(String ix : palette)
 			{
-				BlockData bx = BlockDataTools.getBlockData(ix);
+				BlockData bx = B.getBlockData(ix);
 
 				if(bx != null)
 				{
@@ -178,7 +178,7 @@ public class IrisDepositGenerator
 
 				BlockData b = data.getBlockData(nx, ny, nz);
 
-				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !b.getMaterial().isSolid())
+				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !b.getMaterial().isSolid())
 				{
 					continue;
 				}

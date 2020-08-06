@@ -23,7 +23,7 @@ import org.bukkit.generator.ChunkGenerator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisMetrics;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
@@ -220,12 +220,12 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 				if(j == i || j + i == 16)
 				{
-					c.setBlock(i, h, j, BlockDataTools.getBlockData("RED_TERRACOTTA"));
+					c.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA"));
 				}
 
 				else
 				{
-					c.setBlock(i, h, j, BlockDataTools.getBlockData("BLACK_TERRACOTTA"));
+					c.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA"));
 				}
 			}
 		}
@@ -245,12 +245,12 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 				if(j == i || j + i == 16)
 				{
-					c.setBlock(i, h, j, BlockDataTools.getBlockData("BLUE_TERRACOTTA"));
+					c.setBlock(i, h, j, B.getBlockData("BLUE_TERRACOTTA"));
 				}
 
 				else
 				{
-					c.setBlock(i, h, j, BlockDataTools.getBlockData("WHITE_TERRACOTTA"));
+					c.setBlock(i, h, j, B.getBlockData("WHITE_TERRACOTTA"));
 				}
 			}
 		}

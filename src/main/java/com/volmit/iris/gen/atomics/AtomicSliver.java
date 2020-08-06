@@ -11,7 +11,7 @@ import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
@@ -23,7 +23,7 @@ import lombok.Data;
 @Data
 public class AtomicSliver
 {
-	public static final BlockData AIR = BlockDataTools.getBlockData("AIR");
+	public static final BlockData AIR = B.getBlockData("AIR");
 	private KMap<Integer, BlockData> block;
 	private KMap<Integer, IrisBiome> truebiome;
 	private KMap<Integer, Biome> biome;
@@ -75,7 +75,7 @@ public class AtomicSliver
 		lock.unlock();
 		modified = true;
 
-		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR))
+		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(B.mat("CAVE_AIR")))
 		{
 			return;
 		}
@@ -181,7 +181,7 @@ public class AtomicSliver
 
 		for(int i = 0; i < p; i++)
 		{
-			palette.add(BlockDataTools.getBlockData(din.readUTF()));
+			palette.add(B.getBlockData(din.readUTF()));
 		}
 
 		for(int i = 0; i <= h; i++)

@@ -8,7 +8,7 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
@@ -250,15 +250,49 @@ public class IrisDimension extends IrisRegistrant
 		});
 	}
 
-	private KList<IrisCompatabilityFilter> getDefaultCompatability()
+	public static KList<IrisCompatabilityFilter> getDefaultCompatability()
 	{
 		KList<IrisCompatabilityFilter> filters = new KList<>();
 
 		// Below 1.16
-		// TODO MORE
+		filters.add(new IrisCompatabilityFilter("WEEPING_VINES", "NETHER_FENCE"));
+		filters.add(new IrisCompatabilityFilter("WEEPING_VINES_PLANT", "NETHER_FENCE"));
+		filters.add(new IrisCompatabilityFilter("WARPED_WART_BLOCK", "NETHER_WART_BLOCK"));
+		filters.add(new IrisCompatabilityFilter("TWISTING_VINES", "BAMBOO"));
+		filters.add(new IrisCompatabilityFilter("TWISTING_VINES_PLANT", "BAMBOO"));
+		filters.add(new IrisCompatabilityFilter("TARGET", "COBBLESTONE"));
+		filters.add(new IrisCompatabilityFilter("SOUL_SOIL", "SOULSAND"));
+		filters.add(new IrisCompatabilityFilter("SOUL_TORCH", "TORCH"));
+		filters.add(new IrisCompatabilityFilter("SOUL_LANTERN", "LANTERN"));
+		filters.add(new IrisCompatabilityFilter("SOUL_FIRE", "FIRE"));
+		filters.add(new IrisCompatabilityFilter("SOUL_CAMPFIRE", "CAMPFIRE"));
+		filters.add(new IrisCompatabilityFilter("SHROOMLIGHT", "GLOWSTONE"));
+		filters.add(new IrisCompatabilityFilter("RESPAWN_ANCHOR", "OBSIDIAN"));
+		filters.add(new IrisCompatabilityFilter("NETHER_SPROUTS", "RED_MUSHROOM"));
+		filters.add(new IrisCompatabilityFilter("NETHER_GOLD_ORE", "GOLD_ORE"));
+		filters.add(new IrisCompatabilityFilter("LODESTONE", "STONE"));
+		filters.add(new IrisCompatabilityFilter("STRIPPED_WARPED_HYPHAE", "BROWN_MUSHROOM_BLOCK"));
+		filters.add(new IrisCompatabilityFilter("STRIPPED_CRIMSON_HYPHAE", "RED_MUSHROOM_BLOCK"));
+		filters.add(new IrisCompatabilityFilter("WARPED_HYPHAE", "MUSHROOM_STEM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_HYPHAE", "RED_MUSHROOM_BLOCK"));
+		filters.add(new IrisCompatabilityFilter("GILDED_BLACKSTONE", "COBBLESTONE"));
+		filters.add(new IrisCompatabilityFilter("CRYING_OBSIDIAN", "OBSIDIAN"));
+		filters.add(new IrisCompatabilityFilter("STRIPPED_WARPED_STEM", "MUSHROOM_STEM"));
+		filters.add(new IrisCompatabilityFilter("STRIPPED_CRIMSON_STEM", "MUSHROOM_STEM"));
+		filters.add(new IrisCompatabilityFilter("WARPED_STEM", "MUSHROOM_STEM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_STEM", "MUSHROOM_STEM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_ROOTS", "RED_MUSHROOM"));
+		filters.add(new IrisCompatabilityFilter("WARPED_ROOTS", "BROWN_MUSHROOM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_PLANKS", "OAK_PLANKS"));
+		filters.add(new IrisCompatabilityFilter("WARPED_PLANKS", "OAK_PLANKS"));
+		filters.add(new IrisCompatabilityFilter("WARPED_NYLIUM", "MYCELIUM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_NYLIUM", "MYCELIUM"));
+		filters.add(new IrisCompatabilityFilter("WARPED_FUNGUS", "BROWN_MUSHROOM"));
+		filters.add(new IrisCompatabilityFilter("CRIMSON_FUNGUS", "RED_MUSHROOM"));
+		filters.add(new IrisCompatabilityFilter("CRACKED_NETHER_BRICKS", "NETHER_BRICKS"));
 		filters.add(new IrisCompatabilityFilter("CHISELED_NETHER_BRICKS", "NETHER_BRICKS"));
 		filters.add(new IrisCompatabilityFilter("NETHER_FENCE", "LEGACY_NETHER_FENCE"));
-		filters.add(new IrisCompatabilityFilter("CHAIN", "LEGACY_NETHER_FENCE"));
+		filters.add(new IrisCompatabilityFilter("CHAIN", "IRON_BARS"));
 		filters.add(new IrisCompatabilityFilter("NETHERITE_BLOCK", "QUARTZ_BLOCK"));
 		filters.add(new IrisCompatabilityFilter("BLACKSTONE", "COBBLESTONE"));
 		filters.add(new IrisCompatabilityFilter("BASALT", "STONE"));
@@ -272,6 +306,7 @@ public class IrisDimension extends IrisRegistrant
 
 		// Below 1.14
 		filters.add(new IrisCompatabilityFilter("GRANITE_WALL", "COBBLESTONE_WALL"));
+		filters.add(new IrisCompatabilityFilter("BLUE_ICE", "PACKED_ICE"));
 		filters.add(new IrisCompatabilityFilter("DIORITE_WALL", "COBBLESTONE_WALL"));
 		filters.add(new IrisCompatabilityFilter("ANDESITE_WALL", "COBBLESTONE_WALL"));
 		filters.add(new IrisCompatabilityFilter("SWEET_BERRY_BUSH", "GRASS"));
@@ -351,7 +386,6 @@ public class IrisDimension extends IrisRegistrant
 		filters.add(new IrisCompatabilityFilter("BAMBOO", "BIRCH_FENCE"));
 		filters.add(new IrisCompatabilityFilter("BAMBOO_SAPLING", "BIRCH_SAPLING"));
 		filters.add(new IrisCompatabilityFilter("POTTED_BAMBOO", "POTTED_BIRCH_SAPLING"));
-		filters.add(new IrisCompatabilityFilter("*", "STONE"));
 
 		return filters;
 	}
@@ -370,9 +404,6 @@ public class IrisDimension extends IrisRegistrant
 	{
 		KList<IrisPostProcessor> p = new KList<IrisPostProcessor>();
 
-		p.add(new IrisPostProcessor("nib-smoother"));
-		p.add(new IrisPostProcessor("floating-block-remover"));
-		p.add(new IrisPostProcessor("pothole-filler"));
 		p.add(new IrisPostProcessor("wall-painter"));
 		p.add(new IrisPostProcessor("slabber"));
 		p.add(new IrisPostProcessor("waterlogger", 1));
@@ -430,7 +461,7 @@ public class IrisDimension extends IrisRegistrant
 			KList<BlockData> rockData = new KList<>();
 			for(String ix : rockPalette)
 			{
-				BlockData bx = BlockDataTools.getBlockData(ix);
+				BlockData bx = B.getBlockData(ix);
 				if(bx != null)
 				{
 					rockData.add(bx);
@@ -491,7 +522,7 @@ public class IrisDimension extends IrisRegistrant
 			KList<BlockData> fluidData = new KList<>();
 			for(String ix : fluidPalette)
 			{
-				BlockData bx = BlockDataTools.getBlockData(ix);
+				BlockData bx = B.getBlockData(ix);
 				if(bx != null)
 				{
 					fluidData.add(bx);
@@ -609,5 +640,18 @@ public class IrisDimension extends IrisRegistrant
 			Iris.info("Parallax Size: " + x + ", " + z);
 			return new ChunkPosition(x, z);
 		});
+	}
+
+	public BlockData resolve(String bd)
+	{
+		for(IrisCompatabilityFilter i : getCompatability())
+		{
+			if(i.getWhen().equalsIgnoreCase(bd))
+			{
+				return i.getReplace();
+			}
+		}
+
+		return null;
 	}
 }

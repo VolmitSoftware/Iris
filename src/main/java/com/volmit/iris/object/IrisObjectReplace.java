@@ -3,7 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 
@@ -32,11 +32,11 @@ public class IrisObjectReplace
 
 	public BlockData getFind()
 	{
-		return findData.aquire(() -> BlockDataTools.getBlockData(find));
+		return findData.aquire(() -> B.getBlockData(find));
 	}
 
 	public BlockData getReplace()
 	{
-		return replaceData.aquire(() -> BlockDataTools.getBlockData(replace));
+		return replaceData.aquire(() -> B.getBlockData(replace));
 	}
 }

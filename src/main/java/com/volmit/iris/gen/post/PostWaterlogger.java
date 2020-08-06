@@ -5,13 +5,13 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
 @Post("waterlogger")
 public class PostWaterlogger extends IrisPostBlockFilter
 {
-	private static final BlockData WATER = BlockDataTools.getBlockData("WATER");
+	private static final BlockData WATER = B.getBlockData("WATER");
 
 	public PostWaterlogger(PostBlockChunkGenerator gen, int phase)
 	{

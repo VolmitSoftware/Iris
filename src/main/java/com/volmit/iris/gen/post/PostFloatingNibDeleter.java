@@ -3,13 +3,13 @@ package com.volmit.iris.gen.post;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
-import com.volmit.iris.util.BlockDataTools;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
 @Post("floating-block-remover")
 public class PostFloatingNibDeleter extends IrisPostBlockFilter
 {
-	private static final BlockData AIR = BlockDataTools.getBlockData("AIR");
+	private static final BlockData AIR = B.getBlockData("AIR");
 
 	public PostFloatingNibDeleter(PostBlockChunkGenerator gen, int phase)
 	{

@@ -1,7 +1,6 @@
 package com.volmit.iris.command;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Set;
 
 import org.bukkit.Location;
@@ -36,7 +35,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 		}
 
 		Player p = sender.player();
-		File file = new File(Iris.instance.getDataFolder(), "objects/" + args[0] + ".iob");
+		File file = Iris.globaldata.getObjectLoader().findFile(args[0]);
 		boolean intoWand = false;
 
 		for(String i : args)
@@ -47,38 +46,33 @@ public class CommandIrisObjectPaste extends MortarCommand
 			}
 		}
 
-		if(!file.exists())
+		if(file == null || !file.exists())
 		{
-			sender.sendMessage("Can't find " + "objects/" + args[0] + ".iob");
+			sender.sendMessage("Can't find " + args[0] + " in the packs folder");
 		}
 
 		ItemStack wand = sender.player().getInventory().getItemInMainHand();
-		IrisObject o = new IrisObject(0, 0, 0);
 
-		try
+		IrisObject o = Iris.globaldata.getObjectLoader().load(args[0]);
+		if(o == null)
 		{
-			o.read(new File(Iris.instance.getDataFolder(), "objects/" + args[0] + ".iob"));
-			sender.sendMessage("Loaded " + "objects/" + args[0] + ".iob");
+			sender.sendMessage("Error, cant find");
+			return true;
+		}
+		sender.sendMessage("Loaded " + "objects/" + args[0] + ".iob");
 
-			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
-			Location block = sender.player().getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
+		sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+		Location block = sender.player().getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
 
-			if(intoWand && WandController.isWand(wand))
-			{
-				wand = WandController.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
-				p.getInventory().setItemInMainHand(wand);
-				sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
-			}
-
-			WandController.pasteSchematic(o, block);
-			sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
+		if(intoWand && WandController.isWand(wand))
+		{
+			wand = WandController.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
+			p.getInventory().setItemInMainHand(wand);
+			sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
 		}
 
-		catch(IOException e)
-		{
-			sender.sendMessage("Failed to load " + "objects/" + args[0] + ".iob");
-			e.printStackTrace();
-		}
+		WandController.pasteSchematic(o, block);
+		sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
 
 		return true;
 	}

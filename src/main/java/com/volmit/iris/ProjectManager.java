@@ -15,12 +15,14 @@ import org.zeroturnaround.zip.ZipUtil;
 import com.google.gson.Gson;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
+import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
@@ -184,6 +186,7 @@ public class ProjectManager
 		String a = "";
 		StringBuilder b = new StringBuilder();
 		StringBuilder c = new StringBuilder();
+		sender.sendMessage("Serializing Objects");
 
 		for(IrisStructure i : structures)
 		{
@@ -235,9 +238,36 @@ public class ProjectManager
 			}
 		}
 
+		for(IrisBiomeMutation i : dimension.getMutations())
+		{
+			for(IrisObjectPlacement j : i.getObjects())
+			{
+				b.append(j.hashCode());
+				KList<String> newNames = new KList<>();
+
+				for(String k : j.getPlace())
+				{
+					if(renameObjects.containsKey(k))
+					{
+						newNames.add(renameObjects.get(k));
+						continue;
+					}
+
+					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					b.append(name);
+					newNames.add(name);
+					renameObjects.put(k, name);
+				}
+
+				j.setPlace(newNames);
+			}
+		}
+
 		KMap<String, KList<String>> lookupObjects = renameObjects.flip();
 		StringBuilder gb = new StringBuilder();
-
+		ChronoLatch cl = new ChronoLatch(1000);
+		O<Integer> ggg = new O<Integer>();
+		ggg.set(0);
 		biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
 		{
 			try
@@ -245,6 +275,14 @@ public class ProjectManager
 				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
+				ggg.set(ggg.get() + 1);
+
+				if(cl.flip())
+				{
+					int g = ggg.get();
+					ggg.set(0);
+					sender.sendMessage("Wrote another " + g + " Objects");
+				}
 			}
 
 			catch(Throwable e)
@@ -260,6 +298,37 @@ public class ProjectManager
 				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
+				ggg.set(ggg.get() + 1);
+
+				if(cl.flip())
+				{
+					int g = ggg.get();
+					ggg.set(0);
+					sender.sendMessage("Wrote another " + g + " Objects");
+				}
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		})));
+
+		dimension.getMutations().forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
+		{
+			try
+			{
+				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
+				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
+				gb.append(IO.hash(f));
+				ggg.set(ggg.get() + 1);
+
+				if(cl.flip())
+				{
+					int g = ggg.get();
+					ggg.set(0);
+					sender.sendMessage("Wrote another " + g + " Objects");
+				}
 			}
 
 			catch(Throwable e)
@@ -271,6 +340,8 @@ public class ProjectManager
 		b.append(IO.hash(gb.toString()));
 		c.append(IO.hash(b.toString()));
 		b = new StringBuilder();
+
+		Iris.info("Writing Dimensional Scaffold");
 
 		try
 		{
@@ -318,10 +389,11 @@ public class ProjectManager
 			meta.put("version", dimension.getVersion());
 			IO.writeAll(new File(folder, "package.json"), meta.toString(0));
 			File p = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris");
+			Iris.info("Compressing Package");
 			ZipUtil.pack(folder, p, 9);
 			IO.delete(folder);
 
-			sender.sendMessage("Done!");
+			sender.sendMessage("Package Compiled!");
 			return p;
 		}
 

@@ -1,7 +1,6 @@
 package com.volmit.iris.command;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -32,20 +31,40 @@ public class CommandIrisObjectSave extends MortarCommand
 			return true;
 		}
 
-		Player p = sender.player();
-		ItemStack wand = p.getInventory().getItemInMainHand();
-		IrisObject o = WandController.createSchematic(wand);
-
 		try
 		{
-			o.write(new File(Iris.instance.getDataFolder(), "objects/" + args[0] + ".iob"));
-			sender.sendMessage("Saved " + "objects/" + args[0] + ".iob");
+			boolean overwrite = false;
+
+			for(String i : args)
+			{
+				if(i.equals("-o"))
+				{
+					overwrite = true;
+				}
+			}
+
+			Player p = sender.player();
+			ItemStack wand = p.getInventory().getItemInMainHand();
+			IrisObject o = WandController.createSchematic(wand);
+			File file = Iris.instance.getDataFile("packs", args[0], "objects", args[1] + ".iob");
+
+			if(file.exists())
+			{
+				if(!overwrite)
+				{
+					sender.sendMessage("File Exists. Overwrite by adding -o");
+					return true;
+				}
+			}
+
+			o.write(file);
+			sender.sendMessage("Saved " + args[1]);
 			p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
 		}
 
-		catch(IOException e)
+		catch(Throwable e)
 		{
-			sender.sendMessage("Failed to save " + "objects/" + args[0] + ".iob. Are you holding your wand?");
+			sender.sendMessage("Failed to save " + args[1] + ". Are you holding your wand?");
 
 			e.printStackTrace();
 		}
@@ -56,6 +75,6 @@ public class CommandIrisObjectSave extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[name]";
+		return "[project] [name]";
 	}
 }

@@ -46,13 +46,11 @@ public class IrisStructurePlacement
 
 	}
 
-	public void place(ParallaxChunkGenerator g, RNG rng, int cx, int cz)
+	public void place(ParallaxChunkGenerator g, RNG rngno, int cx, int cz)
 	{
 		try
 		{
-			TileResult t;
-			IrisObject o;
-			int h;
+			RNG rng = g.getMasterRandom().nextParallelRNG(-88738456);
 			RNG rnp = rng.nextParallelRNG(cx - (cz * cz));
 			int s = gridSize() - (getStructure().isMergeEdges() ? 1 : 0);
 			int sh = gridHeight() - (getStructure().isMergeEdges() ? 1 : 0);
@@ -61,26 +59,15 @@ public class IrisStructurePlacement
 			{
 				for(int j = cz << 4; j < (cz << 4) + 15; j += Math.max(s / 2, 1))
 				{
+					if(getStructure().getMaxLayers() <= 1)
+					{
+						placeLayer(g, rng, rnp, i, 0, j, s, sh);
+						continue;
+					}
+
 					for(int k = 0; k < s * getStructure().getMaxLayers(); k += Math.max(sh, 1))
 					{
-						if(!hasStructure(rng, i, k, j))
-						{
-							continue;
-						}
-
-						h = (height == -1 ? 0 : height) + (Math.floorDiv(k, sh) * sh);
-						t = getStructure().getTile(rng, i / zoom, h / zoom, j / zoom);
-
-						if(t != null)
-						{
-							if(height >= 0)
-							{
-								t.getPlacement().setBore(true);
-							}
-
-							o = load(t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
-							o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng);
-						}
+						placeLayer(g, rng, rnp, i, k, j, s, sh);
 					}
 				}
 			}
@@ -89,6 +76,28 @@ public class IrisStructurePlacement
 		catch(Throwable e)
 		{
 			e.printStackTrace();
+		}
+	}
+
+	public void placeLayer(ParallaxChunkGenerator g, RNG rng, RNG rnp, int i, int k, int j, int s, int sh)
+	{
+		if(!hasStructure(rng, i, k, j))
+		{
+			return;
+		}
+
+		int h = (height == -1 ? 0 : height) + (Math.floorDiv(k, sh) * sh);
+		TileResult t = getStructure().getTile(rng, i, h, j);
+
+		if(t != null)
+		{
+			if(height >= 0)
+			{
+				t.getPlacement().setBore(true);
+			}
+
+			IrisObject o = load(t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
+			o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng);
 		}
 	}
 
@@ -119,9 +128,9 @@ public class IrisStructurePlacement
 
 	public boolean hasStructure(RNG random, double x, double y, double z)
 	{
-		if(getChanceGenerator(random).getIndex(x, y, z, getRarity()) == getRarity() / 2)
+		if(getChanceGenerator(random).getIndex(x / zoom, y / zoom, z / zoom, getRarity()) == getRarity() / 2)
 		{
-			return ratio > 0 ? getChanceGenerator(random).getDistance(x, z) > ratio : getChanceGenerator(random).getDistance(x, z) < Math.abs(ratio);
+			return ratio > 0 ? getChanceGenerator(random).getDistance(x / zoom, z / zoom) > ratio : getChanceGenerator(random).getDistance(x / zoom, z / zoom) < Math.abs(ratio);
 		}
 
 		return false;

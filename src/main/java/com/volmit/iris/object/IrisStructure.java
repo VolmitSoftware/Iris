@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -43,14 +44,6 @@ public class IrisStructure extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The tiles")
 	private KList<IrisStructureTile> tiles = new KList<>();
-
-	@DontObfuscate
-	@Desc("This is the wall chance zoom")
-	private double wallChanceZoom = 1D;
-
-	@DontObfuscate
-	@Desc("The dispersion of walls")
-	private Dispersion dispersion = Dispersion.SCATTER;
 
 	private transient AtomicCache<CNG> wallGenerator = new AtomicCache<>();
 
@@ -117,20 +110,8 @@ public class IrisStructure extends IrisRegistrant
 			return true;
 		}
 
-		int gs = getGridSize() + 1;
-		int gh = getGridHeight() + 1;
-		int gx = getTileHorizon(x);
-		int gy = getTileVertical(y);
-		int gz = getTileHorizon(z);
-		int hx = face.x();
-		int hy = face.y();
-		int hz = face.z();
-
-		int tx = (gx * 2) + (hx * gs);
-		int ty = (gy * 2) + (hy * gh);
-		int tz = (gz * 2) + (hz * gs);
-
-		return getWallGenerator(rng).fitDoubleD(0, 1, (tx) / wallChanceZoom, ty / wallChanceZoom, tz / wallChanceZoom) < getWallChance();
+		BlockPosition p = asTileHorizon(new BlockPosition((int) x, (int) y, (int) z), face);
+		return (getWallGenerator(rng).fitDoubleD(0, 1, p.getX(), p.getY(), p.getZ()) < getWallChance());
 	}
 
 	public int getTileHorizon(double v)
@@ -138,29 +119,20 @@ public class IrisStructure extends IrisRegistrant
 		return (int) Math.floor(v / gridSize);
 	}
 
-	public int getTileVertical(double v)
+	public BlockPosition asTileHorizon(BlockPosition b, StructureTileFace face)
 	{
-		return (int) Math.floor(v / gridHeight);
+		b.setX((int) (Math.floor((b.getX() * 2) / gridSize) + face.x()));
+		b.setY((int) (Math.floor((b.getY() * 2) / gridHeight) + face.y()));
+		b.setZ((int) (Math.floor((b.getZ() * 2) / gridSize) + face.z()));
+		return b;
 	}
 
 	public CNG getWallGenerator(RNG rng)
 	{
 		return wallGenerator.aquire(() ->
 		{
-			CNG wallGenerator = new CNG(rng);
-			RNG rngx = rng.nextParallelRNG((int) ((wallChance * 102005) + gridHeight - gridSize + maxLayers + tiles.size()));
-
-			switch(dispersion)
-			{
-				case SCATTER:
-					wallGenerator = CNG.signature(rngx).freq(1000000);
-					break;
-				case WISPY:
-					wallGenerator = CNG.signature(rngx);
-					break;
-			}
-
-			return wallGenerator;
+			RNG rngx = rng.nextParallelRNG((int) (name.hashCode() + gridHeight - gridSize + maxLayers + tiles.size()));
+			return CNG.signature(rngx).scale(0.8);
 		});
 	}
 

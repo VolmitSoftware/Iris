@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.atomics.AtomicWorldData;
@@ -194,7 +193,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
 		getParallaxMap().clean(ticks);
-		Iris.data.getObjectLoader().clean();
+		getData().getObjectLoader().clean();
 	}
 
 	public IrisStructureResult getStructure(int x, int y, int z)
@@ -209,13 +208,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		{
 			if(i.getHeight() > -1)
 			{
-				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure().getGridHeight() * i.getStructure().getMaxLayers()))
+				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure(this).getGridHeight() * i.getStructure(this).getMaxLayers()))
 				{
 					p.add(i);
 				}
 			}
 
-			else if(y >= h && y <= i.getStructure().getGridHeight() + h)
+			else if(y >= h && y <= i.getStructure(this).getGridHeight() + h)
 			{
 				p.add(i);
 			}
@@ -225,13 +224,13 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		{
 			if(i.getHeight() > -1)
 			{
-				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure().getGridHeight() * i.getStructure().getMaxLayers()))
+				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure(this).getGridHeight() * i.getStructure(this).getMaxLayers()))
 				{
 					p.add(i);
 				}
 			}
 
-			else if(y >= h && y <= i.getStructure().getGridHeight() + h)
+			else if(y >= h && y <= i.getStructure(this).getGridHeight() + h)
 			{
 				p.add(i);
 			}
@@ -244,12 +243,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				continue;
 			}
 
-			int hv = (i.getHeight() == -1 ? 0 : i.getHeight()) + (Math.floorDiv(y, i.getStructure().getGridHeight()) * i.getStructure().getGridHeight());
-			TileResult tile = i.getStructure().getTile(ro, Math.floorDiv(i.gridSize(), x) * i.gridSize(), hv, Math.floorDiv(i.gridSize(), z) * i.gridSize());
+			int hv = (i.getHeight() == -1 ? 0 : i.getHeight()) + (Math.floorDiv(y, i.getStructure(this).getGridHeight()) * i.getStructure(this).getGridHeight());
+			TileResult tile = i.getStructure(this).getTile(ro, Math.floorDiv(i.gridSize(this), x) * i.gridSize(this), hv, Math.floorDiv(i.gridSize(this), z) * i.gridSize(this));
 
 			if(tile != null && tile.getTile() != null)
 			{
-				return new IrisStructureResult(tile.getTile(), i.getStructure());
+				return new IrisStructureResult(tile.getTile(), i.getStructure(this));
 			}
 		}
 
@@ -259,7 +258,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected void onGenerateParallax(RNG random, int x, int z)
 	{
 		String key = "par." + x + "." + "z";
-		ChunkPosition rad = getDimension().getParallaxSize();
+		ChunkPosition rad = getDimension().getParallaxSize(this);
 		KList<NastyRunnable> q = new KList<>();
 
 		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
@@ -299,7 +298,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 								continue;
 							}
 
-							if(k.getRealSideA().contains(sa.getLoadKey()) && k.getRealSideB().contains(sb.getLoadKey()))
+							if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
 							{
 								for(IrisObjectPlacement m : k.getObjects())
 								{
@@ -321,18 +320,20 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 					for(IrisStructurePlacement k : r.getStructures())
 					{
+						lockq.lock();
 						q.add(() ->
 						{
-							k.place(this, random, i, j);
+							k.place(this, random.nextParallelRNG(2228), i, j);
 						});
 						lockq.unlock();
 					}
 
 					for(IrisStructurePlacement k : b.getStructures())
 					{
+						lockq.lock();
 						q.add(() ->
 						{
-							k.place(this, random, i, j);
+							k.place(this, random.nextParallelRNG(-22228), i, j);
 						});
 						lockq.unlock();
 					}
@@ -399,7 +400,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		for(int i = 0; i < o.getTriesForChunk(rng); i++)
 		{
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
-			o.getSchematic(rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
+			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
 		}
 	}
 
@@ -417,7 +418,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				continue;
 			}
 
-			o.getSchematic(rng).place(xx, res.get(rng.nextParallelRNG(29345 * (i + 234)).nextInt(res.size())).getFloor() + 2, zz, this, o, rng);
+			o.getSchematic(this, rng).place(xx, res.get(rng.nextParallelRNG(29345 * (i + 234)).nextInt(res.size())).getFloor() + 2, zz, this, o, rng);
 		}
 	}
 

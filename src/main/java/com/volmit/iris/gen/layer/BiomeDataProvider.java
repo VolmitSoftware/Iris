@@ -1,5 +1,6 @@
 package com.volmit.iris.gen.layer;
 
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.RarityCellGenerator;
@@ -22,14 +23,14 @@ public class BiomeDataProvider
 		generator = new RarityCellGenerator(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
 	}
 
-	public BiomeResult generatePureData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public BiomeResult generatePureData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		getGenerator().setShuffle(regionData.getBiomeShuffle());
-		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(getType()), getType());
+		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType());
 	}
 
-	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public BiomeResult generateData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateImpureData(rawX, rawZ, getType(), regionData, generatePureData(bx, bz, rawX, rawZ, regionData));
+		return layer.generateImpureData(rawX, rawZ, getType(), regionData, generatePureData(g, bx, bz, rawX, rawZ, regionData));
 	}
 }

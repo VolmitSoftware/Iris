@@ -183,7 +183,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 		for(String i : dim.getRegions())
 		{
-			IrisRegion r = Iris.data.getRegionLoader().load(i);
+			IrisRegion r = loadRegion(i);
 
 			if(r != null)
 			{
@@ -202,8 +202,8 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 			if(!touch.contains(next))
 			{
 				touch.add(next);
-				IrisBiome biome = Iris.data.getBiomeLoader().load(next);
-				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator(), dim));
+				IrisBiome biome = loadBiome(next);
+				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator(this), dim));
 				loadQueue.addAll(biome.getChildren());
 			}
 		}
@@ -220,11 +220,11 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
-			IrisBiome biome = Iris.data.getBiomeLoader().load(getDimension().getFocus());
+			IrisBiome biome = loadBiome(getDimension().getFocus());
 
 			for(String i : getDimension().getRegions())
 			{
-				IrisRegion reg = Iris.data.getRegionLoader().load(i);
+				IrisRegion reg = loadRegion(i);
 
 				if(reg.getLandBiomes().contains(biome.getLoadKey()))
 				{

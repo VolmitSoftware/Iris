@@ -4,6 +4,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.CNG;
@@ -111,13 +112,13 @@ public class IrisBiome extends IrisRegistrant
 
 	}
 
-	public double getHeight(double x, double z, long seed)
+	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)
 	{
 		double height = 0;
 
 		for(IrisBiomeGeneratorLink i : generators)
 		{
-			height += i.getHeight(x, z, seed);
+			height += i.getHeight(xg, x, z, seed);
 		}
 
 		return Math.max(0, Math.min(height, 255));
@@ -380,7 +381,7 @@ public class IrisBiome extends IrisRegistrant
 		return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));
 	}
 
-	public KList<IrisBiome> getRealChildren()
+	public KList<IrisBiome> getRealChildren(ContextualChunkGenerator g)
 	{
 		return realChildren.aquire(() ->
 		{
@@ -388,14 +389,14 @@ public class IrisBiome extends IrisRegistrant
 
 			for(String i : getChildren())
 			{
-				realChildren.add(Iris.data.getBiomeLoader().load(i));
+				realChildren.add(g != null ? g.loadBiome(i) : Iris.globaldata.getBiomeLoader().load(i));
 			}
 
 			return realChildren;
 		});
 	}
 
-	public KList<String> getAllChildren(int limit)
+	public KList<String> getAllChildren(ContextualChunkGenerator g, int limit)
 	{
 		KSet<String> m = new KSet<>();
 		m.addAll(getChildren());
@@ -405,9 +406,9 @@ public class IrisBiome extends IrisRegistrant
 		{
 			for(String i : getChildren())
 			{
-				IrisBiome b = Iris.data.getBiomeLoader().load(i);
+				IrisBiome b = g != null ? g.loadBiome(i) : Iris.globaldata.getBiomeLoader().load(i);
 				int l = limit;
-				m.addAll(b.getAllChildren(l));
+				m.addAll(b.getAllChildren(g, l));
 			}
 		}
 

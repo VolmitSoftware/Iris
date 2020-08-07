@@ -21,7 +21,7 @@ public class CommandIrisStudioList extends MortarCommand
 	public boolean handle(MortarSender sender, String[] args)
 	{
 		int m = 0;
-		for(File i : Iris.data.getDimensionLoader().getFolders())
+		for(File i : Iris.globaldata.getDimensionLoader().getFolders())
 		{
 			for(File j : i.listFiles())
 			{
@@ -30,7 +30,7 @@ public class CommandIrisStudioList extends MortarCommand
 					try
 					{
 						m++;
-						IrisDimension d = Iris.data.getDimensionLoader().load(j.getName().replaceAll("\\Q.json\\E", ""));
+						IrisDimension d = Iris.globaldata.getDimensionLoader().load(j.getName().replaceAll("\\Q.json\\E", ""));
 						sender.sendMessage("- " + d.getLoadKey() + " (" + d.getName() + ")");
 					}
 					catch(Throwable e)

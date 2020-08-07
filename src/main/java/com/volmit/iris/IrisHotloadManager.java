@@ -53,7 +53,7 @@ public class IrisHotloadManager
 			{
 				watchers.clear();
 				Iris.success("Hotloading Iris (" + c + " File" + (c == 1 ? "" : "s") + " changed)");
-				Iris.data.hotloaded();
+				Iris.globaldata.hotloaded();
 				ch.onHotloaded();
 			}
 		});

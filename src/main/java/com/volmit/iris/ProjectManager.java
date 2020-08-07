@@ -58,7 +58,7 @@ public class ProjectManager
 
 	public void open(MortarSender sender, String dimm, Runnable onDone)
 	{
-		IrisDimension d = Iris.data.getDimensionLoader().load(dimm);
+		IrisDimension d = Iris.globaldata.getDimensionLoader().load(dimm);
 		J.attemptAsync(() ->
 		{
 			try
@@ -155,11 +155,11 @@ public class ProjectManager
 			File folder = currentProject.getWorld().getWorldFolder();
 			Bukkit.unloadWorld(currentProject.getWorld(), false);
 			currentProject = null;
-			Iris.data.getObjectLoader().clearCache();
-			Iris.data.getBiomeLoader().clearCache();
-			Iris.data.getRegionLoader().clearCache();
-			Iris.data.getGeneratorLoader().clearCache();
-			Iris.data.getDimensionLoader().clearCache();
+			Iris.globaldata.getObjectLoader().clearCache();
+			Iris.globaldata.getBiomeLoader().clearCache();
+			Iris.globaldata.getRegionLoader().clearCache();
+			Iris.globaldata.getGeneratorLoader().clearCache();
+			Iris.globaldata.getDimensionLoader().clearCache();
 			J.attemptAsync(() -> IO.delete(folder));
 		}
 	}
@@ -167,7 +167,7 @@ public class ProjectManager
 	public void compilePackage(MortarSender sender, String dim, boolean obfuscate)
 	{
 		String dimm = dim;
-		IrisDimension dimension = Iris.data.getDimensionLoader().load(dimm);
+		IrisDimension dimension = Iris.globaldata.getDimensionLoader().load(dimm);
 		File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
 		folder.mkdirs();
 		Iris.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
@@ -175,11 +175,11 @@ public class ProjectManager
 		KSet<IrisBiome> biomes = new KSet<>();
 		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
-		dimension.getRegions().forEach((i) -> regions.add(Iris.data.getRegionLoader().load(i)));
-		regions.forEach((i) -> biomes.addAll(i.getAllBiomes()));
-		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator())));
-		regions.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure())));
-		biomes.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure())));
+		dimension.getRegions().forEach((i) -> regions.add(Iris.globaldata.getRegionLoader().load(i)));
+		regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
+		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
+		regions.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
+		biomes.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
 		KMap<String, String> renameObjects = new KMap<>();
 		String a = "";
 		StringBuilder b = new StringBuilder();
@@ -242,7 +242,7 @@ public class ProjectManager
 		{
 			try
 			{
-				File f = Iris.data.getObjectLoader().findFile(lookupObjects.get(k).get(0));
+				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
 			}
@@ -257,7 +257,7 @@ public class ProjectManager
 		{
 			try
 			{
-				File f = Iris.data.getObjectLoader().findFile(lookupObjects.get(k).get(0));
+				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
 			}

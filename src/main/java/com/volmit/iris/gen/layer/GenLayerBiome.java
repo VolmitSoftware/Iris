@@ -59,7 +59,7 @@ public class GenLayerBiome extends GenLayer
 		double z = bz / iris.getDimension().getBiomeZoom();
 		String regionId = iris.getDimension().getRegions().get(regionGenerator.getIndex(x, z, iris.getDimension().getRegions().size()));
 
-		return Iris.data.getRegionLoader().load(regionId);
+		return iris.loadRegion(regionId);
 	}
 
 	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ)
@@ -69,7 +69,7 @@ public class GenLayerBiome extends GenLayer
 
 	public BiomeResult generateData(InferredType type, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return getProvider(type).generateData(bx, bz, rawX, rawZ, regionData);
+		return getProvider(type).generateData(iris, bx, bz, rawX, rawZ, regionData);
 	}
 
 	public BiomeDataProvider getProvider(InferredType type)
@@ -147,7 +147,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(i.getType().equals(type) && i.isRidge(rng, rawX, rawZ))
 			{
-				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5);
+				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
 
@@ -155,7 +155,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(i.getType().equals(type) && i.isSpot(rng, rawX, rawZ))
 			{
-				return new BiomeResult(Iris.data.getBiomeLoader().load(i.getBiome()).infer(i.getAs(), type), 0.5);
+				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
 
@@ -179,10 +179,10 @@ public class GenLayerBiome extends GenLayer
 
 		if(parent.getDistance() > regionData.getBiomeImplosionRatio())
 		{
-			if(!parent.getBiome().getRealChildren().isEmpty())
+			if(!parent.getBiome().getRealChildren(iris).isEmpty())
 			{
 				RarityCellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
-				KList<IrisBiome> chx = parent.getBiome().getRealChildren().copy();
+				KList<IrisBiome> chx = parent.getBiome().getRealChildren(iris).copy();
 				chx.add(parent.getBiome());
 				IrisBiome biome = childCell.get(x, z, chx);
 				biome.setInferredType(parent.getBiome().getInferredType());

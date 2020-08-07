@@ -150,11 +150,11 @@ public class IrisObject extends IrisRegistrant
 
 		if(config.isBore())
 		{
-			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2); i++)
+			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0); i++)
 			{
-				for(int j = y - 1; j <= y + h - 2; j++)
+				for(int j = y - Math.floorDiv(h, 2); j <= y + Math.floorDiv(h, 2) - (h % 2 == 0 ? 1 : 0); j++)
 				{
-					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2); k++)
+					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0); k++)
 					{
 						placer.set(i, j, k, AIR);
 					}

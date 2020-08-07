@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -31,11 +32,11 @@ public class IrisBiomeGeneratorLink
 
 	}
 
-	public IrisGenerator getCachedGenerator()
+	public IrisGenerator getCachedGenerator(ContextualChunkGenerator g)
 	{
 		return gen.aquire(() ->
 		{
-			IrisGenerator gen = Iris.data.getGeneratorLoader().load(getGenerator());
+			IrisGenerator gen = g != null ? g.loadGenerator(getGenerator()) : Iris.globaldata.getGeneratorLoader().load(getGenerator());
 
 			if(gen == null)
 			{
@@ -46,9 +47,9 @@ public class IrisBiomeGeneratorLink
 		});
 	}
 
-	public double getHeight(double x, double z, long seed)
+	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)
 	{
-		double g = getCachedGenerator().getHeight(x, z, seed);
+		double g = getCachedGenerator(xg).getHeight(x, z, seed);
 		g = g < 0 ? 0 : g;
 		g = g > 1 ? 1 : g;
 

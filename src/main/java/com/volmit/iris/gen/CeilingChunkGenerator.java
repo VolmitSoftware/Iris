@@ -3,7 +3,6 @@ package com.volmit.iris.gen;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.InvertedBiomeGrid;
 import com.volmit.iris.util.RNG;
@@ -93,7 +92,7 @@ public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
 			return null;
 		}
 
-		IrisDimension c = Iris.data.getDimensionLoader().load(getFloorDimension().getCeiling());
+		IrisDimension c = loadDimension(getFloorDimension().getCeiling());
 
 		if(c != null)
 		{

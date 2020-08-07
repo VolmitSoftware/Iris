@@ -54,7 +54,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
-	public static IrisDataManager data;
+	public static IrisDataManager globaldata;
 	public static ProjectManager proj;
 	public static IrisHotloadManager hotloader;
 	public static WandController wand;
@@ -103,7 +103,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 		lock = new IrisLock("Iris");
 		instance = this;
 		hotloader = new IrisHotloadManager();
-		data = new IrisDataManager(getDataFolder());
+		globaldata = new IrisDataManager(getDataFolder());
 		wand = new WandController();
 		postProcessors = loadPostProcessors();
 		proj = new ProjectManager();
@@ -188,7 +188,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(Iris.data.getObjectLoader().count()));
+			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(g.getData().getObjectLoader().count()));
 			lines.add(ChatColor.GREEN + "Memory" + ChatColor.GRAY + ": " + mem);
 
 			if(er != null && b != null)

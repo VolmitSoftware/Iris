@@ -6,6 +6,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.B;
@@ -548,31 +549,31 @@ public class IrisDimension extends IrisRegistrant
 		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
-	public KList<IrisRegion> getAllRegions()
+	public KList<IrisRegion> getAllRegions(ContextualChunkGenerator g)
 	{
 		KList<IrisRegion> r = new KList<>();
 
 		for(String i : getRegions())
 		{
-			r.add(Iris.data.getRegionLoader().load(i));
+			r.add(g != null ? g.loadRegion(i) : Iris.globaldata.getRegionLoader().load(i));
 		}
 
 		return r;
 	}
 
-	public KList<IrisBiome> getAllBiomes()
+	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g)
 	{
 		KList<IrisBiome> r = new KList<>();
 
-		for(IrisRegion i : getAllRegions())
+		for(IrisRegion i : getAllRegions(g))
 		{
-			r.addAll(i.getAllBiomes());
+			r.addAll(i.getAllBiomes(g));
 		}
 
 		return r;
 	}
 
-	public ChunkPosition getParallaxSize()
+	public ChunkPosition getParallaxSize(ContextualChunkGenerator g)
 	{
 		return parallaxSize.aquire(() ->
 		{
@@ -580,8 +581,8 @@ public class IrisDimension extends IrisRegistrant
 			int z = 0;
 
 			KSet<String> objects = new KSet<>();
-			KList<IrisRegion> r = getAllRegions();
-			KList<IrisBiome> b = getAllBiomes();
+			KList<IrisRegion> r = getAllRegions(g);
+			KList<IrisBiome> b = getAllBiomes(g);
 
 			for(IrisBiome i : b)
 			{
@@ -595,7 +596,7 @@ public class IrisDimension extends IrisRegistrant
 			{
 				try
 				{
-					BlockVector bv = IrisObject.sampleSize(Iris.data.getObjectLoader().findFile(i));
+					BlockVector bv = IrisObject.sampleSize(g.getData().getObjectLoader().findFile(i));
 					x = bv.getBlockX() > x ? bv.getBlockX() : x;
 					z = bv.getBlockZ() > z ? bv.getBlockZ() : z;
 				}

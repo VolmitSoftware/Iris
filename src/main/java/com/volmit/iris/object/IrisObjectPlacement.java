@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -64,14 +65,14 @@ public class IrisObjectPlacement
 
 	}
 
-	public IrisObject getSchematic(RNG random)
+	public IrisObject getSchematic(ContextualChunkGenerator g, RNG random)
 	{
 		if(place.isEmpty())
 		{
 			return null;
 		}
 
-		return Iris.data.getObjectLoader().load(place.get(random.nextInt(place.size())));
+		return (g == null ? Iris.globaldata : g.getData()).getObjectLoader().load(place.get(random.nextInt(place.size())));
 	}
 
 	public int getTriesForChunk(RNG random)

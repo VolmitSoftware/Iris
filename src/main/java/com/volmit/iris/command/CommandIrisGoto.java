@@ -54,7 +54,7 @@ public class CommandIrisGoto extends MortarCommand
 
 				else
 				{
-					biome2 = Iris.data.getBiomeLoader().load(args[1]);
+					biome2 = g.loadBiome(args[1]);
 
 					if(biome2 == null)
 					{
@@ -72,7 +72,7 @@ public class CommandIrisGoto extends MortarCommand
 				}
 			}
 
-			IrisBiome biome = Iris.data.getBiomeLoader().load(args[0]);
+			IrisBiome biome = g.loadBiome(args[0]);
 
 			if(biome == null)
 			{

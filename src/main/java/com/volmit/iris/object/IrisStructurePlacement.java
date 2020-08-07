@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.ParallaxChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
@@ -52,20 +53,20 @@ public class IrisStructurePlacement
 		{
 			RNG rng = g.getMasterRandom().nextParallelRNG(-88738456);
 			RNG rnp = rng.nextParallelRNG(cx - (cz * cz));
-			int s = gridSize() - (getStructure().isMergeEdges() ? 1 : 0);
-			int sh = gridHeight() - (getStructure().isMergeEdges() ? 1 : 0);
+			int s = gridSize(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
+			int sh = gridHeight(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
 
-			for(int i = cx << 4; i < (cx << 4) + 15; i += Math.max(s / 2, 1))
+			for(int i = cx << 4; i < (cx << 4) + 15; i += Math.max(s, 1))
 			{
-				for(int j = cz << 4; j < (cz << 4) + 15; j += Math.max(s / 2, 1))
+				for(int j = cz << 4; j < (cz << 4) + 15; j += Math.max(s, 1))
 				{
-					if(getStructure().getMaxLayers() <= 1)
+					if(getStructure(g).getMaxLayers() <= 1)
 					{
 						placeLayer(g, rng, rnp, i, 0, j, s, sh);
 						continue;
 					}
 
-					for(int k = 0; k < s * getStructure().getMaxLayers(); k += Math.max(sh, 1))
+					for(int k = 0; k < s * getStructure(g).getMaxLayers(); k += Math.max(sh, 1))
 					{
 						placeLayer(g, rng, rnp, i, k, j, s, sh);
 					}
@@ -87,7 +88,7 @@ public class IrisStructurePlacement
 		}
 
 		int h = (height == -1 ? 0 : height) + (Math.floorDiv(k, sh) * sh);
-		TileResult t = getStructure().getTile(rng, i, h, j);
+		TileResult t = getStructure(g).getTile(rng, i, h, j);
 
 		if(t != null)
 		{
@@ -96,7 +97,7 @@ public class IrisStructurePlacement
 				t.getPlacement().setBore(true);
 			}
 
-			IrisObject o = load(t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
+			IrisObject o = load(g, t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
 			o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng);
 		}
 	}
@@ -106,24 +107,24 @@ public class IrisStructurePlacement
 		return config.aquire(() -> new IrisObjectPlacement());
 	}
 
-	public IrisObject load(String s)
+	public IrisObject load(ContextualChunkGenerator g, String s)
 	{
-		return Iris.data.getObjectLoader().load(s);
+		return g.getData().getObjectLoader().load(s);
 	}
 
-	public int gridSize()
+	public int gridSize(ContextualChunkGenerator g)
 	{
-		return getStructure().getGridSize();
+		return getStructure(g).getGridSize();
 	}
 
-	public int gridHeight()
+	public int gridHeight(ContextualChunkGenerator g)
 	{
-		return getStructure().getGridHeight();
+		return getStructure(g).getGridHeight();
 	}
 
-	public IrisStructure getStructure()
+	public IrisStructure getStructure(ContextualChunkGenerator g)
 	{
-		return structure.aquire(() -> Iris.data.getStructureLoader().load(getTileset()));
+		return structure.aquire(() -> (g == null ? Iris.globaldata : g.getData()).getStructureLoader().load(getTileset()));
 	}
 
 	public boolean hasStructure(RNG random, double x, double y, double z)

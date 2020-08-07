@@ -1,6 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
+import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -36,17 +36,17 @@ public class IrisBiomeMutation
 	private transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
 	private transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
 
-	public KList<String> getRealSideA()
+	public KList<String> getRealSideA(ContextualChunkGenerator xg)
 	{
-		return sideACache.aquire(() -> processList(getSideA()));
+		return sideACache.aquire(() -> processList(xg, getSideA()));
 	}
 
-	public KList<String> getRealSideB()
+	public KList<String> getRealSideB(ContextualChunkGenerator xg)
 	{
-		return sideBCache.aquire(() -> processList(getSideB()));
+		return sideBCache.aquire(() -> processList(xg, getSideB()));
 	}
 
-	public KList<String> processList(KList<String> s)
+	public KList<String> processList(ContextualChunkGenerator xg, KList<String> s)
 	{
 		KSet<String> r = new KSet<>();
 
@@ -56,14 +56,14 @@ public class IrisBiomeMutation
 
 			if(q.startsWith("^"))
 			{
-				r.addAll(Iris.data.getRegionLoader().load(q.substring(1)).getLandBiomes());
+				r.addAll(xg.loadRegion(q.substring(1)).getLandBiomes());
 				continue;
 			}
 
 			else if(q.startsWith("*"))
 			{
 				String name = q.substring(1);
-				r.addAll(Iris.data.getBiomeLoader().load(name).getAllChildren(7));
+				r.addAll(xg.loadBiome(name).getAllChildren(xg, 7));
 			}
 
 			else if(q.startsWith("!"))
@@ -74,7 +74,7 @@ public class IrisBiomeMutation
 			else if(q.startsWith("!*"))
 			{
 				String name = q.substring(2);
-				r.removeAll(Iris.data.getBiomeLoader().load(name).getAllChildren(7));
+				r.removeAll(xg.loadBiome(name).getAllChildren(xg, 7));
 			}
 
 			else

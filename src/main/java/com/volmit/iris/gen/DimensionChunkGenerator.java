@@ -31,7 +31,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 	public IrisDimension getDimension()
 	{
-		IrisDimension d = Iris.data.getDimensionLoader().load(dimensionName);
+		IrisDimension d = loadDimension(dimensionName);
 
 		if(d == null)
 		{
@@ -43,11 +43,11 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 	protected BiomeResult focus()
 	{
-		IrisBiome biome = Iris.data.getBiomeLoader().load(getDimension().getFocus());
+		IrisBiome biome = loadBiome(getDimension().getFocus());
 
 		for(String i : getDimension().getRegions())
 		{
-			IrisRegion reg = Iris.data.getRegionLoader().load(i);
+			IrisRegion reg = loadRegion(i);
 
 			if(reg.getLandBiomes().contains(biome.getLoadKey()))
 			{

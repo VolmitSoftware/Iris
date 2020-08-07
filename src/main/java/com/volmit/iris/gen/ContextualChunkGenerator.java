@@ -1,5 +1,6 @@
 package com.volmit.iris.gen;
 
+import java.io.File;
 import java.util.List;
 import java.util.Random;
 
@@ -22,7 +23,14 @@ import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
+import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisMetrics;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChronoLatch;
@@ -38,6 +46,7 @@ import net.md_5.bungee.api.ChatColor;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener
 {
+	private IrisDataManager data;
 	protected boolean failing;
 	protected int task;
 	protected boolean dev;
@@ -86,6 +95,41 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	protected abstract void onPlayerLeft(Player p);
 
+	public IrisRegion loadRegion(String i)
+	{
+		return getData().getRegionLoader().load(i);
+	}
+
+	public IrisBiome loadBiome(String i)
+	{
+		return getData().getBiomeLoader().load(i);
+	}
+
+	public IrisStructure loadStructure(String i)
+	{
+		return getData().getStructureLoader().load(i);
+	}
+
+	public IrisObject loadObject(String i)
+	{
+		return getData().getObjectLoader().load(i);
+	}
+
+	public IrisDimension loadDimension(String i)
+	{
+		return getData().getDimensionLoader().load(i);
+	}
+
+	public IrisGenerator loadGenerator(String i)
+	{
+		return getData().getGeneratorLoader().load(i);
+	}
+
+	public IrisDataManager getData()
+	{
+		return isDev() ? Iris.globaldata : data;
+	}
+
 	private void init(World world, RNG rng)
 	{
 		if(initialized)
@@ -93,6 +137,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			return;
 		}
 
+		data = new IrisDataManager(new File(getWorld().getWorldFolder(), "iris"));
 		this.world = world;
 		this.masterRandom = new RNG(world.getSeed());
 		metrics = new IrisMetrics(128);

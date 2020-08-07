@@ -35,6 +35,12 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		lock = new IrisLock("IrisChunkGenerator");
 	}
 
+	public IrisChunkGenerator(String dimensionName)
+	{
+		super(dimensionName, 16);
+		lock = new IrisLock("IrisChunkGenerator");
+	}
+
 	@Override
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
@@ -149,7 +155,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 
 	public long guessMemoryUsage()
 	{
-		long bytes = 1024 * 1024 * (8 + (getThreads() / 4));
+		long bytes = 1024 * 1024 * (8 + (getThreads() / 3));
 
 		for(AtomicRegionData i : parallaxMap.getLoadedRegions().values())
 		{
@@ -164,7 +170,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += ceilingParallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += getSliverBuffer() * 220;
-		bytes += 752 * Iris.data.getObjectLoader().getTotalStorage();
+		bytes += 823 * getData().getObjectLoader().getTotalStorage();
 
 		return bytes;
 	}
@@ -190,6 +196,6 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	public boolean shouldGenerateStructures()
 	{
-		return true;
+		return false;
 	}
 }

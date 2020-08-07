@@ -1,6 +1,9 @@
 package com.volmit.iris.gen;
 
+import java.io.File;
+
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
@@ -10,6 +13,7 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 {
-	protected final String dimensionName;
+	protected String dimensionName;
 	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData CAVE_AIR = B.get("CAVE_AIR");
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
@@ -27,6 +31,34 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	{
 		super();
 		this.dimensionName = dimensionName;
+	}
+
+	public void onInit(World world, RNG masterRandom)
+	{
+		if(dimensionName.isEmpty())
+		{
+			File folder = new File(world.getWorldFolder(), "iris/dimensions");
+
+			if(!folder.exists())
+			{
+				Iris.error("Missing World iris/dimensions folder!");
+				dimensionName = "error-missing-dimension";
+				return;
+			}
+
+			for(File i : folder.listFiles())
+			{
+				if(i.isFile() && i.getName().endsWith(".json"))
+				{
+					dimensionName = i.getName().replaceAll("\\Q.json\\E", "");
+					return;
+				}
+			}
+
+			Iris.error("Missing World iris/dimensions/<dimension-name>.json file. Assuming overworld!");
+			dimensionName = "error-missing-dimension";
+			fail(new RuntimeException("Missing dimension folder/file in " + folder.getAbsolutePath()));
+		}
 	}
 
 	public IrisDimension getDimension()

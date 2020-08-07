@@ -6,13 +6,14 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RarityCellGenerator;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @Desc("Represents a biome in iris.")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisBiome extends IrisRegistrant
+public class IrisBiome extends IrisRegistrant implements IRare
 {
 	@DontObfuscate
 	@Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
@@ -100,7 +101,7 @@ public class IrisBiome extends IrisRegistrant
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient InferredType inferredType;
-	private transient AtomicCache<RarityCellGenerator> childrenCell = new AtomicCache<>();
+	private transient AtomicCache<RarityCellGenerator<IrisBiome>> childrenCell = new AtomicCache<>();
 	private transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
 	private transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
@@ -132,11 +133,11 @@ public class IrisBiome extends IrisRegistrant
 		});
 	}
 
-	public RarityCellGenerator getChildrenGenerator(RNG random, int sig, double scale)
+	public RarityCellGenerator<IrisBiome> getChildrenGenerator(RNG random, int sig, double scale)
 	{
 		return childrenCell.aquire(() ->
 		{
-			RarityCellGenerator childrenCell = new RarityCellGenerator(random.nextParallelRNG(sig * 2137));
+			RarityCellGenerator<IrisBiome> childrenCell = new RarityCellGenerator<IrisBiome>(random.nextParallelRNG(sig * 2137));
 			childrenCell.setCellScale(scale);
 			return childrenCell;
 		});

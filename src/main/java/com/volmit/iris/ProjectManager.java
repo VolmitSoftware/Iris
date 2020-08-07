@@ -164,7 +164,7 @@ public class ProjectManager
 		}
 	}
 
-	public void compilePackage(MortarSender sender, String dim, boolean obfuscate)
+	public File compilePackage(MortarSender sender, String dim, boolean obfuscate)
 	{
 		String dimm = dim;
 		IrisDimension dimension = Iris.globaldata.getDimensionLoader().load(dimm);
@@ -317,15 +317,19 @@ public class ProjectManager
 			meta.put("time", M.ms());
 			meta.put("version", dimension.getVersion());
 			IO.writeAll(new File(folder, "package.json"), meta.toString(0));
-			ZipUtil.pack(folder, new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris"), 9);
+			File p = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris");
+			ZipUtil.pack(folder, p, 9);
 			IO.delete(folder);
+
+			sender.sendMessage("Done!");
+			return p;
 		}
 
 		catch(Throwable e)
 		{
 			e.printStackTrace();
 		}
-
-		sender.sendMessage("Done!");
+		sender.sendMessage("Failed!");
+		return null;
 	}
 }

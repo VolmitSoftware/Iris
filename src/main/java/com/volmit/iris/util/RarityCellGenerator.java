@@ -1,15 +1,13 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.object.IrisBiome;
-
-public class RarityCellGenerator extends CellGenerator
+public class RarityCellGenerator<T extends IRare> extends CellGenerator
 {
 	public RarityCellGenerator(RNG rng)
 	{
 		super(rng);
 	}
 
-	public IrisBiome get(double x, double z, KList<IrisBiome> b)
+	public T get(double x, double z, KList<T> b)
 	{
 		if(b.size() == 0)
 		{
@@ -21,10 +19,10 @@ public class RarityCellGenerator extends CellGenerator
 			return b.get(0);
 		}
 
-		KList<IrisBiome> rarityMapped = new KList<>();
+		KList<T> rarityMapped = new KList<>();
 		boolean o = false;
 		int max = 1;
-		for(IrisBiome i : b)
+		for(T i : b)
 		{
 			if(i.getRarity() > max)
 			{
@@ -34,7 +32,7 @@ public class RarityCellGenerator extends CellGenerator
 
 		max++;
 
-		for(IrisBiome i : b)
+		for(T i : b)
 		{
 			for(int j = 0; j < max - i.getRarity(); j++)
 			{

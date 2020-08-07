@@ -41,6 +41,12 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		lock = new IrisLock("IrisChunkGenerator");
 	}
 
+	public IrisChunkGenerator(int tc)
+	{
+		super("", tc);
+		lock = new IrisLock("IrisChunkGenerator");
+	}
+
 	@Override
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{

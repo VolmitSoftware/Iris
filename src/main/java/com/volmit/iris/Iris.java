@@ -285,7 +285,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisChunkGenerator("overworld", 16);
+		return new IrisChunkGenerator(16);
 	}
 
 	public static void msg(String string)

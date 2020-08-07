@@ -20,18 +20,22 @@ public class PregenJob
 	public static int task = -1;
 	private PrecisionStopwatch s;
 	private ChronoLatch cl;
+	private MortarSender sender;
+	private Runnable onDone;
 
-	public PregenJob(World world, int size)
+	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
 		this.s = PrecisionStopwatch.start();
 		this.world = world;
 		this.size = size;
+		this.onDone = onDone;
 		world.getWorldBorder().setCenter(0, 0);
 		world.getWorldBorder().setWarningDistance(64);
 		world.getWorldBorder().setSize(size);
 		mcaX = mca(min());
 		mcaZ = mca(min());
 		rcx = 0;
+		this.sender = sender;
 		cl = new ChronoLatch(3000);
 		rcz = 0;
 		total = (size / 16) * (size / 16);
@@ -83,7 +87,12 @@ public class PregenJob
 	private void tickMetrics()
 	{
 		long eta = (long) ((total - genned) * (s.getMilliseconds() / (double) genned));
-		Iris.info("Pregen: Generating: " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0) + ", Elapsed: " + Form.duration((long) s.getMilliseconds()) + ", ETA: " + (genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta)) + " MS: " + Form.duration((s.getMilliseconds() / (double) genned), 2));
+		String ss = "Pregen: " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0) + ", Elapsed: " + Form.duration((long) s.getMilliseconds()) + ", ETA: " + (genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta)) + " MS: " + Form.duration((s.getMilliseconds() / (double) genned), 2);
+		Iris.info(ss);
+		if(sender.isPlayer() && sender.player().isOnline())
+		{
+			sender.sendMessage(ss);
+		}
 	}
 
 	public void tick()
@@ -117,6 +126,10 @@ public class PregenJob
 						completed = true;
 						stop();
 						Iris.info("Pregen Completed!");
+						if(sender.isPlayer() && sender.player().isOnline())
+						{
+							sender.sendMessage("Pregen Completed!");
+						}
 
 						for(Chunk i : world.getLoadedChunks())
 						{
@@ -124,6 +137,8 @@ public class PregenJob
 						}
 
 						world.save();
+
+						onDone.run();
 						return;
 					}
 
@@ -149,6 +164,12 @@ public class PregenJob
 		catch(Throwable e)
 		{
 			Iris.warn("Pregen Crash!");
+			if(sender.isPlayer() && sender.player().isOnline())
+			{
+				sender.sendMessage("Pregen Completed!");
+			}
+
+			onDone.run();
 			e.printStackTrace();
 			stop();
 		}

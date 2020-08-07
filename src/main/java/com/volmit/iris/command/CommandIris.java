@@ -19,6 +19,9 @@ public class CommandIris extends MortarCommand
 	@Command
 	private CommandIrisObject object;
 
+	@Command
+	private CommandIrisCreate create;
+
 	public CommandIris()
 	{
 		super("iris", "ir", "irs");

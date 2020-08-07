@@ -39,7 +39,9 @@ public class CommandIrisPregen extends MortarCommand
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
-			new PregenJob(world, Integer.valueOf(args[0]));
+			new PregenJob(world, Integer.valueOf(args[0]), sender, () ->
+			{
+			});
 
 			return true;
 		}

@@ -26,6 +26,7 @@ public class IrisDataManager
 {
 	private File dataFolder;
 	private File packs;
+	private boolean prod;
 	private ResourceLoader<IrisBiome> biomeLoader;
 	private ResourceLoader<IrisRegion> regionLoader;
 	private ResourceLoader<IrisDimension> dimensionLoader;
@@ -35,6 +36,12 @@ public class IrisDataManager
 
 	public void hotloaded()
 	{
+		if(prod)
+		{
+			return;
+		}
+
+		File packs = this.packs.getName().equals("packs") ? this.packs : dataFolder;
 		packs.mkdirs();
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
@@ -42,14 +49,28 @@ public class IrisDataManager
 		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
 		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
-		writeExamples();
+		if(packs.getName().equals("packs"))
+		{
+			writeExamples();
+		}
 	}
 
 	public IrisDataManager(File dataFolder)
 	{
 		this.dataFolder = dataFolder;
 		this.packs = new File(dataFolder, "packs");
+		boolean pr = false;
+		if(!packs.exists())
+		{
+			if(new File(dataFolder, "iris").exists())
+			{
+				pr = true;
+				packs = new File(dataFolder, "iris");
+			}
+		}
+
 		hotloaded();
+		prod = pr;
 	}
 
 	private void writeExamples()

@@ -51,6 +51,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator
 
 	public void onInit(World world, RNG rng)
 	{
+		super.onInit(world, rng);
 		loadGenerators();
 		glBiome = new GenLayerBiome(this, masterRandom.nextParallelRNG(1));
 		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);

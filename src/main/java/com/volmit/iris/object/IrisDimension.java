@@ -183,6 +183,14 @@ public class IrisDimension extends IrisRegistrant
 	private double regionZoom = 1;
 
 	@DontObfuscate
+	@Desc("The shuffle of regions")
+	private double regionShuffle = 11;
+
+	@DontObfuscate
+	@Desc("The shuffle of land vs sea")
+	private double continentalShuffle = 99;
+
+	@DontObfuscate
 	@Desc("Disable this to stop placing schematics in biomes")
 	private boolean placeObjects = true;
 

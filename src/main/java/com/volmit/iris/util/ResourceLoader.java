@@ -6,6 +6,9 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisRegistrant;
 
+import lombok.Data;
+
+@Data
 public class ResourceLoader<T extends IrisRegistrant>
 {
 	protected File root;

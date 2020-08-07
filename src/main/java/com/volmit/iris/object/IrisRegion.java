@@ -6,6 +6,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
@@ -17,11 +18,15 @@ import lombok.EqualsAndHashCode;
 @Desc("Represents an iris region")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisRegion extends IrisRegistrant
+public class IrisRegion extends IrisRegistrant implements IRare
 {
 	@DontObfuscate
 	@Desc("The name of the region")
 	private String name = "A Region";
+
+	@DontObfuscate
+	@Desc("The rarity of the region")
+	private int rarity = 1;
 
 	@DontObfuscate
 	@Desc("The shore ration (How much percent of land should be a shore)")
@@ -182,6 +187,9 @@ public class IrisRegion extends IrisRegistrant
 		KMap<String, IrisBiome> b = new KMap<>();
 		KSet<String> names = new KSet<>();
 		names.addAll(landBiomes);
+		names.addAll(islandBiomes);
+		names.addAll(caveBiomes);
+		names.addAll(skylandBiomes);
 		names.addAll(seaBiomes);
 		names.addAll(shoreBiomes);
 		spotBiomes.forEach((i) -> names.add(i.getBiome()));

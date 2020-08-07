@@ -21,7 +21,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class GenLayerBiome extends GenLayer
 {
-	private CellGenerator regionGenerator;
+	private RarityCellGenerator<IrisRegion> regionGenerator;
 	private CellGenerator bridgeGenerator;
 	private BiomeDataProvider seaProvider;
 	private BiomeDataProvider landProvider;
@@ -41,7 +41,7 @@ public class GenLayerBiome extends GenLayer
 		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, rng);
 		islandProvider = new BiomeDataProvider(this, InferredType.ISLAND, rng);
 		skylandProvider = new BiomeDataProvider(this, InferredType.SKYLAND, rng);
-		regionGenerator = new CellGenerator(rng.nextParallelRNG(1188519));
+		regionGenerator = new RarityCellGenerator<IrisRegion>(rng.nextParallelRNG(1188519));
 		bridgeGenerator = new CellGenerator(rng.nextParallelRNG(1541462));
 	}
 
@@ -53,13 +53,12 @@ public class GenLayerBiome extends GenLayer
 			return null;
 		}
 
-		regionGenerator.setShuffle(11);
-		regionGenerator.setCellScale(0.33 / iris.getDimension().getRegionZoom());
-		double x = bx / iris.getDimension().getBiomeZoom();
-		double z = bz / iris.getDimension().getBiomeZoom();
-		String regionId = iris.getDimension().getRegions().get(regionGenerator.getIndex(x, z, iris.getDimension().getRegions().size()));
+		regionGenerator.setShuffle(iris.getDimension().getRegionShuffle());
+		regionGenerator.setCellScale(0.35);
+		double x = bx / iris.getDimension().getRegionZoom();
+		double z = bz / iris.getDimension().getRegionZoom();
 
-		return iris.loadRegion(regionId);
+		return regionGenerator.get(x, z, iris.getDimension().getAllRegions(iris));
 	}
 
 	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ)
@@ -119,14 +118,14 @@ public class GenLayerBiome extends GenLayer
 
 	public InferredType getType(double bx, double bz, IrisRegion regionData)
 	{
-		bridgeGenerator.setShuffle(47);
-		bridgeGenerator.setCellScale(0.33 / iris.getDimension().getContinentZoom());
-		double x = bx / iris.getDimension().getBiomeZoom();
-		double z = bz / iris.getDimension().getBiomeZoom();
+		bridgeGenerator.setShuffle(iris.getDimension().getContinentalShuffle());
+		bridgeGenerator.setCellScale(0.33);
+		double x = bx / iris.getDimension().getContinentZoom();
+		double z = bz / iris.getDimension().getContinentZoom();
 		return bridgeGenerator.getIndex(x, z, 2) == 1 ? InferredType.LAND : InferredType.SEA;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, RarityCellGenerator cell, KList<IrisBiome> biomes, InferredType inferredType)
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, RarityCellGenerator<IrisBiome> cell, KList<IrisBiome> biomes, InferredType inferredType)
 	{
 		if(biomes.isEmpty())
 		{
@@ -162,12 +161,12 @@ public class GenLayerBiome extends GenLayer
 		return pureResult;
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator parentCell, BiomeResult parent)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator<IrisBiome> parentCell, BiomeResult parent)
 	{
 		return implode(bx, bz, regionData, parentCell, parent, 1);
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator parentCell, BiomeResult parent, int hits)
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, RarityCellGenerator<IrisBiome> parentCell, BiomeResult parent, int hits)
 	{
 		if(hits > 9)
 		{
@@ -181,7 +180,7 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(!parent.getBiome().getRealChildren(iris).isEmpty())
 			{
-				RarityCellGenerator childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
+				RarityCellGenerator<IrisBiome> childCell = parent.getBiome().getChildrenGenerator(rng, 123, parentCell.getCellScale() * parent.getBiome().getChildShrinkFactor());
 				KList<IrisBiome> chx = parent.getBiome().getRealChildren(iris).copy();
 				chx.add(parent.getBiome());
 				IrisBiome biome = childCell.get(x, z, chx);

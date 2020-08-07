@@ -1,6 +1,5 @@
 package com.volmit.iris.gen;
 
-import java.io.File;
 import java.util.List;
 import java.util.Random;
 
@@ -137,7 +136,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			return;
 		}
 
-		data = new IrisDataManager(new File(getWorld().getWorldFolder(), "iris"));
+		data = new IrisDataManager(getWorld().getWorldFolder());
 		this.world = world;
 		this.masterRandom = new RNG(world.getSeed());
 		metrics = new IrisMetrics(128);

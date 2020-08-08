@@ -21,6 +21,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructure extends IrisRegistrant
 {
+	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("This is the human readable name for this structure. Such as Red Dungeon or Tropical Village.")

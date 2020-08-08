@@ -34,6 +34,7 @@ public class IrisDimension extends IrisRegistrant
 	public static final BlockData STONE = Material.STONE.createBlockData();
 	public static final BlockData WATER = Material.WATER.createBlockData();
 
+	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("The human readable name of this dimension")
@@ -117,12 +118,12 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Use post processing or not")
 	private boolean postProcessing = true;
 
-	@ArrayType(min=1,type=IrisPostProcessor.class)
+	@ArrayType(min = 1, type = IrisPostProcessor.class)
 	@DontObfuscate
 	@Desc("Post Processors")
 	private KList<IrisPostProcessor> postProcessors = getDefaultPostProcessors();
 
-	@ArrayType(min=1,type=IrisCompatabilityFilter.class)
+	@ArrayType(min = 1, type = IrisCompatabilityFilter.class)
 	@DontObfuscate
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
@@ -141,7 +142,7 @@ public class IrisDimension extends IrisRegistrant
 	private Environment environment = Environment.NORMAL;
 
 	@Required
-	@ArrayType(min=1,type=String.class)
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
 	private KList<String> regions = new KList<>();
@@ -231,7 +232,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Prevent Leaf decay as if placed in creative mode")
 	private boolean preventLeafDecay = false;
 
-	@ArrayType(min=1,type=IrisDepositGenerator.class)
+	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@DontObfuscate
 	@Desc("Define global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
@@ -246,17 +247,17 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The rock zoom mostly for zooming in on a wispy palette")
 	private double rockZoom = 5;
 
-	@ArrayType(min=1,type=String.class)
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
 	private KList<String> rockPalette = new KList<String>().qadd("STONE");
 
-	@ArrayType(min=1,type=String.class)
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
 	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
 
-	@ArrayType(min=1,type=IrisBiomeMutation.class)
+	@ArrayType(min = 1, type = IrisBiomeMutation.class)
 	@DontObfuscate
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();

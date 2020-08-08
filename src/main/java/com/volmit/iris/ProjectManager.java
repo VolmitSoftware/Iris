@@ -11,9 +11,9 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
-import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
@@ -678,6 +678,16 @@ public class ProjectManager
 					if(k.getType().equals(String.class))
 					{
 						tp = "string";
+
+						if(k.isAnnotationPresent(MinNumber.class))
+						{
+							prop.put("minLength", (int) k.getDeclaredAnnotation(MinNumber.class).value());
+						}
+
+						if(k.isAnnotationPresent(MaxNumber.class))
+						{
+							prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
+						}
 					}
 
 					if(k.getType().equals(String.class))

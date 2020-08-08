@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisRegion extends IrisRegistrant implements IRare
 {
+	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("The name of the region")

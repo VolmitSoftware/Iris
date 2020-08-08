@@ -3,19 +3,27 @@ package com.volmit.iris;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
+import org.bukkit.World.Environment;
+import org.bukkit.block.Biome;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.post.Post;
+import com.volmit.iris.object.DecorationPart;
+import com.volmit.iris.object.Dispersion;
+import com.volmit.iris.object.Envelope;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
@@ -27,11 +35,13 @@ import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
+import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
+import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONArray;
 import com.volmit.iris.util.JSONException;
@@ -494,7 +504,6 @@ public class ProjectManager
 		try
 		{
 			JSONObject ws = newWorkspaceConfig();
-
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "regions", exampleRegion.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
@@ -540,6 +549,7 @@ public class ProjectManager
 	{
 		try
 		{
+			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
 			JSONObject j = new JSONObject(IO.readAll(ws));
 			JSONObject s = j.getJSONObject("settings");
 			s.put("json.schemas", buildSchemas());
@@ -843,5 +853,88 @@ public class ProjectManager
 		}
 
 		return schema;
+	}
+
+	public void writeDocs(File folder) throws IOException, JSONException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException
+	{
+		File of = new File(folder, "_docs");
+		KList<String> m = new KList<>();
+
+		for(Biome i : Biome.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "biomes.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(Particle i : Particle.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "particles.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(Dispersion i : Dispersion.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "dispersion.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(DecorationPart i : DecorationPart.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "decoration-part.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(Envelope i : Envelope.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "envelope.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(Environment i : Environment.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "environment.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(StructureTileCondition i : StructureTileCondition.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "structure-tile-condition.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(InterpolationMethod i : InterpolationMethod.values())
+		{
+			m.add(i.name());
+		}
+
+		IO.writeAll(new File(of, "interpolation-method.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(Class<? extends IrisPostBlockFilter> i : Iris.postProcessors)
+		{
+			m.add(i.getDeclaredAnnotation(Post.class).value());
+		}
+
+		IO.writeAll(new File(of, "post-processors.txt"), m.toString("\n"));
+		m = new KList<>();
+
+		for(PotionEffectType i : PotionEffectType.values())
+		{
+			m.add(i.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
+		}
 	}
 }

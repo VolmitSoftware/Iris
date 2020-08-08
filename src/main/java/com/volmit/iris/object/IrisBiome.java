@@ -23,7 +23,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @DontObfuscate
-@Desc("Represents a biome in iris.")
+@Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements IRare
@@ -35,11 +35,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	@ArrayType(min = 1, type = IrisEffect.class)
 	@DontObfuscate
-	@Desc("The name of the region")
+	@Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
 	private KList<IrisEffect> effects = new KList<>();
 
 	@DontObfuscate
-	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen")
+	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private Dispersion biomeDispersion = Dispersion.SCATTER;
 
 	@MinNumber(0.0001)

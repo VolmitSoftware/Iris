@@ -2,10 +2,14 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -13,22 +17,33 @@ import lombok.Data;
 @Data
 public class IrisBiomeMutation
 {
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("One of The following biomes or regions must show up")
 	private KList<String> sideA = new KList<>();
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("One of The following biomes or regions must show up")
 	private KList<String> sideB = new KList<>();
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(1024)
 	@DontObfuscate
 	@Desc("The scan radius for placing this mutator")
-	private int radius = 1;
+	private int radius = 16;
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(32)
 	@DontObfuscate
 	@Desc("How many tries per chunk to check for this mutation")
 	private int checks = 2;
 
+	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this biome mutation")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();

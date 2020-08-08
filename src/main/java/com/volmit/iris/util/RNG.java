@@ -10,6 +10,7 @@ public class RNG extends Random
 	private static final long serialVersionUID = 5222938581174415179L;
 	public static final RNG r = new RNG();
 	private final long sx;
+
 	public RNG()
 	{
 		super();
@@ -32,12 +33,12 @@ public class RNG extends Random
 	{
 		this(UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits() + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() + (seed.length() * 32564));
 	}
-	
+
 	public RNG nextParallelRNG(int signature)
 	{
 		return new RNG(sx + signature);
 	}
-	
+
 	@Deprecated
 	public RNG nextRNG()
 	{
@@ -116,7 +117,7 @@ public class RNG extends Random
 
 	public double d(double lowerBound, double upperBound)
 	{
-		return lowerBound + (nextDouble() * ((upperBound - lowerBound)));
+		return M.lerp(lowerBound, upperBound, nextDouble());
 	}
 
 	public double d(double upperBound)
@@ -136,7 +137,7 @@ public class RNG extends Random
 
 	public int i(int upperBound)
 	{
-		return i(0, upperBound);
+		return i(Math.min(upperBound, 0), Math.max(0, upperBound));
 	}
 
 	public long l(long lowerBound, long upperBound)

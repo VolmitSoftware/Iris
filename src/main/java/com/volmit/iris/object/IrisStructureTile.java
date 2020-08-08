@@ -1,8 +1,10 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,30 +15,38 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructureTile
 {
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a ceiling?")
 	private StructureTileCondition ceiling = StructureTileCondition.AGNOSTIC;
 
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a floor?")
 	private StructureTileCondition floor = StructureTileCondition.REQUIRED;
 
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a north wall?")
 	private StructureTileCondition north = StructureTileCondition.AGNOSTIC;
 
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a south wall?")
 	private StructureTileCondition south = StructureTileCondition.AGNOSTIC;
 
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a east wall?")
 	private StructureTileCondition east = StructureTileCondition.AGNOSTIC;
 
+	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a west wall?")
 	private StructureTileCondition west = StructureTileCondition.AGNOSTIC;
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
@@ -45,15 +55,10 @@ public class IrisStructureTile
 	{
 
 	}
-	
+
 	public String toString()
 	{
-		return (ceiling.required() ? "C" : "") + 
-				(floor.required() ? "F" : "") + "| "+
-				(north.required() ? "X" : "-") + 
-				(south.required() ? "X" : "-") + 
-				(east.required() ? "X" : "-") + 
-				(west.required() ? "X" : "-") + " |";
+		return (ceiling.required() ? "C" : "") + (floor.required() ? "F" : "") + "| " + (north.required() ? "X" : "-") + (south.required() ? "X" : "-") + (east.required() ? "X" : "-") + (west.required() ? "X" : "-") + " |";
 	}
 
 	public boolean likeAGlove(boolean floor, boolean ceiling, KList<StructureTileFace> walls)

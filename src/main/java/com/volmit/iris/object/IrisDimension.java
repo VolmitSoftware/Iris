@@ -9,6 +9,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChunkPosition;
@@ -17,7 +18,10 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -30,30 +34,31 @@ public class IrisDimension extends IrisRegistrant
 	public static final BlockData STONE = Material.STONE.createBlockData();
 	public static final BlockData WATER = Material.WATER.createBlockData();
 
+	@Required
 	@DontObfuscate
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
 
-	@DontObfuscate
-	@Desc("The interpolation function for splicing noise maxes together")
-	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
-
-	@DontObfuscate
-	@Desc("The interpolation distance scale. Increase = more smooth, less detail")
-	private double interpolationScale = 63;
-
+	@MinNumber(0.0001)
+	@MaxNumber(64)
 	@DontObfuscate
 	@Desc("The Thickness scale of cave veins")
 	private double caveThickness = 1D;
 
+	@Required
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("The cave web scale. Smaller values means scaled up vein networks.")
 	private double caveScale = 1D;
 
+	@MinNumber(-256)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("Shift the Y value of the cave networks up or down.")
 	private double caveShift = 0D;
@@ -66,22 +71,32 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Carve terrain or not")
 	private double carvingZoom = 3.5;
 
+	@MinNumber(-256)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("Carving starts at this height")
 	private int carvingMin = 115;
 
+	@MinNumber(-256)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The maximum height carving happens at")
 	private int carvingMax = 239;
 
+	@MinNumber(0.0001)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The thickness of carvings (vertical)")
 	private double carvingSliverThickness = 5.5D;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("The thickness of ripples on carved walls")
 	private double carvingRippleThickness = 3D;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("How much of 3D space is carved out. Higher values make carvings cross into 3d space more often (bigger)")
 	private double carvingEnvelope = 0.335D;
@@ -91,6 +106,10 @@ public class IrisDimension extends IrisRegistrant
 	private boolean carving = true;
 
 	@DontObfuscate
+	@Desc("Generate vanilla structures")
+	private boolean vanillaStructures = false;
+
+	@DontObfuscate
 	@Desc("Generate decorations or not")
 	private boolean decorate = true;
 
@@ -98,10 +117,12 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Use post processing or not")
 	private boolean postProcessing = true;
 
+	@ArrayType(min=1,type=IrisPostProcessor.class)
 	@DontObfuscate
 	@Desc("Post Processors")
 	private KList<IrisPostProcessor> postProcessors = getDefaultPostProcessors();
 
+	@ArrayType(min=1,type=IrisCompatabilityFilter.class)
 	@DontObfuscate
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
@@ -114,14 +135,20 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Mirrors the generator floor into the ceiling. Think nether but worse...")
 	private boolean mirrorCeiling = false;
 
+	@Required
 	@DontObfuscate
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
 
+	@Required
+	@ArrayType(min=1,type=String.class)
 	@DontObfuscate
 	@Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
 	private KList<String> regions = new KList<>();
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(255)
 	@DontObfuscate
 	@Desc("The fluid height for this dimension")
 	private int fluidHeight = 63;
@@ -130,62 +157,68 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
 	private String focus = "";
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in or out the biome size. Higher = bigger biomes")
 	private double biomeZoom = 5D;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in or out the terrain. This stretches the terrain. Due to performance improvements, Higher than 2.0 may cause weird rounding artifacts. Lower = more terrain changes per block. Its a true zoom-out.")
 	private double terrainZoom = 2D;
 
+	@MinNumber(0)
+	@MaxNumber(360)
 	@DontObfuscate
 	@Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
 	private double dimensionAngleDeg = 0;
 
-	@DontObfuscate
-	@Desc("Iris adds a few roughness filters to noise. Increasing this smooths it out. Decreasing this makes it bumpier/scratchy")
-	private double roughnessZoom = 2D;
-
-	@DontObfuscate
-	@Desc("The height of the roughness filters")
-	private int roughnessHeight = 3;
-
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Coordinate fracturing applies noise to the input coordinates. This creates the 'iris swirls' and wavy features. The distance pushes these waves further into places they shouldnt be. This is a block value multiplier.")
 	private double coordFractureDistance = 20;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Coordinate fracturing zoom. Higher = less frequent warping, Lower = more frequent and rapid warping / swirls.")
 	private double coordFractureZoom = 8;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("This zooms in the land space")
 	private double landZoom = 1;
 
-	@DontObfuscate
-	@Desc("This zooms in the cave biome space")
-	private double caveBiomeZoom = 1;
-
-	@DontObfuscate
-	@Desc("This can zoom the shores")
-	private double shoreZoom = 1;
-
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("This zooms oceanic biomes")
 	private double seaZoom = 1;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in continents")
 	private double continentZoom = 1;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Change the size of regions")
 	private double regionZoom = 1;
 
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("The shuffle of regions")
 	private double regionShuffle = 11;
 
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("The shuffle of land vs sea")
 	private double continentalShuffle = 99;
@@ -198,26 +231,32 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Prevent Leaf decay as if placed in creative mode")
 	private boolean preventLeafDecay = false;
 
+	@ArrayType(min=1,type=IrisDepositGenerator.class)
 	@DontObfuscate
 	@Desc("Define global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	@DontObfuscate
 	@Desc("The dispersion of materials for the rock palette")
-	private Dispersion dispersion = Dispersion.SCATTER;
+	private Dispersion rockDispersion = Dispersion.SCATTER;
 
+	@MinNumber(0.0001)
+	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("The rock zoom mostly for zooming in on a wispy palette")
 	private double rockZoom = 5;
 
+	@ArrayType(min=1,type=String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
 	private KList<String> rockPalette = new KList<String>().qadd("STONE");
 
+	@ArrayType(min=1,type=String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
 	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
 
+	@ArrayType(min=1,type=IrisBiomeMutation.class)
 	@DontObfuscate
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();
@@ -432,7 +471,7 @@ public class IrisDimension extends IrisRegistrant
 			return getRockData().get(0);
 		}
 
-		if(dispersion.equals(Dispersion.SCATTER))
+		if(rockDispersion.equals(Dispersion.SCATTER))
 		{
 			return getRockData().get(getRockGenerator(rng).fit(0, 30000000, x, y, z) % getRockData().size());
 		}
@@ -449,7 +488,7 @@ public class IrisDimension extends IrisRegistrant
 		{
 			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 			CNG rockLayerGenerator = new CNG(rng);
-			switch(dispersion)
+			switch(rockDispersion)
 			{
 				case SCATTER:
 					rockLayerGenerator = CNG.signature(rngx).freq(1000000);
@@ -493,7 +532,7 @@ public class IrisDimension extends IrisRegistrant
 			return getFluidData().get(0);
 		}
 
-		if(dispersion.equals(Dispersion.SCATTER))
+		if(rockDispersion.equals(Dispersion.SCATTER))
 		{
 			return getFluidData().get(getFluidGenerator(rng).fit(0, 30000000, x, y, z) % getFluidData().size());
 		}
@@ -510,7 +549,7 @@ public class IrisDimension extends IrisRegistrant
 		{
 			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 			CNG fluidLayerGenerator = new CNG(rng);
-			switch(dispersion)
+			switch(rockDispersion)
 			{
 				case SCATTER:
 					fluidLayerGenerator = CNG.signature(rngx).freq(1000000);

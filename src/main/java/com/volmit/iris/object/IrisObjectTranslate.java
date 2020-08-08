@@ -4,6 +4,9 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -11,17 +14,24 @@ import lombok.Data;
 @Data
 public class IrisObjectTranslate
 {
+	@MinNumber(-8)
+	@MaxNumber(8)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
-	private int x;
+	private int x = 0;
 
+	@Required
+	@MinNumber(-256)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
-	private int y;
+	private int y = 0;
 
+	@MinNumber(-8)
+	@MaxNumber(8)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
-	private int z;
+	private int z = 0;
 
 	public IrisObjectTranslate()
 	{

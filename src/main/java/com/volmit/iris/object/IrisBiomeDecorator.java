@@ -3,13 +3,17 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -33,26 +37,37 @@ public class IrisBiomeDecorator
 	@Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")
 	private DecorationPart partOf = DecorationPart.NONE;
 
+	@MinNumber(1)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
 	private int stackMin = 1;
 
+	@MinNumber(1)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The maximum repeat stack height")
 	private int stackMax = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is/")
 	private double zoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The vertical zoom is for wispy stack heights. Zooming this in makes stack heights more slowly change over a distance")
 	private double verticalZoom = 1;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)")
 	private double chance = 0.1;
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to pick from when this decorator needs to place.")
 	private KList<String> palette = new KList<String>().qadd("GRASS");

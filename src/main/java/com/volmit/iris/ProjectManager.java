@@ -2,6 +2,7 @@ package com.volmit.iris;
 
 import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -10,29 +11,40 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
+import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
+import com.volmit.iris.util.JSONArray;
+import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.M;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -71,6 +83,8 @@ public class ProjectManager
 				{
 					if(i.getName().endsWith(".code-workspace"))
 					{
+						sender.sendMessage("Updating Workspace");
+						updateWorkspace(i);
 						Desktop.getDesktop().open(i);
 						break;
 					}
@@ -403,5 +417,431 @@ public class ProjectManager
 		}
 		sender.sendMessage("Failed!");
 		return null;
+	}
+
+	public void create(MortarSender sender, String s)
+	{
+		IrisDimension dimension = new IrisDimension();
+		dimension.setLoadKey(s);
+		dimension.setName(Form.capitalizeWords(s.replaceAll("\\Q-\\E", " ")));
+
+		if(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json").exists())
+		{
+			sender.sendMessage("Project Already Exists! Open it instead!");
+			return;
+		}
+		sender.sendMessage("Creating New Project \"" + dimension.getName() + "\"...");
+		IrisRegion exampleRegion = new IrisRegion();
+		exampleRegion.setName("Example Region");
+		exampleRegion.setLoadKey("example-region");
+		IrisBiome exampleLand1 = new IrisBiome();
+		exampleLand1.setName("Example Land 1");
+		exampleLand1.setLoadKey("land-1");
+		IrisBiome exampleShore1 = new IrisBiome();
+		exampleShore1.setName("Example Shore");
+		exampleShore1.setLoadKey("shore");
+		IrisBiome exampleOcean1 = new IrisBiome();
+		exampleOcean1.setName("Example Sea");
+		exampleOcean1.setLoadKey("sea");
+		IrisBiome exampleLand2 = new IrisBiome();
+		exampleLand2.setName("Example Land 2");
+		exampleLand2.setLoadKey("land-2");
+		exampleLand2.setRarity(4);
+		dimension.setSeaZoom(1);
+		dimension.setLandZoom(1.5);
+		IrisGenerator gen = new IrisGenerator();
+		IrisNoiseGenerator gg = new IrisNoiseGenerator(true);
+		gen.setInterpolationFunction(InterpolationMethod.HERMITE);
+		gen.setInterpolationScale(185);
+		gen.getComposite().add(gg);
+		gen.setLoadKey("example-generator");
+		IrisBiomeGeneratorLink b1 = new IrisBiomeGeneratorLink();
+		b1.setGenerator(gen.getLoadKey());
+		b1.setMin(3);
+		b1.setMax(7);
+		IrisBiomeGeneratorLink b2 = new IrisBiomeGeneratorLink();
+		b2.setGenerator(gen.getLoadKey());
+		b2.setMin(12);
+		b2.setMax(35);
+		IrisBiomeGeneratorLink b3 = new IrisBiomeGeneratorLink();
+		b3.setGenerator(gen.getLoadKey());
+		b3.setMin(-1);
+		b3.setMax(1);
+		IrisBiomeGeneratorLink b4 = new IrisBiomeGeneratorLink();
+		b4.setGenerator(gen.getLoadKey());
+		b4.setMin(-5);
+		b4.setMax(-38);
+		exampleLand2.getLayers().get(0).getPalette().clear();
+		exampleLand2.getLayers().get(0).getPalette().add("RED_SAND");
+		exampleShore1.getLayers().get(0).getPalette().clear();
+		exampleShore1.getLayers().get(0).getPalette().add("SAND");
+		exampleOcean1.getLayers().get(0).getPalette().clear();
+		exampleOcean1.getLayers().get(0).getPalette().add("SAND");
+		exampleLand1.getGenerators().clear();
+		exampleLand1.getGenerators().add(b1);
+		exampleLand2.getGenerators().clear();
+		exampleLand2.getGenerators().add(b2);
+		exampleShore1.getGenerators().clear();
+		exampleShore1.getGenerators().add(b3);
+		exampleOcean1.getGenerators().clear();
+		exampleOcean1.getGenerators().add(b4);
+		exampleRegion.getLandBiomes().add(exampleLand1.getLoadKey());
+		exampleRegion.getLandBiomes().add(exampleLand2.getLoadKey());
+		exampleRegion.getShoreBiomes().add(exampleShore1.getLoadKey());
+		exampleRegion.getSeaBiomes().add(exampleOcean1.getLoadKey());
+		dimension.getRegions().add(exampleRegion.getLoadKey());
+
+		try
+		{
+			JSONObject ws = newWorkspaceConfig();
+
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "regions", exampleRegion.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand2.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand2)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleShore1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleShore1)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleOcean1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "generators", gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(4));
+			Iris.proj.open(sender, dimension.getName());
+		}
+
+		catch(JSONException | IOException e)
+		{
+			sender.sendMessage("Failed! Check the console.");
+			e.printStackTrace();
+		}
+	}
+
+	private JSONObject newWorkspaceConfig()
+	{
+		JSONObject ws = new JSONObject();
+		JSONArray folders = new JSONArray();
+		JSONObject folder = new JSONObject();
+		folder.put("path", ".");
+		folders.put(folder);
+		ws.put("folders", folders);
+
+		JSONObject settings = new JSONObject();
+		settings.put("workbench.colorTheme", "Monokai");
+		settings.put("workbench.preferredDarkColorTheme", "Solarized Dark");
+		settings.put("workbench.tips.enabled", false);
+		settings.put("workbench.tree.indent", 24);
+		settings.put("files.autoSave", "onFocusChange");
+
+		JSONArray schemas = buildSchemas();
+		settings.put("json.schemas", schemas);
+		ws.put("settings", settings);
+
+		return ws;
+	}
+
+	public void updateWorkspace(File ws)
+	{
+		try
+		{
+			JSONObject j = new JSONObject(IO.readAll(ws));
+			JSONObject s = j.getJSONObject("settings");
+			s.put("json.schemas", buildSchemas());
+			j.put("settings", s);
+			IO.writeAll(ws, j.toString(4));
+			Iris.info("Updating Project " + ws.getAbsolutePath());
+		}
+
+		catch(Throwable e)
+		{
+			Iris.warn("Project invalid: " + ws.getAbsolutePath() + " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
+
+			try
+			{
+				IO.writeAll(ws, newWorkspaceConfig());
+			}
+
+			catch(IOException e1)
+			{
+				e1.printStackTrace();
+			}
+		}
+	}
+
+	private JSONArray buildSchemas()
+	{
+		JSONArray schemas = new JSONArray();
+		schemas.put(getSchemaEntry(IrisDimension.class, "/dimensions/*.json"));
+		schemas.put(getSchemaEntry(IrisBiome.class, "/biomes/*.json"));
+		schemas.put(getSchemaEntry(IrisRegion.class, "/regions/*.json"));
+		schemas.put(getSchemaEntry(IrisGenerator.class, "/generators/*.json"));
+		schemas.put(getSchemaEntry(IrisStructure.class, "/structures/*.json"));
+		return schemas;
+	}
+
+	public JSONObject getSchemaEntry(Class<?> i, String... fileMatch)
+	{
+		JSONObject o = new JSONObject();
+		o.put("fileMatch", new JSONArray(fileMatch));
+		o.put("schema", getSchemaFor(i));
+
+		return o;
+	}
+
+	public JSONObject getSchemaFor(Class<?> i)
+	{
+		KMap<String, JSONObject> def = new KMap<>();
+		JSONObject s = getSchemaFor(i, 7, def);
+		JSONObject defx = new JSONObject();
+		for(String v : def.k())
+		{
+			defx.put(v, def.get(v));
+		}
+
+		s.put("definitions", defx);
+
+		return s;
+	}
+
+	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def)
+	{
+		if(step <= 0)
+		{
+			JSONObject m = new JSONObject();
+			m.put("properties", new JSONObject());
+			return m;
+		}
+
+		JSONObject schema = new JSONObject();
+		if(i.isAnnotationPresent(Desc.class))
+		{
+			schema.put("$schema", "http://json-schema.org/draft-07/schema#");
+			schema.put("$id", "http://volmit.com/iris-schema/" + i.getSimpleName().toLowerCase() + ".json");
+			schema.put("title", i.getSimpleName().replaceAll("\\QIris\\E", ""));
+			schema.put("type", "object");
+
+			Desc d = i.getAnnotation(Desc.class);
+			schema.put("description", d.value());
+
+			JSONObject properties = new JSONObject();
+			JSONArray req = new JSONArray();
+
+			for(java.lang.reflect.Field k : i.getDeclaredFields())
+			{
+				JSONObject prop = new JSONObject();
+
+				if(k.isAnnotationPresent(Desc.class))
+				{
+					String tp = "object";
+
+					if(k.getType().equals(int.class) || k.getType().equals(long.class))
+					{
+						tp = "integer";
+
+						if(k.isAnnotationPresent(MinNumber.class))
+						{
+							prop.put("minimum", (int) k.getDeclaredAnnotation(MinNumber.class).value());
+						}
+
+						if(k.isAnnotationPresent(MaxNumber.class))
+						{
+							prop.put("maximum", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
+						}
+					}
+
+					if(k.getType().equals(double.class) || k.getType().equals(float.class))
+					{
+						tp = "number";
+
+						if(k.isAnnotationPresent(MinNumber.class))
+						{
+							prop.put("minimum", k.getDeclaredAnnotation(MinNumber.class).value());
+						}
+
+						if(k.isAnnotationPresent(MaxNumber.class))
+						{
+							prop.put("maximum", k.getDeclaredAnnotation(MaxNumber.class).value());
+						}
+					}
+
+					if(k.getType().equals(boolean.class))
+					{
+						tp = "boolean";
+					}
+
+					if(k.getType().equals(String.class))
+					{
+						tp = "string";
+					}
+
+					if(k.getType().equals(String.class))
+					{
+						tp = "string";
+					}
+
+					if(k.getType().isEnum())
+					{
+						tp = "string";
+						JSONArray a = new JSONArray();
+
+						for(Object gg : k.getType().getEnumConstants())
+						{
+							a.put(((Enum<?>) gg).name());
+						}
+
+						prop.put("enum", a);
+					}
+
+					if(k.getType().equals(String.class) && k.getName().equals("potionEffect"))
+					{
+						tp = "string";
+						JSONArray a = new JSONArray();
+
+						for(PotionEffectType gg : PotionEffectType.values())
+						{
+							a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
+						}
+
+						prop.put("enum", a);
+					}
+
+					if(k.getType().equals(KList.class))
+					{
+						tp = "array";
+					}
+
+					if(k.isAnnotationPresent(Required.class))
+					{
+						req.put(k.getName());
+					}
+
+					if(tp.equals("object"))
+					{
+						if(k.getType().isAnnotationPresent(Desc.class))
+						{
+							prop.put("properties", getSchemaFor(k.getType(), step - 1, def).getJSONObject("properties"));
+						}
+					}
+
+					if(tp.equals("array"))
+					{
+						ArrayType t = k.getDeclaredAnnotation(ArrayType.class);
+
+						if(t.min() > 0)
+						{
+							prop.put("minItems", t.min());
+						}
+
+						if(t != null)
+						{
+							String tx = "object";
+
+							if(t.type().equals(int.class) || k.getType().equals(long.class))
+							{
+								tx = "integer";
+							}
+
+							if(t.type().equals(double.class) || k.getType().equals(float.class))
+							{
+								tx = "number";
+							}
+
+							if(t.type().equals(boolean.class))
+							{
+								tx = "boolean";
+							}
+
+							if(t.type().equals(String.class))
+							{
+								tx = "string";
+							}
+
+							if(t.type().isEnum())
+							{
+								tx = "string";
+								JSONArray a = new JSONArray();
+
+								for(Object gg : t.type().getEnumConstants())
+								{
+									a.put(((Enum<?>) gg).name());
+								}
+
+								String name = "enum" + t.type().getSimpleName().toLowerCase();
+
+								if(!def.containsKey(name))
+								{
+									JSONObject deff = new JSONObject();
+									deff.put("type", tx);
+									deff.put("enum", a);
+									def.put(name, deff);
+								}
+
+								JSONObject items = new JSONObject();
+								items.put("$ref", "#/definitions/" + name);
+								prop.put("items", items);
+							}
+
+							if(t.type().isEnum())
+							{
+								tx = "string";
+							}
+
+							if(t.type().equals(KList.class))
+							{
+								tx = "array";
+							}
+
+							JSONObject items = new JSONObject();
+
+							if(tx.equals("object"))
+							{
+								if(t.type().isAnnotationPresent(Desc.class))
+								{
+									String name = t.type().getSimpleName().toLowerCase();
+
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										JSONObject scv = getSchemaFor(t.type(), step - 1, def);
+										deff.put("type", tx);
+										deff.put("description", t.type().getDeclaredAnnotation(Desc.class).value());
+										deff.put("properties", scv.getJSONObject("properties"));
+										if(scv.has("required"))
+										{
+											deff.put("required", scv.getJSONArray("required"));
+										}
+										def.put(name, deff);
+									}
+
+									items.put("$ref", "#/definitions/" + name);
+								}
+
+								else
+								{
+									items.put("type", tx);
+								}
+							}
+
+							else
+							{
+								items.put("type", tx);
+							}
+
+							prop.put("items", items);
+						}
+
+						if(tp.getClass().isAnnotationPresent(Desc.class))
+						{
+							prop.put("properties", getSchemaFor(tp.getClass(), step - 1, def).getJSONObject("properties"));
+						}
+					}
+
+					prop.put("description", k.getAnnotation(Desc.class).value());
+					prop.put("type", tp);
+					properties.put(k.getName(), prop);
+				}
+			}
+
+			schema.put("properties", properties);
+			schema.put("required", req);
+		}
+
+		return schema;
 	}
 }

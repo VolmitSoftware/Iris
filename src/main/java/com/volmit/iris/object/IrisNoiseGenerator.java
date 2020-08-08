@@ -1,12 +1,15 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -14,6 +17,7 @@ import lombok.Data;
 @Data
 public class IrisNoiseGenerator
 {
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The coordinate input zoom")
 	private double zoom = 1;
@@ -22,6 +26,7 @@ public class IrisNoiseGenerator
 	@Desc("Reverse the output. So that noise = -noise + opacity")
 	private boolean negative = false;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The output multiplier")
 	private double opacity = 1;
@@ -38,6 +43,7 @@ public class IrisNoiseGenerator
 	@Desc("Coordinate offset z")
 	private double offsetZ = 0;
 
+	@Required
 	@DontObfuscate
 	@Desc("The seed")
 	private long seed = 0;
@@ -66,10 +72,12 @@ public class IrisNoiseGenerator
 	@Desc("If this generator uses the default iris swirly/wispy noise generator. Set to false for pure simplex.")
 	private boolean irisBased = true;
 
+	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Multiple octaves for multple generators of changing zooms added together")
 	private int octaves = 1;
 
+	@ArrayType(min = 1, type = IrisNoiseGenerator.class)
 	@DontObfuscate
 	@Desc("Apply a child noise generator to fracture the input coordinates of this generator")
 	private KList<IrisNoiseGenerator> fracture = new KList<>();

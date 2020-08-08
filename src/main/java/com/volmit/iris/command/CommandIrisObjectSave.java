@@ -31,6 +31,13 @@ public class CommandIrisObjectSave extends MortarCommand
 			return true;
 		}
 
+		if(args.length < 2)
+		{
+			sender.sendMessage("/iris o save <PROJECT> <object>");
+			sender.sendMessage("I.e. /iris o save overworld some-tree/tree1");
+			return true;
+		}
+
 		try
 		{
 			boolean overwrite = false;

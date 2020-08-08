@@ -7,33 +7,47 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
+@Desc("Represents a structure placement")
 @Data
 public class IrisStructurePlacement
 {
+	@Required
 	@DontObfuscate
 	@Desc("The structure tileset to use")
 	private String tileset = "";
 
+	@Required
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The structure chance zoom. Higher = bigger cells, further away")
 	private double zoom = 1D;
 
+	@MinNumber(-1)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The ratio. Lower values means cells can get closer to other cells. Negative values means make veins of structures")
 	private double ratio = 0.25D;
 
+	@Required
+	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The rarity for this structure")
 	private int rarity = 4;
 
+	@MinNumber(-1)
+	@MaxNumber(255)
 	@DontObfuscate
 	@Desc("The height or -1 for surface")
 	private int height = -1;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The chance cell shuffle (rougher edges)")
 	private double shuffle = 22;

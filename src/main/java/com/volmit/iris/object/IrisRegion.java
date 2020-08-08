@@ -3,6 +3,7 @@ package com.volmit.iris.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -10,7 +11,10 @@ import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -20,98 +24,133 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisRegion extends IrisRegistrant implements IRare
 {
+	@Required
 	@DontObfuscate
 	@Desc("The name of the region")
 	private String name = "A Region";
 
+	@ArrayType(min = 1, type = IrisEffect.class)
+	@DontObfuscate
+	@Desc("The name of the region")
+	private KList<IrisEffect> effects = new KList<>();
+
+	@MinNumber(1)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The rarity of the region")
 	private int rarity = 1;
 
+	@MinNumber(0.0001)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The shore ration (How much percent of land should be a shore)")
 	private double shoreRatio = 0.13;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The min shore height")
 	private double shoreHeightMin = 1.2;
 	@DontObfuscate
 
+	@MinNumber(0)
 	@Desc("The scrambling between biomes")
 	private double biomeShuffle = 11;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The the max shore height")
 	private double shoreHeightMax = 3.2;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The varience of the shore height")
 	private double shoreHeightZoom = 3.14;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large land biomes are in this region")
 	private double landBiomeZoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large shore biomes are in this region")
 	private double shoreBiomeZoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large sea biomes are in this region")
 	private double seaBiomeZoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large island biomes are in this region")
 	private double islandBiomeZoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large cave biomes are in this region")
 	private double caveBiomeZoom = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large skyland biomes are in this region")
 	private double skylandBiomeZoom = 1;
 
+	@MinNumber(0.0001)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
 	private double biomeImplosionRatio = 0.4;
 
+	@ArrayType(min = 1, type = IrisStructurePlacement.class)
 	@DontObfuscate
 	@Desc("A list of structure tilesets")
 	private KList<IrisStructurePlacement> structures = new KList<>();
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> landBiomes = new KList<>();
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> seaBiomes = new KList<>();
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> shoreBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> caveBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> islandBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> skylandBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = IrisRegionRidge.class)
 	@DontObfuscate
 	@Desc("Ridge biomes create a vein-like network like rivers through this region")
 	private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = IrisRegionSpot.class)
 	@DontObfuscate
 	@Desc("Spot biomes splotch themselves across this region like lakes")
 	private KList<IrisRegionSpot> spotBiomes = new KList<>();
 
+	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@Desc("Define regional deposit generators that add onto the global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 

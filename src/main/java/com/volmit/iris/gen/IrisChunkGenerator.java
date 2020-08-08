@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -11,6 +12,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CNG;
@@ -87,9 +89,25 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	}
 
 	@Override
-	protected void onTick(int ticks)
+	public void onTick(int ticks)
 	{
+		super.onTick(ticks);
+		for(Player i : getWorld().getPlayers())
+		{
+			Location l = i.getLocation();
+			IrisRegion r = sampleRegion(l.getBlockX(), l.getBlockZ());
+			IrisBiome b = sampleTrueBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ()).getBiome();
 
+			for(IrisEffect j : r.getEffects())
+			{
+				j.apply(i, this);
+			}
+
+			for(IrisEffect j : b.getEffects())
+			{
+				j.apply(i, this);
+			}
+		}
 	}
 
 	@Override
@@ -147,9 +165,9 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	}
 
 	@Override
-	protected void onPlayerLeft(Player p)
+	public void onPlayerLeft(Player p)
 	{
-
+		super.onPlayerLeft(p);
 	}
 
 	@Override
@@ -202,6 +220,6 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	public boolean shouldGenerateStructures()
 	{
-		return false;
+		return getDimension().isVanillaStructures();
 	}
 }

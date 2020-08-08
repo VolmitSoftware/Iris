@@ -7,48 +7,75 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.gen.TerrainChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
+@Desc("Creates ore & other block deposits underground")
 @Data
 public class IrisDepositGenerator
 {
+	@Required
+	@MinNumber(0)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The minimum height this deposit can generate at")
 	private int minHeight = 7;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The maximum height this deposit can generate at")
 	private int maxHeight = 55;
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(32)
 	@DontObfuscate
 	@Desc("The minimum amount of deposit blocks per clump")
 	private int minSize = 3;
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(32)
 	@DontObfuscate
 	@Desc("The maximum amount of deposit blocks per clump")
 	private int maxSize = 5;
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The maximum amount of clumps per chunk")
 	private int maxPerChunk = 3;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The minimum amount of clumps per chunk")
 	private int minPerChunk = 1;
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this deposit generator")
 	private KList<String> palette = new KList<String>();
 
+	@MinNumber(1)
+	@MaxNumber(64)
 	@DontObfuscate
 	@Desc("Ore varience is how many different objects clumps iris will create")
-	private int varience = 8;
+	private int varience = 3;
 
 	private transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
 	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();

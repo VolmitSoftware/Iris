@@ -4,7 +4,10 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -12,10 +15,12 @@ import lombok.Data;
 @Data
 public class IrisRegionRidge
 {
+	@Required
 	@DontObfuscate
 	@Desc("The biome name")
 	private String biome;
 
+	@Required
 	@DontObfuscate
 	@Desc("The type this biome should override (land sea or shore)")
 	private InferredType type = InferredType.LAND;
@@ -28,10 +33,14 @@ public class IrisRegionRidge
 	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
 	private double noiseMultiplier = 0;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The chance this biome will be placed in a given spot")
 	private double chance = 0.75;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The scale of the biome ridge. Higher values = wider veins & bigger connected cells")
 	private double scale = 5;
@@ -40,14 +49,17 @@ public class IrisRegionRidge
 	@Desc("The chance scale (cell chances)")
 	private double chanceScale = 4;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The shuffle, how 'natural' this looks. Compared to pure polygons")
 	private double shuffle = 16;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The chance shuffle (polygon cell chances)")
 	private double chanceShuffle = 128;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The thickness of the vein")
 	private double thickness = 0.125;

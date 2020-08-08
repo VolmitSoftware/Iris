@@ -1,12 +1,16 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,30 +21,44 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructure extends IrisRegistrant
 {
+	@Required
 	@DontObfuscate
 	@Desc("This is the human readable name for this structure. Such as Red Dungeon or Tropical Village.")
 	private String name = "A Structure Type";
 
+	@Required
+	@MinNumber(3)
+	@MaxNumber(64)
 	@DontObfuscate
 	@Desc("This is the x and z size of each grid cell")
 	private int gridSize = 11;
 
+	@Required
+	@MinNumber(1)
+	@MaxNumber(255)
 	@DontObfuscate
 	@Desc("This is the y size of each grid cell")
 	private int gridHeight = 5;
 
+	@MinNumber(1)
+	@MaxNumber(82)
 	@DontObfuscate
 	@Desc("This is the maximum layers iris will generate for (height cells)")
 	private int maxLayers = 1;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("This is the wall chance. Higher values makes more rooms and less open halls")
 	private double wallChance = 0.25;
 
 	@DontObfuscate
 	@Desc("Edges of tiles replace each other instead of having their own.")
-	private boolean mergeEdges = true;
+	private boolean mergeEdges = false;
 
+	@Required
+	@ArrayType(min = 1, type = IrisStructureTile.class)
 	@DontObfuscate
 	@Desc("The tiles")
 	private KList<IrisStructureTile> tiles = new KList<>();

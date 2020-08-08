@@ -4,7 +4,9 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -12,10 +14,12 @@ import lombok.Data;
 @Data
 public class IrisRegionSpot
 {
+	@Required
 	@DontObfuscate
 	@Desc("The biome to be placed")
 	private String biome;
 
+	@Required
 	@DontObfuscate
 	@Desc("Where this spot overrides. Land sea or shore")
 	private InferredType type = InferredType.LAND;
@@ -28,14 +32,18 @@ public class IrisRegionSpot
 	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
 	private double noiseMultiplier = 0;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The scale of splotches")
 	private double scale = 1;
 
+	@Required
+	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Rarity is how often this splotch appears. higher = less often")
 	private double rarity = 1;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The shuffle or how natural the splotch looks like (anti-polygon)")
 	private double shuffle = 128;

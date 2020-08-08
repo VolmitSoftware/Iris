@@ -3,6 +3,9 @@ package com.volmit.iris.object;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.M;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -14,14 +17,23 @@ public class IrisAxisRotationClamp
 	@Desc("Should this axis be rotated at all?")
 	private boolean enabled = false;
 
+	@Required
+	@MinNumber(-360)
+	@MaxNumber(360)
 	@DontObfuscate
-	@Desc("The minimum angle (from) or set this and max to zero for any angle degrees")
+	@Desc("The minimum angle (from) or set this and max to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double min = 0;
 
+	@Required
+	@MinNumber(-360)
+	@MaxNumber(360)
 	@DontObfuscate
-	@Desc("The maximum angle (to) or set this and min to zero for any angle degrees")
+	@Desc("The maximum angle (to) or set this and min to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double max = 0;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(360)
 	@DontObfuscate
 	@Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees")
 	private double interval = 0;

@@ -72,7 +72,7 @@ public class CommandIrisGoto extends MortarCommand
 				}
 			}
 
-			IrisBiome biome = g.loadBiome(args[0]);
+			IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()).getBiome() : g.loadBiome(args[0]);
 
 			if(biome == null)
 			{

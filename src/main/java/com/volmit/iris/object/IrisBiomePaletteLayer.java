@@ -3,12 +3,16 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
@@ -20,18 +24,25 @@ public class IrisBiomePaletteLayer
 	@Desc("The dispersion of materials from the palette")
 	private Dispersion dispersion = Dispersion.SCATTER;
 
+	@MinNumber(0)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
 
+	@MinNumber(1)
+	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The max thickness of this layer")
 	private int maxHeight = 1;
 
+	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
 	private double terrainZoom = 5;
 
+	@Required
+	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");

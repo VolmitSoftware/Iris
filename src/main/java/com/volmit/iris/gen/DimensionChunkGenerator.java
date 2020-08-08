@@ -5,6 +5,7 @@ import java.io.File;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.InferredType;
@@ -31,6 +32,16 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	{
 		super();
 		this.dimensionName = dimensionName;
+	}
+
+	public void onPlayerLeft(Player p)
+	{
+
+	}
+
+	public void onTick(int m)
+	{
+
 	}
 
 	public void onInit(World world, RNG masterRandom)

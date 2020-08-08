@@ -2,12 +2,16 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Required;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,18 +21,22 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant
 {
+	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The zoom or frequency.")
 	private double zoom = 1;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The opacity, essentially a multiplier on the output.")
 	private double opacity = 1;
 
+	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The size of the cell fractures")
 	private double cellFractureZoom = 1D;
 
+	@MinNumber(0)
 	@DontObfuscate
 	@Desc("Cell Fracture Coordinate Shuffling")
 	private double cellFractureShuffle = 12D;
@@ -37,6 +45,8 @@ public class IrisGenerator extends IrisRegistrant
 	@Desc("The height of fracture cells. Set to 0 to disable")
 	private double cellFractureHeight = 0D;
 
+	@MinNumber(0)
+	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
 	private double cellPercentSize = 0.75D;
@@ -49,26 +59,36 @@ public class IrisGenerator extends IrisRegistrant
 	@Desc("The offset to shift this noise z")
 	private double offsetZ = 0;
 
+	@Required
 	@DontObfuscate
 	@Desc("The seed for this generator")
 	private long seed = 1;
 
+	@Required
 	@DontObfuscate
 	@Desc("The interpolation method when two biomes use different heights but this same generator")
 	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
 
+	@Required
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("The interpolation distance scale (blocks) when two biomes use different heights but this same generator")
 	private double interpolationScale = 7;
 
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Cliff Height Max. Disable with 0 for min and max")
 	private double cliffHeightMax = 0;
 
+	@MinNumber(0)
+	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Cliff Height Min. Disable with 0 for min and max")
 	private double cliffHeightMin = 0;
 
+	@ArrayType(min = 1, type = IrisNoiseGenerator.class)
 	@DontObfuscate
 	@Desc("The list of noise gens this gen contains.")
 	private KList<IrisNoiseGenerator> composite = new KList<IrisNoiseGenerator>();

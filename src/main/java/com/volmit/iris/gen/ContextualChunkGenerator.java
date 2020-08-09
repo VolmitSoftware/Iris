@@ -116,7 +116,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public IrisDimension loadDimension(String i)
 	{
-		return getData().getDimensionLoader().load(i);
+		return (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i);
 	}
 
 	public IrisGenerator loadGenerator(String i)

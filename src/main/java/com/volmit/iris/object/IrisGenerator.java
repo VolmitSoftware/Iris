@@ -70,7 +70,7 @@ public class IrisGenerator extends IrisRegistrant
 	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
 
 	@Required
-	@MinNumber(0)
+	@MinNumber(1)
 	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("The interpolation distance scale (blocks) when two biomes use different heights but this same generator")

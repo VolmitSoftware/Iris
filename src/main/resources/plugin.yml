@@ -3,6 +3,7 @@ version: ${project.version}
 main: com.volmit.iris.Iris
 load: STARTUP
 commands:
-    iris:
-api-version: 1.15
+  iris:
+    aliases: [ir, irs]
+api-version: 1.16
 hotload-dependencies: false

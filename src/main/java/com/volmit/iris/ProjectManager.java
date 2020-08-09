@@ -82,6 +82,7 @@ public class ProjectManager
 
 	public void open(MortarSender sender, String dimm, Runnable onDone)
 	{
+		Iris.globaldata.dump();
 		IrisDimension d = Iris.globaldata.getDimensionLoader().load(dimm);
 		J.attemptAsync(() ->
 		{
@@ -118,6 +119,7 @@ public class ProjectManager
 			close();
 		}
 
+		Iris.globaldata.dump();
 		sender.sendMessage("Loading " + dimm + "...");
 		IrisChunkGenerator gx = new IrisChunkGenerator(dimm, IrisSettings.get().threads);
 		currentProject = gx;
@@ -148,6 +150,12 @@ public class ProjectManager
 
 				sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
 				J.sleep(3000);
+
+				if(gx.isFailing())
+				{
+					sender.sendMessage("Generation Failed!");
+					return;
+				}
 			}
 		});
 
@@ -181,17 +189,14 @@ public class ProjectManager
 			File folder = currentProject.getWorld().getWorldFolder();
 			Bukkit.unloadWorld(currentProject.getWorld(), false);
 			currentProject = null;
-			Iris.globaldata.getObjectLoader().clearCache();
-			Iris.globaldata.getBiomeLoader().clearCache();
-			Iris.globaldata.getRegionLoader().clearCache();
-			Iris.globaldata.getGeneratorLoader().clearCache();
-			Iris.globaldata.getDimensionLoader().clearCache();
+			Iris.globaldata.dump();
 			J.attemptAsync(() -> IO.delete(folder));
 		}
 	}
 
 	public File compilePackage(MortarSender sender, String dim, boolean obfuscate)
 	{
+		Iris.globaldata.dump();
 		String dimm = dim;
 		IrisDimension dimension = Iris.globaldata.getDimensionLoader().load(dimm);
 		File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());

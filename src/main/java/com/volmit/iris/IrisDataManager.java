@@ -73,6 +73,15 @@ public class IrisDataManager
 		prod = pr;
 	}
 
+	public void dump()
+	{
+		biomeLoader.clearCache();
+		regionLoader.clearCache();
+		dimensionLoader.clearCache();
+		generatorLoader.clearCache();
+		structureLoader.clearCache();
+	}
+
 	private void writeExamples()
 	{
 		File examples = new File(dataFolder, "example");
@@ -147,5 +156,14 @@ public class IrisDataManager
 		{
 
 		}
+	}
+
+	public void preferFolder(String name)
+	{
+		biomeLoader.preferFolder(name);
+		regionLoader.preferFolder(name);
+		dimensionLoader.preferFolder(name);
+		generatorLoader.preferFolder(name);
+		structureLoader.preferFolder(name);
 	}
 }

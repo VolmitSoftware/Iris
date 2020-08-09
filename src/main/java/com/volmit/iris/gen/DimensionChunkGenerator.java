@@ -70,6 +70,8 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 			dimensionName = "error-missing-dimension";
 			fail(new RuntimeException("Missing dimension folder/file in " + folder.getAbsolutePath()));
 		}
+
+		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 	}
 
 	public IrisDimension getDimension()

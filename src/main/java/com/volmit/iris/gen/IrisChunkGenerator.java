@@ -174,6 +174,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	public void onHotloaded()
 	{
 		CNG.creates = 0;
+		getData().dump();
 		onHotload();
 	}
 
@@ -220,6 +221,11 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	public boolean shouldGenerateStructures()
 	{
+		if(!isInitialized())
+		{
+			return false;
+		}
+
 		return getDimension().isVanillaStructures();
 	}
 }

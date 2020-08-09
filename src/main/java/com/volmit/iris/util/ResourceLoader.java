@@ -20,6 +20,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected Class<? extends T> objectClass;
 	protected String cname;
 	protected IrisLock lock;
+	protected String preferredFolder = null;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
@@ -115,6 +116,18 @@ public class ResourceLoader<T extends IrisRegistrant>
 					}
 				}
 			}
+
+			if(preferredFolder != null)
+			{
+				for(File i : folderCache.copy())
+				{
+					if(i.getParentFile().getName().equals(preferredFolder))
+					{
+						folderCache.remove(i);
+						folderCache.add(0, i);
+					}
+				}
+			}
 		}
 
 		return folderCache;
@@ -170,5 +183,10 @@ public class ResourceLoader<T extends IrisRegistrant>
 	public boolean isLoaded(String next)
 	{
 		return loadCache.containsKey(next);
+	}
+
+	public void preferFolder(String name)
+	{
+		preferredFolder = name;
 	}
 }

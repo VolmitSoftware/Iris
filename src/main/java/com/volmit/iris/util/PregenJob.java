@@ -115,14 +115,14 @@ public class PregenJob
 				rcz = 0;
 				mcaX++;
 
-				if(mcaX > mca(max() / 16))
+				if(mcaX > mca(Math.floorDiv(max(), 16)))
 				{
-					mcaX = mca(min() / 16);
+					mcaX = mca(Math.floorDiv(min(), 16));
 					mcaZ++;
 
-					if(mcaZ > mca(max() / 16))
+					if(mcaZ > mca(Math.floorDiv(max(), 16)))
 					{
-						mcaZ = mca(min() / 16);
+						mcaZ = mca(Math.floorDiv(min(), 16));
 						completed = true;
 						stop();
 						Iris.info("Pregen Completed!");
@@ -136,13 +136,9 @@ public class PregenJob
 							i.unload(true);
 						}
 
-						world.save();
-
+						Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
 						onDone.run();
-						return;
 					}
-
-					world.save();
 				}
 			}
 		}

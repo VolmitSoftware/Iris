@@ -54,4 +54,14 @@ public class IrisObjectTranslate
 
 		return i;
 	}
+
+	public BlockVector translate(BlockVector clone, IrisObjectRotation rotation, int sx, int sy, int sz)
+	{
+		if(canTranslate())
+		{
+			return (BlockVector) clone.clone().add(rotation.rotate(new BlockVector(x, y, z), sx, sy, sz));
+		}
+
+		return clone;
+	}
 }

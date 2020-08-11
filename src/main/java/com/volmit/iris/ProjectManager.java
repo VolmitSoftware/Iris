@@ -3,6 +3,7 @@ package com.volmit.iris;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
@@ -22,7 +23,6 @@ import com.google.gson.Gson;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.object.DecorationPart;
-import com.volmit.iris.object.Dispersion;
 import com.volmit.iris.object.Envelope;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
@@ -35,6 +35,7 @@ import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
+import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChronoLatch;
@@ -59,41 +60,31 @@ import com.volmit.iris.util.Required;
 import lombok.Data;
 
 @Data
-public class ProjectManager
-{
+public class ProjectManager {
 	private IrisChunkGenerator currentProject;
 
-	public ProjectManager()
-	{
+	public ProjectManager() {
 
 	}
 
-	public boolean isProjectOpen()
-	{
+	public boolean isProjectOpen() {
 		return currentProject != null;
 	}
 
-	public void open(MortarSender sender, String dimm)
-	{
-		open(sender, dimm, () ->
-		{
+	public void open(MortarSender sender, String dimm) {
+		open(sender, dimm, () -> {
 		});
 	}
 
-	public void open(MortarSender sender, String dimm, Runnable onDone)
-	{
+	public void open(MortarSender sender, String dimm, Runnable onDone) {
 		Iris.globaldata.dump();
 		IrisDimension d = Iris.globaldata.getDimensionLoader().load(dimm);
-		J.attemptAsync(() ->
-		{
-			try
-			{
+		J.attemptAsync(() -> {
+			try {
 				File f = d.getLoadFile().getParentFile().getParentFile();
 
-				for(File i : f.listFiles())
-				{
-					if(i.getName().endsWith(".code-workspace"))
-					{
+				for (File i : f.listFiles()) {
+					if (i.getName().endsWith(".code-workspace")) {
 						sender.sendMessage("Updating Workspace");
 						updateWorkspace(i);
 						Desktop.getDesktop().open(i);
@@ -102,19 +93,16 @@ public class ProjectManager
 				}
 			}
 
-			catch(Throwable e)
-			{
+			catch (Throwable e) {
 				e.printStackTrace();
 			}
 		});
-		if(d == null)
-		{
+		if (d == null) {
 			sender.sendMessage("Can't find dimension: " + dimm);
 			return;
 		}
 
-		if(isProjectOpen())
-		{
+		if (isProjectOpen()) {
 			sender.sendMessage("Please Wait. Closing Current Project...");
 			close();
 		}
@@ -128,52 +116,45 @@ public class ProjectManager
 		O<Boolean> done = new O<Boolean>();
 		done.set(false);
 
-		J.a(() ->
-		{
+		J.a(() -> {
 			double last = 0;
 			int req = 740;
-			while(!done.get())
-			{
+			while (!done.get()) {
 				boolean derp = false;
 				double v = (double) gx.getGenerated() / (double) req;
 
-				if(last > v || v > 1)
-				{
+				if (last > v || v > 1) {
 					derp = true;
 					v = last;
 				}
 
-				else
-				{
+				else {
 					last = v;
 				}
 
 				sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
 				J.sleep(3000);
 
-				if(gx.isFailing())
-				{
+				if (gx.isFailing()) {
 					sender.sendMessage("Generation Failed!");
 					return;
 				}
 			}
 		});
 
-		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx).generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
+		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx)
+				.generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
 		done.set(true);
 		sender.sendMessage("Generating 100%");
 
-		if(sender.isPlayer())
-		{
+		if (sender.isPlayer()) {
 			sender.player().teleport(new Location(world, 150, 150, 275));
 		}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-		{
+		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
 			sender.sendMessage("Hotloading Active! Change any files and watch them appear as you load new chunks!");
 
-			if(sender.isPlayer())
-			{
+			if (sender.isPlayer()) {
 				sender.player().setGameMode(GameMode.SPECTATOR);
 			}
 
@@ -181,10 +162,8 @@ public class ProjectManager
 		}, 0);
 	}
 
-	public void close()
-	{
-		if(isProjectOpen())
-		{
+	public void close() {
+		if (isProjectOpen()) {
 			currentProject.close();
 			File folder = currentProject.getWorld().getWorldFolder();
 			Bukkit.unloadWorld(currentProject.getWorld(), false);
@@ -194,8 +173,7 @@ public class ProjectManager
 		}
 	}
 
-	public File compilePackage(MortarSender sender, String dim, boolean obfuscate)
-	{
+	public File compilePackage(MortarSender sender, String dim, boolean obfuscate) {
 		Iris.globaldata.dump();
 		String dimm = dim;
 		IrisDimension dimension = Iris.globaldata.getDimensionLoader().load(dimm);
@@ -217,17 +195,13 @@ public class ProjectManager
 		StringBuilder c = new StringBuilder();
 		sender.sendMessage("Serializing Objects");
 
-		for(IrisStructure i : structures)
-		{
-			for(IrisStructureTile j : i.getTiles())
-			{
+		for (IrisStructure i : structures) {
+			for (IrisStructureTile j : i.getTiles()) {
 				b.append(j.hashCode());
 				KList<String> newNames = new KList<>();
 
-				for(String k : j.getObjects())
-				{
-					if(renameObjects.containsKey(k))
-					{
+				for (String k : j.getObjects()) {
+					if (renameObjects.containsKey(k)) {
 						newNames.add(renameObjects.get(k));
 						continue;
 					}
@@ -242,17 +216,13 @@ public class ProjectManager
 			}
 		}
 
-		for(IrisBiome i : biomes)
-		{
-			for(IrisObjectPlacement j : i.getObjects())
-			{
+		for (IrisBiome i : biomes) {
+			for (IrisObjectPlacement j : i.getObjects()) {
 				b.append(j.hashCode());
 				KList<String> newNames = new KList<>();
 
-				for(String k : j.getPlace())
-				{
-					if(renameObjects.containsKey(k))
-					{
+				for (String k : j.getPlace()) {
+					if (renameObjects.containsKey(k)) {
 						newNames.add(renameObjects.get(k));
 						continue;
 					}
@@ -267,17 +237,13 @@ public class ProjectManager
 			}
 		}
 
-		for(IrisBiomeMutation i : dimension.getMutations())
-		{
-			for(IrisObjectPlacement j : i.getObjects())
-			{
+		for (IrisBiomeMutation i : dimension.getMutations()) {
+			for (IrisObjectPlacement j : i.getObjects()) {
 				b.append(j.hashCode());
 				KList<String> newNames = new KList<>();
 
-				for(String k : j.getPlace())
-				{
-					if(renameObjects.containsKey(k))
-					{
+				for (String k : j.getPlace()) {
+					if (renameObjects.containsKey(k)) {
 						newNames.add(renameObjects.get(k));
 						continue;
 					}
@@ -297,71 +263,59 @@ public class ProjectManager
 		ChronoLatch cl = new ChronoLatch(1000);
 		O<Integer> ggg = new O<Integer>();
 		ggg.set(0);
-		biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
-		{
-			try
-			{
+		biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) -> {
+			try {
 				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
 				ggg.set(ggg.get() + 1);
 
-				if(cl.flip())
-				{
+				if (cl.flip()) {
 					int g = ggg.get();
 					ggg.set(0);
 					sender.sendMessage("Wrote another " + g + " Objects");
 				}
 			}
 
-			catch(Throwable e)
-			{
+			catch (Throwable e) {
 
 			}
 		})));
 
-		structures.forEach((i) -> i.getTiles().forEach((j) -> j.getObjects().forEach((k) ->
-		{
-			try
-			{
+		structures.forEach((i) -> i.getTiles().forEach((j) -> j.getObjects().forEach((k) -> {
+			try {
 				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
 				ggg.set(ggg.get() + 1);
 
-				if(cl.flip())
-				{
+				if (cl.flip()) {
 					int g = ggg.get();
 					ggg.set(0);
 					sender.sendMessage("Wrote another " + g + " Objects");
 				}
 			}
 
-			catch(Throwable e)
-			{
+			catch (Throwable e) {
 
 			}
 		})));
 
-		dimension.getMutations().forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
-		{
-			try
-			{
+		dimension.getMutations().forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) -> {
+			try {
 				File f = Iris.globaldata.getObjectLoader().findFile(lookupObjects.get(k).get(0));
 				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
 				gb.append(IO.hash(f));
 				ggg.set(ggg.get() + 1);
 
-				if(cl.flip())
-				{
+				if (cl.flip()) {
 					int g = ggg.get();
 					ggg.set(0);
 					sender.sendMessage("Wrote another " + g + " Objects");
 				}
 			}
 
-			catch(Throwable e)
-			{
+			catch (Throwable e) {
 
 			}
 		})));
@@ -372,14 +326,12 @@ public class ProjectManager
 
 		Iris.info("Writing Dimensional Scaffold");
 
-		try
-		{
+		try {
 			a = new JSONObject(new Gson().toJson(dimension)).toString(0);
 			IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
 			b.append(IO.hash(a));
 
-			for(IrisGenerator i : generators)
-			{
+			for (IrisGenerator i : generators) {
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
@@ -388,22 +340,19 @@ public class ProjectManager
 			c.append(IO.hash(b.toString()));
 			b = new StringBuilder();
 
-			for(IrisRegion i : regions)
-			{
+			for (IrisRegion i : regions) {
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
-			for(IrisStructure i : structures)
-			{
+			for (IrisStructure i : structures) {
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "structures/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
-			for(IrisBiome i : biomes)
-			{
+			for (IrisBiome i : biomes) {
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
@@ -426,22 +375,20 @@ public class ProjectManager
 			return p;
 		}
 
-		catch(Throwable e)
-		{
+		catch (Throwable e) {
 			e.printStackTrace();
 		}
 		sender.sendMessage("Failed!");
 		return null;
 	}
 
-	public void create(MortarSender sender, String s)
-	{
+	public void create(MortarSender sender, String s) {
 		IrisDimension dimension = new IrisDimension();
 		dimension.setLoadKey(s);
 		dimension.setName(Form.capitalizeWords(s.replaceAll("\\Q-\\E", " ")));
 
-		if(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json").exists())
-		{
+		if (Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json")
+				.exists()) {
 			sender.sendMessage("Project Already Exists! Open it instead!");
 			return;
 		}
@@ -506,29 +453,46 @@ public class ProjectManager
 		exampleRegion.getSeaBiomes().add(exampleOcean1.getLoadKey());
 		dimension.getRegions().add(exampleRegion.getLoadKey());
 
-		try
-		{
+		try {
 			JSONObject ws = newWorkspaceConfig();
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "regions", exampleRegion.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand2.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand2)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleShore1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleShore1)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleOcean1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "generators", gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions",
+							dimension.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(dimension)).toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "regions",
+							exampleRegion.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes",
+							exampleLand1.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes",
+							exampleLand2.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(exampleLand2)).toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes",
+							exampleShore1.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(exampleShore1)).toString(4));
+			IO.writeAll(
+					Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes",
+							exampleOcean1.getLoadKey() + ".json"),
+					new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "generators",
+					gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(),
+					dimension.getLoadKey() + ".code-workspace"), ws.toString(4));
 			Iris.proj.open(sender, dimension.getName());
 		}
 
-		catch(JSONException | IOException e)
-		{
+		catch (JSONException | IOException e) {
 			sender.sendMessage("Failed! Check the console.");
 			e.printStackTrace();
 		}
 	}
 
-	private JSONObject newWorkspaceConfig()
-	{
+	private JSONObject newWorkspaceConfig() {
 		JSONObject ws = new JSONObject();
 		JSONArray folders = new JSONArray();
 		JSONObject folder = new JSONObject();
@@ -550,10 +514,8 @@ public class ProjectManager
 		return ws;
 	}
 
-	public void updateWorkspace(File ws)
-	{
-		try
-		{
+	public void updateWorkspace(File ws) {
+		try {
 			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
 			JSONObject j = new JSONObject(IO.readAll(ws));
 			JSONObject s = j.getJSONObject("settings");
@@ -563,24 +525,21 @@ public class ProjectManager
 			Iris.info("Updating Project " + ws.getAbsolutePath());
 		}
 
-		catch(Throwable e)
-		{
-			Iris.warn("Project invalid: " + ws.getAbsolutePath() + " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
+		catch (Throwable e) {
+			Iris.warn("Project invalid: " + ws.getAbsolutePath()
+					+ " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
 
-			try
-			{
+			try {
 				IO.writeAll(ws, newWorkspaceConfig());
 			}
 
-			catch(IOException e1)
-			{
+			catch (IOException e1) {
 				e1.printStackTrace();
 			}
 		}
 	}
 
-	private JSONArray buildSchemas()
-	{
+	private JSONArray buildSchemas() {
 		JSONArray schemas = new JSONArray();
 		schemas.put(getSchemaEntry(IrisDimension.class, "/dimensions/*.json"));
 		schemas.put(getSchemaEntry(IrisBiome.class, "/biomes/*.json"));
@@ -590,8 +549,7 @@ public class ProjectManager
 		return schemas;
 	}
 
-	public JSONObject getSchemaEntry(Class<?> i, String... fileMatch)
-	{
+	public JSONObject getSchemaEntry(Class<?> i, String... fileMatch) {
 		JSONObject o = new JSONObject();
 		o.put("fileMatch", new JSONArray(fileMatch));
 		o.put("schema", getSchemaFor(i));
@@ -599,13 +557,11 @@ public class ProjectManager
 		return o;
 	}
 
-	public JSONObject getSchemaFor(Class<?> i)
-	{
+	public JSONObject getSchemaFor(Class<?> i) {
 		KMap<String, JSONObject> def = new KMap<>();
 		JSONObject s = getSchemaFor(i, 7, def);
 		JSONObject defx = new JSONObject();
-		for(String v : def.k())
-		{
+		for (String v : def.k()) {
 			defx.put(v, def.get(v));
 		}
 
@@ -614,18 +570,15 @@ public class ProjectManager
 		return s;
 	}
 
-	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def)
-	{
-		if(step <= 0)
-		{
+	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def) {
+		if (step <= 0) {
 			JSONObject m = new JSONObject();
 			m.put("properties", new JSONObject());
 			return m;
 		}
 
 		JSONObject schema = new JSONObject();
-		if(i.isAnnotationPresent(Desc.class))
-		{
+		if (i.isAnnotationPresent(Desc.class)) {
 			schema.put("$schema", "http://json-schema.org/draft-07/schema#");
 			schema.put("$id", "http://volmit.com/iris-schema/" + i.getSimpleName().toLowerCase() + ".json");
 			schema.put("title", i.getSimpleName().replaceAll("\\QIris\\E", ""));
@@ -637,160 +590,130 @@ public class ProjectManager
 			JSONObject properties = new JSONObject();
 			JSONArray req = new JSONArray();
 
-			for(java.lang.reflect.Field k : i.getDeclaredFields())
-			{
+			for (java.lang.reflect.Field k : i.getDeclaredFields()) {
 				JSONObject prop = new JSONObject();
 
-				if(k.isAnnotationPresent(Desc.class))
-				{
+				if (k.isAnnotationPresent(Desc.class)) {
 					String tp = "object";
 
-					if(k.getType().equals(int.class) || k.getType().equals(long.class))
-					{
+					if (k.getType().equals(int.class) || k.getType().equals(long.class)) {
 						tp = "integer";
 
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
+						if (k.isAnnotationPresent(MinNumber.class)) {
 							prop.put("minimum", (int) k.getDeclaredAnnotation(MinNumber.class).value());
 						}
 
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
+						if (k.isAnnotationPresent(MaxNumber.class)) {
 							prop.put("maximum", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
 						}
 					}
 
-					if(k.getType().equals(double.class) || k.getType().equals(float.class))
-					{
+					if (k.getType().equals(double.class) || k.getType().equals(float.class)) {
 						tp = "number";
 
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
+						if (k.isAnnotationPresent(MinNumber.class)) {
 							prop.put("minimum", k.getDeclaredAnnotation(MinNumber.class).value());
 						}
 
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
+						if (k.isAnnotationPresent(MaxNumber.class)) {
 							prop.put("maximum", k.getDeclaredAnnotation(MaxNumber.class).value());
 						}
 					}
 
-					if(k.getType().equals(boolean.class))
-					{
+					if (k.getType().equals(boolean.class)) {
 						tp = "boolean";
 					}
 
-					if(k.getType().equals(String.class))
-					{
+					if (k.getType().equals(String.class)) {
 						tp = "string";
 
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
+						if (k.isAnnotationPresent(MinNumber.class)) {
 							prop.put("minLength", (int) k.getDeclaredAnnotation(MinNumber.class).value());
 						}
 
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
+						if (k.isAnnotationPresent(MaxNumber.class)) {
 							prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
 						}
 					}
 
-					if(k.getType().equals(String.class))
-					{
+					if (k.getType().equals(String.class)) {
 						tp = "string";
 					}
 
-					if(k.getType().isEnum())
-					{
+					if (k.getType().isEnum()) {
 						tp = "string";
 						JSONArray a = new JSONArray();
 
-						for(Object gg : k.getType().getEnumConstants())
-						{
+						for (Object gg : k.getType().getEnumConstants()) {
 							a.put(((Enum<?>) gg).name());
 						}
 
 						prop.put("enum", a);
 					}
 
-					if(k.getType().equals(String.class) && k.getName().equals("potionEffect"))
-					{
+					if (k.getType().equals(String.class) && k.getName().equals("potionEffect")) {
 						tp = "string";
 						JSONArray a = new JSONArray();
 
-						for(PotionEffectType gg : PotionEffectType.values())
-						{
+						for (PotionEffectType gg : PotionEffectType.values()) {
 							a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
 						}
 
 						prop.put("enum", a);
 					}
 
-					if(k.getType().equals(KList.class))
-					{
+					if (k.getType().equals(KList.class)) {
 						tp = "array";
 					}
 
-					if(k.isAnnotationPresent(Required.class))
-					{
+					if (k.isAnnotationPresent(Required.class)) {
 						req.put(k.getName());
 					}
 
-					if(tp.equals("object"))
-					{
-						if(k.getType().isAnnotationPresent(Desc.class))
-						{
-							prop.put("properties", getSchemaFor(k.getType(), step - 1, def).getJSONObject("properties"));
+					if (tp.equals("object")) {
+						if (k.getType().isAnnotationPresent(Desc.class)) {
+							prop.put("properties",
+									getSchemaFor(k.getType(), step - 1, def).getJSONObject("properties"));
 						}
 					}
 
-					if(tp.equals("array"))
-					{
+					if (tp.equals("array")) {
 						ArrayType t = k.getDeclaredAnnotation(ArrayType.class);
 
-						if(t.min() > 0)
-						{
+						if (t.min() > 0) {
 							prop.put("minItems", t.min());
 						}
 
-						if(t != null)
-						{
+						if (t != null) {
 							String tx = "object";
 
-							if(t.type().equals(int.class) || k.getType().equals(long.class))
-							{
+							if (t.type().equals(int.class) || k.getType().equals(long.class)) {
 								tx = "integer";
 							}
 
-							if(t.type().equals(double.class) || k.getType().equals(float.class))
-							{
+							if (t.type().equals(double.class) || k.getType().equals(float.class)) {
 								tx = "number";
 							}
 
-							if(t.type().equals(boolean.class))
-							{
+							if (t.type().equals(boolean.class)) {
 								tx = "boolean";
 							}
 
-							if(t.type().equals(String.class))
-							{
+							if (t.type().equals(String.class)) {
 								tx = "string";
 							}
 
-							if(t.type().isEnum())
-							{
+							if (t.type().isEnum()) {
 								tx = "string";
 								JSONArray a = new JSONArray();
 
-								for(Object gg : t.type().getEnumConstants())
-								{
+								for (Object gg : t.type().getEnumConstants()) {
 									a.put(((Enum<?>) gg).name());
 								}
 
 								String name = "enum" + t.type().getSimpleName().toLowerCase();
 
-								if(!def.containsKey(name))
-								{
+								if (!def.containsKey(name)) {
 									JSONObject deff = new JSONObject();
 									deff.put("type", tx);
 									deff.put("enum", a);
@@ -802,33 +725,27 @@ public class ProjectManager
 								prop.put("items", items);
 							}
 
-							if(t.type().isEnum())
-							{
+							if (t.type().isEnum()) {
 								tx = "string";
 							}
 
-							if(t.type().equals(KList.class))
-							{
+							if (t.type().equals(KList.class)) {
 								tx = "array";
 							}
 
 							JSONObject items = new JSONObject();
 
-							if(tx.equals("object"))
-							{
-								if(t.type().isAnnotationPresent(Desc.class))
-								{
+							if (tx.equals("object")) {
+								if (t.type().isAnnotationPresent(Desc.class)) {
 									String name = t.type().getSimpleName().toLowerCase();
 
-									if(!def.containsKey(name))
-									{
+									if (!def.containsKey(name)) {
 										JSONObject deff = new JSONObject();
 										JSONObject scv = getSchemaFor(t.type(), step - 1, def);
 										deff.put("type", tx);
 										deff.put("description", t.type().getDeclaredAnnotation(Desc.class).value());
 										deff.put("properties", scv.getJSONObject("properties"));
-										if(scv.has("required"))
-										{
+										if (scv.has("required")) {
 											deff.put("required", scv.getJSONArray("required"));
 										}
 										def.put(name, deff);
@@ -837,23 +754,21 @@ public class ProjectManager
 									items.put("$ref", "#/definitions/" + name);
 								}
 
-								else
-								{
+								else {
 									items.put("type", tx);
 								}
 							}
 
-							else
-							{
+							else {
 								items.put("type", tx);
 							}
 
 							prop.put("items", items);
 						}
 
-						if(tp.getClass().isAnnotationPresent(Desc.class))
-						{
-							prop.put("properties", getSchemaFor(tp.getClass(), step - 1, def).getJSONObject("properties"));
+						if (tp.getClass().isAnnotationPresent(Desc.class)) {
+							prop.put("properties",
+									getSchemaFor(tp.getClass(), step - 1, def).getJSONObject("properties"));
 						}
 					}
 
@@ -870,85 +785,209 @@ public class ProjectManager
 		return schema;
 	}
 
-	public void writeDocs(File folder) throws IOException, JSONException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException
-	{
+	public KList<String> analyzeFolder(File folder, String fn, Object t) {
+		KList<String> a = new KList<String>();
+
+		if (!new File(folder, fn).exists()) {
+			return a;
+		}
+
+		if (!new File(folder, fn).isDirectory()) {
+			a.add("ERROR: " + new File(folder, fn).getAbsolutePath() + " must be a folder, not a file!");
+			return a;
+		}
+
+		for (File i : new File(folder, fn).listFiles()) {
+			if (i.isFile() && i.getName().endsWith(".json")) {
+				if (!i.getName().toLowerCase().equals(i.getName())) {
+					a.add("WARN: " + i.getAbsolutePath() + " has upper case letters in the file name.");
+				}
+
+				if (i.getName().contains(" ")) {
+					a.add("WARN: " + i.getAbsolutePath() + " has spaces in the file name.");
+				}
+
+				Object o;
+				JSONObject j;
+
+				try {
+					j = new JSONObject(IO.readAll(i));
+					o = new Gson().fromJson(j.toString(), t.getClass());
+					a.addAll(analyze(o, i));
+
+					verify(j, o, a, i);
+				}
+
+				catch (Throwable e) {
+					a.add("ERROR: Failed to read " + i.getAbsolutePath() + ": " + e.getMessage());
+				}
+			}
+
+			else {
+				a.add("WARN: " + i.getAbsolutePath() + " should not be in this directory.");
+			}
+		}
+
+		return a;
+	}
+
+	private void verify(JSONObject j, Object o, KList<String> a, File m) {
+		for (String i : j.keySet()) {
+			try {
+				JSONObject jj = j.getJSONObject(i);
+
+				try {
+					Field f = o.getClass().getField(i);
+
+					if (f.isEnumConstant() || f.getType().isEnum() || f.getType().isPrimitive()) {
+						a.add("ERROR: Unexptected type: " + i + " into " + f.getType()
+								+ " expected. Got a jsonObject in " + o.getClass() + " in " + m.getAbsolutePath());
+						continue;
+					}
+
+					f.setAccessible(true);
+					Object oo = f.get(o);
+
+					if (oo == null) {
+						a.add("WARN: Incorrect injection on " + o.getClass() + "." + i);
+					}
+
+					verify(jj, oo, a, m);
+				}
+
+				catch (Throwable e) {
+					a.add("WARN: Unexptected Field: " + i + " in " + o.getClass());
+				}
+			}
+
+			catch (Throwable enn) {
+
+			}
+		}
+	}
+
+	public KList<String> analyze(File project) {
+		KList<String> a = new KList<String>();
+
+		a.addAll(analyzeFolder(project, "dimensions", new IrisDimension()));
+		a.addAll(analyzeFolder(project, "biomes", new IrisBiome()));
+		a.addAll(analyzeFolder(project, "regions", new IrisRegion()));
+		a.addAll(analyzeFolder(project, "generators", new IrisGenerator()));
+		a.addAll(analyzeFolder(project, "structures", new IrisStructure()));
+
+		return a;
+	}
+
+	public KList<String> analyze(Object o, File file) {
+		KList<String> a = new KList<String>();
+
+		String t;
+		try {
+			t = IO.readAll(file);
+		} catch (IOException e1) {
+			a.add("ERROR: Unable to read " + file.getAbsolutePath() + ": " + e1.getMessage());
+			return a;
+		}
+
+		JSONObject j;
+
+		try {
+			j = new JSONObject(t);
+		}
+
+		catch (Throwable e) {
+			a.add("ERROR: Unable to parse json " + file.getAbsolutePath() + ": " + e.getMessage());
+			return a;
+		}
+
+		for (String i : j.keySet()) {
+			try {
+				Field f = o.getClass().getField(i);
+
+				if (f == null) {
+					throw new NullPointerException();
+				}
+			}
+
+			catch (Throwable e) {
+				a.add("WARN: Unreconized Field (key): " + i + " in " + file.getAbsolutePath()
+						+ ". Delete this key/value pair");
+			}
+		}
+
+		return a;
+	}
+
+	public void writeDocs(File folder)
+			throws IOException, JSONException, InstantiationException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException, SecurityException {
 		File of = new File(folder, "_docs");
 		KList<String> m = new KList<>();
 
-		for(Biome i : Biome.values())
-		{
+		for (Biome i : Biome.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "biomes.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Particle i : Particle.values())
-		{
+		for (Particle i : Particle.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "particles.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Dispersion i : Dispersion.values())
-		{
+		for (NoiseStyle i : NoiseStyle.values()) {
 			m.add(i.name());
 		}
 
-		IO.writeAll(new File(of, "dispersion.txt"), m.toString("\n"));
+		IO.writeAll(new File(of, "noise-style.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(DecorationPart i : DecorationPart.values())
-		{
+		for (DecorationPart i : DecorationPart.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "decoration-part.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Envelope i : Envelope.values())
-		{
+		for (Envelope i : Envelope.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "envelope.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Environment i : Environment.values())
-		{
+		for (Environment i : Environment.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "environment.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(StructureTileCondition i : StructureTileCondition.values())
-		{
+		for (StructureTileCondition i : StructureTileCondition.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "structure-tile-condition.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(InterpolationMethod i : InterpolationMethod.values())
-		{
+		for (InterpolationMethod i : InterpolationMethod.values()) {
 			m.add(i.name());
 		}
 
 		IO.writeAll(new File(of, "interpolation-method.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Class<? extends IrisPostBlockFilter> i : Iris.postProcessors)
-		{
+		for (Class<? extends IrisPostBlockFilter> i : Iris.postProcessors) {
 			m.add(i.getDeclaredAnnotation(Post.class).value());
 		}
 
 		IO.writeAll(new File(of, "post-processors.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(PotionEffectType i : PotionEffectType.values())
-		{
+		for (PotionEffectType i : PotionEffectType.values()) {
 			m.add(i.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
 		}
 	}

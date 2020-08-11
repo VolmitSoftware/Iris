@@ -69,8 +69,8 @@ public class IrisNoiseGenerator
 	private boolean enabled = true;
 
 	@DontObfuscate
-	@Desc("If this generator uses the default iris swirly/wispy noise generator. Set to false for pure simplex.")
-	private boolean irisBased = true;
+	@Desc("The Noise Style")
+	private NoiseStyle style = NoiseStyle.IRIS;
 
 	@MinNumber(1)
 	@DontObfuscate
@@ -97,7 +97,7 @@ public class IrisNoiseGenerator
 
 	protected CNG getGenerator(long superSeed)
 	{
-		return generator.aquire(() -> irisBased ? CNG.signature(new RNG(superSeed + 33955677 - seed)) : new CNG(new RNG(superSeed + 33955677 - seed), 1D, octaves));
+		return generator.aquire(() -> style.create(new RNG(superSeed + 33955677 - seed)).oct(octaves));
 	}
 
 	public double getMax()

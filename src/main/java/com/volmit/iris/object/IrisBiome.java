@@ -41,7 +41,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	@DontObfuscate
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
-	private Dispersion biomeDispersion = Dispersion.SCATTER;
+	private NoiseStyle biomeStyle = NoiseStyle.SIMPLEX;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
@@ -156,7 +156,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	{
 		return biomeGenerator.aquire(() ->
 		{
-			return CNG.signature(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())).scale(biomeDispersion.equals(Dispersion.SCATTER) ? 1000D : 0.1D);
+			return biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()));
 		});
 	}
 
@@ -187,7 +187,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random).get(i);
-			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getTerrainZoom(), wz / layers.get(i).getTerrainZoom());
+			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
 			if(d < 0)
 			{
@@ -203,7 +203,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 				try
 				{
-					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getTerrainZoom(), j, (wz - j) / layers.get(i).getTerrainZoom()));
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom()));
 				}
 
 				catch(Throwable e)
@@ -234,7 +234,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random).get(i);
-			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getTerrainZoom(), wz / layers.get(i).getTerrainZoom());
+			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
 			if(d < 0)
 			{
@@ -245,7 +245,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			{
 				try
 				{
-					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getTerrainZoom(), j, (wz - j) / layers.get(i).getTerrainZoom()));
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom()));
 				}
 
 				catch(Throwable e)
@@ -298,7 +298,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		for(int i = 0; i < seaLayers.size(); i++)
 		{
 			CNG hgen = getLayerSeaHeightGenerators(random).get(i);
-			int d = hgen.fit(seaLayers.get(i).getMinHeight(), seaLayers.get(i).getMaxHeight(), wx / seaLayers.get(i).getTerrainZoom(), wz / seaLayers.get(i).getTerrainZoom());
+			int d = hgen.fit(seaLayers.get(i).getMinHeight(), seaLayers.get(i).getMaxHeight(), wx / seaLayers.get(i).getZoom(), wz / seaLayers.get(i).getZoom());
 
 			if(d < 0)
 			{
@@ -314,7 +314,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 				try
 				{
-					data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getTerrainZoom(), j, (wz - j) / seaLayers.get(i).getTerrainZoom()));
+					data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom()));
 				}
 
 				catch(Throwable e)

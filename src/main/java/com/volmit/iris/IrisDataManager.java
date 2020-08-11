@@ -112,14 +112,12 @@ public class IrisDataManager
 			IrisNoiseGenerator n = new IrisNoiseGenerator();
 			n.setSeed(1000);
 			IrisNoiseGenerator nf = new IrisNoiseGenerator();
-			nf.setIrisBased(false);
 			nf.setOctaves(3);
 			nf.setOpacity(16);
 			nf.setZoom(24);
 			nf.setSeed(44);
 			n.getFracture().add(nf);
 			IrisNoiseGenerator nf2 = new IrisNoiseGenerator();
-			nf2.setIrisBased(false);
 			nf2.setOctaves(8);
 			nf2.setOpacity(24);
 			nf2.setZoom(64);

@@ -21,8 +21,8 @@ import lombok.Data;
 public class IrisBiomePaletteLayer
 {
 	@DontObfuscate
-	@Desc("The dispersion of materials from the palette")
-	private Dispersion dispersion = Dispersion.SCATTER;
+	@Desc("The style of noise")
+	private NoiseStyle style = NoiseStyle.STATIC;
 
 	@MinNumber(0)
 	@MaxNumber(256)
@@ -39,7 +39,7 @@ public class IrisBiomePaletteLayer
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
-	private double terrainZoom = 5;
+	private double zoom = 5;
 
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -68,35 +68,15 @@ public class IrisBiomePaletteLayer
 			return getBlockData().get(0);
 		}
 
-		if(dispersion.equals(Dispersion.SCATTER))
-		{
-			return getBlockData().get(getLayerGenerator(rng).fit(0, 30000000, x, y, z) % getBlockData().size());
-		}
-
-		else
-		{
-			return getBlockData().get(getLayerGenerator(rng).fit(0, getBlockData().size() - 1, x, y, z));
-		}
+		return getLayerGenerator(rng).fit(getBlockData(), x, y, z);
 	}
 
 	public CNG getLayerGenerator(RNG rng)
 	{
 		return layerGenerator.aquire(() ->
 		{
-			CNG layerGenerator = new CNG(rng);
 			RNG rngx = rng.nextParallelRNG(minHeight + maxHeight + getBlockData().size());
-
-			switch(dispersion)
-			{
-				case SCATTER:
-					layerGenerator = CNG.signature(rngx).freq(1000000);
-					break;
-				case WISPY:
-					layerGenerator = CNG.signature(rngx);
-					break;
-			}
-
-			return layerGenerator;
+			return style.create(rngx);
 		});
 	}
 

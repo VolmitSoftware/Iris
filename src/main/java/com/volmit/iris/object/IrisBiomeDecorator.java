@@ -23,15 +23,15 @@ public class IrisBiomeDecorator
 {
 	@DontObfuscate
 	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
-	private Dispersion variance = Dispersion.SCATTER;
+	private NoiseStyle variance = NoiseStyle.STATIC;
 
 	@DontObfuscate
 	@Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
-	private Dispersion dispersion = Dispersion.SCATTER;
+	private NoiseStyle dispersion = NoiseStyle.STATIC;
 
 	@DontObfuscate
 	@Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
-	private Dispersion verticalVariance = Dispersion.SCATTER;
+	private NoiseStyle heightVariance = NoiseStyle.STATIC;
 
 	@DontObfuscate
 	@Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")
@@ -51,8 +51,13 @@ public class IrisBiomeDecorator
 
 	@MinNumber(0.0001)
 	@DontObfuscate
-	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is/")
+	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is")
 	private double zoom = 1;
+	
+	@MinNumber(0.0001)
+	@DontObfuscate
+	@Desc("The zoom is for zooming in or out variance. Makes patches have more or less of one type.")
+	private double varianceZoom = 1;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
@@ -73,6 +78,7 @@ public class IrisBiomeDecorator
 	private KList<String> palette = new KList<String>().qadd("GRASS");
 
 	private transient KMap<Long, CNG> layerGenerators;
+	private transient KMap<Long, CNG> layerVarianceGenerators;
 	private transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
@@ -83,14 +89,14 @@ public class IrisBiomeDecorator
 			return stackMin;
 		}
 
-		return getGenerator(rng).fit(stackMin, stackMax, x * (verticalVariance.equals(Dispersion.SCATTER) ? 1000D : 1D), z * (verticalVariance.equals(Dispersion.SCATTER) ? 1000D : 1D));
+		return getHeightGenerator(rng).fit(stackMin, stackMax, x ,z);
 	}
 
 	public CNG getHeightGenerator(RNG rng)
 	{
 		return heightGenerator.aquire(() ->
 		{
-			return CNG.signature(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
+			return heightVariance.create(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
 		});
 	}
 
@@ -105,10 +111,27 @@ public class IrisBiomeDecorator
 
 		if(!layerGenerators.containsKey(key))
 		{
-			layerGenerators.put(key, CNG.signature(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / zoom));
+			layerGenerators.put(key, dispersion.create(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / zoom));
 		}
 
 		return layerGenerators.get(key);
+	}
+	
+	public CNG getVarianceGenerator(RNG rng)
+	{
+		long key = rng.nextParallelRNG(4).nextLong();
+
+		if(layerVarianceGenerators == null)
+		{
+			layerGenerators = new KMap<>();
+		}
+
+		if(!layerVarianceGenerators.containsKey(key))
+		{
+			layerVarianceGenerators.put(key, variance.create(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / varianceZoom));
+		}
+
+		return layerVarianceGenerators.get(key);
 	}
 
 	public KList<String> add(String b)
@@ -134,9 +157,8 @@ public class IrisBiomeDecorator
 			return null;
 		}
 
-		RNG nrng = dispersion.equals(Dispersion.SCATTER) ? rng.nextParallelRNG((int) (z - (int) ((x + 34856) * (int) (x + z + (int) (28835521 + (getChance() * 1000) + getStackMin() + getStackMax() + (getZoom() * 556)))))) : null;
-		double xx = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) + z : x;
-		double zz = dispersion.equals(Dispersion.SCATTER) ? nrng.i(-1000000, 1000000) - x : z;
+		double xx = x;
+		double zz = z;
 		xx /= getZoom();
 		zz /= getZoom();
 
@@ -147,7 +169,7 @@ public class IrisBiomeDecorator
 				return getBlockData().get(0);
 			}
 
-			return getBlockData().get(getGenerator(rng.nextParallelRNG(44)).fit(0, getBlockData().size() - 1, xx, zz));
+			return getVarianceGenerator(rng.nextParallelRNG(44)).fit(getBlockData(), xx, zz);
 		}
 
 		return null;

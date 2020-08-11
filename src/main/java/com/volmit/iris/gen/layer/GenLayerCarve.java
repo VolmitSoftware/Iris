@@ -1,7 +1,7 @@
 package com.volmit.iris.gen.layer;
 
 import com.volmit.iris.gen.DimensionChunkGenerator;
-import com.volmit.iris.util.CellGenerator;
+import com.volmit.iris.noise.CellGenerator;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.M;

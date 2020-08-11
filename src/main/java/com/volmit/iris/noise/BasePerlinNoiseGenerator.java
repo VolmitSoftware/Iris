@@ -1,4 +1,4 @@
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
 
 import java.util.Random;
 
@@ -8,7 +8,7 @@ import java.util.Random;
  * @see SimplexNoiseC "Improved" and faster version with slighly
  *      different results
  */
-public class BasePerlinNoiseGenerator extends NoiseGenerator
+public class BasePerlinNoiseGenerator extends BaseNoiseGenerator
 {
 	protected static final int grad3[][] = {{1, 1, 0}, {-1, 1, 0}, {1, -1, 0}, {-1, -1, 0}, {1, 0, 1}, {-1, 0, 1}, {1, 0, -1}, {-1, 0, -1}, {0, 1, 1}, {0, -1, 1}, {0, 1, -1}, {0, -1, -1}};
 	private static final BasePerlinNoiseGenerator instance = new BasePerlinNoiseGenerator();

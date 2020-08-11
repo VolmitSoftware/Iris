@@ -4,7 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.ParallaxChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.CellGenerator;
+import com.volmit.iris.noise.CellGenerator;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MaxNumber;

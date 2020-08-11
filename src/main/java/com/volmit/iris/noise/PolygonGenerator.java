@@ -1,6 +1,11 @@
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
 
 import java.util.function.Function;
+
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.RNG;
 
 public class PolygonGenerator
 {

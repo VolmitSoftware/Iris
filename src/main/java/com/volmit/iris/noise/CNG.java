@@ -1,4 +1,9 @@
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
+
+import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.NoiseInjector;
+import com.volmit.iris.util.RNG;
 
 public class CNG
 {

@@ -25,7 +25,7 @@
 // The developer's email is jorzixdan.me2@gzixmail.com (for great email, take
 // off every 'zix'.)
 //
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
 
 import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;

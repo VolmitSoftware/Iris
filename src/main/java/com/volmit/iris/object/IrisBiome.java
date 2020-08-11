@@ -6,8 +6,9 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.noise.CNG;
+import com.volmit.iris.noise.RarityCellGenerator;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IRare;
@@ -16,7 +17,6 @@ import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;

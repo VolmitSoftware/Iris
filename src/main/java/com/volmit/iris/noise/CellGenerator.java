@@ -1,8 +1,6 @@
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
 
-import com.volmit.iris.util.FastNoise.CellularDistanceFunction;
-import com.volmit.iris.util.FastNoise.CellularReturnType;
-import com.volmit.iris.util.FastNoise.NoiseType;
+import com.volmit.iris.util.RNG;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -29,13 +27,13 @@ public class CellGenerator
 		RNG rx = rng.nextParallelRNG(8735652);
 		int s = rx.nextInt();
 		fn = new FastNoise(s);
-		fn.SetNoiseType(NoiseType.Cellular);
-		fn.SetCellularReturnType(CellularReturnType.CellValue);
-		fn.SetCellularDistanceFunction(CellularDistanceFunction.Natural);
+		fn.SetNoiseType(FastNoise.NoiseType.Cellular);
+		fn.SetCellularReturnType(FastNoise.CellularReturnType.CellValue);
+		fn.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 		fd = new FastNoise(s);
-		fd.SetNoiseType(NoiseType.Cellular);
-		fd.SetCellularReturnType(CellularReturnType.Distance2Sub);
-		fd.SetCellularDistanceFunction(CellularDistanceFunction.Natural);
+		fd.SetNoiseType(FastNoise.NoiseType.Cellular);
+		fd.SetCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
+		fd.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 	}
 
 	public float getDistance(double x, double z)

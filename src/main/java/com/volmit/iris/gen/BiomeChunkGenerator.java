@@ -4,6 +4,7 @@ import org.bukkit.World;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.layer.GenLayerBiome;
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
@@ -11,7 +12,6 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
-import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.IrisInterpolation;

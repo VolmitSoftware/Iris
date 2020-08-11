@@ -1,9 +1,9 @@
-package com.volmit.iris.util;
+package com.volmit.iris.noise;
 
 /**
  * Base class for all noise generators
  */
-public abstract class NoiseGenerator
+public abstract class BaseNoiseGenerator
 {
 	protected final int perm[] = new int[512];
 	protected double offsetX;

@@ -5,16 +5,16 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.DimensionChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.noise.CNG;
+import com.volmit.iris.noise.FastNoise;
+import com.volmit.iris.noise.FastNoise.CellularDistanceFunction;
+import com.volmit.iris.noise.FastNoise.CellularReturnType;
+import com.volmit.iris.noise.FastNoise.NoiseType;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.CaveResult;
-import com.volmit.iris.util.FastNoise;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.FastNoise.CellularDistanceFunction;
-import com.volmit.iris.util.FastNoise.CellularReturnType;
-import com.volmit.iris.util.FastNoise.NoiseType;
 
 public class GenLayerCave extends GenLayer
 {

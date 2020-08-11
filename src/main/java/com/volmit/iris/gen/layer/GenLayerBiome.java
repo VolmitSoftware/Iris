@@ -2,14 +2,14 @@ package com.volmit.iris.gen.layer;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.noise.CellGenerator;
+import com.volmit.iris.noise.RarityCellGenerator;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisRegionRidge;
 import com.volmit.iris.object.IrisRegionSpot;
-import com.volmit.iris.util.RarityCellGenerator;
 import com.volmit.iris.util.BiomeResult;
-import com.volmit.iris.util.CellGenerator;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;

@@ -1,9 +1,9 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.BlockPosition;
-import com.volmit.iris.util.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;

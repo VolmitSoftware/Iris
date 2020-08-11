@@ -1,12 +1,12 @@
 package com.volmit.iris.gen.layer;
 
 import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.noise.RarityCellGenerator;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RarityCellGenerator;
 
 import lombok.Data;
 

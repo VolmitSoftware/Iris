@@ -20,8 +20,7 @@ import lombok.Setter;
  * @author cyberpwn
  *
  */
-public class MortarSender implements CommandSender
-{
+public class MortarSender implements CommandSender {
 	private CommandSender s;
 	private String tag;
 
@@ -32,17 +31,14 @@ public class MortarSender implements CommandSender
 	/**
 	 * Wrap a command sender
 	 *
-	 * @param s
-	 *            the command sender
+	 * @param s the command sender
 	 */
-	public MortarSender(CommandSender s)
-	{
+	public MortarSender(CommandSender s) {
 		tag = "";
 		this.s = s;
 	}
 
-	public MortarSender(CommandSender s, String tag)
-	{
+	public MortarSender(CommandSender s, String tag) {
 		this.tag = tag;
 		this.s = s;
 	}
@@ -50,11 +46,9 @@ public class MortarSender implements CommandSender
 	/**
 	 * Set a command tag (prefix for sendMessage)
 	 *
-	 * @param tag
-	 *            the tag
+	 * @param tag the tag
 	 */
-	public void setTag(String tag)
-	{
+	public void setTag(String tag) {
 		this.tag = tag;
 	}
 
@@ -63,8 +57,7 @@ public class MortarSender implements CommandSender
 	 *
 	 * @return the command tag
 	 */
-	public String getTag()
-	{
+	public String getTag() {
 		return tag;
 	}
 
@@ -73,8 +66,7 @@ public class MortarSender implements CommandSender
 	 *
 	 * @return true if it is
 	 */
-	public boolean isPlayer()
-	{
+	public boolean isPlayer() {
 		return getS() instanceof Player;
 	}
 
@@ -83,8 +75,7 @@ public class MortarSender implements CommandSender
 	 *
 	 * @return a casted player
 	 */
-	public Player player()
-	{
+	public Player player() {
 		return (Player) getS();
 	}
 
@@ -93,117 +84,102 @@ public class MortarSender implements CommandSender
 	 *
 	 * @return the command sender
 	 */
-	public CommandSender getS()
-	{
+	public CommandSender getS() {
 		return s;
 	}
 
 	@Override
-	public boolean isPermissionSet(String name)
-	{
+	public boolean isPermissionSet(String name) {
 		return s.isPermissionSet(name);
 	}
 
 	@Override
-	public boolean isPermissionSet(Permission perm)
-	{
+	public boolean isPermissionSet(Permission perm) {
 		return s.isPermissionSet(perm);
 	}
 
 	@Override
-	public boolean hasPermission(String name)
-	{
+	public boolean hasPermission(String name) {
 		return s.hasPermission(name);
 	}
 
 	@Override
-	public boolean hasPermission(Permission perm)
-	{
+	public boolean hasPermission(Permission perm) {
 		return s.hasPermission(perm);
 	}
 
 	@Override
-	public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value)
-	{
+	public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
 		return s.addAttachment(plugin, name, value);
 	}
 
 	@Override
-	public PermissionAttachment addAttachment(Plugin plugin)
-	{
+	public PermissionAttachment addAttachment(Plugin plugin) {
 		return s.addAttachment(plugin);
 	}
 
 	@Override
-	public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks)
-	{
+	public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
 		return s.addAttachment(plugin, name, value, ticks);
 	}
 
 	@Override
-	public PermissionAttachment addAttachment(Plugin plugin, int ticks)
-	{
+	public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
 		return s.addAttachment(plugin, ticks);
 	}
 
 	@Override
-	public void removeAttachment(PermissionAttachment attachment)
-	{
+	public void removeAttachment(PermissionAttachment attachment) {
 		s.removeAttachment(attachment);
 	}
 
 	@Override
-	public void recalculatePermissions()
-	{
+	public void recalculatePermissions() {
 		s.recalculatePermissions();
 	}
 
 	@Override
-	public Set<PermissionAttachmentInfo> getEffectivePermissions()
-	{
+	public Set<PermissionAttachmentInfo> getEffectivePermissions() {
 		return s.getEffectivePermissions();
 	}
 
 	@Override
-	public boolean isOp()
-	{
+	public boolean isOp() {
 		return s.isOp();
 	}
 
 	@Override
-	public void setOp(boolean value)
-	{
+	public void setOp(boolean value) {
 		s.setOp(value);
 	}
 
+	public void hr() {
+		s.sendMessage("========================================================");
+	}
+
 	@Override
-	public void sendMessage(String message)
-	{
+	public void sendMessage(String message) {
 		s.sendMessage(ChatColor.translateAlternateColorCodes('&', getTag()) + message);
 	}
 
 	@Override
-	public void sendMessage(String[] messages)
-	{
-		for(String str : messages)
+	public void sendMessage(String[] messages) {
+		for (String str : messages)
 			s.sendMessage(ChatColor.translateAlternateColorCodes('&', getTag() + str));
 	}
 
 	@Override
-	public Server getServer()
-	{
+	public Server getServer() {
 		return s.getServer();
 	}
 
 	@Override
-	public String getName()
-	{
+	public String getName() {
 		return s.getName();
 	}
 
 	@Override
-	public Spigot spigot()
-	{
+	public Spigot spigot() {
 		return s.spigot();
 	}
 }

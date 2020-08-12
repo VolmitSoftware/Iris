@@ -34,16 +34,21 @@ public class CNG {
 	private double down;
 	private double power;
 
+	public NoiseGenerator getGen()
+	{
+		return generator;
+	}
+	
 	public static CNG signature(RNG rng) {
 		return signature(rng, NoiseType.SIMPLEX);
 	}
 
 	public static CNG signature(RNG rng, NoiseType t) {
 		// @builder
-		return new CNG(rng.nextParallelRNG(17), t, 1D, 3).scale(0.012)
+		return new CNG(rng.nextParallelRNG(17), t, 1D, 1).scale(0.012)
 				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 2).scale(0.018)
-						.child(new CNG(rng.nextParallelRNG(19), 1, 2).scale(0.1))
-						.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 2).scale(0.15), 24), 44)
+						.child(new CNG(rng.nextParallelRNG(19), 1, 1).scale(0.1))
+						.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.15), 24), 44)
 				.down(0.3).patch(2.5);
 		// @done
 	}
@@ -68,6 +73,8 @@ public class CNG {
 		scale = 1;
 		patch = 1;
 		fscale = 1;
+		down = 0;
+		up = 0;
 		fracture = null;
 		generator = t.create(random.nextParallelRNG(33).lmax());
 		this.opacity = opacity;

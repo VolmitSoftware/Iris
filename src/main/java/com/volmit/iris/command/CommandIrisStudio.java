@@ -18,6 +18,9 @@ public class CommandIrisStudio extends MortarCommand
 
 	@Command
 	private CommandIrisStudioPackage pkg;
+	
+	@Command
+	private CommandIrisStudioVerify verify;
 
 	@Command
 	private CommandIrisStudioList list;

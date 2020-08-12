@@ -123,7 +123,7 @@ public class IrisBiomeDecorator
 
 		if(layerVarianceGenerators == null)
 		{
-			layerGenerators = new KMap<>();
+			layerVarianceGenerators = new KMap<>();
 		}
 
 		if(!layerVarianceGenerators.containsKey(key))

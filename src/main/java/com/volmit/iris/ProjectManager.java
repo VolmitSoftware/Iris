@@ -837,7 +837,7 @@ public class ProjectManager {
 				JSONObject jj = j.getJSONObject(i);
 
 				try {
-					Field f = o.getClass().getField(i);
+					Field f = o.getClass().getDeclaredField(i);
 
 					if (f.isEnumConstant() || f.getType().isEnum() || f.getType().isPrimitive()) {
 						a.add("ERROR: Unexptected type: " + i + " into " + f.getType()
@@ -856,7 +856,8 @@ public class ProjectManager {
 				}
 
 				catch (Throwable e) {
-					a.add("WARN: Unexptected Field: " + i + " in " + o.getClass());
+					a.add("WARN: Unexptected Field: " + i + " in " + o.getClass().getSimpleName() + " from "
+							+ m.getAbsolutePath() + " " + e.getClass().getSimpleName() + " " + e.getMessage());
 				}
 			}
 
@@ -902,7 +903,7 @@ public class ProjectManager {
 
 		for (String i : j.keySet()) {
 			try {
-				Field f = o.getClass().getField(i);
+				Field f = o.getClass().getDeclaredField(i);
 
 				if (f == null) {
 					throw new NullPointerException();
@@ -911,7 +912,7 @@ public class ProjectManager {
 
 			catch (Throwable e) {
 				a.add("WARN: Unreconized Field (key): " + i + " in " + file.getAbsolutePath()
-						+ ". Delete this key/value pair");
+						+ ". Delete this key/value pair: " + o.getClass().getSimpleName());
 			}
 		}
 

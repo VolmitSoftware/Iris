@@ -1,5 +1,7 @@
 package com.volmit.iris.noise;
 
+import com.volmit.iris.util.M;
+
 public class CellHeightNoise implements NoiseGenerator {
 	private final FastNoise n;
 
@@ -11,7 +13,7 @@ public class CellHeightNoise implements NoiseGenerator {
 	}
 
 	private double filter(double noise) {
-		return (noise / 2D) + 0.5D;
+		return M.clip((noise / 2D) + 0.5D, 0D, 1D);
 	}
 
 	@Override

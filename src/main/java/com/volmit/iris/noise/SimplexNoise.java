@@ -8,6 +8,7 @@ public class SimplexNoise implements NoiseGenerator, OctaveNoise {
 
 	public SimplexNoise(long seed) {
 		this.n = new FastNoise(new RNG(seed).imax());
+		n.SetNoiseType(FastNoise.NoiseType.Simplex);
 		octaves = 1;
 	}
 

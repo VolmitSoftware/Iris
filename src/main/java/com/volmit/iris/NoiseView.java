@@ -11,7 +11,6 @@ import javax.swing.JPanel;
 
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.NoiseStyle;
-import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -23,7 +22,7 @@ public class NoiseView extends JPanel {
 	private static final long serialVersionUID = 2094606939770332040L;
 
 	RollingSequence r = new RollingSequence(256);
-	CNG cng = NoiseStyle.CELLULAR_IRIS_DOUBLE.create(new RNG(RNG.r.nextLong())).scale(0.25);
+	CNG cng = NoiseStyle.PERLIN_IRIS.create(new RNG(RNG.r.nextLong())).scale(0.25);
 	GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY,
 			"Iris Renderer");
 	ReentrantLock l = new ReentrantLock();
@@ -87,7 +86,6 @@ public class NoiseView extends JPanel {
 
 		p.end();
 		r.put(p.getMilliseconds());
-		System.out.println("Accuracy: " + accuracy + " MS: " + Form.duration(r.getAverage(), 2));
 
 		EventQueue.invokeLater(() -> {
 			repaint();

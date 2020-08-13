@@ -42,6 +42,26 @@ public enum NoiseStyle {
 	@DontObfuscate
 	SIMPLEX(rng -> new CNG(rng, 1D, 1).scale(1)),
 
+	@Desc("Perlin. Like simplex but more natural")
+	@DontObfuscate
+	PERLIN(rng -> new CNG(rng, NoiseType.PERLIN, 1D, 1).scale(1.47)),
+
+	@Desc("Perlin. Like simplex but more natural")
+	@DontObfuscate
+	PERLIN_IRIS(rng -> CNG.signature(rng, NoiseType.PERLIN).scale(1.47)),
+
+	@Desc("Perlin. Like simplex but more natural")
+	@DontObfuscate
+	PERLIN_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.PERLIN).scale(1.47)),
+
+	@Desc("Perlin. Like simplex but more natural")
+	@DontObfuscate
+	PERLIN_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.PERLIN).scale(1.47)),
+
+	@Desc("Perlin. Like simplex but more natural")
+	@DontObfuscate
+	PERLIN_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.PERLIN).scale(1.47)),
+
 	@Desc("Billow Fractal Simplex Noise. Single octave.")
 	@DontObfuscate
 	FRACTAL_BILLOW_SIMPLEX(rng -> new CNG(rng, NoiseType.FRACTAL_BILLOW_SIMPLEX, 1D, 1)),
@@ -244,23 +264,55 @@ public enum NoiseStyle {
 
 	@Desc("Cubic Noise")
 	@DontObfuscate
-	LAVALAMP(rng -> new CNG(rng, NoiseType.CUBIC, 1D, 1).scale(256)),
+	CUBIC(rng -> new CNG(rng, NoiseType.CUBIC, 1D, 1).scale(256)),
+
+	@Desc("Fractal Cubic Noise")
+	@DontObfuscate
+	FRACTAL_CUBIC(rng -> new CNG(rng, NoiseType.FRACTAL_CUBIC, 1D, 1).scale(2)),
+
+	@Desc("Fractal Cubic Noise With Iris Swirls")
+	@DontObfuscate
+	FRACTAL_CUBIC_IRIS(rng -> CNG.signature(rng, NoiseType.FRACTAL_CUBIC).scale(2)),
+
+	@Desc("Fractal Cubic Noise With Iris Swirls")
+	@DontObfuscate
+	FRACTAL_CUBIC_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.FRACTAL_CUBIC).scale(2)),
+
+	@Desc("Fractal Cubic Noise With Iris Swirls")
+	@DontObfuscate
+	FRACTAL_CUBIC_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.FRACTAL_CUBIC).scale(2)),
+
+	@Desc("Fractal Cubic Noise With Iris Swirls")
+	@DontObfuscate
+	FRACTAL_CUBIC_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.FRACTAL_CUBIC).scale(2)),
+
+	@Desc("Fractal Cubic Noise, 2 Octaves")
+	@DontObfuscate
+	BIOCTAVE_FRACTAL_CUBIC(rng -> new CNG(rng, NoiseType.FRACTAL_CUBIC, 1D, 2).scale(2)),
+
+	@Desc("Fractal Cubic Noise, 3 Octaves")
+	@DontObfuscate
+	TRIOCTAVE_FRACTAL_CUBIC(rng -> new CNG(rng, NoiseType.FRACTAL_CUBIC, 1D, 3).scale(1.5)),
+
+	@Desc("Fractal Cubic Noise, 4 Octaves")
+	@DontObfuscate
+	QUADOCTAVE_FRACTAL_CUBIC(rng -> new CNG(rng, NoiseType.FRACTAL_CUBIC, 1D, 4).scale(1)),
 
 	@Desc("Cubic Noise")
 	@DontObfuscate
-	LAVALAMP_IRIS(rng -> CNG.signature(rng, NoiseType.CUBIC).scale(256)),
+	CUBIC_IRIS(rng -> CNG.signature(rng, NoiseType.CUBIC).scale(256)),
 
 	@Desc("Cubic Noise")
 	@DontObfuscate
-	LAVALAMP_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.CUBIC).scale(256)),
+	CUBIC_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.CUBIC).scale(256)),
 
 	@Desc("Cubic Noise")
 	@DontObfuscate
-	LAVALAMP_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.CUBIC).scale(256)),
+	CUBIC_IRIS_DOUBLE(rng -> CNG.signatureDouble(rng, NoiseType.CUBIC).scale(256)),
 
 	@Desc("Cubic Noise")
 	@DontObfuscate
-	LAVALAMP_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.CUBIC).scale(256)),
+	CUBIC_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.CUBIC).scale(256)),
 
 	@Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
 	@DontObfuscate

@@ -28,43 +28,43 @@ public enum NoiseStyle {
 
 	@Desc("Basic, Smooth & Fast Simplex noise.")
 	@DontObfuscate
-	SIMPLEX(rng -> new CNG(rng, 1D, 1)),
+	SIMPLEX(rng -> new CNG(rng, 1D, 1).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 2 octaves")
 	@DontObfuscate
-	BIOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 2)),
+	BIOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 2).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 3 octaves")
 	@DontObfuscate
-	TRIOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 3)),
+	TRIOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 3).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 4 octaves")
 	@DontObfuscate
-	QUADOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 4)),
+	QUADOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 4).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 5 octaves")
 	@DontObfuscate
-	QUINTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 5)),
+	QUINTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 5).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 6 octaves")
 	@DontObfuscate
-	SEXOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 6)),
+	SEXOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 6).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 7 octaves")
 	@DontObfuscate
-	SEPTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 7)),
+	SEPTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 7).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 8 octaves")
 	@DontObfuscate
-	OCTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 8)),
+	OCTOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 8).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 9 octaves")
 	@DontObfuscate
-	NONOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 9)),
+	NONOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 9).scale(0.04)),
 
 	@Desc("Basic, Smooth & Fast Simplex noise. Uses 10 octaves")
 	@DontObfuscate
-	VIGOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 10)),
+	VIGOCTAVE_SIMPLEX(rng -> new CNG(rng, 1D, 10).scale(0.04)),
 
 	@Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
 	@DontObfuscate

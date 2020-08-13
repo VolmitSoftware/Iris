@@ -311,4 +311,8 @@ public class CNG {
 		oct = octaves;
 		return this;
 	}
+
+	public double getScale() {
+		return scale;
+	}
 }

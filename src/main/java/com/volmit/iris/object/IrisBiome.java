@@ -9,6 +9,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.noise.RarityCellGenerator;
 import com.volmit.iris.util.ArrayType;
+import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IRare;
@@ -39,11 +40,13 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	private KList<IrisEffect> effects = new KList<>();
 
 	@DontObfuscate
+	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private NoiseStyle biomeStyle = NoiseStyle.SIMPLEX;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
+	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
 	@Desc("This zooms in the biome colors if multiple derivatives are chosen")
 	private double biomeZoom = 1;
 
@@ -73,6 +76,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	private KList<Biome> biomeSkyScatter = new KList<>();
 
 	@DontObfuscate
+	@DependsOn({"children"})
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
 	private double childShrinkFactor = 1.5;
 

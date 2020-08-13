@@ -6,6 +6,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -23,12 +24,14 @@ public class IrisBiomePaletteLayer {
 	@Desc("The style of noise")
 	private NoiseStyle style = NoiseStyle.STATIC;
 
+	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(0)
 	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
 
+	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(1)
 	@MaxNumber(256)
 	@DontObfuscate

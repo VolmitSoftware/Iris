@@ -68,6 +68,7 @@ public class IrisNoiseGenerator
 	@Desc("Enable / disable. Outputs offsetY if disabled")
 	private boolean enabled = true;
 
+	@Required
 	@DontObfuscate
 	@Desc("The Noise Style")
 	private NoiseStyle style = NoiseStyle.IRIS;

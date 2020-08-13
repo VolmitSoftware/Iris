@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.M;
@@ -18,6 +19,7 @@ public class IrisAxisRotationClamp
 	private boolean enabled = false;
 
 	@Required
+	@DependsOn({"max"})
 	@MinNumber(-360)
 	@MaxNumber(360)
 	@DontObfuscate
@@ -25,6 +27,7 @@ public class IrisAxisRotationClamp
 	private double min = 0;
 
 	@Required
+	@DependsOn({"min"})
 	@MinNumber(-360)
 	@MaxNumber(360)
 	@DontObfuscate
@@ -32,6 +35,7 @@ public class IrisAxisRotationClamp
 	private double max = 0;
 
 	@Required
+	@DependsOn({"min", "max"})
 	@MinNumber(0)
 	@MaxNumber(360)
 	@DontObfuscate

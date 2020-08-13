@@ -39,6 +39,7 @@ import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
@@ -514,11 +515,31 @@ public class ProjectManager {
 		return ws;
 	}
 
+	public File getWorkspaceFile(String dim) {
+		return Iris.instance.getDataFile("packs", dim, dim + ".code-workspace");
+	}
+
 	public void updateWorkspace(File ws) {
 		try {
 			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
 			JSONObject j = new JSONObject(IO.readAll(ws));
 			JSONObject s = j.getJSONObject("settings");
+			JSONObject jc = new JSONObject();
+			jc.put("editor.autoIndent", "brackets");
+			jc.put("editor.acceptSuggestionOnEnter", "smart");
+			jc.put("editor.cursorSmoothCaretAnimation", true);
+			jc.put("editor.dragAndDrop", false);
+			jc.put("files.trimTrailingWhitespace", true);
+			jc.put("diffEditor.ignoreTrimWhitespace", true);
+			jc.put("files.trimFinalNewlines", true);
+			jc.put("editor.suggest.showKeywords", false);
+			jc.put("editor.suggest.showSnippets", false);
+			jc.put("editor.suggest.showWords", false);
+			JSONObject st = new JSONObject();
+			st.put("strings", true);
+			jc.put("editor.quickSuggestions", st);
+			jc.put("editor.suggest.insertMode", "replace");
+			s.put("[json]", jc);
 			s.put("json.schemas", buildSchemas());
 			j.put("settings", s);
 			IO.writeAll(ws, j.toString(4));
@@ -589,11 +610,16 @@ public class ProjectManager {
 
 			JSONObject properties = new JSONObject();
 			JSONArray req = new JSONArray();
+			JSONObject deps = new JSONObject();
 
 			for (java.lang.reflect.Field k : i.getDeclaredFields()) {
 				JSONObject prop = new JSONObject();
-
 				if (k.isAnnotationPresent(Desc.class)) {
+
+					if (k.isAnnotationPresent(DependsOn.class)) {
+						deps.put(k.getName(), new JSONArray(k.getDeclaredAnnotation(DependsOn.class).value()));
+					}
+
 					String tp = "object";
 
 					if (k.getType().equals(int.class) || k.getType().equals(long.class)) {
@@ -672,6 +698,7 @@ public class ProjectManager {
 
 					if (tp.equals("object")) {
 						if (k.getType().isAnnotationPresent(Desc.class)) {
+							prop.put("additionalProperties", false);
 							prop.put("properties",
 									getSchemaFor(k.getType(), step - 1, def).getJSONObject("properties"));
 						}
@@ -778,8 +805,10 @@ public class ProjectManager {
 				}
 			}
 
+			schema.put("additionalProperties", false);
 			schema.put("properties", properties);
 			schema.put("required", req);
+			schema.put("dependencies", deps);
 		}
 
 		return schema;

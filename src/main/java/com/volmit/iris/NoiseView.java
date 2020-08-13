@@ -21,8 +21,9 @@ public class NoiseView extends JPanel {
 
 	private static final long serialVersionUID = 2094606939770332040L;
 
-	RollingSequence r = new RollingSequence(256);
-	CNG cng = NoiseStyle.PERLIN_IRIS.create(new RNG(RNG.r.nextLong())).scale(0.25);
+	RollingSequence r = new RollingSequence(60);
+	boolean colorMode = true;
+	CNG cng = NoiseStyle.SIMPLEX.create(new RNG(RNG.r.nextLong())).scale(0.25);
 	GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY,
 			"Iris Renderer");
 	ReentrantLock l = new ReentrantLock();
@@ -66,8 +67,9 @@ public class NoiseView extends JPanel {
 							break;
 						}
 
-						Color color = Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n),
-								1f - (float) n);
+						Color color = colorMode
+								? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n)
+								: Color.getHSBColor(0f, 0f, (float) n);
 						int rgb = color.getRGB();
 						co[xx][z] = rgb;
 					}
@@ -98,7 +100,7 @@ public class NoiseView extends JPanel {
 		frame.add(new NoiseView());
 		frame.setLocationByPlatform(true);
 		frame.pack();
-		frame.setSize(900, 500);
+		frame.setSize(1440, 820);
 		frame.setVisible(true);
 	}
 

@@ -42,6 +42,32 @@ public enum NoiseStyle {
 	@DontObfuscate
 	SIMPLEX(rng -> new CNG(rng, 1D, 1).scale(1)),
 
+	@Desc("Very Detailed smoke using simplex fractured with fractal billow simplex at high octaves.")
+	@DontObfuscate
+	FRACTAL_SMOKE(rng -> new CNG(rng, 1D, 1)
+			.fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_BILLOW_SIMPLEX, 1D, 8).scale(0.2), 1000)
+			.scale(0.34)),
+
+	@Desc("Thinner Veins.")
+	@DontObfuscate
+	VASCULAR_THIN(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.VASCULAR, 1D, 1).scale(1).pow(0.65)),
+
+	@Desc("Cells of simplex noise")
+	@DontObfuscate
+	SIMPLEX_CELLS(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1)
+			.fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.CELLULAR, 1D, 1).scale(1), 200)),
+
+	@Desc("Veins of simplex noise")
+	@DontObfuscate
+	SIMPLEX_VASCULAR(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1)
+			.fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.VASCULAR, 1D, 1).scale(1), 200)),
+
+	@Desc("Very Detailed fluid using simplex fractured with fractal billow simplex at high octaves.")
+	@DontObfuscate
+	FRACTAL_WATER(rng -> new CNG(rng, 1D, 1)
+			.fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_FBM_SIMPLEX, 1D, 9).scale(0.03), 9900)
+			.scale(1.14)),
+
 	@Desc("Perlin. Like simplex but more natural")
 	@DontObfuscate
 	PERLIN(rng -> new CNG(rng, NoiseType.PERLIN, 1D, 1).scale(1.47)),
@@ -61,6 +87,14 @@ public enum NoiseStyle {
 	@Desc("Perlin. Like simplex but more natural")
 	@DontObfuscate
 	PERLIN_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.PERLIN).scale(1.47)),
+
+	@Desc("Billow Fractal Perlin Noise.")
+	@DontObfuscate
+	FRACTAL_BILLOW_PERLIN(rng -> new CNG(rng, NoiseType.FRACTAL_BILLOW_PERLIN, 1D, 1).scale(1.47)),
+
+	@Desc("Billow Fractal Perlin Noise. 2 Octaves")
+	@DontObfuscate
+	BIOCTAVE_FRACTAL_BILLOW_PERLIN(rng -> new CNG(rng, NoiseType.FRACTAL_BILLOW_PERLIN, 1D, 2).scale(1.17)),
 
 	@Desc("Billow Fractal Simplex Noise. Single octave.")
 	@DontObfuscate

@@ -5,6 +5,7 @@ public enum NoiseType {
 	SIMPLEX(seed -> new SimplexNoise(seed)),
 	PERLIN(seed -> new PerlinNoise(seed)),
 	FRACTAL_BILLOW_SIMPLEX(seed -> new FractalBillowSimplexNoise(seed)),
+	FRACTAL_BILLOW_PERLIN(seed -> new FractalBillowPerlinNoise(seed)),
 	FRACTAL_FBM_SIMPLEX(seed -> new FractalFBMSimplexNoise(seed)),
 	FRACTAL_RIGID_MULTI_SIMPLEX(seed -> new FractalRigidMultiSimplexNoise(seed)),
 	CELLULAR(seed -> new CellularNoise(seed)), 

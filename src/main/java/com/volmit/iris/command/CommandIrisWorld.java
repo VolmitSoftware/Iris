@@ -16,9 +16,15 @@ public class CommandIrisWorld extends MortarCommand
 	@Command
 	private CommandIrisPregen pregen;
 
+	@Command
+	private CommandIrisPregen world;
+
+	@Command
+	private CommandIrisHotload hotload;
+
 	public CommandIrisWorld()
 	{
-		super("world", "wrld");
+		super("world", "wrld", "w");
 		setDescription("Commands while in an iris world.");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");

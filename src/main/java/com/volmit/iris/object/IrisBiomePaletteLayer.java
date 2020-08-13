@@ -18,8 +18,7 @@ import lombok.Data;
 
 @Desc("A layer of surface / subsurface material in biomes")
 @Data
-public class IrisBiomePaletteLayer
-{
+public class IrisBiomePaletteLayer {
 	@DontObfuscate
 	@Desc("The style of noise")
 	private NoiseStyle style = NoiseStyle.STATIC;
@@ -51,52 +50,42 @@ public class IrisBiomePaletteLayer
 	private transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-	public CNG getHeightGenerator(RNG rng)
-	{
-		return heightGenerator.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData().size())));
+	public CNG getHeightGenerator(RNG rng) {
+		return heightGenerator
+				.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData().size())));
 	}
 
-	public BlockData get(RNG rng, double x, double y, double z)
-	{
-		if(getBlockData().isEmpty())
-		{
+	public BlockData get(RNG rng, double x, double y, double z) {
+		if (getBlockData().isEmpty()) {
 			return null;
 		}
 
-		if(getBlockData().size() == 1)
-		{
+		if (getBlockData().size() == 1) {
 			return getBlockData().get(0);
 		}
 
-		return getLayerGenerator(rng).fit(getBlockData(), x, y, z);
+		return getLayerGenerator(rng).fit(getBlockData(), x / zoom, y / zoom, z / zoom);
 	}
 
-	public CNG getLayerGenerator(RNG rng)
-	{
-		return layerGenerator.aquire(() ->
-		{
+	public CNG getLayerGenerator(RNG rng) {
+		return layerGenerator.aquire(() -> {
 			RNG rngx = rng.nextParallelRNG(minHeight + maxHeight + getBlockData().size());
 			return style.create(rngx);
 		});
 	}
 
-	public KList<String> add(String b)
-	{
+	public KList<String> add(String b) {
 		palette.add(b);
 
 		return palette;
 	}
 
-	public KList<BlockData> getBlockData()
-	{
-		return blockData.aquire(() ->
-		{
+	public KList<BlockData> getBlockData() {
+		return blockData.aquire(() -> {
 			KList<BlockData> blockData = new KList<>();
-			for(String ix : palette)
-			{
+			for (String ix : palette) {
 				BlockData bx = B.getBlockData(ix);
-				if(bx != null)
-				{
+				if (bx != null) {
 					blockData.add(bx);
 				}
 			}
@@ -105,8 +94,7 @@ public class IrisBiomePaletteLayer
 		});
 	}
 
-	public IrisBiomePaletteLayer zero()
-	{
+	public IrisBiomePaletteLayer zero() {
 		palette.clear();
 		return this;
 	}

@@ -34,22 +34,58 @@ public class CNG {
 	private double down;
 	private double power;
 
-	public NoiseGenerator getGen()
-	{
+	public NoiseGenerator getGen() {
 		return generator;
 	}
-	
+
 	public static CNG signature(RNG rng) {
 		return signature(rng, NoiseType.SIMPLEX);
 	}
 
+	public static CNG signatureHalf(RNG rng) {
+		return signatureHalf(rng, NoiseType.SIMPLEX);
+	}
+
+	public static CNG signatureThick(RNG rng) {
+		return signatureThick(rng, NoiseType.SIMPLEX);
+	}
+
+	public static CNG signatureDouble(RNG rng) {
+		return signatureDouble(rng, NoiseType.SIMPLEX);
+	}
+
+	public static CNG signatureDouble(RNG rng, NoiseType t) {
+		return signatureThick(rng, t).fractureWith(signature(rng.nextParallelRNG(4956)), 93);
+	}
+
 	public static CNG signature(RNG rng, NoiseType t) {
 		// @builder
-		return new CNG(rng.nextParallelRNG(17), t, 1D, 1).scale(0.012)
-				.fractureWith(new CNG(rng.nextParallelRNG(18), 1, 2).scale(0.018)
-						.child(new CNG(rng.nextParallelRNG(19), 1, 1).scale(0.1))
-						.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.15), 24), 44)
-				.down(0.3).patch(2.5);
+		return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
+				.fractureWith(
+						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
+								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21)
+										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145),
+						44);
+		// @done
+	}
+
+	public static CNG signatureThick(RNG rng, NoiseType t) {
+		// @builder
+		return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
+				.fractureWith(
+						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5)
+								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11)
+										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145),
+						44);
+		// @done
+	}
+
+	public static CNG signatureHalf(RNG rng, NoiseType t) {
+		// @builder
+		return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(
+				new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1)
+						.scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99),
+				22);
 		// @done
 	}
 

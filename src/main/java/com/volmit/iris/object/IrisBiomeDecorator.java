@@ -19,8 +19,7 @@ import lombok.Data;
 
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
-public class IrisBiomeDecorator
-{
+public class IrisBiomeDecorator {
 	@DontObfuscate
 	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
 	private NoiseStyle variance = NoiseStyle.STATIC;
@@ -53,7 +52,7 @@ public class IrisBiomeDecorator
 	@DontObfuscate
 	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is")
 	private double zoom = 1;
-	
+
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The zoom is for zooming in or out variance. Makes patches have more or less of one type.")
@@ -82,78 +81,64 @@ public class IrisBiomeDecorator
 	private transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
-	public int getHeight(RNG rng, double x, double z)
-	{
-		if(stackMin == stackMax)
-		{
+	public int getHeight(RNG rng, double x, double z) {
+		if (stackMin == stackMax) {
 			return stackMin;
 		}
 
-		return getHeightGenerator(rng).fit(stackMin, stackMax, x ,z);
+		return getHeightGenerator(rng).fit(stackMin, stackMax, x / verticalZoom, z / verticalZoom);
 	}
 
-	public CNG getHeightGenerator(RNG rng)
-	{
-		return heightGenerator.aquire(() ->
-		{
-			return heightVariance.create(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin)).scale(1D / verticalZoom);
+	public CNG getHeightGenerator(RNG rng) {
+		return heightGenerator.aquire(() -> {
+			return heightVariance.create(rng.nextParallelRNG(getBlockData().size() + stackMax + stackMin));
 		});
 	}
 
-	public CNG getGenerator(RNG rng)
-	{
+	public CNG getGenerator(RNG rng) {
 		long key = rng.nextParallelRNG(1).nextLong();
 
-		if(layerGenerators == null)
-		{
+		if (layerGenerators == null) {
 			layerGenerators = new KMap<>();
 		}
 
-		if(!layerGenerators.containsKey(key))
-		{
-			layerGenerators.put(key, dispersion.create(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / zoom));
+		if (!layerGenerators.containsKey(key)) {
+			layerGenerators.put(key, dispersion.create(rng.nextParallelRNG((int) (getBlockData().size() + key))));
 		}
 
 		return layerGenerators.get(key);
 	}
-	
-	public CNG getVarianceGenerator(RNG rng)
-	{
+
+	public CNG getVarianceGenerator(RNG rng) {
 		long key = rng.nextParallelRNG(4).nextLong();
 
-		if(layerVarianceGenerators == null)
-		{
+		if (layerVarianceGenerators == null) {
 			layerVarianceGenerators = new KMap<>();
 		}
 
-		if(!layerVarianceGenerators.containsKey(key))
-		{
-			layerVarianceGenerators.put(key, variance.create(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / varianceZoom));
+		if (!layerVarianceGenerators.containsKey(key)) {
+			layerVarianceGenerators.put(key,
+					variance.create(rng.nextParallelRNG((int) (getBlockData().size() + key))).scale(1D / varianceZoom));
 		}
 
 		return layerVarianceGenerators.get(key);
 	}
 
-	public KList<String> add(String b)
-	{
+	public KList<String> add(String b) {
 		palette.add(b);
 		return palette;
 	}
 
-	public BlockData getBlockData(RNG rng, double x, double z)
-	{
-		if(getGenerator(rng) == null)
-		{
+	public BlockData getBlockData(RNG rng, double x, double z) {
+		if (getGenerator(rng) == null) {
 			return null;
 		}
 
-		if(getBlockData() == null)
-		{
+		if (getBlockData() == null) {
 			return null;
 		}
 
-		if(getBlockData().isEmpty())
-		{
+		if (getBlockData().isEmpty()) {
 			return null;
 		}
 
@@ -162,10 +147,8 @@ public class IrisBiomeDecorator
 		xx /= getZoom();
 		zz /= getZoom();
 
-		if(getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance)
-		{
-			if(getBlockData().size() == 1)
-			{
+		if (getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance) {
+			if (getBlockData().size() == 1) {
 				return getBlockData().get(0);
 			}
 
@@ -175,16 +158,12 @@ public class IrisBiomeDecorator
 		return null;
 	}
 
-	public KList<BlockData> getBlockData()
-	{
-		return blockData.aquire(() ->
-		{
+	public KList<BlockData> getBlockData() {
+		return blockData.aquire(() -> {
 			KList<BlockData> blockData = new KList<>();
-			for(String i : palette)
-			{
+			for (String i : palette) {
 				BlockData bx = B.getBlockData(i);
-				if(bx != null)
-				{
+				if (bx != null) {
 					blockData.add(bx);
 				}
 			}

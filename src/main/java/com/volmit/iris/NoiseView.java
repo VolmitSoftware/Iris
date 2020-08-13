@@ -4,12 +4,15 @@ import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.NoiseStyle;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -19,8 +22,14 @@ public class NoiseView extends JPanel {
 
 	private static final long serialVersionUID = 2094606939770332040L;
 
-	RollingSequence r = new RollingSequence(60);
+	RollingSequence r = new RollingSequence(256);
 	CNG cng = NoiseStyle.CELLULAR_IRIS_DOUBLE.create(new RNG(RNG.r.nextLong())).scale(0.25);
+	GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY,
+			"Iris Renderer");
+	ReentrantLock l = new ReentrantLock();
+	int[][] co;
+	int w = 0;
+	int h = 0;
 
 	public NoiseView() {
 		for (int i = 0; i < 60; i++) {
@@ -32,26 +41,26 @@ public class NoiseView extends JPanel {
 	public void paint(Graphics g) {
 		super.paint(g);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		int accuracy = M.clip(r.getAverage() / 32D, 1D, 128D).intValue();
-		int dock = 0;
+		int accuracy = M.clip(r.getAverage() / 13D, 1D, 128D).intValue();
 
 		if (g instanceof Graphics2D) {
 			Graphics2D gg = (Graphics2D) g;
 
-			int x = 0; // current position; x
-			int y = 0; // current position; y
-			int d = 0; // current direction; 0=RIGHT, 1=DOWN, 2=LEFT, 3=UP
-			int c = 0; // counter
-			int s = 1; // chain size
+			if (getParent().getWidth() != w || getParent().getHeight() != h) {
+				w = getParent().getWidth();
+				h = getParent().getHeight();
+				co = null;
+			}
 
-			// starting point
-			x = ((int) Math.floor(getParent().getWidth() / 2.0)) - 1;
-			y = ((int) Math.floor(getParent().getHeight() / 2.0)) - 1;
+			if (co == null) {
+				co = new int[getParent().getWidth()][getParent().getHeight()];
+			}
 
-			for (int k = 1; k <= (getParent().getWidth() - 1); k++) {
-				for (int j = 0; j < (k < (getParent().getHeight() - 1) ? 2 : 3); j++) {
-					for (int i = 0; i < s; i++) {
-						double n = cng.noise(x, Math.sin((double) M.ms() / 10000D) * 400D, y);
+			for (int x = 0; x < getParent().getWidth(); x += accuracy) {
+				int xx = x;
+				gx.queue("a", () -> {
+					for (int z = 0; z < getParent().getHeight(); z += accuracy) {
+						double n = cng.noise(xx, Math.sin((double) M.ms() / 10000D) * 400D, z);
 
 						if (n > 1 || n < 0) {
 							System.out.println("EXCEEDED " + n);
@@ -60,34 +69,25 @@ public class NoiseView extends JPanel {
 
 						Color color = Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n),
 								1f - (float) n);
-						gg.setColor(color);
-						gg.fillRect(x, y, accuracy, accuracy);
-
-						c++;
-
-						switch (d) {
-						case 0:
-							y = y + 1;
-							break;
-						case 1:
-							x = x + 1;
-							break;
-						case 2:
-							y = y - 1;
-							break;
-						case 3:
-							x = x - 1;
-							break;
-						}
+						int rgb = color.getRGB();
+						co[xx][z] = rgb;
 					}
-					d = (d + 1) % 4;
+				});
+			}
+
+			gx.waitFor("a");
+
+			for (int x = 0; x < getParent().getWidth(); x += accuracy) {
+				for (int z = 0; z < getParent().getHeight(); z += accuracy) {
+					gg.setColor(new Color(co[x][z]));
+					gg.fillRect(x, z, accuracy, accuracy);
 				}
-				s = s + 1;
 			}
 		}
 
 		p.end();
 		r.put(p.getMilliseconds());
+		System.out.println("Accuracy: " + accuracy + " MS: " + Form.duration(r.getAverage(), 2));
 
 		EventQueue.invokeLater(() -> {
 			repaint();

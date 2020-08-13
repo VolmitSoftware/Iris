@@ -2,6 +2,7 @@ package com.volmit.iris.noise;
 
 import java.util.List;
 
+import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.NoiseInjector;
@@ -21,6 +22,7 @@ public class CNG {
 	public static final NoiseInjector DST_MOD = (s, v) -> new double[] { v % s, 0 };
 	public static final NoiseInjector DST_POW = (s, v) -> new double[] { Math.pow(v, s), 0 };
 	private double scale;
+	private double bakedScale;
 	private double fscale;
 	private KList<CNG> children;
 	private CNG fracture;
@@ -65,7 +67,8 @@ public class CNG {
 						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
 								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21)
 										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145),
-						44);
+						44)
+				.bake();
 		// @done
 	}
 
@@ -76,16 +79,20 @@ public class CNG {
 						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5)
 								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11)
 										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145),
-						44);
+						44)
+				.bake();
 		// @done
 	}
 
 	public static CNG signatureHalf(RNG rng, NoiseType t) {
 		// @builder
-		return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(
-				new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1)
-						.scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99),
-				22);
+		return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
+				.fractureWith(
+						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
+								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21)
+										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99),
+						22)
+				.bake();
 		// @done
 	}
 
@@ -108,6 +115,7 @@ public class CNG {
 		power = 1;
 		scale = 1;
 		patch = 1;
+		bakedScale = 1;
 		fscale = 1;
 		down = 0;
 		up = 0;
@@ -119,6 +127,12 @@ public class CNG {
 		if (generator instanceof OctaveNoise) {
 			((OctaveNoise) generator).setOctaves(octaves);
 		}
+	}
+
+	public CNG bake() {
+		bakedScale *= scale;
+		scale = 1;
+		return this;
 	}
 
 	public CNG child(CNG c) {
@@ -170,6 +184,47 @@ public class CNG {
 		return this;
 	}
 
+	public <T extends IRare> T fitRarity(List<T> l, double... dim) {
+		if (l.isEmpty()) {
+			return null;
+		}
+
+		if (l.size() == 1) {
+			return l.get(0);
+		}
+
+		int total = 0;
+		boolean allOne = true;
+
+		for (T i : l) {
+			int r = i.getRarity();
+
+			if (r > 1) {
+				allOne = false;
+			}
+
+			total += r;
+		}
+
+		int m = fit(0, total - 1, dim);
+
+		if (m == 0) {
+			return l.get(0);
+		}
+
+		if (allOne) {
+			return l.get(m);
+		}
+
+		T c = l.get(0);
+
+		while (m > 0) {
+			m -= c.getRarity();
+		}
+
+		return c;
+	}
+
 	public <T> T fit(T[] v, double... dim) {
 		if (v.length == 0) {
 			return null;
@@ -204,7 +259,7 @@ public class CNG {
 		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
 	}
 
-	public int fitDouble(double min, double max, double... dim) {
+	public int fit(double min, double max, double... dim) {
 		if (min == max) {
 			return (int) Math.round(min);
 		}
@@ -214,7 +269,7 @@ public class CNG {
 		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
 	}
 
-	public double fitDoubleD(double min, double max, double... dim) {
+	public double fitDouble(double min, double max, double... dim) {
 		if (min == max) {
 			return min;
 		}
@@ -224,17 +279,8 @@ public class CNG {
 		return IrisInterpolation.lerp(min, max, noise);
 	}
 
-	public int fitDoubleExponent(double min, double max, double exponent, double... dim) {
-		if (min == max) {
-			return (int) Math.round(min);
-		}
-
-		double noise = noise(dim);
-
-		return (int) Math.round(IrisInterpolation.lerp(min, max, exponent == 1 ? noise : Math.pow(noise, exponent)));
-	}
-
 	public double noise(double... dim) {
+		double scale = this.bakedScale * this.scale;
 		double f = fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D;
 		double x = dim.length > 0 ? dim[0] + f : 0D;
 		double y = dim.length > 1 ? dim[1] - f : 0D;

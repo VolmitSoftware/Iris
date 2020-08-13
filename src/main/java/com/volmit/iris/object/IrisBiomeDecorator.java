@@ -147,7 +147,7 @@ public class IrisBiomeDecorator {
 		xx /= getZoom();
 		zz /= getZoom();
 
-		if (getGenerator(rng).fitDoubleD(0D, 1D, xx, zz) <= chance) {
+		if (getGenerator(rng).fitDouble(0D, 1D, xx, zz) <= chance) {
 			if (getBlockData().size() == 1) {
 				return getBlockData().get(0);
 			}

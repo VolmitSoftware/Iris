@@ -126,7 +126,7 @@ public class IrisNoiseGenerator
 			g += 819;
 		}
 
-		double n = getGenerator(superSeed).fitDoubleD(0, opacity, (x / zoom) + offsetX, (z / zoom) + offsetZ);
+		double n = getGenerator(superSeed).fitDouble(0, opacity, (x / zoom) + offsetX, (z / zoom) + offsetZ);
 		n = negative ? (-n + opacity) : n;
 		n = (exponent != 1 ? n < 0 ? -Math.pow(-n, exponent) : Math.pow(n, exponent) : n) + offsetY;
 		n = parametric ? IrisInterpolation.parametric(n, 1) : n;

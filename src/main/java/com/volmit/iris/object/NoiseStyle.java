@@ -330,6 +330,6 @@ public enum NoiseStyle {
 	}
 
 	public CNG create(RNG seed) {
-		return f.create(seed);
+		return f.create(seed).bake();
 	}
 }

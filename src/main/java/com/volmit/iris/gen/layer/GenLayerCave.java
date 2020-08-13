@@ -60,7 +60,7 @@ public class GenLayerCave extends GenLayer
 			double distanceTake = 0.0022 * baseWidth;
 			double drop = (-i * 17) + 44 + iris.getDimension().getCaveShift();
 			double caveHeightNoise = incline * gincline.noise((wx + (10000 * i)), (wz - (10000 * i)));
-			caveHeightNoise += shuffle.fitDoubleD(-1, 1, wxx - caveHeightNoise, wzz + caveHeightNoise) * 3;
+			caveHeightNoise += shuffle.fitDouble(-1, 1, wxx - caveHeightNoise, wzz + caveHeightNoise) * 3;
 
 			int ceiling = -256;
 			int floor = 512;

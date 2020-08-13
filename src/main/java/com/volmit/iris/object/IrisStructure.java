@@ -130,7 +130,7 @@ public class IrisStructure extends IrisRegistrant
 		}
 
 		BlockPosition p = asTileHorizon(new BlockPosition((int) x, (int) y, (int) z), face);
-		return (getWallGenerator(rng).fitDoubleD(0, 1, p.getX(), p.getY(), p.getZ()) < getWallChance());
+		return (getWallGenerator(rng).fitDouble(0, 1, p.getX(), p.getY(), p.getZ()) < getWallChance());
 	}
 
 	public int getTileHorizon(double v)

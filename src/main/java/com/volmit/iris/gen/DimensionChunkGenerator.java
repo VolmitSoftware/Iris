@@ -120,14 +120,14 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	{
 		return (getDimension().cosRotate() * rx) + (-getDimension().sinRotate() * rz) +
 
-				getDimension().getCoordFracture(masterRandom, 39392).fitDoubleD(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
+				getDimension().getCoordFracture(masterRandom, 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
 	}
 
 	public double getModifiedZ(int rx, int rz)
 	{
 		return (getDimension().sinRotate() * rx) + (getDimension().cosRotate() * rz) +
 
-				getDimension().getCoordFracture(masterRandom, 39392).fitDoubleD(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
+				getDimension().getCoordFracture(masterRandom, 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
 	}
 
 	public double getZoomed(double modified)

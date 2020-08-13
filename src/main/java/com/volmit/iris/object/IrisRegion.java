@@ -219,7 +219,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 	public double getShoreHeight(double x, double z)
 	{
-		return getShoreHeightGenerator().fitDoubleD(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
+		return getShoreHeightGenerator().fitDouble(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
 	}
 
 	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g)

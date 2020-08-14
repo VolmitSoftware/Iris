@@ -57,6 +57,14 @@ public class IrisDimension extends IrisRegistrant {
 	@Desc("The cave web scale. Smaller values means scaled up vein networks.")
 	private double caveScale = 1D;
 
+	@DontObfuscate
+	@Desc("The placement style of regions")
+	private NoiseStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
+
+	@DontObfuscate
+	@Desc("The placement style of land/sea")
+	private NoiseStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
+
 	@MinNumber(-256)
 	@MaxNumber(256)
 	@DontObfuscate
@@ -210,18 +218,6 @@ public class IrisDimension extends IrisRegistrant {
 	@DontObfuscate
 	@Desc("Change the size of regions")
 	private double regionZoom = 1;
-
-	@MinNumber(0)
-	@MaxNumber(8192)
-	@DontObfuscate
-	@Desc("The shuffle of regions")
-	private double regionShuffle = 11;
-
-	@MinNumber(0)
-	@MaxNumber(8192)
-	@DontObfuscate
-	@Desc("The shuffle of land vs sea")
-	private double continentalShuffle = 99;
 
 	@DontObfuscate
 	@Desc("Disable this to stop placing schematics in biomes")

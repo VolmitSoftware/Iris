@@ -7,7 +7,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
-import com.volmit.iris.noise.RarityCellGenerator;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
@@ -40,13 +39,13 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	private KList<IrisEffect> effects = new KList<>();
 
 	@DontObfuscate
-	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
+	@DependsOn({ "biomeStyle", "biomeZoom", "biomeScatter" })
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private NoiseStyle biomeStyle = NoiseStyle.SIMPLEX;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
-	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
+	@DependsOn({ "biomeStyle", "biomeZoom", "biomeScatter" })
 	@Desc("This zooms in the biome colors if multiple derivatives are chosen")
 	private double biomeZoom = 1;
 
@@ -76,9 +75,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	private KList<Biome> biomeSkyScatter = new KList<>();
 
 	@DontObfuscate
-	@DependsOn({"children"})
+	@DependsOn({ "children" })
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
 	private double childShrinkFactor = 1.5;
+
+	@DontObfuscate
+	@DependsOn({ "children" })
+	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
+	private NoiseStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
 
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -132,7 +136,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient InferredType inferredType;
-	private transient AtomicCache<RarityCellGenerator<IrisBiome>> childrenCell = new AtomicCache<>();
+	private transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
 	private transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
 	private transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
@@ -159,13 +163,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 		});
 	}
 
-	public RarityCellGenerator<IrisBiome> getChildrenGenerator(RNG random, int sig, double scale) {
-		return childrenCell.aquire(() -> {
-			RarityCellGenerator<IrisBiome> childrenCell = new RarityCellGenerator<IrisBiome>(
-					random.nextParallelRNG(sig * 2137));
-			childrenCell.setCellScale(scale);
-			return childrenCell;
-		});
+	public CNG getChildrenGenerator(RNG random, int sig, double scale) {
+		return childrenCell
+				.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
 	}
 
 	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height) {

@@ -3,6 +3,7 @@ package com.volmit.iris;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -28,6 +29,7 @@ import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.GroupedExecutor;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -39,11 +41,11 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 	private static final long serialVersionUID = 2094606939770332040L;
 
 	static JComboBox<String> combo;
-	RollingSequence r = new RollingSequence(20);
+	RollingSequence r = new RollingSequence(90);
 	boolean colorMode = true;
 	double scale = 1;
 	static boolean hd = false;
-	double ascale = 10;
+	static double ascale = 10;
 	CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
 	GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY,
 			"Iris Renderer");
@@ -52,11 +54,15 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 	int w = 0;
 	int h = 0;
 	static Function2<Double, Double, Color> renderer;
-	double oxp = 0;
-	double ozp = 0;
+	static double oxp = 0;
+	static double ozp = 0;
 	double ox = 0;
 	double oz = 0;
-	boolean down = false;
+	double mx = 0;
+	double mz = 0;
+	static double mxx = 0;
+	static double mzz = 0;
+	static boolean down = false;
 
 	double lx = Double.MAX_VALUE;
 	double lz = Double.MAX_VALUE;
@@ -74,6 +80,8 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 				lx = (cp.getX());
 				lz = (cp.getY());
+				mx = lx;
+				mz = lz;
 			}
 
 			@Override
@@ -83,6 +91,7 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 				oz += (lz - cp.getY()) * scale;
 				lx = cp.getX();
 				lz = cp.getY();
+
 			}
 		});
 	}
@@ -134,10 +143,28 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 			ozp += Math.abs(ozp - oz) * 0.16;
 		}
 
+		if (mx < mxx) {
+			mxx -= Math.abs(mx - mxx) * 0.16;
+		}
+
+		if (mx > mxx) {
+			mxx += Math.abs(mxx - mx) * 0.16;
+		}
+
+		if (mz < mzz) {
+			mzz -= Math.abs(mz - mzz) * 0.16;
+		}
+
+		if (mz > mzz) {
+			mzz += Math.abs(mzz - mz) * 0.16;
+		}
+
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		int accuracy = hd ? 1 : M.clip((r.getAverage() / 8D) + 1, 1D, 128D).intValue();
+		int accuracy = hd ? 1 : M.clip((r.getAverage() / 6D), 1D, 128D).intValue();
 		accuracy = down ? accuracy * 4 : accuracy;
-		int v = 150;
+		int v = 1000;
+
+		Iris.proj.getCurrentProject().getCache().targetChunk(0, 0);
 
 		if (g instanceof Graphics2D) {
 			Graphics2D gg = (Graphics2D) g;
@@ -183,14 +210,9 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 				gx.waitFor("a");
 
-				if (p.getMilliseconds() > v) {
-					v += 50;
-					accuracy++;
+				if (hd && p.getMilliseconds() > v) {
+					break;
 				}
-			}
-
-			if (down && renderer != null) {
-				Iris.proj.getCurrentProject().getCache().targetChunk(0, 0);
 			}
 
 			for (int x = 0; x < getParent().getWidth(); x += accuracy) {
@@ -198,6 +220,13 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 					gg.setColor(new Color(co[x][z]));
 					gg.fillRect(x, z, accuracy, accuracy);
 				}
+			}
+
+			if (renderer != null) {
+				String text = Iris.proj.getCurrentProject().textFor((mxx * ascale) + oxp, (mzz * ascale) + ozp);
+				gg.setColor(Color.black);
+				gg.setFont(new Font("TimesRoman", Font.PLAIN, 24));
+				gg.drawString(text, (float) mxx, (float) mzz);
 			}
 		}
 
@@ -219,12 +248,13 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 		}
 
 		EventQueue.invokeLater(() -> {
+			J.sleep((long) Math.max(0, 32 - r.getAverage()));
 			repaint();
 		});
 	}
 
 	private static void createAndShowGUI(IrisChunkGenerator g) {
-		JFrame frame = new JFrame("Iris");
+		JFrame frame = new JFrame("Vision");
 		NoiseView nv = new NoiseView();
 		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		KList<String> li = new KList<NoiseStyle>(NoiseStyle.values()).toStringList().qadd("PROJECT");
@@ -235,6 +265,7 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 			renderer = Iris.proj.getCurrentProject().createRenderer();
 		}
 
+		combo.setFocusable(false);
 		combo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				@SuppressWarnings("unchecked")

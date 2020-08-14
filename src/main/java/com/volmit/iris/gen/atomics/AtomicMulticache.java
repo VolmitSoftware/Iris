@@ -102,4 +102,8 @@ public class AtomicMulticache {
 	public void updateHeight(int x, int z, int h) {
 		height.put(pos(x, z), (double) h);
 	}
+
+	public double getSize() {
+		return height.size();
+	}
 }

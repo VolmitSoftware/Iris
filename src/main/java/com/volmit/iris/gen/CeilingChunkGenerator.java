@@ -47,6 +47,7 @@ public abstract class CeilingChunkGenerator extends PostBlockChunkGenerator
 		ceilingCached = false;
 		cacheCeiling = null;
 		cacheFloor = null;
+		getCache().targetChunk(0, 0);
 	}
 
 	private void targetFloor()

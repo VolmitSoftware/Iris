@@ -81,7 +81,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 	@Override
 	public int getHighest(int x, int z, boolean ignoreFluid) {
-		int h = (int) Math.round(ignoreFluid ? getTerrainHeight(x, z) : getTerrainWaterHeight(x, z));
+		int h = (int) Math
+				.round(ignoreFluid ? getTerrainHeight(x, z) : getTerrainWaterHeight(x, z));
 
 		if (getDimension().isCarving() && h >= getDimension().getCarvingMin()) {
 			while (getGlCarve().isCarved(x, h, z)) {

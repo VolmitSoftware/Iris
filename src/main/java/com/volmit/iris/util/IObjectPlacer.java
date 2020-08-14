@@ -2,8 +2,7 @@ package com.volmit.iris.util;
 
 import org.bukkit.block.data.BlockData;
 
-public interface IObjectPlacer
-{
+public interface IObjectPlacer {
 	public int getHighest(int x, int z);
 
 	public int getHighest(int x, int z, boolean ignoreFluid);

@@ -68,7 +68,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator {
 			double wx = getZoomed(ox);
 			double wz = getZoomed(oz);
 			int depth = 0;
-			double noise = getNoiseHeight(rx, rz) + fluidHeight;
+			double noise = getTerrainHeight(rx, rz);
 			int height = (int) Math.round(noise);
 			boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
 			IrisRegion region = sampleRegion(rx, rz);
@@ -409,7 +409,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator {
 
 	}
 
-	protected double getNoiseHeight(int rx, int rz) {
+	private double getNoiseHeight(int rx, int rz) {
 		double wx = getZoomed(rx);
 		double wz = getZoomed(rz);
 		double h = getBiomeHeight(wx, wz, rx, rz);
@@ -477,9 +477,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator {
 
 	@Override
 	public IrisRegion sampleRegion(int x, int z) {
-		IrisRegion r = super.sampleRegion(x, z);
-
-		return r;
+		return getCache().getRegion(x, z, () -> super.sampleRegion(x, z));
 	}
 
 	public BiomeResult sampleTrueBiome(int x, int z, double noise) {
@@ -487,27 +485,26 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator {
 			return focus();
 		}
 
-		double wx = getModifiedX(x, z);
-		double wz = getModifiedZ(x, z);
-		IrisRegion region = sampleRegion(x, z);
-		int height = (int) Math.round(noise);
-		double sh = region.getShoreHeight(wx, wz);
-		BiomeResult res = sampleTrueBiomeBase(x, z, height);
-		IrisBiome current = res.getBiome();
+		return getCache().getBiome(x, z, () -> {
+			double wx = getModifiedX(x, z);
+			double wz = getModifiedZ(x, z);
+			IrisRegion region = sampleRegion(x, z);
+			int height = (int) Math.round(noise);
+			double sh = region.getShoreHeight(wx, wz);
+			BiomeResult res = sampleTrueBiomeBase(x, z, height);
+			IrisBiome current = res.getBiome();
 
-		if (current.isSea() && height > getDimension().getFluidHeight() - sh) {
-			return glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
-		}
+			if (current.isSea() && height > getDimension().getFluidHeight() - sh) {
+				return glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
+			}
 
-		return res;
+			return res;
+		});
 	}
 
 	@Override
 	protected int onSampleColumnHeight(int cx, int cz, int rx, int rz, int x, int z) {
-		int fluidHeight = getDimension().getFluidHeight();
-		double noise = getNoiseHeight(rx, rz);
-
-		return (int) Math.round(noise) + fluidHeight;
+		return (int) Math.round(getTerrainHeight(rx, rz));
 	}
 
 	private boolean touchesSea(int rx, int rz) {
@@ -528,7 +525,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator {
 	}
 
 	public double getTerrainHeight(int x, int z) {
-		return getNoiseHeight(x, z) + getFluidHeight();
+		return getCache().getHeight(x, z, () -> getNoiseHeight(x, z) + getFluidHeight());
 	}
 
 	public double getTerrainWaterHeight(int x, int z) {

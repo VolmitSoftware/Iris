@@ -20,7 +20,6 @@ import lombok.EqualsAndHashCode;
 public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 	private GroupedExecutor accelerant;
 	private int threads;
-	protected boolean safe;
 	protected int cacheX;
 	protected int cacheZ;
 	private IrisLock genlock;
@@ -28,7 +27,6 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 
 	public ParallelChunkGenerator(String dimensionName, int threads) {
 		super(dimensionName);
-		safe = false;
 		cacheX = 0;
 		cacheZ = 0;
 		this.threads = threads;
@@ -68,6 +66,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 		genlock.lock();
 		cacheX = x;
 		cacheZ = z;
+		getCache().targetChunk(cacheX, cacheZ);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = new AtomicSliverMap();
 		HeightMap height = new HeightMap();
@@ -90,11 +89,7 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 			}
 		}
 
-		setCachingAllowed(true);
-		setSafe(false);
 		accelerant.waitFor(key);
-		setSafe(true);
-		setCachingAllowed(false);
 		map.write(data, grid, height);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();

@@ -164,43 +164,45 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator {
 	}
 
 	public IrisRegion sampleRegion(int x, int z) {
-		
+
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		return glBiome.getRegion(wx, wz);
 	}
 
 	public BiomeResult sampleBiome(int x, int z) {
-		if (!getDimension().getFocus().equals("")) {
-			IrisBiome biome = loadBiome(getDimension().getFocus());
+		return getCache().getRawBiome(x, z, () -> {
+			if (!getDimension().getFocus().equals("")) {
+				IrisBiome biome = loadBiome(getDimension().getFocus());
 
-			for (String i : getDimension().getRegions()) {
-				IrisRegion reg = loadRegion(i);
+				for (String i : getDimension().getRegions()) {
+					IrisRegion reg = loadRegion(i);
 
-				if (reg.getLandBiomes().contains(biome.getLoadKey())) {
-					biome.setInferredType(InferredType.LAND);
-					break;
+					if (reg.getLandBiomes().contains(biome.getLoadKey())) {
+						biome.setInferredType(InferredType.LAND);
+						break;
+					}
+
+					if (reg.getSeaBiomes().contains(biome.getLoadKey())) {
+						biome.setInferredType(InferredType.SEA);
+						break;
+					}
+
+					if (reg.getShoreBiomes().contains(biome.getLoadKey())) {
+						biome.setInferredType(InferredType.SHORE);
+						break;
+					}
 				}
 
-				if (reg.getSeaBiomes().contains(biome.getLoadKey())) {
-					biome.setInferredType(InferredType.SEA);
-					break;
-				}
-
-				if (reg.getShoreBiomes().contains(biome.getLoadKey())) {
-					biome.setInferredType(InferredType.SHORE);
-					break;
-				}
+				return new BiomeResult(biome, 0);
 			}
 
-			return new BiomeResult(biome, 0);
-		}
+			double wx = getModifiedX(x, z);
+			double wz = getModifiedZ(x, z);
+			IrisRegion region = glBiome.getRegion(wx, wz);
+			BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
 
-		double wx = getModifiedX(x, z);
-		double wz = getModifiedZ(x, z);
-		IrisRegion region = glBiome.getRegion(wx, wz);
-		BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
-
-		return res;
+			return res;
+		});
 	}
 }

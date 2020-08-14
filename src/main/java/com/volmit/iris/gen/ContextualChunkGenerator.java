@@ -24,6 +24,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisMetrics;
+import com.volmit.iris.gen.atomics.AtomicMulticache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
@@ -46,6 +47,7 @@ import net.md_5.bungee.api.ChatColor;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener {
+	private AtomicMulticache cache;
 	private IrisDataManager data;
 	protected boolean failing;
 	protected int task;
@@ -70,6 +72,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		perSecond = new ChronoLatch(1000);
 		hlast = M.ms();
 		hlock = new IrisLock("HotLock");
+		cache = new AtomicMulticache();
 		CNG.creates = 0;
 		generated = 0;
 		ticks = 0;

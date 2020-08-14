@@ -23,6 +23,9 @@ public class CommandIrisStudio extends MortarCommand {
 
 	@Command
 	private CommandIrisStudioUpdate update;
+	
+	@Command
+	private CommandIrisMap map;
 
 	@Command
 	private CommandIrisStudioList list;

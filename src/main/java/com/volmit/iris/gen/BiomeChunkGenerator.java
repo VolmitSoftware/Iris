@@ -51,6 +51,7 @@ public abstract class BiomeChunkGenerator extends DimensionChunkGenerator {
 	public void onHotload() {
 		super.onHotload();
 		loadGenerators();
+		glBiome = new GenLayerBiome(this, masterRandom.nextParallelRNG(1));
 	}
 
 	public void registerGenerator(IrisGenerator g, IrisDimension dim) {

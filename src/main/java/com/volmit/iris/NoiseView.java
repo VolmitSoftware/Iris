@@ -23,9 +23,12 @@ import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JViewport;
 
+import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.NoiseStyle;
+import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.GroupedExecutor;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -35,8 +38,8 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 	private static final long serialVersionUID = 2094606939770332040L;
 
-	static JComboBox<NoiseStyle> combo;
-	RollingSequence r = new RollingSequence(60);
+	static JComboBox<String> combo;
+	RollingSequence r = new RollingSequence(20);
 	boolean colorMode = true;
 	double scale = 1;
 	static boolean hd = false;
@@ -48,6 +51,7 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 	int[][] co;
 	int w = 0;
 	int h = 0;
+	static Function2<Double, Double, Color> renderer;
 	double oxp = 0;
 	double ozp = 0;
 	double ox = 0;
@@ -131,7 +135,9 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 		}
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		int accuracy = hd ? 1 : M.clip((r.getAverage() / 13D) + 1, 1D, 128D).intValue();
+		int accuracy = hd ? 1 : M.clip((r.getAverage() / 8D) + 1, 1D, 128D).intValue();
+		accuracy = down ? accuracy * 4 : accuracy;
+		int v = 150;
 
 		if (g instanceof Graphics2D) {
 			Graphics2D gg = (Graphics2D) g;
@@ -148,25 +154,44 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 			for (int x = 0; x < getParent().getWidth(); x += accuracy) {
 				int xx = x;
-				gx.queue("a", () -> {
-					for (int z = 0; z < getParent().getHeight(); z += accuracy) {
-						double n = cng.noise((xx * ascale) + oxp, tz, (z * ascale) + ozp);
 
-						if (n > 1 || n < 0) {
-							System.out.println("EXCEEDED " + n);
-							break;
+				for (int z = 0; z < getParent().getHeight(); z += accuracy) {
+					int zz = z;
+					gx.queue("a", () -> {
+						if (renderer != null) {
+							co[xx][zz] = renderer.apply((xx * ascale) + oxp, (zz * ascale) + ozp).getRGB();
 						}
 
-						Color color = colorMode
-								? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n)
-								: Color.getHSBColor(0f, 0f, (float) n);
-						int rgb = color.getRGB();
-						co[xx][z] = rgb;
-					}
-				});
+						else {
+							double n = cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
+
+							if (n > 1 || n < 0) {
+								System.out.println("EXCEEDED " + n);
+								return;
+							}
+
+							Color color = colorMode
+									? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n),
+											1f - (float) n)
+									: Color.getHSBColor(0f, 0f, (float) n);
+							int rgb = color.getRGB();
+							co[xx][zz] = rgb;
+						}
+					});
+
+				}
+
+				gx.waitFor("a");
+
+				if (p.getMilliseconds() > v) {
+					v += 50;
+					accuracy++;
+				}
 			}
 
-			gx.waitFor("a");
+			if (down && renderer != null) {
+				Iris.proj.getCurrentProject().getCache().targetChunk(0, 0);
+			}
 
 			for (int x = 0; x < getParent().getWidth(); x += accuracy) {
 				for (int z = 0; z < getParent().getHeight(); z += accuracy) {
@@ -180,22 +205,46 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 		t += 1D;
 		r.put(p.getMilliseconds());
+
+		if (!isVisible()) {
+			return;
+		}
+
+		if (!getParent().isVisible()) {
+			return;
+		}
+
+		if (!getParent().getParent().isVisible()) {
+			return;
+		}
+
 		EventQueue.invokeLater(() -> {
 			repaint();
 		});
 	}
 
-	private static void createAndShowGUI() {
+	private static void createAndShowGUI(IrisChunkGenerator g) {
 		JFrame frame = new JFrame("Iris");
 		NoiseView nv = new NoiseView();
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		combo = new JComboBox<NoiseStyle>(NoiseStyle.values());
+		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		KList<String> li = new KList<NoiseStyle>(NoiseStyle.values()).toStringList().qadd("PROJECT");
+		combo = new JComboBox<String>(li.toArray(new String[li.size()]));
+		combo.setSelectedItem(g != null ? "PROJECT" : "STATIC");
+
+		if (g != null) {
+			renderer = Iris.proj.getCurrentProject().createRenderer();
+		}
+
 		combo.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent e) {
-
 				@SuppressWarnings("unchecked")
-				NoiseStyle s = (NoiseStyle) (((JComboBox<NoiseStyle>) e.getSource()).getSelectedItem());
+				String b = (String) (((JComboBox<String>) e.getSource()).getSelectedItem());
+				if (b.equals("PROJECT")) {
+					renderer = Iris.proj.getCurrentProject().createRenderer();
+					return;
+				}
+				renderer = null;
+				NoiseStyle s = NoiseStyle.valueOf(b);
 				nv.cng = s.create(RNG.r.nextParallelRNG(RNG.r.imax()));
 			}
 		});
@@ -210,10 +259,10 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 		frame.setVisible(true);
 	}
 
-	public static void main(String[] args) {
+	public static void launch(IrisChunkGenerator g) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				createAndShowGUI();
+				createAndShowGUI(g);
 			}
 		});
 	}

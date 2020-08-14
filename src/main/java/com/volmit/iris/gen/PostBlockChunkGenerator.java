@@ -131,14 +131,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 
 	@Override
 	public void updateHeight(int x, int z, int h) {
-		if (x >> 4 == currentPostX && z >> 4 == currentPostZ) {
-			//cacheHeight(x, z, h);
-		}
-
-		else {
-			Iris.error("Invalid Heightmap set! Chunk Currently at " + currentPostX + "," + currentPostZ
-					+ ". Attempted to place at " + (x >> 4) + " " + (z >> 4) + " which is bad.");
-		}
+		getCache().updateHeight(x, z, h);
 	}
 
 	@Override

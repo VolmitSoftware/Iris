@@ -184,45 +184,47 @@ public class CNG {
 		return this;
 	}
 
-	public <T extends IRare> T fitRarity(List<T> l, double... dim) {
-		if (l.isEmpty()) {
+	public <T extends IRare> T fitRarity(KList<T> b, double... dim) {
+		if (b.size() == 0) {
 			return null;
 		}
 
-		if (l.size() == 1) {
-			return l.get(0);
+		if (b.size() == 1) {
+			return b.get(0);
 		}
 
-		int total = 0;
-		boolean allOne = true;
-
-		for (T i : l) {
-			int r = i.getRarity();
-
-			if (r > 1) {
-				allOne = false;
+		KList<T> rarityMapped = new KList<>();
+		boolean o = false;
+		int max = 1;
+		for (T i : b) {
+			if (i.getRarity() > max) {
+				max = i.getRarity();
 			}
-
-			total += r;
 		}
 
-		int m = fit(0, total - 1, dim);
+		max++;
 
-		if (m == 0) {
-			return l.get(0);
+		for (T i : b) {
+			for (int j = 0; j < max - i.getRarity(); j++) {
+				if (o = !o) {
+					rarityMapped.add(i);
+				}
+
+				else {
+					rarityMapped.add(0, i);
+				}
+			}
 		}
 
-		if (allOne) {
-			return l.get(m);
+		if (rarityMapped.size() == 1) {
+			return rarityMapped.get(0);
 		}
 
-		T c = l.get(0);
-
-		while (m > 0) {
-			m -= c.getRarity();
+		if (rarityMapped.isEmpty()) {
+			throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
 		}
 
-		return c;
+		return fit(rarityMapped, dim);
 	}
 
 	public <T> T fit(T[] v, double... dim) {

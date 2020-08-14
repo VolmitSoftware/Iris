@@ -3,10 +3,8 @@ package com.volmit.iris.gen.atomics;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
-import com.volmit.iris.util.Form;
 import com.volmit.iris.util.KMap;
 
 public class AtomicMulticache {
@@ -32,12 +30,10 @@ public class AtomicMulticache {
 	public void targetChunk(int x, int z) {
 		this.x.set(x);
 		this.z.set(z);
-
-		Iris.info("R: " + Form.f(r) + " W: " + Form.f(w) + " M: " + Form.f(m) + " (" + Form.pc(r / (double) (r + m), 1)
-				+ "), SIZE: " + Form.f(height.size() + biome.size() + region.size()));
 		height.clear();
-		region.size();
-		biome.size();
+		region.clear();
+		biome.clear();
+		rawBiome.clear();
 		r = 0;
 		w = 0;
 		m = 0;
@@ -101,5 +97,9 @@ public class AtomicMulticache {
 
 	private long pos(int x, int z) {
 		return (((long) x) << 32) | (z & 0xffffffffL);
+	}
+
+	public void updateHeight(int x, int z, int h) {
+		height.put(pos(x, z), (double) h);
 	}
 }

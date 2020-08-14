@@ -17,6 +17,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
+import com.volmit.iris.util.Form;
 import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
@@ -30,6 +31,8 @@ import lombok.EqualsAndHashCode;
 public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext {
 	private Method initLighting;
 	private IrisLock lock;
+	private IrisBiome hb = null;
+	private IrisRegion hr = null;
 	private KMap<Player, IrisBiome> b = new KMap<>();
 
 	public IrisChunkGenerator(String dimensionName, int threads) {
@@ -217,11 +220,37 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		IrisRegion region = sampleRegion(ix, iz);
 		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
 
-		float shift = (biome.hashCode() % 32)/32f/14f;
-		float shift2 = (region.hashCode() % 9)/9f/14f;
-		shift-= shift2;
-		
-		return Color.getHSBColor((biome.isLand() ? 0.233f : 0.644f)-shift, 0.25f+shift,
+		float shift = (biome.hashCode() % 32) / 32f / 14f;
+		float shift2 = (region.hashCode() % 9) / 9f / 14f;
+		shift -= shift2;
+		float sat = 0;
+
+		if (hr.getLoadKey().equals(region.getLoadKey())) {
+			sat += 0.2;
+		}
+
+		if (hb.getLoadKey().equals(biome.getLoadKey())) {
+			sat += 0.3;
+		}
+
+		Color c = Color.getHSBColor((biome.isLand() ? 0.233f : 0.644f) - shift, 0.25f + shift + sat,
 				(float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255));
+
+		return c;
+
+	}
+
+	public String textFor(double x, double z) {
+
+		int ix = (int) x;
+		int iz = (int) z;
+		double height = getTerrainHeight(ix, iz);
+		IrisRegion region = sampleRegion(ix, iz);
+		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
+		hb = biome;
+		hr = region;
+		return biome.getName() + " ("
+				+ Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in "
+						+ region.getName() + "\nY: " + (int) height);
 	}
 }

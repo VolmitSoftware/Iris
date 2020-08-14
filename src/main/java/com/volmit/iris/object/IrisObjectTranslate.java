@@ -14,8 +14,8 @@ import lombok.Data;
 @Data
 public class IrisObjectTranslate
 {
-	@MinNumber(-8)
-	@MaxNumber(8)
+	@MinNumber(-128)
+	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int x = 0;
@@ -27,8 +27,8 @@ public class IrisObjectTranslate
 	@Desc("The x shift in blocks")
 	private int y = 0;
 
-	@MinNumber(-8)
-	@MaxNumber(8)
+	@MinNumber(-128)
+	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int z = 0;

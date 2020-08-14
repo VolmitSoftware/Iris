@@ -56,6 +56,8 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 	double lx = Double.MAX_VALUE;
 	double lz = Double.MAX_VALUE;
+	double tz = 1D;
+	double t = 1D;
 
 	public NoiseView() {
 
@@ -82,7 +84,13 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 	}
 
 	public void mouseWheelMoved(MouseWheelEvent e) {
+
 		int notches = e.getWheelRotation();
+		if (e.isControlDown()) {
+			t = t + ((0.001 * t) * notches);
+			return;
+		}
+
 		scale = scale + ((0.044 * scale) * notches);
 		scale = scale < 0.00001 ? 0.00001 : scale;
 	}
@@ -96,6 +104,14 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 
 		if (scale > ascale) {
 			ascale += Math.abs(ascale - scale) * 0.16;
+		}
+
+		if (t < tz) {
+			tz -= Math.abs(t - tz) * 0.29;
+		}
+
+		if (t > tz) {
+			tz += Math.abs(tz - t) * 0.29;
 		}
 
 		if (ox < oxp) {
@@ -134,8 +150,7 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 				int xx = x;
 				gx.queue("a", () -> {
 					for (int z = 0; z < getParent().getHeight(); z += accuracy) {
-						double n = cng.noise((xx * ascale) + oxp, Math.sin((double) M.ms() / 20000D) * 800D,
-								(z * ascale) + ozp);
+						double n = cng.noise((xx * ascale) + oxp, tz, (z * ascale) + ozp);
 
 						if (n > 1 || n < 0) {
 							System.out.println("EXCEEDED " + n);
@@ -162,6 +177,8 @@ public class NoiseView extends JPanel implements MouseWheelListener {
 		}
 
 		p.end();
+
+		t += 1D;
 		r.put(p.getMilliseconds());
 		EventQueue.invokeLater(() -> {
 			repaint();

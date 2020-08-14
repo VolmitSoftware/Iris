@@ -270,7 +270,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	@Override
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid) {
-		hlock.getLock();
+		hlock.lock();
 		if (!dev) {
 			pregenDone = true;
 			fastPregen = false;

@@ -123,11 +123,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 			e.printStackTrace();
 		}
 
-		setBiomeCache(null);
 		setAvailableFilters(null);
-		setBiomeHitCache(null);
-		setCacheTrueBiome(null);
-		setCacheHeightMap(null);
 		setCeilingSliverCache(null);
 		setSliverCache(null);
 		Iris.info("Closing Iris Dimension " + getWorld().getName());

@@ -41,8 +41,7 @@ import com.volmit.iris.util.Permission;
 import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.util.ScoreDirection;
 
-public class Iris extends MortarPlugin implements BoardProvider
-{
+public class Iris extends MortarPlugin implements BoardProvider {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
 	public static IrisDataManager globaldata;
@@ -66,31 +65,27 @@ public class Iris extends MortarPlugin implements BoardProvider
 	@com.volmit.iris.util.Command
 	public CommandIris commandIris;
 
-	public Iris()
-	{
+	public Iris() {
 		IO.delete(new File("iris"));
 	}
 
 	@Override
-	public void start()
-	{
+	public void start() {
 
 	}
 
 	@Override
-	public void stop()
-	{
+	public void stop() {
 
 	}
 
 	@Override
-	public String getTag(String subTag)
-	{
-		return ChatColor.BOLD + "" + ChatColor.DARK_GRAY + "[" + ChatColor.BOLD + "" + ChatColor.GREEN + "Iris" + ChatColor.BOLD + ChatColor.DARK_GRAY + "]" + ChatColor.RESET + "" + ChatColor.GRAY + ": ";
+	public String getTag(String subTag) {
+		return ChatColor.BOLD + "" + ChatColor.DARK_GRAY + "[" + ChatColor.BOLD + "" + ChatColor.GREEN + "Iris"
+				+ ChatColor.BOLD + ChatColor.DARK_GRAY + "]" + ChatColor.RESET + "" + ChatColor.GRAY + ": ";
 	}
 
-	public void onEnable()
-	{
+	public void onEnable() {
 		lock = new IrisLock("Iris");
 		instance = this;
 		hotloader = new IrisHotloadManager();
@@ -98,25 +93,22 @@ public class Iris extends MortarPlugin implements BoardProvider
 		wand = new WandController();
 		postProcessors = loadPostProcessors();
 		proj = new ProjectManager();
-		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
+		manager = new BoardManager(this,
+				BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
 
 		super.onEnable();
 	}
 
-	public void onDisable()
-	{
+	public void onDisable() {
 		lock.unlock();
 		proj.close();
 
-		for(GroupedExecutor i : executors)
-		{
+		for (GroupedExecutor i : executors) {
 			i.close();
 		}
 
-		for(World i : Bukkit.getWorlds())
-		{
-			if(i.getGenerator() instanceof IrisChunkGenerator)
-			{
+		for (World i : Bukkit.getWorlds()) {
+			if (i.getGenerator() instanceof IrisChunkGenerator) {
 				((IrisChunkGenerator) i).close();
 			}
 		}
@@ -129,28 +121,23 @@ public class Iris extends MortarPlugin implements BoardProvider
 	}
 
 	@Override
-	public String getTitle(Player player)
-	{
+	public String getTitle(Player player) {
 		return ChatColor.GREEN + "Iris";
 	}
 
 	@Override
-	public List<String> getLines(Player player)
-	{
-		if(!clf.flip())
-		{
+	public List<String> getLines(Player player) {
+		if (!clf.flip()) {
 			return lines;
 		}
 
 		World world = player.getWorld();
 		lines.clear();
 
-		if(world.getGenerator() instanceof IrisChunkGenerator)
-		{
+		if (world.getGenerator() instanceof IrisChunkGenerator) {
 			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 
-			if(cl.flip())
-			{
+			if (cl.flip()) {
 				mem = Form.memSize(g.guessMemoryUsage(), 2);
 			}
 
@@ -163,21 +150,23 @@ public class Iris extends MortarPlugin implements BoardProvider
 
 			tp.put(g.getMetrics().getSpeed());
 			lines.add("&7&m-----------------");
-			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
+			lines.add(ChatColor.GREEN + "Speed" + ChatColor.GRAY + ": " + ChatColor.BOLD + "" + ChatColor.GRAY
+					+ Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s "
+					+ Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");
 			lines.add(ChatColor.GREEN + "Generators" + ChatColor.GRAY + ": " + Form.f(CNG.creates));
 			lines.add(ChatColor.GREEN + "Noise" + ChatColor.GRAY + ": " + Form.f((int) hits.getAverage()));
-			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
-			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(g.getData().getObjectLoader().count()));
+			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": "
+					+ Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
+			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": "
+					+ Form.f(g.getData().getObjectLoader().count()));
 			lines.add(ChatColor.GREEN + "Memory" + ChatColor.GRAY + ": " + mem);
 
-			if(er != null && b != null)
-			{
+			if (er != null && b != null) {
 				lines.add(ChatColor.GREEN + "Biome" + ChatColor.GRAY + ": " + b.getName());
 				lines.add(ChatColor.GREEN + "File" + ChatColor.GRAY + ": " + b.getLoadKey());
 			}
 
-			if(st != null)
-			{
+			if (st != null) {
 				lines.add(ChatColor.GREEN + "Structure" + ChatColor.GRAY + ": " + st.getStructure().getName());
 				lines.add(ChatColor.GREEN + "Tile" + ChatColor.GRAY + ": " + st.getTile().toString());
 			}
@@ -185,16 +174,14 @@ public class Iris extends MortarPlugin implements BoardProvider
 			lines.add("&7&m-----------------");
 		}
 
-		else
-		{
+		else {
 			lines.add(ChatColor.GREEN + "Join an Iris World!");
 		}
 
 		return lines;
 	}
 
-	private static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors()
-	{
+	private static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors() {
 		KList<Class<? extends IrisPostBlockFilter>> g = new KList<Class<? extends IrisPostBlockFilter>>();
 
 		g.add(PostFloatingNibDeleter.class);
@@ -208,65 +195,55 @@ public class Iris extends MortarPlugin implements BoardProvider
 	}
 
 	@Override
-	public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
-	{
+	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		return super.onCommand(sender, command, label, args);
 	}
 
-	public void imsg(CommandSender s, String msg)
-	{
-		s.sendMessage(ChatColor.GREEN + "[" + ChatColor.DARK_GRAY + "Iris" + ChatColor.GREEN + "]" + ChatColor.GRAY + ": " + msg);
+	public void imsg(CommandSender s, String msg) {
+		s.sendMessage(ChatColor.GREEN + "[" + ChatColor.DARK_GRAY + "Iris" + ChatColor.GREEN + "]" + ChatColor.GRAY
+				+ ": " + msg);
 	}
 
 	@Override
-	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
-	{
+	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
 		return new IrisChunkGenerator(16);
 	}
 
-	public static void msg(String string)
-	{
+	public static void msg(String string) {
 		lock.lock();
 		String msg = ChatColor.GREEN + "[Iris]: " + ChatColor.GRAY + string;
 
-		if(last.equals(msg))
-		{
+		if (last.equals(msg)) {
 			lock.unlock();
 			return;
 		}
 
 		last = msg;
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Bukkit.getConsoleSender().sendMessage(msg));
+		Bukkit.getConsoleSender().sendMessage(msg);
 		lock.unlock();
 	}
 
-	public static void warn(String string)
-	{
+	public static void warn(String string) {
 		msg(ChatColor.YELLOW + string);
 	}
 
-	public static void error(String string)
-	{
+	public static void error(String string) {
 		msg(ChatColor.RED + string);
 	}
 
-	public static void verbose(String string)
-	{
+	public static void verbose(String string) {
 		msg(ChatColor.GRAY + string);
 	}
 
-	public static void success(String string)
-	{
+	public static void success(String string) {
 		msg(ChatColor.GREEN + string);
 	}
 
-	public static void info(String string)
-	{
+	public static void info(String string) {
 		msg(ChatColor.WHITE + string);
 	}
 
-	public void hit(long hits2)
-	{
+	public void hit(long hits2) {
 		hits.put(hits2);
 	}
 }

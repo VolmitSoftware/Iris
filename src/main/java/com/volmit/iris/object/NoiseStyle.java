@@ -391,6 +391,10 @@ public enum NoiseStyle {
 	@Desc("Vascular noise gets higher as the position nears a cell border.")
 	@DontObfuscate
 	VASCULAR(rng -> new CNG(rng, NoiseType.VASCULAR, 1D, 1)),
+	
+	@Desc("It always returns 0.5")
+	@DontObfuscate
+	FLAT(rng -> new CNG(rng, NoiseType.FLAT, 1D, 1)),
 
 	@Desc("Vascular noise gets higher as the position nears a cell border. Cells are distorted using Iris styled wispy noise.")
 	@DontObfuscate

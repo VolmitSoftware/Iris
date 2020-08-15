@@ -71,7 +71,7 @@ public class IrisNoiseGenerator
 	@Required
 	@DontObfuscate
 	@Desc("The Noise Style")
-	private NoiseStyle style = NoiseStyle.IRIS;
+	private IrisGeneratorStyle style = NoiseStyle.IRIS.style();
 
 	@MinNumber(1)
 	@DontObfuscate

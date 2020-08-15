@@ -41,7 +41,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	@DontObfuscate
 	@DependsOn({ "biomeStyle", "biomeZoom", "biomeScatter" })
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
-	private NoiseStyle biomeStyle = NoiseStyle.SIMPLEX;
+	private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
 
 	@MinNumber(0.0001)
 	@DontObfuscate
@@ -82,7 +82,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 	@DontObfuscate
 	@DependsOn({ "children" })
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
-	private NoiseStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
+	private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate

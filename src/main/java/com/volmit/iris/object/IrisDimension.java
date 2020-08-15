@@ -59,11 +59,15 @@ public class IrisDimension extends IrisRegistrant {
 
 	@DontObfuscate
 	@Desc("The placement style of regions")
-	private NoiseStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
+	private IrisGeneratorStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@DontObfuscate
 	@Desc("The placement style of land/sea")
-	private NoiseStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE;
+	private IrisGeneratorStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of land/sea")
+	private IrisGeneratorStyle coordinateFracture = NoiseStyle.FLAT.style();
 
 	@MinNumber(-256)
 	@MaxNumber(256)
@@ -234,11 +238,11 @@ public class IrisDimension extends IrisRegistrant {
 
 	@DontObfuscate
 	@Desc("The noise style for rock types")
-	private NoiseStyle rockStyle = NoiseStyle.STATIC;
+	private IrisGeneratorStyle rockStyle = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
 	@Desc("The noise style for fluid types")
-	private NoiseStyle fluidStyle = NoiseStyle.STATIC;
+	private IrisGeneratorStyle fluidStyle = NoiseStyle.STATIC.style();
 
 	@MinNumber(0.0001)
 	@MaxNumber(512)

@@ -22,7 +22,7 @@ import lombok.Data;
 public class IrisBiomePaletteLayer {
 	@DontObfuscate
 	@Desc("The style of noise")
-	private NoiseStyle style = NoiseStyle.STATIC;
+	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 
 	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(0)

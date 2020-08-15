@@ -23,16 +23,16 @@ import lombok.Data;
 public class IrisBiomeDecorator {
 	@DontObfuscate
 	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
-	private NoiseStyle variance = NoiseStyle.STATIC;
+	private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
 	@Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
-	private NoiseStyle dispersion = NoiseStyle.STATIC;
+	private IrisGeneratorStyle dispersion = NoiseStyle.STATIC.style();
 
 	@DependsOn({"stackMin", "stackMax"})
 	@DontObfuscate
 	@Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
-	private NoiseStyle heightVariance = NoiseStyle.STATIC;
+	private IrisGeneratorStyle heightVariance = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
 	@Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")

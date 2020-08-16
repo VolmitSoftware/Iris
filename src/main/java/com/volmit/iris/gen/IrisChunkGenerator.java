@@ -1,7 +1,6 @@
 package com.volmit.iris.gen;
 
 import java.awt.Color;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 
@@ -205,13 +204,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		CNG.creates = 0;
 		getData().dump();
 		getCache().drop();
-		Iris.proj.updateWorkspace(getWorkspaceFile());
 		onHotload();
-	}
-
-	private File getWorkspaceFile()
-	{
-		return new File(getDimension().getLoadFile().getParent(), getDimension().getLoadKey() + ".code-workspace");
+		Iris.proj.updateWorkspace(Iris.proj.getWorkspaceFile(getDimension().getLoadKey()));
 	}
 
 	public long guessMemoryUsage()

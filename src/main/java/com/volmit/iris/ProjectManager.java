@@ -572,13 +572,12 @@ public class ProjectManager
 		jc.put("editor.suggest.showKeywords", false);
 		jc.put("editor.suggest.showSnippets", false);
 		jc.put("editor.suggest.showWords", false);
-		jc.put("json.maxItemsComputed", 50000);
 		JSONObject st = new JSONObject();
 		st.put("strings", true);
 		jc.put("editor.quickSuggestions", st);
 		jc.put("editor.suggest.insertMode", "replace");
 		settings.put("[json]", jc);
-		settings.put("json.maxItemsComputed", 50000);
+		settings.put("json.maxItemsComputed", 15000);
 
 		JSONArray schemas = buildSchemas(Iris.globaldata);
 		settings.put("json.schemas", schemas);

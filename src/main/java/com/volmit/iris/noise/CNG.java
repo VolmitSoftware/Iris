@@ -335,8 +335,8 @@ public class CNG
 		double scale = this.bakedScale * this.scale;
 		double f = (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
 		double x = dim.length > 0 ? dim[0] + f : 0D;
-		double z = dim.length > 1 ? dim[1] - f : 0D;
-		double y = dim.length > 2 ? dim[2] + f : 0D;
+		double y = dim.length > 1 ? dim[1] - f : 0D;
+		double z = dim.length > 2 ? dim[2] - f : 0D;
 		double n = generator.noise(x * scale, y * scale, z * scale) * opacity;
 		n = power != 1D ? Math.pow(n, power) : n;
 		double m = 1;

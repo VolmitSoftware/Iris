@@ -96,8 +96,12 @@ public class ProjectManager
 				{
 					if(i.getName().endsWith(".code-workspace"))
 					{
-						sender.sendMessage("Updating Workspace");
-						updateWorkspace(i);
+						sender.sendMessage("Updating Workspace...");
+						J.a(() ->
+						{
+							updateWorkspace(i);
+							sender.sendMessage("Workspace Updated");
+						});
 						Desktop.getDesktop().open(i);
 						break;
 					}

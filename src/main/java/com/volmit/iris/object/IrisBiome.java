@@ -265,7 +265,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 		for(int i = 0; i < maxDepth; i++)
 		{
-			int offset = (getMaxHeight() - height) - i;
+			int offset = (255 - height) - i;
 			int index = offset % data.size();
 			real.add(data.get(index < 0 ? 0 : index));
 		}

@@ -6,6 +6,7 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -14,6 +15,7 @@ import lombok.Data;
 @Data
 public class IrisRegionSpot
 {
+	@RegistryListBiome
 	@Required
 	@DontObfuscate
 	@Desc("The biome to be placed")

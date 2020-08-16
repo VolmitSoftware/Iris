@@ -3,19 +3,20 @@ package com.volmit.iris;
 import java.io.File;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.FileWatcher;
-import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.FolderWatcher;
 
 public class IrisHotloadManager
 {
 	private ChronoLatch latch;
-	private KSet<FileWatcher> watchers;
+
+	private FolderWatcher w;
 
 	public IrisHotloadManager()
 	{
-		watchers = new KSet<>();
+		w = new FolderWatcher(Iris.instance.getDataFolder("packs"));
 		latch = new ChronoLatch(3000);
 	}
 
@@ -33,13 +34,87 @@ public class IrisHotloadManager
 
 			try
 			{
-				for(FileWatcher i : watchers)
+				if(w.checkModified())
 				{
-					if(i.checkModified())
+					for(File i : w.getCreated())
 					{
-						c++;
-						Iris.info("File Modified: " + i.getFile().getPath());
+						if(i.isDirectory())
+						{
+							continue;
+						}
+
+						if(i.getPath().contains(".git"))
+						{
+							continue;
+						}
+
+						if(i.getPath().contains("_docs"))
+						{
+							continue;
+						}
+
+						if(i.getName().endsWith(".code-workspace"))
+						{
+							continue;
+						}
+
 						modified = true;
+						c++;
+						Iris.verbose("File Created: " + i.getPath());
+					}
+
+					for(File i : w.getDeleted())
+					{
+						if(i.isDirectory())
+						{
+							continue;
+						}
+
+						if(i.getPath().contains("_docs"))
+						{
+							continue;
+						}
+
+						if(i.getPath().contains(".git"))
+						{
+							continue;
+						}
+
+						if(i.getName().endsWith(".code-workspace"))
+						{
+							continue;
+						}
+
+						modified = true;
+						c++;
+						Iris.verbose("File Deleted: " + i.getPath());
+					}
+
+					for(File i : w.getChanged())
+					{
+						if(i.isDirectory())
+						{
+							continue;
+						}
+
+						if(i.getPath().contains(".git"))
+						{
+							continue;
+						}
+
+						if(i.getPath().contains("_docs"))
+						{
+							continue;
+						}
+
+						if(i.getName().endsWith(".code-workspace"))
+						{
+							continue;
+						}
+
+						modified = true;
+						c++;
+						Iris.verbose("File Modified: " + i.getPath());
 					}
 				}
 			}
@@ -51,8 +126,14 @@ public class IrisHotloadManager
 
 			if(modified)
 			{
-				watchers.clear();
-				Iris.success("Hotloading Iris (" + c + " File" + (c == 1 ? "" : "s") + " changed)");
+				String m = "Hotloaded " + c + " File" + (c == 1 ? "" : "s");
+
+				for(Player i : Bukkit.getOnlinePlayers())
+				{
+					i.sendMessage(Iris.instance.getTag("Studio") + m);
+				}
+
+				Bukkit.getConsoleSender().sendMessage(Iris.instance.getTag("Studio") + m);
 				Iris.globaldata.hotloaded();
 				ch.onHotloaded();
 			}
@@ -61,6 +142,6 @@ public class IrisHotloadManager
 
 	public void track(File file)
 	{
-		watchers.add(new FileWatcher(file));
+
 	}
 }

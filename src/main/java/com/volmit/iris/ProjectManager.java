@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -56,7 +57,15 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
+import com.volmit.iris.util.RegistryListBiome;
+import com.volmit.iris.util.RegistryListDimension;
+import com.volmit.iris.util.RegistryListGenerator;
+import com.volmit.iris.util.RegistryListObject;
+import com.volmit.iris.util.RegistryListRegion;
+import com.volmit.iris.util.RegistryListStructure;
 import com.volmit.iris.util.Required;
+import com.volmit.iris.util.TaskExecutor;
+import com.volmit.iris.util.TaskExecutor.TaskGroup;
 
 import lombok.Data;
 
@@ -64,6 +73,8 @@ import lombok.Data;
 public class ProjectManager
 {
 	private IrisChunkGenerator currentProject;
+	private TaskExecutor tx = new TaskExecutor(8, Thread.MIN_PRIORITY, "Iris Compiler");
+	private ReentrantLock lock = new ReentrantLock();
 
 	public ProjectManager()
 	{
@@ -522,7 +533,7 @@ public class ProjectManager
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleShore1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleShore1)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleOcean1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "generators", gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
-			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(4));
+			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(0));
 			Iris.proj.open(sender, dimension.getName());
 		}
 
@@ -535,6 +546,7 @@ public class ProjectManager
 
 	private JSONObject newWorkspaceConfig()
 	{
+		Iris.globaldata.clearLists();
 		JSONObject ws = new JSONObject();
 		JSONArray folders = new JSONArray();
 		JSONObject folder = new JSONObject();
@@ -549,7 +561,26 @@ public class ProjectManager
 		settings.put("workbench.tree.indent", 24);
 		settings.put("files.autoSave", "onFocusChange");
 
-		JSONArray schemas = buildSchemas();
+		JSONObject jc = new JSONObject();
+		jc.put("editor.autoIndent", "brackets");
+		jc.put("editor.acceptSuggestionOnEnter", "smart");
+		jc.put("editor.cursorSmoothCaretAnimation", true);
+		jc.put("editor.dragAndDrop", false);
+		jc.put("files.trimTrailingWhitespace", true);
+		jc.put("diffEditor.ignoreTrimWhitespace", true);
+		jc.put("files.trimFinalNewlines", true);
+		jc.put("editor.suggest.showKeywords", false);
+		jc.put("editor.suggest.showSnippets", false);
+		jc.put("editor.suggest.showWords", false);
+		jc.put("json.maxItemsComputed", 50000);
+		JSONObject st = new JSONObject();
+		st.put("strings", true);
+		jc.put("editor.quickSuggestions", st);
+		jc.put("editor.suggest.insertMode", "replace");
+		settings.put("[json]", jc);
+		settings.put("json.maxItemsComputed", 50000);
+
+		JSONArray schemas = buildSchemas(Iris.globaldata);
 		settings.put("json.schemas", schemas);
 		ws.put("settings", settings);
 
@@ -565,29 +596,11 @@ public class ProjectManager
 	{
 		try
 		{
+			Iris.info("Updating Workspace: " + ws.getPath());
 			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
-			JSONObject j = new JSONObject(IO.readAll(ws));
-			JSONObject s = j.getJSONObject("settings");
-			JSONObject jc = new JSONObject();
-			jc.put("editor.autoIndent", "brackets");
-			jc.put("editor.acceptSuggestionOnEnter", "smart");
-			jc.put("editor.cursorSmoothCaretAnimation", true);
-			jc.put("editor.dragAndDrop", false);
-			jc.put("files.trimTrailingWhitespace", true);
-			jc.put("diffEditor.ignoreTrimWhitespace", true);
-			jc.put("files.trimFinalNewlines", true);
-			jc.put("editor.suggest.showKeywords", false);
-			jc.put("editor.suggest.showSnippets", false);
-			jc.put("editor.suggest.showWords", false);
-			JSONObject st = new JSONObject();
-			st.put("strings", true);
-			jc.put("editor.quickSuggestions", st);
-			jc.put("editor.suggest.insertMode", "replace");
-			s.put("[json]", jc);
-			s.put("json.schemas", buildSchemas());
-			j.put("settings", s);
+			JSONObject j = newWorkspaceConfig();
 			IO.writeAll(ws, j.toString(4));
-			Iris.info("Updating Project " + ws.getAbsolutePath());
+			Iris.info("Updated Workspace: " + ws.getPath());
 		}
 
 		catch(Throwable e)
@@ -606,30 +619,43 @@ public class ProjectManager
 		}
 	}
 
-	private JSONArray buildSchemas()
+	private void ex(JSONArray schemas, Class<?> c, IrisDataManager dat, String v)
+	{
+		JSONObject o = getSchemaEntry(c, dat, v);
+		lock.lock();
+		schemas.put(o);
+		lock.unlock();
+	}
+
+	private JSONArray buildSchemas(IrisDataManager dat)
 	{
 		JSONArray schemas = new JSONArray();
-		schemas.put(getSchemaEntry(IrisDimension.class, "/dimensions/*.json"));
-		schemas.put(getSchemaEntry(IrisBiome.class, "/biomes/*.json"));
-		schemas.put(getSchemaEntry(IrisRegion.class, "/regions/*.json"));
-		schemas.put(getSchemaEntry(IrisGenerator.class, "/generators/*.json"));
-		schemas.put(getSchemaEntry(IrisStructure.class, "/structures/*.json"));
+		TaskGroup g = tx.startWork();
+		g.queue(() -> ex(schemas, IrisDimension.class, dat, "/dimensions/*.json"));
+		g.queue(() -> ex(schemas, IrisBiome.class, dat, "/biomes/*.json"));
+		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json"));
+		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json"));
+		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json"));
+		g.execute();
+
 		return schemas;
 	}
 
-	public JSONObject getSchemaEntry(Class<?> i, String... fileMatch)
+	public JSONObject getSchemaEntry(Class<?> i, IrisDataManager dat, String... fileMatch)
 	{
+		Iris.verbose("Processing Folder " + i.getSimpleName() + " " + fileMatch[0]);
 		JSONObject o = new JSONObject();
 		o.put("fileMatch", new JSONArray(fileMatch));
-		o.put("schema", getSchemaFor(i));
+		o.put("schema", getSchemaFor(i, dat));
 
 		return o;
 	}
 
-	public JSONObject getSchemaFor(Class<?> i)
+	public JSONObject getSchemaFor(Class<?> i, IrisDataManager dat)
 	{
+		Iris.verbose("Processing " + i.getSimpleName());
 		KMap<String, JSONObject> def = new KMap<>();
-		JSONObject s = getSchemaFor(i, 7, def);
+		JSONObject s = getSchemaFor(i, 7, def, dat);
 		JSONObject defx = new JSONObject();
 		for(String v : def.k())
 		{
@@ -641,7 +667,7 @@ public class ProjectManager
 		return s;
 	}
 
-	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def)
+	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def, IrisDataManager dat)
 	{
 		if(step <= 0)
 		{
@@ -670,7 +696,6 @@ public class ProjectManager
 				JSONObject prop = new JSONObject();
 				if(k.isAnnotationPresent(Desc.class))
 				{
-
 					if(k.isAnnotationPresent(DependsOn.class))
 					{
 						deps.put(k.getName(), new JSONArray(k.getDeclaredAnnotation(DependsOn.class).value()));
@@ -726,11 +751,36 @@ public class ProjectManager
 						{
 							prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
 						}
-					}
 
-					if(k.getType().equals(String.class))
-					{
-						tp = "string";
+						if(k.isAnnotationPresent(RegistryListBiome.class))
+						{
+							prop.put("enum", new JSONArray(getBiomeList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListDimension.class))
+						{
+							prop.put("enum", new JSONArray(getDimensionList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListGenerator.class))
+						{
+							prop.put("enum", new JSONArray(getGeneratorList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListObject.class))
+						{
+							prop.put("enum", new JSONArray(getObjectList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListRegion.class))
+						{
+							prop.put("enum", new JSONArray(getRegionList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListStructure.class))
+						{
+							prop.put("enum", new JSONArray(getStructureList(dat)));
+						}
 					}
 
 					if(k.getType().isEnum())
@@ -774,13 +824,18 @@ public class ProjectManager
 						if(k.getType().isAnnotationPresent(Desc.class))
 						{
 							prop.put("additionalProperties", false);
-							prop.put("properties", getSchemaFor(k.getType(), step - 1, def).getJSONObject("properties"));
+							prop.put("properties", getSchemaFor(k.getType(), step - 1, def, Iris.globaldata).getJSONObject("properties"));
 						}
 					}
 
 					if(tp.equals("array"))
 					{
 						ArrayType t = k.getDeclaredAnnotation(ArrayType.class);
+
+						if(t == null)
+						{
+							Iris.warn("Expected " + ArrayType.class.getSimpleName() + " in " + k.getName() + " in " + i.getSimpleName());
+						}
 
 						if(t.min() > 0)
 						{
@@ -809,6 +864,136 @@ public class ProjectManager
 							if(t.type().equals(String.class))
 							{
 								tx = "string";
+
+								if(k.isAnnotationPresent(MinNumber.class))
+								{
+									prop.put("minLength", (int) k.getDeclaredAnnotation(MinNumber.class).value());
+								}
+
+								if(k.isAnnotationPresent(MaxNumber.class))
+								{
+									prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
+								}
+
+								if(k.isAnnotationPresent(RegistryListBiome.class))
+								{
+									String name = "enbiom" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getBiomeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListDimension.class))
+								{
+									String name = "endim" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getDimensionList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListGenerator.class))
+								{
+									String name = "engen" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getGeneratorList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListObject.class))
+								{
+									String name = "enobj" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getObjectList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListRegion.class))
+								{
+									String name = "enreg" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getRegionList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListStructure.class))
+								{
+									String name = "enstruct" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getStructureList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
 							}
 
 							if(t.type().isEnum())
@@ -834,6 +1019,10 @@ public class ProjectManager
 								JSONObject items = new JSONObject();
 								items.put("$ref", "#/definitions/" + name);
 								prop.put("items", items);
+								prop.put("description", k.getAnnotation(Desc.class).value());
+								prop.put("type", tp);
+								properties.put(k.getName(), prop);
+								continue;
 							}
 
 							if(t.type().isEnum())
@@ -857,7 +1046,7 @@ public class ProjectManager
 									if(!def.containsKey(name))
 									{
 										JSONObject deff = new JSONObject();
-										JSONObject scv = getSchemaFor(t.type(), step - 1, def);
+										JSONObject scv = getSchemaFor(t.type(), step - 1, def, Iris.globaldata);
 										deff.put("type", tx);
 										deff.put("description", t.type().getDeclaredAnnotation(Desc.class).value());
 										deff.put("additionalProperties", false);
@@ -888,7 +1077,7 @@ public class ProjectManager
 
 						if(tp.getClass().isAnnotationPresent(Desc.class))
 						{
-							prop.put("properties", getSchemaFor(tp.getClass(), step - 1, def).getJSONObject("properties"));
+							prop.put("properties", getSchemaFor(tp.getClass(), step - 1, def, Iris.globaldata).getJSONObject("properties"));
 						}
 					}
 
@@ -905,6 +1094,36 @@ public class ProjectManager
 		}
 
 		return schema;
+	}
+
+	private String[] getBiomeList(IrisDataManager data)
+	{
+		return data.getBiomeLoader().getPossibleKeys();
+	}
+
+	private String[] getDimensionList(IrisDataManager data)
+	{
+		return data.getDimensionLoader().getPossibleKeys();
+	}
+
+	private String[] getRegionList(IrisDataManager data)
+	{
+		return data.getRegionLoader().getPossibleKeys();
+	}
+
+	private String[] getObjectList(IrisDataManager data)
+	{
+		return data.getObjectLoader().getPossibleKeys();
+	}
+
+	private String[] getStructureList(IrisDataManager data)
+	{
+		return data.getStructureLoader().getPossibleKeys();
+	}
+
+	private String[] getGeneratorList(IrisDataManager data)
+	{
+		return data.getGeneratorLoader().getPossibleKeys();
 	}
 
 	public KList<String> analyzeFolder(File folder, String fn, Object t)
@@ -941,6 +1160,7 @@ public class ProjectManager
 
 				try
 				{
+					Iris.info("Reading " + i.getPath());
 					j = new JSONObject(IO.readAll(i));
 					o = new Gson().fromJson(j.toString(), t.getClass());
 					a.addAll(analyze(o, i));

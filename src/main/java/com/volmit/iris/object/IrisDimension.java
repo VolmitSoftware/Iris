@@ -21,6 +21,9 @@ import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListBiome;
+import com.volmit.iris.util.RegistryListDimension;
+import com.volmit.iris.util.RegistryListRegion;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -160,6 +163,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
 
+	@RegistryListDimension
 	@DontObfuscate
 	@Desc("The ceiling dimension. Leave blank for normal sky.")
 	private String ceiling = "";
@@ -173,6 +177,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
 
+	@RegistryListRegion
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -186,6 +191,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The fluid height for this dimension")
 	private int fluidHeight = 63;
 
+	@RegistryListBiome
 	@DontObfuscate
 	@Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
 	private String focus = "";

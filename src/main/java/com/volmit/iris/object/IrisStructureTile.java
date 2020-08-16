@@ -4,6 +4,7 @@ import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -45,6 +46,7 @@ public class IrisStructureTile
 	@Desc("Is this structure allowed to place if there is supposed to be a west wall?")
 	private StructureTileCondition west = StructureTileCondition.AGNOSTIC;
 
+	@RegistryListObject
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate

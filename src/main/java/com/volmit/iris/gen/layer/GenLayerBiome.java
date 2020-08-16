@@ -1,6 +1,7 @@
 package com.volmit.iris.gen.layer;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.DimensionChunkGenerator;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
@@ -144,7 +145,7 @@ public class GenLayerBiome extends GenLayer {
 
 	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent,
 			int hits) {
-		if (hits > 9) {
+		if (hits > IrisSettings.get().maxBiomeChildDepth) {
 			return parent;
 		}
 

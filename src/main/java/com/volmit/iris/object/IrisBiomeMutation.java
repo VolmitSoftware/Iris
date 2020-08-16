@@ -9,6 +9,8 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.RegistryListBiome;
+import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -17,12 +19,14 @@ import lombok.Data;
 @Data
 public class IrisBiomeMutation
 {
+	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("One of The following biomes or regions must show up")
 	private KList<String> sideA = new KList<>();
 
+	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -43,6 +47,7 @@ public class IrisBiomeMutation
 	@Desc("How many tries per chunk to check for this mutation")
 	private int checks = 2;
 
+	@RegistryListObject
 	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this biome mutation")

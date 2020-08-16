@@ -2,7 +2,8 @@ package com.volmit.iris.util;
 
 import org.bukkit.block.data.BlockData;
 
-public interface IObjectPlacer {
+public interface IObjectPlacer
+{
 	public int getHighest(int x, int z);
 
 	public int getHighest(int x, int z, boolean ignoreFluid);
@@ -16,4 +17,6 @@ public interface IObjectPlacer {
 	public boolean isSolid(int x, int y, int z);
 
 	public boolean isUnderwater(int x, int z);
+
+	public int getFluidHeight();
 }

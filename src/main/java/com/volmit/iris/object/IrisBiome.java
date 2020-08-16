@@ -17,6 +17,7 @@ import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -85,6 +86,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
 	private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@RegistryListBiome
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")

@@ -17,7 +17,8 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
+public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
+{
 	private GroupedExecutor accelerant;
 	private int threads;
 	protected int cacheX;
@@ -25,7 +26,8 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 	private IrisLock genlock;
 	protected boolean cachingAllowed;
 
-	public ParallelChunkGenerator(String dimensionName, int threads) {
+	public ParallelChunkGenerator(String dimensionName, int threads)
+	{
 		super(dimensionName);
 		cacheX = 0;
 		cacheZ = 0;
@@ -34,35 +36,37 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 		cachingAllowed = false;
 	}
 
-	public void changeThreadCount(int tc) {
+	public void changeThreadCount(int tc)
+	{
 		threads = tc;
 		GroupedExecutor e = accelerant;
 		accelerant = new GroupedExecutor(threads, Thread.NORM_PRIORITY, "Iris Generator - " + world.getName());
 		Iris.executors.add(accelerant);
 
-		if (e != null) {
+		if(e != null)
+		{
 			e.close();
 		}
 	}
 
-	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver,
-			BiomeMap biomeMap, boolean sampled);
+	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
 
-	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver,
-			BiomeMap biomeMap) {
+	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
+	{
 		onGenerateColumn(cx, cz, wx, wz, x, z, sliver, biomeMap, false);
 	}
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);
 
-	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height,
-			BiomeMap biomeMap);
+	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap);
 
-	protected int sampleHeight(int x, int z) {
+	protected int sampleHeight(int x, int z)
+	{
 		return onSampleColumnHeight(x >> 4, z >> 4, x, z, x & 15, z & 15);
 	}
 
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid) {
+	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	{
 		genlock.lock();
 		cacheX = x;
 		cacheZ = z;
@@ -74,16 +78,19 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
 
-		for (ii = 0; ii < 16; ii++) {
+		for(ii = 0; ii < 16; ii++)
+		{
 			int i = ii;
 			int wx = (x * 16) + i;
 
-			for (jj = 0; jj < 16; jj++) {
+			for(jj = 0; jj < 16; jj++)
+			{
 				int j = jj;
 				int wz = (z * 16) + j;
 				AtomicSliver sliver = map.getSliver(i, j);
 
-				accelerant.queue(key, () -> {
+				accelerant.queue(key, () ->
+				{
 					onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
 				});
 			}
@@ -97,18 +104,21 @@ public abstract class ParallelChunkGenerator extends BiomeChunkGenerator {
 		genlock.unlock();
 	}
 
-	protected void onClose() {
+	protected void onClose()
+	{
 		accelerant.close();
 		Iris.executors.remove(accelerant);
 	}
 
-	public void onInit(World world, RNG rng) {
+	public void onInit(World world, RNG rng)
+	{
 		super.onInit(world, rng);
 		changeThreadCount(threads);
 	}
 
 	@Override
-	public boolean isParallelCapable() {
+	public boolean isParallelCapable()
+	{
 		return false;
 	}
 }

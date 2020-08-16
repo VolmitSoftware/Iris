@@ -7,6 +7,7 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -15,6 +16,7 @@ import lombok.Data;
 @Data
 public class IrisRegionRidge
 {
+	@RegistryListBiome
 	@Required
 	@DontObfuscate
 	@Desc("The biome name")

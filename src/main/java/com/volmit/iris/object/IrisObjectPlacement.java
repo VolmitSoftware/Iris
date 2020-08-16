@@ -9,6 +9,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -17,6 +18,7 @@ import lombok.Data;
 @Data
 public class IrisObjectPlacement
 {
+	@RegistryListObject
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -35,6 +37,10 @@ public class IrisObjectPlacement
 	@DontObfuscate
 	@Desc("Rotate this objects placement")
 	private IrisObjectRotation rotation = new IrisObjectRotation();
+
+	@DontObfuscate
+	@Desc("Limit the max height or min height of placement.")
+	private IrisObjectLimit clamp = new IrisObjectLimit();
 
 	@MinNumber(0)
 	@MaxNumber(1)

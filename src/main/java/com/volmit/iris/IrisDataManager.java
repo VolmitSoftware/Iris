@@ -43,12 +43,14 @@ public class IrisDataManager
 
 		File packs = this.packs.getName().equals("packs") ? this.packs : dataFolder;
 		packs.mkdirs();
+		
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
 		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
 		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
+		
 		if(packs.getName().equals("packs"))
 		{
 			writeExamples();
@@ -163,5 +165,14 @@ public class IrisDataManager
 		dimensionLoader.preferFolder(name);
 		generatorLoader.preferFolder(name);
 		structureLoader.preferFolder(name);
+	}
+
+	public void clearLists()
+	{
+		biomeLoader.clearList();
+		regionLoader.clearList();
+		dimensionLoader.clearList();
+		generatorLoader.clearList();
+		structureLoader.clearList();
 	}
 }

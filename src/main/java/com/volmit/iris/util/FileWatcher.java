@@ -2,14 +2,9 @@ package com.volmit.iris.util;
 
 import java.io.File;
 
-import lombok.Data;
-import lombok.Getter;
-
-@Data
 public class FileWatcher
 {
-	@Getter
-	private final File file;
+	protected final File file;
 	private boolean exists;
 	private long lastModified;
 	private long size;
@@ -20,11 +15,11 @@ public class FileWatcher
 		readProperties();
 	}
 
-	private void readProperties()
+	protected void readProperties()
 	{
 		exists = file.exists();
 		lastModified = exists ? file.lastModified() : -1;
-		size = exists ? file.length() : -1;
+		size = exists ? file.isDirectory() ? -2 : file.length() : -1;
 	}
 
 	public boolean checkModified()

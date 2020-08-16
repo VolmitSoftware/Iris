@@ -9,18 +9,21 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.RegistryListGenerator;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
 @Desc("This represents a link to a generator for a biome")
 @Data
-public class IrisBiomeGeneratorLink {
+public class IrisBiomeGeneratorLink
+{
+	@RegistryListGenerator
 	@DontObfuscate
 	@Desc("The generator id")
 	private String generator = "default";
 
-	@DependsOn({ "min", "max" })
+	@DependsOn({"min", "max"})
 	@Required
 	@MinNumber(-256)
 	@MaxNumber(256)
@@ -28,7 +31,7 @@ public class IrisBiomeGeneratorLink {
 	@Desc("The min block value (value + fluidHeight)")
 	private int min = 0;
 
-	@DependsOn({ "min", "max" })
+	@DependsOn({"min", "max"})
 	@Required
 	@MinNumber(-256)
 	@MaxNumber(256)
@@ -38,16 +41,19 @@ public class IrisBiomeGeneratorLink {
 
 	private transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
-	public IrisBiomeGeneratorLink() {
+	public IrisBiomeGeneratorLink()
+	{
 
 	}
 
-	public IrisGenerator getCachedGenerator(ContextualChunkGenerator g) {
-		return gen.aquire(() -> {
-			IrisGenerator gen = g != null ? g.loadGenerator(getGenerator())
-					: Iris.globaldata.getGeneratorLoader().load(getGenerator());
+	public IrisGenerator getCachedGenerator(ContextualChunkGenerator g)
+	{
+		return gen.aquire(() ->
+		{
+			IrisGenerator gen = g != null ? g.loadGenerator(getGenerator()) : Iris.globaldata.getGeneratorLoader().load(getGenerator());
 
-			if (gen == null) {
+			if(gen == null)
+			{
 				gen = new IrisGenerator();
 			}
 
@@ -55,7 +61,8 @@ public class IrisBiomeGeneratorLink {
 		});
 	}
 
-	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed) {
+	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)
+	{
 		double g = getCachedGenerator(xg).getHeight(x, z, seed);
 		g = g < 0 ? 0 : g;
 		g = g > 1 ? 1 : g;

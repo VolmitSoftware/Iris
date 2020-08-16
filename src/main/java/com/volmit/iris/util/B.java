@@ -13,10 +13,21 @@ public class B
 	private static final KMap<String, BlockData> bdc = new KMap<>();
 	private static final KList<String> nulls = new KList<>();
 	private static final IrisDimension defaultCompat = new IrisDimension();
+	private static final KMap<Material, Boolean> solid = new KMap<>();
 
 	public static BlockData get(String bd)
 	{
 		return getBlockData(bd);
+	}
+
+	public static boolean isSolid(Material mat)
+	{
+		if(!solid.containsKey(mat))
+		{
+			solid.put(mat, mat.isSolid());
+		}
+
+		return solid.get(mat);
 	}
 
 	public static Material mat(String bd)
@@ -213,5 +224,22 @@ public class B
 				|| m.equals(Material.TORCH)
 				|| m.equals(B.mat("SOUL_TORCH"));
 		//@done
+	}
+
+	public static KList<BlockData> getBlockData(KList<String> find)
+	{
+		KList<BlockData> b = new KList<>();
+
+		for(String i : find)
+		{
+			BlockData bd = getBlockData(i);
+
+			if(bd != null)
+			{
+				b.add(bd);
+			}
+		}
+
+		return b;
 	}
 }

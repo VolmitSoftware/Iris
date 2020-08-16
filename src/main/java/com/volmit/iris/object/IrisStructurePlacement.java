@@ -10,6 +10,7 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListStructure;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -18,6 +19,7 @@ import lombok.Data;
 @Data
 public class IrisStructurePlacement
 {
+	@RegistryListStructure
 	@Required
 	@DontObfuscate
 	@Desc("The structure tileset to use")

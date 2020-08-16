@@ -1,6 +1,7 @@
 package com.volmit.iris.gen;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 
@@ -12,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
@@ -189,16 +191,27 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	public void onHotloaded()
 	{
+		if(!IrisSettings.get().hotloading)
+		{
+			return;
+		}
+
 		if(!isHotloadable())
 		{
-			Iris.warn("Hotload skipped (During Chunk Gen). Retrying.");
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, this::onHotloaded);
 			return;
 		}
-		
+
 		CNG.creates = 0;
 		getData().dump();
+		getCache().drop();
+		Iris.proj.updateWorkspace(getWorkspaceFile());
 		onHotload();
+	}
+
+	private File getWorkspaceFile()
+	{
+		return new File(getDimension().getLoadFile().getParent(), getDimension().getLoadKey() + ".code-workspace");
 	}
 
 	public long guessMemoryUsage()
@@ -215,6 +228,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 			bytes += i.guessMemoryUsage();
 		}
 
+		bytes += getCache().getSize() * 65;
 		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += ceilingParallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += getSliverBuffer() * 220;

@@ -100,6 +100,43 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		}
 	}
 
+	public String[] getPossibleKeys()
+	{
+		if(possibleKeys != null)
+		{
+			return possibleKeys;
+		}
+
+		Iris.info("Building " + resourceTypeName + " Possibility Lists");
+		KSet<String> m = new KSet<>();
+
+		for(File i : getFolders())
+		{
+			for(File j : i.listFiles())
+			{
+				if(j.isFile() && j.getName().endsWith(".iob"))
+				{
+					m.add(j.getName().replaceAll("\\Q.json\\E", ""));
+				}
+
+				else if(j.isDirectory())
+				{
+					for(File k : j.listFiles())
+					{
+						if(k.isFile() && k.getName().endsWith(".iob"))
+						{
+							m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.iob\\E", ""));
+						}
+					}
+				}
+			}
+		}
+
+		KList<String> v = new KList<>(m);
+		possibleKeys = v.toArray(new String[v.size()]);
+		return possibleKeys;
+	}
+
 	public File findFile(String name)
 	{
 		lock.lock();

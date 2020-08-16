@@ -46,7 +46,8 @@ import net.md_5.bungee.api.ChatColor;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener {
+public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener
+{
 	private AtomicMulticache cache;
 	private IrisDataManager data;
 	protected boolean failing;
@@ -65,8 +66,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	protected long hlast;
 	private boolean fastPregen = false;
 	protected boolean pregenDone;
+	private volatile boolean hotloadable = false;
 
-	public ContextualChunkGenerator() {
+	public ContextualChunkGenerator()
+	{
 		pushLatch = new ChronoLatch(3000);
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
@@ -101,57 +104,72 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	protected abstract void onPlayerLeft(Player p);
 
-	public IrisRegion loadRegion(String i) {
+	public IrisRegion loadRegion(String i)
+	{
 		return getData().getRegionLoader().load(i);
 	}
 
-	public IrisBiome loadBiome(String i) {
+	public IrisBiome loadBiome(String i)
+	{
 		return getData().getBiomeLoader().load(i);
 	}
 
-	public IrisStructure loadStructure(String i) {
+	public IrisStructure loadStructure(String i)
+	{
 		return getData().getStructureLoader().load(i);
 	}
 
-	public IrisObject loadObject(String i) {
+	public IrisObject loadObject(String i)
+	{
 		return getData().getObjectLoader().load(i);
 	}
 
-	public IrisDimension loadDimension(String i) {
+	public IrisDimension loadDimension(String i)
+	{
 		return (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i);
 	}
 
-	public IrisGenerator loadGenerator(String i) {
+	public IrisGenerator loadGenerator(String i)
+	{
 		return getData().getGeneratorLoader().load(i);
 	}
 
-	public IrisDataManager getData() {
+	public IrisDataManager getData()
+	{
 		return isDev() ? Iris.globaldata : data;
 	}
 
-	private void init(World world, RNG rng) {
-		if (initialized) {
+	private void init(World world, RNG rng)
+	{
+		if(initialized)
+		{
 			return;
 		}
 
-		data = new IrisDataManager(getWorld().getWorldFolder());
 		this.world = world;
+		data = new IrisDataManager(getWorld().getWorldFolder());
 		this.masterRandom = new RNG(world.getSeed());
 		metrics = new IrisMetrics(128);
 		initialized = true;
 		Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
 		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0);
 		onInit(world, masterRandom);
+		setHotloadable(true);
 	}
 
-	private void tick() {
-		if (dev) {
-			if (perSecond.flip()) {
-				if (generated > (fastPregen ? 1950 : 770)) {
+	private void tick()
+	{
+		if(dev)
+		{
+			if(perSecond.flip())
+			{
+				if(generated > (fastPregen ? 1950 : 770))
+				{
 					pregenDone = true;
 				}
 
-				if (pregenDone) {
+				if(pregenDone)
+				{
 					metrics.getPerSecond().put(generated);
 					generated = 0;
 				}
@@ -160,7 +178,8 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			}
 		}
 
-		else {
+		else
+		{
 			pregenDone = true;
 			fastPregen = false;
 		}
@@ -169,80 +188,100 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	}
 
 	@EventHandler
-	public void on(PlayerTeleportEvent e) {
-		if (e.getFrom().getWorld().equals(world) && !e.getTo().getWorld().equals(world)) {
+	public void on(PlayerTeleportEvent e)
+	{
+		if(e.getFrom().getWorld().equals(world) && !e.getTo().getWorld().equals(world))
+		{
 			tick();
 			onPlayerLeft(e.getPlayer());
 		}
 
-		if (!e.getFrom().getWorld().equals(world) && e.getTo().getWorld().equals(world)) {
+		if(!e.getFrom().getWorld().equals(world) && e.getTo().getWorld().equals(world))
+		{
 			tick();
 			onPlayerJoin(e.getPlayer());
 		}
 	}
 
 	@EventHandler
-	public void on(PlayerQuitEvent e) {
-		if (e.getPlayer().getWorld().equals(world)) {
+	public void on(PlayerQuitEvent e)
+	{
+		if(e.getPlayer().getWorld().equals(world))
+		{
 			tick();
 			onPlayerLeft(e.getPlayer());
 		}
 	}
 
 	@EventHandler
-	public void on(PlayerJoinEvent e) {
-		if (e.getPlayer().getWorld().equals(world)) {
+	public void on(PlayerJoinEvent e)
+	{
+		if(e.getPlayer().getWorld().equals(world))
+		{
 			tick();
 			onPlayerJoin(e.getPlayer());
 		}
 	}
 
 	@EventHandler
-	public void on(ChunkLoadEvent e) {
-		if (e.getWorld().equals(world)) {
+	public void on(ChunkLoadEvent e)
+	{
+		if(e.getWorld().equals(world))
+		{
 			tick();
 			onChunkLoaded(e.getChunk());
 		}
 	}
 
 	@EventHandler
-	public void on(ChunkUnloadEvent e) {
-		if (e.getWorld().equals(world)) {
+	public void on(ChunkUnloadEvent e)
+	{
+		if(e.getWorld().equals(world))
+		{
 			tick();
 			onChunkUnloaded(e.getChunk());
 		}
 	}
 
 	@EventHandler
-	public void on(WorldUnloadEvent e) {
-		if (world != null && e.getWorld().equals(world)) {
+	public void on(WorldUnloadEvent e)
+	{
+		if(world != null && e.getWorld().equals(world))
+		{
 			close();
 		}
 	}
 
-	public void close() {
+	public void close()
+	{
 		HandlerList.unregisterAll(this);
 		Bukkit.getScheduler().cancelTask(getTask());
 		onClose();
 	}
 
 	@Override
-	public boolean canSpawn(World world, int x, int z) {
+	public boolean canSpawn(World world, int x, int z)
+	{
 		return super.canSpawn(world, x, z);
 	}
 
-	protected ChunkData generateChunkDataFailure(World world, Random no, int x, int z, BiomeGrid biomeGrid) {
+	protected ChunkData generateChunkDataFailure(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	{
 		ChunkData c = Bukkit.createChunkData(world);
 
-		for (int i = 0; i < 16; i++) {
-			for (int j = 0; j < 16; j++) {
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
 				int h = 0;
 
-				if (j == i || j + i == 16) {
+				if(j == i || j + i == 16)
+				{
 					c.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA"));
 				}
 
-				else {
+				else
+				{
 					c.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA"));
 				}
 			}
@@ -251,18 +290,23 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		return c;
 	}
 
-	protected ChunkData generateChunkFastPregen(World world, Random no, int x, int z, BiomeGrid biomeGrid) {
+	protected ChunkData generateChunkFastPregen(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	{
 		ChunkData c = Bukkit.createChunkData(world);
 
-		for (int i = 0; i < 16; i++) {
-			for (int j = 0; j < 16; j++) {
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
 				int h = 0;
 
-				if (j == i || j + i == 16) {
+				if(j == i || j + i == 16)
+				{
 					c.setBlock(i, h, j, B.getBlockData("BLUE_TERRACOTTA"));
 				}
 
-				else {
+				else
+				{
 					c.setBlock(i, h, j, B.getBlockData("WHITE_TERRACOTTA"));
 				}
 			}
@@ -272,33 +316,39 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	}
 
 	@Override
-	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid) {
+	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	{
 		hlock.lock();
-		if (!dev) {
+		setHotloadable(false);
+		if(!dev)
+		{
 			pregenDone = true;
 			fastPregen = false;
 		}
 
 		PrecisionStopwatch sx = PrecisionStopwatch.start();
 
-		if (failing) {
+		if(failing)
+		{
 			hlock.unlock();
 			return generateChunkDataFailure(world, no, x, z, biomeGrid);
 		}
 
-		try {
-			checkHotload(world);
+		try
+		{
 			PrecisionStopwatch s = PrecisionStopwatch.start();
 			RNG random = new RNG(world.getSeed());
 			init(world, random.nextParallelRNG(0));
 
 			ChunkData c = Bukkit.createChunkData(world);
 
-			if (!pregenDone && fastPregen) {
+			if(!pregenDone && fastPregen)
+			{
 				c = generateChunkFastPregen(world, no, x, z, biomeGrid);
 			}
 
-			else {
+			else
+			{
 				onGenerate(random, x, z, c, biomeGrid);
 			}
 
@@ -308,69 +358,85 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			CNG.hits = 0;
 			Iris.instance.hit(hits);
 			metrics.getLoss().put(sx.getMilliseconds() - s.getMilliseconds());
+			setHotloadable(true);
 			hlock.unlock();
 			return c;
 		}
 
-		catch (Throwable e) {
+		catch(Throwable e)
+		{
 			fail(e);
 		}
 
+		setHotloadable(true);
 		hlock.unlock();
 		return generateChunkDataFailure(world, no, x, z, biomeGrid);
 	}
 
-	public void checkHotload() {
-		if (M.ms() - hlast < 1000) {
+	public void checkHotload()
+	{
+		if(M.ms() - hlast < 1000)
+		{
 			return;
 		}
 
 		hlock.lock();
-		if (world != null) {
+		if(world != null)
+		{
 			checkHotload(world);
 		}
 		hlock.unlock();
 	}
 
-	private void checkHotload(World world) {
-		if (pushLatch.flip()) {
+	private void checkHotload(World world)
+	{
+		if(!isHotloadable())
+		{
+			return;
+		}
 
-			if (this.world == null) {
+		if(pushLatch.flip())
+		{
+			if(this.world == null)
+			{
 				this.world = world;
 			}
 
 			Iris.hotloader.check((IrisContext) this);
 
-			if (this instanceof IrisContext) {
+			if(this instanceof IrisContext)
+			{
 				IrisContext.pushContext((IrisContext) this);
 			}
 		}
 	}
 
-	public void onHotload() {
+	public void onHotload()
+	{
 		hlast = M.ms();
 	}
 
-	protected void fail(Throwable e) {
-		if (failing) {
+	protected void fail(Throwable e)
+	{
+		if(failing)
+		{
 			return;
 		}
 
 		failing = true;
 
 		e.printStackTrace();
-		J.a(() -> {
+		J.a(() ->
+		{
 			J.sleep(1000);
-			Iris.error(
-					"---------------------------------------------------------------------------------------------------------");
+			Iris.error("---------------------------------------------------------------------------------------------------------");
 			e.printStackTrace();
-			Iris.error(
-					"---------------------------------------------------------------------------------------------------------");
+			Iris.error("---------------------------------------------------------------------------------------------------------");
 			Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
-			Iris.error(
-					"---------------------------------------------------------------------------------------------------------");
+			Iris.error("---------------------------------------------------------------------------------------------------------");
 
-			for (Player i : world.getPlayers()) {
+			for(Player i : world.getPlayers())
+			{
 				Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has crashed!");
 				Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
 				Iris.instance.imsg(i, ChatColor.RED + "- To Regen, use /iris std open <dim>");
@@ -382,17 +448,20 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	}
 
 	@Override
-	public List<BlockPopulator> getDefaultPopulators(World world) {
+	public List<BlockPopulator> getDefaultPopulators(World world)
+	{
 		return super.getDefaultPopulators(world);
 	}
 
 	@Override
-	public Location getFixedSpawnLocation(World world, Random random) {
+	public Location getFixedSpawnLocation(World world, Random random)
+	{
 		return super.getFixedSpawnLocation(world, random);
 	}
 
 	@Override
-	public boolean isParallelCapable() {
+	public boolean isParallelCapable()
+	{
 		return true;
 	}
 }

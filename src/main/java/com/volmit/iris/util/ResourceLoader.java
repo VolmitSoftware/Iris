@@ -9,7 +9,8 @@ import com.volmit.iris.object.IrisRegistrant;
 import lombok.Data;
 
 @Data
-public class ResourceLoader<T extends IrisRegistrant> {
+public class ResourceLoader<T extends IrisRegistrant>
+{
 	protected File root;
 	protected String folderName;
 	protected String resourceTypeName;
@@ -21,7 +22,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
 	protected IrisLock lock;
 	protected String preferredFolder = null;
 
-	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass) {
+	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
+	{
 		lock = new IrisLock("Res");
 		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
@@ -32,12 +34,15 @@ public class ResourceLoader<T extends IrisRegistrant> {
 		loadCache = new KMap<>();
 	}
 
-	public long count() {
+	public long count()
+	{
 		return loadCache.size();
 	}
 
-	protected T loadFile(File j, String key, String name) {
-		try {
+	protected T loadFile(File j, String key, String name)
+	{
+		try
+		{
 			T t = new Gson().fromJson(IO.readAll(j), objectClass);
 			loadCache.put(key, t);
 			Iris.hotloader.track(j);
@@ -48,32 +53,39 @@ public class ResourceLoader<T extends IrisRegistrant> {
 			return t;
 		}
 
-		catch (Throwable e) {
+		catch(Throwable e)
+		{
 			lock.unlock();
 			Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
 			return null;
 		}
 	}
 
-	public T load(String name) {
+	public T load(String name)
+	{
 		String key = name + "-" + cname;
 
-		if (loadCache.containsKey(key)) {
+		if(loadCache.containsKey(key))
+		{
 			T t = loadCache.get(key);
 			return t;
 		}
 
 		lock.lock();
-		for (File i : getFolders(name)) {
-			for (File j : i.listFiles()) {
-				if (j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+		for(File i : getFolders(name))
+		{
+			for(File j : i.listFiles())
+			{
+				if(j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name))
+				{
 					return loadFile(j, key, name);
 				}
 			}
 
 			File file = new File(i, name + ".json");
 
-			if (file.exists()) {
+			if(file.exists())
+			{
 				return loadFile(file, key, name);
 			}
 		}
@@ -84,15 +96,21 @@ public class ResourceLoader<T extends IrisRegistrant> {
 		return null;
 	}
 
-	public KList<File> getFolders() {
+	public KList<File> getFolders()
+	{
 		lock.lock();
-		if (folderCache == null) {
+		if(folderCache == null)
+		{
 			folderCache = new KList<>();
 
-			for (File i : root.listFiles()) {
-				if (i.isDirectory()) {
-					for (File j : i.listFiles()) {
-						if (j.isDirectory() && j.getName().equals(folderName)) {
+			for(File i : root.listFiles())
+			{
+				if(i.isDirectory())
+				{
+					for(File j : i.listFiles())
+					{
+						if(j.isDirectory() && j.getName().equals(folderName))
+						{
 							folderCache.add(j);
 							break;
 						}
@@ -100,9 +118,12 @@ public class ResourceLoader<T extends IrisRegistrant> {
 				}
 			}
 
-			if (preferredFolder != null) {
-				for (File i : folderCache.copy()) {
-					if (i.getParentFile().getName().equals(preferredFolder)) {
+			if(preferredFolder != null)
+			{
+				for(File i : folderCache.copy())
+				{
+					if(i.getParentFile().getName().equals(preferredFolder))
+					{
 						folderCache.remove(i);
 						folderCache.add(0, i);
 					}
@@ -114,12 +135,16 @@ public class ResourceLoader<T extends IrisRegistrant> {
 		return folderCache;
 	}
 
-	public KList<File> getFolders(String rc) {
+	public KList<File> getFolders(String rc)
+	{
 		KList<File> folders = getFolders().copy();
 
-		if (rc.contains(":")) {
-			for (File i : folders.copy()) {
-				if (!rc.startsWith(i.getName() + ":")) {
+		if(rc.contains(":"))
+		{
+			for(File i : folders.copy())
+			{
+				if(!rc.startsWith(i.getName() + ":"))
+				{
 					folders.remove(i);
 				}
 			}
@@ -128,23 +153,28 @@ public class ResourceLoader<T extends IrisRegistrant> {
 		return folders;
 	}
 
-	public void clearCache() {
+	public void clearCache()
+	{
 		loadCache.clear();
 		folderCache = null;
 	}
 
-	public File fileFor(T b) {
-		for (File i : getFolders()) {
-			for (File j : i.listFiles()) {
-				if (j.isFile() && j.getName().endsWith(".json")
-						&& j.getName().split("\\Q.\\E")[0].equals(b.getLoadKey())) {
+	public File fileFor(T b)
+	{
+		for(File i : getFolders())
+		{
+			for(File j : i.listFiles())
+			{
+				if(j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(b.getLoadKey()))
+				{
 					return j;
 				}
 			}
 
 			File file = new File(i, b.getLoadKey() + ".json");
 
-			if (file.exists()) {
+			if(file.exists())
+			{
 				return file;
 			}
 		}
@@ -152,11 +182,13 @@ public class ResourceLoader<T extends IrisRegistrant> {
 		return null;
 	}
 
-	public boolean isLoaded(String next) {
+	public boolean isLoaded(String next)
+	{
 		return loadCache.containsKey(next);
 	}
 
-	public void preferFolder(String name) {
+	public void preferFolder(String name)
+	{
 		preferredFolder = name;
 	}
 }

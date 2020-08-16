@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.io.IOException;
 import java.lang.reflect.Method;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -28,94 +29,114 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext {
+public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext
+{
 	private Method initLighting;
 	private IrisLock lock;
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
 	private KMap<Player, IrisBiome> b = new KMap<>();
 
-	public IrisChunkGenerator(String dimensionName, int threads) {
+	public IrisChunkGenerator(String dimensionName, int threads)
+	{
 		super(dimensionName, threads);
 		lock = new IrisLock("IrisChunkGenerator");
 	}
 
-	public IrisChunkGenerator(String dimensionName) {
+	public IrisChunkGenerator(String dimensionName)
+	{
 		super(dimensionName, 16);
 		lock = new IrisLock("IrisChunkGenerator");
 	}
 
-	public IrisChunkGenerator(int tc) {
+	public IrisChunkGenerator(int tc)
+	{
 		super("", tc);
 		lock = new IrisLock("IrisChunkGenerator");
 	}
 
-	public void hotload() {
+	public void hotload()
+	{
 		onHotload();
 	}
 
-	public void retry() {
-		if (failing) {
+	public void retry()
+	{
+		if(failing)
+		{
 			failing = false;
 			hotload();
 		}
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid) {
+	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	{
 		lock.lock();
 		super.onGenerate(random, x, z, data, grid);
 		lock.unlock();
 	}
 
-	public void onInit(World world, RNG rng) {
-		try {
+	public void onInit(World world, RNG rng)
+	{
+		try
+		{
 			super.onInit(world, rng);
 		}
 
-		catch (Throwable e) {
+		catch(Throwable e)
+		{
 			fail(e);
 		}
 	}
 
 	@Override
-	public BiomeResult getBiome(int x, int z) {
+	public BiomeResult getBiome(int x, int z)
+	{
 		return sampleBiome(x, z);
 	}
 
 	@Override
-	public IrisRegion getRegion(int x, int z) {
+	public IrisRegion getRegion(int x, int z)
+	{
 		return sampleRegion(x, z);
 	}
 
 	@Override
-	public int getHeight(int x, int z) {
+	public int getHeight(int x, int z)
+	{
 		return sampleHeight(x, z);
 	}
 
 	@Override
-	public void onTick(int ticks) {
+	public void onTick(int ticks)
+	{
 		super.onTick(ticks);
-		for (Player i : getWorld().getPlayers()) {
+		for(Player i : getWorld().getPlayers())
+		{
 			Location l = i.getLocation();
 			IrisRegion r = sampleRegion(l.getBlockX(), l.getBlockZ());
 			IrisBiome b = sampleTrueBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ()).getBiome();
 
-			for (IrisEffect j : r.getEffects()) {
+			for(IrisEffect j : r.getEffects())
+			{
 				j.apply(i, this);
 			}
 
-			for (IrisEffect j : b.getEffects()) {
+			for(IrisEffect j : b.getEffects())
+			{
 				j.apply(i, this);
 			}
 		}
 	}
 
 	@Override
-	protected void onClose() {
+	protected void onClose()
+	{
 		super.onClose();
 
-		try {
+		try
+		{
 			parallaxMap.saveAll();
 			ceilingParallaxMap.saveAll();
 			parallaxMap.getLoadedChunks().clear();
@@ -124,7 +145,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 			ceilingParallaxMap.getLoadedRegions().clear();
 		}
 
-		catch (IOException e) {
+		catch(IOException e)
+		{
 			e.printStackTrace();
 		}
 
@@ -135,45 +157,61 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	}
 
 	@Override
-	protected void onFailure(Throwable e) {
+	protected void onFailure(Throwable e)
+	{
 
 	}
 
 	@Override
-	protected void onChunkLoaded(Chunk c) {
+	protected void onChunkLoaded(Chunk c)
+	{
 
 	}
 
 	@Override
-	protected void onChunkUnloaded(Chunk c) {
+	protected void onChunkUnloaded(Chunk c)
+	{
 
 	}
 
 	@Override
-	protected void onPlayerJoin(Player p) {
+	protected void onPlayerJoin(Player p)
+	{
 
 	}
 
 	@Override
-	public void onPlayerLeft(Player p) {
+	public void onPlayerLeft(Player p)
+	{
 		super.onPlayerLeft(p);
 	}
 
 	@Override
-	public void onHotloaded() {
+	public void onHotloaded()
+	{
+		if(!isHotloadable())
+		{
+			Iris.warn("Hotload skipped (During Chunk Gen). Retrying.");
+			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, this::onHotloaded);
+			return;
+		}
+		
 		CNG.creates = 0;
 		getData().dump();
 		onHotload();
 	}
 
-	public long guessMemoryUsage() {
+	public long guessMemoryUsage()
+	{
 		long bytes = 1024 * 1024 * (8 + (getThreads() / 3));
 
-		for (AtomicRegionData i : parallaxMap.getLoadedRegions().values()) {
+		for(AtomicRegionData i : parallaxMap.getLoadedRegions().values())
+		{
 			bytes += i.guessMemoryUsage();
 		}
 
-		for (AtomicRegionData i : ceilingParallaxMap.getLoadedRegions().values()) {
+		for(AtomicRegionData i : ceilingParallaxMap.getLoadedRegions().values())
+		{
 			bytes += i.guessMemoryUsage();
 		}
 
@@ -186,34 +224,41 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	}
 
 	@Override
-	public boolean shouldGenerateCaves() {
+	public boolean shouldGenerateCaves()
+	{
 		return false;
 	}
 
 	@Override
-	public boolean shouldGenerateDecorations() {
+	public boolean shouldGenerateDecorations()
+	{
 		return false;
 	}
 
 	@Override
-	public boolean shouldGenerateMobs() {
+	public boolean shouldGenerateMobs()
+	{
 		return true;
 	}
 
 	@Override
-	public boolean shouldGenerateStructures() {
-		if (!isInitialized()) {
+	public boolean shouldGenerateStructures()
+	{
+		if(!isInitialized())
+		{
 			return false;
 		}
 
 		return getDimension().isVanillaStructures();
 	}
 
-	public Function2<Double, Double, Color> createRenderer() {
+	public Function2<Double, Double, Color> createRenderer()
+	{
 		return (x, z) -> render(x, z);
 	}
 
-	private Color render(double x, double z) {
+	private Color render(double x, double z)
+	{
 		int ix = (int) x;
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
@@ -225,22 +270,24 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		shift -= shift2;
 		float sat = 0;
 
-		if (hr.getLoadKey().equals(region.getLoadKey())) {
+		if(hr.getLoadKey().equals(region.getLoadKey()))
+		{
 			sat += 0.2;
 		}
 
-		if (hb.getLoadKey().equals(biome.getLoadKey())) {
+		if(hb.getLoadKey().equals(biome.getLoadKey()))
+		{
 			sat += 0.3;
 		}
 
-		Color c = Color.getHSBColor((biome.isLand() ? 0.233f : 0.644f) - shift, 0.25f + shift + sat,
-				(float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255));
+		Color c = Color.getHSBColor((biome.isLand() ? 0.233f : 0.644f) - shift, 0.25f + shift + sat, (float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255));
 
 		return c;
 
 	}
 
-	public String textFor(double x, double z) {
+	public String textFor(double x, double z)
+	{
 
 		int ix = (int) x;
 		int iz = (int) z;
@@ -249,8 +296,6 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
 		hb = biome;
 		hr = region;
-		return biome.getName() + " ("
-				+ Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in "
-						+ region.getName() + "\nY: " + (int) height);
+		return biome.getName() + " (" + Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in " + region.getName() + "\nY: " + (int) height);
 	}
 }

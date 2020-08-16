@@ -29,7 +29,8 @@ import lombok.EqualsAndHashCode;
 @Desc("Represents a dimension")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisDimension extends IrisRegistrant {
+public class IrisDimension extends IrisRegistrant
+{
 	public static final BlockData STONE = Material.STONE.createBlockData();
 	public static final BlockData WATER = Material.WATER.createBlockData();
 
@@ -66,8 +67,28 @@ public class IrisDimension extends IrisRegistrant {
 	private IrisGeneratorStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@DontObfuscate
-	@Desc("The placement style of land/sea")
-	private IrisGeneratorStyle coordinateFracture = NoiseStyle.FLAT.style();
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle landBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle shoreBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle seaBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle islandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@MinNumber(-256)
 	@MaxNumber(256)
@@ -277,29 +298,33 @@ public class IrisDimension extends IrisRegistrant {
 	private transient AtomicCache<Double> rad = new AtomicCache<>();
 	private transient boolean inverted = false;
 
-	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g) {
-		return cacheFilters.aquire(() -> {
+	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
+	{
+		return cacheFilters.aquire(() ->
+		{
 			KList<IrisPostBlockFilter> cacheFilters = new KList<>();
 
-			for (IrisPostProcessor i : getPostProcessors()) {
+			for(IrisPostProcessor i : getPostProcessors())
+			{
 				cacheFilters.add(g.createProcessor(i.getProcessor(), i.getPhase()));
 			}
 
 			g.setMinPhase(0);
 			g.setMaxPhase(0);
 
-			for (IrisPostBlockFilter i : cacheFilters) {
+			for(IrisPostBlockFilter i : cacheFilters)
+			{
 				g.setMinPhase(Math.min(g.getMinPhase(), i.getPhase()));
 				g.setMaxPhase(Math.max(g.getMaxPhase(), i.getPhase()));
 			}
 
-			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - "
-					+ g.getMaxPhase());
+			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - " + g.getMaxPhase());
 			return cacheFilters;
 		});
 	}
 
-	public static KList<IrisCompatabilityFilter> getDefaultCompatability() {
+	public static KList<IrisCompatabilityFilter> getDefaultCompatability()
+	{
 		KList<IrisCompatabilityFilter> filters = new KList<>();
 
 		// Below 1.16
@@ -438,15 +463,18 @@ public class IrisDimension extends IrisRegistrant {
 		return filters;
 	}
 
-	public CNG getCoordFracture(RNG rng, int signature) {
-		return coordFracture.aquire(() -> {
+	public CNG getCoordFracture(RNG rng, int signature)
+	{
+		return coordFracture.aquire(() ->
+		{
 			CNG coordFracture = CNG.signature(rng.nextParallelRNG(signature));
 			coordFracture.scale(0.012 / coordFractureZoom);
 			return coordFracture;
 		});
 	}
 
-	private KList<IrisPostProcessor> getDefaultPostProcessors() {
+	private KList<IrisPostProcessor> getDefaultPostProcessors()
+	{
 		KList<IrisPostProcessor> p = new KList<IrisPostProcessor>();
 
 		p.add(new IrisPostProcessor("wall-painter"));
@@ -456,32 +484,40 @@ public class IrisDimension extends IrisRegistrant {
 		return p;
 	}
 
-	public BlockData getRock(RNG rng, double x, double y, double z) {
-		if (getRockData().isEmpty()) {
+	public BlockData getRock(RNG rng, double x, double y, double z)
+	{
+		if(getRockData().isEmpty())
+		{
 			return STONE;
 		}
 
-		if (getRockData().size() == 1) {
+		if(getRockData().size() == 1)
+		{
 			return getRockData().get(0);
 		}
 
 		return getRockGenerator(rng).fit(getRockData(), x, y, z);
 	}
 
-	public CNG getRockGenerator(RNG rng) {
-		return rockLayerGenerator.aquire(() -> {
-			RNG rngx = rng.nextParallelRNG(
-					(int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+	public CNG getRockGenerator(RNG rng)
+	{
+		return rockLayerGenerator.aquire(() ->
+		{
+			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 			return rockStyle.create(rngx);
 		});
 	}
 
-	public KList<BlockData> getRockData() {
-		return rockData.aquire(() -> {
+	public KList<BlockData> getRockData()
+	{
+		return rockData.aquire(() ->
+		{
 			KList<BlockData> rockData = new KList<>();
-			for (String ix : rockPalette) {
+			for(String ix : rockPalette)
+			{
 				BlockData bx = B.getBlockData(ix);
-				if (bx != null) {
+				if(bx != null)
+				{
 					rockData.add(bx);
 				}
 			}
@@ -490,32 +526,40 @@ public class IrisDimension extends IrisRegistrant {
 		});
 	}
 
-	public BlockData getFluid(RNG rng, double x, double y, double z) {
-		if (getFluidData().isEmpty()) {
+	public BlockData getFluid(RNG rng, double x, double y, double z)
+	{
+		if(getFluidData().isEmpty())
+		{
 			return WATER;
 		}
 
-		if (getFluidData().size() == 1) {
+		if(getFluidData().size() == 1)
+		{
 			return getFluidData().get(0);
 		}
 
 		return getFluidGenerator(rng).fit(getFluidData(), x, y, z);
 	}
 
-	public CNG getFluidGenerator(RNG rng) {
-		return fluidLayerGenerator.aquire(() -> {
-			RNG rngx = rng.nextParallelRNG(getFluidData().size()
-					* (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+	public CNG getFluidGenerator(RNG rng)
+	{
+		return fluidLayerGenerator.aquire(() ->
+		{
+			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
 			return fluidStyle.create(rngx);
 		});
 	}
 
-	public KList<BlockData> getFluidData() {
-		return fluidData.aquire(() -> {
+	public KList<BlockData> getFluidData()
+	{
+		return fluidData.aquire(() ->
+		{
 			KList<BlockData> fluidData = new KList<>();
-			for (String ix : fluidPalette) {
+			for(String ix : fluidPalette)
+			{
 				BlockData bx = B.getBlockData(ix);
-				if (bx != null) {
+				if(bx != null)
+				{
 					fluidData.add(bx);
 				}
 			}
@@ -524,40 +568,49 @@ public class IrisDimension extends IrisRegistrant {
 		});
 	}
 
-	public double getDimensionAngle() {
+	public double getDimensionAngle()
+	{
 		return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
 	}
 
-	public double sinRotate() {
+	public double sinRotate()
+	{
 		return sinr.aquire(() -> Math.sin(getDimensionAngle()));
 	}
 
-	public double cosRotate() {
+	public double cosRotate()
+	{
 		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
-	public KList<IrisRegion> getAllRegions(ContextualChunkGenerator g) {
+	public KList<IrisRegion> getAllRegions(ContextualChunkGenerator g)
+	{
 		KList<IrisRegion> r = new KList<>();
 
-		for (String i : getRegions()) {
+		for(String i : getRegions())
+		{
 			r.add(g != null ? g.loadRegion(i) : Iris.globaldata.getRegionLoader().load(i));
 		}
 
 		return r;
 	}
 
-	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g) {
+	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g)
+	{
 		KList<IrisBiome> r = new KList<>();
 
-		for (IrisRegion i : getAllRegions(g)) {
+		for(IrisRegion i : getAllRegions(g))
+		{
 			r.addAll(i.getAllBiomes(g));
 		}
 
 		return r;
 	}
 
-	public ChunkPosition getParallaxSize(ContextualChunkGenerator g) {
-		return parallaxSize.aquire(() -> {
+	public ChunkPosition getParallaxSize(ContextualChunkGenerator g)
+	{
+		return parallaxSize.aquire(() ->
+		{
 			int x = 0;
 			int z = 0;
 
@@ -565,40 +618,50 @@ public class IrisDimension extends IrisRegistrant {
 			KList<IrisRegion> r = getAllRegions(g);
 			KList<IrisBiome> b = getAllBiomes(g);
 
-			for (IrisBiome i : b) {
-				for (IrisObjectPlacement j : i.getObjects()) {
+			for(IrisBiome i : b)
+			{
+				for(IrisObjectPlacement j : i.getObjects())
+				{
 					objects.addAll(j.getPlace());
 				}
 			}
 
-			for (String i : objects) {
-				try {
+			for(String i : objects)
+			{
+				try
+				{
 					BlockVector bv = IrisObject.sampleSize(g.getData().getObjectLoader().findFile(i));
 					x = bv.getBlockX() > x ? bv.getBlockX() : x;
 					z = bv.getBlockZ() > z ? bv.getBlockZ() : z;
 				}
 
-				catch (Throwable e) {
+				catch(Throwable e)
+				{
 
 				}
 			}
 
-			for (IrisDepositGenerator i : getDeposits()) {
+			for(IrisDepositGenerator i : getDeposits())
+			{
 				int max = i.getMaxDimension();
 				x = max > x ? max : x;
 				z = max > z ? max : z;
 			}
 
-			for (IrisRegion v : r) {
-				for (IrisDepositGenerator i : v.getDeposits()) {
+			for(IrisRegion v : r)
+			{
+				for(IrisDepositGenerator i : v.getDeposits())
+				{
 					int max = i.getMaxDimension();
 					x = max > x ? max : x;
 					z = max > z ? max : z;
 				}
 			}
 
-			for (IrisBiome v : b) {
-				for (IrisDepositGenerator i : v.getDeposits()) {
+			for(IrisBiome v : b)
+			{
+				for(IrisDepositGenerator i : v.getDeposits())
+				{
 					int max = i.getMaxDimension();
 					x = max > x ? max : x;
 					z = max > z ? max : z;
@@ -614,13 +677,39 @@ public class IrisDimension extends IrisRegistrant {
 		});
 	}
 
-	public BlockData resolve(String bd) {
-		for (IrisCompatabilityFilter i : getCompatability()) {
-			if (i.getWhen().equalsIgnoreCase(bd)) {
+	public BlockData resolve(String bd)
+	{
+		for(IrisCompatabilityFilter i : getCompatability())
+		{
+			if(i.getWhen().equalsIgnoreCase(bd))
+			{
 				return i.getReplace();
 			}
 		}
 
 		return null;
+	}
+
+	public IrisGeneratorStyle getBiomeStyle(InferredType type)
+	{
+		switch(type)
+		{
+			case CAVE:
+				return caveBiomeStyle;
+			case ISLAND:
+				return islandBiomeStyle;
+			case LAND:
+				return landBiomeStyle;
+			case SEA:
+				return seaBiomeStyle;
+			case SHORE:
+				return shoreBiomeStyle;
+			case SKYLAND:
+				return skylandBiomeStyle;
+			default:
+				break;
+		}
+
+		return landBiomeStyle;
 	}
 }

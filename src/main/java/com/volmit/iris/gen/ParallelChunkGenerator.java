@@ -17,7 +17,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ParallelChunkGenerator extends BiomeChunkGenerator
+public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 {
 	private GroupedExecutor accelerant;
 	private int threads;

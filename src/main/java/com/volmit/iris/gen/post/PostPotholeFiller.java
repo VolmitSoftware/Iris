@@ -1,5 +1,7 @@
 package com.volmit.iris.gen.post;
 
+import org.bukkit.generator.ChunkGenerator.ChunkData;
+
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
@@ -17,7 +19,7 @@ public class PostPotholeFiller extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		int g = 0;
 		int h = highestTerrainBlock(x, z);
@@ -32,7 +34,7 @@ public class PostPotholeFiller extends IrisPostBlockFilter
 
 		if(g >= 3)
 		{
-			setPostBlock(x, h + 1, z, getPostBlock(x, h, z));
+			setPostBlock(x, h + 1, z, getPostBlock(x, h, z, currentPostX, currentPostZ, currentData), currentPostX, currentPostZ, currentData);
 			updateHeight(x, z, h + 1);
 		}
 	}

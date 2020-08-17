@@ -2,6 +2,7 @@ package com.volmit.iris.gen.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.object.IrisBiome;
@@ -26,7 +27,7 @@ public class PostWallPatcher extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		IrisBiome biome = gen.sampleTrueBiome(x, z).getBiome();
 		int h, ha, hb, hc, hd;
@@ -48,7 +49,7 @@ public class PostWallPatcher extends IrisPostBlockFilter
 				{
 					if(!s.getMaterial().equals(AIR))
 					{
-						setPostBlock(x, h + 1, z, s);
+						setPostBlock(x, h + 1, z, s, currentPostX, currentPostZ, currentData);
 						updateHeight(x, z, h + 1);
 					}
 				}
@@ -64,12 +65,12 @@ public class PostWallPatcher extends IrisPostBlockFilter
 							continue;
 						}
 
-						if(isAirOrWater(x, i, z))
+						if(isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData))
 						{
 							continue;
 						}
 
-						setPostBlock(x, i, z, d);
+						setPostBlock(x, i, z, d, currentPostX, currentPostZ, currentData);
 					}
 				}
 			}

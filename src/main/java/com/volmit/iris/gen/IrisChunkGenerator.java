@@ -30,7 +30,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext
+public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisContext
 {
 	private Method initLighting;
 	private IrisLock lock;
@@ -139,11 +139,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		try
 		{
 			parallaxMap.saveAll();
-			ceilingParallaxMap.saveAll();
 			parallaxMap.getLoadedChunks().clear();
 			parallaxMap.getLoadedRegions().clear();
-			ceilingParallaxMap.getLoadedChunks().clear();
-			ceilingParallaxMap.getLoadedRegions().clear();
 		}
 
 		catch(IOException e)
@@ -152,7 +149,6 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		}
 
 		setAvailableFilters(null);
-		setCeilingSliverCache(null);
 		setSliverCache(null);
 		Iris.info("Closing Iris Dimension " + getWorld().getName());
 	}
@@ -217,14 +213,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 			bytes += i.guessMemoryUsage();
 		}
 
-		for(AtomicRegionData i : ceilingParallaxMap.getLoadedRegions().values())
-		{
-			bytes += i.guessMemoryUsage();
-		}
-
 		bytes += getCache().getSize() * 65;
 		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
-		bytes += ceilingParallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += getSliverBuffer() * 220;
 		bytes += 823 * getData().getObjectLoader().getTotalStorage();
 

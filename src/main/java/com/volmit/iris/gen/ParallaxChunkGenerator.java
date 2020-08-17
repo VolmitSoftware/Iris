@@ -37,8 +37,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 {
 	protected KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
-	protected KMap<ChunkPosition, AtomicSliver> ceilingSliverCache;
-	protected AtomicWorldData ceilingParallaxMap;
 	private MasterLock masterLock;
 	private IrisLock lock = new IrisLock("ParallaxLock");
 	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
@@ -48,7 +46,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		super(dimensionName, threads);
 		sliverCache = new KMap<>();
-		ceilingSliverCache = new KMap<>();
 		sliverBuffer = 0;
 		masterLock = new MasterLock();
 	}
@@ -57,12 +54,11 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		super.onInit(world, rng);
 		parallaxMap = new AtomicWorldData(world, "floor");
-		ceilingParallaxMap = new AtomicWorldData(world, "ceiling");
 	}
 
 	protected KMap<ChunkPosition, AtomicSliver> getSliverCache()
 	{
-		return getDimension().isInverted() ? ceilingSliverCache : sliverCache;
+		return sliverCache;
 	}
 
 	protected void onClose()
@@ -72,7 +68,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		try
 		{
 			parallaxMap.unloadAll(true);
-			ceilingParallaxMap.unloadAll(true);
 		}
 
 		catch(IOException e)
@@ -150,7 +145,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 	public AtomicWorldData getParallaxMap()
 	{
-		return getDimension().isInverted() ? ceilingParallaxMap : parallaxMap;
+		return parallaxMap;
 	}
 
 	public AtomicSliverMap getParallaxChunk(int x, int z)

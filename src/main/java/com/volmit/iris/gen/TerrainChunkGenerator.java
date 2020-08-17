@@ -49,7 +49,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private RNG rockRandom;
 	protected IrisLock regLock;
 	private KMap<String, IrisGenerator> generators;
-	private KMap<String, IrisGenerator> ceilingGenerators;
 	protected GenLayerBiome glBiome;
 	protected CNG masterFracture;
 	protected ChronoLatch cwarn = new ChronoLatch(1000);
@@ -58,7 +57,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	{
 		super(dimensionName, threads);
 		generators = new KMap<>();
-		ceilingGenerators = new KMap<>();
 		regLock = new IrisLock("BiomeChunkGenerator");
 	}
 
@@ -654,7 +652,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	public void registerGenerator(IrisGenerator g, IrisDimension dim)
 	{
-		KMap<String, IrisGenerator> generators = dim.isInverted() ? ceilingGenerators : this.generators;
+		KMap<String, IrisGenerator> generators = this.generators;
 
 		regLock.lock();
 		if(g.getLoadKey() == null || generators.containsKey(g.getLoadKey()))
@@ -669,7 +667,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	protected KMap<String, IrisGenerator> getGenerators()
 	{
-		return getDimension().isInverted() ? ceilingGenerators : generators;
+		return generators;
 	}
 
 	protected double getBiomeHeight(double rx, double rz, int x, int z)
@@ -740,9 +738,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	protected void loadGenerators()
 	{
 		generators.clear();
-		ceilingGenerators.clear();
-		loadGenerators(((CeilingChunkGenerator) this).getFloorDimension());
-		loadGenerators(((CeilingChunkGenerator) this).getCeilingDimension());
+		loadGenerators(getDimension());
 	}
 
 	protected void loadGenerators(IrisDimension dim)

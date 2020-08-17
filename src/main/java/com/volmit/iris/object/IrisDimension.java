@@ -22,7 +22,6 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.RegistryListDimension;
 import com.volmit.iris.util.RegistryListRegion;
 import com.volmit.iris.util.Required;
 
@@ -144,15 +143,6 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
-
-	@RegistryListDimension
-	@DontObfuscate
-	@Desc("The ceiling dimension. Leave blank for normal sky.")
-	private String ceiling = "";
-
-	@DontObfuscate
-	@Desc("Mirrors the generator floor into the ceiling. Think nether but worse...")
-	private boolean mirrorCeiling = false;
 
 	@Required
 	@DontObfuscate
@@ -289,7 +279,6 @@ public class IrisDimension extends IrisRegistrant
 	private transient AtomicCache<Double> sinr = new AtomicCache<>();
 	private transient AtomicCache<Double> cosr = new AtomicCache<>();
 	private transient AtomicCache<Double> rad = new AtomicCache<>();
-	private transient boolean inverted = false;
 
 	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
 	{

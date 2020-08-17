@@ -12,13 +12,11 @@ public class GroupedExecutor
 {
 	private int xc;
 	private ExecutorService service;
-	private IrisLock lock;
 	private KMap<String, Integer> mirror;
 
 	public GroupedExecutor(int threadLimit, int priority, String name)
 	{
 		xc = 1;
-		lock = new IrisLock("GX");
 		mirror = new KMap<String, Integer>();
 
 		if(threadLimit == 1)
@@ -79,8 +77,6 @@ public class GroupedExecutor
 
 		while(true)
 		{
-			J.sleep(0);
-
 			if(mirror.get(g) == 0)
 			{
 				break;
@@ -97,13 +93,8 @@ public class GroupedExecutor
 
 	public void queue(String q, NastyRunnable r)
 	{
-		lock.lock();
-		if(!mirror.containsKey(q))
-		{
-			mirror.put(q, 0);
-		}
-		mirror.put(q, mirror.get(q) + 1);
-		lock.unlock();
+		mirror.compute(q, (k, v) -> k == null || v == null ? 1 : v + 1);
+
 		service.execute(() ->
 		{
 			try
@@ -116,9 +107,7 @@ public class GroupedExecutor
 
 			}
 
-			lock.lock();
-			mirror.put(q, mirror.get(q) - 1);
-			lock.unlock();
+			mirror.compute(q, (k, v) -> v - 1);
 		});
 	}
 
@@ -126,7 +115,7 @@ public class GroupedExecutor
 	{
 		J.a(() ->
 		{
-			J.sleep(10000);
+			J.sleep(100);
 			service.shutdown();
 		});
 	}

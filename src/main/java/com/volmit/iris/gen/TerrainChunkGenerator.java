@@ -697,7 +697,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 						return i.getMax();
 					}
 				}
-
 			}
 
 			catch(Throwable e)

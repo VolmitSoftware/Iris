@@ -178,7 +178,7 @@ public class GenLayerCave extends GenLayer
 
 	public boolean canAir(Material m)
 	{
-		return (m.isSolid() || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
+		return (B.isSolid(m) || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean canWater(Material m)
@@ -188,7 +188,7 @@ public class GenLayerCave extends GenLayer
 
 	public boolean can(Material m)
 	{
-		return m.isSolid() && !m.equals(Material.BEDROCK);
+		return B.isSolid(m) && !m.equals(Material.BEDROCK);
 	}
 
 	@Override

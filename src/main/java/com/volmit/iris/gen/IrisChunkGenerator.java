@@ -21,7 +21,6 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -33,7 +32,6 @@ import lombok.EqualsAndHashCode;
 public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisContext
 {
 	private Method initLighting;
-	private IrisLock lock;
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
 	private KMap<Player, IrisBiome> b = new KMap<>();
@@ -41,19 +39,16 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	public IrisChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public IrisChunkGenerator(String dimensionName)
 	{
 		super(dimensionName, 16);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public IrisChunkGenerator(int tc)
 	{
 		super("", tc);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public void hotload()
@@ -73,9 +68,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	@Override
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
-		lock.lock();
 		super.onGenerate(random, x, z, data, grid);
-		lock.unlock();
 	}
 
 	public void onInit(World world, RNG rng)

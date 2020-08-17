@@ -22,6 +22,9 @@ public class CommandIrisWorld extends MortarCommand
 	@Command
 	private CommandIrisHotload hotload;
 
+	@Command
+	private CommandIrisTC tc;
+
 	public CommandIrisWorld()
 	{
 		super("world", "wrld", "w");

@@ -644,10 +644,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return Math.max(getTerrainHeight(x, z), getFluidHeight());
 	}
 
-	////////////////////
-	// BIOME METHODS
-	///////////////////
-
 	@Override
 	public void onHotload()
 	{

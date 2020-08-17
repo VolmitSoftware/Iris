@@ -8,7 +8,6 @@ import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
@@ -23,7 +22,6 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 	private int threads;
 	protected int cacheX;
 	protected int cacheZ;
-	private IrisLock genlock;
 	protected boolean cachingAllowed;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
@@ -32,7 +30,6 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		cacheX = 0;
 		cacheZ = 0;
 		this.threads = threads;
-		genlock = new IrisLock("ParallelGenLock");
 		cachingAllowed = false;
 	}
 
@@ -67,7 +64,6 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
-		genlock.lock();
 		cacheX = x;
 		cacheZ = z;
 		getCache().targetChunk(cacheX, cacheZ);
@@ -101,7 +97,6 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
 		onPostGenerate(random, x, z, data, grid, height, biomeMap);
-		genlock.unlock();
 	}
 
 	protected void onClose()

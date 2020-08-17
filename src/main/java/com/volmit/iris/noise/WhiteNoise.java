@@ -9,21 +9,26 @@ public class WhiteNoise implements NoiseGenerator
 		n = new FastNoise((int) seed);
 	}
 
+	private double f(double m)
+	{
+		return m;
+	}
+
 	@Override
 	public double noise(double x)
 	{
-		return (n.GetWhiteNoise(Float.intBitsToFloat((int) Double.doubleToLongBits(x / 1000d)) % 1000000F, 0) / 2D) + 0.5D;
+		return (n.DGetWhiteNoise(f(x), 0d) / 2D) + 0.5D;
 	}
 
 	@Override
 	public double noise(double x, double z)
 	{
-		return (n.GetWhiteNoise(Float.intBitsToFloat((int) Double.doubleToLongBits(x / 1000d)) % 1000000F, Float.intBitsToFloat((int) Double.doubleToLongBits(z / 1000d)) % 1000000F) / 2D) + 0.5D;
+		return (n.DGetWhiteNoise(f(x), f(z)) / 2D) + 0.5D;
 	}
 
 	@Override
 	public double noise(double x, double y, double z)
 	{
-		return (n.GetWhiteNoise(Float.intBitsToFloat((int) Double.doubleToLongBits(x / 1000d)) % 1000000F, Float.intBitsToFloat((int) Double.doubleToLongBits(y / 1000d)) % 1000000F, Float.intBitsToFloat((int) Double.doubleToLongBits(z / 1000d)) % 1000000F) / 2D) + 0.5D;
+		return (n.DGetWhiteNoise(f(x), f(y), f(z)) / 2D) + 0.5D;
 	}
 }

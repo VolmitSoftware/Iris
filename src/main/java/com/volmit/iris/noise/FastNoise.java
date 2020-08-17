@@ -353,21 +353,21 @@ public class FastNoise
 
 	private static double DValCoord2D(int seed, long x, long y)
 	{
-		int n = seed;
+		long n = seed;
 		n ^= X_PRIME_L * x;
 		n ^= Y_PRIME_L * y;
 
-		return ((n * n * n * 604930000L) / 21474836480000D) % 2D;
+		return ((n * n * n * 60493L) / (double) Long.MAX_VALUE);
 	}
 
 	private static double DValCoord3D(int seed, long x, long y, long z)
 	{
-		int n = seed;
+		long n = seed;
 		n ^= X_PRIME_L * x;
 		n ^= Y_PRIME_L * y;
 		n ^= Z_PRIME_L * z;
 
-		return ((n * n * n * 604930000L) / 21474836480000D) % 2D;
+		return ((n * n * n * 60493L) / (double) Long.MAX_VALUE);
 	}
 
 	private static float ValCoord3D(int seed, int x, int y, int z)
@@ -628,7 +628,7 @@ public class FastNoise
 	{
 		long i = Double.doubleToRawLongBits(f);
 
-		return i ^ (i >> 16);
+		return i ^ (i >> 32);
 	}
 
 	public float GetWhiteNoise(float x, float y, float z, float w)

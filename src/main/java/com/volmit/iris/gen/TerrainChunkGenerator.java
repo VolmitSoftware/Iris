@@ -144,9 +144,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					for(int kv = Math.max(height, fluidHeight); kv < Math.min(Math.max(height, fluidHeight) + 16, 255); kv++)
 					{
 						Biome skyBiome = biome.getSkyBiome(masterRandom, rz, kv, rx);
-						sliver.set(kv, biome.getDerivative());
-						sliver.set(k, skyBiome);
+						sliver.set(kv, skyBiome);
 					}
+				}
+
+				if(k <= Math.max(height, fluidHeight))
+				{
+					sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
 				}
 
 				// Set Sea Material (water/lava)

@@ -43,23 +43,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
 
-	@MinNumber(0.0001)
-	@MaxNumber(64)
-	@DontObfuscate
-	@Desc("The Thickness scale of cave veins")
-	private double caveThickness = 1D;
-
 	@Required
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
-
-	@MinNumber(0.0001)
-	@MaxNumber(512)
-	@DontObfuscate
-	@Desc("The cave web scale. Smaller values means scaled up vein networks.")
-	private double caveScale = 1D;
 
 	@DontObfuscate
 	@Desc("The placement style of regions")
@@ -92,12 +80,6 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-	@MinNumber(-256)
-	@MaxNumber(256)
-	@DontObfuscate
-	@Desc("Shift the Y value of the cave networks up or down.")
-	private double caveShift = 0D;
 
 	@DontObfuscate
 	@Desc("Generate caves or not.")
@@ -266,6 +248,11 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The noise style for rock types")
 	private IrisGeneratorStyle rockStyle = NoiseStyle.STATIC.style();
+
+	@ArrayType(min = 1, type = IrisCaveLayer.class)
+	@DontObfuscate
+	@Desc("Define cave layers")
+	private KList<IrisCaveLayer> caveLayers = new KList<>();
 
 	@DontObfuscate
 	@Desc("The noise style for fluid types")
@@ -509,7 +496,7 @@ public class IrisDimension extends IrisRegistrant
 	{
 		return rockLayerGenerator.aquire(() ->
 		{
-			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getLandZoom() * 10357));
 			return rockStyle.create(rngx);
 		});
 	}
@@ -551,7 +538,7 @@ public class IrisDimension extends IrisRegistrant
 	{
 		return fluidLayerGenerator.aquire(() ->
 		{
-			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getCaveScale() * getLandZoom() * 10357));
+			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getLandZoom() * 10357));
 			return fluidStyle.create(rngx);
 		});
 	}

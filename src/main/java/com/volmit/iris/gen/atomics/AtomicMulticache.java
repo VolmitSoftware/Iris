@@ -16,9 +16,6 @@ public class AtomicMulticache
 	private final KMap<Long, BiomeResult> biome;
 	private final KMap<Long, BiomeResult> rawBiome;
 	private final KMap<Long, IrisRegion> region;
-	private int r = 0;
-	private int w = 0;
-	private int m = 0;
 
 	public AtomicMulticache()
 	{
@@ -34,9 +31,6 @@ public class AtomicMulticache
 	{
 		this.x.set(x);
 		this.z.set(z);
-		r = 0;
-		w = 0;
-		m = 0;
 
 		if(!IrisSettings.get().sharedCaching || getSize() > 42000)
 		{
@@ -46,70 +40,58 @@ public class AtomicMulticache
 
 	public double getHeight(int x, int z, Supplier<Double> g)
 	{
-		return height.compute(pos(x, z), (k, v) ->
+		Long pos = pos(x, z);
+		Double r = height.get(pos);
+
+		if(r == null)
 		{
-			if(v == null)
-			{
-				m++;
-				w++;
-				return g.get();
-			}
+			r = g.get();
+			height.put(pos, r);
+		}
 
-			r++;
-
-			return v;
-		});
+		return r;
 	}
 
 	public IrisRegion getRegion(int x, int z, Supplier<IrisRegion> g)
 	{
-		return region.compute(pos(x, z), (k, v) ->
+		Long pos = pos(x, z);
+		IrisRegion r = region.get(pos);
+
+		if(r == null)
 		{
-			if(v == null)
-			{
-				m++;
-				w++;
-				return g.get();
-			}
+			r = g.get();
+			region.put(pos, r);
+		}
 
-			r++;
-
-			return v;
-		});
+		return r;
 	}
 
 	public BiomeResult getBiome(int x, int z, Supplier<BiomeResult> g)
 	{
-		return biome.compute(pos(x, z), (k, v) ->
+		Long pos = pos(x, z);
+		BiomeResult r = biome.get(pos);
+
+		if(r == null)
 		{
-			if(v == null)
-			{
-				m++;
-				w++;
-				return g.get();
-			}
+			r = g.get();
+			biome.put(pos, r);
+		}
 
-			r++;
-
-			return v;
-		});
+		return r;
 	}
 
 	public BiomeResult getRawBiome(int x, int z, Supplier<BiomeResult> g)
 	{
-		return rawBiome.compute(pos(x, z), (k, v) ->
+		Long pos = pos(x, z);
+		BiomeResult r = rawBiome.get(pos);
+
+		if(r == null)
 		{
-			if(v == null)
-			{
-				m++;
-				w++;
-				return g.get();
-			}
+			r = g.get();
+			rawBiome.put(pos, r);
+		}
 
-			r++;
-
-			return v;
-		});
+		return r;
 	}
 
 	private long pos(int x, int z)

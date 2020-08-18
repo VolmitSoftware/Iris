@@ -3,6 +3,7 @@ package com.volmit.iris.gen.post;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.B;
@@ -24,10 +25,10 @@ public class PostWaterlogger extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		int h = highestTerrainBlock(x, z);
-		BlockData b = getPostBlock(x, h, z);
+		BlockData b = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
 
 		if(b instanceof Waterlogged)
 		{
@@ -38,24 +39,24 @@ public class PostWaterlogger extends IrisPostBlockFilter
 				return;
 			}
 
-			if(isWaterOrWaterlogged(x, h + 1, z) && !ww.isWaterlogged())
+			if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData) && !ww.isWaterlogged())
 			{
 				ww.setWaterlogged(true);
-				setPostBlock(x, h, z, ww);
+				setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
 			}
 
-			else if(!ww.isWaterlogged() && (isWaterOrWaterlogged(x + 1, h, z) || isWaterOrWaterlogged(x - 1, h, z) || isWaterOrWaterlogged(x, h, z + 1) || isWaterOrWaterlogged(x, h, z - 1)))
+			else if(!ww.isWaterlogged() && (isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
 			{
 				ww.setWaterlogged(true);
-				setPostBlock(x, h, z, ww);
+				setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
 			}
 		}
 
 		else if(b.getMaterial().equals(Material.AIR) && h <= gen.getFluidHeight())
 		{
-			if((isWaterOrWaterlogged(x + 1, h, z) || isWaterOrWaterlogged(x - 1, h, z) || isWaterOrWaterlogged(x, h, z + 1) || isWaterOrWaterlogged(x, h, z - 1)))
+			if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
 			{
-				setPostBlock(x, h, z, WATER);
+				setPostBlock(x, h, z, WATER, currentPostX, currentPostZ, currentData);
 			}
 		}
 	}

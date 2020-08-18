@@ -31,6 +31,7 @@ public class CNG
 	private final double opacity;
 	private NoiseInjector injector;
 	private RNG rng;
+	private boolean noscale;
 	private int oct;
 	private double patch;
 	private double up;
@@ -124,6 +125,7 @@ public class CNG
 	public CNG(RNG random, NoiseType t, double opacity, int octaves)
 	{
 		creates++;
+		noscale = t.equals(NoiseType.WHITE);
 		this.oct = octaves;
 		this.rng = random;
 		power = 1;
@@ -332,8 +334,8 @@ public class CNG
 
 	public double noise(double... dim)
 	{
-		double scale = this.bakedScale * this.scale;
-		double f = (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
+		double scale = noscale ? 1 : this.bakedScale * this.scale;
+		double f = noscale ? 0 : (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
 		double x = dim.length > 0 ? dim[0] + f : 0D;
 		double y = dim.length > 1 ? dim[1] - f : 0D;
 		double z = dim.length > 2 ? dim[2] - f : 0D;

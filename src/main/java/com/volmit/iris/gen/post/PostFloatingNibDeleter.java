@@ -1,6 +1,7 @@
 package com.volmit.iris.gen.post;
 
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.B;
@@ -22,7 +23,7 @@ public class PostFloatingNibDeleter extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		int g = 0;
 		int h = highestTerrainBlock(x, z);
@@ -41,13 +42,13 @@ public class PostFloatingNibDeleter extends IrisPostBlockFilter
 		g += hc < h - 1 ? 1 : 0;
 		g += hd < h - 1 ? 1 : 0;
 
-		if(g == 4 && isAir(x, h - 1, z))
+		if(g == 4 && isAir(x, h - 1, z, currentPostX, currentPostZ, currentData))
 		{
-			setPostBlock(x, h, z, AIR);
+			setPostBlock(x, h, z, AIR, currentPostX, currentPostZ, currentData);
 
 			for(int i = h - 1; i > 0; i--)
 			{
-				if(!isAir(x, i, z))
+				if(!isAir(x, i, z, currentPostX, currentPostZ, currentData))
 				{
 					updateHeight(x, z, i);
 					break;

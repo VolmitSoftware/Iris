@@ -132,6 +132,13 @@ public class IrisInterpolation
 		return cubic(cubic(p00, p01, p02, p03, muy), cubic(p10, p11, p12, p13, muy), cubic(p20, p21, p22, p23, muy), cubic(p30, p31, p32, p33, muy), mux);
 	}
 
+	public static double trilerp(double v1, double v2, double v3, double v4, double v5, double v6, double v7, double v8, double x, double y, double z)
+	{
+		double s = blerp(v1, v2, v3, v4, x, y);
+		double t = blerp(v5, v6, v7, v8, x, y);
+		return lerp(s, t, z);
+	}
+
 	public static double getBilinearNoise(int x, int z, double rad, NoiseProvider n)
 	{
 		int fx = (int) Math.floor(x / rad);

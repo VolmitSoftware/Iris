@@ -34,7 +34,6 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -59,7 +58,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	protected ChronoLatch tickLatch;
 	protected ChronoLatch pushLatch;
 	protected IrisMetrics metrics;
-	protected IrisLock hlock;
 	protected World world;
 	protected int generated;
 	protected int ticks;
@@ -74,7 +72,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
 		hlast = M.ms();
-		hlock = new IrisLock("HotLock");
 		cache = new AtomicMulticache();
 		CNG.creates = 0;
 		generated = 0;
@@ -318,7 +315,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@Override
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
-		hlock.lock();
 		setHotloadable(false);
 		if(!dev)
 		{
@@ -330,7 +326,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		if(failing)
 		{
-			hlock.unlock();
 			return generateChunkDataFailure(world, no, x, z, biomeGrid);
 		}
 
@@ -359,7 +354,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			Iris.instance.hit(hits);
 			metrics.getLoss().put(sx.getMilliseconds() - s.getMilliseconds());
 			setHotloadable(true);
-			hlock.unlock();
 			return c;
 		}
 
@@ -369,7 +363,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 
 		setHotloadable(true);
-		hlock.unlock();
 		return generateChunkDataFailure(world, no, x, z, biomeGrid);
 	}
 
@@ -380,12 +373,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			return;
 		}
 
-		hlock.lock();
 		if(world != null)
 		{
 			checkHotload(world);
 		}
-		hlock.unlock();
 	}
 
 	private void checkHotload(World world)

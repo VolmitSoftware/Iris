@@ -22,7 +22,6 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.RegistryListDimension;
 import com.volmit.iris.util.RegistryListRegion;
 import com.volmit.iris.util.Required;
 
@@ -48,6 +47,12 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
+
+	@MinNumber(0)
+	@MaxNumber(1)
+	@DontObfuscate
+	@Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")
+	private double landChance = 0.625;
 
 	@DontObfuscate
 	@Desc("The placement style of regions")
@@ -144,15 +149,6 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
-
-	@RegistryListDimension
-	@DontObfuscate
-	@Desc("The ceiling dimension. Leave blank for normal sky.")
-	private String ceiling = "";
-
-	@DontObfuscate
-	@Desc("Mirrors the generator floor into the ceiling. Think nether but worse...")
-	private boolean mirrorCeiling = false;
 
 	@Required
 	@DontObfuscate
@@ -289,7 +285,6 @@ public class IrisDimension extends IrisRegistrant
 	private transient AtomicCache<Double> sinr = new AtomicCache<>();
 	private transient AtomicCache<Double> cosr = new AtomicCache<>();
 	private transient AtomicCache<Double> rad = new AtomicCache<>();
-	private transient boolean inverted = false;
 
 	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
 	{

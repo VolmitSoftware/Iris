@@ -21,7 +21,6 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -30,10 +29,9 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisContext
+public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisContext
 {
 	private Method initLighting;
-	private IrisLock lock;
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
 	private KMap<Player, IrisBiome> b = new KMap<>();
@@ -41,19 +39,16 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	public IrisChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public IrisChunkGenerator(String dimensionName)
 	{
 		super(dimensionName, 16);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public IrisChunkGenerator(int tc)
 	{
 		super("", tc);
-		lock = new IrisLock("IrisChunkGenerator");
 	}
 
 	public void hotload()
@@ -73,9 +68,7 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 	@Override
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
-		lock.lock();
 		super.onGenerate(random, x, z, data, grid);
-		lock.unlock();
 	}
 
 	public void onInit(World world, RNG rng)
@@ -139,11 +132,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		try
 		{
 			parallaxMap.saveAll();
-			ceilingParallaxMap.saveAll();
 			parallaxMap.getLoadedChunks().clear();
 			parallaxMap.getLoadedRegions().clear();
-			ceilingParallaxMap.getLoadedChunks().clear();
-			ceilingParallaxMap.getLoadedRegions().clear();
 		}
 
 		catch(IOException e)
@@ -152,7 +142,6 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 		}
 
 		setAvailableFilters(null);
-		setCeilingSliverCache(null);
 		setSliverCache(null);
 		Iris.info("Closing Iris Dimension " + getWorld().getName());
 	}
@@ -217,14 +206,8 @@ public class IrisChunkGenerator extends CeilingChunkGenerator implements IrisCon
 			bytes += i.guessMemoryUsage();
 		}
 
-		for(AtomicRegionData i : ceilingParallaxMap.getLoadedRegions().values())
-		{
-			bytes += i.guessMemoryUsage();
-		}
-
 		bytes += getCache().getSize() * 65;
 		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
-		bytes += ceilingParallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += getSliverBuffer() * 220;
 		bytes += 823 * getData().getObjectLoader().getTotalStorage();
 

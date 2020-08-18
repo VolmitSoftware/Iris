@@ -2,6 +2,7 @@ package com.volmit.iris.gen.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -26,7 +27,7 @@ public class PostSlabber extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		int h = highestTerrainBlock(x, z);
 		int ha = highestTerrainBlock(x + 1, z);
@@ -34,7 +35,7 @@ public class PostSlabber extends IrisPostBlockFilter
 		int hc = highestTerrainBlock(x - 1, z);
 		int hd = highestTerrainBlock(x, z - 1);
 
-		if((ha == h + 1 && isSolid(x + 1, ha, z)) || (hb == h + 1 && isSolid(x, hb, z + 1)) || (hc == h + 1 && isSolid(x - 1, hc, z)) || (hd == h + 1 && isSolid(x, hd, z - 1)))
+		if((ha == h + 1 && isSolid(x + 1, ha, z, currentPostX, currentPostZ, currentData)) || (hb == h + 1 && isSolid(x, hb, z + 1, currentPostX, currentPostZ, currentData)) || (hc == h + 1 && isSolid(x - 1, hc, z, currentPostX, currentPostZ, currentData)) || (hd == h + 1 && isSolid(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
 		{
 			BlockData d = gen.sampleTrueBiome(x, z).getBiome().getSlab().get(rng, x, h, z);
 
@@ -50,16 +51,16 @@ public class PostSlabber extends IrisPostBlockFilter
 					return;
 				}
 
-				if(isSnowLayer(x, h, z))
+				if(isSnowLayer(x, h, z, currentPostX, currentPostZ, currentData))
 				{
 					return;
 				}
 
-				if(isAirOrWater(x, h + 2, z))
+				if(isAirOrWater(x, h + 2, z, currentPostX, currentPostZ, currentData))
 				{
 					queue(() ->
 					{
-						setPostBlock(x, h + 1, z, d);
+						setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
 						updateHeight(x, z, h + 1);
 					});
 				}

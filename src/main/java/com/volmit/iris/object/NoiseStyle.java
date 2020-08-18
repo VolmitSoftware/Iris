@@ -9,18 +9,11 @@ import com.volmit.iris.util.RNG;
 
 @Desc("Styles of noise")
 @DontObfuscate
-public enum NoiseStyle {
+public enum NoiseStyle
+{
 	@Desc("White Noise is like static. Useful for block scattering but not terrain.")
 	@DontObfuscate
 	STATIC(rng -> new CNG(rng, NoiseType.WHITE, 1D, 1)),
-
-	@Desc("White Noise is like static. Useful for block scattering but not terrain. 4 Times finer.")
-	@DontObfuscate
-	STATIC_FINE(rng -> new CNG(rng, NoiseType.WHITE, 1D, 1).scale(4)),
-
-	@Desc("White Noise is like static. Useful for block scattering but not terrain. 16 Times finer.")
-	@DontObfuscate
-	STATIC_ULTRA_FINE(rng -> new CNG(rng, NoiseType.WHITE, 1D, 1).scale(16)),
 
 	@Desc("Wispy Perlin-looking simplex noise. The 'iris' style noise.")
 	@DontObfuscate
@@ -44,9 +37,7 @@ public enum NoiseStyle {
 
 	@Desc("Very Detailed smoke using simplex fractured with fractal billow simplex at high octaves.")
 	@DontObfuscate
-	FRACTAL_SMOKE(rng -> new CNG(rng, 1D, 1)
-			.fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_BILLOW_SIMPLEX, 1D, 8).scale(0.2), 1000)
-			.scale(0.34)),
+	FRACTAL_SMOKE(rng -> new CNG(rng, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_BILLOW_SIMPLEX, 1D, 8).scale(0.2), 1000).scale(0.34)),
 
 	@Desc("Thinner Veins.")
 	@DontObfuscate
@@ -54,19 +45,15 @@ public enum NoiseStyle {
 
 	@Desc("Cells of simplex noise")
 	@DontObfuscate
-	SIMPLEX_CELLS(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1)
-			.fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.CELLULAR, 1D, 1).scale(1), 200)),
+	SIMPLEX_CELLS(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1).fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.CELLULAR, 1D, 1).scale(1), 200)),
 
 	@Desc("Veins of simplex noise")
 	@DontObfuscate
-	SIMPLEX_VASCULAR(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1)
-			.fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.VASCULAR, 1D, 1).scale(1), 200)),
+	SIMPLEX_VASCULAR(rng -> new CNG(rng.nextParallelRNG(1), NoiseType.SIMPLEX, 1D, 1).scale(1).fractureWith(new CNG(rng.nextParallelRNG(8), NoiseType.VASCULAR, 1D, 1).scale(1), 200)),
 
 	@Desc("Very Detailed fluid using simplex fractured with fractal billow simplex at high octaves.")
 	@DontObfuscate
-	FRACTAL_WATER(rng -> new CNG(rng, 1D, 1)
-			.fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_FBM_SIMPLEX, 1D, 9).scale(0.03), 9900)
-			.scale(1.14)),
+	FRACTAL_WATER(rng -> new CNG(rng, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(1), NoiseType.FRACTAL_FBM_SIMPLEX, 1D, 9).scale(0.03), 9900).scale(1.14)),
 
 	@Desc("Perlin. Like simplex but more natural")
 	@DontObfuscate
@@ -413,17 +400,21 @@ public enum NoiseStyle {
 	VASCULAR_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.VASCULAR)),
 
 	;
+
 	private CNGFactory f;
 
-	private NoiseStyle(CNGFactory f) {
+	private NoiseStyle(CNGFactory f)
+	{
 		this.f = f;
 	}
 
-	public CNG create(RNG seed) {
+	public CNG create(RNG seed)
+	{
 		return f.create(seed).bake();
 	}
 
-	public IrisGeneratorStyle style() {
+	public IrisGeneratorStyle style()
+	{
 		return new IrisGeneratorStyle(this);
 	}
 }

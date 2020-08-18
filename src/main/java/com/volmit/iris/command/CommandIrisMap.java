@@ -1,8 +1,8 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.NoiseView;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gui.NoiseView;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 

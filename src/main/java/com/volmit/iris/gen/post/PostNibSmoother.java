@@ -2,6 +2,7 @@ package com.volmit.iris.gen.post;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -20,7 +21,7 @@ public class PostNibSmoother extends IrisPostBlockFilter
 	}
 
 	@Override
-	public void onPost(int x, int z)
+	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		int g = 0;
 		int h = highestTerrainBlock(x, z);
@@ -35,13 +36,13 @@ public class PostNibSmoother extends IrisPostBlockFilter
 
 		if(g >= 3)
 		{
-			BlockData bc = getPostBlock(x, h, z);
-			BlockData b = getPostBlock(x, h + 1, z);
+			BlockData bc = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
+			BlockData b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
 			Material m = bc.getMaterial();
 
 			if(m.isSolid())
 			{
-				setPostBlock(x, h, z, b);
+				setPostBlock(x, h, z, b, currentPostX, currentPostZ, currentData);
 				updateHeight(x, z, h - 1);
 			}
 		}

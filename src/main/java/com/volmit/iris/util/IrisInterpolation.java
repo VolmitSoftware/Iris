@@ -1,13 +1,9 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InterpolationMethod;
-import com.volmit.iris.object.NoiseStyle;
 
 public class IrisInterpolation
 {
-	private static CNG cng = NoiseStyle.IRIS_DOUBLE.create(RNG.r);
-
 	public static double bezier(double t)
 	{
 		return t * t * (3.0d - 2.0d * t);

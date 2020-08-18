@@ -19,7 +19,8 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class GenLayerBiome extends GenLayer {
+public class GenLayerBiome extends GenLayer
+{
 	private CNG regionGenerator;
 	private CNG bridgeGenerator;
 	private BiomeDataProvider seaProvider;
@@ -30,7 +31,8 @@ public class GenLayerBiome extends GenLayer {
 	private BiomeDataProvider skylandProvider;
 	private DimensionChunkGenerator iris;
 
-	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng) {
+	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
+	{
 		super(iris, rng);
 		this.iris = iris;
 		seaProvider = new BiomeDataProvider(this, InferredType.SEA, rng);
@@ -39,14 +41,14 @@ public class GenLayerBiome extends GenLayer {
 		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, rng);
 		islandProvider = new BiomeDataProvider(this, InferredType.ISLAND, rng);
 		skylandProvider = new BiomeDataProvider(this, InferredType.SKYLAND, rng);
-		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519)).bake()
-				.scale(1D / iris.getDimension().getRegionZoom());
-		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462)).bake()
-				.scale(1D / iris.getDimension().getContinentZoom());
+		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519)).bake().scale(1D / iris.getDimension().getRegionZoom());
+		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462)).bake().scale(1D / iris.getDimension().getContinentZoom());
 	}
 
-	public IrisRegion getRegion(double bx, double bz) {
-		if (iris.getDimension().getRegions().isEmpty()) {
+	public IrisRegion getRegion(double bx, double bz)
+	{
+		if(iris.getDimension().getRegions().isEmpty())
+		{
 			Iris.error("NO REGIONS!");
 			return null;
 		}
@@ -57,60 +59,84 @@ public class GenLayerBiome extends GenLayer {
 		return regionGenerator.fitRarity(iris.getDimension().getAllRegions(iris), x, z);
 	}
 
-	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ) {
+	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ)
+	{
 		return generateRegionData(bx, bz, rawX, rawZ, getRegion(bx, bz));
 	}
 
-	public BiomeResult generateData(InferredType type, double bx, double bz, int rawX, int rawZ,
-			IrisRegion regionData) {
+	public BiomeResult generateData(InferredType type, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	{
 		return getProvider(type).generateData(iris, bx, bz, rawX, rawZ, regionData);
 	}
 
-	public BiomeDataProvider getProvider(InferredType type) {
-		if (type.equals(InferredType.SEA)) {
+	public BiomeDataProvider getProvider(InferredType type)
+	{
+		if(type.equals(InferredType.SEA))
+		{
 			return seaProvider;
 		}
 
-		else if (type.equals(InferredType.LAND)) {
+		else if(type.equals(InferredType.LAND))
+		{
 			return landProvider;
 		}
 
-		else if (type.equals(InferredType.SHORE)) {
+		else if(type.equals(InferredType.SHORE))
+		{
 			return shoreProvider;
 		}
 
-		else if (type.equals(InferredType.CAVE)) {
+		else if(type.equals(InferredType.CAVE))
+		{
 			return caveProvider;
 		}
 
-		else if (type.equals(InferredType.ISLAND)) {
+		else if(type.equals(InferredType.ISLAND))
+		{
 			return islandProvider;
 		}
 
-		else if (type.equals(InferredType.SKYLAND)) {
+		else if(type.equals(InferredType.SKYLAND))
+		{
 			return skylandProvider;
 		}
 
-		else {
+		else
+		{
 			Iris.error("Cannot find a BiomeDataProvider for type " + type.name());
 		}
 
 		return null;
 	}
 
-	public BiomeResult generateRegionData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData) {
+	public BiomeResult generateRegionData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	{
 		return generateData(getType(bx, bz, regionData), bx, bz, rawX, rawZ, regionData);
 	}
 
-	public InferredType getType(double bx, double bz, IrisRegion regionData) {
+	public InferredType getType(double bx, double bz, IrisRegion regionData)
+	{
 		double x = bx;
 		double z = bz;
-		return bridgeGenerator.fit(0, 1, x, z) == 0 ? InferredType.LAND : InferredType.SEA;
+		double c = iris.getDimension().getLandChance();
+
+		if(c >= 1)
+		{
+			return InferredType.LAND;
+		}
+
+		if(c <= 0)
+		{
+			return InferredType.SEA;
+		}
+
+		return bridgeGenerator.fitDouble(0, 1, x, z) < c ? InferredType.LAND : InferredType.SEA;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes,
-			InferredType inferredType) {
-		if (biomes.isEmpty()) {
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType)
+	{
+		if(biomes.isEmpty())
+		{
 			return new BiomeResult(null, 0);
 		}
 
@@ -122,16 +148,20 @@ public class GenLayerBiome extends GenLayer {
 		return implode(bx, bz, regionData, cell, new BiomeResult(biome, 1));
 	}
 
-	public BiomeResult generateImpureData(int rawX, int rawZ, InferredType type, IrisRegion regionData,
-			BiomeResult pureResult) {
-		for (IrisRegionRidge i : regionData.getRidgeBiomes()) {
-			if (i.getType().equals(type) && i.isRidge(rng, rawX, rawZ)) {
+	public BiomeResult generateImpureData(int rawX, int rawZ, InferredType type, IrisRegion regionData, BiomeResult pureResult)
+	{
+		for(IrisRegionRidge i : regionData.getRidgeBiomes())
+		{
+			if(i.getType().equals(type) && i.isRidge(rng, rawX, rawZ))
+			{
 				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
 
-		for (IrisRegionSpot i : regionData.getSpotBiomes()) {
-			if (i.getType().equals(type) && i.isSpot(rng, rawX, rawZ)) {
+		for(IrisRegionSpot i : regionData.getSpotBiomes())
+		{
+			if(i.getType().equals(type) && i.isSpot(rng, rawX, rawZ))
+			{
 				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
 			}
 		}
@@ -139,20 +169,23 @@ public class GenLayerBiome extends GenLayer {
 		return pureResult;
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent) {
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent)
+	{
 		return implode(bx, bz, regionData, parentCell, parent, 1);
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent,
-			int hits) {
-		if (hits > IrisSettings.get().maxBiomeChildDepth) {
+	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent, int hits)
+	{
+		if(hits > IrisSettings.get().maxBiomeChildDepth)
+		{
 			return parent;
 		}
 
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
 
-		if (!parent.getBiome().getRealChildren(iris).isEmpty()) {
+		if(!parent.getBiome().getRealChildren(iris).isEmpty())
+		{
 			CNG childCell = parent.getBiome().getChildrenGenerator(rng, 123, parent.getBiome().getChildShrinkFactor());
 			KList<IrisBiome> chx = parent.getBiome().getRealChildren(iris).copy(); // TODO Cache
 			chx.add(parent.getBiome());
@@ -166,7 +199,8 @@ public class GenLayerBiome extends GenLayer {
 	}
 
 	@Override
-	public double generate(double x, double z) {
+	public double generate(double x, double z)
+	{
 		return 0;
 	}
 }

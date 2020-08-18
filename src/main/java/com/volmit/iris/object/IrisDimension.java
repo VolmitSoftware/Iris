@@ -48,6 +48,12 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
 
+	@MinNumber(0)
+	@MaxNumber(1)
+	@DontObfuscate
+	@Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")
+	private double landChance = 0.625;
+
 	@DontObfuscate
 	@Desc("The placement style of regions")
 	private IrisGeneratorStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();

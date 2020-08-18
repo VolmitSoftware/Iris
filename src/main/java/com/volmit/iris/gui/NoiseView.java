@@ -1,4 +1,4 @@
-package com.volmit.iris;
+package com.volmit.iris.gui;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -24,6 +24,7 @@ import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.JViewport;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.NoiseStyle;

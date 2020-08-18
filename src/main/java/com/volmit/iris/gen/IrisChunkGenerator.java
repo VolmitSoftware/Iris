@@ -3,6 +3,7 @@ package com.volmit.iris.gen;
 import java.awt.Color;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Random;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -22,6 +23,7 @@ import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -63,6 +65,16 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 			failing = false;
 			hotload();
 		}
+	}
+
+	@Override
+	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	{
+		PrecisionStopwatch s = PrecisionStopwatch.start();
+		ChunkData c = super.generateChunkData(world, no, x, z, biomeGrid);
+		s.end();
+		metrics.getTotal().put(s.getMilliseconds());
+		return c;
 	}
 
 	@Override

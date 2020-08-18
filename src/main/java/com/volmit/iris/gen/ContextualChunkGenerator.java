@@ -24,6 +24,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisMetrics;
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.gen.atomics.AtomicMulticache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
@@ -36,7 +37,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.M;
-import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -57,6 +57,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	protected ChronoLatch perSecond;
 	protected ChronoLatch tickLatch;
 	protected ChronoLatch pushLatch;
+	private AtomicCache<IrisDimension> dimCache;
 	protected IrisMetrics metrics;
 	protected World world;
 	protected int generated;
@@ -80,6 +81,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		initialized = false;
 		failing = false;
 		pregenDone = false;
+		dimCache = new AtomicCache<>();
 		dev = false;
 	}
 
@@ -123,7 +125,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public IrisDimension loadDimension(String i)
 	{
-		return (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i);
+		return dimCache.aquire(() -> (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i));
 	}
 
 	public IrisGenerator loadGenerator(String i)
@@ -322,8 +324,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			fastPregen = false;
 		}
 
-		PrecisionStopwatch sx = PrecisionStopwatch.start();
-
 		if(failing)
 		{
 			return generateChunkDataFailure(world, no, x, z, biomeGrid);
@@ -331,7 +331,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		try
 		{
-			PrecisionStopwatch s = PrecisionStopwatch.start();
 			RNG random = new RNG(world.getSeed());
 			init(world, random.nextParallelRNG(0));
 
@@ -347,12 +346,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 				onGenerate(random, x, z, c, biomeGrid);
 			}
 
-			metrics.getTotal().put(s.getMilliseconds());
 			generated++;
 			long hits = CNG.hits;
 			CNG.hits = 0;
 			Iris.instance.hit(hits);
-			metrics.getLoss().put(sx.getMilliseconds() - s.getMilliseconds());
 			setHotloadable(true);
 			return c;
 		}
@@ -405,6 +402,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	public void onHotload()
 	{
 		hlast = M.ms();
+		dimCache.reset();
 	}
 
 	protected void fail(Throwable e)

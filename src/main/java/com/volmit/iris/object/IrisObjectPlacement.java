@@ -65,6 +65,10 @@ public class IrisObjectPlacement
 	private boolean underwater = false;
 
 	@DontObfuscate
+	@Desc("If set to true, Blocks placed underwater that could be waterlogged are waterlogged.")
+	private boolean waterloggable = true;
+
+	@DontObfuscate
 	@Desc("If set to true, objects will place on the fluid height level Such as boats.")
 	private boolean onwater = false;
 

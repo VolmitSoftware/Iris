@@ -46,10 +46,10 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
 	private GenLayerCarve glCarve;
+	protected GenLayerBiome glBiome;
 	private RNG rockRandom;
 	protected IrisLock regLock;
 	private KMap<String, IrisGenerator> generators;
-	protected GenLayerBiome glBiome;
 	protected CNG masterFracture;
 	protected ChronoLatch cwarn = new ChronoLatch(1000);
 
@@ -113,15 +113,19 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			boolean caverning = false;
 			KList<Integer> cavernHeights = new KList<>();
 			int lastCavernHeight = -1;
-			boolean bxx = false;
+			boolean biomeAssigned = false;
+			int max = Math.max(height, fluidHeight);
+			int biomeMax = Math.min(max + 16, 255);
 
 			// From Height to Bedrock
-			for(int k = Math.max(height, fluidHeight); k >= 0; k--)
+			for(int k = max; k >= 0; k--)
 			{
 				boolean cavernSurface = false;
+				boolean bedrock = k == 0;
+				boolean underwater = k > height && k <= fluidHeight;
 
 				// Bedrock
-				if(k == 0)
+				if(bedrock)
 				{
 					if(biomeMap != null)
 					{
@@ -145,6 +149,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					continue;
 				}
 
+				// Carved Surface
 				else if(carvable && caverning)
 				{
 					lastCavernHeight = k;
@@ -153,16 +158,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					caverning = false;
 				}
 
-				boolean underwater = k > height && k <= fluidHeight;
-
 				// Set Biome
-				if(!bxx && biomeMap != null)
+				if(!biomeAssigned && biomeMap != null)
 				{
-					bxx = true;
+					biomeAssigned = true;
 					sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
 					biomeMap.setBiome(x, z, biome);
 
-					for(int kv = Math.max(height, fluidHeight); kv < Math.min(Math.max(height, fluidHeight) + 16, 255); kv++)
+					for(int kv = max; kv < biomeMax; kv++)
 					{
 						Biome skyBiome = biome.getSkyBiome(masterRandom, rz, kv, rx);
 						sliver.set(kv, skyBiome);
@@ -275,14 +278,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		for(IrisDepositGenerator k : getDimension().getDeposits())
 		{
-			k.generate(data, ro, this);
+			k.generate(data, ro, this, x, z);
 		}
 
 		for(IrisDepositGenerator k : region.getDeposits())
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(data, ro, this);
+				k.generate(data, ro, this, x, z);
 			}
 		}
 
@@ -290,7 +293,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(data, ro, this);
+				k.generate(data, ro, this, x, z);
 			}
 		}
 	}
@@ -493,9 +496,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	private double getNoiseHeight(int rx, int rz)
 	{
-		double wx = getZoomed(rx);
-		double wz = getZoomed(rz);
-		double h = getBiomeHeight(wx, wz, rx, rz);
+		double h = getBiomeHeight(rx, rz);
 
 		return h;
 	}
@@ -670,8 +671,10 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return generators;
 	}
 
-	protected double getBiomeHeight(double rx, double rz, int x, int z)
+	protected double getBiomeHeight(double rrx, double rrz)
 	{
+		double rx = rrx;
+		double rz = rrz;
 		double h = 0;
 
 		for(IrisGenerator i : getGenerators().values())

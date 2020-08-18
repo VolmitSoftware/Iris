@@ -27,6 +27,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData CAVE_AIR = B.get("CAVE_AIR");
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
+	protected static final BlockData WATER = Material.WATER.createBlockData();
 
 	public DimensionChunkGenerator(String dimensionName)
 	{

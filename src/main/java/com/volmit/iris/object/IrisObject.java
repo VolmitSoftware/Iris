@@ -223,7 +223,7 @@ public class IrisObject extends IrisRegistrant
 				continue;
 			}
 
-			if(yy <= placer.getFluidHeight() && data instanceof Waterlogged)
+			if(config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged)
 			{
 				((Waterlogged) data).setWaterlogged(true);
 			}

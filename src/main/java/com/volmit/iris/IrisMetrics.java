@@ -12,7 +12,6 @@ public class IrisMetrics
 	private final RollingSequence post;
 	private final RollingSequence total;
 	private final RollingSequence perSecond;
-	private final RollingSequence loss;
 	public int generators = 0;
 	public int noiseHits = 0;
 
@@ -23,7 +22,6 @@ public class IrisMetrics
 		post = new RollingSequence(memory);
 		total = new RollingSequence(memory);
 		perSecond = new RollingSequence(5);
-		loss = new RollingSequence(memory);
 	}
 
 	public double getSpeed()

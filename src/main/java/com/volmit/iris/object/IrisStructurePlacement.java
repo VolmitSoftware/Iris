@@ -120,7 +120,11 @@ public class IrisStructurePlacement
 
 	private IrisObjectPlacement getConfig()
 	{
-		return config.aquire(() -> new IrisObjectPlacement());
+		return config.aquire(() -> {
+			IrisObjectPlacement p = new IrisObjectPlacement();
+			p.setWaterloggable(false);
+			return p;
+		});
 	}
 
 	public IrisObject load(ContextualChunkGenerator g, String s)

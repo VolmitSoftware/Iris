@@ -22,7 +22,8 @@ import lombok.EqualsAndHashCode;
 @Desc("Represents a composite generator of noise gens")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisGenerator extends IrisRegistrant {
+public class IrisGenerator extends IrisRegistrant
+{
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The zoom or frequency.")
@@ -101,91 +102,114 @@ public class IrisGenerator extends IrisRegistrant {
 
 	private transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
 
-	public IrisGenerator() {
+	public IrisGenerator()
+	{
 
 	}
 
-	public double getMax() {
+	public double getMax()
+	{
 		return opacity;
 	}
 
-	public boolean hasCliffs() {
+	public boolean hasCliffs()
+	{
 		return cliffHeightMax > 0;
 	}
 
-	public CellGenerator getCellGenerator(long seed) {
+	public CellGenerator getCellGenerator(long seed)
+	{
 		return cellGen.aquire(() -> new CellGenerator(new RNG(seed + 239466)));
 	}
 
-	public <T extends IRare> T fitRarity(KList<T> b, long superSeed, double rx, double rz) {
-		if (b.size() == 0) {
+	public <T extends IRare> T fitRarity(KList<T> b, long superSeed, double rx, double rz)
+	{
+		if(b.size() == 0)
+		{
 			return null;
 		}
 
-		if (b.size() == 1) {
+		if(b.size() == 1)
+		{
 			return b.get(0);
 		}
 
 		KList<T> rarityMapped = new KList<>();
 		boolean o = false;
 		int max = 1;
-		for (T i : b) {
-			if (i.getRarity() > max) {
+		for(T i : b)
+		{
+			if(i.getRarity() > max)
+			{
 				max = i.getRarity();
 			}
 		}
 
 		max++;
 
-		for (T i : b) {
-			for (int j = 0; j < max - i.getRarity(); j++) {
-				if (o = !o) {
+		for(T i : b)
+		{
+			for(int j = 0; j < max - i.getRarity(); j++)
+			{
+				if(o = !o)
+				{
 					rarityMapped.add(i);
 				}
 
-				else {
+				else
+				{
 					rarityMapped.add(0, i);
 				}
 			}
 		}
 
-		if (rarityMapped.size() == 1) {
+		if(rarityMapped.size() == 1)
+		{
 			return rarityMapped.get(0);
 		}
 
-		if (rarityMapped.isEmpty()) {
+		if(rarityMapped.isEmpty())
+		{
 			throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
 		}
 
 		return fit(rarityMapped, superSeed, rx, rz);
 	}
 
-	public <T> T fit(T[] v, long superSeed, double rx, double rz) {
-		if (v.length == 0) {
+	public <T> T fit(T[] v, long superSeed, double rx, double rz)
+	{
+		if(v.length == 0)
+		{
 			return null;
 		}
 
-		if (v.length == 1) {
+		if(v.length == 1)
+		{
 			return v[0];
 		}
 
 		return v[fit(0, v.length - 1, superSeed, rx, rz)];
 	}
 
-	public <T> T fit(List<T> v, long superSeed, double rx, double rz) {
-		if (v.size() == 0) {
+	public <T> T fit(List<T> v, long superSeed, double rx, double rz)
+	{
+		if(v.size() == 0)
+		{
 			return null;
 		}
 
-		if (v.size() == 1) {
+		if(v.size() == 1)
+		{
 			return v.get(0);
 		}
 
 		return v.get(fit(0, v.size() - 1, superSeed, rx, rz));
 	}
 
-	public int fit(int min, int max, long superSeed, double rx, double rz) {
-		if (min == max) {
+	public int fit(int min, int max, long superSeed, double rx, double rz)
+	{
+		if(min == max)
+		{
 			return min;
 		}
 
@@ -194,8 +218,10 @@ public class IrisGenerator extends IrisRegistrant {
 		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
 	}
 
-	public int fit(double min, double max, long superSeed, double rx, double rz) {
-		if (min == max) {
+	public int fit(double min, double max, long superSeed, double rx, double rz)
+	{
+		if(min == max)
+		{
 			return (int) Math.round(min);
 		}
 
@@ -204,8 +230,10 @@ public class IrisGenerator extends IrisRegistrant {
 		return (int) Math.round(IrisInterpolation.lerp(min, max, noise));
 	}
 
-	public double fitDouble(double min, double max, long superSeed, double rx, double rz) {
-		if (min == max) {
+	public double fitDouble(double min, double max, long superSeed, double rx, double rz)
+	{
+		if(min == max)
+		{
 			return min;
 		}
 
@@ -214,12 +242,15 @@ public class IrisGenerator extends IrisRegistrant {
 		return IrisInterpolation.lerp(min, max, noise);
 	}
 
-	public double getHeight(double rx, double rz, long superSeed) {
+	public double getHeight(double rx, double rz, long superSeed)
+	{
 		return getHeight(rx, 0, rz, superSeed);
 	}
 
-	public double getHeight(double rx, double ry, double rz, long superSeed) {
-		if (composite.isEmpty()) {
+	public double getHeight(double rx, double ry, double rz, long superSeed)
+	{
+		if(composite.isEmpty())
+		{
 			Iris.warn("Useless Generator: Composite is empty in " + getLoadKey());
 			return 0;
 		}
@@ -228,16 +259,17 @@ public class IrisGenerator extends IrisRegistrant {
 		double h = 0;
 		double tp = 0;
 
-		for (IrisNoiseGenerator i : composite) {
+		for(IrisNoiseGenerator i : composite)
+		{
 			tp += i.getOpacity();
 			h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
 		}
 
 		double v = (h / tp) * opacity;
 
-		if (Double.isNaN(v)) {
-			Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity
-					+ " ZOOM = " + zoom);
+		if(Double.isNaN(v))
+		{
+			Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity + " ZOOM = " + zoom);
 		}
 
 		v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
@@ -246,29 +278,32 @@ public class IrisGenerator extends IrisRegistrant {
 		return v;
 	}
 
-	public double cell(double rx, double rz, double v, double superSeed) {
+	public double cell(double rx, double rz, double v, double superSeed)
+	{
 		getCellGenerator(seed + 46222).setShuffle(getCellFractureShuffle());
-		return getCellGenerator(seed + 46222).getDistance(rx / getCellFractureZoom(),
-				rz / getCellFractureZoom()) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
+		return getCellGenerator(seed + 46222).getDistance(rx / getCellFractureZoom(), rz / getCellFractureZoom()) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
 	}
 
-	private boolean hasCellCracks() {
+	private boolean hasCellCracks()
+	{
 		return getCellFractureHeight() != 0;
 	}
 
-	public double getCliffHeight(double rx, double rz, double superSeed) {
+	public double getCliffHeight(double rx, double rz, double superSeed)
+	{
 		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax + interpolationScale * seed + offsetX + offsetZ);
-		double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom,
-				(rz + offsetZ) / zoom);
+		double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
 		return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
 	}
 
-	public double cliff(double rx, double rz, double v, double superSeed) {
+	public double cliff(double rx, double rz, double v, double superSeed)
+	{
 		double cliffHeight = getCliffHeight(rx, rz, superSeed - 34857);
 		return (Math.round((v * 255D) / cliffHeight) * cliffHeight) / 255D;
 	}
 
-	public IrisGenerator rescale(double scale) {
+	public IrisGenerator rescale(double scale)
+	{
 		zoom /= scale;
 		return this;
 	}

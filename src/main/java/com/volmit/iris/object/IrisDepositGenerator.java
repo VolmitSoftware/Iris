@@ -153,7 +153,7 @@ public class IrisDepositGenerator
 		});
 	}
 
-	public void generate(ChunkData data, RNG rng, TerrainChunkGenerator g)
+	public void generate(ChunkData data, RNG rng, TerrainChunkGenerator g, int cx, int cz)
 	{
 		for(int l = 0; l < rng.i(getMinPerChunk(), getMaxPerChunk()); l++)
 		{
@@ -170,7 +170,7 @@ public class IrisDepositGenerator
 
 			int x = rng.i(af, bf);
 			int z = rng.i(af, bf);
-			int height = (int) (Math.round(g.getTerrainHeight(x, z))) - 7;
+			int height = (int) (Math.round(g.getTerrainHeight((cx << 4) + x, (cz << 4) + z))) - 7;
 
 			if(height <= 0)
 			{
@@ -187,7 +187,7 @@ public class IrisDepositGenerator
 
 			int h = rng.i(i, a);
 
-			if(h > maxHeight || h < minHeight || h > height - 7)
+			if(h > maxHeight || h < minHeight || h > height - 2)
 			{
 				return;
 			}
@@ -198,14 +198,14 @@ public class IrisDepositGenerator
 				int ny = j.getBlockY() + h;
 				int nz = j.getBlockZ() + z;
 
-				if(ny > height - 7 || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
+				if(ny > height - 2 || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
 				{
 					continue;
 				}
 
 				BlockData b = data.getBlockData(nx, ny, nz);
 
-				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !b.getMaterial().isSolid())
+				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
 				{
 					continue;
 				}

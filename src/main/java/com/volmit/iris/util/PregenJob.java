@@ -103,6 +103,8 @@ public class PregenJob
 
 	public void nextPosition()
 	{
+		int lx = mcaX;
+		int lz = mcaZ;
 		rcx++;
 
 		if(rcx > 31)
@@ -140,8 +142,45 @@ public class PregenJob
 						onDone.run();
 					}
 				}
+
+				if(!completed)
+				{
+					try
+					{
+						verify(lx, lz);
+						Iris.verbose("Verified " + lx + " " + lz);
+					}
+
+					catch(Throwable e)
+					{
+						e.printStackTrace();
+					}
+				}
 			}
 		}
+	}
+
+	private void verify(int lx, int lz) throws Throwable
+	{
+		for(int x = 0; x < 32; x++)
+		{
+			for(int z = 0; z < 32; z++)
+			{
+				if(isChunkWithin(x + (lx * 32), z + (lz * 32)))
+				{
+					Chunk c = world.getChunkAt(x + (lx * 32), z + (lz * 32));
+					c.load(true);
+				}
+			}
+		}
+
+		saveAll();
+	}
+
+	public void saveAll()
+	{
+		world.save();
+		Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
 	}
 
 	public void gen()
@@ -152,7 +191,6 @@ public class PregenJob
 			{
 				Chunk c = world.getChunkAt(rcx + minMCA(mcaX), rcz + minMCA(mcaZ));
 				c.load(true);
-				world.unloadChunkRequest(rcx + minMCA(mcaX), rcz + minMCA(mcaZ));
 				genned++;
 			}
 		}

@@ -704,8 +704,8 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			catch(Throwable e)
 			{
-				e.printStackTrace();
 				Iris.warn("Failed to sample hi biome at " + rx + " " + rz + " using the generator " + gen.getLoadKey());
+				fail(e);
 			}
 			return 0;
 		});
@@ -727,8 +727,8 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 			catch(Throwable e)
 			{
-				e.printStackTrace();
 				Iris.warn("Failed to sample lo biome at " + rx + " " + rz + " using the generator " + gen.getLoadKey());
+				fail(e);
 			}
 
 			return 0;

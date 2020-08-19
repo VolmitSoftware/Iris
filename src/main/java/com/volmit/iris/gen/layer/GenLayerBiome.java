@@ -27,8 +27,6 @@ public class GenLayerBiome extends GenLayer
 	private BiomeDataProvider landProvider;
 	private BiomeDataProvider shoreProvider;
 	private BiomeDataProvider caveProvider;
-	private BiomeDataProvider islandProvider;
-	private BiomeDataProvider skylandProvider;
 	private DimensionChunkGenerator iris;
 
 	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
@@ -39,8 +37,6 @@ public class GenLayerBiome extends GenLayer
 		landProvider = new BiomeDataProvider(this, InferredType.LAND, rng);
 		shoreProvider = new BiomeDataProvider(this, InferredType.SHORE, rng);
 		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, rng);
-		islandProvider = new BiomeDataProvider(this, InferredType.ISLAND, rng);
-		skylandProvider = new BiomeDataProvider(this, InferredType.SKYLAND, rng);
 		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519)).bake().scale(1D / iris.getDimension().getRegionZoom());
 		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462)).bake().scale(1D / iris.getDimension().getContinentZoom());
 	}
@@ -91,16 +87,6 @@ public class GenLayerBiome extends GenLayer
 			return caveProvider;
 		}
 
-		else if(type.equals(InferredType.ISLAND))
-		{
-			return islandProvider;
-		}
-
-		else if(type.equals(InferredType.SKYLAND))
-		{
-			return skylandProvider;
-		}
-
 		else
 		{
 			Iris.error("Cannot find a BiomeDataProvider for type " + type.name());
@@ -119,18 +105,20 @@ public class GenLayerBiome extends GenLayer
 		double x = bx;
 		double z = bz;
 		double c = iris.getDimension().getLandChance();
-
+		InferredType bridge;
 		if(c >= 1)
 		{
-			return InferredType.LAND;
+			bridge = InferredType.LAND;
 		}
 
 		if(c <= 0)
 		{
-			return InferredType.SEA;
+			bridge = InferredType.SEA;
 		}
 
-		return bridgeGenerator.fitDouble(0, 1, x, z) < c ? InferredType.LAND : InferredType.SEA;
+		bridge = bridgeGenerator.fitDouble(0, 1, x, z) < c ? InferredType.LAND : InferredType.SEA;
+
+		return bridge;
 	}
 
 	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType)

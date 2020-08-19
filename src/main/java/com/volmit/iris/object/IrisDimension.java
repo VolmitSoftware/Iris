@@ -84,6 +84,10 @@ public class IrisDimension extends IrisRegistrant
 
 	@DontObfuscate
 	@Desc("The placement style of biomes")
+	private IrisGeneratorStyle islandBiomeChanceStyle = NoiseStyle.CELLULAR_HEIGHT_IRIS_DOUBLE.style();
+
+	@DontObfuscate
+	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@DontObfuscate
@@ -684,16 +688,12 @@ public class IrisDimension extends IrisRegistrant
 		{
 			case CAVE:
 				return caveBiomeStyle;
-			case ISLAND:
-				return islandBiomeStyle;
 			case LAND:
 				return landBiomeStyle;
 			case SEA:
 				return seaBiomeStyle;
 			case SHORE:
 				return shoreBiomeStyle;
-			case SKYLAND:
-				return skylandBiomeStyle;
 			default:
 				break;
 		}

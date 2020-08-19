@@ -55,6 +55,10 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
 	private boolean lockLayers = false;
 
+	@DontObfuscate
+	@Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
+	private int lockLayersMax = 7;
+
 	@MinNumber(1)
 	@MaxNumber(512)
 	@DontObfuscate
@@ -226,11 +230,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return data;
 	}
 
-	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepth, int height)
+	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height)
 	{
 		KList<BlockData> data = new KList<>();
 		KList<BlockData> real = new KList<>();
-
+		int maxDepth = Math.min(maxDepthf, getLockLayersMax());
 		if(maxDepth <= 0)
 		{
 			return data;

@@ -109,7 +109,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			}
 
 			KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
-			KList<BlockData> seaLayers = biome.isSea() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
+			KList<BlockData> seaLayers = biome.isSea() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
 			boolean caverning = false;
 			KList<Integer> cavernHeights = new KList<>();
 			int lastCavernHeight = -1;

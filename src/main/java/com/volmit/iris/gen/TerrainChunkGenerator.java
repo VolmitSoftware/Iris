@@ -180,7 +180,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				// Set Sea Material (water/lava)
 				if(underwater)
 				{
-					block = seaLayers.hasIndex(fluidHeight - k) ? layers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
+					block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
 				}
 
 				// Set Surface Material for cavern layer surfaces

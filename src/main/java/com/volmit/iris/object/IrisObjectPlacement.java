@@ -25,6 +25,14 @@ public class IrisObjectPlacement
 	@Desc("List of objects to place")
 	private KList<String> place = new KList<>();
 
+	@DontObfuscate
+	@Desc("If the place mode is set to CENTER_HEIGHT_RIGID and you have an X/Z translation, Turning on translate center will also translate the center height check.")
+	private boolean translateCenter = false;
+
+	@DontObfuscate
+	@Desc("The placement mode")
+	private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT_RIGID;
+
 	@ArrayType(min = 1, type = IrisObjectReplace.class)
 	@DontObfuscate
 	@Desc("Find and replace blocks")
@@ -77,7 +85,7 @@ public class IrisObjectPlacement
 	private boolean meld = false;
 
 	@DontObfuscate
-	@Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface.")
+	@Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface. This is not compatable with X and Z axis rotations (it may look off)")
 	private boolean bottom = false;
 
 	@DontObfuscate

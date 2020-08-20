@@ -16,6 +16,7 @@ public class TileResult
 		rt.setYAxis(new IrisAxisRotationClamp(rot != 0, rot, rot, 0));
 		p.setRotation(rt);
 		p.setBottom(true);
+		p.setMode(ObjectPlaceMode.PAINT);
 		placement = p;
 	}
 }

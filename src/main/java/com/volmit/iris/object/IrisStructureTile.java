@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -53,6 +54,9 @@ public class IrisStructureTile
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
 
+	private AtomicCache<Integer> minFaces = new AtomicCache<>();
+	private AtomicCache<Integer> maxFaces = new AtomicCache<>();
+
 	public IrisStructureTile()
 	{
 
@@ -63,7 +67,7 @@ public class IrisStructureTile
 		return (ceiling.required() ? "C" : "") + (floor.required() ? "F" : "") + "| " + (north.required() ? "X" : "-") + (south.required() ? "X" : "-") + (east.required() ? "X" : "-") + (west.required() ? "X" : "-") + " |";
 	}
 
-	public boolean likeAGlove(boolean floor, boolean ceiling, KList<StructureTileFace> walls)
+	public boolean likeAGlove(boolean floor, boolean ceiling, KList<StructureTileFace> walls, int faces, int openings)
 	{
 		//@builder
 		
@@ -77,17 +81,37 @@ public class IrisStructureTile
 			return false;
 		}
 	
-		if(!fitsWalls(walls))
+		if(!fitsWalls(walls, faces, openings))
 		{
 			return false;
 		}
 				
 		//@done
 
-		return true;
+		return faces >= minFaces.aquire(() ->
+		{
+			int m = 0;
+			m += this.ceiling.required() ? 1 : 0;
+			m += this.floor.required() ? 1 : 0;
+			m += this.north.required() ? 1 : 0;
+			m += this.south.required() ? 1 : 0;
+			m += this.east.required() ? 1 : 0;
+			m += this.west.required() ? 1 : 0;
+			return m;
+		}) && faces <= maxFaces.aquire(() ->
+		{
+			int m = 0;
+			m += this.ceiling.supported() ? 1 : 0;
+			m += this.floor.supported() ? 1 : 0;
+			m += this.north.supported() ? 1 : 0;
+			m += this.south.supported() ? 1 : 0;
+			m += this.east.supported() ? 1 : 0;
+			m += this.west.supported() ? 1 : 0;
+			return m;
+		});
 	}
 
-	private boolean fitsWalls(KList<StructureTileFace> walls)
+	private boolean fitsWalls(KList<StructureTileFace> walls, int faces, int openings)
 	{
 		//@builder
 		if((getNorth().required() && !walls.contains(StructureTileFace.NORTH)) 

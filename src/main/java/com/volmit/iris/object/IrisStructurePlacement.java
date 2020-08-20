@@ -5,8 +5,10 @@ import com.volmit.iris.gen.ContextualChunkGenerator;
 import com.volmit.iris.gen.ParallaxChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CellGenerator;
+import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
@@ -68,14 +70,34 @@ public class IrisStructurePlacement
 		try
 		{
 			RNG rng = g.getMasterRandom().nextParallelRNG(-88738456);
-			RNG rnp = rng.nextParallelRNG(cx - (cz * cz));
+			RNG rnp = rng.nextParallelRNG(cx - (cz * cz << 3));
 			int s = gridSize(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
 			int sh = gridHeight(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
+			KSet<ChunkPosition> m = new KSet<>();
 
-			for(int i = cx << 4; i < (cx << 4) + 15; i += Math.max(s, 1))
+			for(int i = cx << 4; i <= (cx << 4) + 15; i += 1)
 			{
-				for(int j = cz << 4; j < (cz << 4) + 15; j += Math.max(s, 1))
+				if(Math.floorDiv(i, s) * s >> 4 < cx)
 				{
+					continue;
+				}
+
+				for(int j = cz << 4; j <= (cz << 4) + 15; j += 1)
+				{
+					if(Math.floorDiv(j, s) * s >> 4 < cz)
+					{
+						continue;
+					}
+
+					ChunkPosition p = new ChunkPosition(Math.floorDiv(i, s) * s, Math.floorDiv(j, s) * s);
+
+					if(m.contains(p))
+					{
+						continue;
+					}
+
+					m.add(p);
+
 					if(getStructure(g).getMaxLayers() <= 1)
 					{
 						placeLayer(g, rng, rnp, i, 0, j, s, sh);
@@ -104,7 +126,7 @@ public class IrisStructurePlacement
 		}
 
 		int h = (height == -1 ? 0 : height) + (Math.floorDiv(k, sh) * sh);
-		TileResult t = getStructure(g).getTile(rng, i, h, j);
+		TileResult t = getStructure(g).getTile(rng, Math.floorDiv(i, s) * s, h, Math.floorDiv(j, s) * s);
 
 		if(t != null)
 		{
@@ -120,7 +142,8 @@ public class IrisStructurePlacement
 
 	private IrisObjectPlacement getConfig()
 	{
-		return config.aquire(() -> {
+		return config.aquire(() ->
+		{
 			IrisObjectPlacement p = new IrisObjectPlacement();
 			p.setWaterloggable(false);
 			return p;

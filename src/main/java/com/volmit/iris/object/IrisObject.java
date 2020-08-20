@@ -134,7 +134,113 @@ public class IrisObject extends IrisRegistrant
 		int spinz = rng.imax() / 1000;
 		int rty = config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), spinx, spiny, spinz).getBlockY();
 		int ty = config.getTranslate().translate(new BlockVector(0, getCenter().getBlockY(), 0), config.getRotation(), spinx, spiny, spinz).getBlockY();
-		int y = yv < 0 ? placer.getHighest(x, z, config.isUnderwater()) + rty : yv;
+		int y = -1;
+		KMap<ChunkPosition, Integer> paintmap = null;
+
+		if(yv < 0)
+		{
+			if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT_RIGID))
+			{
+				if(config.isTranslateCenter())
+				{
+					y = placer.getHighest(x, z, config.isUnderwater()) + rty;
+				}
+
+				else
+				{
+					y = placer.getHighest(x, z, config.isUnderwater()) + rty;
+				}
+			}
+
+			if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID_ACCURATE))
+			{
+				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
+
+				for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++)
+				{
+					for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++)
+					{
+						int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+
+						if(h > y)
+						{
+							y = h;
+						}
+					}
+				}
+			}
+
+			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID))
+			{
+				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
+
+				for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2))
+				{
+					for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2))
+					{
+						int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+
+						if(h > y)
+						{
+							y = h;
+						}
+					}
+				}
+			}
+
+			else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT_RIGID_ACCURATE))
+			{
+				y = 257;
+				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
+
+				for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++)
+				{
+					for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++)
+					{
+						int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+
+						if(h < y)
+						{
+							y = h;
+						}
+					}
+				}
+			}
+
+			else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT_RIGID))
+			{
+				y = 257;
+				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
+
+				for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2))
+				{
+					for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2))
+					{
+						int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+
+						if(h < y)
+						{
+							y = h;
+						}
+					}
+				}
+			}
+
+			else if(config.getMode().equals(ObjectPlaceMode.PAINT) || config.getMode().equals(ObjectPlaceMode.STILT))
+			{
+				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
+				paintmap = new KMap<>();
+			}
+		}
+
+		else
+		{
+			y = yv;
+		}
 
 		if(yv >= 0 && config.isBottom())
 		{
@@ -202,6 +308,19 @@ public class IrisObject extends IrisRegistrant
 			int xx = x + (int) Math.round(i.getX());
 			int yy = y + (int) Math.round(i.getY());
 			int zz = z + (int) Math.round(i.getZ());
+
+			if(config.getMode().equals(ObjectPlaceMode.PAINT))
+			{
+				yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + paintmap.compute(new ChunkPosition(xx, zz), (k, v) ->
+				{
+					if(k == null || v == null)
+					{
+						return placer.getHighest(xx, zz, config.isUnderwater());
+					}
+
+					return v;
+				});
+			}
 
 			if(heightmap != null)
 			{

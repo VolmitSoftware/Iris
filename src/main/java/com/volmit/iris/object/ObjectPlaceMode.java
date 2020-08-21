@@ -20,8 +20,5 @@ public enum ObjectPlaceMode
 	MIN_HEIGHT_RIGID,
 
 	@DontObfuscate
-	PAINT,
-
-	@DontObfuscate
-	STILT;
+	PAINT;
 }

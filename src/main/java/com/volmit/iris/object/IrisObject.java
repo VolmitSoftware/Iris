@@ -230,7 +230,7 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
-			else if(config.getMode().equals(ObjectPlaceMode.PAINT) || config.getMode().equals(ObjectPlaceMode.STILT))
+			else if(config.getMode().equals(ObjectPlaceMode.PAINT))
 			{
 				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
 				paintmap = new KMap<>();

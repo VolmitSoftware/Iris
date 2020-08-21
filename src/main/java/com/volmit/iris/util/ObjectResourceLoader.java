@@ -127,6 +127,17 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 						{
 							m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.iob\\E", ""));
 						}
+
+						else if(k.isDirectory())
+						{
+							for(File l : k.listFiles())
+							{
+								if(l.isFile() && l.getName().endsWith(".iob"))
+								{
+									m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.iob\\E", ""));
+								}
+							}
+						}
 					}
 				}
 			}

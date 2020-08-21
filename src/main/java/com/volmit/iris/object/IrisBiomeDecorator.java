@@ -174,21 +174,14 @@ public class IrisBiomeDecorator
 				return getBlockData().get(0);
 			}
 
-			return getVarianceGenerator(
-					
-					rng.nextParallelRNG(44)
-					
-					)
-					
-					.fit(
-							
-							getBlockData()
-							
-							, 
-							
-							xx,
-							
-							zz);
+			CNG v = getVarianceGenerator(rng.nextParallelRNG(44));
+
+			if(v == null)
+			{
+				getBlockData().get(0);
+			}
+
+			v.fit(getBlockData(), xx, zz);
 		}
 
 		return null;

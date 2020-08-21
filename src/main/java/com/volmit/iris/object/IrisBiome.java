@@ -45,6 +45,10 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
 
+	@DontObfuscate
+	@Desc("Reference loot tables in this area")
+	private IrisLootReference loot = new IrisLootReference();
+
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})

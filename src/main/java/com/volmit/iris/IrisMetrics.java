@@ -10,6 +10,7 @@ public class IrisMetrics
 	private final RollingSequence parallax;
 	private final RollingSequence terrain;
 	private final RollingSequence post;
+	private final RollingSequence update;
 	private final RollingSequence total;
 	private final RollingSequence perSecond;
 	public int generators = 0;
@@ -20,6 +21,7 @@ public class IrisMetrics
 		parallax = new RollingSequence(memory);
 		terrain = new RollingSequence(memory);
 		post = new RollingSequence(memory);
+		update = new RollingSequence(memory);
 		total = new RollingSequence(memory);
 		perSecond = new RollingSequence(5);
 	}

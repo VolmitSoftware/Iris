@@ -52,6 +52,10 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("The min shore height")
 	private double shoreHeightMin = 1.2;
 
+	@DontObfuscate
+	@Desc("Reference loot tables in this area")
+	private IrisLootReference loot = new IrisLootReference();
+
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The the max shore height")

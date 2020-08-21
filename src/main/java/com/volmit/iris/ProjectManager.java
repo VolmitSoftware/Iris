@@ -31,6 +31,7 @@ import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
@@ -60,6 +61,7 @@ import com.volmit.iris.util.O;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListDimension;
 import com.volmit.iris.util.RegistryListGenerator;
+import com.volmit.iris.util.RegistryListLoot;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.RegistryListRegion;
 import com.volmit.iris.util.RegistryListStructure;
@@ -635,6 +637,7 @@ public class ProjectManager
 		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json"));
 		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json"));
 		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json"));
+		g.queue(() -> ex(schemas, IrisLootTable.class, dat, "/loot/*.json"));
 		g.execute();
 
 		return schemas;
@@ -754,6 +757,11 @@ public class ProjectManager
 						if(k.isAnnotationPresent(RegistryListBiome.class))
 						{
 							prop.put("enum", new JSONArray(getBiomeList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListLoot.class))
+						{
+							prop.put("enum", new JSONArray(getLootList(dat)));
 						}
 
 						if(k.isAnnotationPresent(RegistryListDimension.class))
@@ -882,6 +890,26 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										deff.put("type", tx);
 										deff.put("enum", new JSONArray(getBiomeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListLoot.class))
+								{
+									String name = "enloot" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getLootList(dat)));
 										def.put(name, deff);
 									}
 
@@ -1098,6 +1126,11 @@ public class ProjectManager
 	private String[] getBiomeList(IrisDataManager data)
 	{
 		return data.getBiomeLoader().getPossibleKeys();
+	}
+
+	private String[] getLootList(IrisDataManager data)
+	{
+		return data.getLootLoader().getPossibleKeys();
 	}
 
 	private String[] getDimensionList(IrisDataManager data)

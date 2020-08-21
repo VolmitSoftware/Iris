@@ -17,6 +17,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructureTile
 {
+	@DontObfuscate
+	@Desc("Reference loot tables in this area")
+	private IrisLootReference loot = new IrisLootReference();
+
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a ceiling?")

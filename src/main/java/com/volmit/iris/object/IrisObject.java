@@ -309,7 +309,7 @@ public class IrisObject extends IrisRegistrant
 			int yy = y + (int) Math.round(i.getY());
 			int zz = z + (int) Math.round(i.getZ());
 
-			if(config.getMode().equals(ObjectPlaceMode.PAINT))
+			if(config.getMode().equals(ObjectPlaceMode.PAINT) && paintmap != null)
 			{
 				yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + paintmap.compute(new ChunkPosition(xx, zz), (k, v) ->
 				{

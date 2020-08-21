@@ -114,4 +114,15 @@ public class AtomicSliverMap
 
 		return false;
 	}
+
+	public void injectUpdates(AtomicSliverMap map)
+	{
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
+				getSliver(i, j).inject(map.getSliver(i, j).getUpdatables());
+			}	
+		}
+	}
 }

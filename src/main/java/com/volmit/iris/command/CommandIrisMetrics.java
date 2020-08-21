@@ -35,6 +35,7 @@ public class CommandIrisMetrics extends MortarCommand
 			sender.sendMessage("  Terrain : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getTerrain().getAverage(), 2));
 			sender.sendMessage("  Parallax: " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getParallax().getAverage(), 2));
 			sender.sendMessage("  Post    : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getPost().getAverage(), 2));
+			sender.sendMessage("Updates   : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getUpdate().getAverage(), 2));
 
 			return true;
 		}

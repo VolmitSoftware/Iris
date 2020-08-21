@@ -25,6 +25,9 @@ public class CommandIrisWorld extends MortarCommand
 	@Command
 	private CommandIrisTC tc;
 
+	@Command
+	private CommandIrisLoot loot;
+
 	public CommandIrisWorld()
 	{
 		super("world", "wrld", "w");

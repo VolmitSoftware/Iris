@@ -42,6 +42,10 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
 
+	@DontObfuscate
+	@Desc("Reference loot tables in this area")
+	private IrisLootReference loot = new IrisLootReference();
+
 	@Required
 	@MinNumber(0)
 	@DontObfuscate

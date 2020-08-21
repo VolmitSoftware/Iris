@@ -14,10 +14,34 @@ public class B
 	private static final KList<String> nulls = new KList<>();
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
+	private static final KMap<String, Material> types = new KMap<>();
 
 	public static BlockData get(String bd)
 	{
 		return getBlockData(bd);
+	}
+
+	public static Material getMaterial(String bd)
+	{
+		return types.compute(bd, (k, v) ->
+		{
+			if(k != null && v != null)
+			{
+				return v;
+			}
+
+			try
+			{
+				return Material.valueOf(k);
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+
+			return null;
+		});
 	}
 
 	public static boolean isSolid(Material mat)
@@ -114,19 +138,101 @@ public class B
 		return AIR;
 	}
 
-	public static boolean isLit(BlockData mat)
+	public static boolean isUpdatable(BlockData mat)
 	{
-		return isLit(mat.getMaterial());
+		return isUpdatable(mat.getMaterial());
+	}
+
+	public static boolean isStorage(Material mat)
+	{
+		//@builder
+		return mat.equals(B.mat("CHEST")) 
+				|| mat.equals(B.mat("TRAPPED_CHEST")) 
+				|| mat.equals(B.mat("SHULKER_BOX")) 
+				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("ORANGE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("MAGENTA_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("YELLOW_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIME_SHULKER_BOX")) 
+				|| mat.equals(B.mat("PINK_SHULKER_BOX")) 
+				|| mat.equals(B.mat("GRAY_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) 
+				|| mat.equals(B.mat("CYAN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("PURPLE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BLUE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BROWN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("GREEN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("RED_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BLACK_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BARREL")) 
+				|| mat.equals(B.mat("DISPENSER")) 
+				|| mat.equals(B.mat("DROPPER")) 
+				|| mat.equals(B.mat("HOPPER")) 
+				|| mat.equals(B.mat("FURNACE")) 
+				|| mat.equals(B.mat("BLAST_FURNACE")) 
+				|| mat.equals(B.mat("SMOKER"));
+		//@done
+	}
+
+	public static boolean isStorageChest(Material mat)
+	{
+		//@builder
+		return mat.equals(B.mat("CHEST")) 
+				|| mat.equals(B.mat("TRAPPED_CHEST")) 
+				|| mat.equals(B.mat("SHULKER_BOX")) 
+				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("ORANGE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("MAGENTA_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("YELLOW_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIME_SHULKER_BOX")) 
+				|| mat.equals(B.mat("PINK_SHULKER_BOX")) 
+				|| mat.equals(B.mat("GRAY_SHULKER_BOX")) 
+				|| mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) 
+				|| mat.equals(B.mat("CYAN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("PURPLE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BLUE_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BROWN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("GREEN_SHULKER_BOX")) 
+				|| mat.equals(B.mat("RED_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BLACK_SHULKER_BOX")) 
+				|| mat.equals(B.mat("BARREL")) 
+				|| mat.equals(B.mat("DISPENSER")) 
+				|| mat.equals(B.mat("DROPPER")) 
+				|| mat.equals(B.mat("HOPPER"));
+		//@done
 	}
 
 	public static boolean isLit(Material mat)
 	{
-		if(mat.equals(B.mat("GLOWSTONE")) || mat.equals(B.mat("TORCH")) || mat.equals(Material.REDSTONE_TORCH) || mat.equals(B.mat("SOUL_TORCH")) || mat.equals(Material.REDSTONE_WALL_TORCH) || mat.equals(Material.WALL_TORCH) || mat.equals(B.mat("SOUL_WALL_TORCH")) || mat.equals(B.mat("LANTERN")) || mat.equals(Material.JACK_O_LANTERN) || mat.equals(Material.REDSTONE_LAMP) || mat.equals(Material.MAGMA_BLOCK) || mat.equals(B.mat("SEA_LANTERN")) || mat.equals(B.mat("SOUL_LANTERN")) || mat.equals(Material.FIRE) || mat.equals(B.mat("SOUL_FIRE")) || mat.equals(B.mat("SEA_PICKLE")) || mat.equals(Material.BREWING_STAND) || mat.equals(Material.REDSTONE_ORE))
-		{
-			return true;
-		}
+		//@builder
+		return mat.equals(B.mat("GLOWSTONE")) 
+				|| mat.equals(B.mat("END_ROD")) 
+				|| mat.equals(B.mat("SOUL_SAND"))
+				|| mat.equals(B.mat("TORCH")) 
+				|| mat.equals(Material.REDSTONE_TORCH) 
+				|| mat.equals(B.mat("SOUL_TORCH")) 
+				|| mat.equals(Material.REDSTONE_WALL_TORCH) 
+				|| mat.equals(Material.WALL_TORCH) 
+				|| mat.equals(B.mat("SOUL_WALL_TORCH")) 
+				|| mat.equals(B.mat("LANTERN")) 
+				|| mat.equals(Material.JACK_O_LANTERN) 
+				|| mat.equals(Material.REDSTONE_LAMP) 
+				|| mat.equals(Material.MAGMA_BLOCK) 
+				|| mat.equals(B.mat("SEA_LANTERN")) 
+				|| mat.equals(B.mat("SOUL_LANTERN")) 
+				|| mat.equals(Material.FIRE) 
+				|| mat.equals(B.mat("SOUL_FIRE")) 
+				|| mat.equals(B.mat("SEA_PICKLE")) 
+				|| mat.equals(Material.BREWING_STAND) 
+				|| mat.equals(Material.REDSTONE_ORE);
+		//@done
+	}
 
-		return false;
+	public static boolean isUpdatable(Material mat)
+	{
+		return isLit(mat) || isStorage(mat);
 	}
 
 	public static boolean canPlaceOnto(Material mat, Material onto)

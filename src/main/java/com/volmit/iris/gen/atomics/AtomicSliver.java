@@ -101,7 +101,7 @@ public class AtomicSliver
 		modified = true;
 		block.put(h, d);
 
-		if(B.isLit(d))
+		if(B.isUpdatable(d))
 		{
 			update(h);
 		}
@@ -292,5 +292,10 @@ public class AtomicSliver
 	public boolean isOlderThan(long m)
 	{
 		return M.ms() - last > m;
+	}
+
+	public void inject(KSet<Integer> updatables)
+	{
+		update.addAll(updatables);
 	}
 }

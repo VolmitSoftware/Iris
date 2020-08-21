@@ -10,6 +10,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
@@ -28,6 +29,7 @@ public class IrisDataManager
 	private File packs;
 	private boolean prod;
 	private ResourceLoader<IrisBiome> biomeLoader;
+	private ResourceLoader<IrisLootTable> lootLoader;
 	private ResourceLoader<IrisRegion> regionLoader;
 	private ResourceLoader<IrisDimension> dimensionLoader;
 	private ResourceLoader<IrisGenerator> generatorLoader;
@@ -43,14 +45,14 @@ public class IrisDataManager
 
 		File packs = this.packs.getName().equals("packs") ? this.packs : dataFolder;
 		packs.mkdirs();
-		
+		this.lootLoader = new ResourceLoader<>(packs, "loot", "Loot", IrisLootTable.class);
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
 		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
 		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
-		
+
 		if(packs.getName().equals("packs"))
 		{
 			writeExamples();
@@ -78,6 +80,7 @@ public class IrisDataManager
 	public void dump()
 	{
 		biomeLoader.clearCache();
+		lootLoader.clearCache();
 		regionLoader.clearCache();
 		dimensionLoader.clearCache();
 		generatorLoader.clearCache();
@@ -161,6 +164,7 @@ public class IrisDataManager
 	public void preferFolder(String name)
 	{
 		biomeLoader.preferFolder(name);
+		lootLoader.preferFolder(name);
 		regionLoader.preferFolder(name);
 		dimensionLoader.preferFolder(name);
 		generatorLoader.preferFolder(name);
@@ -169,6 +173,7 @@ public class IrisDataManager
 
 	public void clearLists()
 	{
+		lootLoader.clearList();
 		biomeLoader.clearList();
 		regionLoader.clearList();
 		dimensionLoader.clearList();

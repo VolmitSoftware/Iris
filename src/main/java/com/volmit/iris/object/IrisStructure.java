@@ -38,6 +38,10 @@ public class IrisStructure extends IrisRegistrant
 	@Desc("This is the x and z size of each grid cell")
 	private int gridSize = 11;
 
+	@DontObfuscate
+	@Desc("Reference loot tables in this area")
+	private IrisLootReference loot = new IrisLootReference();
+
 	@Required
 	@MinNumber(1)
 	@MaxNumber(255)

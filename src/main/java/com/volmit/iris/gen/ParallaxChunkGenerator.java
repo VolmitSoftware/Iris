@@ -1,14 +1,17 @@
 package com.volmit.iris.gen;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.BlockPopulator;
 
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.atomics.AtomicWorldData;
 import com.volmit.iris.gen.atomics.MasterLock;
+import com.volmit.iris.gen.layer.GenLayerUpdate;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
@@ -40,6 +43,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	private MasterLock masterLock;
 	private IrisLock lock = new IrisLock("ParallaxLock");
 	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
+	private GenLayerUpdate glUpdate;
 	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
@@ -80,6 +84,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public int getHighest(int x, int z)
 	{
 		return getHighest(x, z, false);
+	}
+
+	@Override
+	public void onHotload()
+	{
+		super.onHotload();
 	}
 
 	@Override
@@ -164,6 +174,20 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	}
 
 	@Override
+	public List<BlockPopulator> getDefaultPopulators(World world)
+	{
+		List<BlockPopulator> g = super.getDefaultPopulators(world);
+
+		if(glUpdate == null)
+		{
+			glUpdate = new GenLayerUpdate(this, world);
+		}
+
+		g.add(glUpdate);
+		return g;
+	}
+
+	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 		if(getSliverCache().size() > 20000)
@@ -178,10 +202,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		{
 			onGenerateParallax(random, x, z);
 			getParallaxChunk(x, z).inject(data);
-			setSliverBuffer(getSliverCache().size());
-			getParallaxChunk(x, z).setWorldGenerated(true);
-			getMasterLock().clear();
 		}
+
+		getParallaxChunk(x, z).injectUpdates(map);
+		setSliverBuffer(getSliverCache().size());
+		getParallaxChunk(x, z).setWorldGenerated(true);
+		getMasterLock().clear();
 
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());

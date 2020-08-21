@@ -168,6 +168,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 			lines.add(ChatColor.GREEN + "Parallax Chunks" + ChatColor.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
 			lines.add(ChatColor.GREEN + "Objects" + ChatColor.GRAY + ": " + Form.f(g.getData().getObjectLoader().count()));
 			lines.add(ChatColor.GREEN + "Memory" + ChatColor.GRAY + ": " + mem);
+			lines.add(ChatColor.GREEN + "Heightmap" + ChatColor.GRAY + ": " + (int) g.getTerrainHeight(x, z));
 
 			if(er != null && b != null)
 			{

@@ -16,6 +16,7 @@ import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.M;
 
 import lombok.Data;
@@ -27,6 +28,7 @@ public class AtomicSliver
 	private KMap<Integer, BlockData> block;
 	private KMap<Integer, IrisBiome> truebiome;
 	private KMap<Integer, Biome> biome;
+	private KSet<Integer> update;
 	private IrisLock lock = new IrisLock("Sliver");
 	private int highestBlock = 0;
 	private int highestBiome = 0;
@@ -40,6 +42,7 @@ public class AtomicSliver
 		lock.setDisabled(true);
 		this.x = x;
 		this.z = z;
+		update = new KSet<>();
 		this.block = new KMap<>();
 		this.biome = new KMap<>();
 		this.truebiome = new KMap<>();
@@ -48,6 +51,21 @@ public class AtomicSliver
 	public Material getType(int h)
 	{
 		return get(h).getMaterial();
+	}
+
+	public KSet<Integer> getUpdatables()
+	{
+		return update;
+	}
+
+	public void update(int y)
+	{
+		update.add(y);
+	}
+
+	public void dontUpdate(int y)
+	{
+		update.remove(y);
 	}
 
 	public BlockData get(int h)
@@ -65,21 +83,8 @@ public class AtomicSliver
 
 	public void set(int h, BlockData d)
 	{
-		if(d == null)
-		{
-			return;
-		}
-
-		lock.lock();
-		block.put(h, d);
-		lock.unlock();
+		setSilently(h, d);
 		modified = true;
-
-		if(d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(B.mat("CAVE_AIR")))
-		{
-			return;
-		}
-
 		lock.lock();
 		highestBlock = h > highestBlock ? h : highestBlock;
 		lock.unlock();
@@ -95,6 +100,17 @@ public class AtomicSliver
 		lock.lock();
 		modified = true;
 		block.put(h, d);
+
+		if(B.isLit(d))
+		{
+			update(h);
+		}
+
+		else
+		{
+			dontUpdate(h);
+		}
+
 		lock.unlock();
 	}
 
@@ -176,7 +192,9 @@ public class AtomicSliver
 		this.block = new KMap<Integer, BlockData>();
 		int h = din.readByte() - Byte.MIN_VALUE;
 		int p = din.readByte() - Byte.MIN_VALUE;
+		int u = din.readByte() - Byte.MIN_VALUE;
 		KList<BlockData> palette = new KList<BlockData>();
+		getUpdatables().clear();
 		highestBlock = h;
 
 		for(int i = 0; i < p; i++)
@@ -188,6 +206,12 @@ public class AtomicSliver
 		{
 			block.put(i, palette.get(din.readByte() - Byte.MIN_VALUE).clone());
 		}
+
+		for(int i = 0; i <= u; i++)
+		{
+			update(din.readByte() - Byte.MIN_VALUE);
+		}
+
 		modified = false;
 		lock.unlock();
 	}
@@ -210,6 +234,7 @@ public class AtomicSliver
 		}
 
 		dos.writeByte(palette.size() + Byte.MIN_VALUE);
+		dos.writeByte(update.size() + Byte.MIN_VALUE);
 
 		for(String i : palette)
 		{
@@ -221,6 +246,11 @@ public class AtomicSliver
 			BlockData dat = block.get(i);
 			String d = (dat == null ? AIR : dat).getAsString(true);
 			dos.writeByte(palette.indexOf(d) + Byte.MIN_VALUE);
+		}
+
+		for(Integer i : getUpdatables())
+		{
+			dos.writeByte(i + Byte.MIN_VALUE);
 		}
 
 		lock.unlock();

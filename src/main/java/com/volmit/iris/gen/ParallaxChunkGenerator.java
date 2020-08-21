@@ -164,14 +164,14 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	}
 
 	@Override
-	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 		if(getSliverCache().size() > 20000)
 		{
 			getSliverCache().clear();
 		}
 
-		super.onPostGenerate(random, x, z, data, grid, height, biomeMap);
+		super.onPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		if(getDimension().isPlaceObjects())
@@ -185,7 +185,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
-		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 		getParallaxMap().clean(ticks);
 		getData().getObjectLoader().clean();
 	}

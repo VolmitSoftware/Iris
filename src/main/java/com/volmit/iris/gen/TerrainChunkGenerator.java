@@ -9,6 +9,7 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.layer.GenLayerCarve;
 import com.volmit.iris.gen.layer.GenLayerCave;
@@ -88,7 +89,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		try
 		{
 
-			int highestPlaced = 0;
 			BlockData block;
 			int fluidHeight = getDimension().getFluidHeight();
 			double ox = getModifiedX(rx, rz);
@@ -198,7 +198,6 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 				// Set block and update heightmaps
 				sliver.set(k, block);
-				highestPlaced = Math.max(highestPlaced, k);
 
 				// Decorate underwater surface
 				if(!cavernSurface && (k == height && B.isSolid(block.getMaterial()) && k < fluidHeight))
@@ -479,17 +478,17 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
-		onPreParallaxPostGenerate(random, x, z, data, grid, height, biomeMap);
+		onPreParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 	}
 
-	protected void onPreParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	protected void onPreParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 
 	}
 
-	protected void onPostParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap)
+	protected void onPostParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 
 	}

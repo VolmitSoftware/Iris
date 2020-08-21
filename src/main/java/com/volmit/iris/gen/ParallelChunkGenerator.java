@@ -55,7 +55,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);
 
-	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap);
+	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
 
 	protected int sampleHeight(int x, int z)
 	{
@@ -96,7 +96,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		map.write(data, grid, height);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
-		onPostGenerate(random, x, z, data, grid, height, biomeMap);
+		onPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 	}
 
 	protected void onClose()

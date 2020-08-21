@@ -17,6 +17,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.block.Biome;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -811,6 +812,19 @@ public class ProjectManager
 						for(PotionEffectType gg : PotionEffectType.values())
 						{
 							a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
+						}
+
+						prop.put("enum", a);
+					}
+
+					if(k.getType().equals(String.class) && k.getName().equals("enchantment"))
+					{
+						tp = "string";
+						JSONArray a = new JSONArray();
+
+						for(Field gg : Enchantment.class.getDeclaredFields())
+						{
+							a.put(gg.getName());
 						}
 
 						prop.put("enum", a);

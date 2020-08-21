@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -9,6 +9,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
+import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -45,6 +46,11 @@ public class IrisLoot
 	@Desc("Maximum amount of this loot")
 	private int maxAmount = 1;
 
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("The display name of this item")
+	private String displayName = null;
+
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
@@ -57,36 +63,36 @@ public class IrisLoot
 	@Desc("Maximum durability percent")
 	private double maxDurability = 1;
 
-	@MinNumber(1)
-	@MaxNumber(10)
 	@DontObfuscate
-	@Desc("Minimum Enchantment level")
-	private int minEnchantLevel = 1;
+	@Desc("Define a custom model identifier")
+	private Integer customModel = null;
 
-	@MinNumber(1)
-	@MaxNumber(10)
 	@DontObfuscate
-	@Desc("Maximum Enchantment level")
-	private int maxEnchantLevel = 1;
+	@Desc("Set this to true to prevent it from being broken")
+	private boolean unbreakable = false;
 
-	@MinNumber(0)
-	@MaxNumber(10)
+	@ArrayType(min = 1, type = ItemFlag.class)
 	@DontObfuscate
-	@Desc("Minimum Enchantmentments")
-	private int minEnchants = 0;
+	@Desc("The item flags to add")
+	private KList<ItemFlag> itemFlags = new KList<>();
 
-	@MinNumber(0)
-	@MaxNumber(10)
 	@DontObfuscate
-	@Desc("Maximum Enchantmentments")
-	private int maxEnchants = 0;
+	@Desc("Apply enchantments to this item")
+	@ArrayType(min = 1, type = IrisEnchantment.class)
+	private KList<IrisEnchantment> enchantments = new KList<>();
 
-	@MinNumber(1)
 	@DontObfuscate
-	@Desc("The chance for every attempt to add an enchantment 1 in X")
-	private int enchantmentRarity = 4;
+	@Desc("Apply attribute modifiers to this item")
+	@ArrayType(min = 1, type = IrisAttributeModifier.class)
+	private KList<IrisAttributeModifier> attributes = new KList<>();
+
+	@ArrayType(min = 1, type = String.class)
+	@DontObfuscate
+	@Desc("Add lore to this item")
+	private KList<String> lore = new KList<>();
 
 	@Required
+	@DontObfuscate
 	@Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
 	private String type = "";
 
@@ -127,35 +133,38 @@ public class IrisLoot
 				d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
 			}
 
+			for(IrisEnchantment i : getEnchantments())
+			{
+				i.apply(rng, m);
+			}
+
+			for(IrisAttributeModifier i : getAttributes())
+			{
+				i.apply(rng, m);
+			}
+
+			m.setCustomModelData(getCustomModel());
+			m.setLocalizedName(displayName);
+			m.setDisplayName(displayName);
+			m.setUnbreakable(isUnbreakable());
+
+			for(ItemFlag i : getItemFlags())
+			{
+				m.addItemFlags(i);
+			}
+
 			KList<String> lore = new KList<>();
 
-			if(minEnchants > 0 || maxEnchants > 0)
-			{
-				KList<Enchantment> c = new KList<Enchantment>(Enchantment.values());
-
-				for(int i = minEnchants; i < maxEnchants; i++)
-				{
-					if(rng.i(1, enchantmentRarity) == 1)
-					{
-						Enchantment e = c.get(rng.nextInt(c.size()));
-
-						for(int ggh = 0; ggh < 8; ggh++)
-						{
-							if(e.canEnchantItem(is))
-							{
-								m.addEnchant(e, rng.i(getMinEnchantLevel(), getMaxEnchantLevel()), false);
-								break;
-							}
-
-							e = c.get(rng.nextInt(c.size()));
-						}
-					}
-				}
-			}
+			lore.addAll(getLore());
 
 			if(debug)
 			{
-				lore.add("From Table: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
+				if(lore.isNotEmpty())
+				{
+					lore.add(ChatColor.GRAY + "--------------------");
+				}
+
+				lore.add(ChatColor.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
 				lore.add(ChatColor.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
 			}
 

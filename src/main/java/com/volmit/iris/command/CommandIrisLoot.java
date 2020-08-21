@@ -1,17 +1,13 @@
 package com.volmit.iris.command;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;

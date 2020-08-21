@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -56,6 +57,35 @@ public class IrisLoot
 	@Desc("Maximum durability percent")
 	private double maxDurability = 1;
 
+	@MinNumber(1)
+	@MaxNumber(10)
+	@DontObfuscate
+	@Desc("Minimum Enchantment level")
+	private int minEnchantLevel = 1;
+
+	@MinNumber(1)
+	@MaxNumber(10)
+	@DontObfuscate
+	@Desc("Maximum Enchantment level")
+	private int maxEnchantLevel = 1;
+
+	@MinNumber(0)
+	@MaxNumber(10)
+	@DontObfuscate
+	@Desc("Minimum Enchantmentments")
+	private int minEnchants = 0;
+
+	@MinNumber(0)
+	@MaxNumber(10)
+	@DontObfuscate
+	@Desc("Maximum Enchantmentments")
+	private int maxEnchants = 0;
+
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("The chance for every attempt to add an enchantment 1 in X")
+	private int enchantmentRarity = 4;
+
 	@Required
 	@Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
 	private String type = "";
@@ -94,10 +124,34 @@ public class IrisLoot
 			{
 				Damageable d = (Damageable) m;
 				int max = getType().getMaxDurability();
-				d.setDamage((int) Math.round(Math.max(0, Math.min(max, rng.d(getMinDurability(), getMaxDurability()) * max))));
+				d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
 			}
 
 			KList<String> lore = new KList<>();
+
+			if(minEnchants > 0 || maxEnchants > 0)
+			{
+				KList<Enchantment> c = new KList<Enchantment>(Enchantment.values());
+
+				for(int i = minEnchants; i < maxEnchants; i++)
+				{
+					if(rng.i(1, enchantmentRarity) == 1)
+					{
+						Enchantment e = c.get(rng.nextInt(c.size()));
+
+						for(int ggh = 0; ggh < 8; ggh++)
+						{
+							if(e.canEnchantItem(is))
+							{
+								m.addEnchant(e, rng.i(getMinEnchantLevel(), getMaxEnchantLevel()), false);
+								break;
+							}
+
+							e = c.get(rng.nextInt(c.size()));
+						}
+					}
+				}
+			}
 
 			if(debug)
 			{

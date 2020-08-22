@@ -8,7 +8,7 @@ import org.bukkit.inventory.Inventory;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
-import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
@@ -30,9 +30,9 @@ public class CommandIrisLoot extends MortarCommand
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
-			KSet<IrisLootTable> tables = Iris.proj.getCurrentProject().getGlUpdate().getLootTables(p.getLocation().getBlock());
+			KList<IrisLootTable> tables = Iris.proj.getCurrentProject().getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
-			Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
+			Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			p.openInventory(inv);
 
 			for(IrisLootTable i : tables)
@@ -74,7 +74,7 @@ public class CommandIrisLoot extends MortarCommand
 					inv.clear();
 				}
 
-				Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
+				Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			}, 0, fast ? 5 : 35));
 
 			return true;

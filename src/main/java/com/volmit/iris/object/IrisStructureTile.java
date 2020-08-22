@@ -63,7 +63,6 @@ public class IrisStructureTile
 	private KList<String> objects = new KList<>();
 
 	@RegistryListObject
-	@Required
 	@ArrayType(min = 1, type = IrisRareObject.class)
 	@DontObfuscate
 	@Desc("List of objects to place centered in this tile but with rarity. These items only place some of the time so specify objects for common stuff too.")

@@ -17,7 +17,6 @@ import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructurePlacement;
-import com.volmit.iris.object.TileResult;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
@@ -27,6 +26,7 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.NBTInputStream;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -106,7 +106,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 			return h;
 		}
-
+NBTInputStream
 		return h;
 	}
 
@@ -218,61 +218,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 	public IrisStructureResult getStructure(int x, int y, int z)
 	{
-		IrisBiome b = sampleTrueBiome(x, z).getBiome();
-		IrisRegion r = sampleRegion(x, z);
-		RNG ro = getMasterRandom().nextParallelRNG(496888 + (x >> 4) + (z >> 4));
-		int h = (int) Math.round(getTerrainHeight(x, z));
-		KList<IrisStructurePlacement> p = new KList<>();
-
-		for(IrisStructurePlacement i : r.getStructures())
-		{
-			if(i.getHeight() > -1)
-			{
-				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure(this).getGridHeight() * i.getStructure(this).getMaxLayers()))
-				{
-					p.add(i);
-				}
-			}
-
-			else if(y >= h && y <= i.getStructure(this).getGridHeight() + h)
-			{
-				p.add(i);
-			}
-		}
-
-		for(IrisStructurePlacement i : b.getStructures())
-		{
-			if(i.getHeight() > -1)
-			{
-				if(y >= i.getHeight() && y <= i.getHeight() + (i.getStructure(this).getGridHeight() * i.getStructure(this).getMaxLayers()))
-				{
-					p.add(i);
-				}
-			}
-
-			else if(y >= h && y <= i.getStructure(this).getGridHeight() + h)
-			{
-				p.add(i);
-			}
-		}
-
-		for(IrisStructurePlacement i : p)
-		{
-			if(!i.hasStructure(ro, x, y, z))
-			{
-				continue;
-			}
-
-			int hv = (i.getHeight() == -1 ? 0 : i.getHeight()) + (Math.floorDiv(y, i.getStructure(this).getGridHeight()) * i.getStructure(this).getGridHeight());
-			TileResult tile = i.getStructure(this).getTile(ro, Math.floorDiv(i.gridSize(this), x) * i.gridSize(this), hv, Math.floorDiv(i.gridSize(this), z) * i.gridSize(this));
-
-			if(tile != null && tile.getTile() != null)
-			{
-				return new IrisStructureResult(tile.getTile(), i.getStructure(this));
-			}
-		}
-
-		return null;
+		return getParallaxChunk(x >> 4, z >> 4).getStructure(this, y);
 	}
 
 	protected void onGenerateParallax(RNG random, int x, int z)

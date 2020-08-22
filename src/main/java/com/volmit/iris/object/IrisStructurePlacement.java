@@ -147,7 +147,7 @@ public class IrisStructurePlacement
 			}
 
 			o = o != null ? o : load(g, t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
-			o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng);
+			o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng, (gg) -> g.getParallaxChunk(gg.getChunkX(), gg.getChunkZ()).setStructure(gg.getY(), t.getStructure(), t.getTile()));
 		}
 	}
 

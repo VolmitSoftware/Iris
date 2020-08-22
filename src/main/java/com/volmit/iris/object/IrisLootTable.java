@@ -27,12 +27,17 @@ public class IrisLootTable extends IrisRegistrant
 	@Desc("The rarity as in 1 in X chance")
 	private int rarity = 1;
 
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("The maximum amount of loot that can be picked in this table at a time.")
+	private int maxPicked = 3;
+
 	@DontObfuscate
 	@Desc("The loot in this table")
 	@ArrayType(min = 1, type = IrisLoot.class)
 	private KList<IrisLoot> loot = new KList<>();
 
-	public KList<ItemStack> getLoot(boolean debug, RNG rng, InventorySlotType slot, int x, int y, int z)
+	public KList<ItemStack> getLoot(boolean debug, RNG rng, InventorySlotType slot, int x, int y, int z, int gg, int ffs)
 	{
 		KList<ItemStack> lootf = new KList<>();
 
@@ -42,7 +47,7 @@ public class IrisLootTable extends IrisRegistrant
 		{
 			if(i.getSlotTypes().equals(slot))
 			{
-				ItemStack item = i.get(debug, this, rng.nextParallelRNG(294788 + x + y - z * z + (m * -4125)), x, y, z);
+				ItemStack item = i.get(debug, this, rng, x, y, z);
 
 				if(item != null)
 				{
@@ -51,6 +56,11 @@ public class IrisLootTable extends IrisRegistrant
 			}
 
 			m++;
+
+			if(m > maxPicked)
+			{
+				break;
+			}
 		}
 
 		return lootf;

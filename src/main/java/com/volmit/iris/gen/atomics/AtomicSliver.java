@@ -25,24 +25,24 @@ import lombok.Data;
 public class AtomicSliver
 {
 	public static final BlockData AIR = B.getBlockData("AIR");
+	private transient KMap<Integer, IrisBiome> truebiome;
+	private transient KMap<Integer, Biome> biome;
+	private transient IrisLock lock = new IrisLock("Sliver");
+	private transient int highestBiome = 0;
+	private transient long last = M.ms();
+	private transient int x;
+	private transient int z;
+	private transient boolean modified = false;
 	private KMap<Integer, BlockData> block;
-	private KMap<Integer, IrisBiome> truebiome;
-	private KMap<Integer, Biome> biome;
-	private KSet<Integer> update;
-	private IrisLock lock = new IrisLock("Sliver");
+	private KSet<Integer> blockUpdates;
 	private int highestBlock = 0;
-	private int highestBiome = 0;
-	private long last = M.ms();
-	private int x;
-	private int z;
-	boolean modified = false;
 
 	public AtomicSliver(int x, int z)
 	{
 		lock.setDisabled(true);
 		this.x = x;
 		this.z = z;
-		update = new KSet<>();
+		blockUpdates = new KSet<>();
 		this.block = new KMap<>();
 		this.biome = new KMap<>();
 		this.truebiome = new KMap<>();
@@ -55,17 +55,17 @@ public class AtomicSliver
 
 	public KSet<Integer> getUpdatables()
 	{
-		return update;
+		return blockUpdates;
 	}
 
 	public void update(int y)
 	{
-		update.add(y);
+		blockUpdates.add(y);
 	}
 
 	public void dontUpdate(int y)
 	{
-		update.remove(y);
+		blockUpdates.remove(y);
 	}
 
 	public BlockData get(int h)
@@ -76,6 +76,19 @@ public class AtomicSliver
 		if(b == null)
 		{
 			return AIR;
+		}
+
+		return b;
+	}
+
+	public BlockData getOrNull(int h)
+	{
+		BlockData b = block.get(h);
+		last = M.ms();
+
+		if(b.getMaterial().equals(Material.AIR))
+		{
+			return null;
 		}
 
 		return b;
@@ -190,6 +203,8 @@ public class AtomicSliver
 	{
 		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
+
+		// Block Palette
 		int h = din.readByte() - Byte.MIN_VALUE;
 		int p = din.readByte() - Byte.MIN_VALUE;
 		int u = din.readByte() - Byte.MIN_VALUE;
@@ -202,11 +217,13 @@ public class AtomicSliver
 			palette.add(B.getBlockData(din.readUTF()));
 		}
 
+		// Blocks
 		for(int i = 0; i <= h; i++)
 		{
 			block.put(i, palette.get(din.readByte() - Byte.MIN_VALUE).clone());
 		}
 
+		// Updates
 		for(int i = 0; i <= u; i++)
 		{
 			update(din.readByte() - Byte.MIN_VALUE);
@@ -220,6 +237,8 @@ public class AtomicSliver
 	{
 		lock.lock();
 		dos.writeByte(highestBlock + Byte.MIN_VALUE);
+
+		// Block Palette
 		KList<String> palette = new KList<>();
 
 		for(int i = 0; i <= highestBlock; i++)
@@ -234,13 +253,14 @@ public class AtomicSliver
 		}
 
 		dos.writeByte(palette.size() + Byte.MIN_VALUE);
-		dos.writeByte(update.size() + Byte.MIN_VALUE);
+		dos.writeByte(blockUpdates.size() + Byte.MIN_VALUE);
 
 		for(String i : palette)
 		{
 			dos.writeUTF(i);
 		}
 
+		// Blocks
 		for(int i = 0; i <= highestBlock; i++)
 		{
 			BlockData dat = block.get(i);
@@ -248,6 +268,7 @@ public class AtomicSliver
 			dos.writeByte(palette.indexOf(d) + Byte.MIN_VALUE);
 		}
 
+		// Updates
 		for(Integer i : getUpdatables())
 		{
 			dos.writeByte(i + Byte.MIN_VALUE);
@@ -296,6 +317,6 @@ public class AtomicSliver
 
 	public void inject(KSet<Integer> updatables)
 	{
-		update.addAll(updatables);
+		blockUpdates.addAll(updatables);
 	}
 }

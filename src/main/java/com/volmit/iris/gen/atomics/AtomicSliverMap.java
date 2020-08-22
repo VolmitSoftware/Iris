@@ -9,7 +9,13 @@ import java.io.OutputStream;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.object.IrisStructure;
+import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.IrisStructureResult;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 
 import lombok.Data;
 
@@ -17,11 +23,13 @@ import lombok.Data;
 public class AtomicSliverMap
 {
 	private final AtomicSliver[] slivers;
+	private KMap<Integer, String> structures;
 	private boolean parallaxGenerated;
 	private boolean worldGenerated;
 
 	public AtomicSliverMap()
 	{
+		structures = new KMap<>();
 		parallaxGenerated = false;
 		worldGenerated = false;
 		slivers = new AtomicSliver[256];
@@ -43,6 +51,32 @@ public class AtomicSliverMap
 		}
 	}
 
+	public void setStructure(int y, IrisStructure s, IrisStructureTile t)
+	{
+		structures.put(y, s.getLoadKey() + "." + s.getTiles().indexOf(t));
+	}
+
+	public IrisStructureResult getStructure(DimensionChunkGenerator g, int y)
+	{
+		String v = structures.get(y);
+
+		if(v == null)
+		{
+			return null;
+		}
+
+		String[] a = v.split("\\Q.\\E");
+
+		IrisStructure s = g.getData().getStructureLoader().load(a[0]);
+
+		if(s == null)
+		{
+			return null;
+		}
+
+		return new IrisStructureResult(s.getTiles().get(Integer.valueOf(a[1])), s);
+	}
+
 	public void write(OutputStream out) throws IOException
 	{
 		DataOutputStream dos = new DataOutputStream(out);
@@ -51,6 +85,33 @@ public class AtomicSliverMap
 		for(int i = 0; i < 256; i++)
 		{
 			slivers[i].write(dos);
+		}
+
+		KList<String> structurePalette = new KList<>();
+
+		for(Integer i : structures.k())
+		{
+			String struct = structures.get(i);
+
+			if(!structurePalette.contains(struct))
+			{
+				structurePalette.add(struct);
+			}
+		}
+
+		dos.writeByte(structurePalette.size() + Byte.MIN_VALUE);
+
+		for(String i : structurePalette)
+		{
+			dos.writeUTF(i);
+		}
+
+		dos.writeByte(structures.size() + Byte.MIN_VALUE);
+
+		for(Integer i : structures.k())
+		{
+			dos.writeByte(i + Byte.MIN_VALUE);
+			dos.writeByte(structurePalette.indexOf(structures.get(i)) + Byte.MIN_VALUE);
 		}
 
 		dos.flush();
@@ -73,6 +134,21 @@ public class AtomicSliverMap
 			{
 
 			}
+		}
+
+		int spc = din.readByte() - Byte.MIN_VALUE;
+		KList<String> spal = new KList<>();
+		for(int i = 0; i < spc; i++)
+		{
+			spal.add(din.readUTF());
+		}
+
+		int smc = din.readByte() - Byte.MIN_VALUE;
+		structures.clear();
+
+		for(int i = 0; i < smc; i++)
+		{
+			structures.put(din.readByte() - Byte.MIN_VALUE, spal.get(din.readByte() - Byte.MIN_VALUE));
 		}
 	}
 
@@ -122,7 +198,7 @@ public class AtomicSliverMap
 			for(int j = 0; j < 16; j++)
 			{
 				getSliver(i, j).inject(map.getSliver(i, j).getUpdatables());
-			}	
+			}
 		}
 	}
 }

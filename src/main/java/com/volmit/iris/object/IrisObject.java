@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KMap;
@@ -127,7 +129,12 @@ public class IrisObject extends IrisRegistrant
 		place(x, -1, z, placer, config, rng);
 	}
 
-	public void place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	{
+		return place(x, yv, z, placer, config, rng, null);
+	}
+
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener)
 	{
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
@@ -135,7 +142,6 @@ public class IrisObject extends IrisRegistrant
 		int rty = config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), spinx, spiny, spinz).getBlockY();
 		int ty = config.getTranslate().translate(new BlockVector(0, getCenter().getBlockY(), 0), config.getRotation(), spinx, spiny, spinz).getBlockY();
 		int y = -1;
-		KMap<ChunkPosition, Integer> paintmap = null;
 
 		if(yv < 0)
 		{
@@ -233,7 +239,6 @@ public class IrisObject extends IrisRegistrant
 			else if(config.getMode().equals(ObjectPlaceMode.PAINT))
 			{
 				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
-				paintmap = new KMap<>();
 			}
 		}
 
@@ -253,18 +258,18 @@ public class IrisObject extends IrisRegistrant
 		{
 			if(!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z))
 			{
-				return;
+				return -1;
 			}
 		}
 
 		if(config.isUnderwater() && y + rty + ty >= placer.getFluidHeight())
 		{
-			return;
+			return -1;
 		}
 
 		if(!config.getClamp().canPlace(y + rty + ty, y - rty + ty))
 		{
-			return;
+			return -1;
 		}
 
 		if(config.isBore())
@@ -309,17 +314,9 @@ public class IrisObject extends IrisRegistrant
 			int yy = y + (int) Math.round(i.getY());
 			int zz = z + (int) Math.round(i.getZ());
 
-			if(config.getMode().equals(ObjectPlaceMode.PAINT))
+			if(yv < 0 && config.getMode().equals(ObjectPlaceMode.PAINT))
 			{
-				yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + paintmap.compute(new ChunkPosition(xx, zz), (k, v) ->
-				{
-					if(k == null || v == null)
-					{
-						return placer.getHighest(xx, zz, config.isUnderwater());
-					}
-
-					return v;
-				});
+				yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, config.isUnderwater());
 			}
 
 			if(heightmap != null)
@@ -345,6 +342,11 @@ public class IrisObject extends IrisRegistrant
 			if(config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged)
 			{
 				((Waterlogged) data).setWaterlogged(true);
+			}
+
+			if(listener != null)
+			{
+				listener.accept(new BlockPosition(xx, yy, zz));
 			}
 
 			placer.set(xx, yy, zz, data);
@@ -373,6 +375,8 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 		}
+
+		return y;
 	}
 
 	public void place(Location at)

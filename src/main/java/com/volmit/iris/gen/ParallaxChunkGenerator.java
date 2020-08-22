@@ -106,7 +106,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 			return h;
 		}
-NBTInputStream
+
 		return h;
 	}
 

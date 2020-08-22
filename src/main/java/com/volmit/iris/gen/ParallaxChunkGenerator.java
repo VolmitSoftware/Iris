@@ -26,7 +26,6 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.NBTInputStream;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;

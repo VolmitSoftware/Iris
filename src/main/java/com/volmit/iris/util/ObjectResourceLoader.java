@@ -74,7 +74,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		useCache.remove(v);
 		loadCache.remove(v);
 		lock.unlock();
-		Iris.info("Unloaded Object: " + v);
+		J.a(() -> Iris.verbose("Unloaded Object: " + v));
 	}
 
 	public IrisObject loadFile(File j, String key, String name)
@@ -86,7 +86,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			t.read(j);
 			loadCache.put(key, t);
 			Iris.hotloader.track(j);
-			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
+			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
 			lock.unlock();
 			return t;

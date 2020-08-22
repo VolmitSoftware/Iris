@@ -84,7 +84,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			T t = new Gson().fromJson(IO.readAll(j), objectClass);
 			loadCache.put(key, t);
 			Iris.hotloader.track(j);
-			Iris.info("Loading " + resourceTypeName + ": " + j.getPath());
+			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
 			t.setLoadFile(j);
 			lock.unlock();
@@ -94,7 +94,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		catch(Throwable e)
 		{
 			lock.unlock();
-			Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
+			J.a(() -> Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage()));
 			return null;
 		}
 	}
@@ -128,7 +128,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			}
 		}
 
-		Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
+		J.a(() -> Iris.warn("Couldn't find " + resourceTypeName + ": " + name));
 
 		lock.unlock();
 		return null;

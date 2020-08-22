@@ -31,6 +31,18 @@ public class IrisStructure extends IrisRegistrant
 	@Desc("Wall style noise")
 	private IrisGeneratorStyle wallStyle = NoiseStyle.STATIC.style();
 
+	@Desc("Setting underwater to true will waterlog blocks")
+	@DontObfuscate
+	private boolean underwater = false;
+
+	@Desc("The max & min height any part of this structure can place at")
+	@DontObfuscate
+	private IrisObjectLimit clamp = new IrisObjectLimit();
+
+	@Desc("Setting bore to true will dig out blocks before placing tiles")
+	@DontObfuscate
+	private boolean bore = false;
+
 	@Required
 	@MinNumber(3)
 	@MaxNumber(64)
@@ -110,7 +122,7 @@ public class IrisStructure extends IrisRegistrant
 			{
 				if(i.likeAGlove(floor, ceiling, walls, faces, openings))
 				{
-					return new TileResult(i, rt);
+					return new TileResult(this, i, rt);
 				}
 			}
 

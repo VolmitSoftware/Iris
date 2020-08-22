@@ -87,7 +87,15 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 				accelerant.queue(key, () ->
 				{
-					onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
+					try
+					{
+						onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
+					}
+
+					catch(Throwable e)
+					{
+						fail(e);
+					}
 				});
 			}
 		}

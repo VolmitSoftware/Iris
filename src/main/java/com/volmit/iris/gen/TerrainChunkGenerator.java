@@ -86,184 +86,175 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			throw new RuntimeException("Invalid OnGenerate call: x:" + x + " z:" + z);
 		}
 
-		try
+		BlockData block;
+		int fluidHeight = getDimension().getFluidHeight();
+		double ox = getModifiedX(rx, rz);
+		double oz = getModifiedZ(rx, rz);
+		double wx = getZoomed(ox);
+		double wz = getZoomed(oz);
+		int depth = 0;
+		double noise = getTerrainHeight(rx, rz);
+		int height = (int) Math.round(noise);
+		boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
+		IrisRegion region = sampleRegion(rx, rz);
+		BiomeResult biomeResult = sampleTrueBiome(rx, rz, noise);
+		IrisBiome biome = biomeResult.getBiome();
+
+		if(biome == null)
 		{
+			throw new RuntimeException("Null Biome!");
+		}
 
-			BlockData block;
-			int fluidHeight = getDimension().getFluidHeight();
-			double ox = getModifiedX(rx, rz);
-			double oz = getModifiedZ(rx, rz);
-			double wx = getZoomed(ox);
-			double wz = getZoomed(oz);
-			int depth = 0;
-			double noise = getTerrainHeight(rx, rz);
-			int height = (int) Math.round(noise);
-			boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
-			IrisRegion region = sampleRegion(rx, rz);
-			BiomeResult biomeResult = sampleTrueBiome(rx, rz, noise);
-			IrisBiome biome = biomeResult.getBiome();
+		KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
+		KList<BlockData> seaLayers = biome.isSea() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
+		boolean caverning = false;
+		KList<Integer> cavernHeights = new KList<>();
+		int lastCavernHeight = -1;
+		boolean biomeAssigned = false;
+		int max = Math.max(height, fluidHeight);
+		int biomeMax = Math.min(max + 16, 255);
 
-			if(biome == null)
+		// From Height to Bedrock
+		for(int k = max; k >= 0; k--)
+		{
+			boolean cavernSurface = false;
+			boolean bedrock = k == 0;
+			boolean underwater = k > height && k <= fluidHeight;
+
+			// Bedrock
+			if(bedrock)
 			{
-				throw new RuntimeException("Null Biome!");
+				if(biomeMap != null)
+				{
+					sliver.set(k, biome.getDerivative());
+				}
+
+				sliver.set(k, BEDROCK);
+				continue;
 			}
 
-			KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
-			KList<BlockData> seaLayers = biome.isSea() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
-			boolean caverning = false;
-			KList<Integer> cavernHeights = new KList<>();
-			int lastCavernHeight = -1;
-			boolean biomeAssigned = false;
-			int max = Math.max(height, fluidHeight);
-			int biomeMax = Math.min(max + 16, 255);
-
-			// From Height to Bedrock
-			for(int k = max; k >= 0; k--)
+			// Carving
+			if(carvable && glCarve.isCarved(rx, k, rz))
 			{
-				boolean cavernSurface = false;
-				boolean bedrock = k == 0;
-				boolean underwater = k > height && k <= fluidHeight;
-
-				// Bedrock
-				if(bedrock)
+				if(biomeMap != null)
 				{
-					if(biomeMap != null)
-					{
-						sliver.set(k, biome.getDerivative());
-					}
-
-					sliver.set(k, BEDROCK);
-					continue;
+					sliver.set(k, biome.getDerivative());
 				}
 
-				// Carving
-				if(carvable && glCarve.isCarved(rx, k, rz))
+				sliver.set(k, CAVE_AIR);
+				caverning = true;
+				continue;
+			}
+
+			// Carved Surface
+			else if(carvable && caverning)
+			{
+				lastCavernHeight = k;
+				cavernSurface = true;
+				cavernHeights.add(k);
+				caverning = false;
+			}
+
+			// Set Biome
+			if(!biomeAssigned && biomeMap != null)
+			{
+				biomeAssigned = true;
+				sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
+				biomeMap.setBiome(x, z, biome);
+
+				for(int kv = max; kv < biomeMax; kv++)
 				{
-					if(biomeMap != null)
-					{
-						sliver.set(k, biome.getDerivative());
-					}
-
-					sliver.set(k, CAVE_AIR);
-					caverning = true;
-					continue;
-				}
-
-				// Carved Surface
-				else if(carvable && caverning)
-				{
-					lastCavernHeight = k;
-					cavernSurface = true;
-					cavernHeights.add(k);
-					caverning = false;
-				}
-
-				// Set Biome
-				if(!biomeAssigned && biomeMap != null)
-				{
-					biomeAssigned = true;
-					sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
-					biomeMap.setBiome(x, z, biome);
-
-					for(int kv = max; kv < biomeMax; kv++)
-					{
-						Biome skyBiome = biome.getSkyBiome(masterRandom, rz, kv, rx);
-						sliver.set(kv, skyBiome);
-					}
-				}
-
-				if(k <= Math.max(height, fluidHeight))
-				{
-					sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
-				}
-
-				// Set Sea Material (water/lava)
-				if(underwater)
-				{
-					block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
-				}
-
-				// Set Surface Material for cavern layer surfaces
-				else if(layers.hasIndex(lastCavernHeight - k))
-				{
-					block = layers.get(lastCavernHeight - k);
-				}
-
-				// Set Surface Material for true surface
-				else
-				{
-					block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRock(rockRandom, wx, k, wz);
-					depth++;
-				}
-
-				// Set block and update heightmaps
-				sliver.set(k, block);
-
-				// Decorate underwater surface
-				if(!cavernSurface && (k == height && B.isSolid(block.getMaterial()) && k < fluidHeight))
-				{
-					decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
-				}
-
-				// Decorate Cavern surfaces, but not the true surface
-				if((carvable && cavernSurface) && !(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
-				{
-					decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
+					Biome skyBiome = biome.getSkyBiome(masterRandom, rz, kv, rx);
+					sliver.set(kv, skyBiome);
 				}
 			}
 
-			// Carve out biomes
-			KList<CaveResult> caveResults = glCave.genCaves(rx, rz, x, z, sliver);
-			IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region).getBiome();
-
-			// Decorate Cave Biome Height Sections
-			if(caveBiome != null)
+			if(k <= Math.max(height, fluidHeight))
 			{
-				for(CaveResult i : caveResults)
-				{
-					for(int j = i.getFloor(); j <= i.getCeiling(); j++)
-					{
-						sliver.set(j, caveBiome);
-						sliver.set(j, caveBiome.getGroundBiome(masterRandom, rz, j, rx));
-					}
-
-					KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);
-					KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, height - i.getCeiling() - 2, height - i.getCeiling() - 2);
-					BlockData blockc = null;
-					for(int j = 0; j < floor.size(); j++)
-					{
-						if(j == 0)
-						{
-							blockc = floor.get(j);
-						}
-
-						sliver.set(i.getFloor() - j, floor.get(j));
-					}
-
-					for(int j = ceiling.size() - 1; j > 0; j--)
-					{
-						sliver.set(i.getCeiling() + j, ceiling.get(j));
-					}
-
-					if(blockc != null && !sliver.isSolid(i.getFloor() + 1))
-					{
-						decorateCave(caveBiome, sliver, wx, i.getFloor(), wz, rx, rz, blockc);
-					}
-				}
+				sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
 			}
 
-			block = sliver.get(Math.max(height, fluidHeight));
-
-			// Decorate True Surface
-			if(block.getMaterial().isSolid())
+			// Set Sea Material (water/lava)
+			if(underwater)
 			{
-				decorateLand(biome, sliver, wx, Math.max(height, fluidHeight), wz, rx, rz, block);
+				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
+			}
+
+			// Set Surface Material for cavern layer surfaces
+			else if(layers.hasIndex(lastCavernHeight - k))
+			{
+				block = layers.get(lastCavernHeight - k);
+			}
+
+			// Set Surface Material for true surface
+			else
+			{
+				block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRock(rockRandom, wx, k, wz);
+				depth++;
+			}
+
+			// Set block and update heightmaps
+			sliver.set(k, block);
+
+			// Decorate underwater surface
+			if(!cavernSurface && (k == height && B.isSolid(block.getMaterial()) && k < fluidHeight))
+			{
+				decorateUnderwater(biome, sliver, wx, k, wz, rx, rz, block);
+			}
+
+			// Decorate Cavern surfaces, but not the true surface
+			if((carvable && cavernSurface) && !(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
+			{
+				decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
 			}
 		}
 
-		catch(Throwable e)
+		// Carve out biomes
+		KList<CaveResult> caveResults = glCave.genCaves(rx, rz, x, z, sliver);
+		IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region).getBiome();
+
+		// Decorate Cave Biome Height Sections
+		if(caveBiome != null)
 		{
-			fail(e);
+			for(CaveResult i : caveResults)
+			{
+				for(int j = i.getFloor(); j <= i.getCeiling(); j++)
+				{
+					sliver.set(j, caveBiome);
+					sliver.set(j, caveBiome.getGroundBiome(masterRandom, rz, j, rx));
+				}
+
+				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);
+				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, height - i.getCeiling() - 2, height - i.getCeiling() - 2);
+				BlockData blockc = null;
+				for(int j = 0; j < floor.size(); j++)
+				{
+					if(j == 0)
+					{
+						blockc = floor.get(j);
+					}
+
+					sliver.set(i.getFloor() - j, floor.get(j));
+				}
+
+				for(int j = ceiling.size() - 1; j > 0; j--)
+				{
+					sliver.set(i.getCeiling() + j, ceiling.get(j));
+				}
+
+				if(blockc != null && !sliver.isSolid(i.getFloor() + 1))
+				{
+					decorateCave(caveBiome, sliver, wx, i.getFloor(), wz, rx, rz, blockc);
+				}
+			}
+		}
+
+		block = sliver.get(Math.max(height, fluidHeight));
+
+		// Decorate True Surface
+		if(block.getMaterial().isSolid())
+		{
+			decorateLand(biome, sliver, wx, Math.max(height, fluidHeight), wz, rx, rz, block);
 		}
 	}
 
@@ -313,7 +304,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				continue;
 			}
 
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG((int) (38888 + biome.getRarity() + biome.getName().length() + j++)), rx, rz);
+			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG((int) (38888 + biome.getRarity() + biome.getName().length() + j++)), rx, rz);
 
 			if(d != null)
 			{
@@ -382,7 +373,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
 		{
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz);
+			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz);
 
 			if(d != null)
 			{
@@ -453,7 +444,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				continue;
 			}
 
-			BlockData d = i.getBlockData(getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz);
+			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz);
 
 			if(d != null)
 			{

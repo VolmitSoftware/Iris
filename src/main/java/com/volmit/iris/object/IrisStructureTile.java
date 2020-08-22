@@ -21,6 +21,10 @@ public class IrisStructureTile
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@DontObfuscate
+	@Desc("The place mode for this tile")
+	private ObjectPlaceMode placeMode = ObjectPlaceMode.PAINT;
+
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a ceiling?")
@@ -57,6 +61,13 @@ public class IrisStructureTile
 	@DontObfuscate
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
+
+	@RegistryListObject
+	@Required
+	@ArrayType(min = 1, type = IrisRareObject.class)
+	@DontObfuscate
+	@Desc("List of objects to place centered in this tile but with rarity. These items only place some of the time so specify objects for common stuff too.")
+	private KList<IrisRareObject> rareObjects = new KList<>();
 
 	private AtomicCache<Integer> minFaces = new AtomicCache<>();
 	private AtomicCache<Integer> maxFaces = new AtomicCache<>();

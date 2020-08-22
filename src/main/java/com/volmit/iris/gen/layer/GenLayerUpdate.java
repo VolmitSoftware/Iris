@@ -118,14 +118,22 @@ public class GenLayerUpdate extends BlockPopulator
 	{
 		KList<ItemStack> items = new KList<>();
 
-		for(IrisLootTable i : tables)
+		for(int t = 0; t < gen.getDimension().getLootTries(); t++)
 		{
-			items.addAll(i.getLoot(debug, rng, slot, x, y, z));
-		}
+			for(IrisLootTable i : tables)
+			{
+				items.addAll(i.getLoot(debug, rng.nextParallelRNG(345911 * -t), slot, x, y, z));
+			}
 
-		for(ItemStack i : items)
-		{
-			inv.addItem(i);
+			for(ItemStack i : items)
+			{
+				inv.addItem(i);
+			}
+
+			if(items.isNotEmpty())
+			{
+				break;
+			}
 		}
 	}
 

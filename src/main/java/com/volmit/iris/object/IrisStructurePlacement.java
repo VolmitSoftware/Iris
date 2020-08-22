@@ -135,7 +135,18 @@ public class IrisStructurePlacement
 				t.getPlacement().setBore(true);
 			}
 
-			IrisObject o = load(g, t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
+			IrisObject o = null;
+
+			for(IrisRareObject l : t.getTile().getRareObjects())
+			{
+				if(rnp.i(1, l.getRarity()) == 1)
+				{
+					o = load(g, l.getObject());
+					break;
+				}
+			}
+
+			o = o != null ? o : load(g, t.getTile().getObjects().get(rnp.nextInt(t.getTile().getObjects().size())));
 			o.place(Math.floorDiv(i, s) * s, height == -1 ? -1 : h, Math.floorDiv(j, s) * s, g, t.getPlacement(), rng);
 		}
 	}

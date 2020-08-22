@@ -44,6 +44,8 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		{
 			e.close();
 		}
+
+		Iris.info("Thread Count changed to " + tc);
 	}
 
 	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);

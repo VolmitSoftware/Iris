@@ -301,4 +301,16 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		hr = region;
 		return biome.getName() + " (" + Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in " + region.getName() + "\nY: " + (int) height);
 	}
+
+	public void saveAllParallax()
+	{
+		try
+		{
+			getParallaxMap().saveAll();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
 }

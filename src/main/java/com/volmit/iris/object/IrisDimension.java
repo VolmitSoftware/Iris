@@ -19,7 +19,6 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
-import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
@@ -619,8 +618,10 @@ public class IrisDimension extends IrisRegistrant
 		{
 			Iris.info("Calculating the Parallax Size in Parallel");
 			O<Integer> xg = new O<>();
+			O<Integer> yg = new O<>();
 			O<Integer> zg = new O<>();
 			xg.set(0);
+			yg.set(0);
 			zg.set(0);
 
 			KSet<String> objects = new KSet<>();
@@ -649,6 +650,7 @@ public class IrisDimension extends IrisRegistrant
 						BlockVector bv = IrisObject.sampleSize(g.getData().getObjectLoader().findFile(i));
 						t.lock();
 						xg.set(bv.getBlockX() > xg.get() ? bv.getBlockX() : xg.get());
+						yg.set(bv.getBlockY() > yg.get() ? bv.getBlockY() : yg.get());
 						zg.set(bv.getBlockZ() > zg.get() ? bv.getBlockZ() : zg.get());
 						t.unlock();
 					}
@@ -662,8 +664,8 @@ public class IrisDimension extends IrisRegistrant
 
 			g.getAccelerant().waitFor("tx-psize");
 			g.changeThreadCount(tc);
-			int x = xg.get();
-			int z = zg.get();
+			int x = Math.max(xg.get(), Math.max(yg.get(), zg.get()));
+			int z = x;
 
 			for(IrisDepositGenerator i : getDeposits())
 			{
@@ -696,6 +698,8 @@ public class IrisDimension extends IrisRegistrant
 			z = (Math.max(z, 16) + 16) >> 4;
 			x = x % 2 == 0 ? x + 1 : x;
 			z = z % 2 == 0 ? z + 1 : z;
+			z = Math.max(x, z);
+			x = z;
 			Iris.info("Done! Parallax Size: " + x + ", " + z);
 			return new ChunkPosition(x, z);
 		});

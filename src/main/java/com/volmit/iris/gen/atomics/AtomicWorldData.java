@@ -313,7 +313,7 @@ public class AtomicWorldData
 				break;
 			}
 
-			if(M.ms() - lastChunk.get(i) > 15000)
+			if(M.ms() - lastChunk.get(i) > 60000)
 			{
 				m++;
 				unloadChunks.add(i);

@@ -147,18 +147,10 @@ public class IrisObject extends IrisRegistrant
 		{
 			if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT_RIGID))
 			{
-				if(config.isTranslateCenter())
-				{
-					y = placer.getHighest(x, z, config.isUnderwater()) + rty;
-				}
-
-				else
-				{
-					y = placer.getHighest(x, z, config.isUnderwater()) + rty;
-				}
+				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
 			}
 
-			if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID_ACCURATE))
+			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID_ACCURATE))
 			{
 				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
 				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();

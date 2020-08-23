@@ -82,9 +82,18 @@ public class AtomicSliverMap
 		DataOutputStream dos = new DataOutputStream(out);
 		dos.writeBoolean(isParallaxGenerated());
 		dos.writeBoolean(isWorldGenerated());
+
 		for(int i = 0; i < 256; i++)
 		{
-			slivers[i].write(dos);
+			try
+			{
+				slivers[i].write(dos);
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
 		}
 
 		KList<String> structurePalette = new KList<>();
@@ -132,7 +141,7 @@ public class AtomicSliverMap
 
 			catch(Throwable e)
 			{
-
+				e.printStackTrace();
 			}
 		}
 

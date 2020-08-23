@@ -30,8 +30,8 @@ public class AtomicSliver
 	private transient IrisLock lock = new IrisLock("Sliver");
 	private transient int highestBiome = 0;
 	private transient long last = M.ms();
-	private transient int x;
-	private transient int z;
+	private transient final int x;
+	private transient final int z;
 	private transient boolean modified = false;
 	private KMap<Integer, BlockData> block;
 	private KSet<Integer> blockUpdates;
@@ -39,7 +39,6 @@ public class AtomicSliver
 
 	public AtomicSliver(int x, int z)
 	{
-		lock.setDisabled(true);
 		this.x = x;
 		this.z = z;
 		blockUpdates = new KSet<>();
@@ -204,12 +203,12 @@ public class AtomicSliver
 		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
 
+		getUpdatables().clear();
 		// Block Palette
-		int h = din.readByte() - Byte.MIN_VALUE;
 		int p = din.readByte() - Byte.MIN_VALUE;
+		int h = din.readByte() - Byte.MIN_VALUE;
 		int u = din.readByte() - Byte.MIN_VALUE;
 		KList<BlockData> palette = new KList<BlockData>();
-		getUpdatables().clear();
 		highestBlock = h;
 
 		for(int i = 0; i < p; i++)
@@ -224,7 +223,7 @@ public class AtomicSliver
 		}
 
 		// Updates
-		for(int i = 0; i <= u; i++)
+		for(int i = 0; i < u; i++)
 		{
 			update(din.readByte() - Byte.MIN_VALUE);
 		}
@@ -236,7 +235,6 @@ public class AtomicSliver
 	public void write(DataOutputStream dos) throws IOException
 	{
 		lock.lock();
-		dos.writeByte(highestBlock + Byte.MIN_VALUE);
 
 		// Block Palette
 		KList<String> palette = new KList<>();
@@ -253,6 +251,7 @@ public class AtomicSliver
 		}
 
 		dos.writeByte(palette.size() + Byte.MIN_VALUE);
+		dos.writeByte(highestBlock + Byte.MIN_VALUE);
 		dos.writeByte(blockUpdates.size() + Byte.MIN_VALUE);
 
 		for(String i : palette)

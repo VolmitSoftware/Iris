@@ -104,13 +104,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 
 	public void onDisable()
 	{
-		lock.unlock();
 		proj.close();
-
-		for(GroupedExecutor i : executors)
-		{
-			i.close();
-		}
 
 		for(World i : Bukkit.getWorlds())
 		{
@@ -118,6 +112,10 @@ public class Iris extends MortarPlugin implements BoardProvider
 			{
 				((IrisChunkGenerator) i).close();
 			}
+		}
+		for(GroupedExecutor i : executors)
+		{
+			i.close();
 		}
 
 		executors.clear();

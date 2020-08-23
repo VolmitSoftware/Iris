@@ -9,6 +9,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.bukkit.World;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.ByteArrayTag;
 import com.volmit.iris.util.CompoundTag;
@@ -100,7 +101,8 @@ public class AtomicRegionData
 		data.write(out);
 		out.flush();
 		out.close();
-		tag[(rz << 5) | rx] = new ByteArrayTag(rx + "." + rz, boas.toByteArray());
+		byte[] b = boas.toByteArray();
+		tag[(rz << 5) | rx] = new ByteArrayTag(rx + "." + rz, b);
 	}
 
 	public AtomicSliverMap get(int rx, int rz) throws IOException
@@ -112,9 +114,15 @@ public class AtomicRegionData
 			return data;
 		}
 
+		ByteArrayTag btag = (ByteArrayTag) tag[(rz << 5) | rx];
+
 		try
 		{
-			ByteArrayTag btag = (ByteArrayTag) tag[(rz << 5) | rx];
+			if(btag.getValue().length == 0)
+			{
+				Iris.warn("EMPTY BYTE TAG " + rx + " " + rz);
+				return data;
+			}
 
 			InputStream in;
 
@@ -129,11 +137,12 @@ public class AtomicRegionData
 			}
 
 			data.read(in);
+			in.close();
 		}
 
 		catch(Throwable e)
 		{
-
+			Iris.warn("Failed to load " + rx + "." + rz + " with " + btag.getValue().length);
 		}
 
 		return data;

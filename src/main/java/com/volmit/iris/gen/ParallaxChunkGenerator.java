@@ -40,6 +40,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	protected KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
 	private MasterLock masterLock;
+	private IrisLock flock = new IrisLock("ParallaxLock");
 	private IrisLock lock = new IrisLock("ParallaxLock");
 	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
 	private GenLayerUpdate glUpdate;
@@ -112,9 +113,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	public void set(int x, int y, int z, BlockData d)
 	{
-		getMasterLock().lock((x >> 4) + "." + (z >> 4));
 		getParallaxSliver(x, z).set(y, d);
-		getMasterLock().unlock((x >> 4) + "." + (z >> 4));
 	}
 
 	@Override
@@ -189,6 +188,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
+		// flock.lock();
 		if(getSliverCache().size() > 20000)
 		{
 			getSliverCache().clear();
@@ -213,6 +213,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 		getParallaxMap().clean(ticks);
 		getData().getObjectLoader().clean();
+		// flock.unlock();
 	}
 
 	public IrisStructureResult getStructure(int x, int y, int z)
@@ -349,7 +350,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		getAccelerant().waitFor(key);
-
 		lockq.lock();
 		for(NastyRunnable i : q)
 		{

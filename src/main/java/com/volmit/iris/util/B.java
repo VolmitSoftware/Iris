@@ -220,6 +220,7 @@ public class B
 				|| mat.equals(Material.JACK_O_LANTERN) 
 				|| mat.equals(Material.REDSTONE_LAMP) 
 				|| mat.equals(Material.MAGMA_BLOCK) 
+				|| mat.equals(B.mat("SHROOMLIGHT")) 
 				|| mat.equals(B.mat("SEA_LANTERN")) 
 				|| mat.equals(B.mat("SOUL_LANTERN")) 
 				|| mat.equals(Material.FIRE) 

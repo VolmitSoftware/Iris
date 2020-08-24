@@ -26,6 +26,7 @@ import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.util.BlockVector;
 
 import com.google.gson.Gson;
@@ -128,6 +129,23 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		}
 	}
 
+	@EventHandler
+	public void on(PlayerMoveEvent e)
+	{
+		if(!e.getTo().getWorld().equals(getCenter().getWorld()))
+		{
+			e.getPlayer().sendMessage(Iris.instance.getTag() + " Saving open structure. Use /iris str load " + structure.getLoadKey() + " to re-open.");
+			close();
+			return;
+		}
+
+		if(e.getTo().distanceSquared(getCenter()) > Math.pow((size * w * 5), 2))
+		{
+			e.getPlayer().sendMessage(Iris.instance.getTag() + " Saving open structure. Use /iris str load " + structure.getLoadKey() + " to re-open.");
+			close();
+		}
+	}
+
 	public void loadStructures(IrisStructure input)
 	{
 		Iris.info("Loading existing structure");
@@ -157,20 +175,23 @@ public class StructureTemplate implements Listener, IObjectPlacer
 						String b = o.getLoadKey();
 						o.setLoadKey(realType + "-" + v);
 
-						if(b.equals(o.getLoadKey()))
+						if(b != null && !b.equals(o.getLoadKey()))
 						{
 							Iris.warn("Loading Object " + b + " as " + o.getLoadKey() + " (not deleting the old file)");
 						}
 
 						hijacked.getForceObjects().put(v, o);
 						hijacked.getObjects().add("structure/" + this.structure.getLoadKey() + "/" + o.getLoadKey());
+
 					}
 
-					structure.getTiles().add(i);
+					structure.getTiles().add(hijacked);
 					break;
 				}
 			}
 		}
+
+		regenerate();
 	}
 
 	public void openVariants()
@@ -458,6 +479,28 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		}
 	}
 
+	public void deleteTiles()
+	{
+		Cuboid bounds = getBounds();
+
+		for(int i = bounds.getLowerX(); i < bounds.getUpperX(); i += w)
+		{
+			for(int j = bounds.getLowerZ(); j < bounds.getUpperZ(); j += w)
+			{
+				for(int hh = bounds.getLowerY(); hh < bounds.getUpperY(); hh += h)
+				{
+					Location l = new Location(world, i, hh, j);
+
+					if(isWithinBounds(l))
+					{
+						Cuboid d = getTileBounds(l);
+						J.s(() -> deleteTile(d), RNG.r.i(0, 100));
+					}
+				}
+			}
+		}
+	}
+
 	public void deleteTile(Cuboid from)
 	{
 		Location center = from.getCenter();
@@ -511,6 +554,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		Bukkit.getScheduler().cancelTask(task);
 		saveStructure();
 		Iris.struct.remove(this);
+		deleteTiles();
 	}
 
 	public TileResult getTile(int x, int y, int z)

@@ -27,7 +27,15 @@ public class CommandIrisStructureVariants extends MortarCommand
 
 		Player p = sender.player();
 
-		Iris.struct.get(p).openVariants();
+		try
+		{
+			Iris.struct.get(p).openVariants();
+		}
+
+		catch(Throwable e)
+		{
+			sender.sendMessage("You do not have an open structure");
+		}
 
 		return true;
 	}

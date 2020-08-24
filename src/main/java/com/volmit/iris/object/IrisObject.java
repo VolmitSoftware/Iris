@@ -43,6 +43,7 @@ public class IrisObject extends IrisRegistrant
 	public IrisObject copy()
 	{
 		IrisObject o = new IrisObject(w, h, d);
+		o.setLoadKey(o.getLoadKey());
 		o.setCenter(getCenter().clone());
 
 		for(BlockVector i : getBlocks().k())

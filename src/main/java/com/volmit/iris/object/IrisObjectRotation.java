@@ -201,7 +201,38 @@ public class IrisObjectRotation
 
 		if(canRotateY())
 		{
-			v.rotateAroundY(getYRotation(spiny));
+			if(getYAxis().isLocked())
+			{
+				if(Math.abs(getYAxis().getMax()) == 180D)
+				{
+					v.setX(-v.getX());
+					v.setZ(-v.getZ());
+				}
+
+				else if(getYAxis().getMax() == 90D || getYAxis().getMax() == -270D)
+				{
+					double x = v.getX();
+					v.setX(v.getZ());
+					v.setZ(-x);
+				}
+
+				else if(getYAxis().getMax() == -90D || getYAxis().getMax() == 270D)
+				{
+					double x = v.getX();
+					v.setX(-v.getZ());
+					v.setZ(x);
+				}
+
+				else
+				{
+					v.rotateAroundY(getYRotation(spiny));
+				}
+			}
+
+			else
+			{
+				v.rotateAroundY(getYRotation(spiny));
+			}
 		}
 
 		return v;

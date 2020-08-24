@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.WandController;
+import com.volmit.iris.WandManager;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -52,7 +52,7 @@ public class CommandIrisObjectSave extends MortarCommand
 
 			Player p = sender.player();
 			ItemStack wand = p.getInventory().getItemInMainHand();
-			IrisObject o = WandController.createSchematic(wand);
+			IrisObject o = WandManager.createSchematic(wand);
 			File file = Iris.instance.getDataFile("packs", args[0], "objects", args[1] + ".iob");
 
 			if(file.exists())

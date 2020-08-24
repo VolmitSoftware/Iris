@@ -5,7 +5,8 @@ import com.volmit.iris.util.Command;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStudio extends MortarCommand {
+public class CommandIrisStudio extends MortarCommand
+{
 	@Command
 	private CommandIrisStudioCreate create;
 
@@ -23,28 +24,31 @@ public class CommandIrisStudio extends MortarCommand {
 
 	@Command
 	private CommandIrisStudioUpdate update;
-	
+
 	@Command
 	private CommandIrisMap map;
 
 	@Command
 	private CommandIrisStudioList list;
 
-	public CommandIrisStudio() {
+	public CommandIrisStudio()
+	{
 		super("studio", "std");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Studio");
 	}
 
 	@Override
-	public boolean handle(MortarSender sender, String[] args) {
+	public boolean handle(MortarSender sender, String[] args)
+	{
 		sender.sendMessage("Iris Studio Commands");
 		printHelp(sender);
 		return true;
 	}
 
 	@Override
-	protected String getArgsUsage() {
+	protected String getArgsUsage()
+	{
 		return "[subcommand]";
 	}
 }

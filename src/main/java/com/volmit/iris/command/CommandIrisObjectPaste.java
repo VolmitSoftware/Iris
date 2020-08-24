@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.WandController;
+import com.volmit.iris.WandManager;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -64,14 +64,14 @@ public class CommandIrisObjectPaste extends MortarCommand
 		sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
 		Location block = sender.player().getTargetBlock((Set<Material>) null, 256).getLocation().clone().add(0, 1, 0);
 
-		if(intoWand && WandController.isWand(wand))
+		if(intoWand && WandManager.isWand(wand))
 		{
-			wand = WandController.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
+			wand = WandManager.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
 			p.getInventory().setItemInMainHand(wand);
 			sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
 		}
 
-		WandController.pasteSchematic(o, block);
+		WandManager.pasteSchematic(o, block);
 		sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
 
 		return true;

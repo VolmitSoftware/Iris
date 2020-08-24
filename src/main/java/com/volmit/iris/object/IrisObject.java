@@ -104,6 +104,17 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
+	public void clean()
+	{
+		KMap<BlockVector, BlockData> d = blocks.copy();
+		blocks.clear();
+
+		for(BlockVector i : d.k())
+		{
+			blocks.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), d.get(i));
+		}
+	}
+
 	public void setUnsigned(int x, int y, int z, BlockData block)
 	{
 		if(x >= w || y >= h || z >= d)
@@ -369,6 +380,17 @@ public class IrisObject extends IrisRegistrant
 		}
 
 		return y;
+	}
+	
+	public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz)
+	{
+		KMap<BlockVector, BlockData> v = blocks.copy();
+		blocks.clear();
+		
+		for(BlockVector i : v.keySet())
+		{
+			blocks.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(v.get(i).clone(), spinx, spiny, spinz));
+		}
 	}
 
 	public void place(Location at)

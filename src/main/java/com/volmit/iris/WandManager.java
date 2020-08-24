@@ -28,9 +28,9 @@ import com.volmit.iris.util.Cuboid;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 
-public class WandController implements Listener
+public class WandManager implements Listener
 {
-	public WandController()
+	public WandManager()
 	{
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
@@ -38,7 +38,7 @@ public class WandController implements Listener
 			{
 				tick(i);
 			}
-		}, 0, 0);
+		}, 0, 5);
 		Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 	}
 
@@ -57,6 +57,11 @@ public class WandController implements Listener
 		{
 
 		}
+	}
+
+	public void draw(Cuboid d, Player p)
+	{
+		draw(new Location[] {d.getLowerNE(), d.getUpperSW()}, p);
 	}
 
 	public void draw(Location[] d, Player p)

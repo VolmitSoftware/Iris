@@ -48,7 +48,8 @@ public class Iris extends MortarPlugin implements BoardProvider
 	public static IrisDataManager globaldata;
 	public static ProjectManager proj;
 	public static IrisHotloadManager hotloader;
-	public static WandController wand;
+	public static WandManager wand;
+	public static StructureManager struct;
 	private BoardManager manager;
 	private String mem = "...";
 	private ChronoLatch cl = new ChronoLatch(1000);
@@ -94,7 +95,8 @@ public class Iris extends MortarPlugin implements BoardProvider
 		instance = this;
 		hotloader = new IrisHotloadManager();
 		globaldata = new IrisDataManager(getDataFolder());
-		wand = new WandController();
+		wand = new WandManager();
+		struct = new StructureManager();
 		postProcessors = loadPostProcessors();
 		proj = new ProjectManager();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());

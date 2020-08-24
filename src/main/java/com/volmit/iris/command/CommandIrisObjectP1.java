@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.WandController;
+import com.volmit.iris.WandManager;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -34,7 +34,7 @@ public class CommandIrisObjectP1 extends MortarCommand
 
 		Player p = sender.player();
 
-		if(!WandController.isWand(p))
+		if(!WandManager.isWand(p))
 		{
 			sender.sendMessage("Ready your Wand.");
 			return true;
@@ -42,9 +42,9 @@ public class CommandIrisObjectP1 extends MortarCommand
 
 		ItemStack wand = p.getInventory().getItemInMainHand();
 
-		if(WandController.isWand(wand))
+		if(WandManager.isWand(wand))
 		{
-			Location[] g = WandController.getCuboid(wand);
+			Location[] g = WandManager.getCuboid(wand);
 			g[0] = p.getLocation().getBlock().getLocation().clone().add(0, -1, 0);
 			
 			if(args.length == 1 && args[0].equals("-l"))
@@ -52,7 +52,7 @@ public class CommandIrisObjectP1 extends MortarCommand
 				g[0] = p.getTargetBlock((Set<Material>) null, 256).getLocation().clone();
 			}
 
-			p.setItemInHand(WandController.createWand(g[0], g[1]));
+			p.setItemInHand(WandManager.createWand(g[0], g[1]));
 		}
 
 		return true;

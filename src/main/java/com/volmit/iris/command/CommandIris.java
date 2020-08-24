@@ -18,6 +18,9 @@ public class CommandIris extends MortarCommand
 
 	@Command
 	private CommandIrisObject object;
+	
+	@Command
+	private CommandIrisStructure structure;
 
 	@Command
 	private CommandIrisCreate create;

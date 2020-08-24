@@ -3,7 +3,7 @@ package com.volmit.iris.command;
 import org.bukkit.Sound;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.WandController;
+import com.volmit.iris.WandManager;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -26,7 +26,7 @@ public class CommandIrisObjectWand extends MortarCommand
 			return true;
 		}
 
-		sender.player().getInventory().addItem(WandController.createWand());
+		sender.player().getInventory().addItem(WandManager.createWand());
 		sender.player().playSound(sender.player().getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
 
 		return true;

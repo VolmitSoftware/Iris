@@ -60,6 +60,11 @@ public class IrisAxisRotationClamp
 		return min == max && min == 0;
 	}
 
+	public boolean isLocked()
+	{
+		return min == max && !isUnlimited();
+	}
+
 	public double getRadians(int rng)
 	{
 		if(isUnlimited())

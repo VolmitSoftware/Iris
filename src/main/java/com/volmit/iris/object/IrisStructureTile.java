@@ -1,10 +1,13 @@
 package com.volmit.iris.object;
 
+import java.util.Objects;
+
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
@@ -62,7 +65,7 @@ public class IrisStructureTile
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
 
-	private transient IrisObject forceObject;
+	private transient KMap<Integer, IrisObject> forceObjects = new KMap<>();
 
 	@RegistryListObject
 	@ArrayType(min = 1, type = IrisRareObject.class)
@@ -76,6 +79,11 @@ public class IrisStructureTile
 	public IrisStructureTile()
 	{
 
+	}
+
+	public int hashFace()
+	{
+		return Objects.hash(ceiling, floor, south, north, east, west);
 	}
 
 	public String toString()

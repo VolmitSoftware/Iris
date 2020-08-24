@@ -6,7 +6,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
 
 public class UIElement implements Element
 {
@@ -38,6 +37,11 @@ public class UIElement implements Element
 	public MaterialBlock getMaterial()
 	{
 		return material;
+	}
+
+	public Double clip(double value, double min, double max)
+	{
+		return Double.valueOf(Math.min(max, Math.max(min, value)));
 	}
 
 	@Override
@@ -191,7 +195,7 @@ public class UIElement implements Element
 	@Override
 	public Element setCount(int c)
 	{
-		count = (int) M.clip(c, 1, 64);
+		count = (int) clip(c, 1, 64).intValue();
 		return this;
 	}
 
@@ -207,7 +211,7 @@ public class UIElement implements Element
 	{
 		try
 		{
-			ItemStack is = new ItemStack(getMaterial().getMaterial(), getCount(), getEffectiveDurability(), getMaterial().getData());
+			ItemStack is = new ItemStack(getMaterial().getMaterial(), getCount(), getEffectiveDurability());
 			ItemMeta im = is.getItemMeta();
 			im.setDisplayName(getName());
 			im.setLore(getLore().copy());
@@ -232,7 +236,7 @@ public class UIElement implements Element
 	@Override
 	public Element setProgress(double progress)
 	{
-		this.progress = M.clip(progress, 0D, 1D);
+		this.progress = clip(progress, 0D, 1D);
 		return this;
 	}
 
@@ -253,7 +257,7 @@ public class UIElement implements Element
 		else
 		{
 			int prog = (int) ((double) getMaterial().getMaterial().getMaxDurability() * (1D - getProgress()));
-			return M.clip(prog, 1, (getMaterial().getMaterial().getMaxDurability() - 1)).shortValue();
+			return clip(prog, 1, (getMaterial().getMaterial().getMaxDurability() - 1)).shortValue();
 		}
 	}
 }

@@ -40,6 +40,19 @@ public class IrisObject extends IrisRegistrant
 	private int h;
 	private transient BlockVector center;
 
+	public IrisObject copy()
+	{
+		IrisObject o = new IrisObject(w, h, d);
+		o.setCenter(getCenter().clone());
+
+		for(BlockVector i : getBlocks().k())
+		{
+			o.getBlocks().put(i.clone(), getBlocks().get(i).clone());
+		}
+
+		return o;
+	}
+
 	public IrisObject(int w, int h, int d)
 	{
 		blocks = new KMap<>();
@@ -381,12 +394,12 @@ public class IrisObject extends IrisRegistrant
 
 		return y;
 	}
-	
+
 	public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz)
 	{
 		KMap<BlockVector, BlockData> v = blocks.copy();
 		blocks.clear();
-		
+
 		for(BlockVector i : v.keySet())
 		{
 			blocks.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(v.get(i).clone(), spinx, spiny, spinz));

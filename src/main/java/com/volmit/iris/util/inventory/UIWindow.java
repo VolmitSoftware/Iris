@@ -15,7 +15,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.M;
 
 public class UIWindow implements Window, Listener
 {
@@ -42,7 +41,7 @@ public class UIWindow implements Window, Listener
 		setTitle("");
 		setDecorator(new UIVoidDecorator());
 		setResolution(WindowResolution.W9_H6);
-		setViewportHeight((int) M.clip(3, 1, getResolution().getMaxHeight()).intValue());
+		setViewportHeight((int) clip(3, 1, getResolution().getMaxHeight()).intValue());
 		setViewportPosition(0);
 	}
 
@@ -331,7 +330,7 @@ public class UIWindow implements Window, Listener
 	@Override
 	public UIWindow scroll(int direction)
 	{
-		viewportPosition = (int) M.clip(viewportPosition + direction, 0, getMaxViewportPosition());
+		viewportPosition = (int) clip(viewportPosition + direction, 0, getMaxViewportPosition()).doubleValue();
 		updateInventory();
 
 		return this;
@@ -346,7 +345,7 @@ public class UIWindow implements Window, Listener
 	@Override
 	public UIWindow setViewportHeight(int height)
 	{
-		viewportSize = (int) M.clip(height, 1, getResolution().getMaxHeight());
+		viewportSize = (int) clip(height, 1, getResolution().getMaxHeight()).doubleValue();
 
 		if(isVisible())
 		{
@@ -383,7 +382,7 @@ public class UIWindow implements Window, Listener
 			highestRow = row;
 		}
 
-		elements.put(getRealPosition((int) M.clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()), row), e);
+		elements.put(getRealPosition((int) clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()).doubleValue(), row), e);
 		updateInventory();
 		return this;
 	}
@@ -391,7 +390,7 @@ public class UIWindow implements Window, Listener
 	@Override
 	public Element getElement(int position, int row)
 	{
-		return elements.get(getRealPosition((int) M.clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()), row));
+		return elements.get(getRealPosition((int) clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()).doubleValue(), row));
 	}
 
 	@Override
@@ -434,7 +433,7 @@ public class UIWindow implements Window, Listener
 	@Override
 	public int getRealPosition(int position, int row)
 	{
-		return (int) (((row * getResolution().getWidth()) + getResolution().getMaxWidthOffset()) + M.clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()));
+		return (int) (((row * getResolution().getWidth()) + getResolution().getMaxWidthOffset()) + clip(position, -getResolution().getMaxWidthOffset(), getResolution().getMaxWidthOffset()));
 	}
 
 	@Override
@@ -472,12 +471,17 @@ public class UIWindow implements Window, Listener
 		return resolution;
 	}
 
+	public Double clip(double value, double min, double max)
+	{
+		return Double.valueOf(Math.min(max, Math.max(min, value)));
+	}
+
 	@Override
 	public Window setResolution(WindowResolution resolution)
 	{
 		close();
 		this.resolution = resolution;
-		setViewportHeight((int) M.clip(getViewportHeight(), 1, getResolution().getMaxHeight()));
+		setViewportHeight((int) clip(getViewportHeight(), 1, getResolution().getMaxHeight()).doubleValue());
 		return this;
 	}
 

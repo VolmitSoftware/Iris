@@ -30,11 +30,20 @@ import org.bukkit.util.BlockVector;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
+import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.object.TileResult;
+import com.volmit.iris.util.inventory.C;
+import com.volmit.iris.util.inventory.MaterialBlock;
+import com.volmit.iris.util.inventory.UIElement;
+import com.volmit.iris.util.inventory.UIStaticDecorator;
+import com.volmit.iris.util.inventory.UIWindow;
+import com.volmit.iris.util.inventory.Window;
+import com.volmit.iris.util.inventory.WindowResolution;
 
 import lombok.Data;
 
@@ -60,11 +69,14 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	private Player worker;
 	private KMap<Location, Runnable> updates = new KMap<>();
 	private File folder;
+	private CNG variants;
+	private KMap<Location, Integer> forceVariant = new KMap<>();
 
 	public StructureTemplate(String name, String dimension, Player worker, Location c, int size, int w, int h, boolean use3d)
 	{
 		this.worker = worker;
 		rng = new RNG();
+		variants = NoiseStyle.STATIC.create(rng.nextParallelRNG(397878));
 		folder = Iris.instance.getDataFolder("packs", dimension);
 		gLatch = new ChronoLatch(250);
 		focus = center;
@@ -86,7 +98,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		structure.setName(Form.capitalizeWords(name.replaceAll("\\Q-\\E", " ")));
 		structure.setWallChance(0.35);
 		defineStructures();
-		updateTiles(center, null, null);
+		regenerate();
 		Iris.struct.open(this);
 	}
 
@@ -98,9 +110,12 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 			for(IrisStructureTile i : structure.getTiles())
 			{
-				File objectFile = new File(folder, "objects/structure/" + structure.getLoadKey() + "/" + i.getForceObject().getLoadKey() + ".iob");
-				Iris.verbose("Saving " + objectFile.getPath());
-				i.getForceObject().write(objectFile);
+				for(IrisObject j : i.getForceObjects().v())
+				{
+					File objectFile = new File(folder, "objects/structure/" + structure.getLoadKey() + "/" + j.getLoadKey() + ".iob");
+					Iris.verbose("Saving " + objectFile.getPath());
+					j.write(objectFile);
+				}
 			}
 
 			Iris.verbose("Saving " + structureFile.getPath());
@@ -113,6 +128,170 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		}
 	}
 
+	public void loadStructures(IrisStructure input)
+	{
+		Iris.info("Loading existing structure");
+
+		for(IrisStructureTile i : structure.getTiles().copy())
+		{
+			String realType = i.getForceObjects().get(1).getLoadKey().replaceAll("\\Q-1\\E", "");
+
+			for(IrisStructureTile j : input.getTiles())
+			{
+				if(j.hashFace() == i.hashFace())
+				{
+					Iris.verbose("Found matching face configuration: " + j.hashFace());
+					structure.getTiles().remove(i);
+					IrisStructureTile hijacked = new IrisStructureTile();
+					hijacked.setCeiling(j.getCeiling());
+					hijacked.setFloor(j.getFloor());
+					hijacked.setNorth(j.getNorth());
+					hijacked.setSouth(j.getSouth());
+					hijacked.setEast(j.getEast());
+					hijacked.setWest(j.getWest());
+
+					for(String k : j.getObjects())
+					{
+						int v = hijacked.getForceObjects().size() + 1;
+						IrisObject o = Iris.globaldata.getObjectLoader().load(k).copy();
+						String b = o.getLoadKey();
+						o.setLoadKey(realType + "-" + v);
+
+						if(b.equals(o.getLoadKey()))
+						{
+							Iris.warn("Loading Object " + b + " as " + o.getLoadKey() + " (not deleting the old file)");
+						}
+
+						hijacked.getForceObjects().put(v, o);
+						hijacked.getObjects().add("structure/" + this.structure.getLoadKey() + "/" + o.getLoadKey());
+					}
+
+					structure.getTiles().add(i);
+					break;
+				}
+			}
+		}
+	}
+
+	public void openVariants()
+	{
+		try
+		{
+			Location m = worker.getTargetBlockExact(64).getLocation();
+
+			if(isWithinBounds(m))
+			{
+				focus = m.clone();
+				Cuboid b = getTileBounds(m);
+				Location center = b.getCenter();
+				TileResult r = structure.getTile(rng, center.getX(), center.getY(), center.getZ());
+				openVariants(r.getTile(), b);
+				return;
+			}
+		}
+
+		catch(Throwable ef)
+		{
+			ef.printStackTrace();
+		}
+
+		worker.sendMessage("Look at a tile to configure variants.");
+	}
+
+	public void openVariants(IrisStructureTile t, Cuboid at)
+	{
+		int var = getVariant(at, t);
+		Window w = new UIWindow(worker);
+		w.setTitle("Variants");
+		w.setDecorator(new UIStaticDecorator(new UIElement("dec").setMaterial(new MaterialBlock(Material.BLACK_STAINED_GLASS_PANE))));
+		WindowResolution r = WindowResolution.W5_H1;
+		w.setResolution(r);
+
+		if(t.getForceObjects().size() > 4)
+		{
+			r = WindowResolution.W3_H3;
+			w.setResolution(r);
+		}
+
+		if(t.getForceObjects().size() > 8)
+		{
+			r = WindowResolution.W9_H6;
+			w.setResolution(r);
+			w.setViewportHeight((int) Math.ceil((double) (t.getForceObjects().size() + 1) / 9D));
+		}
+		int m = 0;
+
+		UIElement ea = new UIElement("add");
+		ea.setEnchanted(true);
+		ea.setMaterial(new MaterialBlock(Material.EMERALD));
+		ea.setName("New Variant from Current Tile");
+
+		ea.getLore().add("- Left Click to copy current variant into a new variant");
+		ea.onLeftClick((ee) ->
+		{
+			w.close();
+			createVariantCopy(t, at);
+		});
+
+		w.setElement(w.getLayoutPosition(m), w.getLayoutRow(m), ea);
+		m++;
+
+		for(Integer i : t.getForceObjects().k())
+		{
+			UIElement e = new UIElement("var-" + i);
+			e.setEnchanted(var == i);
+			e.setCount(i);
+			e.setMaterial(new MaterialBlock(var == i ? Material.ENDER_EYE : Material.ENDER_PEARL));
+			e.setName(t.getForceObjects().get(i).getLoadKey());
+
+			if(var != i)
+			{
+				e.getLore().add("- Left Click to select this variant");
+				e.onLeftClick((ee) ->
+				{
+					w.close();
+					switchVariant(t, at, i);
+				});
+			}
+
+			w.setElement(w.getLayoutPosition(m), w.getLayoutRow(m), e);
+			m++;
+		}
+
+		w.open();
+	}
+
+	public void deleteVariant(IrisStructureTile t, Cuboid at)
+	{
+
+	}
+
+	public void switchVariant(IrisStructureTile t, Cuboid at, int var)
+	{
+		forceVariant.put(at.getCenter(), var);
+		updateTile(at);
+	}
+
+	public void createVariantCopy(IrisStructureTile t, Cuboid at)
+	{
+		int variant = getVariant(at, t);
+		IrisObject origin = t.getForceObjects().get(variant);
+		IrisObject object = new IrisObject(origin.getW(), origin.getH(), origin.getD());
+		object.setCenter(origin.getCenter().clone());
+
+		for(BlockVector i : origin.getBlocks().k())
+		{
+			object.getBlocks().put(i.clone(), origin.getBlocks().get(i).clone());
+		}
+
+		int nv = t.getForceObjects().size() + 1;
+		object.setLoadKey(origin.getLoadKey().replaceAll("\\Q-" + variant + "\\E", "-" + nv));
+		t.getObjects().add("structure/" + this.structure.getLoadKey() + "/" + object.getLoadKey());
+		t.getForceObjects().put(nv, object);
+		forceVariant.put(at.getCenter(), nv);
+		regenerate();
+	}
+
 	public void setWallChance(double w)
 	{
 		structure.setWallChance(w);
@@ -122,6 +301,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	public void regenerate()
 	{
 		rng = new RNG();
+		variants = NoiseStyle.STATIC.create(rng.nextParallelRNG(397878));
 		updateTiles(center, null, null);
 	}
 
@@ -207,7 +387,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			return;
 		}
 
-		IrisObject o = r.getTile().getForceObject();
+		IrisObject o = r.getTile().getForceObjects().get(getVariant(getTileBounds(l), r.getTile()));
 		double yrot = r.getPlacement().getRotation().getYAxis().getMax();
 		double trot = -yrot;
 		r.getPlacement().getRotation().getYAxis().setMin(trot);
@@ -238,7 +418,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		Iris.wand.draw(b, worker);
 		Location center = b.getCenter();
 		TileResult r = structure.getTile(rng, center.getX(), center.getY(), center.getZ());
-		worker.sendTitle("", r.getTile().getForceObject().getLoadKey() + " " + r.getPlacement().getRotation().getYAxis().getMax() + "°", 0, 20, 40);
+		worker.sendTitle("", C.GRAY + r.getTile().getForceObjects().get(getVariant(b, r.getTile())).getLoadKey() + " " + C.DARK_GRAY + r.getPlacement().getRotation().getYAxis().getMax() + "°", 0, 20, 40);
 	}
 
 	public void updateTiles(Location from, IrisStructureTile tileType, Cuboid ignore)
@@ -263,7 +443,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 						Location center = getTileBounds(l).getCenter();
 						TileResult r = structure.getTile(rng, center.getX(), center.getY(), center.getZ());
 
-						if(r == null || !r.getTile().getForceObject().getLoadKey().equals(tileType.getForceObject().getLoadKey()))
+						if(r == null || !r.getTile().getForceObjects().get(getVariant(getTileBounds(l), r.getTile())).getLoadKey().equals(tileType.getForceObjects().get(getVariant(getTileBounds(l), r.getTile())).getLoadKey()))
 						{
 							continue;
 						}
@@ -286,6 +466,22 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		center.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, center.getX(), center.getY(), center.getZ(), 1);
 	}
 
+	public int getVariant(Cuboid c, IrisStructureTile t)
+	{
+		if(t.getForceObjects().size() == 1)
+		{
+			return t.getForceObjects().keys().nextElement();
+		}
+
+		if(forceVariant.containsKey(c.getCenter()))
+		{
+			return forceVariant.get(c.getCenter());
+		}
+
+		Location ce = c.getCenter();
+		return variants.fit(t.getForceObjects().keypair(), ce.getBlockX(), ce.getBlockY(), ce.getBlockZ()).getK();
+	}
+
 	public void updateTile(Cuboid c)
 	{
 		Location center = c.getCenter();
@@ -298,7 +494,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			return;
 		}
 
-		r.getTile().getForceObject().place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng);
+		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng);
 		center.getWorld().playSound(center, Sound.BLOCK_ANCIENT_DEBRIS_BREAK, 1f, 0.35f);
 		center.getWorld().spawnParticle(Particle.FLASH, center.getX(), center.getY(), center.getZ(), 1);
 	}
@@ -361,11 +557,16 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 	public IrisStructureTile tileFor(String name, StructureTileCondition f, StructureTileCondition c, StructureTileCondition n, StructureTileCondition e, StructureTileCondition w, StructureTileCondition s)
 	{
+		return tileFor(name, f, c, n, e, w, s, 1);
+	}
+
+	public IrisStructureTile tileFor(String name, StructureTileCondition f, StructureTileCondition c, StructureTileCondition n, StructureTileCondition e, StructureTileCondition w, StructureTileCondition s, int variant)
+	{
 		IrisObject o = new IrisObject(this.w, this.h, this.w);
-		o.setLoadKey(name.toLowerCase().replaceAll("\\Q \\E", "-"));
+		o.setLoadKey(name.toLowerCase().replaceAll("\\Q \\E", "-").trim() + "-" + variant);
 		IrisStructureTile t = new IrisStructureTile();
-		t.setForceObject(o);
-		t.setObjects(new KList<>("structure/" + this.structure.getLoadKey() + "/" + o.getLoadKey()));
+		t.getForceObjects().put(variant, o);
+		t.getObjects().add("structure/" + this.structure.getLoadKey() + "/" + o.getLoadKey());
 		t.setFloor(f);
 		t.setCeiling(c);
 		t.setNorth(n);

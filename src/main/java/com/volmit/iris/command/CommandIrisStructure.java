@@ -11,6 +11,9 @@ public class CommandIrisStructure extends MortarCommand
 	private CommandIrisStructureCreate create;
 
 	@Command
+	private CommandIrisStructureOpen open;
+
+	@Command
 	private CommandIrisStructureSave save;
 
 	@Command
@@ -18,6 +21,9 @@ public class CommandIrisStructure extends MortarCommand
 
 	@Command
 	private CommandIrisStructureExpand expand;
+
+	@Command
+	private CommandIrisStructureVariants variants;
 
 	@Command
 	private CommandIrisStructureClose close;

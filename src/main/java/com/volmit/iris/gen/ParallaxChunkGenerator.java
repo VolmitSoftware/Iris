@@ -11,6 +11,7 @@ import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.atomics.AtomicWorldData;
 import com.volmit.iris.gen.atomics.MasterLock;
+import com.volmit.iris.gen.layer.GenLayerText;
 import com.volmit.iris.gen.layer.GenLayerUpdate;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
@@ -44,6 +45,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	private IrisLock lock = new IrisLock("ParallaxLock");
 	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
 	private GenLayerUpdate glUpdate;
+	private GenLayerText glText;
 	private int sliverBuffer;
 
 	public ParallaxChunkGenerator(String dimensionName, int threads)
@@ -58,6 +60,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		super.onInit(world, rng);
 		parallaxMap = new AtomicWorldData(world, "floor");
+		glText = new GenLayerText(this, rng.nextParallelRNG(32485));
 	}
 
 	protected KMap<ChunkPosition, AtomicSliver> getSliverCache()

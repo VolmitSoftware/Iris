@@ -27,8 +27,8 @@
 //
 package com.volmit.iris.noise;
 
-import javax.vecmath.Vector2f;
-import javax.vecmath.Vector3f;
+import com.volmit.iris.util.vec.Vector2f;
+import com.volmit.iris.util.vec.Vector3f;
 
 public class FastNoise
 {

@@ -1,0 +1,9 @@
+name: Iris
+version: 1.0
+main: com.volmit.iris.Iris
+load: STARTUP
+commands:
+  iris:
+    aliases: [ir, irs]
+api-version: 1.16
+hotload-dependencies: false

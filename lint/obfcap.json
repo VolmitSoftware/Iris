@@ -1,0 +1,91 @@
+{
+  "input": "in.jar",
+  "output": "out.jar",
+  "script": "function isRemappingEnabledForClass(node) {\n    return true;\n}\nfunction isObfuscatorEnabledForClass(node) {\n    return true;\n}",
+  "libraries": [
+    "lib",
+    "C:/Program Files/Java/jre1.8.0_221/lib"
+  ],
+  "Crasher": {
+    "Enabled": false,
+    "Invalid Signatures": true,
+    "Empty annotation spam": true
+  },
+  "InvokeDynamic": {
+    "Enabled": false
+  },
+  "HWIDPRotection": {
+    "Enabled": false,
+    "HWID": ""
+  },
+  "Optimizer": {
+    "Enabled": false,
+    "Replace String.equals()": false,
+    "Replace String.equalsIgnoreCase()": true,
+    "Optimize static string calls": false
+  },
+  "LineNumberRemover": {
+    "Enabled": false,
+    "Rename local variables": false,
+    "Remove Line Numbers": false,
+    "Remove Debug Names": false,
+    "Add Local Variables": false,
+    "New SourceFile Name": ""
+  },
+  "StringEncryption": {
+    "Enabled": true,
+    "HideStrings": true,
+    "AES": false
+  },
+  "NumberObfuscation": {
+    "Enabled": true,
+    "Extract to Array": false,
+    "Obfuscate Zero": false,
+    "Shift": true,
+    "And": true,
+    "Multiple Instructions": false
+  },
+  "ReferenceProxy": {
+    "Enabled": false
+  },
+  "ShuffleMembers": {
+    "Enabled": false
+  },
+  "InnerClassRemover": {
+    "Enabled": false,
+    "Remap": false,
+    "Remove Metadata": false
+  },
+  "NameObfuscation": {
+    "Enabled": false,
+    "Excluded classes": "",
+    "Excluded methods": "",
+    "Excluded fields": ""
+  },
+  "General Settings": {
+    "Custom dictionary": false,
+    "Name dictionary": "hello,world"
+  },
+  "Packager": {
+    "Enabled": false,
+    "Use MainClass from the JAR manifest": true,
+    "Main class": "HelloWorld"
+  },
+  "FlowObfuscator": {
+    "Enabled": false,
+    "Mangle Comparisons": false,
+    "Replace GOTO": true,
+    "Replace If": false,
+    "Bad POP": false,
+    "Bad Concat": false,
+    "Mangle Switches": false,
+    "Mangle Return": false,
+    "Mangle Local Variables": false
+  },
+  "HideMembers": {
+    "Enabled": false
+  },
+  "Inlining": {
+    "Enabled": false
+  }
+}

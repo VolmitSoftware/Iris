@@ -100,7 +100,6 @@ public class Iris extends MortarPlugin implements BoardProvider
 		postProcessors = loadPostProcessors();
 		proj = new ProjectManager();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
-
 		super.onEnable();
 	}
 

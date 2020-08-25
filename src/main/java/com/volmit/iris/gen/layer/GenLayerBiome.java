@@ -121,8 +121,24 @@ public class GenLayerBiome extends GenLayer
 		return bridge;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType)
+	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType, int rx, int rz)
 	{
+		for(IrisRegionRidge i : regionData.getRidgeBiomes())
+		{
+			if(i.getType().equals(inferredType) && i.isRidge(rng, rx, rz))
+			{
+				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType), 0.5);
+			}
+		}
+
+		for(IrisRegionSpot i : regionData.getSpotBiomes())
+		{
+			if(i.getType().equals(inferredType) && i.isSpot(rng, rx, rz))
+			{
+				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType), 0.5);
+			}
+		}
+
 		if(biomes.isEmpty())
 		{
 			return new BiomeResult(null, 0);
@@ -138,22 +154,6 @@ public class GenLayerBiome extends GenLayer
 
 	public BiomeResult generateImpureData(int rawX, int rawZ, InferredType type, IrisRegion regionData, BiomeResult pureResult)
 	{
-		for(IrisRegionRidge i : regionData.getRidgeBiomes())
-		{
-			if(i.getType().equals(type) && i.isRidge(rng, rawX, rawZ))
-			{
-				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
-			}
-		}
-
-		for(IrisRegionSpot i : regionData.getSpotBiomes())
-		{
-			if(i.getType().equals(type) && i.isSpot(rng, rawX, rawZ))
-			{
-				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), type), 0.5);
-			}
-		}
-
 		return pureResult;
 	}
 

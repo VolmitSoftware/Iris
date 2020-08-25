@@ -25,7 +25,7 @@ public class BiomeDataProvider
 
 	public BiomeResult generatePureData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType());
+		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ);
 	}
 
 	public BiomeResult generateData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)

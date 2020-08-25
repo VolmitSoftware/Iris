@@ -226,11 +226,18 @@ public class ProjectManager
 		KSet<IrisBiome> biomes = new KSet<>();
 		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
+		KSet<IrisLootTable> loot = new KSet<>();
 		dimension.getRegions().forEach((i) -> regions.add(Iris.globaldata.getRegionLoader().load(i)));
+		dimension.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i)));
 		regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
 		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
 		regions.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
 		biomes.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
+		regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
+		biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
+		structures.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
+		structures.forEach((b) -> b.getTiles().forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i)))));
+
 		KMap<String, String> renameObjects = new KMap<>();
 		String a = "";
 		StringBuilder b = new StringBuilder();
@@ -426,6 +433,13 @@ public class ProjectManager
 			{
 				a = new JSONObject(new Gson().toJson(i)).toString(0);
 				IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			for(IrisLootTable i : loot)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 

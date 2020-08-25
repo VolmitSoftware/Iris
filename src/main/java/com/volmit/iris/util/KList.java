@@ -675,4 +675,12 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		m.addAll(v);
 		return m;
 	}
+
+	public void addIfMissing(T t)
+	{
+		if(!contains(t))
+		{
+			add(t);
+		}
+	}
 }

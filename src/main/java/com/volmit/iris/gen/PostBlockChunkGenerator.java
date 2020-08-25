@@ -4,6 +4,12 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.post.PostFloatingNibDeleter;
+import com.volmit.iris.gen.post.PostNibSmoother;
+import com.volmit.iris.gen.post.PostPotholeFiller;
+import com.volmit.iris.gen.post.PostSlabber;
+import com.volmit.iris.gen.post.PostWallPatcher;
+import com.volmit.iris.gen.post.PostWaterlogger;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
 import com.volmit.iris.util.IrisLock;
@@ -19,7 +25,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator implements IPostBlockAccess
 {
-	private KList<IrisPostBlockFilter> availableFilters;
 	private String postKey;
 	private IrisLock lock;
 	private int minPhase;
@@ -28,7 +33,6 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	public PostBlockChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		availableFilters = new KList<>();
 		postKey = "post-" + dimensionName;
 		lock = new IrisLock("PostChunkGenerator");
 	}
@@ -36,20 +40,6 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-
-		for(Class<? extends IrisPostBlockFilter> i : Iris.postProcessors)
-		{
-			try
-			{
-				availableFilters.add(i.getConstructor(PostBlockChunkGenerator.class).newInstance(this));
-			}
-
-			catch(Throwable e)
-			{
-				Iris.error("Failed to initialize post processor: " + i.getCanonicalName());
-				fail(e);
-			}
-		}
 	}
 
 	@Override
@@ -120,21 +110,34 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 
 	public IrisPostBlockFilter createProcessor(String processor, int phase)
 	{
-		for(IrisPostBlockFilter i : availableFilters)
+		if(processor.equals("floating-block-remover"))
 		{
-			if(i.getKey().equals(processor))
-			{
-				try
-				{
-					return i.getClass().getConstructor(PostBlockChunkGenerator.class, int.class).newInstance(this, phase);
-				}
+			return new PostFloatingNibDeleter(this, phase);
+		}
 
-				catch(Throwable e)
-				{
-					Iris.error("Failed initialize find post processor: " + processor);
-					fail(e);
-				}
-			}
+		if(processor.equals("nib-smoother"))
+		{
+			return new PostNibSmoother(this, phase);
+		}
+
+		if(processor.equals("pothole-filler"))
+		{
+			return new PostPotholeFiller(this, phase);
+		}
+
+		if(processor.equals("slabber"))
+		{
+			return new PostSlabber(this, phase);
+		}
+
+		if(processor.equals("wall-painter"))
+		{
+			return new PostWallPatcher(this, phase);
+		}
+
+		if(processor.equals("waterlogger"))
+		{
+			return new PostWaterlogger(this, phase);
 		}
 
 		Iris.error("Failed to find post processor: " + processor);

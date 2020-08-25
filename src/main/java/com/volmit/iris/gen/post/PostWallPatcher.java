@@ -6,6 +6,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.RNG;
 
@@ -15,12 +16,14 @@ public class PostWallPatcher extends IrisPostBlockFilter
 	public static final Material AIR = Material.AIR;
 	private RNG rng;
 
+	@DontObfuscate
 	public PostWallPatcher(PostBlockChunkGenerator gen, int phase)
 	{
 		super(gen, phase);
 		rng = gen.getMasterRandom().nextParallelRNG(1239456);
 	}
 
+	@DontObfuscate
 	public PostWallPatcher(PostBlockChunkGenerator gen)
 	{
 		this(gen, 0);

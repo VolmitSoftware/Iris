@@ -3,16 +3,19 @@ package com.volmit.iris.gen.post;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
 @Post("pothole-filler")
 public class PostPotholeFiller extends IrisPostBlockFilter
 {
+	@DontObfuscate
 	public PostPotholeFiller(PostBlockChunkGenerator gen, int phase)
 	{
 		super(gen, phase);
 	}
 
+	@DontObfuscate
 	public PostPotholeFiller(PostBlockChunkGenerator gen)
 	{
 		this(gen, 0);

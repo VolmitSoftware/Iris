@@ -153,7 +153,6 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 			e.printStackTrace();
 		}
 
-		setAvailableFilters(null);
 		setSliverCache(null);
 		Iris.info("Closing Iris Dimension " + getWorld().getName());
 	}

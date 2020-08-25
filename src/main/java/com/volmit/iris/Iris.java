@@ -58,7 +58,6 @@ public class Iris extends MortarPlugin implements BoardProvider
 	public RollingSequence hits = new RollingSequence(20);
 	public RollingSequence tp = new RollingSequence(100);
 	private static IrisLock lock = new IrisLock("Iris");
-	public static KList<Class<? extends IrisPostBlockFilter>> postProcessors;
 
 	@Permission
 	public static PermissionIris perm;
@@ -97,7 +96,6 @@ public class Iris extends MortarPlugin implements BoardProvider
 		globaldata = new IrisDataManager(getDataFolder());
 		wand = new WandManager();
 		struct = new StructureManager();
-		postProcessors = loadPostProcessors();
 		proj = new ProjectManager();
 		manager = new BoardManager(this, BoardSettings.builder().boardProvider(this).scoreDirection(ScoreDirection.UP).build());
 		super.onEnable();
@@ -192,7 +190,7 @@ public class Iris extends MortarPlugin implements BoardProvider
 		return lines;
 	}
 
-	private static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors()
+	public static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors()
 	{
 		KList<Class<? extends IrisPostBlockFilter>> g = new KList<Class<? extends IrisPostBlockFilter>>();
 

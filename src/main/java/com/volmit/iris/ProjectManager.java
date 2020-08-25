@@ -1416,7 +1416,7 @@ public class ProjectManager
 		IO.writeAll(new File(of, "interpolation-method.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Class<? extends IrisPostBlockFilter> i : Iris.postProcessors)
+		for(Class<? extends IrisPostBlockFilter> i : Iris.loadPostProcessors())
 		{
 			m.add(i.getDeclaredAnnotation(Post.class).value());
 		}

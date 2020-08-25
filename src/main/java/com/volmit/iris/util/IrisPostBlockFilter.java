@@ -20,6 +20,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 	private String key;
 	private KList<Runnable> queue = new KList<>();
 
+	@DontObfuscate
 	public IrisPostBlockFilter(PostBlockChunkGenerator gen, int phase)
 	{
 		this.gen = gen;
@@ -28,6 +29,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		key = getClass().getDeclaredAnnotation(Post.class).value();
 	}
 
+	@DontObfuscate
 	public IrisPostBlockFilter(PostBlockChunkGenerator gen)
 	{
 		this(gen, 0);

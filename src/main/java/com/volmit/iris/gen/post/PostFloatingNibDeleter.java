@@ -5,6 +5,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockChunkGenerator;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
 @Post("floating-block-remover")
@@ -12,11 +13,13 @@ public class PostFloatingNibDeleter extends IrisPostBlockFilter
 {
 	private static final BlockData AIR = B.getBlockData("AIR");
 
+	@DontObfuscate
 	public PostFloatingNibDeleter(PostBlockChunkGenerator gen, int phase)
 	{
 		super(gen, phase);
 	}
 
+	@DontObfuscate
 	public PostFloatingNibDeleter(PostBlockChunkGenerator gen)
 	{
 		this(gen, 0);

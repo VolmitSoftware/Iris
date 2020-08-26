@@ -1,4 +1,4 @@
-package com.volmit.iris.util;
+package com.volmit.iris.util.inventory;
 
 /**
  * Element Event.

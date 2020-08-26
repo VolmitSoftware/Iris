@@ -1,13 +1,14 @@
-package com.volmit.iris.util;
+package com.volmit.iris.util.inventory;
 
-import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+
+import com.volmit.iris.util.KList;
 
 public interface Element
 {
-	public BlockData getMaterial();
+	public MaterialBlock getMaterial();
 
-	public Element setMaterial(BlockData b);
+	public Element setMaterial(MaterialBlock b);
 
 	public boolean isEnchanted();
 

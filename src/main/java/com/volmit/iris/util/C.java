@@ -1,4 +1,4 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import java.util.HashMap;
 import java.util.Map;

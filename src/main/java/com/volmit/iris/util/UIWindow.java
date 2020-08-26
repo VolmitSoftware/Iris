@@ -1,4 +1,4 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -12,9 +12,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
 
 public class UIWindow implements Window, Listener
 {

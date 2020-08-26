@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.util.Iterator;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -24,6 +23,7 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.Cuboid;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
@@ -268,7 +268,7 @@ public class WandManager implements Listener
 		ItemStack is = new ItemStack(Material.BLAZE_ROD);
 		is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
 		ItemMeta im = is.getItemMeta();
-		im.setDisplayName(ChatColor.BOLD + "" + ChatColor.GOLD + "Wand of Iris");
+		im.setDisplayName(C.BOLD + "" + C.GOLD + "Wand of Iris");
 		im.setUnbreakable(true);
 		im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
 		im.setLore(new KList<String>().add(locationToString(a), locationToString(b)));

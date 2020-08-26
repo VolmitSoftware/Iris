@@ -3,7 +3,6 @@ package com.volmit.iris.util;
 import java.lang.reflect.Field;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.volmit.iris.Iris;
@@ -128,7 +127,7 @@ public class VirtualCommand
 			if(!sender.hasPermission(i))
 			{
 				failed = true;
-				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> sender.sendMessage("- " + ChatColor.WHITE + i), 0);
+				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> sender.sendMessage("- " + C.WHITE + i), 0);
 			}
 		}
 

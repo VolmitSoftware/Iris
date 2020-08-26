@@ -29,7 +29,7 @@
  * $State$
  */
 
-package com.volmit.iris.util.vec;
+package com.volmit.iris.util;
 
 import java.lang.Math;
 

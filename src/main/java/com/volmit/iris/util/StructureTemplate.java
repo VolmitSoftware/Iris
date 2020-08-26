@@ -38,13 +38,6 @@ import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.object.TileResult;
-import com.volmit.iris.util.inventory.C;
-import com.volmit.iris.util.inventory.MaterialBlock;
-import com.volmit.iris.util.inventory.UIElement;
-import com.volmit.iris.util.inventory.UIStaticDecorator;
-import com.volmit.iris.util.inventory.UIWindow;
-import com.volmit.iris.util.inventory.Window;
-import com.volmit.iris.util.inventory.WindowResolution;
 
 import lombok.Data;
 

@@ -1,4 +1,4 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import org.bukkit.Location;
 import org.bukkit.Material;

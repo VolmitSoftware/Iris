@@ -1,4 +1,4 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 public class UIVoidDecorator implements WindowDecorator
 {

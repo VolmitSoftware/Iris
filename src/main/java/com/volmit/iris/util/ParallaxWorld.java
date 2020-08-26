@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.parallax;
+package com.volmit.iris.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,7 +6,6 @@ import java.io.IOException;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.KMap;
 
 public class ParallaxWorld
 {

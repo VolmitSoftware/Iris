@@ -14,6 +14,7 @@ import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -97,24 +98,28 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("A list of structure tilesets")
 	private KList<IrisStructurePlacement> structures = new KList<>();
 
+	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> landBiomes = new KList<>();
 
+	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> seaBiomes = new KList<>();
 
+	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> shoreBiomes = new KList<>();
 
+	@RegistryListBiome
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")

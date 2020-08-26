@@ -3,8 +3,6 @@ package com.volmit.iris.util;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
-import org.bukkit.ChatColor;
-
 /**
  * Represents a pawn command
  *
@@ -53,7 +51,7 @@ public abstract class MortarCommand implements ICommand
 				}
 			}
 			b = true;
-			sender.sendMessage(ChatColor.GREEN + i.getNode() + " " + ChatColor.WHITE + i.getArgsUsage() + ChatColor.GRAY + " - " + i.getDescription());
+			sender.sendMessage(C.GREEN + i.getNode() + " " + C.WHITE + i.getArgsUsage() + C.GRAY + " - " + i.getDescription());
 		}
 
 		if(!b)

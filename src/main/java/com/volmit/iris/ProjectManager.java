@@ -116,7 +116,12 @@ public class ProjectManager
 							updateWorkspace(i);
 							sender.sendMessage("Workspace Updated");
 						});
-						Desktop.getDesktop().open(i);
+
+						if(IrisSettings.get().openVSCode)
+						{
+							Desktop.getDesktop().open(i);
+						}
+
 						break;
 					}
 				}

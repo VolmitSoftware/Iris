@@ -28,6 +28,6 @@ public class IrisMetrics
 
 	public double getSpeed()
 	{
-		return (double) Iris.instance.hits.getAverage() / (double) total.getAverage();
+		return (double) Iris.board.hits.getAverage() / (double) total.getAverage();
 	}
 }

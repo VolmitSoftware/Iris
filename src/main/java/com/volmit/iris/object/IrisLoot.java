@@ -11,6 +11,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.Form;
@@ -21,7 +22,6 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
-import net.md_5.bungee.api.ChatColor;
 
 @Desc("Represents a loot entry")
 @Data
@@ -161,11 +161,11 @@ public class IrisLoot
 			{
 				if(lore.isNotEmpty())
 				{
-					lore.add(ChatColor.GRAY + "--------------------");
+					lore.add(C.GRAY + "--------------------");
 				}
 
-				lore.add(ChatColor.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
-				lore.add(ChatColor.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
+				lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
+				lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
 			}
 
 			m.setLore(lore);

@@ -1,4 +1,4 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;

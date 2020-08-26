@@ -1,11 +1,9 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
-import com.volmit.iris.util.KList;
 
 public class UIElement implements Element
 {

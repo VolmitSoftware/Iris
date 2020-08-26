@@ -38,6 +38,10 @@ public class IrisSettings
 	@Desc("Allows configs to be changed and hotloaded without reloading.")
 	public boolean hotloading = true;
 
+	@DontObfuscate
+	@Desc("When using studio open or create, open the codeworkspace automatically.")
+	public boolean openVSCode = true;
+
 	public static IrisSettings get()
 	{
 		if(settings == null)

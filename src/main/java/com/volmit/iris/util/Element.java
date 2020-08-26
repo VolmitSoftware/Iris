@@ -1,8 +1,6 @@
-package com.volmit.iris.util.inventory;
+package com.volmit.iris.util;
 
 import org.bukkit.inventory.ItemStack;
-
-import com.volmit.iris.util.KList;
 
 public interface Element
 {

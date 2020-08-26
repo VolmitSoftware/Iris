@@ -1,10 +1,9 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
-
-import net.md_5.bungee.api.ChatColor;
 
 public class CommandIrisStudioCreate extends MortarCommand
 {
@@ -22,7 +21,7 @@ public class CommandIrisStudioCreate extends MortarCommand
 		if(args.length != 1)
 		{
 			sender.sendMessage("Please use a lowercase name with hyphens (-) for spaces.");
-			sender.sendMessage("I.e. /iris std new " + ChatColor.BOLD + "aether");
+			sender.sendMessage("I.e. /iris std new " + C.BOLD + "aether");
 			return true;
 		}
 

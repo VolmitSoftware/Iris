@@ -34,6 +34,7 @@ import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.M;
@@ -41,7 +42,6 @@ import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import net.md_5.bungee.api.ChatColor;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -426,10 +426,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 			for(Player i : world.getPlayers())
 			{
-				Iris.instance.imsg(i, ChatColor.DARK_RED + "Iris Generator has crashed!");
-				Iris.instance.imsg(i, ChatColor.RED + "- Check the console for the error.");
-				Iris.instance.imsg(i, ChatColor.RED + "- To Regen, use /iris std open <dim>");
-				Iris.instance.imsg(i, ChatColor.RED + "- To Retry the chunk, use /iris world retry");
+				Iris.instance.imsg(i, C.DARK_RED + "Iris Generator has crashed!");
+				Iris.instance.imsg(i, C.RED + "- Check the console for the error.");
+				Iris.instance.imsg(i, C.RED + "- To Regen, use /iris std open <dim>");
+				Iris.instance.imsg(i, C.RED + "- To Retry the chunk, use /iris world retry");
 			}
 		});
 

@@ -29,7 +29,7 @@
  * $State$
  */
 
-package com.volmit.iris.util.vec;
+package com.volmit.iris.util;
 
 /**
  * Utility vecmath class used when computing the hash code for vecmath

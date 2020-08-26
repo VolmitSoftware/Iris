@@ -1,11 +1,11 @@
 package com.volmit.iris.command;
 
-import org.bukkit.ChatColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -27,8 +27,8 @@ public class CommandIrisWhatBlock extends MortarCommand
 		{
 			Player p = sender.player();
 			BlockData bd = p.getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
-			sender.sendMessage("Material: " + ChatColor.GREEN + bd.getMaterial().name());
-			sender.sendMessage("Full: " + ChatColor.WHITE + bd.getAsString(true));
+			sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
+			sender.sendMessage("Full: " + C.WHITE + bd.getAsString(true));
 		}
 
 		else

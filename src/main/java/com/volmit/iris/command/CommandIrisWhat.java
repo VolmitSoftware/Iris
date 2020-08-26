@@ -1,12 +1,12 @@
 package com.volmit.iris.command;
 
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisMetrics;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.MortarCommand;
@@ -38,11 +38,11 @@ public class CommandIrisWhat extends MortarCommand
 			World world = p.getWorld();
 			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
 			IrisMetrics m = g.getMetrics();
-			sender.sendMessage("Thread Count: " + ChatColor.BOLD + "" + ChatColor.WHITE + g.getThreads());
-			sender.sendMessage("Total     : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getTotal().getAverage(), 2));
-			sender.sendMessage("  Terrain : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getTerrain().getAverage(), 2));
-			sender.sendMessage("  Parallax: " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getParallax().getAverage(), 2));
-			sender.sendMessage("  Post    : " + ChatColor.BOLD + "" + ChatColor.WHITE + Form.duration(m.getPost().getAverage(), 2));
+			sender.sendMessage("Thread Count: " + C.BOLD + "" + C.WHITE + g.getThreads());
+			sender.sendMessage("Total     : " + C.BOLD + "" + C.WHITE + Form.duration(m.getTotal().getAverage(), 2));
+			sender.sendMessage("  Terrain : " + C.BOLD + "" + C.WHITE + Form.duration(m.getTerrain().getAverage(), 2));
+			sender.sendMessage("  Parallax: " + C.BOLD + "" + C.WHITE + Form.duration(m.getParallax().getAverage(), 2));
+			sender.sendMessage("  Post    : " + C.BOLD + "" + C.WHITE + Form.duration(m.getPost().getAverage(), 2));
 
 			return true;
 		}

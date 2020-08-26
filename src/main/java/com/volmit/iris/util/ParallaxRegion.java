@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.parallax;
+package com.volmit.iris.util;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,9 +11,6 @@ import java.util.zip.GZIPInputStream;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.util.CustomOutputStream;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.Writable;
 
 public class ParallaxRegion implements Writable
 {

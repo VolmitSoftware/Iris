@@ -31,6 +31,30 @@ public class CommandIrisStudio extends MortarCommand
 	@Command
 	private CommandIrisStudioList list;
 
+	@Command
+	private CommandIrisGoto got0;
+
+	@Command
+	private CommandIrisEditBiome ebiome;
+
+	@Command
+	private CommandIrisMetrics metrics;
+
+	@Command
+	private CommandIrisPregen pregen;
+
+	@Command
+	private CommandIrisPregen world;
+
+	@Command
+	private CommandIrisHotload hotload;
+
+	@Command
+	private CommandIrisTC tc;
+
+	@Command
+	private CommandIrisLoot loot;
+
 	public CommandIrisStudio()
 	{
 		super("studio", "std");

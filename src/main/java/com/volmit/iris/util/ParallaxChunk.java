@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.parallax;
+package com.volmit.iris.util;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,7 +10,6 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicSliver;
-import com.volmit.iris.util.Writable;
 
 public class ParallaxChunk implements Writable
 {

@@ -1,15 +1,10 @@
-package com.volmit.iris.gen.parallax;
+package com.volmit.iris.util;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 import org.bukkit.block.data.BlockData;
-
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.DataPalette;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.Writable;
 
 public class ParallaxSection implements Writable
 {

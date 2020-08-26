@@ -11,14 +11,11 @@ public class CommandIris extends MortarCommand
 	private CommandIrisStudio studio;
 
 	@Command
-	private CommandIrisWorld world;
-
-	@Command
 	private CommandIrisWhat what;
 
 	@Command
 	private CommandIrisObject object;
-	
+
 	@Command
 	private CommandIrisStructure structure;
 

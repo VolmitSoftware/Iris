@@ -38,6 +38,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator implements IObjectPlacer
 {
+	private short cacheID = 0;
 	protected KMap<ChunkPosition, AtomicSliver> sliverCache;
 	protected AtomicWorldData parallaxMap;
 	private MasterLock masterLock;
@@ -93,6 +94,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public void onHotload()
 	{
 		super.onHotload();
+		cacheID = RNG.r.simax();
 	}
 
 	@Override

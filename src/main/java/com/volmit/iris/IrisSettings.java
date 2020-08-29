@@ -42,6 +42,10 @@ public class IrisSettings
 	@Desc("When using studio open or create, open the codeworkspace automatically.")
 	public boolean openVSCode = true;
 
+	@DontObfuscate
+	@Desc("Used to activate Iris")
+	public String activationCode = "";
+
 	public static IrisSettings get()
 	{
 		if(settings == null)

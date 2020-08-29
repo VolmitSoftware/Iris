@@ -31,7 +31,7 @@ public class IrisObjectPlacement
 
 	@DontObfuscate
 	@Desc("The placement mode")
-	private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT_RIGID;
+	private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
 
 	@ArrayType(min = 1, type = IrisObjectReplace.class)
 	@DontObfuscate
@@ -67,6 +67,24 @@ public class IrisObjectPlacement
 	@DontObfuscate
 	@Desc("If the chance check passes, place this many in a single chunk")
 	private int density = 1;
+
+	@MaxNumber(64)
+	@MinNumber(0)
+	@DontObfuscate
+	@Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
+	private int overStilt = 0;
+
+	@MaxNumber(64)
+	@MinNumber(0)
+	@DontObfuscate
+	@Desc("When boar is enabled, expand max-y of the cuboid it removes")
+	private int boarExtendMaxY = 0;
+
+	@MaxNumber(64)
+	@MinNumber(0)
+	@DontObfuscate
+	@Desc("When boar is enabled, lower min-y of the cuboid it removes")
+	private int boarExtendMinY = 0;
 
 	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")

@@ -349,4 +349,9 @@ public class B
 
 		return b;
 	}
+
+	public static boolean isAir(BlockData blockData)
+	{
+		return blockData.getMaterial().isAir();
+	}
 }

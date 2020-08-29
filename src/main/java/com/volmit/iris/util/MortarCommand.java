@@ -3,6 +3,8 @@ package com.volmit.iris.util;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import com.volmit.iris.activation.IrisActivation2;
+
 /**
  * Represents a pawn command
  *
@@ -39,6 +41,7 @@ public abstract class MortarCommand implements ICommand
 
 	public void printHelp(MortarSender sender)
 	{
+		IrisActivation2.validate();
 		boolean b = false;
 
 		for(MortarCommand i : getChildren())

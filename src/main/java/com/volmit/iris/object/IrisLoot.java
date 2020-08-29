@@ -108,6 +108,73 @@ public class IrisLoot
 		return B.getMaterial(type);
 	}
 
+	public ItemStack get(boolean debug, RNG rng)
+	{
+		ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+		ItemMeta m = is.getItemMeta();
+
+		if(getType().getMaxDurability() > 0 && m instanceof Damageable)
+		{
+			Damageable d = (Damageable) m;
+			int max = getType().getMaxDurability();
+			d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
+		}
+
+		for(IrisEnchantment i : getEnchantments())
+		{
+			i.apply(rng, m);
+		}
+
+		for(IrisAttributeModifier i : getAttributes())
+		{
+			i.apply(rng, m);
+		}
+
+		m.setCustomModelData(getCustomModel());
+		m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
+		m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
+		m.setUnbreakable(isUnbreakable());
+
+		for(ItemFlag i : getItemFlags())
+		{
+			m.addItemFlags(i);
+		}
+
+		KList<String> lore = new KList<>();
+
+		getLore().forEach((i) ->
+		{
+			String mf = C.translateAlternateColorCodes('&', i);
+
+			if(mf.length() > 24)
+			{
+				for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E"))
+				{
+					lore.add(g.trim());
+				}
+			}
+
+			else
+			{
+				lore.add(mf);
+			}
+		});
+
+		if(debug)
+		{
+			if(lore.isNotEmpty())
+			{
+				lore.add(C.GRAY + "--------------------");
+			}
+
+			lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
+		}
+
+		m.setLore(lore);
+		is.setItemMeta(m);
+		return is;
+	}
+
 	public ItemStack get(boolean debug, IrisLootTable table, RNG rng, int x, int y, int z)
 	{
 		if(debug)
@@ -144,8 +211,8 @@ public class IrisLoot
 			}
 
 			m.setCustomModelData(getCustomModel());
-			m.setLocalizedName(displayName);
-			m.setDisplayName(displayName);
+			m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
+			m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
 			m.setUnbreakable(isUnbreakable());
 
 			for(ItemFlag i : getItemFlags())
@@ -155,7 +222,23 @@ public class IrisLoot
 
 			KList<String> lore = new KList<>();
 
-			lore.addAll(getLore());
+			getLore().forEach((i) ->
+			{
+				String mf = C.translateAlternateColorCodes('&', i);
+
+				if(mf.length() > 24)
+				{
+					for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E"))
+					{
+						lore.add(g.trim());
+					}
+				}
+
+				else
+				{
+					lore.add(mf);
+				}
+			});
 
 			if(debug)
 			{

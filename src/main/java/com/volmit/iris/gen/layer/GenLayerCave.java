@@ -18,6 +18,7 @@ import com.volmit.iris.util.RNG;
 
 public class GenLayerCave extends GenLayer
 {
+	public static boolean bad = false;
 	public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
 	public static final BlockData AIR = B.getBlockData("AIR");
 	private static final KList<CaveResult> EMPTY = new KList<>();

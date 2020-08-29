@@ -24,6 +24,11 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		super();
 	}
 
+	public KList(int cap)
+	{
+		super(cap);
+	}
+
 	public KList(Collection<T> values)
 	{
 		super();

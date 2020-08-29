@@ -25,6 +25,7 @@ import lombok.Data;
 public class AtomicSliver
 {
 	public static final BlockData AIR = B.getBlockData("AIR");
+	public static boolean forgetful = false;
 	private transient KMap<Integer, IrisBiome> truebiome;
 	private transient KMap<Integer, Biome> biome;
 	private transient IrisLock lock = new IrisLock("Sliver");
@@ -59,16 +60,30 @@ public class AtomicSliver
 
 	public void update(int y)
 	{
+		if(forgetful)
+		{
+			return;
+		}
+
 		blockUpdates.add(y);
 	}
 
 	public void dontUpdate(int y)
 	{
+		if(forgetful)
+		{
+			return;
+		}
+
 		blockUpdates.remove(y);
 	}
 
 	public BlockData get(int h)
 	{
+		if(forgetful)
+		{
+			return null;
+		}
 		BlockData b = block.get(h);
 		last = M.ms();
 
@@ -82,6 +97,10 @@ public class AtomicSliver
 
 	public BlockData getOrNull(int h)
 	{
+		if(forgetful)
+		{
+			return null;
+		}
 		BlockData b = block.get(h);
 		last = M.ms();
 
@@ -95,6 +114,10 @@ public class AtomicSliver
 
 	public void set(int h, BlockData d)
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		setSilently(h, d);
 		modified = true;
 		lock.lock();
@@ -104,6 +127,11 @@ public class AtomicSliver
 
 	public void setSilently(int h, BlockData d)
 	{
+		if(forgetful)
+		{
+			return;
+		}
+
 		if(d == null)
 		{
 			return;
@@ -133,6 +161,11 @@ public class AtomicSliver
 
 	public Biome getBiome(int h)
 	{
+		if(forgetful)
+		{
+			return Biome.THE_VOID;
+		}
+
 		last = M.ms();
 		return biome.containsKey(h) ? biome.get(h) : Biome.THE_VOID;
 	}
@@ -162,7 +195,13 @@ public class AtomicSliver
 
 	public void write(ChunkData d)
 	{
+		if(forgetful)
+		{
+			return;
+		}
+
 		lock.lock();
+
 		for(int i = 0; i <= highestBlock; i++)
 		{
 			if(block.get(i) == null)
@@ -180,6 +219,10 @@ public class AtomicSliver
 
 	public void write(BiomeGrid d)
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 		for(int i = 0; i <= highestBiome; i++)
 		{
@@ -193,6 +236,10 @@ public class AtomicSliver
 
 	public void write(HeightMap height)
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 		height.setHeight(x, z, highestBlock);
 		lock.unlock();
@@ -200,6 +247,10 @@ public class AtomicSliver
 
 	public void read(DataInputStream din) throws IOException
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
 
@@ -234,6 +285,10 @@ public class AtomicSliver
 
 	public void write(DataOutputStream dos) throws IOException
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 
 		// Block Palette
@@ -278,6 +333,10 @@ public class AtomicSliver
 
 	public void insert(AtomicSliver atomicSliver)
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 		for(int i = 0; i < 256; i++)
 		{
@@ -297,6 +356,10 @@ public class AtomicSliver
 
 	public void inject(ChunkData currentData)
 	{
+		if(forgetful)
+		{
+			return;
+		}
 		lock.lock();
 		for(int i = 0; i < 256; i++)
 		{
@@ -311,11 +374,21 @@ public class AtomicSliver
 
 	public boolean isOlderThan(long m)
 	{
+		if(forgetful)
+		{
+			return false;
+		}
+
 		return M.ms() - last > m;
 	}
 
 	public void inject(KSet<Integer> updatables)
 	{
+		if(forgetful)
+		{
+			return;
+		}
+
 		blockUpdates.addAll(updatables);
 	}
 }

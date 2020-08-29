@@ -114,4 +114,8 @@ public class IrisBoardManager implements BoardProvider, Listener
 		return v;
 	}
 
+	public void disable()
+	{
+		manager.onDisable();
+	}
 }

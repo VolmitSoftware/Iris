@@ -9,19 +9,25 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
+import com.volmit.iris.gui.Renderer;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBlockDrops;
+import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.Form;
-import com.volmit.iris.util.Function2;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -254,7 +260,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		return getDimension().isVanillaStructures();
 	}
 
-	public Function2<Double, Double, Color> createRenderer()
+	public Renderer createRenderer()
 	{
 		return (x, z) -> render(x, z);
 	}
@@ -267,22 +273,20 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		IrisRegion region = sampleRegion(ix, iz);
 		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
 
+		if(biome.getCachedColor() != null)
+		{
+			return biome.getCachedColor();
+		}
+
 		float shift = (biome.hashCode() % 32) / 32f / 14f;
 		float shift2 = (region.hashCode() % 9) / 9f / 14f;
 		shift -= shift2;
 		float sat = 0;
+		float h = (biome.isLand() ? 0.233f : 0.644f) - shift;
+		float s = 0.25f + shift + sat;
+		float b = (float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255);
 
-		if(hr.getLoadKey().equals(region.getLoadKey()))
-		{
-			sat += 0.2;
-		}
-
-		if(hb.getLoadKey().equals(biome.getLoadKey()))
-		{
-			sat += 0.3;
-		}
-
-		Color c = Color.getHSBColor((biome.isLand() ? 0.233f : 0.644f) - shift, 0.25f + shift + sat, (float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255));
+		Color c = Color.getHSBColor(h, s, b);
 
 		return c;
 
@@ -290,7 +294,6 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 
 	public String textFor(double x, double z)
 	{
-
 		int ix = (int) x;
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
@@ -310,6 +313,121 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		catch(IOException e)
 		{
 			e.printStackTrace();
+		}
+	}
+
+	@Override
+	protected void handleDrops(BlockDropItemEvent e)
+	{
+		int x = e.getBlock().getX();
+		int y = e.getBlock().getY();
+		int z = e.getBlock().getZ();
+		IrisDimension dim = getDimension();
+		IrisRegion reg = sampleRegion(x, z);
+		IrisBiome bio = sampleTrueBiome(x, z).getBiome();
+		IrisBiome cbio = y < getFluidHeight() ? sampleTrueBiome(x, y, z).getBiome() : null;
+
+		if(cbio != null && bio.equals(cbio))
+		{
+			cbio = null;
+		}
+
+		if(dim.getBlockDrops().isEmpty() && reg.getBlockDrops().isEmpty() && bio.getBlockDrops().isEmpty())
+		{
+			return;
+		}
+
+		BlockData data = e.getBlockState().getBlockData();
+		KList<ItemStack> drops = new KList<>();
+		boolean skipParents = false;
+
+		if(!skipParents && cbio != null)
+		{
+			for(IrisBlockDrops i : cbio.getBlockDrops())
+			{
+				if(i.shouldDropFor(data))
+				{
+					if(!skipParents && i.isSkipParents())
+					{
+						skipParents = true;
+					}
+
+					if(i.isReplaceVanillaDrops())
+					{
+						e.getItems().clear();
+					}
+
+					i.fillDrops(isDev(), drops);
+				}
+			}
+		}
+
+		if(!skipParents)
+		{
+			for(IrisBlockDrops i : bio.getBlockDrops())
+			{
+				if(i.shouldDropFor(data))
+				{
+					if(!skipParents && i.isSkipParents())
+					{
+						skipParents = true;
+					}
+
+					if(i.isReplaceVanillaDrops())
+					{
+						e.getItems().clear();
+					}
+
+					i.fillDrops(isDev(), drops);
+				}
+			}
+		}
+
+		if(!skipParents)
+		{
+			for(IrisBlockDrops i : reg.getBlockDrops())
+			{
+				if(i.shouldDropFor(data))
+				{
+					if(!skipParents && i.isSkipParents())
+					{
+						skipParents = true;
+					}
+
+					if(i.isReplaceVanillaDrops())
+					{
+						e.getItems().clear();
+					}
+
+					i.fillDrops(isDev(), drops);
+				}
+			}
+		}
+
+		if(!skipParents)
+		{
+			for(IrisBlockDrops i : dim.getBlockDrops())
+			{
+				if(i.shouldDropFor(data))
+				{
+					if(i.isReplaceVanillaDrops())
+					{
+						e.getItems().clear();
+					}
+
+					i.fillDrops(isDev(), drops);
+				}
+			}
+		}
+
+		if(drops.isNotEmpty())
+		{
+			Location l = e.getBlock().getLocation();
+
+			for(ItemStack i : drops)
+			{
+				e.getBlock().getWorld().dropItemNaturally(l, i);
+			}
 		}
 	}
 }

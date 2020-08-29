@@ -41,6 +41,11 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("The rarity of the region")
 	private int rarity = 1;
+	
+	@ArrayType(min = 1, type = IrisBlockDrops.class)
+	@DontObfuscate
+	@Desc("Define custom block drops for this region")
+	private KList<IrisBlockDrops> blockDrops = new KList<>();
 
 	@MinNumber(0.0001)
 	@MaxNumber(1)

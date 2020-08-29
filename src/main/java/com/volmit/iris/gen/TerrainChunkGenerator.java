@@ -66,7 +66,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	{
 		super.onInit(world, rng);
 		loadGenerators();
-		glBiome = new GenLayerBiome(this, masterRandom.nextParallelRNG(1));
+		buildGenLayers(masterRandom);
+	}
+
+	private void buildGenLayers(RNG rng)
+	{
+		glBiome = new GenLayerBiome(this, rng.nextParallelRNG(24671));
 		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);
 		rockRandom = getMasterRandom().nextParallelRNG(2858678);
 		glCave = new GenLayerCave(this, rng.nextParallelRNG(238948));
@@ -638,7 +643,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	{
 		super.onHotload();
 		loadGenerators();
-		glBiome = new GenLayerBiome(this, masterRandom.nextParallelRNG(1));
+		buildGenLayers(masterRandom);
 	}
 
 	public void registerGenerator(IrisGenerator g, IrisDimension dim)
@@ -661,7 +666,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return generators;
 	}
 
-	protected double getBiomeHeight(double rrx, double rrz)
+	protected double getRawBiomeHeight(double rrx, double rrz)
 	{
 		double rx = rrx;
 		double rz = rrz;
@@ -671,6 +676,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			h += interpolateGenerator(rx, rz, i);
 		}
+
+		return h;
+	}
+
+	protected double getBiomeHeight(double rrx, double rrz)
+	{
+		double h = getRawBiomeHeight(rrx, rrz);
 
 		return h;
 	}

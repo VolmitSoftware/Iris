@@ -22,6 +22,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
+import com.volmit.iris.activation.IrisActivation2;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.object.DecorationPart;
@@ -81,7 +82,27 @@ public class ProjectManager
 
 	public ProjectManager()
 	{
+		J.a(() ->
+		{
+			File ignore = Iris.instance.getDataFile("packs", ".gitignore");
 
+			if(!ignore.exists())
+			{
+				File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
+				if(m != null)
+				{
+					try
+					{
+						IO.copyFile(m, ignore);
+					}
+
+					catch(IOException e)
+					{
+
+					}
+				}
+			}
+		});
 	}
 
 	public boolean isProjectOpen()
@@ -137,6 +158,7 @@ public class ProjectManager
 			sender.sendMessage("Can't find dimension: " + dimm);
 			return;
 		}
+		IrisActivation2.validate();
 
 		if(isProjectOpen())
 		{

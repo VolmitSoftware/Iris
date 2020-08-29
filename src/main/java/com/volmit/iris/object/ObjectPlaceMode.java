@@ -5,19 +5,25 @@ import com.volmit.iris.util.DontObfuscate;
 public enum ObjectPlaceMode
 {
 	@DontObfuscate
-	CENTER_HEIGHT_RIGID,
+	CENTER_HEIGHT,
 
 	@DontObfuscate
-	MAX_HEIGHT_RIGID_ACCURATE,
+	MAX_HEIGHT,
 
 	@DontObfuscate
-	MAX_HEIGHT_RIGID,
+	FAST_MAX_HEIGHT,
 
 	@DontObfuscate
-	MIN_HEIGHT_RIGID_ACCURATE,
+	MIN_HEIGHT,
 
 	@DontObfuscate
-	MIN_HEIGHT_RIGID,
+	FAST_MIN_HEIGHT,
+
+	@DontObfuscate
+	STILT,
+
+	@DontObfuscate
+	FAST_STILT,
 
 	@DontObfuscate
 	PAINT;

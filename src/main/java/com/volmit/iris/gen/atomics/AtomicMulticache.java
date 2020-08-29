@@ -10,6 +10,7 @@ import com.volmit.iris.util.KMap;
 
 public class AtomicMulticache
 {
+	public static boolean broken = false;
 	private final AtomicInteger x;
 	private final AtomicInteger z;
 	private final KMap<Long, Double> height;
@@ -29,6 +30,11 @@ public class AtomicMulticache
 
 	public void targetChunk(int x, int z)
 	{
+		if(broken)
+		{
+			return;
+		}
+
 		this.x.set(x);
 		this.z.set(z);
 
@@ -40,6 +46,11 @@ public class AtomicMulticache
 
 	public double getHeight(int x, int z, Supplier<Double> g)
 	{
+		if(broken)
+		{
+			return -5784;
+		}
+
 		Long pos = pos(x, z);
 		Double r = height.get(pos);
 
@@ -82,6 +93,10 @@ public class AtomicMulticache
 
 	public BiomeResult getRawBiome(int x, int z, Supplier<BiomeResult> g)
 	{
+		if(broken)
+		{
+			return null;
+		}
 		Long pos = pos(x, z);
 		BiomeResult r = rawBiome.get(pos);
 
@@ -96,11 +111,19 @@ public class AtomicMulticache
 
 	private long pos(int x, int z)
 	{
+		if(broken)
+		{
+			return 1;
+		}
 		return (((long) x) << 32) | (z & 0xffffffffL);
 	}
 
 	public void updateHeight(int x, int z, int h)
 	{
+		if(broken)
+		{
+			return;
+		}
 		height.put(pos(x, z), (double) h);
 	}
 
@@ -111,6 +134,11 @@ public class AtomicMulticache
 
 	public void drop()
 	{
+		if(broken)
+		{
+			return;
+		}
+
 		height.clear();
 		region.clear();
 		biome.clear();

@@ -1,5 +1,7 @@
 package com.volmit.iris.object;
 
+import java.awt.Color;
+
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -45,6 +47,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
 
+	@ArrayType(min = 1, type = IrisBlockDrops.class)
+	@DontObfuscate
+	@Desc("Define custom block drops for this biome")
+	private KList<IrisBlockDrops> blockDrops = new KList<>();
+
 	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
@@ -68,6 +75,10 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("The rarity of this biome (integer)")
 	private int rarity = 1;
+
+	@DontObfuscate
+	@Desc("A debug color for visualizing this biome with a color. I.e. #F13AF5")
+	private String debugColor = "";
 
 	@Required
 	@DontObfuscate
@@ -146,6 +157,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient InferredType inferredType;
+	private transient AtomicCache<Color> cacheColor = new AtomicCache<>(true);
 	private transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
 	private transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
 	private transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
@@ -156,6 +168,19 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	public IrisBiome()
 	{
 
+	}
+
+	public Color getCachedColor()
+	{
+		return cacheColor.aquire(() ->
+		{
+			if(getDebugColor() == null || getDebugColor().isEmpty())
+			{
+				return null;
+			}
+
+			return Color.getColor(getDebugColor().substring(1));
+		});
 	}
 
 	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)

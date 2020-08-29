@@ -603,6 +603,11 @@ public enum C
 	 */
 	public static String translateAlternateColorCodes(char altColorChar, String textToTranslate)
 	{
+		if(textToTranslate == null)
+		{
+			return null;
+		}
+
 		char[] b = textToTranslate.toCharArray();
 		for(int i = 0; i < b.length - 1; i++)
 		{

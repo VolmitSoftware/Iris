@@ -25,6 +25,7 @@ import com.volmit.iris.Iris;
 
 public abstract class MortarPlugin extends JavaPlugin implements Listener
 {
+	public static boolean bad = false;
 	private KMap<KList<String>, VirtualCommand> commands;
 	private KList<MortarCommand> commandCache;
 	private KList<MortarPermission> permissionCache;
@@ -276,6 +277,11 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void tickControllers()
 	{
+		if(bad)
+		{
+			return;
+		}
+
 		for(IController i : getControllers())
 		{
 			tickController(i);
@@ -284,6 +290,11 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void tickController(IController i)
 	{
+		if(bad)
+		{
+			return;
+		}
+
 		if(i.getTickInterval() < 0)
 		{
 			return;
@@ -307,11 +318,20 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	public KList<IController> getControllers()
 	{
+		if(bad)
+		{
+			return new KList<>();
+		}
+
 		return cachedControllers;
 	}
 
 	private void registerControllers()
 	{
+		if(bad)
+		{
+			return;
+		}
 		controllers = new KMap<>();
 		cachedClassControllers = new KMap<>();
 
@@ -346,6 +366,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void registerController(IController pc)
 	{
+		if(bad)
+		{
+			return;
+		}
 		controllers.put(pc.getName(), pc);
 		cachedClassControllers.put(pc.getClass(), pc);
 		registerListener(pc);
@@ -365,6 +389,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void registerInstance()
 	{
+		if(bad)
+		{
+			return;
+		}
 		for(Field i : getClass().getDeclaredFields())
 		{
 			if(i.isAnnotationPresent(Instance.class))
@@ -387,6 +415,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void unregisterInstance()
 	{
+		if(bad)
+		{
+			return;
+		}
 		for(Field i : getClass().getDeclaredFields())
 		{
 			if(i.isAnnotationPresent(Instance.class))
@@ -409,6 +441,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void registerCommands()
 	{
+		if(bad)
+		{
+			return;
+		}
 		commands = new KMap<>();
 		commandCache = new KList<>();
 
@@ -438,6 +474,11 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 	@Override
 	public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args)
 	{
+		if(bad)
+		{
+			return false;
+		}
+
 		KList<String> chain = new KList<String>();
 		chain.add(args);
 
@@ -467,6 +508,11 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	public void registerCommand(ICommand cmd, String subTag)
 	{
+		if(bad)
+		{
+			return;
+		}
+
 		commands.put(cmd.getAllNodes(), new VirtualCommand(cmd, subTag.trim().isEmpty() ? getTag() : getTag(subTag.trim())));
 		PluginCommand cc = getCommand(cmd.getNode().toLowerCase());
 
@@ -486,6 +532,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	public void unregisterCommand(ICommand cmd)
 	{
+		if(bad)
+		{
+			return;
+		}
 		try
 		{
 			SimpleCommandMap m = new com.volmit.iris.util.V(Bukkit.getServer()).get("commandMap");
@@ -525,26 +575,46 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	public String getTag()
 	{
+		if(bad)
+		{
+			return "";
+		}
 		return getTag("");
 	}
 
 	public void registerListener(Listener l)
 	{
+		if(bad)
+		{
+			return;
+		}
 		Bukkit.getPluginManager().registerEvents(l, this);
 	}
 
 	public void unregisterListener(Listener l)
 	{
+		if(bad)
+		{
+			return;
+		}
 		HandlerList.unregisterAll(l);
 	}
 
 	public void unregisterListeners()
 	{
+		if(bad)
+		{
+			return;
+		}
 		HandlerList.unregisterAll((Listener) this);
 	}
 
 	public void unregisterCommands()
 	{
+		if(bad)
+		{
+			return;
+		}
 		for(VirtualCommand i : commands.v())
 		{
 			try
@@ -561,6 +631,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void unregisterPermissions()
 	{
+		if(bad)
+		{
+			return;
+		}
 		for(org.bukkit.permissions.Permission i : computePermissions())
 		{
 			Bukkit.getPluginManager().removePermission(i);
@@ -570,6 +644,10 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 
 	private void stopControllers()
 	{
+		if(bad)
+		{
+			return;
+		}
 		for(IController i : controllers.v())
 		{
 			try

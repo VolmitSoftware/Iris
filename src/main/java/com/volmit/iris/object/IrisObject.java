@@ -34,6 +34,7 @@ public class IrisObject extends IrisRegistrant
 	private static final Material SNOW = Material.SNOW;
 	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
+	public static boolean shitty = false;
 	private KMap<BlockVector, BlockData> blocks;
 	private int w;
 	private int d;
@@ -74,6 +75,11 @@ public class IrisObject extends IrisRegistrant
 
 	public void read(InputStream in) throws IOException
 	{
+		if(shitty)
+		{
+			return;
+		}
+
 		DataInputStream din = new DataInputStream(in);
 		this.w = din.readInt();
 		this.h = din.readInt();
@@ -89,6 +95,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void read(File file) throws IOException
 	{
+		if(shitty)
+		{
+			return;
+		}
 		FileInputStream fin = new FileInputStream(file);
 		read(fin);
 		fin.close();
@@ -96,6 +106,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void write(File file) throws IOException
 	{
+		if(shitty)
+		{
+			return;
+		}
 		file.getParentFile().mkdirs();
 		FileOutputStream out = new FileOutputStream(file);
 		write(out);
@@ -104,6 +118,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void write(OutputStream o) throws IOException
 	{
+		if(shitty)
+		{
+			return;
+		}
 		DataOutputStream dos = new DataOutputStream(o);
 		dos.writeInt(w);
 		dos.writeInt(h);
@@ -120,6 +138,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void clean()
 	{
+		if(shitty)
+		{
+			return;
+		}
 		KMap<BlockVector, BlockData> d = blocks.copy();
 		blocks.clear();
 
@@ -131,6 +153,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void setUnsigned(int x, int y, int z, BlockData block)
 	{
+		if(shitty)
+		{
+			return;
+		}
 		if(x >= w || y >= h || z >= d)
 		{
 			throw new RuntimeException(x + " " + y + " " + z + " exceeds limit of " + w + " " + h + " " + d);
@@ -151,6 +177,10 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
 	{
+		if(shitty)
+		{
+			return;
+		}
 		place(x, -1, z, placer, config, rng);
 	}
 
@@ -161,6 +191,10 @@ public class IrisObject extends IrisRegistrant
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener)
 	{
+		boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
+		KMap<ChunkPosition, Integer> lowmap = stilting ? new KMap<>() : null;
+		KMap<ChunkPosition, BlockData> lowmapData = stilting ? new KMap<>() : null;
+		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
 		int spinz = rng.imax() / 1000;
@@ -170,12 +204,12 @@ public class IrisObject extends IrisRegistrant
 
 		if(yv < 0)
 		{
-			if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT_RIGID))
+			if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT))
 			{
 				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
 			}
 
-			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID_ACCURATE))
+			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT))
 			{
 				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
 				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
@@ -194,7 +228,7 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
-			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT_RIGID))
+			else if(config.getMode().equals(ObjectPlaceMode.FAST_MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT))
 			{
 				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
 				BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
@@ -213,7 +247,7 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
-			else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT_RIGID_ACCURATE))
+			else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT))
 			{
 				y = 257;
 				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
@@ -233,7 +267,7 @@ public class IrisObject extends IrisRegistrant
 				}
 			}
 
-			else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT_RIGID))
+			else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT))
 			{
 				y = 257;
 				BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
@@ -269,8 +303,6 @@ public class IrisObject extends IrisRegistrant
 			y += Math.floorDiv(h, 2);
 		}
 
-		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
-
 		if(yv < 0)
 		{
 			if(!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z))
@@ -289,15 +321,18 @@ public class IrisObject extends IrisRegistrant
 			return -1;
 		}
 
-		if(config.isBore())
+		if(config.isBore() && !config.getMode().equals(ObjectPlaceMode.PAINT))
 		{
 			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0); i++)
 			{
-				for(int j = y - Math.floorDiv(h, 2); j <= y + Math.floorDiv(h, 2) - (h % 2 == 0 ? 1 : 0); j++)
+				for(int j = y - Math.floorDiv(h, 2) - config.getBoarExtendMinY(); j <= y + Math.floorDiv(h, 2) + config.getBoarExtendMaxY() - (h % 2 == 0 ? 1 : 0); j++)
 				{
 					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0); k++)
 					{
-						placer.set(i, j, k, AIR);
+						if(!B.isAir(placer.get(i, j, k)))
+						{
+							placer.set(i, j, k, AIR);
+						}
 					}
 				}
 			}
@@ -367,6 +402,49 @@ public class IrisObject extends IrisRegistrant
 			}
 
 			placer.set(xx, yy, zz, data);
+
+			if(stilting)
+			{
+				BlockData bdata = data;
+				int yyy = yy;
+				ChunkPosition ck = new ChunkPosition(xx, zz);
+				lowmap.compute(ck, (k, v) ->
+				{
+					if(v == null)
+					{
+						lowmapData.put(ck, bdata);
+						return yyy;
+					}
+
+					if(v > yyy)
+					{
+						lowmapData.put(ck, bdata);
+						return yyy;
+					}
+
+					return v;
+				});
+			}
+		}
+
+		if(stilting)
+		{
+			for(ChunkPosition i : lowmap.keySet())
+			{
+				int xf = i.getX();
+				int yf = lowmap.get(i);
+				int zf = i.getZ();
+				int yg = Math.floorDiv(h, 2) + placer.getHighest(xf, zf, config.isUnderwater());
+				BlockData d = lowmapData.get(i);
+
+				if(d != null)
+				{
+					for(int j = yf; j > yg - config.getOverStilt(); j--)
+					{
+						placer.set(xf, j, zf, d);
+					}
+				}
+			}
 		}
 
 		if(heightmap != null)
@@ -398,6 +476,11 @@ public class IrisObject extends IrisRegistrant
 
 	public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz)
 	{
+		if(shitty)
+		{
+			return;
+		}
+
 		KMap<BlockVector, BlockData> v = blocks.copy();
 		blocks.clear();
 
@@ -409,6 +492,11 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(Location at)
 	{
+		if(shitty)
+		{
+			return;
+		}
+
 		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);

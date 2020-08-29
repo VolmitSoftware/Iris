@@ -1,6 +1,10 @@
 package com.volmit.iris;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -10,6 +14,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
+import com.volmit.iris.activation.IrisActivation1;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisChunkGenerator;
@@ -19,12 +24,13 @@ import com.volmit.iris.gen.post.PostPotholeFiller;
 import com.volmit.iris.gen.post.PostSlabber;
 import com.volmit.iris.gen.post.PostWallPatcher;
 import com.volmit.iris.gen.post.PostWaterlogger;
-import com.volmit.iris.util.BoardManager;
 import com.volmit.iris.util.C;
+import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
 import com.volmit.iris.util.Permission;
@@ -39,7 +45,6 @@ public class Iris extends MortarPlugin
 	public static WandManager wand;
 	public static StructureManager struct;
 	public static IrisBoardManager board;
-	private BoardManager manager;
 	private static IrisLock lock = new IrisLock("Iris");
 
 	@Permission
@@ -81,7 +86,10 @@ public class Iris extends MortarPlugin
 		struct = new StructureManager();
 		proj = new ProjectManager();
 		board = new IrisBoardManager();
+		new IrisActivation1();
 		super.onEnable();
+		J.s(() -> Iris.warn("\n\n" + "    " + Form.repeat(C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET, 53) + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.GREEN + "" + C.UNDERLINE + "                                   Iris was developed by VolmitSoftware                                  " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "    This version of Iris is for testing & evaluation purposes only! DO NOT REDISTRIBUTE THIS PLUGIN.     " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.DARK_RED + "" + C.UNDERLINE + "         If you are a spigot staff member reviewing this plugin, PLEASE REJECT THIS PLUGIN               " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.WHITE + "" + " " + C.RESET + C.DARK_GRAY + "" + C.UNDERLINE + "                  " + C.BLACK + "" + C.UNDERLINE + IrisActivation1.computeSecurityHash() + "                      " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + Form.repeat(C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET, 53) + "\n"));
+		IrisActivation1.validate();
 	}
 
 	public void onDisable()
@@ -101,7 +109,7 @@ public class Iris extends MortarPlugin
 		}
 
 		executors.clear();
-		manager.onDisable();
+		board.disable();
 		Bukkit.getScheduler().cancelTasks(this);
 		HandlerList.unregisterAll((Plugin) this);
 		super.onDisable();
@@ -144,6 +152,66 @@ public class Iris extends MortarPlugin
 		String msg = C.GREEN + "[Iris]: " + C.GRAY + string;
 		Bukkit.getConsoleSender().sendMessage(msg);
 		lock.unlock();
+	}
+
+	public static File getCached(String name, String url)
+	{
+		String h = IO.hash(name + "@" + url);
+		File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
+
+		if(!f.exists())
+		{
+			try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
+			{
+				byte dataBuffer[] = new byte[1024];
+				int bytesRead;
+				while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
+				{
+					fileOutputStream.write(dataBuffer, 0, bytesRead);
+					Iris.verbose("Aquiring " + name);
+				}
+			}
+
+			catch(IOException e)
+			{
+
+			}
+		}
+
+		return f.exists() ? f : null;
+	}
+
+	public static String getNonCached(String name, String url)
+	{
+		String h = IO.hash(name + "*" + url);
+		File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
+
+		try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
+		{
+			byte dataBuffer[] = new byte[1024];
+			int bytesRead;
+			while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
+			{
+				fileOutputStream.write(dataBuffer, 0, bytesRead);
+			}
+		}
+
+		catch(IOException e)
+		{
+
+		}
+
+		try
+		{
+			return IO.readAll(f);
+		}
+
+		catch(IOException e)
+		{
+
+		}
+
+		return "";
 	}
 
 	public static void warn(String string)

@@ -61,6 +61,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
 
+	@ArrayType(min = 1, type = IrisBlockDrops.class)
+	@DontObfuscate
+	@Desc("Define custom block drops for this dimension")
+	private KList<IrisBlockDrops> blockDrops = new KList<>();
+
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate

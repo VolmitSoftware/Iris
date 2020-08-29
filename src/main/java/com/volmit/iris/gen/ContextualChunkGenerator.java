@@ -5,12 +5,17 @@ import java.util.Random;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -34,9 +39,11 @@ import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;
 
@@ -47,6 +54,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener
 {
+	private KList<BlockPosition> noLoot;
+	private BlockPosition allowLoot;
 	private AtomicMulticache cache;
 	private IrisDataManager data;
 	protected boolean failing;
@@ -79,10 +88,12 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		ticks = 0;
 		task = -1;
 		initialized = false;
+		allowLoot = new BlockPosition(0, 0, 0);
 		failing = false;
 		pregenDone = false;
 		dimCache = new AtomicCache<>();
 		dev = false;
+		noLoot = new KList<>(1285);
 	}
 
 	protected abstract void onGenerate(RNG masterRandom, int x, int z, ChunkData data, BiomeGrid grid);
@@ -174,6 +185,14 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 				}
 
 				checkHotload();
+
+				if(noLoot.size() > 1024)
+				{
+					for(int i = 0; i < 64; i++)
+					{
+						noLoot.remove(0);
+					}
+				}
 			}
 		}
 
@@ -186,7 +205,59 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		onTick(ticks++);
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void on(BlockBreakEvent e)
+	{
+		if(!e.getBlock().getWorld().equals(getWorld()))
+		{
+			return;
+		}
+
+		BlockPosition bp = new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ());
+
+		if(!noLoot.contains(bp))
+		{
+			noLoot.add(bp);
+
+			if(e.isDropItems() && e.getPlayer().getGameMode().equals(GameMode.SURVIVAL))
+			{
+				allowLoot = new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ());
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void on(BlockPlaceEvent e)
+	{
+		if(!e.getBlock().getWorld().equals(getWorld()))
+		{
+			return;
+		}
+
+		noLoot.addIfMissing(new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ()));
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void on(BlockDropItemEvent e)
+	{
+		if(!e.getBlock().getWorld().equals(getWorld()))
+		{
+			return;
+		}
+
+		BlockPosition bp = new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ());
+
+		if(noLoot.contains(bp) && !allowLoot.equals(bp))
+		{
+			return;
+		}
+
+		handleDrops(e);
+	}
+
+	protected abstract void handleDrops(BlockDropItemEvent e);
+
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerTeleportEvent e)
 	{
 		if(e.getFrom().getWorld().equals(world) && !e.getTo().getWorld().equals(world))
@@ -202,7 +273,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerQuitEvent e)
 	{
 		if(e.getPlayer().getWorld().equals(world))
@@ -212,7 +283,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerJoinEvent e)
 	{
 		if(e.getPlayer().getWorld().equals(world))
@@ -222,7 +293,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(ChunkLoadEvent e)
 	{
 		if(e.getWorld().equals(world))
@@ -232,7 +303,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(ChunkUnloadEvent e)
 	{
 		if(e.getWorld().equals(world))
@@ -242,7 +313,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(WorldUnloadEvent e)
 	{
 		if(world != null && e.getWorld().equals(world))
@@ -253,6 +324,8 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public void close()
 	{
+		noLoot.clear();
+		noLoot.trimToSize();
 		HandlerList.unregisterAll(this);
 		Bukkit.getScheduler().cancelTask(getTask());
 		onClose();

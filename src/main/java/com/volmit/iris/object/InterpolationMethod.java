@@ -11,6 +11,42 @@ public enum InterpolationMethod
 	BILINEAR,
 
 	@DontObfuscate
+	STARCAST_3,
+
+	@DontObfuscate
+	STARCAST_6,
+
+	@DontObfuscate
+	STARCAST_9,
+
+	@DontObfuscate
+	STARCAST_12,
+
+	@DontObfuscate
+	BILINEAR_STARCAST_3,
+
+	@DontObfuscate
+	BILINEAR_STARCAST_6,
+
+	@DontObfuscate
+	BILINEAR_STARCAST_9,
+
+	@DontObfuscate
+	BILINEAR_STARCAST_12,
+
+	@DontObfuscate
+	HERMITE_STARCAST_3,
+
+	@DontObfuscate
+	HERMITE_STARCAST_6,
+
+	@DontObfuscate
+	HERMITE_STARCAST_9,
+
+	@DontObfuscate
+	HERMITE_STARCAST_12,
+
+	@DontObfuscate
 	BILINEAR_BEZIER,
 
 	@DontObfuscate
@@ -39,13 +75,13 @@ public enum InterpolationMethod
 
 	@DontObfuscate
 	HERMITE_LOOSE_HALF_POSITIVE_BIAS,
-	
+
 	@DontObfuscate
 	HERMITE_LOOSE_HALF_NEGATIVE_BIAS,
-	
+
 	@DontObfuscate
 	HERMITE_LOOSE_FULL_POSITIVE_BIAS,
-	
+
 	@DontObfuscate
 	HERMITE_LOOSE_FULL_NEGATIVE_BIAS,
 

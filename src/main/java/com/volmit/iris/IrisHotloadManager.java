@@ -7,11 +7,12 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.FolderWatcher;
+import com.volmit.iris.util.J;
 
 public class IrisHotloadManager
 {
 	private ChronoLatch latch;
-
+	private volatile boolean busy = false;
 	private FolderWatcher w;
 
 	public IrisHotloadManager()
@@ -27,7 +28,13 @@ public class IrisHotloadManager
 			return;
 		}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+		if(busy)
+		{
+			return;
+		}
+
+		busy = true;
+		J.attemptAsync(() ->
 		{
 			boolean modified = false;
 			int c = 0;
@@ -123,19 +130,28 @@ public class IrisHotloadManager
 			{
 
 			}
-
+			int cc = c;
 			if(modified)
 			{
-				String m = "Hotloaded " + c + " File" + (c == 1 ? "" : "s");
-
-				for(Player i : Bukkit.getOnlinePlayers())
+				J.s(() ->
 				{
-					i.sendMessage(Iris.instance.getTag("Studio") + m);
-				}
+					String m = "Hotloaded " + cc + " File" + (cc == 1 ? "" : "s");
 
-				Bukkit.getConsoleSender().sendMessage(Iris.instance.getTag("Studio") + m);
-				Iris.globaldata.hotloaded();
-				ch.onHotloaded();
+					for(Player i : Bukkit.getOnlinePlayers())
+					{
+						i.sendMessage(Iris.instance.getTag("Studio") + m);
+					}
+
+					Bukkit.getConsoleSender().sendMessage(Iris.instance.getTag("Studio") + m);
+					Iris.globaldata.hotloaded();
+					ch.onHotloaded();
+					busy = false;
+				});
+			}
+
+			else
+			{
+				busy = false;
 			}
 		});
 	}

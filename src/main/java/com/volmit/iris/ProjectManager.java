@@ -527,8 +527,6 @@ public class ProjectManager
 		dimension.setLandZoom(1.5);
 		IrisGenerator gen = new IrisGenerator();
 		IrisNoiseGenerator gg = new IrisNoiseGenerator(true);
-		gen.setInterpolationFunction(InterpolationMethod.HERMITE);
-		gen.setInterpolationScale(185);
 		gen.getComposite().add(gg);
 		gen.setLoadKey("example-generator");
 		IrisBiomeGeneratorLink b1 = new IrisBiomeGeneratorLink();

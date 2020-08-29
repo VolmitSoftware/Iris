@@ -69,15 +69,8 @@ public class IrisGenerator extends IrisRegistrant
 
 	@Required
 	@DontObfuscate
-	@Desc("The interpolation method when two biomes use different heights but this same generator")
-	private InterpolationMethod interpolationFunction = InterpolationMethod.BICUBIC;
-
-	@Required
-	@MinNumber(1)
-	@MaxNumber(8192)
-	@DontObfuscate
-	@Desc("The interpolation distance scale (blocks) when two biomes use different heights but this same generator")
-	private double interpolationScale = 7;
+	@Desc("The interpolator to use when smoothing this generator into other regions & generators")
+	private IrisInterpolator interpolator = new IrisInterpolator();
 
 	@MinNumber(0)
 	@MaxNumber(8192)
@@ -255,7 +248,7 @@ public class IrisGenerator extends IrisRegistrant
 			return 0;
 		}
 
-		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax + interpolationScale * seed + offsetX + offsetZ);
+		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
 		double h = 0;
 		double tp = 0;
 
@@ -291,7 +284,7 @@ public class IrisGenerator extends IrisRegistrant
 
 	public double getCliffHeight(double rx, double rz, double superSeed)
 	{
-		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax + interpolationScale * seed + offsetX + offsetZ);
+		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
 		double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
 		return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
 	}

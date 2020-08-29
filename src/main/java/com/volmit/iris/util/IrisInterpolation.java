@@ -1,6 +1,8 @@
 package com.volmit.iris.util;
 
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InterpolationMethod;
+import com.volmit.iris.object.NoiseStyle;
 
 public class IrisInterpolation
 {
@@ -221,10 +223,10 @@ public class IrisInterpolation
 
 	public static double trilerp(double v1, double v2, double v3, double v4, double v5, double v6, double v7, double v8, double x, double y, double z)
 	{
-		double s = blerp(v1, v2, v3, v4, x, y);
-		double t = blerp(v5, v6, v7, v8, x, y);
-		return lerp(s, t, z);
+		return lerp(blerp(v1, v2, v3, v4, x, y), blerp(v5, v6, v7, v8, x, y), z);
 	}
+
+	public static CNG cng = NoiseStyle.SIMPLEX.create(new RNG());
 
 	public static double getBilinearNoise(int x, int z, double rad, NoiseProvider n)
 	{
@@ -234,6 +236,7 @@ public class IrisInterpolation
 		int z1 = (int) Math.round(fz * rad);
 		int x2 = (int) Math.round((fx + 1) * rad);
 		int z2 = (int) Math.round((fz + 1) * rad);
+
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
@@ -244,6 +247,23 @@ public class IrisInterpolation
 				n.noise(x2, z2),
 				px, pz);
 		//@done
+	}
+
+	public static double getStarcast(int x, int z, double rad, double checks, NoiseProvider n)
+	{
+		double m = (360 / checks);
+		double v = 0;
+
+		for(int i = 0; i < 360; i += m)
+		{
+			double sin = Math.sin(Math.toRadians(i));
+			double cos = Math.cos(Math.toRadians(i));
+			double cx = x + ((rad * cos) - (rad * sin));
+			double cz = z + ((rad * sin) + (rad * cos));
+			v += n.noise(cx, cz);
+		}
+
+		return v / checks;
 	}
 
 	public static double getBilinearBezierNoise(int x, int z, double rad, NoiseProvider n)
@@ -537,81 +557,141 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double getNoise(InterpolationMethod method, int x, int z, double rad, NoiseProvider n)
+	public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n)
 	{
 		if(method.equals(InterpolationMethod.BILINEAR))
 		{
-			return getBilinearNoise(x, z, rad, n);
+			return getBilinearNoise(x, z, h, n);
+		}
+
+		else if(method.equals(InterpolationMethod.STARCAST_3))
+		{
+			return getStarcast(x, z, h, 3D, n);
+		}
+
+		else if(method.equals(InterpolationMethod.STARCAST_6))
+		{
+			return getStarcast(x, z, h, 6D, n);
+		}
+
+		else if(method.equals(InterpolationMethod.STARCAST_9))
+		{
+			return getStarcast(x, z, h, 9D, n);
+		}
+
+		else if(method.equals(InterpolationMethod.STARCAST_12))
+		{
+			return getStarcast(x, z, h, 12D, n);
+		}
+
+		else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_3))
+		{
+			return getStarcast(x, z, h, 3D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+		}
+
+		else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_6))
+		{
+			return getStarcast(x, z, h, 6D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+		}
+
+		else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_9))
+		{
+			return getStarcast(x, z, h, 9D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+		}
+
+		else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_12))
+		{
+			return getStarcast(x, z, h, 12D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE_STARCAST_3))
+		{
+			return getStarcast(x, z, h, 3D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE_STARCAST_6))
+		{
+			return getStarcast(x, z, h, 6D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE_STARCAST_9))
+		{
+			return getStarcast(x, z, h, 9D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+		}
+
+		else if(method.equals(InterpolationMethod.HERMITE_STARCAST_12))
+		{
+			return getStarcast(x, z, h, 12D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
 		}
 
 		else if(method.equals(InterpolationMethod.BICUBIC))
 		{
-			return getBicubicNoise(x, z, rad, n);
+			return getBicubicNoise(x, z, h, n);
 		}
 
 		else if(method.equals(InterpolationMethod.BILINEAR_BEZIER))
 		{
-			return getBilinearBezierNoise(x, z, rad, n);
+			return getBilinearBezierNoise(x, z, h, n);
 		}
 
 		else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_2))
 		{
-			return getBilinearParametricNoise(x, z, rad, n, 2);
+			return getBilinearParametricNoise(x, z, h, n, 2);
 		}
 
 		else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_4))
 		{
-			return getBilinearParametricNoise(x, z, rad, n, 4);
+			return getBilinearParametricNoise(x, z, h, n, 4);
 		}
 
 		else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_1_5))
 		{
-			return getBilinearParametricNoise(x, z, rad, n, 1.5);
+			return getBilinearParametricNoise(x, z, h, n, 1.5);
 		}
 
 		else if(method.equals(InterpolationMethod.BICUBIC))
 		{
-			return getBilinearNoise(x, z, rad, n);
+			return getBilinearNoise(x, z, h, n);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE))
 		{
-			return getHermiteNoise(x, z, rad, n);
+			return getHermiteNoise(x, z, h, n);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_TENSE))
 		{
-			return getHermiteNoise(x, z, rad, n, 0.8D, 0D);
+			return getHermiteNoise(x, z, h, n, 0.8D, 0D);
 		}
 
 		else if(method.equals(InterpolationMethod.CATMULL_ROM_SPLINE))
 		{
-			return getHermiteNoise(x, z, rad, n, 1D, 0D);
+			return getHermiteNoise(x, z, h, n, 1D, 0D);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_LOOSE))
 		{
-			return getHermiteNoise(x, z, rad, n, 0D, 0D);
+			return getHermiteNoise(x, z, h, n, 0D, 0D);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_NEGATIVE_BIAS))
 		{
-			return getHermiteNoise(x, z, rad, n, 0D, -0.5D);
+			return getHermiteNoise(x, z, h, n, 0D, -0.5D);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_POSITIVE_BIAS))
 		{
-			return getHermiteNoise(x, z, rad, n, 0D, 0.5D);
+			return getHermiteNoise(x, z, h, n, 0D, 0.5D);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_NEGATIVE_BIAS))
 		{
-			return getHermiteNoise(x, z, rad, n, 0D, -1D);
+			return getHermiteNoise(x, z, h, n, 0D, -1D);
 		}
 
 		else if(method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_POSITIVE_BIAS))
 		{
-			return getHermiteNoise(x, z, rad, n, 0D, 1D);
+			return getHermiteNoise(x, z, h, n, 0D, 1D);
 		}
 
 		return n.noise(x, z);

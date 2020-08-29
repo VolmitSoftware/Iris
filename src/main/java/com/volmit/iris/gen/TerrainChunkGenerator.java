@@ -29,7 +29,6 @@ import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -689,7 +688,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 	protected double interpolateGenerator(double rx, double rz, IrisGenerator gen)
 	{
-		double hi = IrisInterpolation.getNoise(gen.getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), gen.getInterpolationScale(), (xx, zz) ->
+		double hi = gen.getInterpolator().interpolate(rx, rz, (xx, zz) ->
 		{
 			try
 			{
@@ -712,7 +711,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return 0;
 		});
 
-		double lo = IrisInterpolation.getNoise(gen.getInterpolationFunction(), (int) Math.round(rx), (int) Math.round(rz), gen.getInterpolationScale(), (xx, zz) ->
+		double lo = gen.getInterpolator().interpolate(rx, rz, (xx, zz) ->
 		{
 			try
 			{

@@ -169,6 +169,7 @@ public class IrisDataManager
 		dimensionLoader.preferFolder(name);
 		generatorLoader.preferFolder(name);
 		structureLoader.preferFolder(name);
+		Iris.info("Preferred Folder: " + name);
 	}
 
 	public void clearLists()

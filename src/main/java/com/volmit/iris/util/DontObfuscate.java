@@ -7,7 +7,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
-@Target({FIELD, TYPE, CONSTRUCTOR})
+@Target({FIELD, TYPE, CONSTRUCTOR, METHOD})
 public @interface DontObfuscate
 {
 

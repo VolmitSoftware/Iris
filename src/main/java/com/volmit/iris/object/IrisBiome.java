@@ -179,7 +179,17 @@ public class IrisBiome extends IrisRegistrant implements IRare
 				return null;
 			}
 
-			return Color.getColor(getDebugColor().substring(1));
+			try
+			{
+				return Color.decode(getDebugColor());
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+
+			return null;
 		});
 	}
 

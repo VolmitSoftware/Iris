@@ -160,14 +160,16 @@ public class ResourceLoader<T extends IrisRegistrant>
 			{
 				for(File i : folderCache.copy())
 				{
-					if(i.getParentFile().getName().equals(preferredFolder))
+					if(i.getParentFile().getName().equals(preferredFolder) || i.getParentFile().getParentFile().getName().equals(preferredFolder))
 					{
 						folderCache.remove(i);
 						folderCache.add(0, i);
+						Iris.verbose("Prefering " + i.getPath() + " in the folder cache because we prefer " + preferredFolder);
 					}
 				}
 			}
 		}
+
 		lock.unlock();
 
 		return folderCache;
@@ -193,9 +195,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public void clearCache()
 	{
+		lock.lock();
 		possibleKeys = null;
 		loadCache.clear();
 		folderCache = null;
+		lock.unlock();
 	}
 
 	public File fileFor(T b)
@@ -228,12 +232,15 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public void preferFolder(String name)
 	{
+		clearList();
 		preferredFolder = name;
 	}
 
 	public void clearList()
 	{
+		lock.lock();
 		folderCache = null;
 		possibleKeys = null;
+		lock.unlock();
 	}
 }

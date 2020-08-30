@@ -21,6 +21,9 @@ trimExclude *.Iris and
             * extends com.volmit.iris.util.MortarCommand and
             *.* @com.volmit.iris.util.Command * and
             @com.volmit.iris.gen.post.Post *.* and
+            @org.bukkit.event.EventHandler *.* and
+            *.* @org.bukkit.event.EventHandler * and
+            *.* @org.bukkit.event.EventHandler *(*) and
             *.* extends com.volmit.iris.util.IrisPostBlockFilter;
 
 trim        deleteSourceFileAttributes=false
@@ -33,6 +36,9 @@ exclude     @com.volmit.iris.util.DontObfuscate *.* and
             *.* @com.volmit.iris.util.DontObfuscate * and
             *.* @com.volmit.iris.util.DontObfuscate *(*) and
             *.Iris and
+            @org.bukkit.event.EventHandler *.* and
+            *.* @org.bukkit.event.EventHandler * and
+            *.* @org.bukkit.event.EventHandler *(*) and
             public *.^* and
             *.* public * and
             *.* protected * and

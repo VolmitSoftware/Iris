@@ -93,6 +93,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	public void onHotload()
 	{
+		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		super.onHotload();
 		cacheID = RNG.r.simax();
 	}

@@ -17,20 +17,24 @@ import com.volmit.iris.util.BoardProvider;
 import com.volmit.iris.util.BoardSettings;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.util.ScoreDirection;
 
 public class IrisBoardManager implements BoardProvider, Listener
 {
+	@DontObfuscate
 	private BoardManager manager;
 	private String mem = "...";
 	public RollingSequence hits = new RollingSequence(20);
 	public RollingSequence tp = new RollingSequence(100);
 	private ChronoLatch cl = new ChronoLatch(1000);
 
+	@DontObfuscate
 	public IrisBoardManager()
 	{
 		Iris.instance.registerListener(this);
@@ -42,18 +46,29 @@ public class IrisBoardManager implements BoardProvider, Listener
 		//@done
 	}
 
+	@EventHandler
+	public void on(PlayerChangedWorldEvent e)
+	{
+		J.s(() -> updatePlayer(e.getPlayer()));
+	}
+
+	@DontObfuscate
 	private boolean isIrisWorld(World w)
 	{
 		return (w.getGenerator() instanceof IrisChunkGenerator) && ((IrisChunkGenerator) w.getGenerator()).isDev();
 	}
 
-	@EventHandler
-	public void on(PlayerChangedWorldEvent e)
+	public void updatePlayer(Player p)
 	{
-		if(isIrisWorld(e.getPlayer().getWorld()))
+		if(isIrisWorld(p.getWorld()))
 		{
-			manager.remove(e.getPlayer());
-			manager.setup(e.getPlayer());
+			manager.remove(p);
+			manager.setup(p);
+		}
+
+		else
+		{
+			manager.remove(p);
 		}
 	}
 
@@ -63,6 +78,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		return C.GREEN + "Iris";
 	}
 
+	@DontObfuscate
 	@Override
 	public List<String> getLines(Player player)
 	{
@@ -114,6 +130,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		return v;
 	}
 
+	@DontObfuscate
 	public void disable()
 	{
 		manager.onDisable();

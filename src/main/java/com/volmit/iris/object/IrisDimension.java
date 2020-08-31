@@ -47,6 +47,11 @@ public class IrisDimension extends IrisRegistrant
 	private String name = "A Dimension";
 
 	@DontObfuscate
+	@Desc("Place text on terrain")
+	@ArrayType(min = 1, type = IrisTextPlacement.class)
+	private KList<IrisTextPlacement> text = new KList<>();
+
+	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
@@ -679,11 +684,25 @@ public class IrisDimension extends IrisRegistrant
 				z = max > z ? max : z;
 			}
 
+			for(IrisTextPlacement i : getText())
+			{
+				int max = i.maxDimension();
+				x = max > x ? max : x;
+				z = max > z ? max : z;
+			}
+
 			for(IrisRegion v : r)
 			{
 				for(IrisDepositGenerator i : v.getDeposits())
 				{
 					int max = i.getMaxDimension();
+					x = max > x ? max : x;
+					z = max > z ? max : z;
+				}
+
+				for(IrisTextPlacement i : v.getText())
+				{
+					int max = i.maxDimension();
 					x = max > x ? max : x;
 					z = max > z ? max : z;
 				}
@@ -694,6 +713,13 @@ public class IrisDimension extends IrisRegistrant
 				for(IrisDepositGenerator i : v.getDeposits())
 				{
 					int max = i.getMaxDimension();
+					x = max > x ? max : x;
+					z = max > z ? max : z;
+				}
+
+				for(IrisTextPlacement i : v.getText())
+				{
+					int max = i.maxDimension();
 					x = max > x ? max : x;
 					z = max > z ? max : z;
 				}

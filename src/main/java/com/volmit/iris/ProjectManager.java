@@ -1,6 +1,7 @@
 package com.volmit.iris;
 
 import java.awt.Desktop;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -62,6 +63,7 @@ import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListDimension;
+import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.RegistryListGenerator;
 import com.volmit.iris.util.RegistryListLoot;
 import com.volmit.iris.util.RegistryListObject;
@@ -799,6 +801,11 @@ public class ProjectManager
 							prop.put("enum", new JSONArray(getBiomeList(dat)));
 						}
 
+						if(k.isAnnotationPresent(RegistryListFont.class))
+						{
+							prop.put("enum", new JSONArray(getFontList()));
+						}
+
 						if(k.isAnnotationPresent(RegistryListLoot.class))
 						{
 							prop.put("enum", new JSONArray(getLootList(dat)));
@@ -943,6 +950,26 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										deff.put("type", tx);
 										deff.put("enum", new JSONArray(getBiomeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListFont.class))
+								{
+									String name = "enfong" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getFontList()));
 										def.put(name, deff);
 									}
 
@@ -1174,6 +1201,11 @@ public class ProjectManager
 		}
 
 		return schema;
+	}
+
+	private String[] getFontList()
+	{
+		return GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
 	}
 
 	private String[] getBiomeList(IrisDataManager data)

@@ -10,6 +10,7 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.DimensionChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.object.IrisMaterialPalette;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.GenLayer;
@@ -53,6 +54,29 @@ public class GenLayerText extends GenLayer
 				if(bufferedImage.getRGB(x, y) != -16777216)
 				{
 					o.setUnsigned(x, 0, y, b);
+				}
+			}
+		}
+
+		return o;
+	}
+
+	public IrisObject createTextObject(RNG rng, String text, int w, Font f, IrisMaterialPalette palette)
+	{
+		int h = f.getSize();
+		BufferedImage bufferedImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		Graphics gs = bufferedImage.getGraphics();
+		Graphics2D g = (Graphics2D) gs;
+		g.setFont(f);
+		g.drawString(text, 0, h);
+		IrisObject o = new IrisObject(w, 1, h);
+		for(int y = 0; y < h; y++)
+		{
+			for(int x = 0; x < w; x++)
+			{
+				if(bufferedImage.getRGB(x, y) != -16777216)
+				{
+					o.setUnsigned(x, 0, y, palette.get(rng, x, w, y));
 				}
 			}
 		}

@@ -18,6 +18,7 @@ import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructurePlacement;
+import com.volmit.iris.object.IrisTextPlacement;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
@@ -194,7 +195,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
-		// flock.lock();
 		if(getSliverCache().size() > 20000)
 		{
 			getSliverCache().clear();
@@ -219,7 +219,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
 		getParallaxMap().clean(ticks);
 		getData().getObjectLoader().clean();
-		// flock.unlock();
 	}
 
 	public IrisStructureResult getStructure(int x, int y, int z)
@@ -229,7 +228,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 	protected void onGenerateParallax(RNG random, int x, int z)
 	{
-		String key = "par." + x + "." + "z";
+		String key = "par." + x + "." + z;
 		ChunkPosition rad = getDimension().getParallaxSize(this);
 		KList<NastyRunnable> q = new KList<>();
 
@@ -289,6 +288,36 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					}
 
 					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
+
+					for(IrisTextPlacement k : getDimension().getText())
+					{
+						lockq.lock();
+						q.add(() ->
+						{
+							k.place(this, random.nextParallelRNG(-7228), i, j);
+						});
+						lockq.unlock();
+					}
+
+					for(IrisTextPlacement k : r.getText())
+					{
+						lockq.lock();
+						q.add(() ->
+						{
+							k.place(this, random.nextParallelRNG(-4228), i, j);
+						});
+						lockq.unlock();
+					}
+
+					for(IrisTextPlacement k : b.getText())
+					{
+						lockq.lock();
+						q.add(() ->
+						{
+							k.place(this, random.nextParallelRNG(-22228), i, j);
+						});
+						lockq.unlock();
+					}
 
 					for(IrisStructurePlacement k : r.getStructures())
 					{

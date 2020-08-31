@@ -226,7 +226,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		return getParallaxChunk(x >> 4, z >> 4).getStructure(this, y);
 	}
 
-	protected void onGenerateParallax(RNG random, int x, int z)
+	protected void onGenerateParallax(RNG randomx, int x, int z)
 	{
 		String key = "par." + x + "." + z;
 		ChunkPosition rad = getDimension().getParallaxSize(this);
@@ -239,6 +239,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 			for(int jj = z - (rad.getZ() / 2); jj <= z + (rad.getZ() / 2); jj++)
 			{
 				int j = jj;
+
+				RNG random = getMasterRandom().nextParallelRNG(i).nextParallelRNG(j);
 
 				if(isParallaxGenerated(ii, jj))
 				{
@@ -254,7 +256,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
 					RNG ro = getMasterRandom().nextParallelRNG(496888 + i + j);
-
 					int g = 1;
 
 					searching: for(IrisBiomeMutation k : getDimension().getMutations())
@@ -294,7 +295,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						lockq.lock();
 						q.add(() ->
 						{
-							k.place(this, random.nextParallelRNG(-7228), i, j);
+							k.place(this, random.nextParallelRNG(-7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 						});
 						lockq.unlock();
 					}
@@ -304,7 +305,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						lockq.lock();
 						q.add(() ->
 						{
-							k.place(this, random.nextParallelRNG(-4228), i, j);
+							k.place(this, random.nextParallelRNG(-4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 						});
 						lockq.unlock();
 					}
@@ -314,7 +315,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						lockq.lock();
 						q.add(() ->
 						{
-							k.place(this, random.nextParallelRNG(-22228), i, j);
+							k.place(this, random.nextParallelRNG(-22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 						});
 						lockq.unlock();
 					}

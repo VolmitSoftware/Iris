@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ParallaxChunkGenerator;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
@@ -107,16 +106,16 @@ public class IrisTextPlacement
 		return m;
 	}
 
-	public void place(ParallaxChunkGenerator g, RNG rngf, int x, int z)
+	public void place(ParallaxChunkGenerator g, RNG rng, int x, int z)
 	{
-		RNG rngg = rngf.nextParallelRNG(x).nextParallelRNG(z);
-		for(int i = 0; i < getConfig().getTriesForChunk(rngg); i++)
+		int tr = getConfig().getTriesForChunk(rng);
+
+		for(int i = 0; i < tr; i++)
 		{
-			RNG rng = rngg.nextParallelRNG((i * 3 + 8) - 23040);
+			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
 			int xb = (x * 16) + rng.nextInt(16);
 			int zb = (z * 16) + rng.nextInt(16);
-			Iris.info("Placing at " + xb + " " + zb);
-			getRender().get(rng.nextInt(getRender().size())).place(g, rngg, getConfig(), xb, zb);
+			getRender().get(rng.nextInt(getRender().size())).place(g, rng, getConfig(), xb, zb);
 		}
 	}
 }

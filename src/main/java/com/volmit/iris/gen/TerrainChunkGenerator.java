@@ -641,6 +641,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	public void onHotload()
 	{
 		super.onHotload();
+		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		loadGenerators();
 		buildGenLayers(masterRandom);
 	}

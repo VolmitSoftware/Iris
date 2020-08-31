@@ -23,7 +23,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import com.google.gson.Gson;
-import com.volmit.iris.activation.IrisActivation2;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.object.DecorationPart;
@@ -160,7 +159,6 @@ public class ProjectManager
 			sender.sendMessage("Can't find dimension: " + dimm);
 			return;
 		}
-		IrisActivation2.validate();
 
 		if(isProjectOpen())
 		{

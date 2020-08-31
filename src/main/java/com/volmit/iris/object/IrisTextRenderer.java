@@ -13,6 +13,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.Required;
 
 import lombok.Data;
@@ -21,6 +22,7 @@ import lombok.Data;
 @Data
 public class IrisTextRenderer
 {
+	@RegistryListFont
 	@Required
 	@DontObfuscate
 	@Desc("The font to use for this renderer")
@@ -45,7 +47,7 @@ public class IrisTextRenderer
 	@Required
 	@DontObfuscate
 	@Desc("The palette of blocks to use when drawing text")
-	private IrisMaterialPalette palette = new IrisMaterialPalette();
+	private IrisMaterialPalette blockPalette = new IrisMaterialPalette();
 
 	@DontObfuscate
 	@Desc("Use a generator to shuffle the surface field of coordinates. Using simplex for example would make the text rendered wavy. Use the multiplier to stretch further.")
@@ -70,7 +72,7 @@ public class IrisTextRenderer
 
 			for(String i : text)
 			{
-				o.add(g.getGlText().createTextObject(rng, i, (int) getLength(i), getFontData(), getPalette()));
+				o.add(g.getGlText().createTextObject(rng, i, (int) getLength(i), getFontData(), getBlockPalette()));
 			}
 
 			return o;

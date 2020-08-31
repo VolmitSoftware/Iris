@@ -14,7 +14,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
-import com.volmit.iris.activation.IrisActivation1;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisChunkGenerator;
@@ -25,12 +24,10 @@ import com.volmit.iris.gen.post.PostSlabber;
 import com.volmit.iris.gen.post.PostWallPatcher;
 import com.volmit.iris.gen.post.PostWaterlogger;
 import com.volmit.iris.util.C;
-import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
-import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
 import com.volmit.iris.util.Permission;
@@ -86,10 +83,7 @@ public class Iris extends MortarPlugin
 		struct = new StructureManager();
 		proj = new ProjectManager();
 		board = new IrisBoardManager();
-		new IrisActivation1();
 		super.onEnable();
-		J.s(() -> Iris.warn("\n\n" + "    " + Form.repeat(C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET, 53) + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.GREEN + "" + C.UNDERLINE + "                                   Iris was developed by VolmitSoftware                                  " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "    This version of Iris is for testing & evaluation purposes only! DO NOT REDISTRIBUTE THIS PLUGIN.     " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.DARK_RED + "" + C.UNDERLINE + "         If you are a spigot staff member reviewing this plugin, PLEASE REJECT THIS PLUGIN               " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + C.WHITE + "" + " " + C.RESET + C.DARK_GRAY + "" + C.UNDERLINE + "                  " + C.BLACK + "" + C.UNDERLINE + IrisActivation1.computeSecurityHash() + "                      " + C.YELLOW + " " + C.RESET + "\n" + "    " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + "                                                                                                         " + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET + "\n" + "    " + Form.repeat(C.YELLOW + "" + " " + C.RESET + C.YELLOW + "" + C.UNDERLINE + " " + C.RESET, 53) + "\n"));
-		IrisActivation1.validate();
 	}
 
 	public void onDisable()

@@ -79,6 +79,7 @@ public class IrisTextPlacement
 			p.setOnwater(isOnwater());
 			p.setUnderwater(isUnderwater());
 			p.setWaterloggable(isWaterloggable());
+			p.setMode(getMode());
 
 			return p;
 		});

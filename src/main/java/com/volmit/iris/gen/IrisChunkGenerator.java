@@ -25,7 +25,6 @@ import com.volmit.iris.object.IrisBlockDrops;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -103,7 +102,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	}
 
 	@Override
-	public BiomeResult getBiome(int x, int z)
+	public IrisBiome getBiome(int x, int z)
 	{
 		return sampleBiome(x, z);
 	}
@@ -128,7 +127,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		{
 			Location l = i.getLocation();
 			IrisRegion r = sampleRegion(l.getBlockX(), l.getBlockZ());
-			IrisBiome b = sampleTrueBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ()).getBiome();
+			IrisBiome b = sampleTrueBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
 
 			for(IrisEffect j : r.getEffects())
 			{
@@ -271,7 +270,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
 		IrisRegion region = sampleRegion(ix, iz);
-		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
+		IrisBiome biome = sampleTrueBiome(ix, iz, height);
 
 		if(biome.getCachedColor() != null)
 		{
@@ -298,7 +297,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
 		IrisRegion region = sampleRegion(ix, iz);
-		IrisBiome biome = sampleTrueBiome(ix, iz, height).getBiome();
+		IrisBiome biome = sampleTrueBiome(ix, iz, height);
 		hb = biome;
 		hr = region;
 		return biome.getName() + " (" + Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in " + region.getName() + "\nY: " + (int) height);
@@ -324,8 +323,8 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		int z = e.getBlock().getZ();
 		IrisDimension dim = getDimension();
 		IrisRegion reg = sampleRegion(x, z);
-		IrisBiome bio = sampleTrueBiome(x, z).getBiome();
-		IrisBiome cbio = y < getFluidHeight() ? sampleTrueBiome(x, y, z).getBiome() : null;
+		IrisBiome bio = sampleTrueBiome(x, z);
+		IrisBiome cbio = y < getFluidHeight() ? sampleTrueBiome(x, y, z) : null;
 
 		if(cbio != null && bio.equals(cbio))
 		{

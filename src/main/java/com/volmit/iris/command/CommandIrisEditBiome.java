@@ -28,7 +28,7 @@ public class CommandIrisEditBiome extends MortarCommand
 
 			try
 			{
-				File f = Iris.proj.getCurrentProject().sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ()).getBiome().getLoadFile();
+				File f = Iris.proj.getCurrentProject().sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ()).getLoadFile();
 				Desktop.getDesktop().open(f);
 			}
 

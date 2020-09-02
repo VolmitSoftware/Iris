@@ -32,7 +32,7 @@ public class PostWallPatcher extends IrisPostBlockFilter
 	@Override
 	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
-		IrisBiome biome = gen.sampleTrueBiome(x, z).getBiome();
+		IrisBiome biome = gen.sampleTrueBiome(x, z);
 		int h, ha, hb, hc, hd;
 
 		if(!biome.getWall().getPalette().isEmpty())
@@ -46,7 +46,7 @@ public class PostWallPatcher extends IrisPostBlockFilter
 			if(ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2)
 			{
 				int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
-				BlockData s = gen.sampleTrueBiome(x, z).getBiome().getSlab().get(rng, x, h, z);
+				BlockData s = gen.sampleTrueBiome(x, z).getSlab().get(rng, x, h, z);
 
 				if(s != null)
 				{

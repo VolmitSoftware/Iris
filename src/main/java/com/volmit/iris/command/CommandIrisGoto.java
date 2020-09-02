@@ -72,7 +72,7 @@ public class CommandIrisGoto extends MortarCommand
 				}
 			}
 
-			IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()).getBiome() : g.loadBiome(args[0]);
+			IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()) : g.loadBiome(args[0]);
 
 			if(biome == null)
 			{
@@ -86,7 +86,7 @@ public class CommandIrisGoto extends MortarCommand
 
 				int xx = (int) (RNG.r.i(-29999970, 29999970));
 				int zz = (int) (RNG.r.i(-29999970, 29999970));
-				if((cave ? g.sampleCaveBiome(xx, zz) : g.sampleTrueBiome(xx, zz)).getBiome().getLoadKey().equals(biome.getLoadKey()))
+				if((cave ? g.sampleCaveBiome(xx, zz) : g.sampleTrueBiome(xx, zz)).getLoadKey().equals(biome.getLoadKey()))
 				{
 					if(biome2 != null)
 					{
@@ -95,7 +95,7 @@ public class CommandIrisGoto extends MortarCommand
 							int ax = xx + RNG.r.i(-64, 32);
 							int az = zz + RNG.r.i(-64, 32);
 
-							if((cave ? g.sampleCaveBiome(ax, az) : g.sampleTrueBiome(ax, az)).getBiome().getLoadKey().equals(biome2.getLoadKey()))
+							if((cave ? g.sampleCaveBiome(ax, az) : g.sampleTrueBiome(ax, az)).getLoadKey().equals(biome2.getLoadKey()))
 							{
 								tries--;
 								p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));

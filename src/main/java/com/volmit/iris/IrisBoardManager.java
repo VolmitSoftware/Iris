@@ -11,7 +11,6 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.BoardManager;
 import com.volmit.iris.util.BoardProvider;
 import com.volmit.iris.util.BoardSettings;
@@ -99,8 +98,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		int x = player.getLocation().getBlockX();
 		int y = player.getLocation().getBlockY();
 		int z = player.getLocation().getBlockZ();
-		BiomeResult er = g.sampleTrueBiome(x, y, z);
-		IrisBiome b = er != null ? er.getBiome() : null;
+		IrisBiome b = g.sampleTrueBiome(x, y, z);
 		IrisStructureResult st = g.getStructure(x, y, z);
 
 		tp.put(g.getMetrics().getSpeed());
@@ -114,7 +112,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		v.add("&7&m------------------");
 		v.add(C.GREEN + "Heightmap" + C.GRAY + ": " + (int) g.getTerrainHeight(x, z));
 
-		if(er != null && b != null)
+		if(b != null)
 		{
 			v.add(C.GREEN + "Biome" + C.GRAY + ": " + b.getName());
 		}

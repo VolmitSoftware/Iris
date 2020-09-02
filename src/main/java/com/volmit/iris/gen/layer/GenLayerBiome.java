@@ -9,7 +9,6 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisRegionRidge;
 import com.volmit.iris.object.IrisRegionSpot;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
@@ -55,12 +54,12 @@ public class GenLayerBiome extends GenLayer
 		return regionGenerator.fitRarity(iris.getDimension().getAllRegions(iris), x, z);
 	}
 
-	public BiomeResult generateData(double bx, double bz, int rawX, int rawZ)
+	public IrisBiome generateData(double bx, double bz, int rawX, int rawZ)
 	{
 		return generateRegionData(bx, bz, rawX, rawZ, getRegion(bx, bz));
 	}
 
-	public BiomeResult generateData(InferredType type, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public IrisBiome generateData(InferredType type, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		return getProvider(type).generateData(iris, bx, bz, rawX, rawZ, regionData);
 	}
@@ -95,7 +94,7 @@ public class GenLayerBiome extends GenLayer
 		return null;
 	}
 
-	public BiomeResult generateRegionData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public IrisBiome generateRegionData(double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		return generateData(getType(bx, bz, regionData), bx, bz, rawX, rawZ, regionData);
 	}
@@ -121,13 +120,13 @@ public class GenLayerBiome extends GenLayer
 		return bridge;
 	}
 
-	public BiomeResult generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType, int rx, int rz)
+	public IrisBiome generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType, int rx, int rz)
 	{
 		for(IrisRegionRidge i : regionData.getRidgeBiomes())
 		{
 			if(i.getType().equals(inferredType) && i.isRidge(rng, rx, rz))
 			{
-				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType), 0.5);
+				return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
 			}
 		}
 
@@ -135,13 +134,13 @@ public class GenLayerBiome extends GenLayer
 		{
 			if(i.getType().equals(inferredType) && i.isSpot(rng, rx, rz))
 			{
-				return new BiomeResult(iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType), 0.5);
+				return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
 			}
 		}
 
 		if(biomes.isEmpty())
 		{
-			return new BiomeResult(null, 0);
+			return null;
 		}
 
 		double x = bx / (iris.getDimension().getBiomeZoom() * regionData.getBiomeZoom(inferredType));
@@ -149,20 +148,20 @@ public class GenLayerBiome extends GenLayer
 		IrisBiome biome = cell.fitRarity(biomes, x, z);
 		biome.setInferredType(inferredType);
 
-		return implode(bx, bz, regionData, cell, new BiomeResult(biome, 1));
+		return implode(bx, bz, regionData, cell, biome);
 	}
 
-	public BiomeResult generateImpureData(int rawX, int rawZ, InferredType type, IrisRegion regionData, BiomeResult pureResult)
+	public IrisBiome generateImpureData(int rawX, int rawZ, InferredType type, IrisRegion regionData, IrisBiome pureResult)
 	{
 		return pureResult;
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent)
+	public IrisBiome implode(double bx, double bz, IrisRegion regionData, CNG parentCell, IrisBiome parent)
 	{
 		return implode(bx, bz, regionData, parentCell, parent, 1);
 	}
 
-	public BiomeResult implode(double bx, double bz, IrisRegion regionData, CNG parentCell, BiomeResult parent, int hits)
+	public IrisBiome implode(double bx, double bz, IrisRegion regionData, CNG parentCell, IrisBiome parent, int hits)
 	{
 		if(hits > IrisSettings.get().maxBiomeChildDepth)
 		{
@@ -172,15 +171,15 @@ public class GenLayerBiome extends GenLayer
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
 
-		if(!parent.getBiome().getRealChildren(iris).isEmpty())
+		if(!parent.getRealChildren(iris).isEmpty())
 		{
-			CNG childCell = parent.getBiome().getChildrenGenerator(rng, 123, parent.getBiome().getChildShrinkFactor());
-			KList<IrisBiome> chx = parent.getBiome().getRealChildren(iris).copy(); // TODO Cache
-			chx.add(parent.getBiome());
+			CNG childCell = parent.getChildrenGenerator(rng, 123, parent.getChildShrinkFactor());
+			KList<IrisBiome> chx = parent.getRealChildren(iris).copy(); // TODO Cache
+			chx.add(parent);
 			IrisBiome biome = childCell.fitRarity(chx, x, z);
-			biome.setInferredType(parent.getBiome().getInferredType());
+			biome.setInferredType(parent.getInferredType());
 
-			return implode(bx, bz, regionData, childCell, new BiomeResult(biome, 0), hits + 1);
+			return implode(bx, bz, regionData, childCell, biome, hits + 1);
 		}
 
 		return parent;

@@ -13,7 +13,6 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -87,7 +86,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 		return d;
 	}
 
-	protected BiomeResult focus()
+	protected IrisBiome focus()
 	{
 		IrisBiome biome = loadBiome(getDimension().getFocus());
 
@@ -114,7 +113,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 			}
 		}
 
-		return new BiomeResult(biome, 0);
+		return biome;
 	}
 
 	public double getModifiedX(int rx, int rz)

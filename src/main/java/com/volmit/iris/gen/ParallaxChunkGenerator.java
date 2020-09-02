@@ -254,7 +254,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 				getAccelerant().queue(key, () ->
 				{
-					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7).getBiome();
+					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7);
 					RNG ro = getMasterRandom().nextParallelRNG(496888 + i + j);
 					int g = 1;
 
@@ -262,8 +262,8 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 					{
 						for(int l = 0; l < k.getChecks(); l++)
 						{
-							IrisBiome sa = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius())).getBiome();
-							IrisBiome sb = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius())).getBiome();
+							IrisBiome sa = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
+							IrisBiome sb = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
 
 							if(sa.getLoadKey().equals(sb.getLoadKey()))
 							{
@@ -356,7 +356,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						int bx = (i * 16) + ro.nextInt(16);
 						int bz = (j * 16) + ro.nextInt(16);
 
-						IrisBiome biome = sampleCaveBiome(bx, bz).getBiome();
+						IrisBiome biome = sampleCaveBiome(bx, bz);
 
 						if(biome == null)
 						{

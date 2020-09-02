@@ -2,9 +2,9 @@ package com.volmit.iris;
 
 import org.bukkit.World;
 
+import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.KMap;
 
 public interface IrisContext
@@ -21,7 +21,7 @@ public interface IrisContext
 		return contexts.get(world);
 	}
 
-	public BiomeResult getBiome(int x, int z);
+	public IrisBiome getBiome(int x, int z);
 
 	public IrisDimension getDimension();
 

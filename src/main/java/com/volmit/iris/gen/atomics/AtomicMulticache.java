@@ -4,8 +4,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.KMap;
 
 public class AtomicMulticache
@@ -13,9 +13,11 @@ public class AtomicMulticache
 	public static boolean broken = false;
 	private final AtomicInteger x;
 	private final AtomicInteger z;
+	private int hit = 0;
+	private int miss = 0;
 	private final KMap<Long, Double> height;
-	private final KMap<Long, BiomeResult> biome;
-	private final KMap<Long, BiomeResult> rawBiome;
+	private final KMap<Long, IrisBiome> biome;
+	private final KMap<Long, IrisBiome> rawBiome;
 	private final KMap<Long, IrisRegion> region;
 
 	public AtomicMulticache()
@@ -23,8 +25,8 @@ public class AtomicMulticache
 		x = new AtomicInteger(0);
 		z = new AtomicInteger(0);
 		height = new KMap<Long, Double>();
-		biome = new KMap<Long, BiomeResult>();
-		rawBiome = new KMap<Long, BiomeResult>();
+		biome = new KMap<Long, IrisBiome>();
+		rawBiome = new KMap<Long, IrisBiome>();
 		region = new KMap<Long, IrisRegion>();
 	}
 
@@ -38,10 +40,38 @@ public class AtomicMulticache
 		this.x.set(x);
 		this.z.set(z);
 
-		if(!IrisSettings.get().sharedCaching || getSize() > 42000)
+		if(!IrisSettings.get().sharedCaching)
 		{
 			drop();
 		}
+
+		else
+		{
+			if(height.size() > getLimit())
+			{
+				height.clear();
+			}
+
+			if(biome.size() > getLimit())
+			{
+				biome.clear();
+			}
+
+			if(rawBiome.size() > getLimit())
+			{
+				rawBiome.clear();
+			}
+
+			if(region.size() > getLimit())
+			{
+				region.clear();
+			}
+		}
+	}
+
+	private int getLimit()
+	{
+		return 20000;
 	}
 
 	public double getHeight(int x, int z, Supplier<Double> g)
@@ -56,8 +86,14 @@ public class AtomicMulticache
 
 		if(r == null)
 		{
+			miss++;
 			r = g.get();
 			height.put(pos, r);
+		}
+
+		else
+		{
+			hit++;
 		}
 
 		return r;
@@ -70,43 +106,66 @@ public class AtomicMulticache
 
 		if(r == null)
 		{
+			miss++;
 			r = g.get();
 			region.put(pos, r);
 		}
 
-		return r;
-	}
-
-	public BiomeResult getBiome(int x, int z, Supplier<BiomeResult> g)
-	{
-		long pos = pos(x, z);
-		BiomeResult r = biome.get(pos);
-
-		if(r == null)
+		else
 		{
-			r = g.get();
-			biome.put(pos, r);
+			hit++;
 		}
 
 		return r;
 	}
 
-	public BiomeResult getRawBiome(int x, int z, Supplier<BiomeResult> g)
+	public IrisBiome getBiome(int x, int z, Supplier<IrisBiome> g)
+	{
+		long pos = pos(x, z);
+		IrisBiome r = biome.get(pos);
+
+		if(r == null)
+		{
+			miss++;
+			r = g.get();
+			biome.put(pos, r);
+		}
+
+		else
+		{
+			hit++;
+		}
+
+		return r;
+	}
+
+	public IrisBiome getRawBiome(int x, int z, Supplier<IrisBiome> g)
 	{
 		if(broken)
 		{
 			return null;
 		}
 		long pos = pos(x, z);
-		BiomeResult r = rawBiome.get(pos);
+		IrisBiome r = rawBiome.get(pos);
 
 		if(r == null)
 		{
+			miss++;
 			r = g.get();
 			rawBiome.put(pos, r);
 		}
 
+		else
+		{
+			hit++;
+		}
+
 		return r;
+	}
+
+	public double getCacheHitRate()
+	{
+		return (double) hit / (double) (hit + miss);
 	}
 
 	private long pos(int x, int z)
@@ -139,6 +198,8 @@ public class AtomicMulticache
 			return;
 		}
 
+		hit = 0;
+		miss = 0;
 		height.clear();
 		region.clear();
 		biome.clear();

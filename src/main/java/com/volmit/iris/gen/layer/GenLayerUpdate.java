@@ -95,8 +95,8 @@ public class GenLayerUpdate extends BlockPopulator
 		int rx = b.getX();
 		int rz = b.getZ();
 		IrisRegion region = gen.sampleRegion(rx, rz);
-		IrisBiome biomeSurface = gen.sampleTrueBiome(rx, rz).getBiome();
-		IrisBiome biomeUnder = gen.sampleTrueBiome(rx, b.getY(), rz).getBiome();
+		IrisBiome biomeSurface = gen.sampleTrueBiome(rx, rz);
+		IrisBiome biomeUnder = gen.sampleTrueBiome(rx, b.getY(), rz);
 		KList<IrisLootTable> tables = new KList<IrisLootTable>();
 		IrisStructureResult structure = gen.getStructure(rx, b.getY(), rz);
 		double multiplier = 1D * gen.getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();

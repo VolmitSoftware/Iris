@@ -25,7 +25,6 @@ import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeMap;
-import com.volmit.iris.util.BiomeResult;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.HeightMap;
@@ -107,8 +106,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		int height = (int) Math.round(noise);
 		boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
 		IrisRegion region = sampleRegion(rx, rz);
-		BiomeResult biomeResult = sampleTrueBiome(rx, rz, noise);
-		IrisBiome biome = biomeResult.getBiome();
+		IrisBiome biome = sampleTrueBiome(rx, rz, noise);
 
 		if(biome == null)
 		{
@@ -221,7 +219,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 
 		// Carve out biomes
 		KList<CaveResult> caveResults = glCave.genCaves(rx, rz, x, z, sliver);
-		IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region).getBiome();
+		IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region);
 
 		// Decorate Cave Biome Height Sections
 		if(caveBiome != null)
@@ -274,7 +272,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		super.onGenerate(random, x, z, data, grid);
 		RNG ro = random.nextParallelRNG((x * x * x) - z);
 		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
-		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7).getBiome();
+		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
 
 		for(IrisDepositGenerator k : getDimension().getDeposits())
 		{
@@ -501,7 +499,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return h;
 	}
 
-	public BiomeResult sampleTrueBiomeBase(int x, int z, int height)
+	public IrisBiome sampleTrueBiomeBase(int x, int z, int height)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
@@ -512,7 +510,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
 		double sh = region.getShoreHeight(wx, wz);
-		IrisBiome current = sampleBiome(x, z).getBiome();
+		IrisBiome current = sampleBiome(x, z);
 
 		if(current.isShore() && height > sh)
 		{
@@ -542,22 +540,22 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return glBiome.generateRegionData(wx, wz, x, z, region);
 	}
 
-	public BiomeResult sampleCaveBiome(int x, int z)
+	public IrisBiome sampleCaveBiome(int x, int z)
 	{
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		return glBiome.generateData(InferredType.CAVE, wx, wz, x, z, sampleRegion(x, z));
 	}
 
-	public BiomeResult sampleTrueBiome(int x, int y, int z)
+	public IrisBiome sampleTrueBiome(int x, int y, int z)
 	{
 		if(y < getTerrainHeight(x, z))
 		{
 			double wx = getModifiedX(x, z);
 			double wz = getModifiedZ(x, z);
-			BiomeResult r = glBiome.generateData(InferredType.CAVE, wx, wz, x, z, sampleRegion(x, z));
+			IrisBiome r = glBiome.generateData(InferredType.CAVE, wx, wz, x, z, sampleRegion(x, z));
 
-			if(r.getBiome() != null)
+			if(r != null)
 			{
 				return r;
 			}
@@ -566,7 +564,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		return sampleTrueBiome(x, z);
 	}
 
-	public BiomeResult sampleTrueBiome(int x, int z)
+	public IrisBiome sampleTrueBiome(int x, int z)
 	{
 		return sampleTrueBiome(x, z, getTerrainHeight(x, z));
 	}
@@ -581,7 +579,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		});
 	}
 
-	public BiomeResult sampleTrueBiome(int x, int z, double noise)
+	public IrisBiome sampleTrueBiome(int x, int z, double noise)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
@@ -595,15 +593,14 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			IrisRegion region = sampleRegion(x, z);
 			int height = (int) Math.round(noise);
 			double sh = region.getShoreHeight(wx, wz);
-			BiomeResult res = sampleTrueBiomeBase(x, z, height);
-			IrisBiome current = res.getBiome();
+			IrisBiome current = sampleTrueBiomeBase(x, z, height);
 
 			if(current.isSea() && height > getDimension().getFluidHeight() - sh)
 			{
 				return glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
 			}
 
-			return res;
+			return current;
 		});
 	}
 
@@ -699,7 +696,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			try
 			{
-				IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
+				IrisBiome b = sampleBiome((int) xx, (int) zz);
 
 				for(IrisBiomeGeneratorLink i : b.getGenerators())
 				{
@@ -722,7 +719,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			try
 			{
-				IrisBiome b = sampleBiome((int) xx, (int) zz).getBiome();
+				IrisBiome b = sampleBiome((int) xx, (int) zz);
 
 				for(IrisBiomeGeneratorLink i : b.getGenerators())
 				{
@@ -789,7 +786,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		}
 	}
 
-	public BiomeResult sampleBiome(int x, int z)
+	public IrisBiome sampleBiome(int x, int z)
 	{
 		return getCache().getRawBiome(x, z, () ->
 		{
@@ -820,13 +817,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					}
 				}
 
-				return new BiomeResult(biome, 0);
+				return biome;
 			}
 
 			double wx = getModifiedX(x, z);
 			double wz = getModifiedZ(x, z);
 			IrisRegion region = glBiome.getRegion(wx, wz);
-			BiomeResult res = glBiome.generateRegionData(wx, wz, x, z, region);
+			IrisBiome res = glBiome.generateRegionData(wx, wz, x, z, region);
 
 			return res;
 		});

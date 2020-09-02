@@ -40,7 +40,7 @@ public class PostSlabber extends IrisPostBlockFilter
 
 		if((ha == h + 1 && isSolid(x + 1, ha, z, currentPostX, currentPostZ, currentData)) || (hb == h + 1 && isSolid(x, hb, z + 1, currentPostX, currentPostZ, currentData)) || (hc == h + 1 && isSolid(x - 1, hc, z, currentPostX, currentPostZ, currentData)) || (hd == h + 1 && isSolid(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
 		{
-			BlockData d = gen.sampleTrueBiome(x, z).getBiome().getSlab().get(rng, x, h, z);
+			BlockData d = gen.sampleTrueBiome(x, z).getSlab().get(rng, x, h, z);
 
 			if(d != null)
 			{

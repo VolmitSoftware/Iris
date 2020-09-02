@@ -82,10 +82,18 @@ public class CommandIrisCreate extends MortarCommand
 		else
 		{
 			sender.sendMessage("Foind " + type + " dimension in packs folder. Repackaging");
-			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true), iris);
+			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
 		}
 
 		File dimf = new File(iris, "dimensions/" + type + ".json");
+
+		if(!dimf.exists() || !dimf.isFile())
+		{
+			Iris.globaldata.dump();
+			Iris.globaldata.preferFolder(null);
+			Iris.proj.downloadSearch(sender, type, false);
+			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
+		}
 
 		if(!dimf.exists() || !dimf.isFile())
 		{

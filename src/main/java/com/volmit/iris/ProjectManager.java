@@ -21,8 +21,10 @@ import org.bukkit.block.Biome;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
+import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.object.DecorationPart;
@@ -78,6 +80,7 @@ import lombok.Data;
 @Data
 public class ProjectManager
 {
+	private KMap<String, String> cacheListing = null;
 	private IrisChunkGenerator currentProject;
 	private TaskExecutor tx = new TaskExecutor(8, Thread.MIN_PRIORITY, "Iris Compiler");
 	private ReentrantLock lock = new ReentrantLock();
@@ -105,6 +108,142 @@ public class ProjectManager
 				}
 			}
 		});
+	}
+
+	public void downloadSearch(MortarSender sender, String key, boolean trim)
+	{
+		String repo = getListing(false).get(key);
+
+		if(repo == null)
+		{
+			sender.sendMessage("Couldn't find the pack '" + key + "' in the iris repo listing.");
+			return;
+		}
+
+		sender.sendMessage("Found '" + key + "' in the Iris Listing as " + repo);
+		try
+		{
+			download(sender, repo, trim);
+		}
+		catch(JsonSyntaxException | IOException e)
+		{
+			sender.sendMessage("Failed to download '" + key + "'.");
+		}
+	}
+
+	public void download(MortarSender sender, String repo, boolean trim) throws JsonSyntaxException, IOException
+	{
+		String url = "https://codeload.github.com/" + repo + "/zip/master";
+		sender.sendMessage("Downloading " + url);
+		File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
+		File temp = Iris.getTemp();
+		File work = new File(temp, "dl-" + UUID.randomUUID());
+		File packs = Iris.instance.getDataFolder("packs");
+		sender.sendMessage("Unpacking " + repo);
+		ZipUtil.unpack(zip, work);
+		File dir = work.listFiles().length == 1 && work.listFiles()[0].isDirectory() ? work.listFiles()[0] : null;
+
+		if(dir == null)
+		{
+			sender.sendMessage("Invalid Format. Missing root folder or too many folders!");
+			return;
+		}
+
+		File dimensions = new File(dir, "dimensions");
+
+		if(!(dimensions.exists() && dimensions.isDirectory()))
+		{
+			sender.sendMessage("Invalid Format. Missing dimensions folder");
+			return;
+		}
+
+		if(dimensions.listFiles().length != 1)
+		{
+			sender.sendMessage("Dimensions folder must have 1 file in it");
+			return;
+		}
+
+		File dim = dimensions.listFiles()[0];
+
+		if(!dim.isFile())
+		{
+			sender.sendMessage("Invalid dimension (folder) in dimensions folder");
+			return;
+		}
+
+		String key = dim.getName().split("\\Q.\\E")[0];
+		IrisDimension d = new Gson().fromJson(IO.readAll(dim), IrisDimension.class);
+		sender.sendMessage("Importing " + d.getName() + " (" + key + ")");
+		Iris.globaldata.dump();
+		Iris.globaldata.preferFolder(null);
+
+		if(Iris.globaldata.getDimensionLoader().load(key) != null)
+		{
+			sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
+			return;
+		}
+
+		File packEntry = new File(packs, key);
+
+		if(packEntry.exists())
+		{
+			sender.sendMessage("Another pack is using the key " + key + ". IMPORT FAILED!");
+			return;
+		}
+
+		FileUtils.copyDirectory(dir, packEntry);
+
+		if(trim)
+		{
+			sender.sendMessage("Trimming " + key);
+			File cp = compilePackage(sender, key, false, false);
+			IO.delete(packEntry);
+			packEntry.mkdirs();
+			ZipUtil.unpack(cp, packEntry);
+		}
+
+		sender.sendMessage("Successfully Aquired " + d.getName());
+		Iris.globaldata.dump();
+		Iris.globaldata.preferFolder(null);
+	}
+
+	public KMap<String, String> getListing(boolean cached)
+	{
+		if(cached && cacheListing != null)
+		{
+			return cacheListing;
+		}
+
+		JSONArray a = new JSONArray();
+
+		if(cached)
+		{
+			a = new JSONArray(Iris.getCached("cachedlisting", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/listing.json"));
+		}
+
+		else
+		{
+			a = new JSONArray(Iris.getNonCached(!cached + "listing", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/listing.json"));
+		}
+
+		KMap<String, String> l = new KMap<>();
+
+		for(int i = 0; i < a.length(); i++)
+		{
+			try
+			{
+				String m = a.getString(i).trim();
+				String[] v = m.split("\\Q \\E");
+				l.put(v[0], v[1]);
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		}
+
+		return l;
 	}
 
 	public boolean isProjectOpen()
@@ -254,7 +393,7 @@ public class ProjectManager
 		}
 	}
 
-	public File compilePackage(MortarSender sender, String dim, boolean obfuscate)
+	public File compilePackage(MortarSender sender, String dim, boolean obfuscate, boolean minify)
 	{
 		Iris.globaldata.dump();
 		Iris.globaldata.preferFolder(null);
@@ -300,7 +439,7 @@ public class ProjectManager
 						continue;
 					}
 
-					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
 					b.append(name);
 					newNames.add(name);
 					renameObjects.put(k, name);
@@ -325,7 +464,7 @@ public class ProjectManager
 						continue;
 					}
 
-					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
 					b.append(name);
 					newNames.add(name);
 					renameObjects.put(k, name);
@@ -350,7 +489,7 @@ public class ProjectManager
 						continue;
 					}
 
-					String name = UUID.randomUUID().toString().replaceAll("-", "");
+					String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
 					b.append(name);
 					newNames.add(name);
 					renameObjects.put(k, name);
@@ -442,13 +581,13 @@ public class ProjectManager
 
 		try
 		{
-			a = new JSONObject(new Gson().toJson(dimension)).toString(0);
+			a = new JSONObject(new Gson().toJson(dimension)).toString(minify ? 0 : 4);
 			IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
 			b.append(IO.hash(a));
 
 			for(IrisGenerator i : generators)
 			{
-				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
@@ -458,28 +597,28 @@ public class ProjectManager
 
 			for(IrisRegion i : regions)
 			{
-				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
 			for(IrisStructure i : structures)
 			{
-				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "structures/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
 			for(IrisBiome i : biomes)
 			{
-				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
 			for(IrisLootTable i : loot)
 			{
-				a = new JSONObject(new Gson().toJson(i)).toString(0);
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
@@ -491,7 +630,7 @@ public class ProjectManager
 			meta.put("hash", finalHash);
 			meta.put("time", M.ms());
 			meta.put("version", dimension.getVersion());
-			IO.writeAll(new File(folder, "package.json"), meta.toString(0));
+			IO.writeAll(new File(folder, "package.json"), meta.toString(minify ? 0 : 4));
 			File p = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey() + ".iris");
 			Iris.info("Compressing Package");
 			ZipUtil.pack(folder, p, 9);

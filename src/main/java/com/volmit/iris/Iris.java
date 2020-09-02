@@ -28,6 +28,7 @@ import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
 import com.volmit.iris.util.Permission;
@@ -83,7 +84,13 @@ public class Iris extends MortarPlugin
 		struct = new StructureManager();
 		proj = new ProjectManager();
 		board = new IrisBoardManager();
+		J.a(() -> IO.delete(getTemp()));
 		super.onEnable();
+	}
+	
+	public static File getTemp()
+	{
+		return instance.getDataFolder("cache", "temp");
 	}
 
 	public void onDisable()
@@ -206,6 +213,29 @@ public class Iris extends MortarPlugin
 		}
 
 		return "";
+	}
+
+	public static File getNonCachedFile(String name, String url)
+	{
+		String h = IO.hash(name + "*" + url);
+		File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
+
+		try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
+		{
+			byte dataBuffer[] = new byte[1024];
+			int bytesRead;
+			while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
+			{
+				fileOutputStream.write(dataBuffer, 0, bytesRead);
+			}
+		}
+
+		catch(IOException e)
+		{
+
+		}
+
+		return f;
 	}
 
 	public static void warn(String string)

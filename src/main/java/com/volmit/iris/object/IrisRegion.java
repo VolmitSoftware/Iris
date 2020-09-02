@@ -330,6 +330,8 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		names.addAll(caveBiomes);
 		names.addAll(seaBiomes);
 		names.addAll(shoreBiomes);
+		names.addAll(riverBiomes);
+		names.addAll(lakeBiomes);
 		spotBiomes.forEach((i) -> names.add(i.getBiome()));
 		ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
 

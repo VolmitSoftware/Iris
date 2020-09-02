@@ -27,6 +27,7 @@ public class CommandIrisStudioPackage extends MortarCommand
 		J.a(() ->
 		{
 			boolean o = false;
+			boolean m = true;
 
 			for(String i : args)
 			{
@@ -37,7 +38,7 @@ public class CommandIrisStudioPackage extends MortarCommand
 			}
 
 			String dim = args[0];
-			Iris.proj.compilePackage(sender, dim, o);
+			Iris.proj.compilePackage(sender, dim, o, m);
 		});
 
 		return true;
@@ -46,6 +47,6 @@ public class CommandIrisStudioPackage extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[dimension] [-o]";
+		return "[dimension] [-o] [-m]";
 	}
 }

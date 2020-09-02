@@ -34,6 +34,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisNoiseGenerator;
@@ -65,6 +66,7 @@ import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListDimension;
+import com.volmit.iris.util.RegistryListEntity;
 import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.RegistryListGenerator;
 import com.volmit.iris.util.RegistryListLoot;
@@ -359,7 +361,7 @@ public class ProjectManager
 
 		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx).generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
 		Iris.linkMultiverseCore.removeFromConfig(world);
-		
+
 		done.set(true);
 		sender.sendMessage("Generating 100%");
 
@@ -829,6 +831,7 @@ public class ProjectManager
 		JSONArray schemas = new JSONArray();
 		TaskGroup g = tx.startWork();
 		g.queue(() -> ex(schemas, IrisDimension.class, dat, "/dimensions/*.json"));
+		g.queue(() -> ex(schemas, IrisEntity.class, dat, "/entities/*.json"));
 		g.queue(() -> ex(schemas, IrisBiome.class, dat, "/biomes/*.json"));
 		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json"));
 		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json"));
@@ -953,6 +956,11 @@ public class ProjectManager
 						if(k.isAnnotationPresent(RegistryListBiome.class))
 						{
 							prop.put("enum", new JSONArray(getBiomeList(dat)));
+						}
+
+						if(k.isAnnotationPresent(RegistryListEntity.class))
+						{
+							prop.put("enum", new JSONArray(getEntityList(dat)));
 						}
 
 						if(k.isAnnotationPresent(RegistryListFont.class))
@@ -1104,6 +1112,26 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										deff.put("type", tx);
 										deff.put("enum", new JSONArray(getBiomeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListEntity.class))
+								{
+									String name = "enent" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getEntityList(dat)));
 										def.put(name, deff);
 									}
 
@@ -1365,6 +1393,11 @@ public class ProjectManager
 	private String[] getBiomeList(IrisDataManager data)
 	{
 		return data.getBiomeLoader().getPossibleKeys();
+	}
+
+	private String[] getEntityList(IrisDataManager data)
+	{
+		return data.getEntityLoader().getPossibleKeys();
 	}
 
 	private String[] getLootList(IrisDataManager data)

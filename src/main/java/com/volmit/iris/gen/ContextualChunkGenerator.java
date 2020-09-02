@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -204,6 +205,14 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		onTick(ticks++);
 	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void on(EntitySpawnEvent e)
+	{
+		onSpawn(e);
+	}
+
+	protected abstract void onSpawn(EntitySpawnEvent e);
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(BlockBreakEvent e)

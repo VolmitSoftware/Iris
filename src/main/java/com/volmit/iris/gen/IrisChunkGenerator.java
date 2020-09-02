@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
@@ -24,8 +25,10 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBlockDrops;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEffect;
+import com.volmit.iris.object.IrisEntitySpawn;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.Form;
+import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -42,6 +45,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
 	private KMap<Player, IrisBiome> b = new KMap<>();
+	private boolean spawnable = false;
 
 	public IrisChunkGenerator(String dimensionName, int threads)
 	{
@@ -122,6 +126,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	@Override
 	public void onTick(int ticks)
 	{
+		spawnable = true;
 		super.onTick(ticks);
 		for(Player i : getWorld().getPlayers())
 		{
@@ -428,5 +433,88 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 				e.getBlock().getWorld().dropItemNaturally(l, i);
 			}
 		}
+	}
+
+	@Override
+	protected void onSpawn(EntitySpawnEvent e)
+	{
+		if(spawnable)
+		{
+			int x = e.getEntity().getLocation().getBlockX();
+			int y = e.getEntity().getLocation().getBlockY();
+			int z = e.getEntity().getLocation().getBlockZ();
+			IrisDimension dim = getDimension();
+			IrisRegion region = sampleRegion(x, z);
+			IrisBiome above = sampleTrueBiome(x, z);
+			IrisBiome below = sampleTrueBiome(x, y, z);
+
+			if(above.getLoadKey().equals(below.getLoadKey()))
+			{
+				below = null;
+			}
+
+			IrisStructureResult res = getStructure(x, y, z);
+
+			if(res != null && res.getTile() != null)
+			{
+				if(trySpawn(res.getTile().getEntitySpawns(), e))
+				{
+					return;
+				}
+			}
+
+			if(res != null && res.getStructure() != null)
+			{
+				if(trySpawn(res.getStructure().getEntitySpawns(), e))
+				{
+					return;
+				}
+			}
+
+			if(below != null)
+			{
+				if(trySpawn(below.getEntitySpawns(), e))
+				{
+					return;
+				}
+			}
+
+			if(trySpawn(above.getEntitySpawns(), e))
+			{
+				return;
+			}
+
+			if(trySpawn(region.getEntitySpawns(), e))
+			{
+				return;
+			}
+
+			if(trySpawn(dim.getEntitySpawns(), e))
+			{
+				return;
+			}
+		}
+	}
+
+	private boolean trySpawn(KList<IrisEntitySpawn> s, EntitySpawnEvent e)
+	{
+		for(IrisEntitySpawn i : s)
+		{
+			spawnable = false;
+
+			if(i.on(this, e.getLocation(), e.getEntityType(), e) != null)
+			{
+				e.setCancelled(true);
+				e.getEntity().remove();
+				return true;
+			}
+
+			else
+			{
+				spawnable = true;
+			}
+		}
+
+		return false;
 	}
 }

@@ -184,7 +184,7 @@ public class GenLayerUpdate extends BlockPopulator
 		}
 	}
 
-	private void scramble(Inventory inventory, RNG rng)
+	public void scramble(Inventory inventory, RNG rng)
 	{
 		KList<ItemStack> v = new KList<>();
 

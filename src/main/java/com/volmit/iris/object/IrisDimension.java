@@ -52,6 +52,11 @@ public class IrisDimension extends IrisRegistrant
 	private KList<IrisTextPlacement> text = new KList<>();
 
 	@DontObfuscate
+	@Desc("Entity spawns to override or add to this dimension")
+	@ArrayType(min = 1, type = IrisEntitySpawn.class)
+	private KList<IrisEntitySpawn> entitySpawns = new KList<>();
+
+	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 

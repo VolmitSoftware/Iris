@@ -25,6 +25,11 @@ public class IrisStructureTile
 	private IrisLootReference loot = new IrisLootReference();
 
 	@DontObfuscate
+	@Desc("Entity spawns to override or add to this structure tile")
+	@ArrayType(min = 1, type = IrisEntitySpawn.class)
+	private KList<IrisEntitySpawn> entitySpawns = new KList<>();
+
+	@DontObfuscate
 	@Desc("The place mode for this tile")
 	private ObjectPlaceMode placeMode = ObjectPlaceMode.CENTER_HEIGHT;
 

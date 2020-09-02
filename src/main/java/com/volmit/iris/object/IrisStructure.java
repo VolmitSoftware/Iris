@@ -28,6 +28,11 @@ public class IrisStructure extends IrisRegistrant
 	private String name = "A Structure Type";
 
 	@DontObfuscate
+	@Desc("Entity spawns to override or add to this structure")
+	@ArrayType(min = 1, type = IrisEntitySpawn.class)
+	private KList<IrisEntitySpawn> entitySpawns = new KList<>();
+
+	@DontObfuscate
 	@Desc("Wall style noise")
 	private IrisGeneratorStyle wallStyle = NoiseStyle.STATIC.style();
 

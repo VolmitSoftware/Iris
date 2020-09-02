@@ -1,10 +1,15 @@
 package com.volmit.iris.object;
 
+import java.awt.Color;
+
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.material.Colorable;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
@@ -96,6 +101,14 @@ public class IrisLoot
 	@Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
 	private String type = "";
 
+	@DontObfuscate
+	@Desc("The dye color")
+	private DyeColor dyeColor = null;
+
+	@DontObfuscate
+	@Desc("The leather armor color")
+	private String leatherColor = null;
+
 	private transient AtomicCache<CNG> chance = new AtomicCache<>();
 
 	public IrisLoot()
@@ -171,6 +184,18 @@ public class IrisLoot
 		}
 
 		m.setLore(lore);
+
+		if(getLeatherColor() != null && m instanceof LeatherArmorMeta)
+		{
+			Color c = Color.decode(getLeatherColor());
+			((LeatherArmorMeta) m).setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
+		}
+
+		if(getDyeColor() != null && m instanceof Colorable)
+		{
+			((Colorable) m).setColor(getDyeColor());
+		}
+
 		is.setItemMeta(m);
 		return is;
 	}

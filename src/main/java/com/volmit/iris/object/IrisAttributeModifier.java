@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import org.bukkit.attribute.Attributable;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.attribute.AttributeModifier.Operation;
@@ -57,6 +58,14 @@ public class IrisAttributeModifier
 		if(rng.nextDouble() < getChance())
 		{
 			meta.addAttributeModifier(getAttribute(), new AttributeModifier(getName(), getAmount(rng), getOperation()));
+		}
+	}
+
+	public void apply(RNG rng, Attributable meta)
+	{
+		if(rng.nextDouble() < getChance())
+		{
+			meta.getAttribute(getAttribute()).addModifier(new AttributeModifier(getName(), getAmount(rng), getOperation()));
 		}
 	}
 

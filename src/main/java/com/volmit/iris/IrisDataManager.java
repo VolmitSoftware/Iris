@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisNoiseGenerator;
@@ -34,6 +35,7 @@ public class IrisDataManager
 	private ResourceLoader<IrisDimension> dimensionLoader;
 	private ResourceLoader<IrisGenerator> generatorLoader;
 	private ResourceLoader<IrisStructure> structureLoader;
+	private ResourceLoader<IrisEntity> entityLoader;
 	private ObjectResourceLoader objectLoader;
 
 	public void hotloaded()
@@ -46,6 +48,7 @@ public class IrisDataManager
 		File packs = this.packs.getName().equals("packs") ? this.packs : dataFolder;
 		packs.mkdirs();
 		this.lootLoader = new ResourceLoader<>(packs, "loot", "Loot", IrisLootTable.class);
+		this.entityLoader = new ResourceLoader<>(packs, "entities", "Entity", IrisEntity.class);
 		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
@@ -83,6 +86,7 @@ public class IrisDataManager
 		lootLoader.clearCache();
 		regionLoader.clearCache();
 		dimensionLoader.clearCache();
+		entityLoader.clearCache();
 		generatorLoader.clearCache();
 		structureLoader.clearCache();
 	}
@@ -166,15 +170,16 @@ public class IrisDataManager
 		biomeLoader.preferFolder(name);
 		lootLoader.preferFolder(name);
 		regionLoader.preferFolder(name);
+		entityLoader.preferFolder(name);
 		dimensionLoader.preferFolder(name);
 		generatorLoader.preferFolder(name);
 		structureLoader.preferFolder(name);
-		Iris.info("Preferred Folder: " + name);
 	}
 
 	public void clearLists()
 	{
 		lootLoader.clearList();
+		entityLoader.clearList();
 		biomeLoader.clearList();
 		regionLoader.clearList();
 		dimensionLoader.clearList();

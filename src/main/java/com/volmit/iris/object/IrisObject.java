@@ -405,7 +405,10 @@ public class IrisObject extends IrisRegistrant
 				listener.accept(new BlockPosition(xx, yy, zz));
 			}
 
-			placer.set(xx, yy, zz, data);
+			if(!data.getMaterial().equals(Material.AIR))
+			{
+				placer.set(xx, yy, zz, data);
+			}
 
 			if(stilting)
 			{
@@ -445,7 +448,10 @@ public class IrisObject extends IrisRegistrant
 				{
 					for(int j = yf; j > yg - config.getOverStilt(); j--)
 					{
-						placer.set(xf, j, zf, d);
+						if(!d.getMaterial().equals(Material.AIR))
+						{
+							placer.set(xf, j, zf, d);
+						}
 					}
 				}
 			}

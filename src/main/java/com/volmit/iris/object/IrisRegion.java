@@ -46,7 +46,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("Place text on terrain")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
-	
+
 	@ArrayType(min = 1, type = IrisBlockDrops.class)
 	@DontObfuscate
 	@Desc("Define custom block drops for this region")
@@ -86,6 +86,16 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("How large shore biomes are in this region")
 	private double shoreBiomeZoom = 1;
+
+	@MinNumber(0.0001)
+	@DontObfuscate
+	@Desc("How large lake biomes are in this region")
+	private double lakeBiomeZoom = 1;
+
+	@MinNumber(0.0001)
+	@DontObfuscate
+	@Desc("How large river biomes are in this region")
+	private double riverBiomeZoom = 1;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
@@ -133,6 +143,18 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
+	private KList<String> riverBiomes = new KList<>();
+
+	@RegistryListBiome
+	@ArrayType(min = 1, type = String.class)
+	@DontObfuscate
+	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
+	private KList<String> lakeBiomes = new KList<>();
+
+	@RegistryListBiome
+	@ArrayType(min = 1, type = String.class)
+	@DontObfuscate
+	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> caveBiomes = new KList<>();
 
 	@ArrayType(min = 1, type = IrisRegionRidge.class)
@@ -149,13 +171,99 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("Define regional deposit generators that add onto the global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
+	@DontObfuscate
+	@Desc("The style of rivers")
+	private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
+
+	@DontObfuscate
+	@Desc("The style of lakes")
+	private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
+
+	@DontObfuscate
+	@Desc("The style of river chances")
+	private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
+
+	@DontObfuscate
+	@Desc("Generate lakes in this region")
+	private boolean lakes = true;
+
+	@DontObfuscate
+	@Desc("Generate rivers in this region")
+	private boolean rivers = true;
+
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("Generate lakes in this region")
+	private int lakeRarity = 22;
+
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("Generate rivers in this region")
+	private int riverRarity = 3;
+
+	@MinNumber(0)
+	@MaxNumber(1)
+	@DontObfuscate
+	@Desc("Generate rivers in this region")
+	private double riverThickness = 0.1;
+
 	private transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
 	private transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
 	private transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realLandBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realLakeBiomes = new AtomicCache<>();
+	private transient AtomicCache<KList<IrisBiome>> realRiverBiomes = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realSeaBiomes = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realShoreBiomes = new AtomicCache<>();
 	private transient AtomicCache<KList<IrisBiome>> realCaveBiomes = new AtomicCache<>();
+	private transient AtomicCache<CNG> lakeGen = new AtomicCache<>();
+	private transient AtomicCache<CNG> riverGen = new AtomicCache<>();
+	private transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
+
+	public boolean isRiver(RNG rng, double x, double z)
+	{
+		if(!isRivers())
+		{
+			return false;
+		}
+
+		if(getRiverBiomes().isEmpty())
+		{
+			return false;
+		}
+
+		if(getRiverChanceGen().aquire(() -> getRiverChanceStyle().create(rng)).fit(1, getRiverRarity(), x, z) != 1)
+		{
+			return false;
+		}
+
+		if(getRiverGen().aquire(() -> getRiverStyle().create(rng)).fitDouble(0, 1, x, z) < getRiverThickness())
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	public boolean isLake(RNG rng, double x, double z)
+	{
+		if(!isLakes())
+		{
+			return false;
+		}
+
+		if(getLakeBiomes().isEmpty())
+		{
+			return false;
+		}
+
+		if(getLakeGen().aquire(() -> getLakeStyle().create(rng)).fit(1, getLakeRarity(), x, z) == 1)
+		{
+			return true;
+		}
+
+		return false;
+	}
 
 	public double getBiomeZoom(InferredType t)
 	{
@@ -163,6 +271,10 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		{
 			case CAVE:
 				return caveBiomeZoom;
+			case LAKE:
+				return lakeBiomeZoom;
+			case RIVER:
+				return riverBiomeZoom;
 			case LAND:
 				return landBiomeZoom;
 			case SEA:
@@ -263,6 +375,16 @@ public class IrisRegion extends IrisRegistrant implements IRare
 			return getRealCaveBiomes(g);
 		}
 
+		else if(type.equals(InferredType.LAKE))
+		{
+			return getRealLakeBiomes(g);
+		}
+
+		else if(type.equals(InferredType.RIVER))
+		{
+			return getRealRiverBiomes(g);
+		}
+
 		return new KList<>();
 	}
 
@@ -278,6 +400,36 @@ public class IrisRegion extends IrisRegistrant implements IRare
 			}
 
 			return realCaveBiomes;
+		});
+	}
+
+	public KList<IrisBiome> getRealLakeBiomes(ContextualChunkGenerator g)
+	{
+		return realLakeBiomes.aquire(() ->
+		{
+			KList<IrisBiome> realLakeBiomes = new KList<>();
+
+			for(String i : getLakeBiomes())
+			{
+				realLakeBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+			}
+
+			return realLakeBiomes;
+		});
+	}
+
+	public KList<IrisBiome> getRealRiverBiomes(ContextualChunkGenerator g)
+	{
+		return realRiverBiomes.aquire(() ->
+		{
+			KList<IrisBiome> realRiverBiomes = new KList<>();
+
+			for(String i : getRiverBiomes())
+			{
+				realRiverBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+			}
+
+			return realRiverBiomes;
 		});
 	}
 

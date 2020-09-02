@@ -22,20 +22,28 @@ public class GenLayerBiome extends GenLayer
 {
 	private CNG regionGenerator;
 	private CNG bridgeGenerator;
+	private RNG lakeRandom;
+	private RNG riverRandom;
 	private BiomeDataProvider seaProvider;
 	private BiomeDataProvider landProvider;
 	private BiomeDataProvider shoreProvider;
 	private BiomeDataProvider caveProvider;
+	private BiomeDataProvider riverProvider;
+	private BiomeDataProvider lakeProvider;
 	private DimensionChunkGenerator iris;
 
 	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
 	{
 		super(iris, rng);
 		this.iris = iris;
+		riverRandom = iris.getMasterRandom().nextParallelRNG(-324778);
+		lakeRandom = iris.getMasterRandom().nextParallelRNG(-868778);
 		seaProvider = new BiomeDataProvider(this, InferredType.SEA, rng);
 		landProvider = new BiomeDataProvider(this, InferredType.LAND, rng);
 		shoreProvider = new BiomeDataProvider(this, InferredType.SHORE, rng);
 		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, rng);
+		riverProvider = new BiomeDataProvider(this, InferredType.RIVER, rng);
+		lakeProvider = new BiomeDataProvider(this, InferredType.LAKE, rng);
 		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519)).bake().scale(1D / iris.getDimension().getRegionZoom());
 		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462)).bake().scale(1D / iris.getDimension().getContinentZoom());
 	}
@@ -86,6 +94,16 @@ public class GenLayerBiome extends GenLayer
 			return caveProvider;
 		}
 
+		else if(type.equals(InferredType.RIVER))
+		{
+			return riverProvider;
+		}
+
+		else if(type.equals(InferredType.LAKE))
+		{
+			return lakeProvider;
+		}
+
 		else
 		{
 			Iris.error("Cannot find a BiomeDataProvider for type " + type.name());
@@ -99,12 +117,13 @@ public class GenLayerBiome extends GenLayer
 		return generateData(getType(bx, bz, regionData), bx, bz, rawX, rawZ, regionData);
 	}
 
-	public InferredType getType(double bx, double bz, IrisRegion regionData)
+	public InferredType getType(double bx, double bz, IrisRegion region)
 	{
 		double x = bx;
 		double z = bz;
 		double c = iris.getDimension().getLandChance();
 		InferredType bridge;
+
 		if(c >= 1)
 		{
 			bridge = InferredType.LAND;
@@ -116,6 +135,16 @@ public class GenLayerBiome extends GenLayer
 		}
 
 		bridge = bridgeGenerator.fitDouble(0, 1, x, z) < c ? InferredType.LAND : InferredType.SEA;
+
+		if(bridge.equals(InferredType.LAND) && region.isLake(lakeRandom, x, z))
+		{
+			bridge = InferredType.LAKE;
+		}
+
+		if(bridge.equals(InferredType.LAND) && region.isRiver(riverRandom, x, z))
+		{
+			bridge = InferredType.RIVER;
+		}
 
 		return bridge;
 	}

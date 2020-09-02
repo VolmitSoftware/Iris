@@ -15,7 +15,6 @@ import lombok.Data;
 @Data
 public class IrisGeneratorStyle
 {
-
 	@Required
 	@DontObfuscate
 	@Desc("The chance is 1 in CHANCE per interval")
@@ -53,6 +52,12 @@ public class IrisGeneratorStyle
 		this.style = s;
 	}
 
+	public IrisGeneratorStyle zoomed(double z)
+	{
+		this.zoom = z;
+		return this;
+	}
+	
 	public CNG create(RNG rng)
 	{
 		return cng.aquire(() ->

@@ -114,7 +114,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		}
 
 		KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
-		KList<BlockData> seaLayers = biome.isSea() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
+		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
 		boolean caverning = false;
 		KList<Integer> cavernHeights = new KList<>();
 		int lastCavernHeight = -1;
@@ -510,34 +510,33 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
 		double sh = region.getShoreHeight(wx, wz);
+		double shMax = getFluidHeight() + (sh / 2);
+		double shMin = getFluidHeight() - (sh / 2);
 		IrisBiome current = sampleBiome(x, z);
+		InferredType aquaticType = current.isAquatic() ? (current.isSea() ? InferredType.SEA : current.isRiver() ? InferredType.RIVER : InferredType.LAKE) : InferredType.SEA;
+		boolean sea = height <= getFluidHeight();
+		boolean shore = height >= shMin && height <= shMax;
+		boolean land = height > getFluidHeight();
 
-		if(current.isShore() && height > sh)
+		// Remove rivers, lakes & sea from land
+		if(current.isAquatic() && land)
 		{
-			return glBiome.generateData(InferredType.LAND, wx, wz, x, z, region);
+			current = glBiome.generateData(InferredType.LAND, wx, wz, x, z, region);
 		}
 
-		if(current.isShore() || current.isLand() && height <= getDimension().getFluidHeight())
+		// Remove land from underwater
+		if(current.isLand() && sea)
 		{
-			return glBiome.generateData(InferredType.SEA, wx, wz, x, z, region);
+			current = glBiome.generateData(aquaticType, wx, wz, x, z, region);
 		}
 
-		if(current.isSea() && height > getDimension().getFluidHeight())
+		// Add shores to land
+		if(shore)
 		{
-			return glBiome.generateData(InferredType.LAND, wx, wz, x, z, region);
+			current = glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
 		}
 
-		if(height <= getDimension().getFluidHeight())
-		{
-			return glBiome.generateData(InferredType.SEA, wx, wz, x, z, region);
-		}
-
-		if(height <= getDimension().getFluidHeight() + sh)
-		{
-			return glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
-		}
-
-		return glBiome.generateRegionData(wx, wz, x, z, region);
+		return current;
 	}
 
 	public IrisBiome sampleCaveBiome(int x, int z)
@@ -586,22 +585,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return focus();
 		}
 
-		return getCache().getBiome(x, z, () ->
-		{
-			double wx = getModifiedX(x, z);
-			double wz = getModifiedZ(x, z);
-			IrisRegion region = sampleRegion(x, z);
-			int height = (int) Math.round(noise);
-			double sh = region.getShoreHeight(wx, wz);
-			IrisBiome current = sampleTrueBiomeBase(x, z, height);
-
-			if(current.isSea() && height > getDimension().getFluidHeight() - sh)
-			{
-				return glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
-			}
-
-			return current;
-		});
+		return getCache().getBiome(x, z, () -> sampleTrueBiomeBase(x, z, (int) Math.round(noise)));
 	}
 
 	@Override

@@ -130,11 +130,6 @@ public class IrisStructurePlacement
 
 		if(t != null)
 		{
-			if(height >= 0)
-			{
-				t.getPlacement().setBore(true);
-			}
-
 			IrisObject o = null;
 
 			for(IrisRareObject l : t.getTile().getRareObjects())

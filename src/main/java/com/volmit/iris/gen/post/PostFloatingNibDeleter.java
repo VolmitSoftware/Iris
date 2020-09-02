@@ -35,7 +35,7 @@ public class PostFloatingNibDeleter extends IrisPostBlockFilter
 		{
 			return;
 		}
-
+		
 		int ha = highestTerrainBlock(x + 1, z);
 		int hb = highestTerrainBlock(x, z + 1);
 		int hc = highestTerrainBlock(x - 1, z);

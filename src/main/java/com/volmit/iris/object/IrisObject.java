@@ -322,7 +322,7 @@ public class IrisObject extends IrisRegistrant
 			return -1;
 		}
 
-		if(config.isBore() && !config.getMode().equals(ObjectPlaceMode.PAINT))
+		if(config.isBore())
 		{
 			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0); i++)
 			{
@@ -330,10 +330,7 @@ public class IrisObject extends IrisRegistrant
 				{
 					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0); k++)
 					{
-						if(!B.isAir(placer.get(i, j, k)))
-						{
-							placer.set(i, j, k, AIR);
-						}
+						placer.set(i, j, k, AIR);
 					}
 				}
 			}

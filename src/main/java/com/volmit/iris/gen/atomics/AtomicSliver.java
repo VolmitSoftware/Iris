@@ -10,6 +10,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.HeightMap;
@@ -118,6 +119,7 @@ public class AtomicSliver
 		{
 			return;
 		}
+
 		setSilently(h, d);
 		modified = true;
 		lock.lock();
@@ -134,6 +136,7 @@ public class AtomicSliver
 
 		if(d == null)
 		{
+			Iris.warn("Null set at " + h + " of " + x + " " + z);
 			return;
 		}
 
@@ -361,14 +364,16 @@ public class AtomicSliver
 			return;
 		}
 		lock.lock();
-		for(int i = 0; i < 256; i++)
+
+		for(int i : block.keySet())
 		{
-			if(block.get(i) != null && !block.get(i).equals(AIR))
+			BlockData b = block.get(i);
+			if(b != null)
 			{
-				BlockData b = block.get(i);
 				currentData.setBlock(x, i, z, b);
 			}
 		}
+
 		lock.unlock();
 	}
 

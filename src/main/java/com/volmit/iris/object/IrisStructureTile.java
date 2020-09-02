@@ -26,7 +26,7 @@ public class IrisStructureTile
 
 	@DontObfuscate
 	@Desc("The place mode for this tile")
-	private ObjectPlaceMode placeMode = ObjectPlaceMode.PAINT;
+	private ObjectPlaceMode placeMode = ObjectPlaceMode.CENTER_HEIGHT;
 
 	@Required
 	@DontObfuscate

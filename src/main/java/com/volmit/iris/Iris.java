@@ -43,6 +43,7 @@ public class Iris extends MortarPlugin
 	public static WandManager wand;
 	public static StructureManager struct;
 	public static IrisBoardManager board;
+	public static MultiverseCoreLink linkMultiverseCore;
 	private static IrisLock lock = new IrisLock("Iris");
 
 	@Permission
@@ -84,10 +85,11 @@ public class Iris extends MortarPlugin
 		struct = new StructureManager();
 		proj = new ProjectManager();
 		board = new IrisBoardManager();
+		linkMultiverseCore = new MultiverseCoreLink();
 		J.a(() -> IO.delete(getTemp()));
 		super.onEnable();
 	}
-	
+
 	public static File getTemp()
 	{
 		return instance.getDataFolder("cache", "temp");

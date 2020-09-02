@@ -358,6 +358,8 @@ public class ProjectManager
 		});
 
 		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx).generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
+		Iris.linkMultiverseCore.removeFromConfig(world);
+		
 		done.set(true);
 		sender.sendMessage("Generating 100%");
 
@@ -385,6 +387,7 @@ public class ProjectManager
 		{
 			currentProject.close();
 			File folder = currentProject.getWorld().getWorldFolder();
+			Iris.linkMultiverseCore.removeFromConfig(currentProject.getWorld());
 			Bukkit.unloadWorld(currentProject.getWorld(), false);
 			currentProject = null;
 			Iris.globaldata.dump();

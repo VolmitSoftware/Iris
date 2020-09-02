@@ -38,7 +38,6 @@ public class CommandIrisCreate extends MortarCommand
 		String type = "overworld";
 		long seed = 1337;
 		int pregen = 0;
-		boolean zip = false;
 		File folder = new File(worldName);
 
 		if(folder.exists())
@@ -52,11 +51,6 @@ public class CommandIrisCreate extends MortarCommand
 
 		for(String i : args)
 		{
-			if(i.equals("-zip"))
-			{
-				zip = true;
-			}
-
 			type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
 			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
 			pregen = i.startsWith("pregen=") ? Integer.parseInt(i.split("\\Q=\\E")[1]) : pregen;
@@ -161,7 +155,8 @@ public class CommandIrisCreate extends MortarCommand
 			});
 		}
 
-		boolean zipp = zip;
+		IrisDimension dimm = dim;
+		long seedd = seed;
 
 		J.a(() ->
 		{
@@ -185,11 +180,15 @@ public class CommandIrisCreate extends MortarCommand
 					return;
 				}
 
-				if(zipp)
+				if(Iris.linkMultiverseCore.supported())
 				{
-					sender.sendMessage("Zipping up world");
-					ZipUtil.pack(folder, new File("" + folder.getName() + ".zip"), 9);
-					sender.sendMessage("Zipped to " + folder.getName() + ".zip");
+					Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
+					sender.sendMessage("Added " + worldName + " to MultiverseCore.");
+				}
+				
+				else
+				{
+					sender.sendMessage("No MVC?");
 				}
 
 				sender.sendMessage("All Done!");

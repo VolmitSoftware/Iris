@@ -23,9 +23,8 @@ public class AtomicWorldData
 	private KList<ChunkPosition> unloadRegions;
 	private KList<ChunkPosition> unloadChunks;
 	private long last = M.ms();
-	private String prefix;
 
-	public AtomicWorldData(World world, String prefix)
+	public AtomicWorldData(World world)
 	{
 		this.world = world;
 		loadedSections = new KMap<>();
@@ -34,7 +33,6 @@ public class AtomicWorldData
 		lastChunk = new KMap<>();
 		unloadRegions = new KList<>();
 		unloadChunks = new KList<>();
-		this.prefix = prefix;
 		getSubregionFolder().mkdirs();
 	}
 
@@ -256,7 +254,7 @@ public class AtomicWorldData
 
 	public File getSubregionFolder()
 	{
-		return new File(world.getWorldFolder(), "subregion-" + prefix);
+		return new File(world.getWorldFolder(), "region-parallax");
 	}
 
 	public KMap<ChunkPosition, AtomicSliverMap> getLoadedChunks()

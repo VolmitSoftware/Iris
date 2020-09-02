@@ -59,6 +59,8 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
 
+	protected abstract void onPreGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
+
 	protected int sampleHeight(int x, int z)
 	{
 		return onSampleColumnHeight(x >> 4, z >> 4, x, z, x & 15, z & 15);
@@ -75,6 +77,8 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		String key = "c" + x + "," + z;
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
+
+		onPreGenerate(random, x, z, data, grid, height, biomeMap, map);
 
 		for(ii = 0; ii < 16; ii++)
 		{

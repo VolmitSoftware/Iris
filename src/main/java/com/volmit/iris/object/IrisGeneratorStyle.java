@@ -13,7 +13,8 @@ import lombok.Data;
 
 @Desc("A gen style")
 @Data
-public class IrisGeneratorStyle {
+public class IrisGeneratorStyle
+{
 
 	@Required
 	@DontObfuscate
@@ -42,23 +43,33 @@ public class IrisGeneratorStyle {
 
 	private final transient AtomicCache<CNG> cng = new AtomicCache<CNG>();
 
-	public IrisGeneratorStyle() {
+	public IrisGeneratorStyle()
+	{
 
 	}
 
-	public IrisGeneratorStyle(NoiseStyle s) {
+	public IrisGeneratorStyle(NoiseStyle s)
+	{
 		this.style = s;
 	}
 
-	public CNG create(RNG rng) {
-		return cng.aquire(() -> {
+	public CNG create(RNG rng)
+	{
+		return cng.aquire(() ->
+		{
 			CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
 
-			if (fracture != null) {
+			if(fracture != null)
+			{
 				cng.fractureWith(fracture.create(rng.nextParallelRNG(2934)), fracture.getMultiplier());
 			}
 
 			return cng;
 		});
+	}
+
+	public boolean isFlat()
+	{
+		return style.equals(NoiseStyle.FLAT);
 	}
 }

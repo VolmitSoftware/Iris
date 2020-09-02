@@ -2,6 +2,8 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -110,9 +112,28 @@ public class IrisObjectPlacement
 	@Desc("If set to true, air will be placed before the schematic places.")
 	private boolean bore = false;
 
+	@DontObfuscate
+	@Desc("Use a generator to warp the field of coordinates. Using simplex for example would make a square placement warp like a flag")
+	private IrisGeneratorStyle warp = new IrisGeneratorStyle(NoiseStyle.FLAT);
+
+	private transient AtomicCache<CNG> surfaceWarp = new AtomicCache<>();
+
 	public IrisObjectPlacement()
 	{
 
+	}
+
+	public CNG getSurfaceWarp(RNG rng)
+	{
+		return surfaceWarp.aquire(() ->
+		{
+			return getWarp().create(rng);
+		});
+	}
+
+	public double warp(RNG rng, double x, double y, double z)
+	{
+		return getSurfaceWarp(rng).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
 	}
 
 	public IrisObject getSchematic(ContextualChunkGenerator g, RNG random)

@@ -42,6 +42,7 @@ import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.util.ArrayType;
+import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
@@ -121,6 +122,7 @@ public class ProjectManager
 	public void open(MortarSender sender, String dimm, Runnable onDone)
 	{
 		Iris.globaldata.dump();
+		Iris.globaldata.preferFolder(null);
 		IrisDimension d = Iris.globaldata.getDimensionLoader().load(dimm);
 		J.attemptAsync(() ->
 		{
@@ -179,10 +181,16 @@ public class ProjectManager
 		{
 			double last = 0;
 			int req = 740;
+			double lpc = 0;
+			boolean c = false;
+
 			while(!done.get())
 			{
 				boolean derp = false;
+
 				double v = (double) gx.getGenerated() / (double) req;
+				c = lpc != v;
+				lpc = v;
 
 				if(last > v || v > 1)
 				{
@@ -195,7 +203,11 @@ public class ProjectManager
 					last = v;
 				}
 
-				sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
+				if(c)
+				{
+					sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
+				}
+
 				J.sleep(3000);
 
 				if(gx.isFailing())
@@ -237,6 +249,7 @@ public class ProjectManager
 			Bukkit.unloadWorld(currentProject.getWorld(), false);
 			currentProject = null;
 			Iris.globaldata.dump();
+			Iris.globaldata.preferFolder(null);
 			J.attemptAsync(() -> IO.delete(folder));
 		}
 	}
@@ -244,6 +257,7 @@ public class ProjectManager
 	public File compilePackage(MortarSender sender, String dim, boolean obfuscate)
 	{
 		Iris.globaldata.dump();
+		Iris.globaldata.preferFolder(null);
 		String dimm = dim;
 		IrisDimension dimension = Iris.globaldata.getDimensionLoader().load(dimm);
 		File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());

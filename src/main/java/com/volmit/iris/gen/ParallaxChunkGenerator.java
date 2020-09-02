@@ -61,7 +61,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		parallaxMap = new AtomicWorldData(world, "floor");
+		parallaxMap = new AtomicWorldData(world);
 		glText = new GenLayerText(this, rng.nextParallelRNG(32485));
 	}
 

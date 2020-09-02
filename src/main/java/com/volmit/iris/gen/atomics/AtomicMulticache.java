@@ -51,7 +51,7 @@ public class AtomicMulticache
 			return -5784;
 		}
 
-		Long pos = pos(x, z);
+		long pos = pos(x, z);
 		Double r = height.get(pos);
 
 		if(r == null)
@@ -65,7 +65,7 @@ public class AtomicMulticache
 
 	public IrisRegion getRegion(int x, int z, Supplier<IrisRegion> g)
 	{
-		Long pos = pos(x, z);
+		long pos = pos(x, z);
 		IrisRegion r = region.get(pos);
 
 		if(r == null)
@@ -79,7 +79,7 @@ public class AtomicMulticache
 
 	public BiomeResult getBiome(int x, int z, Supplier<BiomeResult> g)
 	{
-		Long pos = pos(x, z);
+		long pos = pos(x, z);
 		BiomeResult r = biome.get(pos);
 
 		if(r == null)
@@ -97,7 +97,7 @@ public class AtomicMulticache
 		{
 			return null;
 		}
-		Long pos = pos(x, z);
+		long pos = pos(x, z);
 		BiomeResult r = rawBiome.get(pos);
 
 		if(r == null)

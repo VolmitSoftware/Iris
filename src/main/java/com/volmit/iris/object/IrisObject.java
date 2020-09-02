@@ -191,6 +191,7 @@ public class IrisObject extends IrisRegistrant
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener)
 	{
+		boolean warped = !config.getWarp().isFlat();
 		boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
 		KMap<ChunkPosition, Integer> lowmap = stilting ? new KMap<>() : null;
 		KMap<ChunkPosition, BlockData> lowmapData = stilting ? new KMap<>() : null;
@@ -365,6 +366,12 @@ public class IrisObject extends IrisRegistrant
 			int xx = x + (int) Math.round(i.getX());
 			int yy = y + (int) Math.round(i.getY());
 			int zz = z + (int) Math.round(i.getZ());
+
+			if(warped)
+			{
+				xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
+				zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
+			}
 
 			if(yv < 0 && config.getMode().equals(ObjectPlaceMode.PAINT))
 			{

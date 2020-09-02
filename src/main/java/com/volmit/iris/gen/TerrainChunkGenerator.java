@@ -83,6 +83,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
+	protected void onPreGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	{
+
+	}
+
+	@Override
 	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
 	{
 		if(x > 15 || x < 0 || z > 15 || z < 0)

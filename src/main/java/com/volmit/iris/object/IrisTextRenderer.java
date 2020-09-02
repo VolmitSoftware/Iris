@@ -49,10 +49,6 @@ public class IrisTextRenderer
 	@Desc("The palette of blocks to use when drawing text")
 	private IrisMaterialPalette blockPalette = new IrisMaterialPalette();
 
-	@DontObfuscate
-	@Desc("Use a generator to shuffle the surface field of coordinates. Using simplex for example would make the text rendered wavy. Use the multiplier to stretch further.")
-	private IrisGeneratorStyle surfaceField = new IrisGeneratorStyle(NoiseStyle.FLAT);
-
 	private transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
 	private transient AtomicCache<Font> fontData = new AtomicCache<>();
 	private transient AtomicCache<FontMetrics> fontMetrics = new AtomicCache<>();

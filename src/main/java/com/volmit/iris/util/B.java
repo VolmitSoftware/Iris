@@ -12,6 +12,13 @@ public class B
 	private static final BlockData AIR = Material.AIR.createBlockData();
 	private static final KMap<String, BlockData> bdc = new KMap<>();
 	private static final KList<String> nulls = new KList<>();
+	private static final KList<Material> storage = new KList<>();
+	private static final KList<Material> storageChest = new KList<>();
+	private static final KList<Material> lit = new KList<>();
+	private static final KList<Material> updatable = new KList<>();
+	private static final KList<Material> notUpdatable = new KList<>();
+	private static final KList<String> canPlaceOn = new KList<>();
+	private static final KList<Material> decorant = new KList<>();
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
 	private static final KMap<String, Material> types = new KMap<>();
@@ -145,8 +152,13 @@ public class B
 
 	public static boolean isStorage(Material mat)
 	{
+		if(storage.contains(mat))
+		{
+			return true;
+		}
+
 		//@builder
-		return mat.equals(B.mat("CHEST")) 
+		boolean str = mat.equals(B.mat("CHEST")) 
 				|| mat.equals(B.mat("TRAPPED_CHEST")) 
 				|| mat.equals(B.mat("SHULKER_BOX")) 
 				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
@@ -173,12 +185,25 @@ public class B
 				|| mat.equals(B.mat("BLAST_FURNACE")) 
 				|| mat.equals(B.mat("SMOKER"));
 		//@done
+
+		if(str)
+		{
+			storage.add(mat);
+			return true;
+		}
+
+		return false;
 	}
 
 	public static boolean isStorageChest(Material mat)
 	{
+		if(storageChest.contains(mat))
+		{
+			return true;
+		}
+
 		//@builder
-		return mat.equals(B.mat("CHEST")) 
+		boolean str = mat.equals(B.mat("CHEST")) 
 				|| mat.equals(B.mat("TRAPPED_CHEST")) 
 				|| mat.equals(B.mat("SHULKER_BOX")) 
 				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
@@ -202,12 +227,25 @@ public class B
 				|| mat.equals(B.mat("DROPPER")) 
 				|| mat.equals(B.mat("HOPPER"));
 		//@done
+
+		if(str)
+		{
+			storageChest.add(mat);
+			return true;
+		}
+
+		return false;
 	}
 
 	public static boolean isLit(Material mat)
 	{
+		if(lit.contains(mat))
+		{
+			return true;
+		}
+
 		//@builder
-		return mat.equals(B.mat("GLOWSTONE")) 
+		boolean str = mat.equals(B.mat("GLOWSTONE")) 
 				|| mat.equals(B.mat("END_ROD")) 
 				|| mat.equals(B.mat("SOUL_SAND"))
 				|| mat.equals(B.mat("TORCH")) 
@@ -229,22 +267,57 @@ public class B
 				|| mat.equals(Material.BREWING_STAND) 
 				|| mat.equals(Material.REDSTONE_ORE);
 		//@done
+		if(str)
+		{
+			lit.add(mat);
+			return true;
+		}
+
+		return false;
 	}
 
 	public static boolean isUpdatable(Material mat)
 	{
-		return isLit(mat) || isStorage(mat);
+		if(updatable.contains(mat))
+		{
+			return true;
+		}
+
+		if(notUpdatable.contains(mat))
+		{
+			return false;
+		}
+
+		boolean str = isLit(mat) || isStorage(mat);
+
+		if(str)
+		{
+			updatable.add(mat);
+			return true;
+		}
+
+		notUpdatable.add(mat);
+		return false;
 	}
 
 	public static boolean canPlaceOnto(Material mat, Material onto)
 	{
+		String key = mat.name() + "" + onto.name();
+
+		if(canPlaceOn.contains(key))
+		{
+			return false;
+		}
+
 		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR")))
 		{
+			canPlaceOn.add(key);
 			return false;
 		}
 
 		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
 		{
+			canPlaceOn.add(key);
 			return false;
 		}
 
@@ -252,6 +325,7 @@ public class B
 		{
 			if(!mat.isSolid())
 			{
+				canPlaceOn.add(key);
 				return false;
 			}
 		}
@@ -260,6 +334,7 @@ public class B
 		{
 			if(mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS))
 			{
+				canPlaceOn.add(key);
 				return false;
 			}
 		}
@@ -268,6 +343,7 @@ public class B
 		{
 			if(!mat.isSolid())
 			{
+				canPlaceOn.add(key);
 				return false;
 			}
 		}
@@ -277,8 +353,13 @@ public class B
 
 	public static boolean isDecorant(Material m)
 	{
+		if(decorant.contains(m))
+		{
+			return true;
+		}
+
 		//@builder
-		return m.equals(Material.GRASS) 
+		boolean str = m.equals(Material.GRASS) 
 				|| m.equals(Material.TALL_GRASS)
 				|| m.equals(B.mat("CORNFLOWER"))
 				|| m.equals(Material.SUNFLOWER)
@@ -331,6 +412,14 @@ public class B
 				|| m.equals(Material.TORCH)
 				|| m.equals(B.mat("SOUL_TORCH"));
 		//@done
+
+		if(str)
+		{
+			decorant.add(m);
+			return true;
+		}
+
+		return false;
 	}
 
 	public static KList<BlockData> getBlockData(KList<String> find)

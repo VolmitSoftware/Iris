@@ -119,11 +119,6 @@ public class IrisEntity extends IrisRegistrant
 	private IrisLootReference loot = new IrisLootReference();
 
 	@DontObfuscate
-	@Desc("Potion effects to add to this entity")
-	@ArrayType(min = 1, type = IrisPotionEffect.class)
-	private KList<IrisPotionEffect> potionEffects = new KList<>();
-
-	@DontObfuscate
 	@Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
 	private IrisEntity leashHolder = null;
 
@@ -217,11 +212,6 @@ public class IrisEntity extends IrisRegistrant
 			}
 
 			l.setRemoveWhenFarAway(isRemovable());
-
-			for(IrisPotionEffect i : getPotionEffects())
-			{
-				i.apply(l);
-			}
 
 			if(getHelmet() != null && rng.i(1, getHelmet().getRarity()) == 1)
 			{

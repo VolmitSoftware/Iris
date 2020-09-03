@@ -20,6 +20,7 @@ public class PregenJob
 	public static int task = -1;
 	private PrecisionStopwatch s;
 	private ChronoLatch cl;
+	private ChronoLatch clx;
 	private MortarSender sender;
 	private Runnable onDone;
 
@@ -37,6 +38,7 @@ public class PregenJob
 		rcx = 0;
 		this.sender = sender;
 		cl = new ChronoLatch(3000);
+		clx = new ChronoLatch(15000);
 		rcz = 0;
 		total = (size / 16) * (size / 16);
 		genned = 0;
@@ -148,7 +150,6 @@ public class PregenJob
 					try
 					{
 						verify(lx, lz);
-						Iris.verbose("Verified " + lx + " " + lz);
 					}
 
 					catch(Throwable e)
@@ -170,11 +171,20 @@ public class PregenJob
 				{
 					Chunk c = world.getChunkAt(x + (lx * 32), z + (lz * 32));
 					c.load(true);
+					world.unloadChunkRequest(x + (lx * 32), z + (lz * 32));
 				}
 			}
 		}
 
-		saveAll();
+		saveAllRequest();
+	}
+
+	public void saveAllRequest()
+	{
+		if(clx.flip())
+		{
+			saveAll();
+		}
 	}
 
 	public void saveAll()

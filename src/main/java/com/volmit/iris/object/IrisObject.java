@@ -404,7 +404,7 @@ public class IrisObject extends IrisRegistrant
 				listener.accept(new BlockPosition(xx, yy, zz));
 			}
 
-			if(!data.getMaterial().equals(Material.AIR))
+			if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR))
 			{
 				placer.set(xx, yy, zz, data);
 			}
@@ -447,7 +447,7 @@ public class IrisObject extends IrisRegistrant
 				{
 					for(int j = yf; j > yg - config.getOverStilt(); j--)
 					{
-						if(!d.getMaterial().equals(Material.AIR))
+						if(!d.getMaterial().equals(Material.AIR) && !d.getMaterial().equals(Material.CAVE_AIR))
 						{
 							placer.set(xf, j, zf, d);
 						}

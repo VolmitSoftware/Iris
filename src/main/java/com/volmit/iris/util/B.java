@@ -22,6 +22,7 @@ public class B
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
 	private static final KMap<String, Material> types = new KMap<>();
+	private static IrisLock lock = new IrisLock("Typelock");
 
 	public static BlockData get(String bd)
 	{
@@ -188,7 +189,9 @@ public class B
 
 		if(str)
 		{
+			lock.lock();
 			storage.add(mat);
+			lock.unlock();
 			return true;
 		}
 
@@ -230,7 +233,9 @@ public class B
 
 		if(str)
 		{
+			lock.lock();
 			storageChest.add(mat);
+			lock.unlock();
 			return true;
 		}
 
@@ -269,7 +274,9 @@ public class B
 		//@done
 		if(str)
 		{
+			lock.lock();
 			lit.add(mat);
+			lock.unlock();
 			return true;
 		}
 
@@ -292,11 +299,15 @@ public class B
 
 		if(str)
 		{
+			lock.lock();
 			updatable.add(mat);
+			lock.unlock();
 			return true;
 		}
 
+		lock.lock();
 		notUpdatable.add(mat);
+		lock.unlock();
 		return false;
 	}
 
@@ -311,13 +322,17 @@ public class B
 
 		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR")))
 		{
+			lock.lock();
 			canPlaceOn.add(key);
+			lock.unlock();
 			return false;
 		}
 
 		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
 		{
+			lock.lock();
 			canPlaceOn.add(key);
+			lock.unlock();
 			return false;
 		}
 
@@ -325,7 +340,9 @@ public class B
 		{
 			if(!mat.isSolid())
 			{
+				lock.lock();
 				canPlaceOn.add(key);
+				lock.unlock();
 				return false;
 			}
 		}
@@ -334,7 +351,9 @@ public class B
 		{
 			if(mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS))
 			{
+				lock.lock();
 				canPlaceOn.add(key);
+				lock.unlock();
 				return false;
 			}
 		}
@@ -343,7 +362,9 @@ public class B
 		{
 			if(!mat.isSolid())
 			{
+				lock.lock();
 				canPlaceOn.add(key);
+				lock.unlock();
 				return false;
 			}
 		}

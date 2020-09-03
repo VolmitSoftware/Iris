@@ -14,6 +14,7 @@ import com.volmit.iris.util.Required;
 
 import lombok.Data;
 
+@DontObfuscate
 @Desc("An iris potion effect")
 @Data
 public class IrisPotionEffect

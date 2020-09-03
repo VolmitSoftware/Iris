@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class IrisLock
 {
-	private final ReentrantLock lock;
-	private final String name;
-	private boolean disabled = false;
+	private transient final ReentrantLock lock;
+	private transient final String name;
+	private transient boolean disabled = false;
 
 	public IrisLock(String name)
 	{

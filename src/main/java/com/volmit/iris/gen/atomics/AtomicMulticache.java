@@ -85,7 +85,7 @@ public class AtomicMulticache
 
 	private int getLimit()
 	{
-		return 20000;
+		return 1024;
 	}
 
 	public double getHeight(int x, int z, Supplier<Double> g)

@@ -127,6 +127,13 @@
 			<version>1.16.1-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.bukkit.craftbukkit</groupId>
+			<artifactId>cb-1.16.2</artifactId>
+			<version>1.16.2</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Utilities -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

@@ -1,19 +1,21 @@
 package com.volmit.iris.util;
 
+import java.awt.Color;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gui.PregenGui;
 
-public class PregenJob
+public class PregenJob implements Listener
 {
 	private World world;
 	private int size;
-	private int mcaX;
-	private int mcaZ;
-	private int rcx;
-	private int rcz;
 	private int total;
 	private int genned;
 	private boolean completed;
@@ -21,34 +23,63 @@ public class PregenJob
 	private PrecisionStopwatch s;
 	private ChronoLatch cl;
 	private ChronoLatch clx;
+	private ChronoLatch clf;
 	private MortarSender sender;
+	private int mcaWidth;
+	private int mcaX;
+	private int mcaZ;
+	private int chunkX;
+	private int chunkZ;
 	private Runnable onDone;
+	private Spiraler spiraler;
+	private Spiraler chunkSpiraler;
+	private boolean first;
+	private Consumer2<ChunkPosition, Color> consumer;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
 		this.s = PrecisionStopwatch.start();
+		Iris.instance.registerListener(this);
 		this.world = world;
 		this.size = size;
 		this.onDone = onDone;
 		world.getWorldBorder().setCenter(0, 0);
 		world.getWorldBorder().setWarningDistance(64);
 		world.getWorldBorder().setSize(size);
-		mcaX = mca(min());
-		mcaZ = mca(min());
-		rcx = 0;
 		this.sender = sender;
 		cl = new ChronoLatch(3000);
-		clx = new ChronoLatch(15000);
-		rcz = 0;
+		clx = new ChronoLatch(20000);
+		clf = new ChronoLatch(30000);
 		total = (size / 16) * (size / 16);
 		genned = 0;
+		mcaWidth = Math.floorDiv(size >> 4, 8) + 8;
+		this.mcaX = 0;
+		this.mcaZ = 0;
+		this.chunkX = 0;
+		this.chunkZ = 0;
 		completed = false;
+		first = true;
+
+		chunkSpiraler = new Spiraler(8, 8, (x, z) ->
+		{
+			chunkX = (mcaX * 8) + x;
+			chunkZ = (mcaZ * 8) + z;
+		});
+
+		spiraler = new Spiraler(mcaWidth, mcaWidth, (x, z) ->
+		{
+			mcaX = x;
+			mcaZ = z;
+			chunkSpiraler.retarget(8, 8);
+		});
+
+		chunkSpiraler.setOffset(3, 3);
 
 		if(task != -1)
 		{
 			stop();
 		}
-
+		PregenGui.launch(this);
 		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
 	}
 
@@ -75,7 +106,7 @@ public class PregenJob
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
-		while(p.getMilliseconds() < 1500)
+		while(p.getMilliseconds() < 5000)
 		{
 			tick();
 		}
@@ -99,139 +130,137 @@ public class PregenJob
 
 	public void tick()
 	{
-		gen();
-		nextPosition();
-	}
-
-	public void nextPosition()
-	{
-		int lx = mcaX;
-		int lz = mcaZ;
-		rcx++;
-
-		if(rcx > 31)
+		if(completed)
 		{
-			rcx = 0;
-			rcz++;
-
-			if(rcz > 31)
-			{
-				rcz = 0;
-				mcaX++;
-
-				if(mcaX > mca(Math.floorDiv(max(), 16)))
-				{
-					mcaX = mca(Math.floorDiv(min(), 16));
-					mcaZ++;
-
-					if(mcaZ > mca(Math.floorDiv(max(), 16)))
-					{
-						mcaZ = mca(Math.floorDiv(min(), 16));
-						completed = true;
-						stop();
-						Iris.info("Pregen Completed!");
-						if(sender.isPlayer() && sender.player().isOnline())
-						{
-							sender.sendMessage("Pregen Completed!");
-						}
-
-						for(Chunk i : world.getLoadedChunks())
-						{
-							i.unload(true);
-						}
-
-						Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
-						onDone.run();
-					}
-				}
-
-				if(!completed)
-				{
-					try
-					{
-						verify(lx, lz);
-					}
-
-					catch(Throwable e)
-					{
-						e.printStackTrace();
-					}
-				}
-			}
-		}
-	}
-
-	private void verify(int lx, int lz) throws Throwable
-	{
-		for(int x = 0; x < 32; x++)
-		{
-			for(int z = 0; z < 32; z++)
-			{
-				if(isChunkWithin(x + (lx * 32), z + (lz * 32)))
-				{
-					Chunk c = world.getChunkAt(x + (lx * 32), z + (lz * 32));
-					c.load(true);
-					world.unloadChunkRequest(x + (lx * 32), z + (lz * 32));
-				}
-			}
+			return;
 		}
 
-		saveAllRequest();
+		if(first)
+		{
+			sender.sendMessage("Pregen Started for " + Form.f((mcaWidth * mcaWidth)) + " Regions containing " + Form.f((mcaWidth * 16) * (mcaWidth * 16)) + " Chunks");
+			first = false;
+			spiraler.next();
+
+			while(chunkSpiraler.hasNext())
+			{
+				chunkSpiraler.next();
+
+				if(isChunkWithin(chunkX, chunkZ))
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.DARK_GRAY);
+				}
+			}
+
+			chunkSpiraler.retarget(8, 8);
+		}
+
+		if(chunkSpiraler.hasNext())
+		{
+			chunkSpiraler.next();
+			consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.YELLOW);
+
+			if(isChunkWithin(chunkX, chunkZ))
+			{
+				world.loadChunk(chunkX, chunkZ);
+
+				if(consumer != null)
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE);
+				}
+			}
+
+			genned++;
+		}
+
+		else if(spiraler.hasNext())
+		{
+			saveAllRequest();
+			spiraler.next();
+			while(chunkSpiraler.hasNext())
+			{
+				chunkSpiraler.next();
+
+				if(isChunkWithin(chunkX, chunkZ))
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.DARK_GRAY);
+				}
+			}
+			chunkSpiraler.retarget(8, 8);
+		}
+
+		else
+		{
+			for(Chunk i : world.getLoadedChunks())
+			{
+				i.unload(true);
+			}
+
+			saveAll();
+			Iris.instance.unregisterListener(this);
+			completed = true;
+			sender.sendMessage("Pregen Completed!");
+			onDone.run();
+		}
 	}
 
 	public void saveAllRequest()
 	{
+		if(clf.flip())
+		{
+			int g = 0;
+
+			for(Chunk i : world.getLoadedChunks())
+			{
+				g++;
+
+				if(g > 1500)
+				{
+					i.unload(true);
+				}
+
+				else
+				{
+					world.unloadChunkRequest(i.getX(), i.getZ());
+				}
+			}
+		}
+
 		if(clx.flip())
 		{
 			saveAll();
 		}
 	}
 
+	@EventHandler
+	public void on(ChunkUnloadEvent e)
+	{
+		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()))
+		{
+			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.GREEN);
+		}
+	}
+
 	public void saveAll()
 	{
+		int g = 0;
+
+		for(Chunk i : world.getLoadedChunks())
+		{
+			g++;
+
+			if(g > 1500)
+			{
+				i.unload(true);
+			}
+
+			else
+			{
+				world.unloadChunkRequest(i.getX(), i.getZ());
+			}
+		}
+
 		world.save();
 		Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
-	}
-
-	public void gen()
-	{
-		try
-		{
-			if(isChunkWithin(rcx + minMCA(mcaX), rcz + minMCA(mcaZ)))
-			{
-				Chunk c = world.getChunkAt(rcx + minMCA(mcaX), rcz + minMCA(mcaZ));
-				c.load(true);
-				genned++;
-			}
-		}
-
-		catch(Throwable e)
-		{
-			Iris.warn("Pregen Crash!");
-			if(sender.isPlayer() && sender.player().isOnline())
-			{
-				sender.sendMessage("Pregen Completed!");
-			}
-
-			onDone.run();
-			e.printStackTrace();
-			stop();
-		}
-	}
-
-	public int minMCA(int v)
-	{
-		return v << 5;
-	}
-
-	public int maxMCA(int v)
-	{
-		return (v << 5) + 31;
-	}
-
-	public int mca(int v)
-	{
-		return v >> 5;
 	}
 
 	public int max()
@@ -246,6 +275,11 @@ public class PregenJob
 
 	public boolean isChunkWithin(int x, int z)
 	{
-		return Math.abs(z * 16) <= size / 2 && Math.abs(z * 16) <= size / 2;
+		return !(Math.abs(x << 4) > Math.floorDiv(size, 2) + 16 || Math.abs(z << 4) > Math.floorDiv(size, 2) + 16);
+	}
+
+	public void subscribe(Consumer2<ChunkPosition, Color> s)
+	{
+		consumer = s;
 	}
 }

@@ -207,21 +207,9 @@ public class PregenJob implements Listener
 	{
 		if(clf.flip())
 		{
-			int g = 0;
-
 			for(Chunk i : world.getLoadedChunks())
 			{
-				g++;
-
-				if(g > 1500)
-				{
-					i.unload(true);
-				}
-
-				else
-				{
-					world.unloadChunkRequest(i.getX(), i.getZ());
-				}
+				world.unloadChunkRequest(i.getX(), i.getZ());
 			}
 		}
 
@@ -242,21 +230,9 @@ public class PregenJob implements Listener
 
 	public void saveAll()
 	{
-		int g = 0;
-
 		for(Chunk i : world.getLoadedChunks())
 		{
-			g++;
-
-			if(g > 1500)
-			{
-				i.unload(true);
-			}
-
-			else
-			{
-				world.unloadChunkRequest(i.getX(), i.getZ());
-			}
+			world.unloadChunkRequest(i.getX(), i.getZ());
 		}
 
 		world.save();

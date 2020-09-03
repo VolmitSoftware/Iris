@@ -27,13 +27,13 @@ public class CellGenerator
 		RNG rx = rng.nextParallelRNG(8735652);
 		int s = rx.nextInt();
 		fn = new FastNoise(s);
-		fn.SetNoiseType(FastNoise.NoiseType.Cellular);
-		fn.SetCellularReturnType(FastNoise.CellularReturnType.CellValue);
-		fn.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		fn.setNoiseType(FastNoise.NoiseType.Cellular);
+		fn.setCellularReturnType(FastNoise.CellularReturnType.CellValue);
+		fn.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 		fd = new FastNoise(s);
-		fd.SetNoiseType(FastNoise.NoiseType.Cellular);
-		fd.SetCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
-		fd.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		fd.setNoiseType(FastNoise.NoiseType.Cellular);
+		fd.setCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
+		fd.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 	}
 
 	public float getDistance(double x, double z)

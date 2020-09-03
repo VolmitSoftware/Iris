@@ -28,7 +28,6 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
@@ -45,7 +44,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	private MasterLock masterLock;
 	private IrisLock flock = new IrisLock("ParallaxLock");
 	private IrisLock lock = new IrisLock("ParallaxLock");
-	private IrisLock lockq = new IrisLock("ParallaxQueueLock");
 	private GenLayerUpdate glUpdate;
 	private GenLayerText glText;
 	private int sliverBuffer;
@@ -230,7 +228,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		String key = "par." + x + "." + z;
 		ChunkPosition rad = getDimension().getParallaxSize(this);
-		KList<NastyRunnable> q = new KList<>();
 
 		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
 		{
@@ -275,12 +272,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 								for(IrisObjectPlacement m : k.getObjects())
 								{
 									int gg = g++;
-									lockq.lock();
-									q.add(() ->
-									{
-										placeObject(m, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1569962));
-									});
-									lockq.unlock();
+									placeObject(m, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1569962));
 								}
 
 								continue searching;
@@ -292,63 +284,33 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 					for(IrisTextPlacement k : getDimension().getText())
 					{
-						lockq.lock();
-						q.add(() ->
-						{
-							k.place(this, random.nextParallelRNG(-7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-						});
-						lockq.unlock();
+						k.place(this, random.nextParallelRNG(-7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 					}
 
 					for(IrisTextPlacement k : r.getText())
 					{
-						lockq.lock();
-						q.add(() ->
-						{
-							k.place(this, random.nextParallelRNG(-4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-						});
-						lockq.unlock();
+						k.place(this, random.nextParallelRNG(-4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 					}
 
 					for(IrisTextPlacement k : b.getText())
 					{
-						lockq.lock();
-						q.add(() ->
-						{
-							k.place(this, random.nextParallelRNG(-22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-						});
-						lockq.unlock();
+						k.place(this, random.nextParallelRNG(-22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 					}
 
 					for(IrisStructurePlacement k : r.getStructures())
 					{
-						lockq.lock();
-						q.add(() ->
-						{
-							k.place(this, random.nextParallelRNG(2228), i, j);
-						});
-						lockq.unlock();
+						k.place(this, random.nextParallelRNG(2228), i, j);
 					}
 
 					for(IrisStructurePlacement k : b.getStructures())
 					{
-						lockq.lock();
-						q.add(() ->
-						{
-							k.place(this, random.nextParallelRNG(-22228), i, j);
-						});
-						lockq.unlock();
+						k.place(this, random.nextParallelRNG(-22228), i, j);
 					}
 
 					for(IrisObjectPlacement k : b.getObjects())
 					{
 						int gg = g++;
-						lockq.lock();
-						q.add(() ->
-						{
-							placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 3569222));
-						});
-						lockq.unlock();
+						placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 3569222));
 					}
 
 					if(getDimension().isCaves())
@@ -371,12 +333,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						for(IrisObjectPlacement k : biome.getObjects())
 						{
 							int gg = g++;
-							lockq.lock();
-							q.add(() ->
-							{
-								placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
-							});
-							lockq.unlock();
+							placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
 						}
 					}
 				});
@@ -386,14 +343,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		getAccelerant().waitFor(key);
-		lockq.lock();
-		for(NastyRunnable i : q)
-		{
-			getAccelerant().queue(key + "-obj", i);
-		}
-		lockq.unlock();
-
-		getAccelerant().waitFor(key + "-obj");
 	}
 
 	public void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)

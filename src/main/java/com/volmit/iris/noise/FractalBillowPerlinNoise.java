@@ -8,8 +8,8 @@ public class FractalBillowPerlinNoise implements NoiseGenerator, OctaveNoise {
 
 	public FractalBillowPerlinNoise(long seed) {
 		this.n = new FastNoise(new RNG(seed).imax());
-		n.SetFractalOctaves(1);
-		n.SetFractalType(FractalType.Billow);
+		n.setFractalOctaves(1);
+		n.setFractalType(FractalType.Billow);
 	}
 
 	public double f(double v) {
@@ -33,6 +33,6 @@ public class FractalBillowPerlinNoise implements NoiseGenerator, OctaveNoise {
 
 	@Override
 	public void setOctaves(int o) {
-		n.SetFractalOctaves(o);
+		n.setFractalOctaves(o);
 	}
 }

@@ -6,8 +6,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
 
-import com.volmit.iris.Iris;
-
 public class GroupedExecutor
 {
 	private int xc;
@@ -73,19 +71,10 @@ public class GroupedExecutor
 			return;
 		}
 
-		PrecisionStopwatch s = PrecisionStopwatch.start();
-
 		while(true)
 		{
 			if(mirror.get(g) == 0)
 			{
-				break;
-			}
-
-			if(s.getMilliseconds() > 30000)
-			{
-				Iris.warn("Couldn't unlock grouped task: " + g + "! Clearing Task Group Forcibly and timing out!");
-				mirror.remove(g);
 				break;
 			}
 		}

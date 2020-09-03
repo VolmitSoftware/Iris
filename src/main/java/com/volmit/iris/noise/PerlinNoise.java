@@ -8,7 +8,7 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise {
 
 	public PerlinNoise(long seed) {
 		this.n = new FastNoise(new RNG(seed).imax());
-		n.SetNoiseType(FastNoise.NoiseType.Perlin);
+		n.setNoiseType(FastNoise.NoiseType.Perlin);
 		octaves = 1;
 	}
 

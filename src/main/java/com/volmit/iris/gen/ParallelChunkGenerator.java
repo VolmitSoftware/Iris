@@ -37,7 +37,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 	{
 		threads = tc;
 		GroupedExecutor e = accelerant;
-		accelerant = new GroupedExecutor(threads, Thread.NORM_PRIORITY, "Iris Generator - " + world.getName());
+		accelerant = new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + world.getName());
 		Iris.executors.add(accelerant);
 
 		if(e != null)
@@ -90,8 +90,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 				int j = jj;
 				int wz = (z * 16) + j;
 				AtomicSliver sliver = map.getSliver(i, j);
-
-				accelerant.queue(key, () ->
+				getAccelerant().queue(key, () ->
 				{
 					try
 					{

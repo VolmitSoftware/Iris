@@ -7,9 +7,9 @@ public class CellHeightNoise implements NoiseGenerator {
 
 	public CellHeightNoise(long seed) {
 		this.n = new FastNoise((int) seed);
-		n.SetNoiseType(FastNoise.NoiseType.Cellular);
-		n.SetCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
-		n.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		n.setNoiseType(FastNoise.NoiseType.Cellular);
+		n.setCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
+		n.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 	}
 
 	private double filter(double noise) {

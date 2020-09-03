@@ -8,8 +8,8 @@ public class FractalFBMSimplexNoise implements NoiseGenerator, OctaveNoise {
 
 	public FractalFBMSimplexNoise(long seed) {
 		this.n = new FastNoise(new RNG(seed).imax());
-		n.SetFractalOctaves(1);
-		n.SetFractalType(FractalType.FBM);
+		n.setFractalOctaves(1);
+		n.setFractalType(FractalType.FBM);
 	}
 
 	public double f(double v) {
@@ -33,6 +33,6 @@ public class FractalFBMSimplexNoise implements NoiseGenerator, OctaveNoise {
 
 	@Override
 	public void setOctaves(int o) {
-		n.SetFractalOctaves(o);
+		n.setFractalOctaves(o);
 	}
 }

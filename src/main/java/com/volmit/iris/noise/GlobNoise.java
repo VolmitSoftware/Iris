@@ -5,9 +5,9 @@ public class GlobNoise implements NoiseGenerator {
 
 	public GlobNoise(long seed) {
 		this.n = new FastNoise((int) seed);
-		n.SetNoiseType(FastNoise.NoiseType.Cellular);
-		n.SetCellularReturnType(FastNoise.CellularReturnType.Distance2Div);
-		n.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		n.setNoiseType(FastNoise.NoiseType.Cellular);
+		n.setCellularReturnType(FastNoise.CellularReturnType.Distance2Div);
+		n.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
 	}
 	
 	private double f(double n)

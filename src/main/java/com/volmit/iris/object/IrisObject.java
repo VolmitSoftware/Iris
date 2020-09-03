@@ -31,7 +31,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
-	private static final Material SNOW = Material.SNOW;
 	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
@@ -469,12 +468,6 @@ public class IrisObject extends IrisRegistrant
 
 				if(config.getSnow() > 0)
 				{
-					BlockData bd = placer.get(vx, vy, vz);
-					if(bd != null && bd.getMaterial().equals(SNOW))
-					{
-						continue;
-					}
-
 					int height = rngx.i(0, (int) (config.getSnow() * 7));
 					placer.set(vx, vy + 1, vz, SNOW_LAYERS[Math.max(Math.min(height, 7), 0)]);
 				}

@@ -200,10 +200,10 @@ public class GenLayerBiome extends GenLayer
 		double x = bx / iris.getDimension().getBiomeZoom();
 		double z = bz / iris.getDimension().getBiomeZoom();
 
-		if(!parent.getRealChildren(iris).isEmpty())
+		if(parent.getRealChildren(iris).isNotEmpty())
 		{
 			CNG childCell = parent.getChildrenGenerator(rng, 123, parent.getChildShrinkFactor());
-			KList<IrisBiome> chx = parent.getRealChildren(iris).copy(); // TODO Cache
+			KList<IrisBiome> chx = parent.getRealChildren(iris).copy();
 			chx.add(parent);
 			IrisBiome biome = childCell.fitRarity(chx, x, z);
 			biome.setInferredType(parent.getInferredType());

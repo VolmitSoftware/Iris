@@ -7,7 +7,7 @@ public class FractalCubicNoise implements NoiseGenerator {
 
 	public FractalCubicNoise(long seed) {
 		this.n = new FastNoise((int) seed);
-		n.SetFractalType(FractalType.Billow);
+		n.setFractalType(FractalType.Billow);
 	}
 
 	private double f(double n) {

@@ -40,9 +40,9 @@ public class GenLayerCave extends GenLayer
 		}
 
 		KList<CaveResult> result = new KList<>();
-		gg.SetNoiseType(NoiseType.Cellular);
-		gg.SetCellularReturnType(CellularReturnType.Distance2Sub);
-		gg.SetCellularDistanceFunction(CellularDistanceFunction.Natural);
+		gg.setNoiseType(NoiseType.Cellular);
+		gg.setCellularReturnType(CellularReturnType.Distance2Sub);
+		gg.setCellularDistanceFunction(CellularDistanceFunction.Natural);
 
 		for(int i = 0; i < iris.getDimension().getCaveLayers().size(); i++)
 		{

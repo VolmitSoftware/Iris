@@ -184,13 +184,13 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	@Override
 	public int highestTerrainOrFluidBlock(int x, int z)
 	{
-		return getHighest(x, z, false);
+		return (int) getTerrainWaterHeight(x, z);
 	}
 
 	@Override
 	public int highestTerrainBlock(int x, int z)
 	{
-		return getHighest(x, z, true);
+		return (int) getTerrainHeight(x, z);
 	}
 
 	@Override

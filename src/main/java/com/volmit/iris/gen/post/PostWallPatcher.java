@@ -45,17 +45,8 @@ public class PostWallPatcher extends IrisPostBlockFilter
 
 			if(ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2)
 			{
+				boolean brokeGround = false;
 				int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
-				BlockData s = gen.sampleTrueBiome(x, z).getSlab().get(rng, x, h, z);
-
-				if(s != null)
-				{
-					if(!s.getMaterial().equals(AIR))
-					{
-						setPostBlock(x, h + 1, z, s, currentPostX, currentPostZ, currentData);
-						updateHeight(x, z, h + 1);
-					}
-				}
 
 				for(int i = h; i > h - max; i--)
 				{
@@ -63,17 +54,18 @@ public class PostWallPatcher extends IrisPostBlockFilter
 
 					if(d != null)
 					{
-						if(d.getMaterial().equals(AIR))
-						{
-							continue;
-						}
-
 						if(isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData))
 						{
+							if(brokeGround)
+							{
+								return;
+							}
+
 							continue;
 						}
 
 						setPostBlock(x, i, z, d, currentPostX, currentPostZ, currentData);
+						brokeGround = true;
 					}
 				}
 			}

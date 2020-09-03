@@ -120,7 +120,7 @@ public class IrisStructurePlacement
 
 	public void placeLayer(ParallaxChunkGenerator g, RNG rng, RNG rnp, int i, int k, int j, int s, int sh)
 	{
-		if(!hasStructure(rng, i, k, j))
+		if(!hasStructure(g, rng, i, k, j))
 		{
 			return;
 		}
@@ -176,8 +176,13 @@ public class IrisStructurePlacement
 		return structure.aquire(() -> (g == null ? Iris.globaldata : g.getData()).getStructureLoader().load(getTileset()));
 	}
 
-	public boolean hasStructure(RNG random, double x, double y, double z)
+	public boolean hasStructure(ParallaxChunkGenerator g, RNG random, double x, double y, double z)
 	{
+		if(g.getGlCarve().isCarved((int) x, (int) y, (int) z))
+		{
+			return false;
+		}
+
 		if(getChanceGenerator(random).getIndex(x / zoom, y / zoom, z / zoom, getRarity()) == getRarity() / 2)
 		{
 			return ratio > 0 ? getChanceGenerator(random).getDistance(x / zoom, z / zoom) > ratio : getChanceGenerator(random).getDistance(x / zoom, z / zoom) < Math.abs(ratio);

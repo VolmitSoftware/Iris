@@ -59,13 +59,10 @@ public class PostSlabber extends IrisPostBlockFilter
 					return;
 				}
 
-				if(isAirOrWater(x, h + 2, z, currentPostX, currentPostZ, currentData))
+				if(isAirOrWater(x, h + 1, z, currentPostX, currentPostZ, currentData))
 				{
-					queue(() ->
-					{
-						setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
-						updateHeight(x, z, h + 1);
-					});
+					setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
+					updateHeight(x, z, h + 1);
 				}
 			}
 		}

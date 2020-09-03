@@ -370,6 +370,11 @@ public class AtomicSliver
 			BlockData b = block.get(i);
 			if(b != null)
 			{
+				if(b.getMaterial().equals(Material.AIR))
+				{
+					continue;
+				}
+
 				currentData.setBlock(x, i, z, b);
 			}
 		}

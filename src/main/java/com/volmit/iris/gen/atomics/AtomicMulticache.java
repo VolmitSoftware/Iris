@@ -16,6 +16,8 @@ public class AtomicMulticache
 	private int hit = 0;
 	private int miss = 0;
 	private final KMap<Long, Double> height;
+	private final KMap<Long, Integer> carvedHeight;
+	private final KMap<Long, Integer> carvedHeightIgnoreWater;
 	private final KMap<Long, IrisBiome> biome;
 	private final KMap<Long, IrisBiome> rawBiome;
 	private final KMap<Long, IrisRegion> region;
@@ -25,6 +27,8 @@ public class AtomicMulticache
 		x = new AtomicInteger(0);
 		z = new AtomicInteger(0);
 		height = new KMap<Long, Double>();
+		carvedHeight = new KMap<Long, Integer>();
+		carvedHeightIgnoreWater = new KMap<Long, Integer>();
 		biome = new KMap<Long, IrisBiome>();
 		rawBiome = new KMap<Long, IrisBiome>();
 		region = new KMap<Long, IrisRegion>();
@@ -50,6 +54,16 @@ public class AtomicMulticache
 			if(height.size() > getLimit())
 			{
 				height.clear();
+			}
+
+			if(carvedHeight.size() > getLimit())
+			{
+				carvedHeight.clear();
+			}
+
+			if(carvedHeightIgnoreWater.size() > getLimit())
+			{
+				carvedHeightIgnoreWater.clear();
 			}
 
 			if(biome.size() > getLimit())
@@ -89,6 +103,56 @@ public class AtomicMulticache
 			miss++;
 			r = g.get();
 			height.put(pos, r);
+		}
+
+		else
+		{
+			hit++;
+		}
+
+		return r;
+	}
+
+	public int getCarvedHeight(int x, int z, Supplier<Integer> g)
+	{
+		if(broken)
+		{
+			return -57841;
+		}
+
+		long pos = pos(x, z);
+		Integer r = carvedHeight.get(pos);
+
+		if(r == null)
+		{
+			miss++;
+			r = g.get();
+			carvedHeight.put(pos, r);
+		}
+
+		else
+		{
+			hit++;
+		}
+
+		return r;
+	}
+
+	public int getCarvedHeightIgnoreWater(int x, int z, Supplier<Integer> g)
+	{
+		if(broken)
+		{
+			return -57841;
+		}
+
+		long pos = pos(x, z);
+		Integer r = carvedHeightIgnoreWater.get(pos);
+
+		if(r == null)
+		{
+			miss++;
+			r = g.get();
+			carvedHeightIgnoreWater.put(pos, r);
 		}
 
 		else

@@ -132,40 +132,6 @@ public class IrisDimension extends IrisRegistrant
 
 	@DontObfuscate
 	@Desc("Carve terrain or not")
-	private double carvingZoom = 3.5;
-
-	@MinNumber(-256)
-	@MaxNumber(256)
-	@DontObfuscate
-	@Desc("Carving starts at this height")
-	private int carvingMin = 115;
-
-	@MinNumber(-256)
-	@MaxNumber(256)
-	@DontObfuscate
-	@Desc("The maximum height carving happens at")
-	private int carvingMax = 239;
-
-	@MinNumber(0.0001)
-	@MaxNumber(256)
-	@DontObfuscate
-	@Desc("The thickness of carvings (vertical)")
-	private double carvingSliverThickness = 5.5D;
-
-	@MinNumber(0.0001)
-	@MaxNumber(512)
-	@DontObfuscate
-	@Desc("The thickness of ripples on carved walls")
-	private double carvingRippleThickness = 3D;
-
-	@MinNumber(0.0001)
-	@MaxNumber(512)
-	@DontObfuscate
-	@Desc("How much of 3D space is carved out. Higher values make carvings cross into 3d space more often (bigger)")
-	private double carvingEnvelope = 0.335D;
-
-	@DontObfuscate
-	@Desc("Carve terrain or not")
 	private boolean carving = true;
 
 	@DontObfuscate
@@ -289,6 +255,11 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Define cave layers")
 	private KList<IrisCaveLayer> caveLayers = new KList<>();
+
+	@ArrayType(min = 1, type = IrisCarveLayer.class)
+	@DontObfuscate
+	@Desc("Define carve layers")
+	private KList<IrisCarveLayer> carveLayers = new KList<>();
 
 	@DontObfuscate
 	@Desc("The noise style for fluid types")

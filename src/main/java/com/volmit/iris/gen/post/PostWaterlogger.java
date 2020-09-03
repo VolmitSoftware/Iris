@@ -36,21 +36,20 @@ public class PostWaterlogger extends IrisPostBlockFilter
 		if(b instanceof Waterlogged)
 		{
 			Waterlogged ww = (Waterlogged) b;
-
-			if(ww.isWaterlogged())
+			boolean w = false;
+			if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData))
 			{
-				return;
+				w = true;
 			}
 
-			if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData) && !ww.isWaterlogged())
+			else if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
 			{
-				ww.setWaterlogged(true);
-				setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
+				w = true;
 			}
 
-			else if(!ww.isWaterlogged() && (isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
+			if(w != ww.isWaterlogged())
 			{
-				ww.setWaterlogged(true);
+				ww.setWaterlogged(w);
 				setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
 			}
 		}

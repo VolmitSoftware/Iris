@@ -170,7 +170,7 @@ public class IrisDepositGenerator
 
 			int x = rng.i(af, bf);
 			int z = rng.i(af, bf);
-			int height = (int) (Math.round(g.getTerrainHeight((cx << 4) + x, (cz << 4) + z))) - 7;
+			int height = (int) (Math.round(g.getCarvedWaterHeight((cx << 4) + x, (cz << 4) + z))) - 7;
 
 			if(height <= 0)
 			{

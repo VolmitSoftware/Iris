@@ -76,6 +76,36 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		glCarve = new GenLayerCarve(this, rng.nextParallelRNG(968346576));
 	}
 
+	public int getCarvedHeight(int x, int z, boolean ignoreFluid)
+	{
+		if(ignoreFluid)
+		{
+			return getCache().getCarvedHeightIgnoreWater(x, z, () ->
+			{
+				int h = (int) Math.round(getTerrainHeight(x, z));
+				h = getGlCarve().getSurfaceCarve(x, h, z);
+				return h;
+			});
+		}
+
+		return getCache().getCarvedHeightIgnoreWater(x, z, () ->
+		{
+			int h = (int) Math.round(getTerrainWaterHeight(x, z));
+			h = getGlCarve().getSurfaceCarve(x, h, z);
+			return h;
+		});
+	}
+
+	public int getCarvedHeight(int x, int z)
+	{
+		return getCarvedHeight(x, z, false);
+	}
+
+	public int getCarvedWaterHeight(int x, int z)
+	{
+		return getCarvedHeight(x, z, true);
+	}
+
 	public KList<CaveResult> getCaves(int x, int z)
 	{
 		return glCave.genCaves(x, z, x & 15, z & 15, null);
@@ -104,9 +134,10 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		int depth = 0;
 		double noise = getTerrainHeight(rx, rz);
 		int height = (int) Math.round(noise);
-		boolean carvable = getDimension().isCarving() && height > getDimension().getCarvingMin();
+		boolean carvable = getGlCarve().couldCarveBelow(rx, height, rz);
 		IrisRegion region = sampleRegion(rx, rz);
 		IrisBiome biome = sampleTrueBiome(rx, rz, noise);
+		IrisBiome landBiome = null;
 
 		if(biome == null)
 		{
@@ -114,6 +145,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		}
 
 		KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
+		KList<BlockData> cavernLayers = null;
 		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
 		boolean caverning = false;
 		KList<Integer> cavernHeights = new KList<>();
@@ -146,7 +178,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				if(biomeMap != null)
 				{
-					sliver.set(k, biome.getDerivative());
+					if(landBiome == null)
+					{
+						landBiome = glBiome.generateData(InferredType.LAND, x, z, x, z, region);
+					}
+
+					sliver.set(k, landBiome.getDerivative());
 				}
 
 				sliver.set(k, CAVE_AIR);
@@ -189,9 +226,19 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			}
 
 			// Set Surface Material for cavern layer surfaces
-			else if(layers.hasIndex(lastCavernHeight - k))
+			else if(carvable && cavernHeights.isNotEmpty() && lastCavernHeight - k >= 0 && lastCavernHeight - k < 5)
 			{
-				block = layers.get(lastCavernHeight - k);
+				if(landBiome == null)
+				{
+					landBiome = glBiome.generateData(InferredType.LAND, x, z, x, z, region);
+				}
+
+				if(cavernLayers == null)
+				{
+					cavernLayers = landBiome.generateLayers(rx, rz, masterRandom, 5, height - getFluidHeight());
+				}
+
+				block = cavernLayers.get(lastCavernHeight - k);
 			}
 
 			// Set Surface Material for true surface
@@ -213,7 +260,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			// Decorate Cavern surfaces, but not the true surface
 			if((carvable && cavernSurface) && !(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
 			{
-				decorateLand(biome, sliver, wx, k, wz, rx, rz, block);
+				if(landBiome == null)
+				{
+					landBiome = glBiome.generateData(InferredType.LAND, z, x, x, z, region);
+				}
+
+				decorateLand(landBiome, sliver, wx, k, wz, rx, rz, block);
 			}
 		}
 
@@ -233,7 +285,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				}
 
 				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);
-				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, height - i.getCeiling() - 2, height - i.getCeiling() - 2);
+				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2);
 				BlockData blockc = null;
 				for(int j = 0; j < floor.size(); j++)
 				{

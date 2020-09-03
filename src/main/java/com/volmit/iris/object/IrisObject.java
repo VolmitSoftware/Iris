@@ -335,6 +335,8 @@ public class IrisObject extends IrisRegistrant
 			}
 		}
 
+		int lowest = Integer.MAX_VALUE;
+
 		for(BlockVector g : blocks.keySet())
 		{
 			BlockVector i = g.clone();
@@ -409,11 +411,17 @@ public class IrisObject extends IrisRegistrant
 				placer.set(xx, yy, zz, data);
 			}
 
+			if(yy < lowest)
+			{
+				lowest = yy;
+			}
+
 			if(stilting)
 			{
 				BlockData bdata = data;
 				int yyy = yy;
 				ChunkPosition ck = new ChunkPosition(xx, zz);
+
 				lowmap.compute(ck, (k, v) ->
 				{
 					if(v == null)
@@ -437,20 +445,23 @@ public class IrisObject extends IrisRegistrant
 		{
 			for(ChunkPosition i : lowmap.keySet())
 			{
-				int xf = i.getX();
 				int yf = lowmap.get(i);
+
+				if(yf > lowest)
+				{
+					continue;
+				}
+
+				int xf = i.getX();
 				int zf = i.getZ();
 				int yg = Math.floorDiv(h, 2) + placer.getHighest(xf, zf, config.isUnderwater());
 				BlockData d = lowmapData.get(i);
 
-				if(d != null)
+				if(d != null && !B.isAir(d))
 				{
 					for(int j = yf; j > yg - config.getOverStilt(); j--)
 					{
-						if(!d.getMaterial().equals(Material.AIR) && !d.getMaterial().equals(Material.CAVE_AIR))
-						{
-							placer.set(xf, j, zf, d);
-						}
+						placer.set(xf, j, zf, d);
 					}
 				}
 			}

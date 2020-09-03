@@ -460,8 +460,8 @@ public class B
 		return b;
 	}
 
-	public static boolean isAir(BlockData blockData)
+	public static boolean isAir(BlockData d)
 	{
-		return blockData.getMaterial().isAir();
+		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR) || d.getMaterial().equals(Material.VOID_AIR);
 	}
 }

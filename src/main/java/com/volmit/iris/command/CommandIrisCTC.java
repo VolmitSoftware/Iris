@@ -8,9 +8,9 @@ import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisTC extends MortarCommand
+public class CommandIrisCTC extends MortarCommand
 {
-	public CommandIrisTC()
+	public CommandIrisCTC()
 	{
 		super("ctc");
 		setDescription("Change generator thread count");

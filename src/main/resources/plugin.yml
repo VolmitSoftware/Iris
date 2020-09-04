@@ -2,6 +2,9 @@ name: ${project.name}
 version: ${project.version}
 main: com.volmit.iris.Iris
 load: STARTUP
+authors: [cyberpwn, NextdoorPsycho]
+website: volmit.com
+description: More than a Dimenson!
 commands:
   iris:
     aliases: [ir, irs]

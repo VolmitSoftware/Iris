@@ -69,7 +69,7 @@ public class IrisLoot
 	private double maxDurability = 1;
 
 	@DontObfuscate
-	@Desc("Define a custom model identifier")
+	@Desc("Define a custom model identifier 1.14+ only")
 	private Integer customModel = null;
 
 	@DontObfuscate
@@ -123,98 +123,8 @@ public class IrisLoot
 
 	public ItemStack get(boolean debug, RNG rng)
 	{
-		ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
-		ItemMeta m = is.getItemMeta();
-
-		if(getType().getMaxDurability() > 0 && m instanceof Damageable)
+		try
 		{
-			Damageable d = (Damageable) m;
-			int max = getType().getMaxDurability();
-			d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
-		}
-
-		for(IrisEnchantment i : getEnchantments())
-		{
-			i.apply(rng, m);
-		}
-
-		for(IrisAttributeModifier i : getAttributes())
-		{
-			i.apply(rng, m);
-		}
-
-		m.setCustomModelData(getCustomModel());
-		m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
-		m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
-		m.setUnbreakable(isUnbreakable());
-
-		for(ItemFlag i : getItemFlags())
-		{
-			m.addItemFlags(i);
-		}
-
-		KList<String> lore = new KList<>();
-
-		getLore().forEach((i) ->
-		{
-			String mf = C.translateAlternateColorCodes('&', i);
-
-			if(mf.length() > 24)
-			{
-				for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E"))
-				{
-					lore.add(g.trim());
-				}
-			}
-
-			else
-			{
-				lore.add(mf);
-			}
-		});
-
-		if(debug)
-		{
-			if(lore.isNotEmpty())
-			{
-				lore.add(C.GRAY + "--------------------");
-			}
-
-			lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
-		}
-
-		m.setLore(lore);
-
-		if(getLeatherColor() != null && m instanceof LeatherArmorMeta)
-		{
-			Color c = Color.decode(getLeatherColor());
-			((LeatherArmorMeta) m).setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
-		}
-
-		if(getDyeColor() != null && m instanceof Colorable)
-		{
-			((Colorable) m).setColor(getDyeColor());
-		}
-
-		is.setItemMeta(m);
-		return is;
-	}
-
-	public ItemStack get(boolean debug, IrisLootTable table, RNG rng, int x, int y, int z)
-	{
-		if(debug)
-		{
-			chance.reset();
-		}
-
-		if(chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1)
-		{
-			if(getType() == null)
-			{
-				Iris.warn("Cant find item type " + type);
-				return null;
-			}
-
 			ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
 			ItemMeta m = is.getItemMeta();
 
@@ -235,7 +145,11 @@ public class IrisLoot
 				i.apply(rng, m);
 			}
 
-			m.setCustomModelData(getCustomModel());
+			if(Iris.customModels)
+			{
+				m.setCustomModelData(getCustomModel());
+			}
+
 			m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
 			m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
 			m.setUnbreakable(isUnbreakable());
@@ -272,13 +186,125 @@ public class IrisLoot
 					lore.add(C.GRAY + "--------------------");
 				}
 
-				lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
-				lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
+				lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
 			}
 
 			m.setLore(lore);
+
+			if(getLeatherColor() != null && m instanceof LeatherArmorMeta)
+			{
+				Color c = Color.decode(getLeatherColor());
+				((LeatherArmorMeta) m).setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
+			}
+
+			if(getDyeColor() != null && m instanceof Colorable)
+			{
+				((Colorable) m).setColor(getDyeColor());
+			}
+
 			is.setItemMeta(m);
 			return is;
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return new ItemStack(Material.AIR);
+	}
+
+	public ItemStack get(boolean debug, IrisLootTable table, RNG rng, int x, int y, int z)
+	{
+		if(debug)
+		{
+			chance.reset();
+		}
+
+		if(chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1)
+		{
+			if(getType() == null)
+			{
+				Iris.warn("Cant find item type " + type);
+				return null;
+			}
+
+			try
+			{
+				ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+				ItemMeta m = is.getItemMeta();
+
+				if(getType().getMaxDurability() > 0 && m instanceof Damageable)
+				{
+					Damageable d = (Damageable) m;
+					int max = getType().getMaxDurability();
+					d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
+				}
+
+				for(IrisEnchantment i : getEnchantments())
+				{
+					i.apply(rng, m);
+				}
+
+				for(IrisAttributeModifier i : getAttributes())
+				{
+					i.apply(rng, m);
+				}
+
+				if(Iris.customModels)
+				{
+					m.setCustomModelData(getCustomModel());
+				}
+
+				m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
+				m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
+				m.setUnbreakable(isUnbreakable());
+
+				for(ItemFlag i : getItemFlags())
+				{
+					m.addItemFlags(i);
+				}
+
+				KList<String> lore = new KList<>();
+
+				getLore().forEach((i) ->
+				{
+					String mf = C.translateAlternateColorCodes('&', i);
+
+					if(mf.length() > 24)
+					{
+						for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E"))
+						{
+							lore.add(g.trim());
+						}
+					}
+
+					else
+					{
+						lore.add(mf);
+					}
+				});
+
+				if(debug)
+				{
+					if(lore.isNotEmpty())
+					{
+						lore.add(C.GRAY + "--------------------");
+					}
+
+					lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
+					lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
+				}
+
+				m.setLore(lore);
+				is.setItemMeta(m);
+				return is;
+			}
+
+			catch(Throwable e)
+			{
+
+			}
 		}
 
 		return null;

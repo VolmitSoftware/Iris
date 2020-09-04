@@ -3,6 +3,8 @@ package com.volmit.iris.util;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
+import com.volmit.iris.Iris;
+
 public class InvertedBiomeGrid implements BiomeGrid
 {
 	private BiomeGrid grid;
@@ -22,6 +24,11 @@ public class InvertedBiomeGrid implements BiomeGrid
 	@Override
 	public Biome getBiome(int arg0, int arg1, int arg2)
 	{
+		if(!Iris.biome3d)
+		{
+			return getBiome(arg0, arg2);
+		}
+
 		return grid.getBiome(arg0, 255 - arg1, arg2);
 	}
 
@@ -35,6 +42,12 @@ public class InvertedBiomeGrid implements BiomeGrid
 	@Override
 	public void setBiome(int arg0, int arg1, int arg2, Biome arg3)
 	{
+		if(!Iris.biome3d)
+		{
+			setBiome(arg0, arg2, arg3);
+			return;
+		}
+
 		grid.setBiome(arg0, 255 - arg1, arg2, arg3);
 	}
 }

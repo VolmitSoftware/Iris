@@ -138,6 +138,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		IrisRegion region = sampleRegion(rx, rz);
 		IrisBiome biome = sampleTrueBiome(rx, rz, noise);
 		IrisBiome landBiome = null;
+		Biome onlyBiome = Iris.biome3d ? null : biome.getGroundBiome(getMasterRandom(), rz, getDimension().getFluidHeight(), rx);
 
 		if(biome == null)
 		{
@@ -204,17 +205,27 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			if(!biomeAssigned && biomeMap != null)
 			{
 				biomeAssigned = true;
-				sliver.set(k, biome.getGroundBiome(getMasterRandom(), rz, k, rx));
-				biomeMap.setBiome(x, z, biome);
 
-				for(int kv = max; kv < biomeMax; kv++)
+				if(Iris.biome3d)
 				{
-					Biome skyBiome = biome.getSkyBiome(getMasterRandom(), rz, kv, rx);
-					sliver.set(kv, skyBiome);
+					sliver.set(k, biome.getGroundBiome(getMasterRandom(), rz, k, rx));
+
+					for(int kv = max; kv < biomeMax; kv++)
+					{
+						Biome skyBiome = biome.getSkyBiome(getMasterRandom(), rz, kv, rx);
+						sliver.set(kv, skyBiome);
+					}
 				}
+
+				else
+				{
+					sliver.set(getFluidHeight(), onlyBiome);
+				}
+
+				biomeMap.setBiome(x, z, biome);
 			}
 
-			if(k <= Math.max(height, fluidHeight))
+			if(Iris.biome3d && k <= Math.max(height, fluidHeight))
 			{
 				sliver.set(k, biome.getGroundBiome(getMasterRandom(), rz, k, rx));
 			}
@@ -278,10 +289,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			for(CaveResult i : caveResults)
 			{
-				for(int j = i.getFloor(); j <= i.getCeiling(); j++)
+				if(Iris.biome3d)
 				{
-					sliver.set(j, caveBiome);
-					sliver.set(j, caveBiome.getGroundBiome(getMasterRandom(), rz, j, rx));
+					for(int j = i.getFloor(); j <= i.getCeiling(); j++)
+					{
+						sliver.set(j, caveBiome);
+						sliver.set(j, caveBiome.getGroundBiome(getMasterRandom(), rz, j, rx));
+					}
 				}
 
 				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);

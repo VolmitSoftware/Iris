@@ -29,6 +29,7 @@ public class AtomicSliver
 	public static boolean forgetful = false;
 	private transient KMap<Integer, IrisBiome> truebiome;
 	private transient KMap<Integer, Biome> biome;
+	private transient Biome onlyBiome;
 	private transient IrisLock lock = new IrisLock("Sliver");
 	private transient int highestBiome = 0;
 	private transient long last = M.ms();
@@ -41,6 +42,7 @@ public class AtomicSliver
 
 	public AtomicSliver(int x, int z)
 	{
+		onlyBiome = null;
 		this.x = x;
 		this.z = z;
 		blockUpdates = new KSet<>();
@@ -164,9 +166,9 @@ public class AtomicSliver
 
 	public Biome getBiome(int h)
 	{
-		if(forgetful)
+		if(!Iris.biome3d)
 		{
-			return Biome.THE_VOID;
+			return onlyBiome != null ? onlyBiome : Biome.THE_VOID;
 		}
 
 		last = M.ms();
@@ -182,7 +184,17 @@ public class AtomicSliver
 	public void set(int h, Biome d)
 	{
 		lock.lock();
-		biome.put(h, d);
+
+		if(Iris.biome3d)
+		{
+			biome.put(h, d);
+		}
+
+		else
+		{
+			onlyBiome = d;
+		}
+
 		modified = true;
 		highestBiome = h > highestBiome ? h : highestBiome;
 		lock.unlock();
@@ -220,13 +232,18 @@ public class AtomicSliver
 		lock.unlock();
 	}
 
+	@SuppressWarnings("deprecation")
 	public void write(BiomeGrid d)
 	{
-		if(forgetful)
+		lock.lock();
+
+		if(!Iris.biome3d)
 		{
+			d.setBiome(x, z, onlyBiome);
+			lock.unlock();
 			return;
 		}
-		lock.lock();
+
 		for(int i = 0; i <= highestBiome; i++)
 		{
 			if(biome.get(i) != null)
@@ -234,15 +251,12 @@ public class AtomicSliver
 				d.setBiome(x, i, z, biome.get(i));
 			}
 		}
+
 		lock.unlock();
 	}
 
 	public void write(HeightMap height)
 	{
-		if(forgetful)
-		{
-			return;
-		}
 		lock.lock();
 		height.setHeight(x, z, highestBlock);
 		lock.unlock();
@@ -250,10 +264,6 @@ public class AtomicSliver
 
 	public void read(DataInputStream din) throws IOException
 	{
-		if(forgetful)
-		{
-			return;
-		}
 		lock.lock();
 		this.block = new KMap<Integer, BlockData>();
 

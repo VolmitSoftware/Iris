@@ -5,7 +5,6 @@ import java.lang.reflect.Field;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MaxNumber;
@@ -47,9 +46,17 @@ public class IrisEnchantment
 
 	public void apply(RNG rng, ItemMeta meta)
 	{
-		if(rng.nextDouble() < chance)
+		try
 		{
-			meta.addEnchant(getEnchant(), getLevel(rng), true);
+			if(rng.nextDouble() < chance)
+			{
+				meta.addEnchant(getEnchant(), getLevel(rng), true);
+			}
+		}
+
+		catch(Throwable e)
+		{
+
 		}
 	}
 
@@ -70,8 +77,6 @@ public class IrisEnchantment
 				}
 			}
 		}
-
-		Iris.warn("Can't find enchantment type: " + getEnchantment());
 
 		return null;
 	}

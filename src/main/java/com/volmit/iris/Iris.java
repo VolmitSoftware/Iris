@@ -47,6 +47,9 @@ public class Iris extends MortarPlugin
 	public static IrisBoardManager board;
 	public static MultiverseCoreLink linkMultiverseCore;
 	private static IrisLock lock = new IrisLock("Iris");
+	public static boolean customModels = doesSupportCustomModels();
+	public static boolean awareEntities = doesSupportAwareness();
+	public static boolean biome3d = doesSupport3DBiomes();
 	public static boolean lowMemoryMode = false;
 
 	@Permission
@@ -59,6 +62,27 @@ public class Iris extends MortarPlugin
 	{
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4 * 1000 * 1000 * 1000;
+	}
+
+	private static boolean doesSupport3DBiomes()
+	{
+		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+
+		return v >= 15;
+	}
+
+	private static boolean doesSupportCustomModels()
+	{
+		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+
+		return v >= 14;
+	}
+
+	private static boolean doesSupportAwareness()
+	{
+		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+
+		return v >= 15;
 	}
 
 	@Override
@@ -108,7 +132,7 @@ public class Iris extends MortarPlugin
 		{
 			if(i.getGenerator() instanceof IrisChunkGenerator)
 			{
-				((IrisChunkGenerator) i).close();
+				((IrisChunkGenerator) i.getGenerator()).close();
 			}
 		}
 		for(GroupedExecutor i : executors)
@@ -304,7 +328,8 @@ public class Iris extends MortarPlugin
                 padd + C.GRAY + "                               "+C.DARK_GRAY+"@@@"+C.GRAY+"@@@@@@@@@@@@@@"
         };
 		//@done
-
+		Iris.info(Bukkit.getVersion());
+		Iris.info(Bukkit.getBukkitVersion() + "   bk");
 		for(int i = 0; i < info.length; i++)
 		{
 			splash[i] += info[i];
@@ -314,7 +339,22 @@ public class Iris extends MortarPlugin
 
 		if(lowMemoryMode)
 		{
-			Iris.warn("Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
+			Iris.verbose("* Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
+		}
+
+		if(!biome3d)
+		{
+			Iris.verbose("* This version of minecraft does not support 3D biomes (1.15 and up). Iris will generate as normal, but biome colors will not vary underground & in the sky.");
+		}
+
+		if(!customModels)
+		{
+			Iris.verbose("* This version of minecraft does not support custom model data in loot items (1.14 and up). Iris will generate as normal, but loot will not have custom models.");
+		}
+
+		if(!doesSupportAwareness())
+		{
+			Iris.verbose("* This version of minecraft does not support entity awareness.");
 		}
 	}
 }

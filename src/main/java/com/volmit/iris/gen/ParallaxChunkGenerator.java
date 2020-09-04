@@ -26,6 +26,7 @@ import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisStructureResult;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -62,6 +63,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		setParallaxMap(new AtomicWorldData(world));
 		setGlText(new GenLayerText(this, rng.nextParallelRNG(32485)));
 		setGlUpdate(null);
+		J.a(() -> getDimension().getParallaxSize(this));
 	}
 
 	protected void onClose()

@@ -8,5 +8,5 @@ description: More than a Dimenson!
 commands:
   iris:
     aliases: [ir, irs]
-api-version: 1.16
+api-version: 1.14
 hotload-dependencies: false

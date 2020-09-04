@@ -359,7 +359,14 @@ public class ProjectManager
 			}
 		});
 
-		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID()).seed(1337).generator(gx).generateStructures(false).type(WorldType.NORMAL).environment(d.getEnvironment()));
+		//@builder
+		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID())
+				.seed(1337)
+				.generator(gx)
+				.generateStructures(d.isVanillaStructures())
+				.type(WorldType.NORMAL)
+				.environment(d.getEnvironment()));
+		//@done
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);
@@ -409,6 +416,7 @@ public class ProjectManager
 		Iris.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
 		KSet<IrisRegion> regions = new KSet<>();
 		KSet<IrisBiome> biomes = new KSet<>();
+		KSet<IrisEntity> entities = new KSet<>();
 		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
 		KSet<IrisLootTable> loot = new KSet<>();
@@ -422,6 +430,11 @@ public class ProjectManager
 		biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
 		structures.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
 		structures.forEach((b) -> b.getTiles().forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i)))));
+		structures.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())))));
+		biomes.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		regions.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		dimension.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())));
 
 		KMap<String, String> renameObjects = new KMap<>();
 		String a = "";
@@ -618,6 +631,13 @@ public class ProjectManager
 			{
 				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			for(IrisEntity i : entities)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+				IO.writeAll(new File(folder, "entities/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 

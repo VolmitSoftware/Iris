@@ -637,8 +637,6 @@ public class IrisDimension extends IrisRegistrant
 			IrisLock t = new IrisLock("t");
 			Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
 
-			int tc = g.getThreads();
-			g.changeThreadCount(64);
 			for(String i : objects)
 			{
 				g.getAccelerant().queue("tx-psize", () ->
@@ -661,7 +659,6 @@ public class IrisDimension extends IrisRegistrant
 			}
 
 			g.getAccelerant().waitFor("tx-psize");
-			g.changeThreadCount(tc);
 			int x = Math.max(xg.get(), Math.max(yg.get(), zg.get()));
 			int z = x;
 

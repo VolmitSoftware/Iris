@@ -333,6 +333,11 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public void close()
 	{
+		if(!isDev())
+		{
+			return;
+		}
+
 		getNoLoot().clear();
 		getNoLoot().trimToSize();
 		HandlerList.unregisterAll(this);

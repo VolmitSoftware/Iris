@@ -62,6 +62,7 @@ public class GenLayerUpdate extends BlockPopulator
 		}
 		p.end();
 		gen.getMetrics().getUpdate().put(p.getMilliseconds());
+
 	}
 
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)

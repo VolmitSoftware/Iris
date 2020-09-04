@@ -40,8 +40,8 @@ public class IrisEntitySpawn
 	@Desc("The 1 in RARITY chance for this entity to spawn")
 	private int rarity = 1;
 
-	private AtomicCache<RNG> rng = new AtomicCache<>();
-	private AtomicCache<IrisEntity> ent = new AtomicCache<>();
+	private transient AtomicCache<RNG> rng = new AtomicCache<>();
+	private transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
 	public Entity on(IrisChunkGenerator g, Location at, EntityType t, EntitySpawnEvent ee)
 	{

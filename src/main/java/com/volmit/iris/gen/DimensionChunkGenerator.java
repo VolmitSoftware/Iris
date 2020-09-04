@@ -52,7 +52,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 			if(!folder.exists())
 			{
-				Iris.error("Missing World iris/dimensions folder!");
+				Iris.error("Missing World iris/dimensions folder! (" + folder.getAbsolutePath() + ")");
 				setDimensionName("error-missing-dimension");
 				return;
 			}

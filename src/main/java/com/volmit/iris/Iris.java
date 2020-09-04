@@ -291,17 +291,17 @@ public class Iris extends MortarPlugin
 				padd2 + C.GRAY + " v" + getDescription().getVersion(),
 		};
         String[] splash = {
-                padd + C.GRAY + " @%%%%%%%%%%%%%%%%%%%%                         ",
-                padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + "  .((())).                     ",
-                padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + "  .((((((())))))).                 ",
-                padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + "  .(((((((((()))))))))).  " + C.GRAY + "           @  ",
-                padd + C.GRAY + "@@@&&&&@@@@@&" + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "          @@ ",
-                padd + C.GRAY + "@@@          " + C.GREEN + "  (((((((((|0|)))))))))  " + C.GRAY + "          @@@",
-                padd + C.GRAY + "@@           " + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "&%%%%%%%%%@@@",
-                padd + C.GRAY + "@            " + C.GREEN + "  .(((((((((()))))))))).  " + C.GRAY + "&&&&%%%%%%@@@",
-                padd + C.GRAY + "                " + C.GREEN + "  .((((((()))))))).  " + C.GRAY + "&&&&&&&&%%&&%@@@",
-                padd + C.GRAY + "                    " + C.GREEN + "  .((())).  " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
-                padd + C.GRAY + "                        @@@@@@@&&&&&&&&&&&&&@   "
+                padd + C.GRAY + "   @@@@@@@@@@@@@@"+ C.DARK_GRAY +"@@@",
+                padd + C.GRAY + " @@&&&&&&&&&"+ C.DARK_GRAY +"&&&&&&" + C.GREEN + "   .(((()))).                     ",
+                padd + C.GRAY + "@@@&&&&&&&&"+ C.DARK_GRAY +"&&&&&" + C.GREEN + "  .((((((())))))).                  ",
+                padd + C.GRAY + "@@@&&&&&"+ C.DARK_GRAY +"&&&&&&&" + C.GREEN + "  ((((((((()))))))))               " + C.GRAY + " @",
+                padd + C.GRAY + "@@@&&&&"+ C.DARK_GRAY +"@@@@@&" + C.GREEN + "    ((((((((-)))))))))              " + C.GRAY + " @@",
+                padd + C.GRAY + "@@@&&" + C.GREEN + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
+                padd + C.GRAY + "@@" + C.GREEN + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@"+ C.GRAY +"&&&&@@@",
+                padd + C.GRAY + "@" + C.GREEN + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&"+ C.GRAY +"&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GREEN + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&"+ C.GRAY +"&&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GREEN + "                     '(((())))'   " + C.DARK_GRAY + "%%&&&&&&"+ C.GRAY +"&&&&&&&@@",
+                padd + C.GRAY + "                               "+C.DARK_GRAY+"@@@"+C.GRAY+"@@@@@@@@@@@@@@"
         };
 		//@done
 

@@ -20,6 +20,7 @@ public class TileResult
 		p.setBottom(true);
 		p.setBore(structure.isBore());
 		p.setClamp(structure.getClamp());
+		p.setSmartBore(tile.isSmartBore());
 		p.setWaterloggable(structure.isUnderwater());
 		p.setMode(tile.getPlaceMode());
 		placement = p;

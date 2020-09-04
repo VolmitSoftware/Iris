@@ -25,11 +25,11 @@ public class BiomeDataProvider
 
 	public IrisBiome generatePureData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ);
+		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, true);
 	}
 
 	public IrisBiome generateData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateImpureData(rawX, rawZ, getType(), regionData, generatePureData(g, bx, bz, rawX, rawZ, regionData));
+		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, false);
 	}
 }

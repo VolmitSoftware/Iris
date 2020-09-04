@@ -1215,4 +1215,10 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		this.center = center;
 		updateTiles(focus, null, null);
 	}
+
+	@Override
+	public boolean isDebugSmartBore()
+	{
+		return false;
+	}
 }

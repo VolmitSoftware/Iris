@@ -131,6 +131,10 @@ public class IrisDimension extends IrisRegistrant
 	private boolean caves = true;
 
 	@DontObfuscate
+	@Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
+	private boolean debugSmartBore = false;
+
+	@DontObfuscate
 	@Desc("Carve terrain or not")
 	private boolean carving = true;
 

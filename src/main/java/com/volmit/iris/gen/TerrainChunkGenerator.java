@@ -588,6 +588,24 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			current = glBiome.generateData(InferredType.SHORE, wx, wz, x, z, region);
 		}
 
+		// Impure Remove rivers, lakes & sea from land
+		if(current.isAquatic() && land)
+		{
+			current = glBiome.generatePureData(InferredType.LAND, wx, wz, x, z, region);
+		}
+
+		// Impure Remove land from underwater
+		if(current.isLand() && sea)
+		{
+			current = glBiome.generatePureData(aquaticType, wx, wz, x, z, region);
+		}
+
+		// Impure Add shores to land
+		if(shore)
+		{
+			current = glBiome.generatePureData(InferredType.SHORE, wx, wz, x, z, region);
+		}
+
 		return current;
 	}
 

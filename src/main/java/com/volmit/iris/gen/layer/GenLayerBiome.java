@@ -72,6 +72,11 @@ public class GenLayerBiome extends GenLayer
 		return getProvider(type).generateData(iris, bx, bz, rawX, rawZ, regionData);
 	}
 
+	public IrisBiome generatePureData(InferredType type, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	{
+		return getProvider(type).generatePureData(iris, bx, bz, rawX, rawZ, regionData);
+	}
+
 	public BiomeDataProvider getProvider(InferredType type)
 	{
 		if(type.equals(InferredType.SEA))
@@ -151,19 +156,27 @@ public class GenLayerBiome extends GenLayer
 
 	public IrisBiome generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType, int rx, int rz)
 	{
-		for(IrisRegionRidge i : regionData.getRidgeBiomes())
-		{
-			if(i.getType().equals(inferredType) && i.isRidge(rng, rx, rz))
-			{
-				return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
-			}
-		}
+		return generateBiomeData(bx, bz, regionData, cell, biomes, inferredType, rx, rz, false);
+	}
 
-		for(IrisRegionSpot i : regionData.getSpotBiomes())
+	public IrisBiome generateBiomeData(double bx, double bz, IrisRegion regionData, CNG cell, KList<IrisBiome> biomes, InferredType inferredType, int rx, int rz, boolean pure)
+	{
+		if(!pure)
 		{
-			if(i.getType().equals(inferredType) && i.isSpot(rng, rx, rz))
+			for(IrisRegionRidge i : regionData.getRidgeBiomes())
 			{
-				return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
+				if(i.getType().equals(inferredType) && i.isRidge(rng, rx, rz))
+				{
+					return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
+				}
+			}
+
+			for(IrisRegionSpot i : regionData.getSpotBiomes())
+			{
+				if(i.getType().equals(inferredType) && i.isSpot(rng, rx, rz))
+				{
+					return iris.loadBiome(i.getBiome()).infer(i.getAs(), inferredType);
+				}
 			}
 		}
 

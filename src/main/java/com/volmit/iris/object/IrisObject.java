@@ -17,10 +17,12 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -32,6 +34,8 @@ import lombok.EqualsAndHashCode;
 public class IrisObject extends IrisRegistrant
 {
 	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
+	private static final BlockData VAIR = B.getBlockData("VOID_AIR");
+	private static final BlockData VAIR_DEBUG = B.getBlockData("COBWEB");
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
 	private KMap<BlockVector, BlockData> blocks;
@@ -39,6 +43,143 @@ public class IrisObject extends IrisRegistrant
 	private int d;
 	private int h;
 	private transient BlockVector center;
+	private transient volatile boolean smartBored = false;
+	private transient IrisLock lock = new IrisLock("Preloadcache");
+
+	public void ensureSmartBored(boolean debug)
+	{
+		if(smartBored)
+		{
+			return;
+		}
+
+		lock.lock();
+		int applied = 0;
+		if(blocks.isEmpty())
+		{
+			lock.unlock();
+			Iris.warn("Cannot Smart Bore " + getLoadKey() + " because it has 0 blocks in it.");
+			smartBored = true;
+			return;
+		}
+
+		BlockVector max = new BlockVector(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+		BlockVector min = new BlockVector(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
+
+		for(BlockVector i : blocks.k())
+		{
+			max.setX(i.getX() > max.getX() ? i.getX() : max.getX());
+			min.setX(i.getX() < min.getX() ? i.getX() : min.getX());
+			max.setY(i.getY() > max.getY() ? i.getY() : max.getY());
+			min.setY(i.getY() < min.getY() ? i.getY() : min.getY());
+			max.setZ(i.getZ() > max.getZ() ? i.getZ() : max.getZ());
+			min.setZ(i.getZ() < min.getZ() ? i.getZ() : min.getZ());
+		}
+
+		// Smash X
+		for(int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++)
+		{
+			for(int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++)
+			{
+				int start = Integer.MAX_VALUE;
+				int end = Integer.MIN_VALUE;
+
+				for(int ray = min.getBlockX(); ray <= max.getBlockX(); ray++)
+				{
+					if(blocks.containsKey(new BlockVector(ray, rayY, rayZ)))
+					{
+						start = ray < start ? ray : start;
+						end = ray > end ? ray : end;
+					}
+				}
+
+				if(start != Integer.MAX_VALUE && end != Integer.MIN_VALUE)
+				{
+					for(int i = start; i <= end; i++)
+					{
+						BlockVector v = new BlockVector(i, rayY, rayZ);
+
+						if(!blocks.containsKey(v) || B.isAir(blocks.get(v)))
+						{
+							blocks.put(v, debug ? VAIR_DEBUG : VAIR);
+							applied++;
+						}
+					}
+				}
+			}
+		}
+
+		// Smash Y
+		for(int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++)
+		{
+			for(int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++)
+			{
+				int start = Integer.MAX_VALUE;
+				int end = Integer.MIN_VALUE;
+
+				for(int ray = min.getBlockY(); ray <= max.getBlockY(); ray++)
+				{
+					if(blocks.containsKey(new BlockVector(rayX, ray, rayZ)))
+					{
+						start = ray < start ? ray : start;
+						end = ray > end ? ray : end;
+					}
+				}
+
+				if(start != Integer.MAX_VALUE && end != Integer.MIN_VALUE)
+				{
+					for(int i = start; i <= end; i++)
+					{
+						BlockVector v = new BlockVector(rayX, i, rayZ);
+
+						if(!blocks.containsKey(v) || B.isAir(blocks.get(v)))
+						{
+							blocks.put(v, debug ? VAIR_DEBUG : VAIR);
+							applied++;
+						}
+					}
+				}
+			}
+		}
+
+		// Smash Z
+		for(int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++)
+		{
+			for(int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++)
+			{
+				int start = Integer.MAX_VALUE;
+				int end = Integer.MIN_VALUE;
+
+				for(int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++)
+				{
+					if(blocks.containsKey(new BlockVector(rayX, rayY, ray)))
+					{
+						start = ray < start ? ray : start;
+						end = ray > end ? ray : end;
+					}
+				}
+
+				if(start != Integer.MAX_VALUE && end != Integer.MIN_VALUE)
+				{
+					for(int i = start; i <= end; i++)
+					{
+						BlockVector v = new BlockVector(rayX, rayY, i);
+
+						if(!blocks.containsKey(v) || B.isAir(blocks.get(v)))
+						{
+							blocks.put(v, debug ? VAIR_DEBUG : VAIR);
+							applied++;
+						}
+					}
+				}
+			}
+		}
+
+		Iris.verbose("- Applied Smart Bore to " + getLoadKey() + " Filled with " + applied + " VOID_AIR blocks.");
+
+		smartBored = true;
+		lock.unlock();
+	}
 
 	public IrisObject copy()
 	{
@@ -190,10 +331,13 @@ public class IrisObject extends IrisRegistrant
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener)
 	{
+		if(config.isSmartBore())
+		{
+			ensureSmartBored(placer.isDebugSmartBore());
+		}
+
 		boolean warped = !config.getWarp().isFlat();
 		boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
-		KMap<ChunkPosition, Integer> lowmap = stilting ? new KMap<>() : null;
-		KMap<ChunkPosition, BlockData> lowmapData = stilting ? new KMap<>() : null;
 		KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
 		int spinx = rng.imax() / 1000;
 		int spiny = rng.imax() / 1000;
@@ -201,6 +345,7 @@ public class IrisObject extends IrisRegistrant
 		int rty = config.getRotation().rotate(new BlockVector(0, getCenter().getBlockY(), 0), spinx, spiny, spinz).getBlockY();
 		int ty = config.getTranslate().translate(new BlockVector(0, getCenter().getBlockY(), 0), config.getRotation(), spinx, spiny, spinz).getBlockY();
 		int y = -1;
+		int xx, zz;
 
 		if(yv < 0)
 		{
@@ -344,6 +489,11 @@ public class IrisObject extends IrisRegistrant
 			i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 			BlockData data = blocks.get(g).clone();
 
+			if(stilting && i.getBlockY() < lowest && !B.isAir(data))
+			{
+				lowest = i.getBlockY();
+			}
+
 			if(placer.isPreventingDecay() && data instanceof Leaves && !((Leaves) data).isPersistent())
 			{
 				((Leaves) data).setPersistent(true);
@@ -361,9 +511,9 @@ public class IrisObject extends IrisRegistrant
 			}
 
 			data = config.getRotation().rotate(data, spinx, spiny, spinz);
-			int xx = x + (int) Math.round(i.getX());
+			xx = x + (int) Math.round(i.getX());
 			int yy = y + (int) Math.round(i.getY());
-			int zz = z + (int) Math.round(i.getZ());
+			zz = z + (int) Math.round(i.getZ());
 
 			if(warped)
 			{
@@ -410,59 +560,47 @@ public class IrisObject extends IrisRegistrant
 			{
 				placer.set(xx, yy, zz, data);
 			}
-
-			if(yy < lowest)
-			{
-				lowest = yy;
-			}
-
-			if(stilting)
-			{
-				BlockData bdata = data;
-				int yyy = yy;
-				ChunkPosition ck = new ChunkPosition(xx, zz);
-
-				lowmap.compute(ck, (k, v) ->
-				{
-					if(v == null)
-					{
-						lowmapData.put(ck, bdata);
-						return yyy;
-					}
-
-					if(v > yyy)
-					{
-						lowmapData.put(ck, bdata);
-						return yyy;
-					}
-
-					return v;
-				});
-			}
 		}
 
 		if(stilting)
 		{
-			for(ChunkPosition i : lowmap.keySet())
+			for(BlockVector g : blocks.keySet())
 			{
-				int yf = lowmap.get(i);
+				BlockVector i = g.clone();
+				i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
+				i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 
-				if(yf > lowest)
+				if(i.getBlockY() != lowest)
 				{
 					continue;
 				}
 
-				int xf = i.getX();
-				int zf = i.getZ();
-				int yg = Math.floorDiv(h, 2) + placer.getHighest(xf, zf, config.isUnderwater());
-				BlockData d = lowmapData.get(i);
+				BlockData d = blocks.get(i);
 
-				if(d != null && !B.isAir(d))
+				if(d == null || B.isAir(d))
 				{
-					for(int j = yf; j > yg - config.getOverStilt(); j--)
-					{
-						placer.set(xf, j, zf, d);
-					}
+					continue;
+				}
+
+				xx = x + (int) Math.round(i.getX());
+				zz = z + (int) Math.round(i.getZ());
+
+				if(warped)
+				{
+					xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
+					zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
+				}
+
+				int yg = placer.getHighest(xx, zz, config.isUnderwater());
+
+				if(yv >= 0 && config.isBottom())
+				{
+					y += Math.floorDiv(h, 2);
+				}
+
+				for(int j = lowest + y; j > yg - config.getOverStilt() - 1; j--)
+				{
+					placer.set(xx, j, zz, d);
 				}
 			}
 		}

@@ -19,4 +19,6 @@ public interface IObjectPlacer
 	public boolean isUnderwater(int x, int z);
 
 	public int getFluidHeight();
+
+	public boolean isDebugSmartBore();
 }

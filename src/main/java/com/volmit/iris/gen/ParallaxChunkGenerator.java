@@ -377,6 +377,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	}
 
 	@Override
+	public boolean isDebugSmartBore()
+	{
+		return getDimension().isDebugSmartBore();
+	}
+
+	@Override
 	public boolean isPreventingDecay()
 	{
 		return getDimension().isPreventLeafDecay();

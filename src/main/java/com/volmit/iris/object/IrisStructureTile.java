@@ -70,6 +70,10 @@ public class IrisStructureTile
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
 
+	@DontObfuscate
+	@Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
+	private boolean smartBore = false;
+
 	private transient KMap<Integer, IrisObject> forceObjects = new KMap<>();
 
 	@RegistryListObject

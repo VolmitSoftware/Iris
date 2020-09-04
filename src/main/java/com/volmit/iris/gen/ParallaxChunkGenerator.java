@@ -230,91 +230,14 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 				getAccelerant().queue(key, () ->
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7);
+					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
 					RNG ro = getMasterRandom().nextParallelRNG(496888 + i + j);
 					int g = 1;
-
-					searching: for(IrisBiomeMutation k : getDimension().getMutations())
-					{
-						for(int l = 0; l < k.getChecks(); l++)
-						{
-							IrisBiome sa = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
-							IrisBiome sb = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
-
-							if(sa.getLoadKey().equals(sb.getLoadKey()))
-							{
-								continue;
-							}
-
-							if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
-							{
-								for(IrisObjectPlacement m : k.getObjects())
-								{
-									int gg = g++;
-									placeObject(m, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1569962));
-								}
-
-								continue searching;
-							}
-						}
-					}
-
-					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
-
-					for(IrisTextPlacement k : getDimension().getText())
-					{
-						k.place(this, random.nextParallelRNG(-7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-					}
-
-					for(IrisTextPlacement k : r.getText())
-					{
-						k.place(this, random.nextParallelRNG(-4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-					}
-
-					for(IrisTextPlacement k : b.getText())
-					{
-						k.place(this, random.nextParallelRNG(-22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
-					}
-
-					for(IrisObjectPlacement k : b.getObjects())
-					{
-						int gg = g++;
-						placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 3569222));
-					}
-
-					if(getDimension().isCaves())
-					{
-						int bx = (i * 16) + ro.nextInt(16);
-						int bz = (j * 16) + ro.nextInt(16);
-
-						IrisBiome biome = sampleCaveBiome(bx, bz);
-
-						if(biome == null)
-						{
-							return;
-						}
-
-						if(biome.getObjects().isEmpty())
-						{
-							return;
-						}
-
-						for(IrisObjectPlacement k : biome.getObjects())
-						{
-							int gg = g++;
-							placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
-						}
-					}
-
-					for(IrisStructurePlacement k : r.getStructures())
-					{
-						k.place(this, random.nextParallelRNG(2228), i, j);
-					}
-
-					for(IrisStructurePlacement k : b.getStructures())
-					{
-						k.place(this, random.nextParallelRNG(-22228), i, j);
-					}
-
+					g = placeMutations(ro, random, i, j, g);
+					g = placeText(random, r, b, i, j, g);
+					g = placeObjects(random, r, b, i, j, g);
+					g = placeCaveObjects(ro, random, i, j, g);
+					g = placeStructures(randomx, r, b, i, j, g);
 				});
 
 				getParallaxChunk(ii, jj).setParallaxGenerated(true);
@@ -322,6 +245,116 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		}
 
 		getAccelerant().waitFor(key);
+	}
+
+	private int placeMutations(RNG ro, RNG random, int i, int j, int g)
+	{
+		searching: for(IrisBiomeMutation k : getDimension().getMutations())
+		{
+			for(int l = 0; l < k.getChecks(); l++)
+			{
+				IrisBiome sa = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
+				IrisBiome sb = sampleTrueBiome(((i * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()), ((j * 16) + ro.nextInt(16)) + ro.i(-k.getRadius(), k.getRadius()));
+
+				if(sa.getLoadKey().equals(sb.getLoadKey()))
+				{
+					continue;
+				}
+
+				if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
+				{
+					for(IrisObjectPlacement m : k.getObjects())
+					{
+						placeObject(m, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 1569962));
+					}
+
+					continue searching;
+				}
+			}
+		}
+
+		return g;
+	}
+
+	private int placeText(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g)
+	{
+		for(IrisTextPlacement k : getDimension().getText())
+		{
+			k.place(this, random.nextParallelRNG(g++ + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
+		}
+
+		for(IrisTextPlacement k : r.getText())
+		{
+			k.place(this, random.nextParallelRNG(g++ + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
+		}
+
+		for(IrisTextPlacement k : b.getText())
+		{
+			k.place(this, random.nextParallelRNG(g++ + -22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
+		}
+
+		return g;
+	}
+
+	private int placeObjects(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g)
+	{
+		for(IrisObjectPlacement k : b.getObjects())
+		{
+			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+		}
+
+		for(IrisObjectPlacement k : r.getObjects())
+		{
+			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+		}
+
+		return g;
+	}
+
+	private int placeCaveObjects(RNG ro, RNG random, int i, int j, int g)
+	{
+		if(!getDimension().isCaves())
+		{
+			return g;
+		}
+
+		int bx = (i * 16) + ro.nextInt(16);
+		int bz = (j * 16) + ro.nextInt(16);
+
+		IrisBiome biome = sampleCaveBiome(bx, bz);
+
+		if(biome == null)
+		{
+			return g;
+		}
+
+		if(biome.getObjects().isEmpty())
+		{
+			return g;
+		}
+
+		for(IrisObjectPlacement k : biome.getObjects())
+		{
+			int gg = g++;
+			placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
+		}
+
+		return g;
+	}
+
+	private int placeStructures(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g)
+	{
+		for(IrisStructurePlacement k : r.getStructures())
+		{
+			k.place(this, random.nextParallelRNG(2228 * 2 * g++), i, j);
+		}
+
+		for(IrisStructurePlacement k : b.getStructures())
+		{
+			k.place(this, random.nextParallelRNG(-22228 * 4 * g++), i, j);
+		}
+
+		return g;
 	}
 
 	public void placeObject(IrisObjectPlacement o, int x, int z, RNG rng)

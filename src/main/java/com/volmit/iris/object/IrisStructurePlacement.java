@@ -69,8 +69,8 @@ public class IrisStructurePlacement
 	{
 		try
 		{
-			RNG rng = g.getMasterRandom().nextParallelRNG(-88738456);
-			RNG rnp = rng.nextParallelRNG(cx - (cz * cz << 3));
+			RNG rng = g.getMasterRandom().nextParallelRNG(-88738456 + rngno.nextInt());
+			RNG rnp = rng.nextParallelRNG(cx - (cz * cz << 3) + rngno.nextInt());
 			int s = gridSize(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
 			int sh = gridHeight(g) - (getStructure(g).isMergeEdges() ? 1 : 0);
 			KSet<ChunkPosition> m = new KSet<>();
@@ -183,19 +183,19 @@ public class IrisStructurePlacement
 			return false;
 		}
 
-		if(getChanceGenerator(random).getIndex(x / zoom, y / zoom, z / zoom, getRarity()) == getRarity() / 2)
+		if(getChanceGenerator(g, random).getIndex(x / zoom, y / zoom, z / zoom, getRarity()) == getRarity() / 2)
 		{
-			return ratio > 0 ? getChanceGenerator(random).getDistance(x / zoom, z / zoom) > ratio : getChanceGenerator(random).getDistance(x / zoom, z / zoom) < Math.abs(ratio);
+			return ratio > 0 ? getChanceGenerator(g, random).getDistance(x / zoom, z / zoom) > ratio : getChanceGenerator(g, random).getDistance(x / zoom, z / zoom) < Math.abs(ratio);
 		}
 
 		return false;
 	}
 
-	public CellGenerator getChanceGenerator(RNG random)
+	public CellGenerator getChanceGenerator(ParallaxChunkGenerator g, RNG random)
 	{
 		return chanceCell.aquire(() ->
 		{
-			CellGenerator chanceCell = new CellGenerator(random.nextParallelRNG(-72346));
+			CellGenerator chanceCell = new CellGenerator(g.getMasterRandom().nextParallelRNG(-72346).nextParallelRNG((height + 10000) * rarity));
 			chanceCell.setCellScale(1D);
 			chanceCell.setShuffle(getShuffle());
 			return chanceCell;

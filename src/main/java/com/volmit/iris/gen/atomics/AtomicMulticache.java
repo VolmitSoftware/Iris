@@ -3,6 +3,7 @@ package com.volmit.iris.gen.atomics;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
@@ -44,7 +45,7 @@ public class AtomicMulticache
 		this.x.set(x);
 		this.z.set(z);
 
-		if(!IrisSettings.get().sharedCaching)
+		if(!IrisSettings.get().sharedCaching || Iris.lowMemoryMode)
 		{
 			drop();
 		}
@@ -268,5 +269,7 @@ public class AtomicMulticache
 		region.clear();
 		biome.clear();
 		rawBiome.clear();
+		carvedHeight.clear();
+		carvedHeightIgnoreWater.clear();
 	}
 }

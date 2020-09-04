@@ -278,7 +278,7 @@ public class AtomicWorldData
 				break;
 			}
 
-			if(M.ms() - lastRegion.get(i) > 30000)
+			if(M.ms() - lastRegion.get(i) > (Iris.lowMemoryMode ? 15000 : 30000))
 			{
 				unloadRegions.add(i);
 				m++;
@@ -311,7 +311,7 @@ public class AtomicWorldData
 				break;
 			}
 
-			if(M.ms() - lastChunk.get(i) > 30000)
+			if(M.ms() - lastChunk.get(i) > (Iris.lowMemoryMode ? 8000 : 30000))
 			{
 				m++;
 				unloadChunks.add(i);

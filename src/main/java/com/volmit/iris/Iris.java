@@ -288,19 +288,19 @@ public class Iris extends MortarPlugin
 				padd2 + C.GRAY + " by "+C.randomColor()+"V"+C.randomColor()+"o"+C.randomColor()+"l"+C.randomColor()+"m"+C.randomColor()+"i"+C.randomColor()+"t"+C.randomColor()+"S"+C.randomColor()+"o"+C.randomColor()+"f"+C.randomColor()+"t"+C.randomColor()+"w"+C.randomColor()+"a"+C.randomColor()+"r"+C.randomColor()+"e",
 				padd2 + C.GRAY + " v" + getDescription().getVersion(),
 		};
-		String[] splash = {
-				padd + C.GRAY + " @%%%%%%%%%%%%%%%%%%%%                         ",
-				padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + " ((((((                     ",
-				padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + " ((((((((((((((                 ",
-				padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @  ",
-				padd + C.GRAY + "@@@&&&&@@@@@&" + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @@ ",
-				padd + C.GRAY + "@@@          " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @@@",
-				padd + C.GRAY + "@@           " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "&%%%%%%%%%@@@",
-				padd + C.GRAY + "@            " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "&&&&%%%%%%@@@",
-				padd + C.GRAY + "                " + C.GREEN + " (((((((((((((( " + C.GRAY + "&&&&&&&&%%&&%@@@",
-				padd + C.GRAY + "                    " + C.GREEN + " (((((( " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
-				padd + C.GRAY + "                        @@@@@@@&&&&&&&&&&&&&@   "
-		};
+        String[] splash = {
+                padd + C.GRAY + " @%%%%%%%%%%%%%%%%%%%%                         ",
+                padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + "  ((()))                     ",
+                padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + "  ((((((()))))))                 ",
+                padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + "  (((((((((())))))))))  " + C.GRAY + "           @  ",
+                padd + C.GRAY + "@@@&&&&@@@@@&" + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "          @@ ",
+                padd + C.GRAY + "@@@          " + C.GREEN + "  (((((((((|0|)))))))))  " + C.GRAY + "          @@@",
+                padd + C.GRAY + "@@           " + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "&%%%%%%%%%@@@",
+                padd + C.GRAY + "@            " + C.GREEN + "  (((((((((())))))))))  " + C.GRAY + "&&&&%%%%%%@@@",
+                padd + C.GRAY + "                " + C.GREEN + "  ((((((())))))))  " + C.GRAY + "&&&&&&&&%%&&%@@@",
+                padd + C.GRAY + "                    " + C.GREEN + "  ((()))  " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
+                padd + C.GRAY + "                        @@@@@@@&&&&&&&&&&&&&@   "
+        };
 		//@done
 
 		for(int i = 0; i < info.length; i++)

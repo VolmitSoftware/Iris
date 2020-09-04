@@ -26,15 +26,15 @@ import lombok.EqualsAndHashCode;
 public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator implements IPostBlockAccess
 {
 	private String postKey;
-	private IrisLock lock;
+	private IrisLock postLock;
 	private int minPhase;
 	private int maxPhase;
 
 	public PostBlockChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		postKey = "post-" + dimensionName;
-		lock = new IrisLock("PostChunkGenerator");
+		setPostKey("post-" + dimensionName);
+		setPostLock(new IrisLock("PostChunkGenerator"));
 	}
 
 	public void onInit(World world, RNG rng)
@@ -156,9 +156,9 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	{
 		if(x >> 4 == currentPostX && z >> 4 == currentPostZ)
 		{
-			lock.lock();
+			getPostLock().lock();
 			BlockData d = currentData.getBlockData(x & 15, y, z & 15);
-			lock.unlock();
+			getPostLock().unlock();
 			return d == null ? AIR : d;
 		}
 
@@ -170,9 +170,9 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	{
 		if(x >> 4 == currentPostX && z >> 4 == currentPostZ)
 		{
-			lock.lock();
+			getPostLock().lock();
 			currentData.setBlock(x & 15, y, z & 15, d);
-			lock.unlock();
+			getPostLock().unlock();
 		}
 
 		else

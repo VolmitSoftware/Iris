@@ -39,8 +39,8 @@ import lombok.EqualsAndHashCode;
 public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator implements IObjectPlacer
 {
 	private short cacheID = 0;
-	protected KMap<ChunkPosition, AtomicSliver> sliverCache;
-	protected AtomicWorldData parallaxMap;
+	private KMap<ChunkPosition, AtomicSliver> sliverCache;
+	private AtomicWorldData parallaxMap;
 	private MasterLock masterLock;
 	private IrisLock flock = new IrisLock("ParallaxLock");
 	private IrisLock lock = new IrisLock("ParallaxLock");
@@ -51,21 +51,17 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	public ParallaxChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		sliverCache = new KMap<>();
-		sliverBuffer = 0;
-		masterLock = new MasterLock();
+		setSliverCache(new KMap<>());
+		setSliverBuffer(sliverBuffer);
+		setMasterLock(new MasterLock());
 	}
 
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		parallaxMap = new AtomicWorldData(world);
-		glText = new GenLayerText(this, rng.nextParallelRNG(32485));
-	}
-
-	protected KMap<ChunkPosition, AtomicSliver> getSliverCache()
-	{
-		return sliverCache;
+		setParallaxMap(new AtomicWorldData(world));
+		setGlText(new GenLayerText(this, rng.nextParallelRNG(32485)));
+		setGlUpdate(null);
 	}
 
 	protected void onClose()
@@ -74,7 +70,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 		try
 		{
-			parallaxMap.unloadAll(true);
+			getParallaxMap().unloadAll(true);
 		}
 
 		catch(IOException e)
@@ -94,7 +90,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		super.onHotload();
-		cacheID = RNG.r.simax();
+		setCacheID(RNG.r.simax());
 	}
 
 	@Override
@@ -144,11 +140,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		return getParallaxChunk(x, z).isWorldGenerated();
 	}
 
-	public AtomicWorldData getParallaxMap()
-	{
-		return parallaxMap;
-	}
-
 	public AtomicSliverMap getParallaxChunk(int x, int z)
 	{
 		try
@@ -169,12 +160,12 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	{
 		List<BlockPopulator> g = super.getDefaultPopulators(world);
 
-		if(glUpdate == null)
+		if(getGlUpdate() == null)
 		{
-			glUpdate = new GenLayerUpdate(this, world);
+			setGlUpdate(new GenLayerUpdate(this, world));
 		}
 
-		g.add(glUpdate);
+		g.add(getGlUpdate());
 		return g;
 	}
 
@@ -199,11 +190,10 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		setSliverBuffer(getSliverCache().size());
 		getParallaxChunk(x, z).setWorldGenerated(true);
 		getMasterLock().clear();
-
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
-		getParallaxMap().clean(ticks);
+		getParallaxMap().clean(getTicks());
 		getData().getObjectLoader().clean();
 	}
 

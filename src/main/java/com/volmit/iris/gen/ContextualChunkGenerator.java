@@ -59,22 +59,22 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	private BlockPosition allowLoot;
 	private AtomicMulticache cache;
 	private IrisDataManager data;
-	protected boolean failing;
-	protected int task;
-	protected boolean dev;
-	protected boolean initialized;
-	protected RNG masterRandom;
-	protected ChronoLatch perSecond;
-	protected ChronoLatch tickLatch;
-	protected ChronoLatch pushLatch;
+	private boolean failing;
+	private int task;
+	private boolean dev;
+	private boolean initialized;
+	private RNG masterRandom;
+	private ChronoLatch perSecond;
+	private ChronoLatch tickLatch;
+	private ChronoLatch pushLatch;
 	private AtomicCache<IrisDimension> dimCache;
-	protected IrisMetrics metrics;
-	protected World world;
-	protected int generated;
-	protected int ticks;
-	protected long hlast;
+	private IrisMetrics metrics;
+	private World world;
+	private int generated;
+	private int ticks;
+	private long hlast;
 	private boolean fastPregen = false;
-	protected boolean pregenDone;
+	private boolean pregenDone;
 	private volatile boolean hotloadable = false;
 
 	public ContextualChunkGenerator()
@@ -137,7 +137,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public IrisDimension loadDimension(String i)
 	{
-		return dimCache.aquire(() -> (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i));
+		return getDimCache().aquire(() -> (getData() == null ? Iris.globaldata : getData()).getDimensionLoader().load(i));
 	}
 
 	public IrisGenerator loadGenerator(String i)
@@ -158,40 +158,40 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 
 		this.world = world;
-		data = new IrisDataManager(getWorld().getWorldFolder());
-		this.masterRandom = new RNG(world.getSeed());
-		metrics = new IrisMetrics(128);
-		initialized = true;
+		setData(new IrisDataManager(getWorld().getWorldFolder()));
+		setMasterRandom(new RNG(world.getSeed()));
+		setMetrics(new IrisMetrics(128));
+		setInitialized(true);
+		setTask(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0));
 		Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
-		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0);
 		onInit(world, masterRandom);
 		setHotloadable(true);
 	}
 
 	private void tick()
 	{
-		if(dev)
+		if(isDev())
 		{
-			if(perSecond.flip())
+			if(getPerSecond().flip())
 			{
-				if(generated > (fastPregen ? 1950 : 770))
+				if(getGenerated() > (isFastPregen() ? 1950 : 770))
 				{
-					pregenDone = true;
+					setPregenDone(true);
 				}
 
-				if(pregenDone)
+				if(isPregenDone())
 				{
-					metrics.getPerSecond().put(generated);
-					generated = 0;
+					getMetrics().getPerSecond().put(generated);
+					setGenerated(0);
 				}
 
 				checkHotload();
 
-				if(noLoot.size() > 1024)
+				if(getNoLoot().size() > 1024)
 				{
 					for(int i = 0; i < 64; i++)
 					{
-						noLoot.remove(0);
+						getNoLoot().remove(0);
 					}
 				}
 			}
@@ -199,8 +199,8 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		else
 		{
-			pregenDone = true;
-			fastPregen = false;
+			setPregenDone(true);
+			setFastPregen(false);
 		}
 
 		onTick(ticks++);
@@ -243,7 +243,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			return;
 		}
 
-		noLoot.addIfMissing(new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ()));
+		getNoLoot().addIfMissing(new BlockPosition(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ()));
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -333,8 +333,8 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public void close()
 	{
-		noLoot.clear();
-		noLoot.trimToSize();
+		getNoLoot().clear();
+		getNoLoot().trimToSize();
 		HandlerList.unregisterAll(this);
 		Bukkit.getScheduler().cancelTask(getTask());
 		onClose();
@@ -400,10 +400,10 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
 	{
 		setHotloadable(false);
-		if(!dev)
+		if(!isDev())
 		{
-			pregenDone = true;
-			fastPregen = false;
+			setPregenDone(true);
+			setFastPregen(false);
 		}
 
 		if(failing)
@@ -447,14 +447,14 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public void checkHotload()
 	{
-		if(M.ms() - hlast < 1000)
+		if(M.ms() - getHlast() < 1000)
 		{
 			return;
 		}
 
-		if(world != null)
+		if(getWorld() != null)
 		{
-			checkHotload(world);
+			checkHotload(getWorld());
 		}
 	}
 
@@ -465,11 +465,11 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			return;
 		}
 
-		if(pushLatch.flip())
+		if(getPushLatch().flip())
 		{
-			if(this.world == null)
+			if(getWorld() == null)
 			{
-				this.world = world;
+				setWorld(world);
 			}
 
 			Iris.hotloader.check((IrisContext) this);
@@ -483,18 +483,18 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 	public void onHotload()
 	{
-		hlast = M.ms();
-		dimCache.reset();
+		setHlast(M.ms());
+		getDimCache().reset();
 	}
 
 	protected void fail(Throwable e)
 	{
-		if(failing)
+		if(isFailing())
 		{
 			return;
 		}
 
-		failing = true;
+		setFailing(true);
 
 		e.printStackTrace();
 		J.a(() ->

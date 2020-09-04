@@ -2,7 +2,6 @@ package com.volmit.iris.gen;
 
 import java.awt.Color;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
@@ -30,7 +29,6 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
@@ -41,10 +39,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisContext
 {
-	private Method initLighting;
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
-	private KMap<Player, IrisBiome> b = new KMap<>();
 	private boolean spawnable = false;
 
 	public IrisChunkGenerator(String dimensionName, int threads)
@@ -69,9 +65,9 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 
 	public void retry()
 	{
-		if(failing)
+		if(isFailing())
 		{
-			failing = false;
+			setFailing(false);
 			hotload();
 		}
 	}
@@ -82,7 +78,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		PrecisionStopwatch s = PrecisionStopwatch.start();
 		ChunkData c = super.generateChunkData(world, no, x, z, biomeGrid);
 		s.end();
-		metrics.getTotal().put(s.getMilliseconds());
+		getMetrics().getTotal().put(s.getMilliseconds());
 		return c;
 	}
 
@@ -153,9 +149,9 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 
 		try
 		{
-			parallaxMap.saveAll();
-			parallaxMap.getLoadedChunks().clear();
-			parallaxMap.getLoadedRegions().clear();
+			getParallaxMap().saveAll();
+			getParallaxMap().getLoadedChunks().clear();
+			getParallaxMap().getLoadedRegions().clear();
 		}
 
 		catch(IOException e)
@@ -222,17 +218,17 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	{
 		long bytes = 1024 * 1024 * (8 + (getThreads() / 3));
 
-		for(AtomicRegionData i : parallaxMap.getLoadedRegions().values())
+		for(AtomicRegionData i : getParallaxMap().getLoadedRegions().values())
 		{
 			bytes += i.guessMemoryUsage();
 		}
 
 		bytes += getCache().getSize() * 65;
-		bytes += parallaxMap.getLoadedChunks().size() * 256 * 4 * 460;
+		bytes += getParallaxMap().getLoadedChunks().size() * 256 * 4 * 460;
 		bytes += getSliverBuffer() * 220;
 		bytes += 823 * getData().getObjectLoader().getTotalStorage();
 
-		return bytes;
+		return bytes / 2;
 	}
 
 	@Override
@@ -314,6 +310,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		{
 			getParallaxMap().saveAll();
 		}
+
 		catch(IOException e)
 		{
 			e.printStackTrace();
@@ -438,7 +435,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	@Override
 	protected void onSpawn(EntitySpawnEvent e)
 	{
-		if(spawnable)
+		if(isSpawnable())
 		{
 			int x = e.getEntity().getLocation().getBlockX();
 			int y = e.getEntity().getLocation().getBlockY();
@@ -500,7 +497,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	{
 		for(IrisEntitySpawn i : s)
 		{
-			spawnable = false;
+			setSpawnable(false);
 
 			if(i.on(this, e.getLocation(), e.getEntityType(), e) != null)
 			{
@@ -511,7 +508,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 
 			else
 			{
-				spawnable = true;
+				setSpawnable(true);
 			}
 		}
 

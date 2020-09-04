@@ -22,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 {
-	protected String dimensionName;
+	private String dimensionName;
 	protected static final BlockData AIR = Material.AIR.createBlockData();
 	protected static final BlockData CAVE_AIR = B.get("CAVE_AIR");
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
@@ -31,7 +31,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	public DimensionChunkGenerator(String dimensionName)
 	{
 		super();
-		this.dimensionName = dimensionName;
+		setDimensionName(dimensionName);
 	}
 
 	public void onPlayerLeft(Player p)
@@ -46,14 +46,14 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 	public void onInit(World world, RNG masterRandom)
 	{
-		if(dimensionName.isEmpty())
+		if(getDimensionName().isEmpty())
 		{
 			File folder = new File(world.getWorldFolder(), "iris/dimensions");
 
 			if(!folder.exists())
 			{
 				Iris.error("Missing World iris/dimensions folder!");
-				dimensionName = "error-missing-dimension";
+				setDimensionName("error-missing-dimension");
 				return;
 			}
 
@@ -61,13 +61,13 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 			{
 				if(i.isFile() && i.getName().endsWith(".json"))
 				{
-					dimensionName = i.getName().replaceAll("\\Q.json\\E", "");
+					setDimensionName(i.getName().replaceAll("\\Q.json\\E", ""));
 					return;
 				}
 			}
 
 			Iris.error("Missing World iris/dimensions/<dimension-name>.json file. Assuming overworld!");
-			dimensionName = "error-missing-dimension";
+			setDimensionName("error-missing-dimension");
 			fail(new RuntimeException("Missing dimension folder/file in " + folder.getAbsolutePath()));
 		}
 
@@ -76,11 +76,11 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 	public IrisDimension getDimension()
 	{
-		IrisDimension d = loadDimension(dimensionName);
+		IrisDimension d = loadDimension(getDimensionName());
 
 		if(d == null)
 		{
-			Iris.error("Can't find dimension: " + dimensionName);
+			Iris.error("Can't find dimension: " + getDimensionName());
 		}
 
 		return d;
@@ -118,16 +118,12 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 
 	public double getModifiedX(int rx, int rz)
 	{
-		return (getDimension().cosRotate() * rx) + (-getDimension().sinRotate() * rz) +
-
-				getDimension().getCoordFracture(masterRandom, 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
+		return (getDimension().cosRotate() * rx) + (-getDimension().sinRotate() * rz) + getDimension().getCoordFracture(getMasterRandom(), 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
 	}
 
 	public double getModifiedZ(int rx, int rz)
 	{
-		return (getDimension().sinRotate() * rx) + (getDimension().cosRotate() * rz) +
-
-				getDimension().getCoordFracture(masterRandom, 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
+		return (getDimension().sinRotate() * rx) + (getDimension().cosRotate() * rz) + getDimension().getCoordFracture(getMasterRandom(), 39392).fitDouble(-getDimension().getCoordFractureDistance() / 2, getDimension().getCoordFractureDistance() / 2, rx, rz);
 	}
 
 	public double getZoomed(double modified)

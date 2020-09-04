@@ -20,32 +20,29 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 {
 	private GroupedExecutor accelerant;
 	private int threads;
-	protected int cacheX;
-	protected int cacheZ;
-	protected boolean cachingAllowed;
+	private boolean cachingAllowed;
 
 	public ParallelChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName);
-		cacheX = 0;
-		cacheZ = 0;
-		this.threads = threads;
-		cachingAllowed = false;
+		setThreads(threads);
+		setCachingAllowed(false);
 	}
 
 	public void changeThreadCount(int tc)
 	{
-		threads = tc;
-		GroupedExecutor e = accelerant;
-		accelerant = new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + world.getName());
-		Iris.executors.add(accelerant);
+		setThreads(tc);
+		GroupedExecutor e = getAccelerant();
+		setAccelerant(new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + getWorld().getName()));
+		;
+		Iris.executors.add(getAccelerant());
 
 		if(e != null)
 		{
 			e.close();
 		}
 
-		Iris.info("Thread Count changed to " + tc);
+		Iris.info("Thread Count changed to " + getThreads());
 	}
 
 	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
@@ -68,9 +65,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
 	{
-		cacheX = x;
-		cacheZ = z;
-		getCache().targetChunk(cacheX, cacheZ);
+		getCache().targetChunk(x, z);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = new AtomicSliverMap();
 		HeightMap height = new HeightMap();
@@ -114,14 +109,14 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected void onClose()
 	{
-		accelerant.close();
+		getAccelerant().close();
 		Iris.executors.remove(accelerant);
 	}
 
 	public void onInit(World world, RNG rng)
 	{
 		super.onInit(world, rng);
-		changeThreadCount(threads);
+		changeThreadCount(getThreads());
 	}
 
 	@Override

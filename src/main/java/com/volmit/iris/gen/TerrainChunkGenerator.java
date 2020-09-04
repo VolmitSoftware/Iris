@@ -45,18 +45,18 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private long lastChunkLoad = M.ms();
 	private GenLayerCave glCave;
 	private GenLayerCarve glCarve;
-	protected GenLayerBiome glBiome;
+	private GenLayerBiome glBiome;
 	private RNG rockRandom;
-	protected IrisLock regLock;
+	private IrisLock regionLock;
 	private KMap<String, IrisGenerator> generators;
-	protected CNG masterFracture;
-	protected ChronoLatch cwarn = new ChronoLatch(1000);
+	private CNG masterFracture;
+	private ChronoLatch cwarn = new ChronoLatch(1000);
 
 	public TerrainChunkGenerator(String dimensionName, int threads)
 	{
 		super(dimensionName, threads);
-		generators = new KMap<>();
-		regLock = new IrisLock("BiomeChunkGenerator");
+		setGenerators(new KMap<>());
+		setRegionLock(new IrisLock("BiomeChunkGenerator"));
 	}
 
 	@Override
@@ -64,16 +64,16 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	{
 		super.onInit(world, rng);
 		loadGenerators();
-		buildGenLayers(masterRandom);
+		buildGenLayers(getMasterRandom());
 	}
 
 	private void buildGenLayers(RNG rng)
 	{
-		glBiome = new GenLayerBiome(this, rng.nextParallelRNG(24671));
-		masterFracture = CNG.signature(rng.nextParallelRNG(13)).scale(0.12);
-		rockRandom = getMasterRandom().nextParallelRNG(2858678);
-		glCave = new GenLayerCave(this, rng.nextParallelRNG(238948));
-		glCarve = new GenLayerCarve(this, rng.nextParallelRNG(968346576));
+		setGlBiome(new GenLayerBiome(this, rng.nextParallelRNG(24671)));
+		setMasterFracture(CNG.signature(rng.nextParallelRNG(13)).scale(0.12));
+		setRockRandom(getMasterRandom().nextParallelRNG(2858678));
+		setGlCave(new GenLayerCave(this, rng.nextParallelRNG(238948)));
+		setGlCarve(new GenLayerCarve(this, rng.nextParallelRNG(968346576)));
 	}
 
 	public int getCarvedHeight(int x, int z, boolean ignoreFluid)
@@ -144,9 +144,9 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			throw new RuntimeException("Null Biome!");
 		}
 
-		KList<BlockData> layers = biome.generateLayers(rx, rz, masterRandom, height, height - getFluidHeight());
+		KList<BlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight());
 		KList<BlockData> cavernLayers = null;
-		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, masterRandom, fluidHeight - height) : new KList<>();
+		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height) : new KList<>();
 		boolean caverning = false;
 		KList<Integer> cavernHeights = new KList<>();
 		int lastCavernHeight = -1;
@@ -174,13 +174,13 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			}
 
 			// Carving
-			if(carvable && glCarve.isCarved(rx, k, rz))
+			if(carvable && getGlCarve().isCarved(rx, k, rz))
 			{
 				if(biomeMap != null)
 				{
 					if(landBiome == null)
 					{
-						landBiome = glBiome.generateData(InferredType.LAND, x, z, x, z, region);
+						landBiome = getGlBiome().generateData(InferredType.LAND, x, z, x, z, region);
 					}
 
 					sliver.set(k, landBiome.getDerivative());
@@ -204,19 +204,19 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			if(!biomeAssigned && biomeMap != null)
 			{
 				biomeAssigned = true;
-				sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
+				sliver.set(k, biome.getGroundBiome(getMasterRandom(), rz, k, rx));
 				biomeMap.setBiome(x, z, biome);
 
 				for(int kv = max; kv < biomeMax; kv++)
 				{
-					Biome skyBiome = biome.getSkyBiome(masterRandom, rz, kv, rx);
+					Biome skyBiome = biome.getSkyBiome(getMasterRandom(), rz, kv, rx);
 					sliver.set(kv, skyBiome);
 				}
 			}
 
 			if(k <= Math.max(height, fluidHeight))
 			{
-				sliver.set(k, biome.getGroundBiome(masterRandom, rz, k, rx));
+				sliver.set(k, biome.getGroundBiome(getMasterRandom(), rz, k, rx));
 			}
 
 			// Set Sea Material (water/lava)
@@ -230,12 +230,12 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				if(landBiome == null)
 				{
-					landBiome = glBiome.generateData(InferredType.LAND, x, z, x, z, region);
+					landBiome = getGlBiome().generateData(InferredType.LAND, x, z, x, z, region);
 				}
 
 				if(cavernLayers == null)
 				{
-					cavernLayers = landBiome.generateLayers(rx, rz, masterRandom, 5, height - getFluidHeight());
+					cavernLayers = landBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight());
 				}
 
 				block = cavernLayers.get(lastCavernHeight - k);
@@ -262,7 +262,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				if(landBiome == null)
 				{
-					landBiome = glBiome.generateData(InferredType.LAND, z, x, x, z, region);
+					landBiome = getGlBiome().generateData(InferredType.LAND, z, x, x, z, region);
 				}
 
 				decorateLand(landBiome, sliver, wx, k, wz, rx, rz, block);
@@ -281,7 +281,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				for(int j = i.getFloor(); j <= i.getCeiling(); j++)
 				{
 					sliver.set(j, caveBiome);
-					sliver.set(j, caveBiome.getGroundBiome(masterRandom, rz, j, rx));
+					sliver.set(j, caveBiome.getGroundBiome(getMasterRandom(), rz, j, rx));
 				}
 
 				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);
@@ -700,21 +700,21 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		super.onHotload();
 		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		loadGenerators();
-		buildGenLayers(masterRandom);
+		buildGenLayers(getMasterRandom());
 	}
 
 	public void registerGenerator(IrisGenerator g, IrisDimension dim)
 	{
 		KMap<String, IrisGenerator> generators = this.generators;
 
-		regLock.lock();
+		getRegionLock().lock();
 		if(g.getLoadKey() == null || generators.containsKey(g.getLoadKey()))
 		{
-			regLock.unlock();
+			getRegionLock().unlock();
 			return;
 		}
 
-		regLock.unlock();
+		getRegionLock().unlock();
 		generators.put(g.getLoadKey(), g);
 	}
 
@@ -793,7 +793,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return 0;
 		});
 
-		return M.lerp(lo, hi, gen.getHeight(rx, rz, world.getSeed() + 239945));
+		return M.lerp(lo, hi, gen.getHeight(rx, rz, getWorld().getSeed() + 239945));
 	}
 
 	protected void loadGenerators()

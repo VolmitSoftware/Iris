@@ -35,12 +35,12 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
 	private KList<IrisEffect> effects = new KList<>();
-	
+
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this region")
 	@ArrayType(min = 1, type = IrisEntitySpawn.class)
 	private KList<IrisEntitySpawn> entitySpawns = new KList<>();
-	
+
 	@MinNumber(1)
 	@MaxNumber(256)
 	@DontObfuscate
@@ -62,6 +62,11 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("The shore ration (How much percent of land should be a shore)")
 	private double shoreRatio = 0.13;
+
+	@ArrayType(min = 1, type = IrisObjectPlacement.class)
+	@DontObfuscate
+	@Desc("Objects define what schematics (iob files) iris will place in this region")
+	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 
 	@MinNumber(0)
 	@DontObfuscate

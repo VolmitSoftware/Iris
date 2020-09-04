@@ -177,7 +177,7 @@ public class IrisStructure extends IrisRegistrant
 	{
 		return wallGenerator.aquire(() ->
 		{
-			RNG rngx = rng.nextParallelRNG((int) (name.hashCode() + gridHeight - gridSize + maxLayers + tiles.size()));
+			RNG rngx = new RNG(228385999).nextParallelRNG((int) (name.hashCode() + gridHeight - gridSize + maxLayers + tiles.size()));
 			return wallStyle.create(rngx).scale(0.8);
 		});
 	}

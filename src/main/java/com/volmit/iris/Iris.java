@@ -290,15 +290,15 @@ public class Iris extends MortarPlugin
 		};
         String[] splash = {
                 padd + C.GRAY + " @%%%%%%%%%%%%%%%%%%%%                         ",
-                padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + "  ((()))                     ",
-                padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + "  ((((((()))))))                 ",
-                padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + "  (((((((((())))))))))  " + C.GRAY + "           @  ",
+                padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + "  .((())).                     ",
+                padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + "  .((((((())))))).                 ",
+                padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + "  .(((((((((()))))))))).  " + C.GRAY + "           @  ",
                 padd + C.GRAY + "@@@&&&&@@@@@&" + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "          @@ ",
                 padd + C.GRAY + "@@@          " + C.GREEN + "  (((((((((|0|)))))))))  " + C.GRAY + "          @@@",
                 padd + C.GRAY + "@@           " + C.GREEN + "  ((((((((((-))))))))))  " + C.GRAY + "&%%%%%%%%%@@@",
-                padd + C.GRAY + "@            " + C.GREEN + "  (((((((((())))))))))  " + C.GRAY + "&&&&%%%%%%@@@",
-                padd + C.GRAY + "                " + C.GREEN + "  ((((((())))))))  " + C.GRAY + "&&&&&&&&%%&&%@@@",
-                padd + C.GRAY + "                    " + C.GREEN + "  ((()))  " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
+                padd + C.GRAY + "@            " + C.GREEN + "  .(((((((((()))))))))).  " + C.GRAY + "&&&&%%%%%%@@@",
+                padd + C.GRAY + "                " + C.GREEN + "  .((((((()))))))).  " + C.GRAY + "&&&&&&&&%%&&%@@@",
+                padd + C.GRAY + "                    " + C.GREEN + "  .((())).  " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
                 padd + C.GRAY + "                        @@@@@@@&&&&&&&&&&&&&@   "
         };
 		//@done

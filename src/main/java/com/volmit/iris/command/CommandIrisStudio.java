@@ -15,7 +15,7 @@ public class CommandIrisStudio extends MortarCommand
 
 	@Command
 	private CommandIrisStudioClose close;
-	
+
 	@Command
 	private CommandIrisStudioDownload download;
 
@@ -53,7 +53,10 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisHotload hotload;
 
 	@Command
-	private CommandIrisTC tc;
+	private CommandIrisCTC ctc;
+
+	@Command
+	private CommandIrisLMM lmm;
 
 	@Command
 	private CommandIrisLoot loot;

@@ -47,6 +47,7 @@ public class Iris extends MortarPlugin
 	public static IrisBoardManager board;
 	public static MultiverseCoreLink linkMultiverseCore;
 	private static IrisLock lock = new IrisLock("Iris");
+	public static boolean lowMemoryMode = false;
 
 	@Permission
 	public static PermissionIris perm;
@@ -57,6 +58,7 @@ public class Iris extends MortarPlugin
 	public Iris()
 	{
 		IO.delete(new File("iris"));
+		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4 * 1000 * 1000 * 1000;
 	}
 
 	@Override
@@ -309,5 +311,10 @@ public class Iris extends MortarPlugin
 		}
 
 		Iris.info("\n\n " + new KList<String>(splash).toString("\n") + "\n");
+
+		if(lowMemoryMode)
+		{
+			Iris.warn("Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
+		}
 	}
 }

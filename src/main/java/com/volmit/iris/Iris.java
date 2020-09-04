@@ -25,6 +25,7 @@ import com.volmit.iris.gen.post.PostWallPatcher;
 import com.volmit.iris.gen.post.PostWaterlogger;
 import com.volmit.iris.link.MultiverseCoreLink;
 import com.volmit.iris.util.C;
+import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
@@ -88,6 +89,7 @@ public class Iris extends MortarPlugin
 		board = new IrisBoardManager();
 		linkMultiverseCore = new MultiverseCoreLink();
 		J.a(() -> IO.delete(getTemp()));
+		J.s(this::splash, 20);
 		super.onEnable();
 	}
 
@@ -269,5 +271,43 @@ public class Iris extends MortarPlugin
 	public void hit(long hits2)
 	{
 		board.hits.put(hits2);
+	}
+
+	public void splash()
+	{
+		//@builder
+		String padd = Form.repeat(" ", 8);
+		String padd2 = Form.repeat(" ", 4);
+		String[] info = {
+				"",
+				"",
+				"",
+				"",
+				"",
+				padd2 + C.GREEN + " Iris",
+				padd2 + C.GRAY + " by "+C.randomColor()+"V"+C.randomColor()+"o"+C.randomColor()+"l"+C.randomColor()+"m"+C.randomColor()+"i"+C.randomColor()+"t"+C.randomColor()+"S"+C.randomColor()+"o"+C.randomColor()+"f"+C.randomColor()+"t"+C.randomColor()+"w"+C.randomColor()+"a"+C.randomColor()+"r"+C.randomColor()+"e",
+				padd2 + C.GRAY + " v" + getDescription().getVersion(),
+		};
+		String[] splash = {
+				padd + C.GRAY + " @%%%%%%%%%%%%%%%%%%%%                         ",
+				padd + C.GRAY + " @@&&&&&&&&&&&&&&&%%" + C.GREEN + " ((((((                     ",
+				padd + C.GRAY + "@@@&&&&&&&&&&&&&" + C.GREEN + " ((((((((((((((                 ",
+				padd + C.GRAY + "@@@&&&&&&&&&&" + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @  ",
+				padd + C.GRAY + "@@@&&&&@@@@@&" + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @@ ",
+				padd + C.GRAY + "@@@          " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "          @@@",
+				padd + C.GRAY + "@@           " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "&%%%%%%%%%@@@",
+				padd + C.GRAY + "@            " + C.GREEN + " (((((((((((((((((((( " + C.GRAY + "&&&&%%%%%%@@@",
+				padd + C.GRAY + "                " + C.GREEN + " (((((((((((((( " + C.GRAY + "&&&&&&&&%%&&%@@@",
+				padd + C.GRAY + "                    " + C.GREEN + " (((((( " + C.GRAY + "@@@&&&&&&&&&&&&%%@@ ",
+				padd + C.GRAY + "                        @@@@@@@&&&&&&&&&&&&&@   "
+		};
+		//@done
+
+		for(int i = 0; i < info.length; i++)
+		{
+			splash[i] += info[i];
+		}
+
+		Iris.info("\n\n " + new KList<String>(splash).toString("\n") + "\n");
 	}
 }

@@ -285,16 +285,6 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 						k.place(this, random.nextParallelRNG(-22228 + -4228 + -7228 + (34 * ((i * 30) + (j * 30)) * i * j) + i - j + 1569962), i, j);
 					}
 
-					for(IrisStructurePlacement k : r.getStructures())
-					{
-						k.place(this, random.nextParallelRNG(2228), i, j);
-					}
-
-					for(IrisStructurePlacement k : b.getStructures())
-					{
-						k.place(this, random.nextParallelRNG(-22228), i, j);
-					}
-
 					for(IrisObjectPlacement k : b.getObjects())
 					{
 						int gg = g++;
@@ -324,6 +314,17 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 							placeCaveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + gg) * i * j) + i - j + 1869322));
 						}
 					}
+
+					for(IrisStructurePlacement k : r.getStructures())
+					{
+						k.place(this, random.nextParallelRNG(2228), i, j);
+					}
+
+					for(IrisStructurePlacement k : b.getStructures())
+					{
+						k.place(this, random.nextParallelRNG(-22228), i, j);
+					}
+
 				});
 
 				getParallaxChunk(ii, jj).setParallaxGenerated(true);

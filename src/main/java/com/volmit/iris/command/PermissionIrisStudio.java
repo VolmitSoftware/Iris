@@ -4,6 +4,11 @@ import com.volmit.iris.util.MortarPermission;
 
 public class PermissionIrisStudio extends MortarPermission
 {
+	public PermissionIrisStudio()
+	{
+		super();
+	}
+
 	@Override
 	protected String getNode()
 	{

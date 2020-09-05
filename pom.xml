@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>bytecode.ninja</groupId>
 	<artifactId>Iris</artifactId>
-	<version>1.0</version>
+	<version>1.0.1</version>
 	<name>Iris</name>
 	<properties>
 		<skip.copy>false</skip.copy>
@@ -43,6 +43,11 @@
 						</goals>
 						<configuration>
 							<minimizeJar>false</minimizeJar>
+							<artifactSet>
+								<excludes>
+									<exclude>org.slf4j:*</exclude>
+								</excludes>
+							</artifactSet>
 						</configuration>
 					</execution>
 				</executions>
@@ -148,6 +153,10 @@
 			<id>bcn</id>
 			<url>http://bytecode.ninja/repository/bcn/</url>
 		</repository>
+		<repository>
+			<id>CodeMC</id>
+			<url>https://repo.codemc.org/repository/maven-public</url>
+		</repository>
 	</repositories>
 	<dependencies>
 		<!-- Spigot API -->
@@ -157,13 +166,12 @@
 			<version>1.16.1-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.16.2</artifactId>
-			<version>1.16.2</version>
-			<scope>provided</scope>
-		</dependency>
 		<!-- Utilities -->
+		<dependency>
+			<groupId>org.bstats</groupId>
+			<artifactId>bstats-bukkit</artifactId>
+			<version>1.7</version>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

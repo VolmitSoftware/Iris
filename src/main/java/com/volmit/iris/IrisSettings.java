@@ -43,6 +43,10 @@ public class IrisSettings
 	public boolean openVSCode = true;
 
 	@DontObfuscate
+	@Desc("Collects anonymous metrics for bstats")
+	public boolean metrics = true;
+
+	@DontObfuscate
 	@Desc("Used to activate Iris")
 	public String activationCode = "";
 

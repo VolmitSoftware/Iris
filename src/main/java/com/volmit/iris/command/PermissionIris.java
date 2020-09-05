@@ -7,6 +7,11 @@ public class PermissionIris extends MortarPermission
 {
 	@Permission
 	public PermissionIrisStudio studio;
+	
+	public PermissionIris()
+	{
+		super();
+	}
 
 	@Override
 	protected String getNode()

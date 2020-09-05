@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -115,8 +116,14 @@ public class Iris extends MortarPlugin
 		board = new IrisBoardManager();
 		linkMultiverseCore = new MultiverseCoreLink();
 		J.a(() -> IO.delete(getTemp()));
+		J.a(() -> bstats());
 		J.s(this::splash, 20);
 		super.onEnable();
+	}
+
+	private void bstats()
+	{
+		new Metrics(this, 8757);
 	}
 
 	public static File getTemp()

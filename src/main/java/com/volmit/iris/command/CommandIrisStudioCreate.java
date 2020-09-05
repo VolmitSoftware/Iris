@@ -25,14 +25,32 @@ public class CommandIrisStudioCreate extends MortarCommand
 			return true;
 		}
 
-		if(args.length != 1)
+		if(args.length < 1)
 		{
 			sender.sendMessage("Please use a lowercase name with hyphens (-) for spaces.");
 			sender.sendMessage("I.e. /iris std new " + C.BOLD + "aether");
 			return true;
 		}
 
-		Iris.proj.create(sender, args[0]);
+		String template = null;
+
+		for(String i : args)
+		{
+			if(i.startsWith("template="))
+			{
+				template = i.split("\\Q=\\E")[1];
+			}
+		}
+
+		if(template != null)
+		{
+			Iris.proj.create(sender, args[0], template);
+		}
+
+		else
+		{
+			Iris.proj.create(sender, args[0]);
+		}
 
 		return true;
 	}
@@ -40,6 +58,6 @@ public class CommandIrisStudioCreate extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[dimension]";
+		return "[dimension] [template=<project>]";
 	}
 }

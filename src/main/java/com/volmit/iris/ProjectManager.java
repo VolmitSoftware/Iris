@@ -3,6 +3,7 @@ package com.volmit.iris;
 import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -36,6 +37,7 @@ import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.object.IrisInterpolator;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisObjectPlacement;
@@ -676,7 +678,125 @@ public class ProjectManager
 		return null;
 	}
 
+	public void createFrom(String existingPack, String newName)
+	{
+		File importPack = Iris.instance.getDataFolder("packs", existingPack);
+		File newPack = Iris.instance.getDataFolder("packs", newName);
+
+		if(importPack.listFiles().length == 0)
+		{
+			Iris.warn("Couldn't find the pack to create a new dimension from.");
+			return;
+		}
+
+		try
+		{
+			FileUtils.copyDirectory(importPack, newPack, new FileFilter()
+			{
+				@Override
+				public boolean accept(File pathname)
+				{
+					return !pathname.getAbsolutePath().contains(".git");
+				}
+			}, false);
+		}
+
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		new File(importPack, existingPack + ".code-workspace").delete();
+		File dimFile = new File(importPack, "dimensions/" + existingPack + ".json");
+		File newDimFile = new File(newPack, "dimensions/" + newName + ".json");
+
+		try
+		{
+			FileUtils.copyFile(dimFile, newDimFile);
+		}
+
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		new File(newPack, "dimensions/" + existingPack + ".json").delete();
+
+		try
+		{
+			JSONObject json = new JSONObject(IO.readAll(newDimFile));
+
+			if(json.has("name"))
+			{
+				json.put("name", Form.capitalizeWords(newName.replaceAll("\\Q-\\E", " ")));
+				IO.writeAll(newDimFile, json.toString(4));
+			}
+		}
+
+		catch(JSONException | IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		try
+		{
+			JSONObject ws = newWorkspaceConfig();
+			IO.writeAll(Iris.instance.getDataFile("packs", newName, newName + ".code-workspace"), ws.toString(0));
+		}
+
+		catch(JSONException | IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void create(MortarSender sender, String s, String downloadable)
+	{
+		boolean shouldDelete = false;
+		File importPack = Iris.instance.getDataFolder("packs", downloadable);
+
+		if(importPack.listFiles().length == 0)
+		{
+			downloadSearch(sender, downloadable, false);
+
+			if(importPack.listFiles().length > 0)
+			{
+				shouldDelete = true;
+			}
+		}
+
+		if(importPack.listFiles().length == 0)
+		{
+			sender.sendMessage("Couldn't find the pack to create a new dimension from.");
+			return;
+		}
+
+		File importDimensionFile = new File(importPack, "dimensions/" + downloadable + ".json");
+
+		if(!importDimensionFile.exists())
+		{
+			sender.sendMessage("Missing Imported Dimension File");
+			return;
+		}
+
+		sender.sendMessage("Importing " + downloadable + " into new Project " + s);
+		createFrom(downloadable, s);
+		if(shouldDelete)
+		{
+			importPack.delete();
+		}
+		Iris.proj.open(sender, s);
+	}
+
 	public void create(MortarSender sender, String s)
+	{
+		if(generate(sender, s))
+		{
+			Iris.proj.open(sender, s);
+		}
+	}
+
+	private boolean generate(MortarSender sender, String s)
 	{
 		IrisDimension dimension = new IrisDimension();
 		dimension.setLoadKey(s);
@@ -685,7 +805,7 @@ public class ProjectManager
 		if(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json").exists())
 		{
 			sender.sendMessage("Project Already Exists! Open it instead!");
-			return;
+			return false;
 		}
 		sender.sendMessage("Creating New Project \"" + dimension.getName() + "\"...");
 		IrisRegion exampleRegion = new IrisRegion();
@@ -709,6 +829,10 @@ public class ProjectManager
 		IrisGenerator gen = new IrisGenerator();
 		IrisNoiseGenerator gg = new IrisNoiseGenerator(true);
 		gen.getComposite().add(gg);
+		IrisInterpolator it = new IrisInterpolator();
+		it.setFunction(InterpolationMethod.BILINEAR_STARCAST_9);
+		it.setHorizontalScale(9);
+		gen.setInterpolator(it);
 		gen.setLoadKey("example-generator");
 		IrisBiomeGeneratorLink b1 = new IrisBiomeGeneratorLink();
 		b1.setGenerator(gen.getLoadKey());
@@ -757,14 +881,16 @@ public class ProjectManager
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleOcean1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "generators", gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(0));
-			Iris.proj.open(sender, dimension.getName());
 		}
 
 		catch(JSONException | IOException e)
 		{
 			sender.sendMessage("Failed! Check the console.");
 			e.printStackTrace();
+			return false;
 		}
+
+		return true;
 	}
 
 	private JSONObject newWorkspaceConfig()

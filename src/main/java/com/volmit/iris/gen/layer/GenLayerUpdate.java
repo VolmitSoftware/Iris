@@ -43,7 +43,7 @@ public class GenLayerUpdate extends BlockPopulator
 	{
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = gen.getParallaxChunk(c.getX(), c.getZ());
-		RNG rx = rng.nextParallelRNG(c.getX()).nextParallelRNG(c.getZ());
+		RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
 
 		for(int i = 0; i < 16; i++)
 		{
@@ -60,9 +60,9 @@ public class GenLayerUpdate extends BlockPopulator
 				}
 			}
 		}
+
 		p.end();
 		gen.getMetrics().getUpdate().put(p.getMilliseconds());
-
 	}
 
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)

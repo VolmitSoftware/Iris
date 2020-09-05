@@ -149,6 +149,8 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		KList<BlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight());
 		KList<BlockData> cavernLayers = null;
 		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height) : new KList<>();
+		BlockData biomeFluid = biome.getFluidType().isEmpty() ? null : B.get(biome.getFluidType());
+
 		boolean caverning = false;
 		KList<Integer> cavernHeights = new KList<>();
 		int lastCavernHeight = -1;
@@ -234,7 +236,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			// Set Sea Material (water/lava)
 			if(underwater)
 			{
-				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : getDimension().getFluid(rockRandom, wx, k, wz);
+				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : biomeFluid != null ? biomeFluid : getDimension().getFluid(rockRandom, wx, k, wz);
 			}
 
 			// Set Surface Material for cavern layer surfaces

@@ -1,12 +1,15 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStudioVerify extends MortarCommand {
-	public CommandIrisStudioVerify() {
+public class CommandIrisStudioVerify extends MortarCommand
+{
+	public CommandIrisStudioVerify()
+	{
 		super("verify", "check", "v");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Check project for warnings and issues");
@@ -14,8 +17,16 @@ public class CommandIrisStudioVerify extends MortarCommand {
 	}
 
 	@Override
-	public boolean handle(MortarSender sender, String[] args) {
-		if (args.length != 1) {
+	public boolean handle(MortarSender sender, String[] args)
+	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+
+		if(args.length != 1)
+		{
 			sender.sendMessage("/iris std verify <DIMENSION> (file name without .json)");
 		}
 
@@ -25,12 +36,15 @@ public class CommandIrisStudioVerify extends MortarCommand {
 		int e = 0;
 		int w = 0;
 
-		for (String i : mm) {
-			if (i.contains("ERROR")) {
+		for(String i : mm)
+		{
+			if(i.contains("ERROR"))
+			{
 				e++;
 			}
 
-			if (i.contains("WARN")) {
+			if(i.contains("WARN"))
+			{
 				w++;
 			}
 		}
@@ -42,7 +56,8 @@ public class CommandIrisStudioVerify extends MortarCommand {
 	}
 
 	@Override
-	protected String getArgsUsage() {
+	protected String getArgsUsage()
+	{
 		return "[dimension]";
 	}
 }

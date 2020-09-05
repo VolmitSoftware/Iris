@@ -6,6 +6,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.util.KList;
@@ -14,9 +15,9 @@ import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.RNG;
 
-public class CommandIrisLoot extends MortarCommand
+public class CommandIrisStudioLoot extends MortarCommand
 {
-	public CommandIrisLoot()
+	public CommandIrisStudioLoot()
 	{
 		super("loot");
 		setDescription("Show loot if a chest were right here");
@@ -27,6 +28,12 @@ public class CommandIrisLoot extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();

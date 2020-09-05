@@ -5,15 +5,16 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.RNG;
 
-public class CommandIrisGoto extends MortarCommand
+public class CommandIrisStudioGoto extends MortarCommand
 {
-	public CommandIrisGoto()
+	public CommandIrisStudioGoto()
 	{
 		super("goto", "find");
 		setDescription("Find any biome or a biome border");
@@ -24,6 +25,12 @@ public class CommandIrisGoto extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+		
 		if(args.length < 1)
 		{
 			sender.sendMessage("/iris world goto " + getArgsUsage());

@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.StructureTemplate;
@@ -20,6 +21,12 @@ public class CommandIrisStructureClose extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio Structures, please enable studio in Iris/settings.json");
+			return true;
+		}
+		
 		if(!sender.isPlayer())
 		{
 			sender.sendMessage("You don't have a wand");

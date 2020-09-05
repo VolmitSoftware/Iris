@@ -85,7 +85,6 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			IrisObject t = new IrisObject(0, 0, 0);
 			t.read(j);
 			loadCache.put(key, t);
-			Iris.hotloader.track(j);
 			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
 			lock.unlock();

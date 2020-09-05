@@ -8,19 +8,31 @@ import com.volmit.iris.util.MortarSender;
 public class CommandIris extends MortarCommand
 {
 	@Command
+	private CommandIrisCreate create;
+	
+	@Command
 	private CommandIrisStudio studio;
-
-	@Command
-	private CommandIrisWhat what;
-
-	@Command
-	private CommandIrisObject object;
 
 	@Command
 	private CommandIrisStructure structure;
 
 	@Command
-	private CommandIrisCreate create;
+	private CommandIrisObject object;
+
+	@Command
+	private CommandIrisWhat what;
+
+	@Command
+	private CommandIrisMetrics metrics;
+
+	@Command
+	private CommandIrisCTC ctc;
+
+	@Command
+	private CommandIrisLMM lmm;
+
+	@Command
+	private CommandIrisPregen pregen;
 
 	public CommandIris()
 	{

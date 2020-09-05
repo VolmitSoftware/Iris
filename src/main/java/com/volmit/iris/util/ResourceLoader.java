@@ -83,7 +83,6 @@ public class ResourceLoader<T extends IrisRegistrant>
 		{
 			T t = new Gson().fromJson(IO.readAll(j), objectClass);
 			loadCache.put(key, t);
-			Iris.hotloader.track(j);
 			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
 			t.setLoadFile(j);

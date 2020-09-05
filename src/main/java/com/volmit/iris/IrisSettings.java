@@ -10,6 +10,9 @@ import com.volmit.iris.util.IO;
 import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
 
+import lombok.Data;
+
+@Data
 public class IrisSettings
 {
 	public static transient IrisSettings settings;
@@ -35,8 +38,12 @@ public class IrisSettings
 	public boolean sharedCaching = true;
 
 	@DontObfuscate
-	@Desc("Allows configs to be changed and hotloaded without reloading.")
-	public boolean hotloading = true;
+	@Desc("Allows Iris to use studio commands & design worlds.")
+	public boolean studio = false;
+
+	@DontObfuscate
+	@Desc("Allows iris to launch guis through the server process. Useful for local development.")
+	public boolean useServerLaunchedGuis = true;
 
 	@DontObfuscate
 	@Desc("When using studio open or create, open the codeworkspace automatically.")

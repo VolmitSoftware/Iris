@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.WandManager;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -26,6 +27,12 @@ public class CommandIrisObjectP1 extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio Objects, please enable studio in Iris/settings.json");
+			return true;
+		}
+		
 		if(!sender.isPlayer())
 		{
 			sender.sendMessage("You don't have a wand");

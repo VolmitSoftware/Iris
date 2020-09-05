@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import java.io.File;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -20,6 +21,12 @@ public class CommandIrisStudioList extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+
 		int m = 0;
 		for(File i : Iris.globaldata.getDimensionLoader().getFolders())
 		{

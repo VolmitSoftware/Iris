@@ -196,7 +196,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	@Override
 	public void onHotloaded()
 	{
-		if(!IrisSettings.get().hotloading)
+		if(!IrisSettings.get().isStudio())
 		{
 			return;
 		}

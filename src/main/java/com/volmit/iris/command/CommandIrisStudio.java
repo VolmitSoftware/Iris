@@ -1,6 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -29,37 +30,22 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioUpdate update;
 
 	@Command
-	private CommandIrisMap map;
+	private CommandIrisStudioMap map;
 
 	@Command
 	private CommandIrisStudioList list;
 
 	@Command
-	private CommandIrisGoto got0;
+	private CommandIrisStudioGoto got0;
 
 	@Command
-	private CommandIrisEditBiome ebiome;
+	private CommandIrisStudioEditBiome ebiome;
 
 	@Command
-	private CommandIrisMetrics metrics;
+	private CommandIrisStudioHotload hotload;
 
 	@Command
-	private CommandIrisPregen pregen;
-
-	@Command
-	private CommandIrisPregen world;
-
-	@Command
-	private CommandIrisHotload hotload;
-
-	@Command
-	private CommandIrisCTC ctc;
-
-	@Command
-	private CommandIrisLMM lmm;
-
-	@Command
-	private CommandIrisLoot loot;
+	private CommandIrisStudioLoot loot;
 
 	public CommandIrisStudio()
 	{
@@ -71,6 +57,12 @@ public class CommandIrisStudio extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+
 		sender.sendMessage("Iris Studio Commands");
 		printHelp(sender);
 		return true;

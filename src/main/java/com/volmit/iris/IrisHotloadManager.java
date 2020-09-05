@@ -17,12 +17,26 @@ public class IrisHotloadManager
 
 	public IrisHotloadManager()
 	{
-		w = new FolderWatcher(Iris.instance.getDataFolder("packs"));
+		if(!IrisSettings.get().studio)
+		{
+			w = null;
+		}
+
+		else
+		{
+			w = new FolderWatcher(Iris.instance.getDataFolder("packs"));
+		}
+
 		latch = new ChronoLatch(3000);
 	}
 
 	public void check(IrisContext ch)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			return;
+		}
+
 		if(!latch.flip())
 		{
 			return;
@@ -154,10 +168,5 @@ public class IrisHotloadManager
 				busy = false;
 			}
 		});
-	}
-
-	public void track(File file)
-	{
-
 	}
 }

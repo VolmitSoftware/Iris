@@ -6,12 +6,13 @@ import java.io.File;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisEditBiome extends MortarCommand
+public class CommandIrisStudioEditBiome extends MortarCommand
 {
-	public CommandIrisEditBiome()
+	public CommandIrisStudioEditBiome()
 	{
 		super("editbiome", "ebiome", "eb");
 		setDescription("Open this biome file in vscode");
@@ -22,6 +23,12 @@ public class CommandIrisEditBiome extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+			return true;
+		}
+		
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();

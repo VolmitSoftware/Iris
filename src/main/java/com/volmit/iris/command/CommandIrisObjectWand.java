@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import org.bukkit.Sound;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.WandManager;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -20,6 +21,12 @@ public class CommandIrisObjectWand extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(!IrisSettings.get().isStudio())
+		{
+			sender.sendMessage("To use Iris Studio Objects, please enable studio in Iris/settings.json");
+			return true;
+		}
+		
 		if(!sender.isPlayer())
 		{
 			sender.sendMessage("You don't have an inventory");

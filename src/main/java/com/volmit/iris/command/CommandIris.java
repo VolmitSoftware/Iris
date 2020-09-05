@@ -9,7 +9,7 @@ public class CommandIris extends MortarCommand
 {
 	@Command
 	private CommandIrisCreate create;
-	
+
 	@Command
 	private CommandIrisStudio studio;
 
@@ -19,6 +19,9 @@ public class CommandIris extends MortarCommand
 	@Command
 	private CommandIrisObject object;
 
+	@Command
+	private CommandIrisDownload download;
+	
 	@Command
 	private CommandIrisWhat what;
 

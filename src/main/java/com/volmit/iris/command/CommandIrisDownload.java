@@ -7,9 +7,9 @@ import com.volmit.iris.util.J;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStudioDownload extends MortarCommand
+public class CommandIrisDownload extends MortarCommand
 {
-	public CommandIrisStudioDownload()
+	public CommandIrisDownload()
 	{
 		super("download", "down", "dl");
 		requiresPermission(Iris.perm.studio);
@@ -25,7 +25,7 @@ public class CommandIrisStudioDownload extends MortarCommand
 			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
 			return true;
 		}
-		
+
 		if(args.length < 1)
 		{
 			sender.sendMessage("/iris std dl " + C.BOLD + "<NAME>");

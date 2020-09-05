@@ -18,9 +18,6 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioClose close;
 
 	@Command
-	private CommandIrisStudioDownload download;
-
-	@Command
 	private CommandIrisStudioPackage pkg;
 
 	@Command

@@ -89,27 +89,30 @@ public class ProjectManager
 
 	public ProjectManager()
 	{
-		J.a(() ->
+		if(IrisSettings.get().isStudio())
 		{
-			File ignore = Iris.instance.getDataFile("packs", ".gitignore");
-
-			if(!ignore.exists())
+			J.a(() ->
 			{
-				File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
-				if(m != null)
+				File ignore = Iris.instance.getDataFile("packs", ".gitignore");
+
+				if(!ignore.exists())
 				{
-					try
+					File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
+					if(m != null)
 					{
-						IO.copyFile(m, ignore);
-					}
+						try
+						{
+							IO.copyFile(m, ignore);
+						}
 
-					catch(IOException e)
-					{
+						catch(IOException e)
+						{
 
+						}
 					}
 				}
-			}
-		});
+			});
+		}
 	}
 
 	public void downloadSearch(MortarSender sender, String key, boolean trim)

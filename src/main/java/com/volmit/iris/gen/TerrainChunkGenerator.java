@@ -184,7 +184,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 				{
 					if(landBiome == null)
 					{
-						landBiome = getGlBiome().generateData(InferredType.LAND, x, z, x, z, region);
+						landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
 					}
 
 					sliver.set(k, landBiome.getDerivative());
@@ -244,7 +244,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				if(landBiome == null)
 				{
-					landBiome = getGlBiome().generateData(InferredType.LAND, x, z, x, z, region);
+					landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
 				}
 
 				if(cavernLayers == null)
@@ -252,7 +252,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 					cavernLayers = landBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight());
 				}
 
-				block = cavernLayers.get(lastCavernHeight - k);
+				block = cavernLayers.hasIndex(lastCavernHeight - k) ? cavernLayers.get(lastCavernHeight - k) : cavernLayers.get(0);
 			}
 
 			// Set Surface Material for true surface
@@ -276,7 +276,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			{
 				if(landBiome == null)
 				{
-					landBiome = getGlBiome().generateData(InferredType.LAND, z, x, x, z, region);
+					landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
 				}
 
 				decorateLand(landBiome, sliver, wx, k, wz, rx, rz, block);

@@ -52,6 +52,11 @@ public class B
 		});
 	}
 
+	public static boolean isSolid(BlockData mat)
+	{
+		return isSolid(mat.getMaterial());
+	}
+
 	public static boolean isSolid(Material mat)
 	{
 		if(!solid.containsKey(mat))
@@ -311,6 +316,47 @@ public class B
 		return false;
 	}
 
+	public static boolean isFoliage(BlockData d)
+	{
+		if(isFluid(d) || isAir(d) || isSolid(d))
+		{
+			return false;
+		}
+
+		Material mat = d.getMaterial();
+		//@builder
+		return mat.equals(Material.POPPY) 
+				|| mat.equals(Material.DANDELION) 
+				|| mat.equals(B.mat("CORNFLOWER")) 
+				|| mat.equals(B.mat("SWEET_BERRY_BUSH"))
+				|| mat.equals(B.mat("CRIMSON_ROOTS")) 
+				|| mat.equals(B.mat("WARPED_ROOTS")) 
+				|| mat.equals(B.mat("NETHER_SPROUTS")) 
+				|| mat.equals(B.mat("ALLIUM")) 
+				|| mat.equals(B.mat("AZURE_BLUET")) 
+				|| mat.equals(B.mat("BLUE_ORCHID")) 
+				|| mat.equals(B.mat("POPPY")) 
+				|| mat.equals(B.mat("DANDELION")) 
+				|| mat.equals(B.mat("OXEYE_DAISY")) 
+				|| mat.equals(B.mat("LILY_OF_THE_VALLEY")) 
+				|| mat.equals(B.mat("WITHER_ROSE")) 
+				|| mat.equals(Material.DARK_OAK_SAPLING) 
+				|| mat.equals(Material.ACACIA_SAPLING) 
+				|| mat.equals(Material.JUNGLE_SAPLING) 
+				|| mat.equals(Material.BIRCH_SAPLING) 
+				|| mat.equals(Material.SPRUCE_SAPLING) 
+				|| mat.equals(Material.OAK_SAPLING) 
+				|| mat.equals(Material.ORANGE_TULIP) 
+				|| mat.equals(Material.PINK_TULIP) 
+				|| mat.equals(Material.RED_TULIP) 
+				|| mat.equals(Material.WHITE_TULIP) 
+				|| mat.equals(Material.FERN) 
+				|| mat.equals(Material.LARGE_FERN) 
+				|| mat.equals(Material.GRASS) 
+				|| mat.equals(Material.TALL_GRASS);
+		//@done
+	}
+
 	public static boolean canPlaceOnto(Material mat, Material onto)
 	{
 		String key = mat.name() + "" + onto.name();
@@ -318,6 +364,17 @@ public class B
 		if(canPlaceOn.contains(key))
 		{
 			return false;
+		}
+
+		if(isFoliage(B.get(mat.name())))
+		{
+			if(!isFoliagePlantable(B.get(onto.name())))
+			{
+				lock.lock();
+				canPlaceOn.add(key);
+				lock.unlock();
+				return false;
+			}
 		}
 
 		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR")))
@@ -339,17 +396,6 @@ public class B
 		if(onto.equals(Material.GRASS_PATH))
 		{
 			if(!mat.isSolid())
-			{
-				lock.lock();
-				canPlaceOn.add(key);
-				lock.unlock();
-				return false;
-			}
-		}
-
-		if(onto.equals(Material.STONE) || onto.equals(Material.GRAVEL) || onto.equals(Material.GRAVEL) || onto.equals(Material.ANDESITE) || onto.equals(Material.GRANITE) || onto.equals(Material.DIORITE) || onto.equals(B.mat("BLACKSTONE")) || onto.equals(B.mat("BASALT")))
-		{
-			if(mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS))
 			{
 				lock.lock();
 				canPlaceOn.add(key);
@@ -458,6 +504,16 @@ public class B
 		}
 
 		return b;
+	}
+
+	public static boolean isFoliagePlantable(BlockData d)
+	{
+		return d.getMaterial().equals(Material.GRASS_BLOCK) || d.getMaterial().equals(Material.DIRT) || d.getMaterial().equals(Material.COARSE_DIRT) || d.getMaterial().equals(Material.PODZOL);
+	}
+
+	public static boolean isFluid(BlockData d)
+	{
+		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.LAVA);
 	}
 
 	public static boolean isAir(BlockData d)

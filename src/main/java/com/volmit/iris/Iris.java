@@ -19,6 +19,7 @@ import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.gen.post.PostFloatingNibDeleter;
+import com.volmit.iris.gen.post.PostFoliageCleaner;
 import com.volmit.iris.gen.post.PostNibSmoother;
 import com.volmit.iris.gen.post.PostPotholeFiller;
 import com.volmit.iris.gen.post.PostSlabber;
@@ -150,7 +151,7 @@ public class Iris extends MortarPlugin
 				i.close();
 			}
 		}
-		
+
 		executors.clear();
 		board.disable();
 		Bukkit.getScheduler().cancelTasks(this);
@@ -163,6 +164,7 @@ public class Iris extends MortarPlugin
 		KList<Class<? extends IrisPostBlockFilter>> g = new KList<Class<? extends IrisPostBlockFilter>>();
 
 		g.add(PostFloatingNibDeleter.class);
+		g.add(PostFoliageCleaner.class);
 		g.add(PostNibSmoother.class);
 		g.add(PostPotholeFiller.class);
 		g.add(PostSlabber.class);

@@ -5,6 +5,7 @@ import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.post.PostFloatingNibDeleter;
+import com.volmit.iris.gen.post.PostFoliageCleaner;
 import com.volmit.iris.gen.post.PostNibSmoother;
 import com.volmit.iris.gen.post.PostPotholeFiller;
 import com.volmit.iris.gen.post.PostSlabber;
@@ -113,6 +114,11 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 		if(processor.equals("floating-block-remover"))
 		{
 			return new PostFloatingNibDeleter(this, phase);
+		}
+
+		if(processor.equals("foliage-cleaner"))
+		{
+			return new PostFoliageCleaner(this, phase);
 		}
 
 		if(processor.equals("nib-smoother"))

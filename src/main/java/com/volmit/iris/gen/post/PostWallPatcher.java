@@ -37,11 +37,11 @@ public class PostWallPatcher extends IrisPostBlockFilter
 
 		if(!biome.getWall().getPalette().isEmpty())
 		{
-			h = highestTerrainBlock(x, z);
-			ha = highestTerrainBlock(x + 1, z);
-			hb = highestTerrainBlock(x, z + 1);
-			hc = highestTerrainBlock(x - 1, z);
-			hd = highestTerrainBlock(x, z - 1);
+			h = highestTerrainOrCarvingBlock(x, z);
+			ha = highestTerrainOrCarvingBlock(x + 1, z);
+			hb = highestTerrainOrCarvingBlock(x, z + 1);
+			hc = highestTerrainOrCarvingBlock(x - 1, z);
+			hd = highestTerrainOrCarvingBlock(x, z - 1);
 
 			if(ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2)
 			{

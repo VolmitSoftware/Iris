@@ -251,6 +251,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
+	@ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
+	@DontObfuscate
+	@Desc("Overlay additional noise on top of the interoplated terrain.")
+	private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
+
 	@DontObfuscate
 	@Desc("The noise style for rock types")
 	private IrisGeneratorStyle rockStyle = NoiseStyle.STATIC.style();

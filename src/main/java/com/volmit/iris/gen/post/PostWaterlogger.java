@@ -30,7 +30,7 @@ public class PostWaterlogger extends IrisPostBlockFilter
 	@Override
 	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
-		int h = highestTerrainBlock(x, z);
+		int h = highestTerrainOrCarvingBlock(x, z);
 		BlockData b = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
 
 		if(b instanceof Waterlogged)

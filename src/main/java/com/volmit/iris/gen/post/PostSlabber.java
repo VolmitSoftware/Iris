@@ -32,11 +32,11 @@ public class PostSlabber extends IrisPostBlockFilter
 	@Override
 	public void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
-		int h = highestTerrainBlock(x, z);
-		int ha = highestTerrainBlock(x + 1, z);
-		int hb = highestTerrainBlock(x, z + 1);
-		int hc = highestTerrainBlock(x - 1, z);
-		int hd = highestTerrainBlock(x, z - 1);
+		int h = highestTerrainOrCarvingBlock(x, z);
+		int ha = highestTerrainOrCarvingBlock(x + 1, z);
+		int hb = highestTerrainOrCarvingBlock(x, z + 1);
+		int hc = highestTerrainOrCarvingBlock(x - 1, z);
+		int hd = highestTerrainOrCarvingBlock(x, z - 1);
 
 		if((ha == h + 1 && isSolid(x + 1, ha, z, currentPostX, currentPostZ, currentData)) || (hb == h + 1 && isSolid(x, hb, z + 1, currentPostX, currentPostZ, currentData)) || (hc == h + 1 && isSolid(x - 1, hc, z, currentPostX, currentPostZ, currentData)) || (hd == h + 1 && isSolid(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
 		{

@@ -23,6 +23,7 @@ import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisShapedGeneratorStyle;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
@@ -754,6 +755,11 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	protected double getBiomeHeight(double rrx, double rrz)
 	{
 		double h = getRawBiomeHeight(rrx, rrz);
+
+		for(IrisShapedGeneratorStyle i : getDimension().getOverlayNoise())
+		{
+			h += i.get(getMasterRandom(), rrx, rrz);
+		}
 
 		return h;
 	}

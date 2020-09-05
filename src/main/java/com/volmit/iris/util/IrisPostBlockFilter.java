@@ -61,6 +61,11 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		return gen.highestTerrainBlock(x, z);
 	}
 
+	public int highestTerrainOrCarvingBlock(int x, int z)
+	{
+		return gen.getCarvedHeight(x, z, true);
+	}
+
 	public boolean isAir(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);

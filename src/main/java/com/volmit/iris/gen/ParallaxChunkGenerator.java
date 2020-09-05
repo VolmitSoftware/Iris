@@ -186,11 +186,11 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		{
 			onGenerateParallax(random, x, z);
 			getParallaxChunk(x, z).inject(data);
+			getParallaxChunk(x, z).injectUpdates(map);
+			getParallaxChunk(x, z).setWorldGenerated(true);
 		}
 
-		getParallaxChunk(x, z).injectUpdates(map);
 		setSliverBuffer(getSliverCache().size());
-		getParallaxChunk(x, z).setWorldGenerated(true);
 		getMasterLock().clear();
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());

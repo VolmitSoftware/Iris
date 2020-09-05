@@ -133,20 +133,24 @@ public class Iris extends MortarPlugin
 
 	public void onDisable()
 	{
-		proj.close();
-
-		for(World i : Bukkit.getWorlds())
+		if(IrisSettings.get().isStudio())
 		{
-			if(i.getGenerator() instanceof IrisChunkGenerator)
+			proj.close();
+
+			for(World i : Bukkit.getWorlds())
 			{
-				((IrisChunkGenerator) i.getGenerator()).close();
+				if(i.getGenerator() instanceof IrisChunkGenerator)
+				{
+					((IrisChunkGenerator) i.getGenerator()).close();
+				}
+			}
+
+			for(GroupedExecutor i : executors)
+			{
+				i.close();
 			}
 		}
-		for(GroupedExecutor i : executors)
-		{
-			i.close();
-		}
-
+		
 		executors.clear();
 		board.disable();
 		Bukkit.getScheduler().cancelTasks(this);

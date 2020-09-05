@@ -1,13 +1,14 @@
 package com.volmit.iris.command;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
-import org.bukkit.entity.Player;
 import org.zeroturnaround.zip.ZipUtil;
+import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisDataManager;
@@ -15,6 +16,7 @@ import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisChunkGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
+import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -86,7 +88,38 @@ public class CommandIrisCreate extends MortarCommand
 			Iris.globaldata.dump();
 			Iris.globaldata.preferFolder(null);
 			Iris.proj.downloadSearch(sender, type, false);
-			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
+			File downloaded = Iris.instance.getDataFolder("packs", type);
+
+			for(File i : downloaded.listFiles())
+			{
+				if(i.isFile())
+				{
+					try
+					{
+						FileUtils.copyFile(i, new File(iris, i.getName()));
+					}
+
+					catch(IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+
+				else
+				{
+					try
+					{
+						FileUtils.copyDirectory(i, new File(iris, i.getName()));
+					}
+
+					catch(IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+
+			IO.delete(downloaded);
 		}
 
 		if(!dimf.exists() || !dimf.isFile())
@@ -169,26 +202,10 @@ public class CommandIrisCreate extends MortarCommand
 			{
 				world.save();
 
-				for(Player i : world.getPlayers())
-				{
-					i.kickPlayer("Please Rejoin in a different world.");
-				}
-
-				if(!Bukkit.unloadWorld(world, true))
-				{
-					sender.sendMessage("Couldn't unload the world for some reason.... Aborting zip.");
-					return;
-				}
-
 				if(Iris.linkMultiverseCore.supported())
 				{
 					Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
 					sender.sendMessage("Added " + worldName + " to MultiverseCore.");
-				}
-				
-				else
-				{
-					sender.sendMessage("No MVC?");
 				}
 
 				sender.sendMessage("All Done!");

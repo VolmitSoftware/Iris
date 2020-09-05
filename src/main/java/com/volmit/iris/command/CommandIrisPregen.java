@@ -21,6 +21,12 @@ public class CommandIrisPregen extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(args.length == 0)
+		{
+			sender.sendMessage("/iris pregen <blocks-wide|stop>");
+			return true;
+		}
+
 		if(args[0].equalsIgnoreCase("stop"))
 		{
 			if(PregenJob.task == -1)

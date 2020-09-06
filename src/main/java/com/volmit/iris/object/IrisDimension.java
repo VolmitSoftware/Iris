@@ -6,9 +6,9 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
-import com.volmit.iris.gen.ParallelChunkGenerator;
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
+import com.volmit.iris.gen.ParallelTerrainProvider;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -310,7 +310,7 @@ public class IrisDimension extends IrisRegistrant
 	private transient AtomicCache<Double> cosr = new AtomicCache<>();
 	private transient AtomicCache<Double> rad = new AtomicCache<>();
 
-	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockChunkGenerator g)
+	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockTerrainProvider g)
 	{
 		return cacheFilters.aquire(() ->
 		{
@@ -595,7 +595,7 @@ public class IrisDimension extends IrisRegistrant
 		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
-	public KList<IrisRegion> getAllRegions(ContextualChunkGenerator g)
+	public KList<IrisRegion> getAllRegions(ContextualTerrainProvider g)
 	{
 		KList<IrisRegion> r = new KList<>();
 
@@ -607,7 +607,7 @@ public class IrisDimension extends IrisRegistrant
 		return r;
 	}
 
-	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getAllBiomes(ContextualTerrainProvider g)
 	{
 		KList<IrisBiome> r = new KList<>();
 
@@ -619,7 +619,7 @@ public class IrisDimension extends IrisRegistrant
 		return r;
 	}
 
-	public ChunkPosition getParallaxSize(ParallelChunkGenerator g)
+	public ChunkPosition getParallaxSize(ParallelTerrainProvider g)
 	{
 		return parallaxSize.aquire(() ->
 		{

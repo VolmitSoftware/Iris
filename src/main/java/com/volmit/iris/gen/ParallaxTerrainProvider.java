@@ -38,7 +38,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator implements IObjectPlacer
+public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider implements IObjectPlacer
 {
 	private short cacheID = 0;
 	private KMap<ChunkPosition, AtomicSliver> sliverCache;
@@ -50,7 +50,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	private GenLayerText glText;
 	private int sliverBuffer;
 
-	public ParallaxChunkGenerator(TerrainTarget t, String dimensionName, int threads)
+	public ParallaxTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName, threads);
 		setSliverCache(new KMap<>());

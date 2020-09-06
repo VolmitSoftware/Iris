@@ -41,7 +41,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
+public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 {
 	private long lastUpdateRequest = M.ms();
 	private long lastChunkLoad = M.ms();
@@ -54,7 +54,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private CNG masterFracture;
 	private ChronoLatch cwarn = new ChronoLatch(1000);
 
-	public TerrainChunkGenerator(TerrainTarget t, String dimensionName, int threads)
+	public TopographicTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName, threads);
 		setGenerators(new KMap<>());

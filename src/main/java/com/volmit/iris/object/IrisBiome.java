@@ -6,7 +6,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -207,7 +207,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		});
 	}
 
-	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)
+	public double getHeight(ContextualTerrainProvider xg, double x, double z, long seed)
 	{
 		double height = 0;
 
@@ -494,7 +494,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));
 	}
 
-	public KList<IrisBiome> getRealChildren(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealChildren(ContextualTerrainProvider g)
 	{
 		return realChildren.aquire(() ->
 		{
@@ -509,7 +509,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<String> getAllChildren(ContextualChunkGenerator g, int limit)
+	public KList<String> getAllChildren(ContextualTerrainProvider g, int limit)
 	{
 		KSet<String> m = new KSet<>();
 		m.addAll(getChildren());

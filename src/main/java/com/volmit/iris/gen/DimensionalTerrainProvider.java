@@ -20,7 +20,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
+public abstract class DimensionalTerrainProvider extends ContextualTerrainProvider
 {
 	private String dimensionName;
 	protected static final BlockData AIR = Material.AIR.createBlockData();
@@ -28,7 +28,7 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
 	protected static final BlockData WATER = Material.WATER.createBlockData();
 
-	public DimensionChunkGenerator(TerrainTarget t, String dimensionName)
+	public DimensionalTerrainProvider(TerrainTarget t, String dimensionName)
 	{
 		super(t);
 		setDimensionName(dimensionName);

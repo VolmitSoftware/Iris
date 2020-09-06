@@ -1,6 +1,6 @@
 package com.volmit.iris.gen.layer;
 
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.object.IrisCarveLayer;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.RNG;
@@ -11,7 +11,7 @@ public class GenLayerCarve extends GenLayer
 	private int minimum;
 	private int maximum;
 
-	public GenLayerCarve(DimensionChunkGenerator iris, RNG rng)
+	public GenLayerCarve(DimensionalTerrainProvider iris, RNG rng)
 	{
 		super(iris, rng);
 

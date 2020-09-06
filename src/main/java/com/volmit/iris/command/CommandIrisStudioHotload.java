@@ -5,7 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -39,7 +39,7 @@ public class CommandIrisStudioHotload extends MortarCommand
 				return true;
 			}
 
-			IrisChunkGenerator g = (IrisChunkGenerator) ((ProvisionBukkit) world.getGenerator()).getProvider();
+			IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider();
 			g.onHotload();
 			sender.sendMessage("Hotloaded!");
 			return true;

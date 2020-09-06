@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -140,7 +140,7 @@ public class IrisObjectPlacement
 		return getSurfaceWarp(rng).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
 	}
 
-	public IrisObject getSchematic(ContextualChunkGenerator g, RNG random)
+	public IrisObject getSchematic(ContextualTerrainProvider g, RNG random)
 	{
 		if(place.isEmpty())
 		{

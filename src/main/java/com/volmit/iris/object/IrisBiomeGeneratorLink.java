@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
@@ -46,7 +46,7 @@ public class IrisBiomeGeneratorLink
 
 	}
 
-	public IrisGenerator getCachedGenerator(ContextualChunkGenerator g)
+	public IrisGenerator getCachedGenerator(ContextualTerrainProvider g)
 	{
 		return gen.aquire(() ->
 		{
@@ -61,7 +61,7 @@ public class IrisBiomeGeneratorLink
 		});
 	}
 
-	public double getHeight(ContextualChunkGenerator xg, double x, double z, long seed)
+	public double getHeight(ContextualTerrainProvider xg, double x, double z, long seed)
 	{
 		double g = getCachedGenerator(xg).getHeight(x, z, seed);
 		g = g < 0 ? 0 : g;

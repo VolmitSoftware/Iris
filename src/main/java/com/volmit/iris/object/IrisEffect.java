@@ -8,7 +8,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.DependsOn;
@@ -220,7 +220,7 @@ public class IrisEffect
 		});
 	}
 
-	public void apply(Player p, IrisChunkGenerator g)
+	public void apply(Player p, IrisTerrainProvider g)
 	{
 		if(!canTick())
 		{

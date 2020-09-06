@@ -1,6 +1,6 @@
 package com.volmit.iris.gen.layer;
 
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
@@ -23,12 +23,12 @@ public class BiomeDataProvider
 		generator = layer.getIris().getDimension().getBiomeStyle(type).create(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
 	}
 
-	public IrisBiome generatePureData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public IrisBiome generatePureData(ContextualTerrainProvider g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, true);
 	}
 
-	public IrisBiome generateData(ContextualChunkGenerator g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
+	public IrisBiome generateData(ContextualTerrainProvider g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
 		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, false);
 	}

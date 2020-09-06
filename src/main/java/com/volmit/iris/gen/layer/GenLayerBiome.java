@@ -2,7 +2,7 @@ package com.volmit.iris.gen.layer;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
@@ -30,9 +30,9 @@ public class GenLayerBiome extends GenLayer
 	private BiomeDataProvider caveProvider;
 	private BiomeDataProvider riverProvider;
 	private BiomeDataProvider lakeProvider;
-	private DimensionChunkGenerator iris;
+	private DimensionalTerrainProvider iris;
 
-	public GenLayerBiome(DimensionChunkGenerator iris, RNG rng)
+	public GenLayerBiome(DimensionalTerrainProvider iris, RNG rng)
 	{
 		super(iris, rng);
 		this.iris = iris;

@@ -1,6 +1,6 @@
 package com.volmit.iris.gen.scaffold;
 
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 
 import lombok.Builder;
 import lombok.Data;
@@ -17,8 +17,8 @@ public class IrisGenConfiguration
 	@Builder.Default
 	private String dimension = "";
 
-	public IrisChunkGenerator buildGenerator()
+	public IrisTerrainProvider buildGenerator()
 	{
-		return new IrisChunkGenerator(this);
+		return new IrisTerrainProvider(this);
 	}
 }

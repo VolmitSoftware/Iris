@@ -5,7 +5,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -16,13 +16,13 @@ public class PostWaterlogger extends IrisPostBlockFilter
 	private static final BlockData WATER = B.getBlockData("WATER");
 
 	@DontObfuscate
-	public PostWaterlogger(PostBlockChunkGenerator gen, int phase)
+	public PostWaterlogger(PostBlockTerrainProvider gen, int phase)
 	{
 		super(gen, phase);
 	}
 
 	@DontObfuscate
-	public PostWaterlogger(PostBlockChunkGenerator gen)
+	public PostWaterlogger(PostBlockTerrainProvider gen)
 	{
 		super(gen);
 	}

@@ -1,6 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -56,17 +56,17 @@ public class IrisBiomeMutation
 	private transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
 	private transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
 
-	public KList<String> getRealSideA(ContextualChunkGenerator xg)
+	public KList<String> getRealSideA(ContextualTerrainProvider xg)
 	{
 		return sideACache.aquire(() -> processList(xg, getSideA()));
 	}
 
-	public KList<String> getRealSideB(ContextualChunkGenerator xg)
+	public KList<String> getRealSideB(ContextualTerrainProvider xg)
 	{
 		return sideBCache.aquire(() -> processList(xg, getSideB()));
 	}
 
-	public KList<String> processList(ContextualChunkGenerator xg, KList<String> s)
+	public KList<String> processList(ContextualTerrainProvider xg, KList<String> s)
 	{
 		KSet<String> r = new KSet<>();
 

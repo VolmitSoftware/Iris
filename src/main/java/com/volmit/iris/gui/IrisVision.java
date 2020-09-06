@@ -22,7 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KMap;
@@ -330,7 +330,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		}
 	}
 
-	public static void launch(IrisChunkGenerator g)
+	public static void launch(IrisTerrainProvider g)
 	{
 		J.a(() ->
 		{

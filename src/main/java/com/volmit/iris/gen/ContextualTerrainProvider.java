@@ -51,7 +51,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ContextualChunkGenerator implements TerrainProvider, Listener
+public abstract class ContextualTerrainProvider implements TerrainProvider, Listener
 {
 	private KList<BlockPosition> noLoot;
 	private BlockPosition allowLoot;
@@ -75,7 +75,7 @@ public abstract class ContextualChunkGenerator implements TerrainProvider, Liste
 	private volatile boolean hotloadable = false;
 	private final TerrainTarget target;
 
-	public ContextualChunkGenerator(TerrainTarget target)
+	public ContextualTerrainProvider(TerrainTarget target)
 	{
 		this.target = target;
 		pushLatch = new ChronoLatch(3000);

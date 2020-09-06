@@ -7,7 +7,7 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.gen.post.Post;
 
 import lombok.Data;
@@ -15,13 +15,13 @@ import lombok.Data;
 @Data
 public abstract class IrisPostBlockFilter implements IPostBlockAccess
 {
-	public PostBlockChunkGenerator gen;
+	public PostBlockTerrainProvider gen;
 	private int phase;
 	private String key;
 	private KList<Runnable> queue = new KList<>();
 
 	@DontObfuscate
-	public IrisPostBlockFilter(PostBlockChunkGenerator gen, int phase)
+	public IrisPostBlockFilter(PostBlockTerrainProvider gen, int phase)
 	{
 		this.gen = gen;
 		this.phase = phase;
@@ -30,7 +30,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 	}
 
 	@DontObfuscate
-	public IrisPostBlockFilter(PostBlockChunkGenerator gen)
+	public IrisPostBlockFilter(PostBlockTerrainProvider gen)
 	{
 		this(gen, 0);
 	}

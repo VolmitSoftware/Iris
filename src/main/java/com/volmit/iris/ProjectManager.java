@@ -26,7 +26,7 @@ import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
@@ -89,7 +89,7 @@ import lombok.Data;
 public class ProjectManager
 {
 	private KMap<String, String> cacheListing = null;
-	private IrisChunkGenerator currentProject;
+	private IrisTerrainProvider currentProject;
 	private TaskExecutor tx = new TaskExecutor(8, Thread.MIN_PRIORITY, "Iris Compiler");
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -324,7 +324,7 @@ public class ProjectManager
 		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(IrisGenConfiguration.builder().threads(IrisSettings.get().threads).dimension(dimm).target(TerrainTarget.builder().environment(d.getEnvironment()).folder(new File(wfp)).name(wfp).seed(1337).build()).build());
 		//@done
 
-		IrisChunkGenerator gx = (IrisChunkGenerator) gen.getProvider();
+		IrisTerrainProvider gx = (IrisTerrainProvider) gen.getProvider();
 		currentProject = gx;
 		gx.setDev(true);
 		sender.sendMessage("Generating with " + IrisSettings.get().threads + " threads per chunk");

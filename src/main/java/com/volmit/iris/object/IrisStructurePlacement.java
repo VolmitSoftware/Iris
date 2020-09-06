@@ -1,8 +1,8 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
-import com.volmit.iris.gen.ParallaxChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
+import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CellGenerator;
 import com.volmit.iris.util.ChunkPosition;
@@ -65,7 +65,7 @@ public class IrisStructurePlacement
 
 	}
 
-	public void place(ParallaxChunkGenerator g, RNG rngno, int cx, int cz)
+	public void place(ParallaxTerrainProvider g, RNG rngno, int cx, int cz)
 	{
 		try
 		{
@@ -118,7 +118,7 @@ public class IrisStructurePlacement
 		}
 	}
 
-	public void placeLayer(ParallaxChunkGenerator g, RNG rng, RNG rnp, int i, int k, int j, int s, int sh)
+	public void placeLayer(ParallaxTerrainProvider g, RNG rng, RNG rnp, int i, int k, int j, int s, int sh)
 	{
 		if(!hasStructure(g, rng, i, k, j))
 		{
@@ -156,27 +156,27 @@ public class IrisStructurePlacement
 		});
 	}
 
-	public IrisObject load(ContextualChunkGenerator g, String s)
+	public IrisObject load(ContextualTerrainProvider g, String s)
 	{
 		return g.getData().getObjectLoader().load(s);
 	}
 
-	public int gridSize(ContextualChunkGenerator g)
+	public int gridSize(ContextualTerrainProvider g)
 	{
 		return getStructure(g).getGridSize();
 	}
 
-	public int gridHeight(ContextualChunkGenerator g)
+	public int gridHeight(ContextualTerrainProvider g)
 	{
 		return getStructure(g).getGridHeight();
 	}
 
-	public IrisStructure getStructure(ContextualChunkGenerator g)
+	public IrisStructure getStructure(ContextualTerrainProvider g)
 	{
 		return structure.aquire(() -> (g == null ? Iris.globaldata : g.getData()).getStructureLoader().load(getTileset()));
 	}
 
-	public boolean hasStructure(ParallaxChunkGenerator g, RNG random, double x, double y, double z)
+	public boolean hasStructure(ParallaxTerrainProvider g, RNG random, double x, double y, double z)
 	{
 		if(g.getGlCarve().isCarved((int) x, (int) y, (int) z))
 		{
@@ -191,7 +191,7 @@ public class IrisStructurePlacement
 		return false;
 	}
 
-	public CellGenerator getChanceGenerator(ParallaxChunkGenerator g, RNG random)
+	public CellGenerator getChanceGenerator(ParallaxTerrainProvider g, RNG random)
 	{
 		return chanceCell.aquire(() ->
 		{

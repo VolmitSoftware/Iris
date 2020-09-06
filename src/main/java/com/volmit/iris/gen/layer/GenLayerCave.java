@@ -3,7 +3,7 @@ package com.volmit.iris.gen.layer;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.noise.FastNoise;
 import com.volmit.iris.noise.FastNoise.CellularDistanceFunction;
@@ -24,7 +24,7 @@ public class GenLayerCave extends GenLayer
 	private static final KList<CaveResult> EMPTY = new KList<>();
 	private FastNoise gg;
 
-	public GenLayerCave(DimensionChunkGenerator iris, RNG rng)
+	public GenLayerCave(DimensionalTerrainProvider iris, RNG rng)
 	{
 		//@builder
 		super(iris, rng);

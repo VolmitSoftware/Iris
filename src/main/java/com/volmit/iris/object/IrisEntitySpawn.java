@@ -5,7 +5,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -43,7 +43,7 @@ public class IrisEntitySpawn
 	private transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-	public Entity on(IrisChunkGenerator g, Location at, EntityType t, EntitySpawnEvent ee)
+	public Entity on(IrisTerrainProvider g, Location at, EntityType t, EntitySpawnEvent ee)
 	{
 		if(!trigger.equals(EntityType.UNKNOWN))
 		{
@@ -64,12 +64,12 @@ public class IrisEntitySpawn
 		return e;
 	}
 
-	public IrisEntity getRealEntity(IrisChunkGenerator g)
+	public IrisEntity getRealEntity(IrisTerrainProvider g)
 	{
 		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
 	}
 
-	public Entity spawn(IrisChunkGenerator g, Location at)
+	public Entity spawn(IrisTerrainProvider g, Location at)
 	{
 		if(getRealEntity(g) == null)
 		{

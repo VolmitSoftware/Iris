@@ -1,6 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -37,7 +37,7 @@ public class IrisLootReference
 
 	}
 
-	public KList<IrisLootTable> getLootTables(DimensionChunkGenerator g)
+	public KList<IrisLootTable> getLootTables(DimensionalTerrainProvider g)
 	{
 		return tt.aquire(() ->
 		{

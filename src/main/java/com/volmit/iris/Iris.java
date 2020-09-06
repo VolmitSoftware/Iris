@@ -18,7 +18,7 @@ import org.bukkit.plugin.Plugin;
 
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.post.PostFloatingNibDeleter;
 import com.volmit.iris.gen.post.PostFoliageCleaner;
 import com.volmit.iris.gen.post.PostNibSmoother;
@@ -92,9 +92,9 @@ public class Iris extends MortarPlugin
 		return new ProvisionBukkit(createIrisProvider(config));
 	}
 
-	public IrisChunkGenerator createIrisProvider(IrisGenConfiguration config)
+	public IrisTerrainProvider createIrisProvider(IrisGenConfiguration config)
 	{
-		return new IrisChunkGenerator(config);
+		return new IrisTerrainProvider(config);
 	}
 
 	private static boolean doesSupport3DBiomes()
@@ -173,7 +173,7 @@ public class Iris extends MortarPlugin
 			{
 				if(i.getGenerator() instanceof ProvisionBukkit)
 				{
-					((IrisChunkGenerator) ((ProvisionBukkit) i.getGenerator()).getProvider()).close();
+					((IrisTerrainProvider) ((ProvisionBukkit) i.getGenerator()).getProvider()).close();
 				}
 			}
 

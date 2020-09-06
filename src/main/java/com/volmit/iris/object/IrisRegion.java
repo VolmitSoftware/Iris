@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualChunkGenerator;
+import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -332,7 +332,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		return getShoreHeightGenerator().fitDouble(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
 	}
 
-	public KList<IrisBiome> getAllBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getAllBiomes(ContextualTerrainProvider g)
 	{
 		KMap<String, IrisBiome> b = new KMap<>();
 		KSet<String> names = new KSet<>();
@@ -365,7 +365,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		return b.v();
 	}
 
-	public KList<IrisBiome> getBiomes(ContextualChunkGenerator g, InferredType type)
+	public KList<IrisBiome> getBiomes(ContextualTerrainProvider g, InferredType type)
 	{
 		if(type.equals(InferredType.LAND))
 		{
@@ -400,7 +400,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		return new KList<>();
 	}
 
-	public KList<IrisBiome> getRealCaveBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealCaveBiomes(ContextualTerrainProvider g)
 	{
 		return realCaveBiomes.aquire(() ->
 		{
@@ -415,7 +415,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<IrisBiome> getRealLakeBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealLakeBiomes(ContextualTerrainProvider g)
 	{
 		return realLakeBiomes.aquire(() ->
 		{
@@ -430,7 +430,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<IrisBiome> getRealRiverBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealRiverBiomes(ContextualTerrainProvider g)
 	{
 		return realRiverBiomes.aquire(() ->
 		{
@@ -445,7 +445,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<IrisBiome> getRealShoreBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealShoreBiomes(ContextualTerrainProvider g)
 	{
 		return realShoreBiomes.aquire(() ->
 		{
@@ -460,7 +460,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<IrisBiome> getRealSeaBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealSeaBiomes(ContextualTerrainProvider g)
 	{
 		return realSeaBiomes.aquire(() ->
 		{
@@ -475,7 +475,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<IrisBiome> getRealLandBiomes(ContextualChunkGenerator g)
+	public KList<IrisBiome> getRealLandBiomes(ContextualTerrainProvider g)
 	{
 		return realLandBiomes.aquire(() ->
 		{

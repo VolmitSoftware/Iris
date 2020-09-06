@@ -13,7 +13,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ParallaxChunkGenerator;
+import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisBiome;
@@ -29,10 +29,10 @@ import com.volmit.iris.util.RNG;
 
 public class GenLayerUpdate extends BlockPopulator
 {
-	private ParallaxChunkGenerator gen;
+	private ParallaxTerrainProvider gen;
 	private RNG rng;
 
-	public GenLayerUpdate(ParallaxChunkGenerator gen)
+	public GenLayerUpdate(ParallaxTerrainProvider gen)
 	{
 		this.gen = gen;
 		this.rng = new RNG(gen.getTarget().getSeed() + 4996788).nextParallelRNG(-98618289);

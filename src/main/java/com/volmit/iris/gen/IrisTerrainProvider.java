@@ -39,28 +39,28 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisContext
+public class IrisTerrainProvider extends PostBlockTerrainProvider implements IrisContext
 {
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;
 	private boolean spawnable = false;
 
-	public IrisChunkGenerator(IrisGenConfiguration config)
+	public IrisTerrainProvider(IrisGenConfiguration config)
 	{
 		super(config.getTarget(), config.getDimension(), config.getThreads());
 	}
 
-	public IrisChunkGenerator(TerrainTarget t, String dimensionName, int threads)
+	public IrisTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName, threads);
 	}
 
-	public IrisChunkGenerator(TerrainTarget t, String dimensionName)
+	public IrisTerrainProvider(TerrainTarget t, String dimensionName)
 	{
 		super(t, dimensionName, 16);
 	}
 
-	public IrisChunkGenerator(TerrainTarget t, int tc)
+	public IrisTerrainProvider(TerrainTarget t, int tc)
 	{
 		super(t, "", tc);
 	}

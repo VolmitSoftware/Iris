@@ -4,7 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
 
@@ -12,13 +12,13 @@ import com.volmit.iris.util.IrisPostBlockFilter;
 public class PostNibSmoother extends IrisPostBlockFilter
 {
 	@DontObfuscate
-	public PostNibSmoother(PostBlockChunkGenerator gen, int phase)
+	public PostNibSmoother(PostBlockTerrainProvider gen, int phase)
 	{
 		super(gen, phase);
 	}
 
 	@DontObfuscate
-	public PostNibSmoother(PostBlockChunkGenerator gen)
+	public PostNibSmoother(PostBlockTerrainProvider gen)
 	{
 		this(gen, 0);
 	}

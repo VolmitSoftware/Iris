@@ -8,7 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
@@ -55,7 +55,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 	@DontObfuscate
 	private boolean isIrisWorld(World w)
 	{
-		return (w.getGenerator() instanceof ProvisionBukkit) && ((IrisChunkGenerator) ((ProvisionBukkit) w.getGenerator()).getProvider()).isDev();
+		return (w.getGenerator() instanceof ProvisionBukkit) && ((IrisTerrainProvider) ((ProvisionBukkit) w.getGenerator()).getProvider()).isDev();
 	}
 
 	public void updatePlayer(Player p)
@@ -89,7 +89,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 			return v;
 		}
 
-		IrisChunkGenerator g = (IrisChunkGenerator) ((ProvisionBukkit) player.getWorld().getGenerator()).getProvider();
+		IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) player.getWorld().getGenerator()).getProvider();
 
 		if(cl.flip())
 		{

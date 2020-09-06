@@ -16,13 +16,13 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
+public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 {
 	private GroupedExecutor accelerant;
 	private int threads;
 	private boolean cachingAllowed;
 
-	public ParallelChunkGenerator(TerrainTarget t, String dimensionName, int threads)
+	public ParallelTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName);
 		setThreads(threads);

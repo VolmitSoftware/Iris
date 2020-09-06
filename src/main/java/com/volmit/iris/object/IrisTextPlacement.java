@@ -1,6 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.gen.ParallaxChunkGenerator;
+import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -107,7 +107,7 @@ public class IrisTextPlacement
 		return m;
 	}
 
-	public void place(ParallaxChunkGenerator g, RNG rng, int x, int z)
+	public void place(ParallaxTerrainProvider g, RNG rng, int x, int z)
 	{
 		int tr = getConfig().getTriesForChunk(rng);
 

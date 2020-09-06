@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.object.IrisMaterialPalette;
 import com.volmit.iris.object.IrisObject;
@@ -22,7 +22,7 @@ public class GenLayerText extends GenLayer
 
 	private AtomicCache<IrisObject> debug = new AtomicCache<>();
 
-	public GenLayerText(DimensionChunkGenerator iris, RNG rng)
+	public GenLayerText(DimensionalTerrainProvider iris, RNG rng)
 	{
 		super(iris, rng);
 	}

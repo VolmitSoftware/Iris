@@ -4,7 +4,7 @@ import java.awt.Canvas;
 import java.awt.Font;
 import java.awt.FontMetrics;
 
-import com.volmit.iris.gen.ParallaxChunkGenerator;
+import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -60,7 +60,7 @@ public class IrisTextRenderer
 
 	}
 
-	public KList<IrisObject> getObjects(ParallaxChunkGenerator g, RNG rng)
+	public KList<IrisObject> getObjects(ParallaxTerrainProvider g, RNG rng)
 	{
 		return objects.aquire(() ->
 		{
@@ -138,7 +138,7 @@ public class IrisTextRenderer
 		});
 	}
 
-	public void place(ParallaxChunkGenerator g, RNG rng, IrisObjectPlacement config, int xb, int zb)
+	public void place(ParallaxTerrainProvider g, RNG rng, IrisObjectPlacement config, int xb, int zb)
 	{
 		getObjects(g, rng).get(rng.nextInt(getObjects(g, rng).size())).place(xb, zb, g, config, rng);
 	}

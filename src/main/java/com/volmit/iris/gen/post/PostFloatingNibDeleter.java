@@ -3,7 +3,7 @@ package com.volmit.iris.gen.post;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -14,13 +14,13 @@ public class PostFloatingNibDeleter extends IrisPostBlockFilter
 	private static final BlockData AIR = B.getBlockData("AIR");
 
 	@DontObfuscate
-	public PostFloatingNibDeleter(PostBlockChunkGenerator gen, int phase)
+	public PostFloatingNibDeleter(PostBlockTerrainProvider gen, int phase)
 	{
 		super(gen, phase);
 	}
 
 	@DontObfuscate
-	public PostFloatingNibDeleter(PostBlockChunkGenerator gen)
+	public PostFloatingNibDeleter(PostBlockTerrainProvider gen)
 	{
 		this(gen, 0);
 	}

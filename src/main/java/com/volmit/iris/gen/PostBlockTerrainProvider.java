@@ -26,14 +26,14 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator implements IPostBlockAccess
+public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider implements IPostBlockAccess
 {
 	private String postKey;
 	private IrisLock postLock;
 	private int minPhase;
 	private int maxPhase;
 
-	public PostBlockChunkGenerator(TerrainTarget t, String dimensionName, int threads)
+	public PostBlockTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName, threads);
 		setPostKey("post-" + dimensionName);

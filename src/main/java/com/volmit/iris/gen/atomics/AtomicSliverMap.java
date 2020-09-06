@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.DimensionChunkGenerator;
+import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.util.HeightMap;
@@ -56,7 +56,7 @@ public class AtomicSliverMap
 		structures.put(y, s.getLoadKey() + "." + s.getTiles().indexOf(t));
 	}
 
-	public IrisStructureResult getStructure(DimensionChunkGenerator g, int y)
+	public IrisStructureResult getStructure(DimensionalTerrainProvider g, int y)
 	{
 		String v = structures.get(y);
 

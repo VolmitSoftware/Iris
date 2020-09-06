@@ -4,7 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockChunkGenerator;
+import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -15,13 +15,13 @@ public class PostFoliageCleaner extends IrisPostBlockFilter
 	public static final BlockData AIR = B.get("AIR");
 
 	@DontObfuscate
-	public PostFoliageCleaner(PostBlockChunkGenerator gen, int phase)
+	public PostFoliageCleaner(PostBlockTerrainProvider gen, int phase)
 	{
 		super(gen, phase);
 	}
 
 	@DontObfuscate
-	public PostFoliageCleaner(PostBlockChunkGenerator gen)
+	public PostFoliageCleaner(PostBlockTerrainProvider gen)
 	{
 		this(gen, 0);
 	}

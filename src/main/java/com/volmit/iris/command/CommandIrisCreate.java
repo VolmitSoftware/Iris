@@ -13,7 +13,7 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
@@ -168,7 +168,7 @@ public class CommandIrisCreate extends MortarCommand
 			while(!done.get())
 			{
 				boolean derp = false;
-				double v = (double) ((IrisChunkGenerator) gen.getProvider()).getGenerated() / (double) req;
+				double v = (double) ((IrisTerrainProvider) gen.getProvider()).getGenerated() / (double) req;
 
 				if(last > v || v > 1)
 				{

@@ -17,7 +17,7 @@ import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Desc;
@@ -122,12 +122,12 @@ public class IrisEntity extends IrisRegistrant
 	@Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
 	private IrisEntity leashHolder = null;
 
-	public Entity spawn(IrisChunkGenerator gen, Location at)
+	public Entity spawn(IrisTerrainProvider gen, Location at)
 	{
 		return spawn(gen, at, new RNG(at.hashCode()));
 	}
 
-	public Entity spawn(IrisChunkGenerator gen, Location at, RNG rng)
+	public Entity spawn(IrisTerrainProvider gen, Location at, RNG rng)
 	{
 		Entity e = at.getWorld().spawnEntity(at, getType());
 		e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);

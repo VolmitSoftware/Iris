@@ -2,7 +2,7 @@ package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gui.IrisVision;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -32,7 +32,7 @@ public class CommandIrisStudioMap extends MortarCommand
 			return true;
 		}
 
-		IrisChunkGenerator g = Iris.proj.getCurrentProject();
+		IrisTerrainProvider g = Iris.proj.getCurrentProject();
 		IrisVision.launch(g);
 		sender.sendMessage("Opening Map!");
 		return true;

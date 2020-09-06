@@ -6,16 +6,16 @@ import java.util.Random;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.generator.BlockPopulator;
-import org.bukkit.generator.ChunkGenerator.BiomeGrid;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 public interface TerrainProvider
 {
 	public TerrainTarget getTarget();
 
-	public void generate(Random random, int x, int z, BiomeGrid biome, ChunkData data);
+	public void generate(Random random, int x, int z, TerrainChunk chunk);
 
 	public boolean canSpawn(World world, int x, int z);
+
+	public boolean canSpawnDefault(World world, int x, int z);
 
 	public List<BlockPopulator> getDefaultPopulators(World world);
 

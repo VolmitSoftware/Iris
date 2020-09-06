@@ -4,7 +4,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.function.IntPredicate;
 
-public class MathHelper
+public class IrisMathHelper
 {
 	public static final float a;
 	private static final Random c;
@@ -260,7 +260,7 @@ public class MathHelper
 	public static int e(int var0)
 	{
 		var0 = (d(var0) ? var0 : c(var0));
-		return MathHelper.d[(int) (var0 * 125613361L >> 27) & 0x1F];
+		return IrisMathHelper.d[(int) (var0 * 125613361L >> 27) & 0x1F];
 	}
 
 	public static int f(final int var0)
@@ -316,7 +316,7 @@ public class MathHelper
 
 	public static UUID a()
 	{
-		return a(MathHelper.c);
+		return a(IrisMathHelper.c);
 	}
 
 	public static double c(final double var0, final double var2, final double var4)
@@ -351,11 +351,11 @@ public class MathHelper
 		final double var7 = i(var3);
 		var2 *= var7;
 		var0 *= var7;
-		final double var8 = MathHelper.e + var0;
+		final double var8 = IrisMathHelper.e + var0;
 		final int var9 = (int) Double.doubleToRawLongBits(var8);
-		final double var10 = MathHelper.f[var9];
-		final double var11 = MathHelper.g[var9];
-		final double var12 = var8 - MathHelper.e;
+		final double var10 = IrisMathHelper.f[var9];
+		final double var11 = IrisMathHelper.g[var9];
+		final double var12 = var8 - IrisMathHelper.e;
 		final double var13 = var0 * var11 - var2 * var12;
 		final double var14 = (6.0 + var13 * var13) * var13 * 0.16666666666666666;
 		double var15 = var10 + var14;
@@ -544,8 +544,8 @@ public class MathHelper
 		{
 			final double var3 = var2 / 256.0;
 			final double var4 = Math.asin(var3);
-			MathHelper.g[var2] = Math.cos(var4);
-			MathHelper.f[var2] = var4;
+			IrisMathHelper.g[var2] = Math.cos(var4);
+			IrisMathHelper.f[var2] = var4;
 		}
 	}
 }

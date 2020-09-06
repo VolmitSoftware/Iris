@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 
 import org.bstats.bukkit.Metrics;
@@ -11,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
@@ -35,6 +37,7 @@ import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
+import com.volmit.iris.util.NMSVersion;
 import com.volmit.iris.util.Permission;
 
 public class Iris extends MortarPlugin
@@ -47,6 +50,7 @@ public class Iris extends MortarPlugin
 	public static WandManager wand;
 	public static StructureManager struct;
 	public static IrisBoardManager board;
+	public static String nmsTag = findNMSTag();
 	public static MultiverseCoreLink linkMultiverseCore;
 	private static IrisLock lock = new IrisLock("Iris");
 	public static boolean customModels = doesSupportCustomModels();
@@ -64,6 +68,22 @@ public class Iris extends MortarPlugin
 	{
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4 * 1000 * 1000 * 1000;
+	}
+
+	private static String findNMSTag()
+	{
+		try
+		{
+			return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];
+		}
+
+		catch(Throwable e)
+		{
+			Iris.error("Failed to determine server nms version!");
+			e.printStackTrace();
+		}
+
+		return "UNKNOWN NMS VERSION";
 	}
 
 	private static boolean doesSupport3DBiomes()
@@ -369,5 +389,10 @@ public class Iris extends MortarPlugin
 		{
 			Iris.verbose("* This version of minecraft does not support entity awareness.");
 		}
+	}
+
+	public static String nmsTag()
+	{
+		return nmsTag;
 	}
 }

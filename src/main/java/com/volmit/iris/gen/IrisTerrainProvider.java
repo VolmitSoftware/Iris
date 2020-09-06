@@ -26,7 +26,8 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBlockDrops;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEffect;
-import com.volmit.iris.object.IrisEntitySpawn;
+import com.volmit.iris.object.IrisEntityInitialSpawn;
+import com.volmit.iris.object.IrisEntitySpawnOverride;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
@@ -409,6 +410,33 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 		}
 	}
 
+	public void spawnInitials(Chunk c, RNG rng)
+	{
+		int x = (c.getX() * 16) + rng.nextInt(15);
+		int z = (c.getZ() * 16) + rng.nextInt(15);
+		int y = getCarvedHeight(x, z);
+		IrisDimension dim = getDimension();
+		IrisRegion region = sampleRegion(x, z);
+		IrisBiome above = sampleTrueBiome(x, z);
+
+		IrisStructureResult res = getStructure(x, y, z);
+
+		if(res != null && res.getTile() != null)
+		{
+			trySpawn(res.getTile().getEntityInitialSpawns(), c, rng);
+		}
+
+		if(res != null && res.getStructure() != null)
+		{
+			trySpawn(res.getStructure().getEntityInitialSpawns(), c, rng);
+
+		}
+
+		trySpawn(above.getEntityInitialSpawns(), c, rng);
+		trySpawn(region.getEntityInitialSpawns(), c, rng);
+		trySpawn(dim.getEntityInitialSpawns(), c, rng);
+	}
+
 	@Override
 	protected void onSpawn(EntitySpawnEvent e)
 	{
@@ -431,7 +459,7 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 
 			if(res != null && res.getTile() != null)
 			{
-				if(trySpawn(res.getTile().getEntitySpawns(), e))
+				if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
 				{
 					return;
 				}
@@ -439,7 +467,7 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 
 			if(res != null && res.getStructure() != null)
 			{
-				if(trySpawn(res.getStructure().getEntitySpawns(), e))
+				if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
 				{
 					return;
 				}
@@ -447,32 +475,32 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 
 			if(below != null)
 			{
-				if(trySpawn(below.getEntitySpawns(), e))
+				if(trySpawn(below.getEntitySpawnOverrides(), e))
 				{
 					return;
 				}
 			}
 
-			if(trySpawn(above.getEntitySpawns(), e))
+			if(trySpawn(above.getEntitySpawnOverrides(), e))
 			{
 				return;
 			}
 
-			if(trySpawn(region.getEntitySpawns(), e))
+			if(trySpawn(region.getEntitySpawnOverrides(), e))
 			{
 				return;
 			}
 
-			if(trySpawn(dim.getEntitySpawns(), e))
+			if(trySpawn(dim.getEntitySpawnOverrides(), e))
 			{
 				return;
 			}
 		}
 	}
 
-	private boolean trySpawn(KList<IrisEntitySpawn> s, EntitySpawnEvent e)
+	private boolean trySpawn(KList<IrisEntitySpawnOverride> s, EntitySpawnEvent e)
 	{
-		for(IrisEntitySpawn i : s)
+		for(IrisEntitySpawnOverride i : s)
 		{
 			setSpawnable(false);
 
@@ -490,6 +518,14 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 		}
 
 		return false;
+	}
+
+	private void trySpawn(KList<IrisEntityInitialSpawn> s, Chunk c, RNG rng)
+	{
+		for(IrisEntityInitialSpawn i : s)
+		{
+			i.spawn(this, c, rng);
+		}
 	}
 
 	@Override

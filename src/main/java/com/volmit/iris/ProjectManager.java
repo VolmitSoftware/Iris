@@ -444,11 +444,16 @@ public class ProjectManager
 		biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
 		structures.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i))));
 		structures.forEach((b) -> b.getTiles().forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i)))));
-		structures.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
-		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())))));
-		biomes.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
-		regions.forEach((r) -> r.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
-		dimension.getEntitySpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())));
+		structures.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())))));
+		biomes.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())));
+		structures.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())))));
+		biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity()))));
+		dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(Iris.globaldata.getEntityLoader().load(sp.getEntity())));
 
 		KMap<String, String> renameObjects = new KMap<>();
 		String a = "";

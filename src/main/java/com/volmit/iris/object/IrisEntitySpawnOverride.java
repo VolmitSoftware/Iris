@@ -18,7 +18,7 @@ import lombok.Data;
 
 @Desc("Represents an entity spawn")
 @Data
-public class IrisEntitySpawn
+public class IrisEntitySpawnOverride
 {
 	@RegistryListEntity
 	@Required
@@ -84,7 +84,7 @@ public class IrisEntitySpawn
 		return null;
 	}
 
-	public IrisEntitySpawn()
+	public IrisEntitySpawnOverride()
 	{
 
 	}

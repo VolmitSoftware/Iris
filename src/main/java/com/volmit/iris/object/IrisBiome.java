@@ -48,8 +48,13 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this biome")
-	@ArrayType(min = 1, type = IrisEntitySpawn.class)
-	private KList<IrisEntitySpawn> entitySpawns = new KList<>();
+	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
+	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
+
+	@DontObfuscate
+	@Desc("Entity spawns during generation")
+	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
+	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
 	@ArrayType(min = 1, type = IrisEffect.class)
 	@DontObfuscate

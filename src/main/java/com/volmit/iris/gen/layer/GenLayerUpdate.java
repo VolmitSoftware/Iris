@@ -13,6 +13,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.object.InventorySlotType;
@@ -60,6 +61,8 @@ public class GenLayerUpdate extends BlockPopulator
 				}
 			}
 		}
+
+		((IrisTerrainProvider) gen).spawnInitials(c, rx);
 
 		p.end();
 		gen.getMetrics().getUpdate().put(p.getMilliseconds());

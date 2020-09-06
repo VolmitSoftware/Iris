@@ -39,8 +39,7 @@ public class NMSCreator
 
 		catch(Throwable e)
 		{
-			e.printStackTrace();
-			Iris.warn("Failed to load NMS Spawn for MC:" + Iris.nmsTag() + ". Using Bukkit...");
+
 		}
 
 		return Bukkit.createWorld(creator);

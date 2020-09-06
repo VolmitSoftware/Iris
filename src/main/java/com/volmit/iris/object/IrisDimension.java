@@ -137,6 +137,10 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Carve terrain or not")
 	private boolean carving = true;
+	
+	@DontObfuscate
+	@Desc("Generate vanilla caves")
+	private boolean vanillaCaves = false;
 
 	@DontObfuscate
 	@Desc("Generate vanilla structures")

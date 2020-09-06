@@ -7,7 +7,6 @@ import java.util.Random;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockDropItemEvent;
@@ -18,6 +17,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
+import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.gui.Renderer;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
@@ -43,19 +45,24 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	private IrisRegion hr = null;
 	private boolean spawnable = false;
 
-	public IrisChunkGenerator(String dimensionName, int threads)
+	public IrisChunkGenerator(IrisGenConfiguration config)
 	{
-		super(dimensionName, threads);
+		super(config.getTarget(), config.getDimension(), config.getThreads());
 	}
 
-	public IrisChunkGenerator(String dimensionName)
+	public IrisChunkGenerator(TerrainTarget t, String dimensionName, int threads)
 	{
-		super(dimensionName, 16);
+		super(t, dimensionName, threads);
 	}
 
-	public IrisChunkGenerator(int tc)
+	public IrisChunkGenerator(TerrainTarget t, String dimensionName)
 	{
-		super("", tc);
+		super(t, dimensionName, 16);
+	}
+
+	public IrisChunkGenerator(TerrainTarget t, int tc)
+	{
+		super(t, "", tc);
 	}
 
 	public void hotload()
@@ -73,26 +80,25 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	}
 
 	@Override
-	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	public void generate(Random no, int x, int z, TerrainChunk terrain)
 	{
 		PrecisionStopwatch s = PrecisionStopwatch.start();
-		ChunkData c = super.generateChunkData(world, no, x, z, biomeGrid);
+		super.generate(no, x, z, terrain);
 		s.end();
 		getMetrics().getTotal().put(s.getMilliseconds());
-		return c;
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, data, grid);
+		super.onGenerate(random, x, z, terrain);
 	}
 
-	public void onInit(World world, RNG rng)
+	public void onInit(RNG rng)
 	{
 		try
 		{
-			super.onInit(world, rng);
+			super.onInit(rng);
 		}
 
 		catch(Throwable e)
@@ -124,7 +130,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 	{
 		spawnable = true;
 		super.onTick(ticks);
-		for(Player i : getWorld().getPlayers())
+		for(Player i : getTarget().getPlayers())
 		{
 			Location l = i.getLocation();
 			IrisRegion r = sampleRegion(l.getBlockX(), l.getBlockZ());
@@ -160,7 +166,7 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		}
 
 		setSliverCache(null);
-		Iris.info("Closing Iris Dimension " + getWorld().getName());
+		Iris.info("Closing Iris Dimension " + getTarget().getName());
 	}
 
 	@Override
@@ -229,35 +235,6 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 		bytes += 823 * getData().getObjectLoader().getTotalStorage();
 
 		return bytes / 2;
-	}
-
-	@Override
-	public boolean shouldGenerateCaves()
-	{
-		return false;
-	}
-
-	@Override
-	public boolean shouldGenerateDecorations()
-	{
-		return false;
-	}
-
-	@Override
-	public boolean shouldGenerateMobs()
-	{
-		return true;
-	}
-
-	@Override
-	public boolean shouldGenerateStructures()
-	{
-		if(!isInitialized())
-		{
-			return false;
-		}
-
-		return getDimension().isVanillaStructures();
 	}
 
 	public Renderer createRenderer()
@@ -512,6 +489,38 @@ public class IrisChunkGenerator extends PostBlockChunkGenerator implements IrisC
 			}
 		}
 
+		return false;
+	}
+
+	@Override
+	public boolean canSpawn(int x, int z)
+	{
+		return true;
+	}
+
+	@Override
+	public boolean shouldGenerateCaves()
+	{
+		return getDimension().isVanillaCaves();
+	}
+
+	@Override
+	public boolean shouldGenerateVanillaStructures()
+	{
+		return getDimension().isVanillaStructures();
+	}
+
+	@Override
+	public boolean shouldGenerateMobs()
+	{
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean shouldGenerateDecorations()
+	{
+		// TODO Auto-generated method stub
 		return false;
 	}
 }

@@ -3,7 +3,6 @@ package com.volmit.iris.gen;
 import java.io.IOException;
 import java.util.List;
 
-import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 
@@ -13,6 +12,8 @@ import com.volmit.iris.gen.atomics.AtomicWorldData;
 import com.volmit.iris.gen.atomics.MasterLock;
 import com.volmit.iris.gen.layer.GenLayerText;
 import com.volmit.iris.gen.layer.GenLayerUpdate;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeMutation;
 import com.volmit.iris.object.IrisObjectPlacement;
@@ -49,18 +50,18 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	private GenLayerText glText;
 	private int sliverBuffer;
 
-	public ParallaxChunkGenerator(String dimensionName, int threads)
+	public ParallaxChunkGenerator(TerrainTarget t, String dimensionName, int threads)
 	{
-		super(dimensionName, threads);
+		super(t, dimensionName, threads);
 		setSliverCache(new KMap<>());
 		setSliverBuffer(sliverBuffer);
 		setMasterLock(new MasterLock());
 	}
 
-	public void onInit(World world, RNG rng)
+	public void onInit(RNG rng)
 	{
-		super.onInit(world, rng);
-		setParallaxMap(new AtomicWorldData(world));
+		super.onInit(rng);
+		setParallaxMap(new AtomicWorldData(getTarget()));
 		setGlText(new GenLayerText(this, rng.nextParallelRNG(32485)));
 		setGlUpdate(null);
 		J.a(() -> getDimension().getParallaxSize(this));
@@ -156,15 +157,15 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 
 		return new AtomicSliverMap();
 	}
-
+	
 	@Override
-	public List<BlockPopulator> getDefaultPopulators(World world)
+	public List<BlockPopulator> getPopulators()
 	{
-		List<BlockPopulator> g = super.getDefaultPopulators(world);
+		List<BlockPopulator> g = new KList<>();
 
 		if(getGlUpdate() == null)
 		{
-			setGlUpdate(new GenLayerUpdate(this, world));
+			setGlUpdate(new GenLayerUpdate(this));
 		}
 
 		g.add(getGlUpdate());
@@ -172,20 +173,20 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 	}
 
 	@Override
-	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	protected void onPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 		if(getSliverCache().size() > 20000)
 		{
 			getSliverCache().clear();
 		}
 
-		super.onPostGenerate(random, x, z, data, grid, height, biomeMap, map);
+		super.onPostGenerate(random, x, z, terrain, height, biomeMap, map);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		if(getDimension().isPlaceObjects())
 		{
 			onGenerateParallax(random, x, z);
-			getParallaxChunk(x, z).inject(data);
+			getParallaxChunk(x, z).inject(terrain);
 			getParallaxChunk(x, z).injectUpdates(map);
 			getParallaxChunk(x, z).setWorldGenerated(true);
 		}
@@ -194,7 +195,7 @@ public abstract class ParallaxChunkGenerator extends TerrainChunkGenerator imple
 		getMasterLock().clear();
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
-		super.onPostParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
+		super.onPostParallaxPostGenerate(random, x, z, terrain, height, biomeMap, map);
 		getParallaxMap().clean(getTicks());
 		getData().getObjectLoader().clean();
 	}

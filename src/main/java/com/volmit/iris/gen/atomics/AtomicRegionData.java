@@ -7,10 +7,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 
-import org.bukkit.World;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.ByteArrayTag;
 import com.volmit.iris.util.CompoundTag;
 import com.volmit.iris.util.CustomOutputStream;
@@ -21,10 +20,10 @@ import com.volmit.iris.util.Tag;
 
 public class AtomicRegionData
 {
-	private final World world;
+	private final TerrainTarget world;
 	private Tag[] tag;
 
-	public AtomicRegionData(World world)
+	public AtomicRegionData(TerrainTarget world)
 	{
 		this.world = world;
 		tag = new Tag[1024];
@@ -148,7 +147,7 @@ public class AtomicRegionData
 		return data;
 	}
 
-	public World getWorld()
+	public TerrainTarget getWorld()
 	{
 		return world;
 	}

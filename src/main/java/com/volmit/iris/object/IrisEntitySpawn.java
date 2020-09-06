@@ -76,9 +76,9 @@ public class IrisEntitySpawn
 			return null;
 		}
 
-		if(rng.aquire(() -> new RNG(g.getWorld().getSeed() + 4)).i(1, getRarity()) == 1)
+		if(rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)).i(1, getRarity()) == 1)
 		{
-			return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getWorld().getSeed() + 4)));
+			return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)));
 		}
 
 		return null;

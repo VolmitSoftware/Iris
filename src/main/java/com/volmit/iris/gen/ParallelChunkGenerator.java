@@ -1,10 +1,10 @@
 package com.volmit.iris.gen;
 
-import org.bukkit.World;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.HeightMap;
@@ -22,9 +22,9 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 	private int threads;
 	private boolean cachingAllowed;
 
-	public ParallelChunkGenerator(String dimensionName, int threads)
+	public ParallelChunkGenerator(TerrainTarget t, String dimensionName, int threads)
 	{
-		super(dimensionName);
+		super(t, dimensionName);
 		setThreads(threads);
 		setCachingAllowed(false);
 	}
@@ -33,7 +33,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 	{
 		setThreads(tc);
 		GroupedExecutor e = getAccelerant();
-		setAccelerant(new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + getWorld().getName()));
+		setAccelerant(new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + getTarget().getName()));
 		;
 		Iris.executors.add(getAccelerant());
 
@@ -54,16 +54,16 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 
 	protected abstract int onSampleColumnHeight(int cx, int cz, int wx, int wz, int x, int z);
 
-	protected abstract void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
+	protected abstract void onPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
 
-	protected abstract void onPreGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
+	protected abstract void onPreGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map);
 
 	protected int sampleHeight(int x, int z)
 	{
 		return onSampleColumnHeight(x >> 4, z >> 4, x, z, x & 15, z & 15);
 	}
 
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
 		getCache().targetChunk(x, z);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -73,7 +73,7 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
 
-		onPreGenerate(random, x, z, data, grid, height, biomeMap, map);
+		onPreGenerate(random, x, z, terrain, height, biomeMap, map);
 
 		for(ii = 0; ii < 16; ii++)
 		{
@@ -101,10 +101,10 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		}
 
 		accelerant.waitFor(key);
-		map.write(data, grid, height);
+		map.write(terrain, terrain, height);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
-		onPostGenerate(random, x, z, data, grid, height, biomeMap, map);
+		onPostGenerate(random, x, z, terrain, height, biomeMap, map);
 	}
 
 	protected void onClose()
@@ -113,9 +113,9 @@ public abstract class ParallelChunkGenerator extends DimensionChunkGenerator
 		Iris.executors.remove(accelerant);
 	}
 
-	public void onInit(World world, RNG rng)
+	public void onInit(RNG rng)
 	{
-		super.onInit(world, rng);
+		super.onInit(rng);
 		changeThreadCount(getThreads());
 	}
 

@@ -81,6 +81,17 @@ public class MultiverseCoreLink
 		getList().remove(world.getName());
 		saveConfig();
 	}
+	
+	public void removeFromConfig(String world)
+	{
+		if(!supported())
+		{
+			return;
+		}
+
+		getList().remove(world);
+		saveConfig();
+	}
 
 	public void saveConfig()
 	{

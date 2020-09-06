@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -27,19 +28,18 @@ public class CommandIrisStudioHotload extends MortarCommand
 			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
 			return true;
 		}
-		
+
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
-
-			if(!(world.getGenerator() instanceof IrisChunkGenerator))
+			if(!(world.getGenerator() instanceof ProvisionBukkit))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;
 			}
 
-			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+			IrisChunkGenerator g = (IrisChunkGenerator) ((ProvisionBukkit) world.getGenerator()).getProvider();
 			g.onHotload();
 			sender.sendMessage("Hotloaded!");
 			return true;

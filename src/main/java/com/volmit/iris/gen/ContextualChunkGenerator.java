@@ -1,13 +1,10 @@
 package com.volmit.iris.gen;
 
-import java.util.List;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -23,8 +20,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.generator.BlockPopulator;
-import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisContext;
@@ -32,6 +27,9 @@ import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisMetrics;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.gen.atomics.AtomicMulticache;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainProvider;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
@@ -53,7 +51,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ContextualChunkGenerator extends ChunkGenerator implements Listener
+public abstract class ContextualChunkGenerator implements TerrainProvider, Listener
 {
 	private KList<BlockPosition> noLoot;
 	private BlockPosition allowLoot;
@@ -69,16 +67,17 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	private ChronoLatch pushLatch;
 	private AtomicCache<IrisDimension> dimCache;
 	private IrisMetrics metrics;
-	private World world;
 	private int generated;
 	private int ticks;
 	private long hlast;
 	private boolean fastPregen = false;
 	private boolean pregenDone;
 	private volatile boolean hotloadable = false;
+	private final TerrainTarget target;
 
-	public ContextualChunkGenerator()
+	public ContextualChunkGenerator(TerrainTarget target)
 	{
+		this.target = target;
 		pushLatch = new ChronoLatch(3000);
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
@@ -97,9 +96,9 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		noLoot = new KList<>(1285);
 	}
 
-	protected abstract void onGenerate(RNG masterRandom, int x, int z, ChunkData data, BiomeGrid grid);
+	protected abstract void onGenerate(RNG masterRandom, int x, int z, TerrainChunk chunk);
 
-	protected abstract void onInit(World world, RNG masterRandom);
+	protected abstract void onInit(RNG masterRandom);
 
 	protected abstract void onTick(int ticks);
 
@@ -150,21 +149,20 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		return isDev() ? Iris.globaldata : data;
 	}
 
-	private void init(World world, RNG rng)
+	private void init(RNG rng)
 	{
 		if(initialized)
 		{
 			return;
 		}
 
-		this.world = world;
-		setData(new IrisDataManager(getWorld().getWorldFolder()));
-		setMasterRandom(new RNG(world.getSeed()));
+		setData(new IrisDataManager(getTarget().getFolder()));
+		setMasterRandom(new RNG(getTarget().getSeed()));
 		setMetrics(new IrisMetrics(128));
 		setInitialized(true);
 		setTask(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0));
 		Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
-		onInit(world, masterRandom);
+		onInit(masterRandom);
 		setHotloadable(true);
 	}
 
@@ -185,7 +183,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 					setGenerated(0);
 				}
 
-				checkHotload();
+				doCheckHotload();
 
 				if(getNoLoot().size() > 1024)
 				{
@@ -217,7 +215,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(BlockBreakEvent e)
 	{
-		if(!e.getBlock().getWorld().equals(getWorld()))
+		if(!getTarget().isWorld(e.getBlock().getWorld()))
 		{
 			return;
 		}
@@ -238,7 +236,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(BlockPlaceEvent e)
 	{
-		if(!e.getBlock().getWorld().equals(getWorld()))
+		if(!getTarget().isWorld(e.getBlock().getWorld()))
 		{
 			return;
 		}
@@ -249,7 +247,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(BlockDropItemEvent e)
 	{
-		if(!e.getBlock().getWorld().equals(getWorld()))
+		if(!getTarget().isWorld(e.getBlock().getWorld()))
 		{
 			return;
 		}
@@ -269,13 +267,13 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerTeleportEvent e)
 	{
-		if(e.getFrom().getWorld().equals(world) && !e.getTo().getWorld().equals(world))
+		if(getTarget().isWorld(e.getFrom().getWorld()) && !getTarget().isWorld(e.getTo().getWorld()))
 		{
 			tick();
 			onPlayerLeft(e.getPlayer());
 		}
 
-		if(!e.getFrom().getWorld().equals(world) && e.getTo().getWorld().equals(world))
+		if(!getTarget().isWorld(e.getFrom().getWorld()) && getTarget().isWorld(e.getTo().getWorld()))
 		{
 			tick();
 			onPlayerJoin(e.getPlayer());
@@ -285,7 +283,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerQuitEvent e)
 	{
-		if(e.getPlayer().getWorld().equals(world))
+		if(getTarget().isWorld(e.getPlayer().getWorld()))
 		{
 			tick();
 			onPlayerLeft(e.getPlayer());
@@ -295,7 +293,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(PlayerJoinEvent e)
 	{
-		if(e.getPlayer().getWorld().equals(world))
+		if(getTarget().isWorld(e.getPlayer().getWorld()))
 		{
 			tick();
 			onPlayerJoin(e.getPlayer());
@@ -305,7 +303,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(ChunkLoadEvent e)
 	{
-		if(e.getWorld().equals(world))
+		if(getTarget().isWorld(e.getWorld()))
 		{
 			tick();
 			onChunkLoaded(e.getChunk());
@@ -315,7 +313,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(ChunkUnloadEvent e)
 	{
-		if(e.getWorld().equals(world))
+		if(getTarget().isWorld(e.getWorld()))
 		{
 			tick();
 			onChunkUnloaded(e.getChunk());
@@ -325,7 +323,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(WorldUnloadEvent e)
 	{
-		if(world != null && e.getWorld().equals(world))
+		if(getTarget().isWorld(e.getWorld()))
 		{
 			close();
 		}
@@ -345,16 +343,8 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		onClose();
 	}
 
-	@Override
-	public boolean canSpawn(World world, int x, int z)
+	protected void generateFailure(Random no, int x, int z, TerrainChunk chunk)
 	{
-		return super.canSpawn(world, x, z);
-	}
-
-	protected ChunkData generateChunkDataFailure(World world, Random no, int x, int z, BiomeGrid biomeGrid)
-	{
-		ChunkData c = Bukkit.createChunkData(world);
-
 		for(int i = 0; i < 16; i++)
 		{
 			for(int j = 0; j < 16; j++)
@@ -363,46 +353,19 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 				if(j == i || j + i == 16)
 				{
-					c.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA"));
+					chunk.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA"));
 				}
 
 				else
 				{
-					c.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA"));
+					chunk.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA"));
 				}
 			}
 		}
-
-		return c;
-	}
-
-	protected ChunkData generateChunkFastPregen(World world, Random no, int x, int z, BiomeGrid biomeGrid)
-	{
-		ChunkData c = Bukkit.createChunkData(world);
-
-		for(int i = 0; i < 16; i++)
-		{
-			for(int j = 0; j < 16; j++)
-			{
-				int h = 0;
-
-				if(j == i || j + i == 16)
-				{
-					c.setBlock(i, h, j, B.getBlockData("BLUE_TERRACOTTA"));
-				}
-
-				else
-				{
-					c.setBlock(i, h, j, B.getBlockData("WHITE_TERRACOTTA"));
-				}
-			}
-		}
-
-		return c;
 	}
 
 	@Override
-	public ChunkData generateChunkData(World world, Random no, int x, int z, BiomeGrid biomeGrid)
+	public void generate(Random no, int x, int z, TerrainChunk terrain)
 	{
 		setHotloadable(false);
 		if(!isDev())
@@ -413,32 +376,21 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 
 		if(failing)
 		{
-			return generateChunkDataFailure(world, no, x, z, biomeGrid);
+			generateFailure(no, x, z, terrain);
+			return;
 		}
 
 		try
 		{
-			RNG random = new RNG(world.getSeed());
-			init(world, random.nextParallelRNG(0));
-
-			ChunkData c = Bukkit.createChunkData(world);
-
-			if(!pregenDone && fastPregen)
-			{
-				c = generateChunkFastPregen(world, no, x, z, biomeGrid);
-			}
-
-			else
-			{
-				onGenerate(random, x, z, c, biomeGrid);
-			}
-
+			RNG random = new RNG(getTarget().getSeed());
+			init(random.nextParallelRNG(0));
+			onGenerate(random, x, z, terrain);
 			generated++;
 			long hits = CNG.hits;
 			CNG.hits = 0;
 			Iris.instance.hit(hits);
 			setHotloadable(true);
-			return c;
+			return;
 		}
 
 		catch(Throwable e)
@@ -447,36 +399,23 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		}
 
 		setHotloadable(true);
-		return generateChunkDataFailure(world, no, x, z, biomeGrid);
+		generateFailure(no, x, z, terrain);
 	}
 
-	public void checkHotload()
-	{
-		if(M.ms() - getHlast() < 1000)
-		{
-			return;
-		}
-
-		if(getWorld() != null)
-		{
-			checkHotload(getWorld());
-		}
-	}
-
-	private void checkHotload(World world)
+	private void doCheckHotload()
 	{
 		if(!isHotloadable())
 		{
 			return;
 		}
 
+		if(M.ms() - getHlast() < 1000)
+		{
+			return;
+		}
+
 		if(getPushLatch().flip())
 		{
-			if(getWorld() == null)
-			{
-				setWorld(world);
-			}
-
 			Iris.hotloader.check((IrisContext) this);
 
 			if(this instanceof IrisContext)
@@ -511,7 +450,7 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 			Iris.error("ERROR! Failed to generate chunk! Iris has entered a failed state!");
 			Iris.error("---------------------------------------------------------------------------------------------------------");
 
-			for(Player i : world.getPlayers())
+			for(Player i : getTarget().getPlayers())
 			{
 				Iris.instance.imsg(i, C.DARK_RED + "Iris Generator has crashed!");
 				Iris.instance.imsg(i, C.RED + "- Check the console for the error.");
@@ -521,18 +460,6 @@ public abstract class ContextualChunkGenerator extends ChunkGenerator implements
 		});
 
 		onFailure(e);
-	}
-
-	@Override
-	public List<BlockPopulator> getDefaultPopulators(World world)
-	{
-		return super.getDefaultPopulators(world);
-	}
-
-	@Override
-	public Location getFixedSpawnLocation(World world, Random random)
-	{
-		return super.getFixedSpawnLocation(world, random);
 	}
 
 	@Override

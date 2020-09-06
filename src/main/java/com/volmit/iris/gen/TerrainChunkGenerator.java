@@ -1,7 +1,6 @@
 package com.volmit.iris.gen;
 
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.Bisected.Half;
@@ -13,6 +12,8 @@ import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.layer.GenLayerCarve;
 import com.volmit.iris.gen.layer.GenLayerCave;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
@@ -53,17 +54,17 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	private CNG masterFracture;
 	private ChronoLatch cwarn = new ChronoLatch(1000);
 
-	public TerrainChunkGenerator(String dimensionName, int threads)
+	public TerrainChunkGenerator(TerrainTarget t, String dimensionName, int threads)
 	{
-		super(dimensionName, threads);
+		super(t, dimensionName, threads);
 		setGenerators(new KMap<>());
 		setRegionLock(new IrisLock("BiomeChunkGenerator"));
 	}
 
 	@Override
-	public void onInit(World world, RNG rng)
+	public void onInit(RNG rng)
 	{
-		super.onInit(world, rng);
+		super.onInit(rng);
 		loadGenerators();
 		buildGenLayers(getMasterRandom());
 	}
@@ -113,7 +114,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onPreGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	protected void onPreGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 
 	}
@@ -336,23 +337,23 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, data, grid);
+		super.onGenerate(random, x, z, terrain);
 		RNG ro = random.nextParallelRNG((x * x * x) - z);
 		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
 		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
 
 		for(IrisDepositGenerator k : getDimension().getDeposits())
 		{
-			k.generate(data, ro, this, x, z);
+			k.generate(terrain, ro, this, x, z);
 		}
 
 		for(IrisDepositGenerator k : region.getDeposits())
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(data, ro, this, x, z);
+				k.generate(terrain, ro, this, x, z);
 			}
 		}
 
@@ -360,7 +361,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(data, ro, this, x, z);
+				k.generate(terrain, ro, this, x, z);
 			}
 		}
 	}
@@ -546,17 +547,17 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 	}
 
 	@Override
-	protected void onPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	protected void onPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
-		onPreParallaxPostGenerate(random, x, z, data, grid, height, biomeMap, map);
+		onPreParallaxPostGenerate(random, x, z, terrain, height, biomeMap, map);
 	}
 
-	protected void onPreParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	protected void onPreParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 
 	}
 
-	protected void onPostParallaxPostGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
+	protected void onPostParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
 
 	}
@@ -815,7 +816,7 @@ public abstract class TerrainChunkGenerator extends ParallelChunkGenerator
 			return 0;
 		});
 
-		return M.lerp(lo, hi, gen.getHeight(rx, rz, getWorld().getSeed() + 239945));
+		return M.lerp(lo, hi, gen.getHeight(rx, rz, getTarget().getSeed() + 239945));
 	}
 
 	protected void loadGenerators()

@@ -1,7 +1,7 @@
 package com.volmit.iris.gen;
 
-import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.post.PostFloatingNibDeleter;
@@ -11,6 +11,8 @@ import com.volmit.iris.gen.post.PostPotholeFiller;
 import com.volmit.iris.gen.post.PostSlabber;
 import com.volmit.iris.gen.post.PostWallPatcher;
 import com.volmit.iris.gen.post.PostWaterlogger;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
 import com.volmit.iris.util.IrisLock;
@@ -31,22 +33,22 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 	private int minPhase;
 	private int maxPhase;
 
-	public PostBlockChunkGenerator(String dimensionName, int threads)
+	public PostBlockChunkGenerator(TerrainTarget t, String dimensionName, int threads)
 	{
-		super(dimensionName, threads);
+		super(t, dimensionName, threads);
 		setPostKey("post-" + dimensionName);
 		setPostLock(new IrisLock("PostChunkGenerator"));
 	}
 
-	public void onInit(World world, RNG rng)
+	public void onInit(RNG rng)
 	{
-		super.onInit(world, rng);
+		super.onInit(rng);
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, ChunkData data, BiomeGrid grid)
+	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, data, grid);
+		super.onGenerate(random, x, z, terrain);
 
 		if(!getDimension().isPostProcessing())
 		{
@@ -76,7 +78,7 @@ public abstract class PostBlockChunkGenerator extends ParallaxChunkGenerator imp
 						{
 							if(f.getPhase() == hh)
 							{
-								f.onPost(rxx, rzz, x, z, data);
+								f.onPost(rxx, rzz, x, z, terrain);
 							}
 						}
 					});

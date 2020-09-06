@@ -1,7 +1,6 @@
 package com.volmit.iris;
 
-import org.bukkit.World;
-
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
@@ -9,17 +8,19 @@ import com.volmit.iris.util.KMap;
 
 public interface IrisContext
 {
-	static KMap<World, IrisContext> contexts = new KMap<>();
+	static KMap<TerrainTarget, IrisContext> contexts = new KMap<>();
 
 	public static void pushContext(IrisContext context)
 	{
-		contexts.put(context.getWorld(), context);
+		contexts.put(context.getTarget(), context);
 	}
 
-	public static IrisContext of(World world)
+	public static IrisContext of(TerrainTarget world)
 	{
 		return contexts.get(world);
 	}
+	
+	public TerrainTarget getTarget();
 
 	public IrisBiome getBiome(int x, int z);
 
@@ -30,8 +31,6 @@ public interface IrisContext
 	public IrisMetrics getMetrics();
 
 	public int getHeight(int x, int z);
-
-	public World getWorld();
 
 	public void onHotloaded();
 }

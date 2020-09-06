@@ -27,7 +27,11 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.post.Post;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.Envelope;
 import com.volmit.iris.object.InterpolationMethod;
@@ -316,7 +320,11 @@ public class ProjectManager
 
 		Iris.globaldata.dump();
 		sender.sendMessage("Loading " + dimm + "...");
-		IrisChunkGenerator gx = new IrisChunkGenerator(dimm, IrisSettings.get().threads);
+		String wfp = "iris/" + UUID.randomUUID();
+		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(IrisGenConfiguration.builder().threads(IrisSettings.get().threads).dimension(dimm).target(TerrainTarget.builder().environment(d.getEnvironment()).folder(new File(wfp)).name(wfp).seed(1337).build()).build());
+		//@done
+
+		IrisChunkGenerator gx = (IrisChunkGenerator) gen.getProvider();
 		currentProject = gx;
 		gx.setDev(true);
 		sender.sendMessage("Generating with " + IrisSettings.get().threads + " threads per chunk");
@@ -365,13 +373,14 @@ public class ProjectManager
 		});
 
 		//@builder
-		World world = Bukkit.createWorld(new WorldCreator("iris/" + UUID.randomUUID())
+		World world = NMSCreator.createWorld(new WorldCreator(wfp)
 				.seed(1337)
-				.generator(gx)
+				.generator(gen)
 				.generateStructures(d.isVanillaStructures())
 				.type(WorldType.NORMAL)
-				.environment(d.getEnvironment()));
+				.environment(d.getEnvironment()), false);
 		//@done
+		gx.getTarget().setRealWorld(world);
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);
@@ -400,9 +409,9 @@ public class ProjectManager
 		if(isProjectOpen())
 		{
 			currentProject.close();
-			File folder = currentProject.getWorld().getWorldFolder();
-			Iris.linkMultiverseCore.removeFromConfig(currentProject.getWorld());
-			Bukkit.unloadWorld(currentProject.getWorld(), false);
+			File folder = currentProject.getTarget().getFolder();
+			Iris.linkMultiverseCore.removeFromConfig(currentProject.getTarget().getName());
+			Bukkit.unloadWorld(currentProject.getTarget().getName(), false);
 			currentProject = null;
 			Iris.globaldata.dump();
 			Iris.globaldata.preferFolder(null);

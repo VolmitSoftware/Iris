@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -26,13 +27,13 @@ public class CommandIrisCTC extends MortarCommand
 			Player p = sender.player();
 			World world = p.getWorld();
 
-			if(!(world.getGenerator() instanceof IrisChunkGenerator))
+			if(!(world.getGenerator() instanceof ProvisionBukkit))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;
 			}
 
-			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+			IrisChunkGenerator g = (IrisChunkGenerator) ((ProvisionBukkit) world.getGenerator()).getProvider();
 			int m = Math.min(Math.max(Integer.valueOf(args[0]), 2), 256);
 			g.changeThreadCount(m);
 			sender.sendMessage("Thread count changed to " + m);

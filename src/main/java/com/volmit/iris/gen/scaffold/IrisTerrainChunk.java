@@ -1,10 +1,10 @@
-package com.volmit.iris.gen.bindings;
+package com.volmit.iris.gen.scaffold;
 
-import java.lang.reflect.Constructor;
-
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
 
@@ -16,39 +16,26 @@ public class IrisTerrainChunk implements TerrainChunk
 	private final Biome[] biome2D;
 	private final IrisBiomeStorage biome3D;
 	private final ChunkData rawChunkData;
-	private final Constructor<?> construct = buildConstruct();
+	private final BiomeGrid storage;
 
 	public IrisTerrainChunk(int maxHeight)
 	{
-		rawChunkData = createChunkData(maxHeight);
-		biome2D = Iris.biome3d ? null : new Biome[256];
-		biome3D = Iris.biome3d ? new IrisBiomeStorage() : null;
+		this(null, maxHeight);
 	}
 
-	private Constructor<?> buildConstruct()
+	public IrisTerrainChunk(BiomeGrid storage, int maxHeight)
 	{
-		try
-		{
-			Class<?> chunkDatazz = Class.forName("org.bukkit.craftbukkit." + Iris.nmsTag() + ".generator.CraftChunkData");
-			Constructor<?> construct = chunkDatazz.getConstructor(int.class);
-			construct.setAccessible(true);
-			return construct;
-		}
-
-		catch(Throwable e)
-		{
-			Iris.error("Failed create construct for ChunkData(int)");
-			e.printStackTrace();
-		}
-
-		return null;
+		this.storage = storage;
+		rawChunkData = createChunkData(maxHeight);
+		biome2D = storage != null ? null : Iris.biome3d ? null : new Biome[256];
+		biome3D = storage != null ? null : Iris.biome3d ? new IrisBiomeStorage() : null;
 	}
 
 	private ChunkData createChunkData(int maxHeight)
 	{
 		try
 		{
-			return (ChunkData) construct.newInstance(maxHeight);
+			return Bukkit.createChunkData(new HeightedFakeWorld(maxHeight));
 		}
 
 		catch(Throwable e)
@@ -62,6 +49,11 @@ public class IrisTerrainChunk implements TerrainChunk
 	@Override
 	public Biome getBiome(int x, int z)
 	{
+		if(storage != null)
+		{
+			return storage.getBiome(x, z);
+		}
+
 		if(biome2D != null)
 		{
 			return biome2D[(z << 4) | x];
@@ -73,6 +65,11 @@ public class IrisTerrainChunk implements TerrainChunk
 	@Override
 	public Biome getBiome(int x, int y, int z)
 	{
+		if(storage != null)
+		{
+			return storage.getBiome(x, y, z);
+		}
+
 		if(biome2D != null)
 		{
 			return biome2D[(z << 4) | x];
@@ -84,6 +81,12 @@ public class IrisTerrainChunk implements TerrainChunk
 	@Override
 	public void setBiome(int x, int z, Biome bio)
 	{
+		if(storage != null)
+		{
+			storage.setBiome(x, z, bio);
+			return;
+		}
+
 		if(biome2D != null)
 		{
 			biome2D[(z << 4) | x] = bio;
@@ -96,6 +99,12 @@ public class IrisTerrainChunk implements TerrainChunk
 	@Override
 	public void setBiome(int x, int y, int z, Biome bio)
 	{
+		if(storage != null)
+		{
+			storage.setBiome(x, y, z, bio);
+			return;
+		}
+
 		if(biome2D != null)
 		{
 			biome2D[(z << 4) | x] = bio;
@@ -176,5 +185,11 @@ public class IrisTerrainChunk implements TerrainChunk
 	public byte getData(int x, int y, int z)
 	{
 		return rawChunkData.getData(x, y, z);
+	}
+
+	@Override
+	public ChunkData getRaw()
+	{
+		return rawChunkData;
 	}
 }

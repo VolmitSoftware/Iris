@@ -40,7 +40,7 @@ public class CommandIrisStudioClose extends MortarCommand
 
 			for(World i : Bukkit.getWorlds())
 			{
-				if(i.getWorldFolder().getAbsolutePath().equals(Iris.proj.getCurrentProject().getWorld().getWorldFolder().getAbsolutePath()))
+				if(i.getWorldFolder().getAbsolutePath().equals(Iris.proj.getCurrentProject().getTarget().getFolder().getAbsolutePath()))
 				{
 					continue;
 				}
@@ -51,7 +51,7 @@ public class CommandIrisStudioClose extends MortarCommand
 
 			if(f == null)
 			{
-				for(Player i : Iris.proj.getCurrentProject().getWorld().getPlayers())
+				for(Player i : Iris.proj.getCurrentProject().getTarget().getPlayers())
 				{
 					i.kickPlayer("Project Closing, No other world to put you in. Rejoin Please!");
 				}
@@ -59,7 +59,7 @@ public class CommandIrisStudioClose extends MortarCommand
 
 			else
 			{
-				for(Player i : Iris.proj.getCurrentProject().getWorld().getPlayers())
+				for(Player i : Iris.proj.getCurrentProject().getTarget().getPlayers())
 				{
 					i.teleport(f.getSpawnLocation());
 				}

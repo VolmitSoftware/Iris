@@ -4,15 +4,14 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
@@ -27,6 +26,9 @@ import com.volmit.iris.gen.post.PostPotholeFiller;
 import com.volmit.iris.gen.post.PostSlabber;
 import com.volmit.iris.gen.post.PostWallPatcher;
 import com.volmit.iris.gen.post.PostWaterlogger;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.link.MultiverseCoreLink;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Form;
@@ -37,7 +39,6 @@ import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
-import com.volmit.iris.util.NMSVersion;
 import com.volmit.iris.util.Permission;
 
 public class Iris extends MortarPlugin
@@ -84,6 +85,16 @@ public class Iris extends MortarPlugin
 		}
 
 		return "UNKNOWN NMS VERSION";
+	}
+
+	public ProvisionBukkit createProvisionBukkit(IrisGenConfiguration config)
+	{
+		return new ProvisionBukkit(createIrisProvider(config));
+	}
+
+	public IrisChunkGenerator createIrisProvider(IrisGenConfiguration config)
+	{
+		return new IrisChunkGenerator(config);
 	}
 
 	private static boolean doesSupport3DBiomes()
@@ -160,9 +171,9 @@ public class Iris extends MortarPlugin
 
 			for(World i : Bukkit.getWorlds())
 			{
-				if(i.getGenerator() instanceof IrisChunkGenerator)
+				if(i.getGenerator() instanceof ProvisionBukkit)
 				{
-					((IrisChunkGenerator) i.getGenerator()).close();
+					((IrisChunkGenerator) ((ProvisionBukkit) i.getGenerator()).getProvider()).close();
 				}
 			}
 
@@ -208,7 +219,18 @@ public class Iris extends MortarPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		return new IrisChunkGenerator(IrisSettings.get().threads);
+		//@builder
+		return createProvisionBukkit(IrisGenConfiguration.builder()
+				.threads(IrisSettings.get().threads)
+				.target(TerrainTarget
+						.builder()
+						.environment(Environment.NORMAL)
+						.folder(new File(worldName))
+						.name(worldName)
+						.seed(worldName.hashCode())
+					.build()
+				).build());
+		//@done
 	}
 
 	public static void msg(String string)

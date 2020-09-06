@@ -14,6 +14,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.nms.NMSCreator;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
@@ -138,7 +142,20 @@ public class CommandIrisCreate extends MortarCommand
 		}
 
 		sender.sendMessage(worldName + " type installed. Generating Spawn Area...");
-		IrisChunkGenerator gen = new IrisChunkGenerator("", 16);
+		//@builder
+		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(
+			IrisGenConfiguration.builder()
+				.threads(IrisSettings.get().threads)
+				.dimension(dim.getLoadKey())
+				.target(TerrainTarget
+					.builder()
+					.environment(dim.getEnvironment())
+					.folder(folder)
+					.name(worldName)
+					.seed(seed)
+				.build()
+			).build());
+		//@done
 
 		sender.sendMessage("Generating with " + IrisSettings.get().threads + " threads per chunk");
 		O<Boolean> done = new O<Boolean>();
@@ -151,7 +168,7 @@ public class CommandIrisCreate extends MortarCommand
 			while(!done.get())
 			{
 				boolean derp = false;
-				double v = (double) gen.getGenerated() / (double) req;
+				double v = (double) ((IrisChunkGenerator) gen.getProvider()).getGenerated() / (double) req;
 
 				if(last > v || v > 1)
 				{
@@ -169,7 +186,10 @@ public class CommandIrisCreate extends MortarCommand
 			}
 		});
 
-		World world = Bukkit.createWorld(new WorldCreator(worldName).seed(seed).generator(gen).type(WorldType.NORMAL).environment(dim.getEnvironment()));
+		WorldCreator wc = new WorldCreator(worldName).seed(seed).generator(gen).type(WorldType.NORMAL).environment(dim.getEnvironment());
+
+		World world = NMSCreator.createWorld(wc, false);
+
 		done.set(true);
 		sender.sendMessage(worldName + " Spawn Area generated.");
 

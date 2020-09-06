@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.bindings;
+package com.volmit.iris.gen.scaffold;
 
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;

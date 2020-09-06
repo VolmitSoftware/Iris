@@ -3,11 +3,11 @@ package com.volmit.iris.gen;
 import java.io.File;
 
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
@@ -28,27 +28,14 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
 	protected static final BlockData WATER = Material.WATER.createBlockData();
 
-	public DimensionChunkGenerator(String dimensionName)
+	public DimensionChunkGenerator(TerrainTarget t, String dimensionName)
 	{
-		super();
+		super(t);
 		setDimensionName(dimensionName);
-	}
 
-	public void onPlayerLeft(Player p)
-	{
-
-	}
-
-	public void onTick(int m)
-	{
-
-	}
-
-	public void onInit(World world, RNG masterRandom)
-	{
 		if(getDimensionName().isEmpty())
 		{
-			File folder = new File(world.getWorldFolder(), "iris/dimensions");
+			File folder = new File(getTarget().getFolder(), "iris/dimensions");
 
 			if(!folder.exists())
 			{
@@ -71,7 +58,30 @@ public abstract class DimensionChunkGenerator extends ContextualChunkGenerator
 			fail(new RuntimeException("Missing dimension folder/file in " + folder.getAbsolutePath()));
 		}
 
+		try
+		{
+			getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+	}
+
+	public void onPlayerLeft(Player p)
+	{
+
+	}
+
+	public void onTick(int m)
+	{
 		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
+	}
+
+	public void onInit(RNG masterRandom)
+	{
+
 	}
 
 	public IrisDimension getDimension()

@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.bindings;
+package com.volmit.iris.gen.scaffold;
 
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -16,6 +16,16 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 	public static TerrainChunk create(int maxHeight)
 	{
 		return new IrisTerrainChunk(maxHeight);
+	}
+
+	public static TerrainChunk create(World world, BiomeGrid grid)
+	{
+		return create(world.getMaxHeight(), grid);
+	}
+
+	public static TerrainChunk create(int maxHeight, BiomeGrid grid)
+	{
+		return new IrisTerrainChunk(grid, maxHeight);
 	}
 
 	/**
@@ -114,4 +124,6 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 	 *         outside the chunk's bounds
 	 */
 	public BlockData getBlockData(int x, int y, int z);
+
+	public ChunkData getRaw();
 }

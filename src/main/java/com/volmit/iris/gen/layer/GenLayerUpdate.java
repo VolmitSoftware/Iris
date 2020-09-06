@@ -32,10 +32,10 @@ public class GenLayerUpdate extends BlockPopulator
 	private ParallaxChunkGenerator gen;
 	private RNG rng;
 
-	public GenLayerUpdate(ParallaxChunkGenerator gen, World w)
+	public GenLayerUpdate(ParallaxChunkGenerator gen)
 	{
 		this.gen = gen;
-		this.rng = new RNG(w.getSeed() + 4996788).nextParallelRNG(-98618289);
+		this.rng = new RNG(gen.getTarget().getSeed() + 4996788).nextParallelRNG(-98618289);
 	}
 
 	@Override

@@ -5,9 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.bukkit.World;
-
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -15,7 +14,7 @@ import com.volmit.iris.util.M;
 
 public class AtomicWorldData
 {
-	private World world;
+	private TerrainTarget world;
 	private KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
 	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
 	private KMap<ChunkPosition, Long> lastRegion;
@@ -24,7 +23,7 @@ public class AtomicWorldData
 	private KList<ChunkPosition> unloadChunks;
 	private long last = M.ms();
 
-	public AtomicWorldData(World world)
+	public AtomicWorldData(TerrainTarget world)
 	{
 		this.world = world;
 		loadedSections = new KMap<>();
@@ -254,7 +253,7 @@ public class AtomicWorldData
 
 	public File getSubregionFolder()
 	{
-		return new File(world.getWorldFolder(), "region-parallax");
+		return new File(world.getFolder(), "parallax");
 	}
 
 	public KMap<ChunkPosition, AtomicSliverMap> getLoadedChunks()

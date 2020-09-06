@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisChunkGenerator;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -30,7 +31,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
 			return true;
 		}
-		
+
 		if(args.length < 1)
 		{
 			sender.sendMessage("/iris world goto " + getArgsUsage());
@@ -42,13 +43,13 @@ public class CommandIrisStudioGoto extends MortarCommand
 			Player p = sender.player();
 			World world = p.getWorld();
 
-			if(!(world.getGenerator() instanceof IrisChunkGenerator))
+			if(!(world.getGenerator() instanceof ProvisionBukkit))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;
 			}
 
-			IrisChunkGenerator g = (IrisChunkGenerator) world.getGenerator();
+			IrisChunkGenerator g = (IrisChunkGenerator) ((ProvisionBukkit) world.getGenerator()).getProvider();
 			int tries = 10000;
 			boolean cave = false;
 			IrisBiome biome2 = null;

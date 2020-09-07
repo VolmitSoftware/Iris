@@ -286,6 +286,13 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		// Carve out biomes
 		KList<CaveResult> caveResults = glCave.genCaves(rx, rz, x, z, sliver);
+		KList<CaveResult> caveResults1 = glCave.genCaves(rx, rz, x, z, null);
+
+		if(caveResults.size() != caveResults1.size())
+		{
+			Iris.warn("REAL: " + caveResults.size() + " Guess: " + caveResults1.size());
+		}
+
 		IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region);
 
 		// Decorate Cave Biome Height Sections

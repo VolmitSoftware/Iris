@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.DimensionalTerrainProvider;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.noise.FastNoise;
 import com.volmit.iris.noise.FastNoise.CellularDistanceFunction;
@@ -57,7 +58,7 @@ public class GenLayerCave extends GenLayer
 	{
 		double scale = layer.getCaveZoom();
 
-		int surface = data.getHighestBlock();
+		int surface = (int) Math.round(((IrisTerrainProvider) iris).getTerrainHeight((int) wxx, (int) wzz));
 		double wx = wxx + layer.getHorizontalSlope().get(rng, wxx, wzz);
 		double wz = wzz + layer.getHorizontalSlope().get(rng, -wzz, -wxx);
 		double baseWidth = (14 * scale);

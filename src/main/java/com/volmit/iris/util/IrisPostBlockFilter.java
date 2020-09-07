@@ -8,7 +8,6 @@ import org.bukkit.block.data.type.Slab;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.PostBlockTerrainProvider;
-import com.volmit.iris.gen.post.Post;
 
 import lombok.Data;
 
@@ -17,16 +16,12 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 {
 	public PostBlockTerrainProvider gen;
 	private int phase;
-	private String key;
-	private KList<Runnable> queue = new KList<>();
 
 	@DontObfuscate
 	public IrisPostBlockFilter(PostBlockTerrainProvider gen, int phase)
 	{
 		this.gen = gen;
 		this.phase = phase;
-		queue = new KList<>();
-		key = getClass().getDeclaredAnnotation(Post.class).value();
 	}
 
 	@DontObfuscate
@@ -35,7 +30,7 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		this(gen, 0);
 	}
 
-	public abstract void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData);
+	public abstract void onPost(int x, int z, int currentPostX, int currentPostZ, ChunkData currentData, KList<Runnable> q);
 
 	@Override
 	public BlockData getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
@@ -84,6 +79,12 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 		return d.getMaterial().isSolid();
 	}
 
+	public boolean isSolidNonSlab(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
+	{
+		BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);
+		return d.getMaterial().isSolid() && !(d instanceof Slab);
+	}
+
 	public boolean isAirOrWater(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);
@@ -124,11 +125,6 @@ public abstract class IrisPostBlockFilter implements IPostBlockAccess
 	public KList<CaveResult> caveFloors(int x, int z)
 	{
 		return gen.caveFloors(x, z);
-	}
-
-	public void queue(Runnable a)
-	{
-		queue.add(a);
 	}
 
 	@Override

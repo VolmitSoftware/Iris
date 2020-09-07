@@ -4,19 +4,12 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.post.PostFloatingNibDeleter;
-import com.volmit.iris.gen.post.PostFoliageCleaner;
-import com.volmit.iris.gen.post.PostNibSmoother;
-import com.volmit.iris.gen.post.PostPotholeFiller;
-import com.volmit.iris.gen.post.PostSlabber;
-import com.volmit.iris.gen.post.PostWallPatcher;
-import com.volmit.iris.gen.post.PostWaterlogger;
+import com.volmit.iris.gen.post.PostMasterPatcher;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.IPostBlockAccess;
 import com.volmit.iris.util.IrisLock;
-import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -30,6 +23,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 {
 	private String postKey;
 	private IrisLock postLock;
+	private PostMasterPatcher patcher;
 	private int minPhase;
 	private int maxPhase;
 
@@ -43,6 +37,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	public void onInit(RNG rng)
 	{
 		super.onInit(rng);
+		patcher = new PostMasterPatcher(this);
 	}
 
 	@Override
@@ -55,102 +50,34 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 			return;
 		}
 
-		KList<IrisPostBlockFilter> filters = getDimension().getPostBlockProcessors(this);
-
 		int rx, i, j;
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-
-		for(int h = getMinPhase(); h <= getMaxPhase(); h++)
+		KList<Runnable> q = new KList<>();
+		for(i = 0; i < 16; i++)
 		{
-			for(i = 0; i < 16; i++)
+			rx = (x << 4) + i;
+
+			for(j = 0; j < 16; j++)
 			{
-				rx = (x << 4) + i;
+				int rxx = rx;
+				int rzz = (z << 4) + j;
 
-				for(j = 0; j < 16; j++)
+				getAccelerant().queue("post", () ->
 				{
-					int rxx = rx;
-					int rzz = (z << 4) + j;
-					int hh = h;
-
-					getAccelerant().queue("post", () ->
-					{
-						for(IrisPostBlockFilter f : filters)
-						{
-							if(f.getPhase() == hh)
-							{
-								f.onPost(rxx, rzz, x, z, terrain);
-							}
-						}
-					});
-				}
+					patcher.onPost(rxx, rzz, x, z, terrain, q);
+				});
 			}
+		}
 
-			getAccelerant().waitFor("post");
+		getAccelerant().waitFor("post");
 
-			for(IrisPostBlockFilter f : filters)
-			{
-				if(f.getPhase() == h)
-				{
-					while(f.getQueue().size() > 0)
-					{
-						try
-						{
-							f.getQueue().pop().run();
-						}
-
-						catch(Throwable e)
-						{
-
-						}
-					}
-				}
-			}
+		for(Runnable v : q)
+		{
+			v.run();
 		}
 
 		p.end();
 		getMetrics().getPost().put(p.getMilliseconds());
-	}
-
-	public IrisPostBlockFilter createProcessor(String processor, int phase)
-	{
-		if(processor.equals("floating-block-remover"))
-		{
-			return new PostFloatingNibDeleter(this, phase);
-		}
-
-		if(processor.equals("foliage-cleaner"))
-		{
-			return new PostFoliageCleaner(this, phase);
-		}
-
-		if(processor.equals("nib-smoother"))
-		{
-			return new PostNibSmoother(this, phase);
-		}
-
-		if(processor.equals("pothole-filler"))
-		{
-			return new PostPotholeFiller(this, phase);
-		}
-
-		if(processor.equals("slabber"))
-		{
-			return new PostSlabber(this, phase);
-		}
-
-		if(processor.equals("wall-painter"))
-		{
-			return new PostWallPatcher(this, phase);
-		}
-
-		if(processor.equals("waterlogger"))
-		{
-			return new PostWaterlogger(this, phase);
-		}
-
-		Iris.error("Failed to find post processor: " + processor);
-		fail(new RuntimeException("Failed to find post processor: " + processor));
-		return null;
 	}
 
 	@Override

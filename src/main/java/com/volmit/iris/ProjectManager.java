@@ -28,7 +28,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
-import com.volmit.iris.gen.post.Post;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -57,7 +56,6 @@ import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
-import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONArray;
 import com.volmit.iris.util.JSONException;
@@ -1823,17 +1821,10 @@ public class ProjectManager
 		IO.writeAll(new File(of, "interpolation-method.txt"), m.toString("\n"));
 		m = new KList<>();
 
-		for(Class<? extends IrisPostBlockFilter> i : Iris.loadPostProcessors())
-		{
-			m.add(i.getDeclaredAnnotation(Post.class).value());
-		}
-
-		IO.writeAll(new File(of, "post-processors.txt"), m.toString("\n"));
-		m = new KList<>();
-
 		for(PotionEffectType i : PotionEffectType.values())
 		{
 			m.add(i.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
 		}
+		IO.writeAll(new File(of, "potioneffects.txt"), m.toString("\n"));
 	}
 }

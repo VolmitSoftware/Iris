@@ -43,8 +43,7 @@ public class IrisEntityInitialSpawn
 	private transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-	@SuppressWarnings("unused")
-	public boolean spawn(ParallaxTerrainProvider gen, Chunk c, RNG rng)
+	public void spawn(ParallaxTerrainProvider gen, Chunk c, RNG rng)
 	{
 		int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
 
@@ -55,11 +54,9 @@ public class IrisEntityInitialSpawn
 				int x = (c.getX() * 16) + rng.i(15);
 				int z = (c.getZ() * 16) + rng.i(15);
 				int h = gen.getCarvedHeight(x, z, false);
-				return spawn100(gen, new Location(c.getWorld(), x, h, z)) != null;
+				spawn100(gen, new Location(c.getWorld(), x, h, z));
 			}
 		}
-
-		return false;
 	}
 
 	public IrisEntity getRealEntity(ParallaxTerrainProvider g)

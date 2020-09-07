@@ -414,7 +414,7 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 	{
 		int x = (c.getX() * 16) + rng.nextInt(15);
 		int z = (c.getZ() * 16) + rng.nextInt(15);
-		int y = getCarvedHeight(x, z);
+		int y = getCarvedHeight(x, z) + 1;
 		IrisDimension dim = getDimension();
 		IrisRegion region = sampleRegion(x, z);
 		IrisBiome above = sampleTrueBiome(x, z);

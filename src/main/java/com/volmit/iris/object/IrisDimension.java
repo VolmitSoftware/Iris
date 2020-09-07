@@ -8,7 +8,6 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.ParallelTerrainProvider;
-import com.volmit.iris.gen.PostBlockTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -142,7 +141,7 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Carve terrain or not")
 	private boolean carving = true;
-	
+
 	@DontObfuscate
 	@Desc("Generate vanilla caves")
 	private boolean vanillaCaves = false;
@@ -159,10 +158,17 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Use post processing or not")
 	private boolean postProcessing = true;
 
-	@ArrayType(min = 1, type = IrisPostProcessor.class)
 	@DontObfuscate
-	@Desc("Post Processors")
-	private KList<IrisPostProcessor> postProcessors = getDefaultPostProcessors();
+	@Desc("Add slabs in post processing")
+	private boolean postProcessingSlabs = true;
+	
+	@DontObfuscate
+	@Desc("Add painted walls in post processing")
+	private boolean postProcessingWalls = true;
+
+	@DontObfuscate
+	@Desc("Use post processing for caves or not")
+	private boolean postProcessCaves = true;
 
 	@ArrayType(min = 1, type = IrisCompatabilityFilter.class)
 	@DontObfuscate
@@ -315,31 +321,6 @@ public class IrisDimension extends IrisRegistrant
 	private transient AtomicCache<Double> cosr = new AtomicCache<>();
 	private transient AtomicCache<Double> rad = new AtomicCache<>();
 
-	public KList<IrisPostBlockFilter> getPostBlockProcessors(PostBlockTerrainProvider g)
-	{
-		return cacheFilters.aquire(() ->
-		{
-			KList<IrisPostBlockFilter> cacheFilters = new KList<>();
-
-			for(IrisPostProcessor i : getPostProcessors())
-			{
-				cacheFilters.add(g.createProcessor(i.getProcessor(), i.getPhase()));
-			}
-
-			g.setMinPhase(0);
-			g.setMaxPhase(0);
-
-			for(IrisPostBlockFilter i : cacheFilters)
-			{
-				g.setMinPhase(Math.min(g.getMinPhase(), i.getPhase()));
-				g.setMaxPhase(Math.max(g.getMaxPhase(), i.getPhase()));
-			}
-
-			Iris.info("Post Processing: " + cacheFilters.size() + " filters. Phases: " + g.getMinPhase() + " - " + g.getMaxPhase());
-			return cacheFilters;
-		});
-	}
-
 	public static KList<IrisCompatabilityFilter> getDefaultCompatability()
 	{
 		KList<IrisCompatabilityFilter> filters = new KList<>();
@@ -488,17 +469,6 @@ public class IrisDimension extends IrisRegistrant
 			coordFracture.scale(0.012 / coordFractureZoom);
 			return coordFracture;
 		});
-	}
-
-	private KList<IrisPostProcessor> getDefaultPostProcessors()
-	{
-		KList<IrisPostProcessor> p = new KList<IrisPostProcessor>();
-
-		p.add(new IrisPostProcessor("wall-painter"));
-		p.add(new IrisPostProcessor("slabber"));
-		p.add(new IrisPostProcessor("waterlogger", 1));
-
-		return p;
 	}
 
 	public BlockData getRock(RNG rng, double x, double y, double z)

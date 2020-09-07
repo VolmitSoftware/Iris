@@ -19,13 +19,6 @@ import org.bukkit.plugin.Plugin;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.post.PostFloatingNibDeleter;
-import com.volmit.iris.gen.post.PostFoliageCleaner;
-import com.volmit.iris.gen.post.PostNibSmoother;
-import com.volmit.iris.gen.post.PostPotholeFiller;
-import com.volmit.iris.gen.post.PostSlabber;
-import com.volmit.iris.gen.post.PostWallPatcher;
-import com.volmit.iris.gen.post.PostWaterlogger;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -35,7 +28,6 @@ import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
-import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
@@ -188,21 +180,6 @@ public class Iris extends MortarPlugin
 		Bukkit.getScheduler().cancelTasks(this);
 		HandlerList.unregisterAll((Plugin) this);
 		super.onDisable();
-	}
-
-	public static KList<Class<? extends IrisPostBlockFilter>> loadPostProcessors()
-	{
-		KList<Class<? extends IrisPostBlockFilter>> g = new KList<Class<? extends IrisPostBlockFilter>>();
-
-		g.add(PostFloatingNibDeleter.class);
-		g.add(PostFoliageCleaner.class);
-		g.add(PostNibSmoother.class);
-		g.add(PostPotholeFiller.class);
-		g.add(PostSlabber.class);
-		g.add(PostWallPatcher.class);
-		g.add(PostWaterlogger.class);
-
-		return g;
 	}
 
 	@Override

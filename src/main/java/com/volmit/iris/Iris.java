@@ -31,7 +31,9 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarPlugin;
+import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.Permission;
+import com.volmit.iris.util.RNG;
 
 public class Iris extends MortarPlugin
 {
@@ -393,5 +395,22 @@ public class Iris extends MortarPlugin
 	public static String nmsTag()
 	{
 		return nmsTag;
+	}
+
+	@SuppressWarnings("deprecation")
+	public static void later(NastyRunnable object)
+	{
+		Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
+		{
+			try
+			{
+				object.run();
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}, RNG.r.i(100, 1200));
 	}
 }

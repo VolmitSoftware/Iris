@@ -35,6 +35,7 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private Consumer2<ChunkPosition, Color> consumer;
+	private int cubeSize = 7;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
@@ -52,7 +53,7 @@ public class PregenJob implements Listener
 		clf = new ChronoLatch(30000);
 		total = (size / 16) * (size / 16);
 		genned = 0;
-		mcaWidth = Math.floorDiv(size >> 4, 8) + 8;
+		mcaWidth = Math.floorDiv(size >> 4, cubeSize) + cubeSize;
 		this.mcaX = 0;
 		this.mcaZ = 0;
 		this.chunkX = 0;
@@ -60,20 +61,20 @@ public class PregenJob implements Listener
 		completed = false;
 		first = true;
 
-		chunkSpiraler = new Spiraler(8, 8, (x, z) ->
+		chunkSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
 		{
-			chunkX = (mcaX * 8) + x;
-			chunkZ = (mcaZ * 8) + z;
+			chunkX = (mcaX * cubeSize) + x;
+			chunkZ = (mcaZ * cubeSize) + z;
 		});
 
 		spiraler = new Spiraler(mcaWidth, mcaWidth, (x, z) ->
 		{
 			mcaX = x;
 			mcaZ = z;
-			chunkSpiraler.retarget(8, 8);
+			chunkSpiraler.retarget(cubeSize, cubeSize);
 		});
 
-		chunkSpiraler.setOffset(3, 3);
+		chunkSpiraler.setOffset(Math.floorDiv(cubeSize, 2), Math.floorDiv(cubeSize, 2));
 
 		if(task != -1)
 		{
@@ -151,26 +152,22 @@ public class PregenJob implements Listener
 				}
 			}
 
-			chunkSpiraler.retarget(8, 8);
+			chunkSpiraler.retarget(cubeSize, cubeSize);
 		}
 
 		if(chunkSpiraler.hasNext())
 		{
 			chunkSpiraler.next();
 
-			try
-			{
-				consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.YELLOW);
-			}
-
-			catch(Throwable e)
-			{
-
-			}
-
 			if(isChunkWithin(chunkX, chunkZ))
 			{
+				if(consumer != null)
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.YELLOW);
+				}
+
 				world.loadChunk(chunkX, chunkZ);
+				genned++;
 
 				if(consumer != null)
 				{
@@ -178,23 +175,31 @@ public class PregenJob implements Listener
 				}
 			}
 
-			genned++;
+			else
+			{
+				total--;
+				if(consumer != null)
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.GREEN.darker());
+				}
+			}
 		}
 
 		else if(spiraler.hasNext())
 		{
 			saveAllRequest();
 			spiraler.next();
+
 			while(chunkSpiraler.hasNext())
 			{
 				chunkSpiraler.next();
 
 				if(isChunkWithin(chunkX, chunkZ))
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.DARK_GRAY);
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE.darker().darker());
 				}
 			}
-			chunkSpiraler.retarget(8, 8);
+			chunkSpiraler.retarget(cubeSize, cubeSize);
 		}
 
 		else
@@ -266,5 +271,13 @@ public class PregenJob implements Listener
 	public void subscribe(Consumer2<ChunkPosition, Color> s)
 	{
 		consumer = s;
+	}
+
+	public String[] getProgress()
+	{
+		long eta = (long) ((total - genned) * (s.getMilliseconds() / (double) genned));
+
+		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) s.getMilliseconds(), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration((s.getMilliseconds() / (double) genned), 2), "Chunks/s:  " + Form.f(1000D / (s.getMilliseconds() / genned), 1),
+		};
 	}
 }

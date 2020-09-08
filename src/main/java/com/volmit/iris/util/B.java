@@ -515,6 +515,11 @@ public class B
 	{
 		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.LAVA);
 	}
+	
+	public static boolean isAirOrFluid(BlockData d)
+	{
+		return isAir(d) || isFluid(d);
+	}
 
 	public static boolean isAir(BlockData d)
 	{

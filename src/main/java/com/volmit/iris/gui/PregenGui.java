@@ -1,6 +1,7 @@
 package com.volmit.iris.gui;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -16,7 +17,7 @@ import javax.swing.JPanel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.J;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PregenJob;
 
@@ -24,8 +25,11 @@ public class PregenGui extends JPanel
 {
 	private PregenJob job;
 	private static final long serialVersionUID = 2094606939770332040L;
-	private KMap<ChunkPosition, Color> queue = new KMap<>();
-	private int res = 8192;
+	private KList<Runnable> order = new KList<>();
+	private int res = 512;
+	Graphics2D bg;
+	double minC;
+	double maxC;
 	private BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
 
 	public PregenGui()
@@ -36,18 +40,15 @@ public class PregenGui extends JPanel
 	@Override
 	public void paint(Graphics gx)
 	{
-		double minC = Math.floorDiv(job.min(), 16) - 4;
-		double maxC = Math.floorDiv(job.max(), 16) + 4;
-
+		minC = Math.floorDiv(job.min(), 16) - 4;
+		maxC = Math.floorDiv(job.max(), 16) + 4;
 		Graphics2D g = (Graphics2D) gx;
-		Graphics2D bg = (Graphics2D) image.getGraphics();
-
-		for(ChunkPosition i : queue.k())
+		bg = (Graphics2D) image.getGraphics();
+		
+		while(order.isNotEmpty())
 		{
-			draw(i, queue.get(i), minC, maxC, bg);
+			order.pop().run();
 		}
-
-		queue.clear();
 
 		g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), new ImageObserver()
 		{
@@ -57,6 +58,16 @@ public class PregenGui extends JPanel
 				return true;
 			}
 		});
+
+		g.setColor(Color.WHITE);
+		g.setFont(new Font("Hevetica", Font.BOLD, 28));
+		String[] prog = job.getProgress();
+		int h = g.getFontMetrics().getHeight() + 5;
+		int hh = 20;
+		for(String i : prog)
+		{
+			g.drawString(i, 20, hh += h);
+		}
 
 		J.a(() ->
 		{
@@ -84,9 +95,12 @@ public class PregenGui extends JPanel
 		JFrame frame = new JFrame("Pregen View");
 		PregenGui nv = new PregenGui();
 		nv.job = j;
-		j.subscribe((c, b) -> nv.queue.put(c, b));
+		j.subscribe((c, b) ->
+		{
+			nv.order.add(() -> nv.draw(c, b, nv.minC, nv.maxC, nv.bg));
+		});
 		frame.add(nv);
-		frame.setSize(1440, 820);
+		frame.setSize(1000, 1000);
 		frame.setVisible(true);
 		File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 

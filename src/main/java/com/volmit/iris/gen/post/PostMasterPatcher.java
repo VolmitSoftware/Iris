@@ -270,6 +270,57 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 					int cc = nearestCaveCeiling(c, x - 1, z, currentPostX, currentPostZ, currentData);
 					int cd = nearestCaveCeiling(c, x, z - 1, currentPostX, currentPostZ, currentData);
 
+					// Cave Nibs
+					g = 0;
+					g += fa == f - 1 ? 1 : 0;
+					g += fb == f - 1 ? 1 : 0;
+					g += fc == f - 1 ? 1 : 0;
+					g += fd == f - 1 ? 1 : 0;
+
+					if(g >= 3)
+					{
+						BlockData bc = getPostBlock(x, f, z, currentPostX, currentPostZ, currentData);
+						b = getPostBlock(x, f + 1, z, currentPostX, currentPostZ, currentData);
+						Material m = bc.getMaterial();
+
+						if(m.isSolid())
+						{
+							setPostBlock(x, f, z, b, currentPostX, currentPostZ, currentData);
+							updateHeight(x, z, f - 1);
+							h--;
+						}
+					}
+
+					else
+					{
+						// Cave Potholes
+						g = 0;
+						g += fa == f + 1 ? 1 : 0;
+						g += fb == f + 1 ? 1 : 0;
+						g += fc == f + 1 ? 1 : 0;
+						g += fd == f + 1 ? 1 : 0;
+
+						if(g >= 3)
+						{
+							BlockData ba = getPostBlock(x, fa, z, currentPostX, currentPostZ, currentData);
+							BlockData bb = getPostBlock(x, fb, z, currentPostX, currentPostZ, currentData);
+							BlockData bc = getPostBlock(x, fc, z, currentPostX, currentPostZ, currentData);
+							BlockData bd = getPostBlock(x, fd, z, currentPostX, currentPostZ, currentData);
+							g = 0;
+							g = B.isSolid(ba) ? g + 1 : g;
+							g = B.isSolid(bb) ? g + 1 : g;
+							g = B.isSolid(bc) ? g + 1 : g;
+							g = B.isSolid(bd) ? g + 1 : g;
+
+							if(g >= 3)
+							{
+								setPostBlock(x, f + 1, z, getPostBlock(x, f, z, currentPostX, currentPostZ, currentData), currentPostX, currentPostZ, currentData);
+								updateHeight(x, z, f + 1);
+								h++;
+							}
+						}
+					}
+
 					if(gen.getDimension().isPostProcessingSlabs())
 					{
 						//@builder

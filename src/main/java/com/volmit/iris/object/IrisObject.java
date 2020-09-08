@@ -204,12 +204,13 @@ public class IrisObject extends IrisRegistrant
 		center = new BlockVector(w / 2, h / 2, d / 2);
 	}
 
+	@SuppressWarnings("resource")
 	public static BlockVector sampleSize(File file) throws IOException
 	{
 		FileInputStream in = new FileInputStream(file);
 		DataInputStream din = new DataInputStream(in);
 		BlockVector bv = new BlockVector(din.readInt(), din.readInt(), din.readInt());
-		din.close();
+		Iris.later(() -> din.close());
 		return bv;
 	}
 

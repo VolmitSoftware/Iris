@@ -11,9 +11,11 @@ import java.util.Random;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.v1_16_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R1.CraftWorld;
 import org.bukkit.event.Event;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
@@ -52,9 +54,17 @@ import net.minecraft.server.v1_16_R1.WorldDataServer;
 import net.minecraft.server.v1_16_R1.WorldDimension;
 import net.minecraft.server.v1_16_R1.WorldServer;
 import net.minecraft.server.v1_16_R1.WorldSettings;
+import net.minecraft.server.v1_16_R1.ChunkCoordIntPair;
+import net.minecraft.server.v1_16_R1.TicketType;
+import net.minecraft.server.v1_16_R1.Unit;
 
 public class NMSCreator161
 {
+	public static void addStartTicket(Location center, int size)
+	{
+		((CraftWorld) center.getWorld()).getHandle().getChunkProvider().addTicket(TicketType.START, new ChunkCoordIntPair(center.getBlockX() >> 4, center.getBlockZ() >> 4), size, Unit.INSTANCE);
+	}
+
 	@SuppressWarnings({"unchecked", "rawtypes", "resource"})
 	public static World createWorld(WorldCreator creator, boolean loadSpawn)
 	{

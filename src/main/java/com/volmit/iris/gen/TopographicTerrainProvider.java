@@ -20,7 +20,6 @@ import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
-import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
@@ -65,8 +64,9 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	public void onInit(RNG rng)
 	{
 		super.onInit(rng);
-		loadGenerators();
+		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		buildGenLayers(getMasterRandom());
+		loadGenerators();
 	}
 
 	private void buildGenLayers(RNG rng)
@@ -347,30 +347,6 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
 		super.onGenerate(random, x, z, terrain);
-		RNG ro = random.nextParallelRNG((x * x * x) - z);
-		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
-		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
-
-		for(IrisDepositGenerator k : getDimension().getDeposits())
-		{
-			k.generate(terrain, ro, this, x, z);
-		}
-
-		for(IrisDepositGenerator k : region.getDeposits())
-		{
-			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-			{
-				k.generate(terrain, ro, this, x, z);
-			}
-		}
-
-		for(IrisDepositGenerator k : biome.getDeposits())
-		{
-			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-			{
-				k.generate(terrain, ro, this, x, z);
-			}
-		}
 	}
 
 	private void decorateLand(IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
@@ -836,6 +812,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	{
 		if(dim == null)
 		{
+			Iris.warn("Cannot load generators, Dimension is null!");
 			return;
 		}
 
@@ -868,6 +845,8 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				loadQueue.addAll(biome.getChildren());
 			}
 		}
+
+		Iris.info("Loaded " + generators.size() + " Generators");
 	}
 
 	public IrisBiome sampleBiome(int x, int z)

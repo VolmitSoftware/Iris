@@ -1,32 +1,34 @@
 package com.volmit.iris.noise;
 
+import com.volmit.iris.util.RNG;
+
 public class CellularNoise implements NoiseGenerator
 {
-	private final FastNoise n;
+	private final FastNoiseDouble n;
 
 	public CellularNoise(long seed)
 	{
-		this.n = new FastNoise((int) seed);
-		n.setNoiseType(FastNoise.NoiseType.Cellular);
-		n.setCellularReturnType(FastNoise.CellularReturnType.CellValue);
-		n.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		this.n = new FastNoiseDouble(new RNG(seed).lmax());
+		n.setNoiseType(FastNoiseDouble.NoiseType.Cellular);
+		n.setCellularReturnType(FastNoiseDouble.CellularReturnType.CellValue);
+		n.setCellularDistanceFunction(FastNoiseDouble.CellularDistanceFunction.Natural);
 	}
 
 	@Override
 	public double noise(double x)
 	{
-		return (n.GetCellular((float) x, 0) / 2D) + 0.5D;
+		return (n.GetCellular(x, 0) / 2D) + 0.5D;
 	}
 
 	@Override
 	public double noise(double x, double z)
 	{
-		return (n.GetCellular((float) x, (float) z) / 2D) + 0.5D;
+		return (n.GetCellular(x, z) / 2D) + 0.5D;
 	}
 
 	@Override
 	public double noise(double x, double y, double z)
 	{
-		return (n.GetCellular((float) x, (float) y, (float) z) / 2D) + 0.5D;
+		return (n.GetCellular(x, y, z) / 2D) + 0.5D;
 	}
 }

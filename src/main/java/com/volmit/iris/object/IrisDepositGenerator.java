@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
@@ -203,14 +202,26 @@ public class IrisDepositGenerator
 					continue;
 				}
 
-				BlockData b = data.getBlockData(nx, ny, nz);
+				boolean allow = true;
 
-				if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
+				if(g.getDimension().isVanillaCaves())
 				{
-					continue;
+					allow = false;
+					BlockData b = data.getBlockData(nx, ny, nz);
+					for(BlockData f : g.getDimension().getRockData())
+					{
+						if(f.getMaterial().equals(b.getMaterial()))
+						{
+							allow = true;
+							break;
+						}
+					}
 				}
 
-				data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
+				if(allow)
+				{
+					data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
+				}
 			}
 		}
 	}

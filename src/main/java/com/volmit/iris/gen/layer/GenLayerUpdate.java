@@ -16,8 +16,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
+import com.volmit.iris.gen.scaffold.ChunkWrapper;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisLootReference;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisRegion;
@@ -45,7 +47,51 @@ public class GenLayerUpdate extends BlockPopulator
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = gen.getParallaxChunk(c.getX(), c.getZ());
 		RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
+		generateDeposits(w, rx, c);
+		updateBlocks(w, rx, c, map);
+		spawnInitials(c, rx);
+		p.end();
+		gen.getMetrics().getUpdate().put(p.getMilliseconds());
+	}
 
+	public void spawnInitials(Chunk c, RNG rx)
+	{
+		((IrisTerrainProvider) gen).spawnInitials(c, rx);
+	}
+
+	public void generateDeposits(World w, RNG rx, Chunk c)
+	{
+		int x = c.getX();
+		int z = c.getZ();
+		RNG ro = rx.nextParallelRNG((x * x * x) - z);
+		IrisRegion region = gen.sampleRegion((x * 16) + 7, (z * 16) + 7);
+		IrisBiome biome = gen.sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
+		ChunkWrapper terrain = new ChunkWrapper(c);
+
+		for(IrisDepositGenerator k : gen.getDimension().getDeposits())
+		{
+			k.generate(terrain, ro, gen, x, z);
+		}
+
+		for(IrisDepositGenerator k : region.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(terrain, ro, gen, x, z);
+			}
+		}
+
+		for(IrisDepositGenerator k : biome.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(terrain, ro, gen, x, z);
+			}
+		}
+	}
+
+	private void updateBlocks(World w, RNG rx, Chunk c, AtomicSliverMap map)
+	{
 		for(int i = 0; i < 16; i++)
 		{
 			for(int j = 0; j < 16; j++)
@@ -61,11 +107,6 @@ public class GenLayerUpdate extends BlockPopulator
 				}
 			}
 		}
-
-		((IrisTerrainProvider) gen).spawnInitials(c, rx);
-
-		p.end();
-		gen.getMetrics().getUpdate().put(p.getMilliseconds());
 	}
 
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)

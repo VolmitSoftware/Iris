@@ -1,32 +1,39 @@
 package com.volmit.iris.noise;
 
-public class GlobNoise implements NoiseGenerator {
-	private final FastNoise n;
+import com.volmit.iris.util.RNG;
 
-	public GlobNoise(long seed) {
-		this.n = new FastNoise((int) seed);
-		n.setNoiseType(FastNoise.NoiseType.Cellular);
-		n.setCellularReturnType(FastNoise.CellularReturnType.Distance2Div);
-		n.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+public class GlobNoise implements NoiseGenerator
+{
+	private final FastNoiseDouble n;
+
+	public GlobNoise(long seed)
+	{
+		this.n = new FastNoiseDouble(new RNG(seed).lmax());
+		n.setNoiseType(FastNoiseDouble.NoiseType.Cellular);
+		n.setCellularReturnType(FastNoiseDouble.CellularReturnType.Distance2Div);
+		n.setCellularDistanceFunction(FastNoiseDouble.CellularDistanceFunction.Natural);
 	}
-	
+
 	private double f(double n)
 	{
-		return n+1D;
+		return n + 1D;
 	}
 
 	@Override
-	public double noise(double x) {
-		return f(n.GetCellular((float) x, 0));
+	public double noise(double x)
+	{
+		return f(n.GetCellular(x, 0));
 	}
 
 	@Override
-	public double noise(double x, double z) {
-		return f(n.GetCellular((float) x, (float) z));
+	public double noise(double x, double z)
+	{
+		return f(n.GetCellular(x, z));
 	}
 
 	@Override
-	public double noise(double x, double y, double z) {
-		return f(n.GetCellular((float) x, (float) y, (float) z));
+	public double noise(double x, double y, double z)
+	{
+		return f(n.GetCellular(x, y, z));
 	}
 }

@@ -60,7 +60,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	private boolean failing;
 	private int task;
 	private boolean dev;
-	private boolean initialized;
+	private volatile boolean initialized;
 	private RNG masterRandom;
 	private ChronoLatch perSecond;
 	private ChronoLatch tickLatch;
@@ -156,10 +156,10 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 			return;
 		}
 
+		setInitialized(true);
 		setData(new IrisDataManager(getTarget().getFolder()));
 		setMasterRandom(new RNG(getTarget().getSeed()));
 		setMetrics(new IrisMetrics(128));
-		setInitialized(true);
 		setTask(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0));
 		Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
 		onInit(masterRandom);

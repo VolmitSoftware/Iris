@@ -6,12 +6,12 @@ import com.volmit.iris.gen.IrisTerrainProvider;
 
 public class IrisWorlds
 {
-	public boolean isIrisWorld(World world)
+	public static boolean isIrisWorld(World world)
 	{
 		return world.getGenerator() instanceof Provisioned;
 	}
 
-	public IrisTerrainProvider getProvider(World world)
+	public static IrisTerrainProvider getProvider(World world)
 	{
 		if(isIrisWorld(world))
 		{

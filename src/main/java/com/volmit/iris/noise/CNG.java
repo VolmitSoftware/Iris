@@ -2,6 +2,7 @@ package com.volmit.iris.noise;
 
 import java.util.List;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
@@ -293,7 +294,18 @@ public class CNG
 			return v.get(0);
 		}
 
-		return v.get(fit(0, v.size() - 1, dim));
+		try
+		{
+			return v.get(fit(0, v.size() - 1, dim));
+		}
+
+		catch(Throwable e)
+		{
+			Iris.error("Failed to sample noise into array " + v.size() + " nodes");
+			Iris.error("Noise Source: " + generator.getClass().getSimpleName());
+		}
+
+		return v.get(0);
 	}
 
 	public int fit(int min, int max, double... dim)

@@ -6,10 +6,10 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
-import com.volmit.iris.noise.FastNoise;
-import com.volmit.iris.noise.FastNoise.CellularDistanceFunction;
-import com.volmit.iris.noise.FastNoise.CellularReturnType;
-import com.volmit.iris.noise.FastNoise.NoiseType;
+import com.volmit.iris.noise.FastNoiseDouble;
+import com.volmit.iris.noise.FastNoiseDouble.CellularDistanceFunction;
+import com.volmit.iris.noise.FastNoiseDouble.CellularReturnType;
+import com.volmit.iris.noise.FastNoiseDouble.NoiseType;
 import com.volmit.iris.object.IrisCaveLayer;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
@@ -23,13 +23,13 @@ public class GenLayerCave extends GenLayer
 	public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
 	public static final BlockData AIR = B.getBlockData("AIR");
 	private static final KList<CaveResult> EMPTY = new KList<>();
-	private FastNoise gg;
+	private FastNoiseDouble gg;
 
 	public GenLayerCave(DimensionalTerrainProvider iris, RNG rng)
 	{
 		//@builder
 		super(iris, rng);
-		gg = new FastNoise(324895 * rng.nextParallelRNG(49678).imax());
+		gg = new FastNoiseDouble(324895 * rng.nextParallelRNG(49678).imax());
 		//@done
 	}
 
@@ -71,7 +71,7 @@ public class GenLayerCave extends GenLayer
 
 		for(double tunnelHeight = 1; tunnelHeight <= baseWidth; tunnelHeight++)
 		{
-			double distance = (gg.GetCellular((float) ((wx + (10000 * seed)) / layer.getCaveZoom()), (float) ((wz - (10000 * seed)) / layer.getCaveZoom())) + 1D) / 2D;
+			double distance = (gg.GetCellular(((wx + (10000 * seed)) / layer.getCaveZoom()), ((wz - (10000 * seed)) / layer.getCaveZoom())) + 1D) / 2D;
 			if(distance < distanceCheck - (tunnelHeight * distanceTake))
 			{
 				int caveHeight = (int) Math.round(caveHeightNoise);

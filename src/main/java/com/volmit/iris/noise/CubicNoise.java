@@ -1,28 +1,36 @@
 package com.volmit.iris.noise;
 
-public class CubicNoise implements NoiseGenerator {
-	private final FastNoise n;
+import com.volmit.iris.util.RNG;
 
-	public CubicNoise(long seed) {
-		this.n = new FastNoise((int) seed);
+public class CubicNoise implements NoiseGenerator
+{
+	private final FastNoiseDouble n;
+
+	public CubicNoise(long seed)
+	{
+		this.n = new FastNoiseDouble(new RNG(seed).lmax());
 	}
 
-	private double f(double n) {
+	private double f(double n)
+	{
 		return (n / 2D) + 0.5D;
 	}
 
 	@Override
-	public double noise(double x) {
-		return f(n.GetCubic((float) x, 0));
+	public double noise(double x)
+	{
+		return f(n.GetCubic(x, 0));
 	}
 
 	@Override
-	public double noise(double x, double z) {
-		return f(n.GetCubic((float) x, (float) z));
+	public double noise(double x, double z)
+	{
+		return f(n.GetCubic(x, z));
 	}
 
 	@Override
-	public double noise(double x, double y, double z) {
-		return f(n.GetCubic((float) x, (float) y, (float) z));
+	public double noise(double x, double y, double z)
+	{
+		return f(n.GetCubic(x, y, z));
 	}
 }

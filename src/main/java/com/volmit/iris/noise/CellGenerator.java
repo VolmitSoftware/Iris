@@ -7,8 +7,8 @@ import lombok.Setter;
 
 public class CellGenerator
 {
-	private FastNoise fn;
-	private FastNoise fd;
+	private FastNoiseDouble fn;
+	private FastNoiseDouble fd;
 	private CNG cng;
 
 	@Getter
@@ -25,49 +25,45 @@ public class CellGenerator
 		cellScale = 0.73;
 		cng = CNG.signature(rng.nextParallelRNG(3204));
 		RNG rx = rng.nextParallelRNG(8735652);
-		int s = rx.nextInt();
-		fn = new FastNoise(s);
-		fn.setNoiseType(FastNoise.NoiseType.Cellular);
-		fn.setCellularReturnType(FastNoise.CellularReturnType.CellValue);
-		fn.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
-		fd = new FastNoise(s);
-		fd.setNoiseType(FastNoise.NoiseType.Cellular);
-		fd.setCellularReturnType(FastNoise.CellularReturnType.Distance2Sub);
-		fd.setCellularDistanceFunction(FastNoise.CellularDistanceFunction.Natural);
+		long s = rx.lmax();
+		fn = new FastNoiseDouble(s);
+		fn.setNoiseType(FastNoiseDouble.NoiseType.Cellular);
+		fn.setCellularReturnType(FastNoiseDouble.CellularReturnType.CellValue);
+		fn.setCellularDistanceFunction(FastNoiseDouble.CellularDistanceFunction.Natural);
+		fd = new FastNoiseDouble(s);
+		fd.setNoiseType(FastNoiseDouble.NoiseType.Cellular);
+		fd.setCellularReturnType(FastNoiseDouble.CellularReturnType.Distance2Sub);
+		fd.setCellularDistanceFunction(FastNoiseDouble.CellularDistanceFunction.Natural);
 	}
 
-	public float getDistance(double x, double z)
+	public double getDistance(double x, double z)
 	{
-		return ((fd.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle)))) + 1f) / 2f;
+		return ((fd.GetCellular(((x * cellScale) + (cng.noise(x, z) * shuffle)), ((z * cellScale) + (cng.noise(z, x) * shuffle)))) + 1f) / 2f;
 	}
 
-	public float getDistance(double x, double y, double z)
+	public double getDistance(double x, double y, double z)
 	{
-		return ((fd.GetCellular((float) ((x * cellScale) + (cng.noise(x, y, z) * shuffle)), (float) ((y * cellScale) + (cng.noise(x, y, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, y, x) * shuffle)))) + 1f) / 2f;
+		return ((fd.GetCellular(((x * cellScale) + (cng.noise(x, y, z) * shuffle)), ((y * cellScale) + (cng.noise(x, y, z) * shuffle)), ((z * cellScale) + (cng.noise(z, y, x) * shuffle)))) + 1f) / 2f;
 	}
 
-	public float getValue(double x, double z, int possibilities)
-	{
-		if(possibilities == 1)
-		{
-			return 0;
-		}
-
-		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)), (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
-	}
-
-	public float getValue(double x, double y, double z, int possibilities)
+	public double getValue(double x, double z, int possibilities)
 	{
 		if(possibilities == 1)
 		{
 			return 0;
 		}
 
-		return ((fn.GetCellular((float) ((x * cellScale) + (cng.noise(x, z) * shuffle)),
+		return ((fn.GetCellular(((x * cellScale) + (cng.noise(x, z) * shuffle)), ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
+	}
 
-				(float) ((y * 8 * cellScale) + (cng.noise(x, y * 8) * shuffle))
+	public double getValue(double x, double y, double z, int possibilities)
+	{
+		if(possibilities == 1)
+		{
+			return 0;
+		}
 
-				, (float) ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
+		return ((fn.GetCellular(((x * cellScale) + (cng.noise(x, z) * shuffle)), ((y * 8 * cellScale) + (cng.noise(x, y * 8) * shuffle)), ((z * cellScale) + (cng.noise(z, x) * shuffle))) + 1f) / 2f) * (possibilities - 1);
 	}
 
 	public int getIndex(double x, double z, int possibilities)

@@ -101,7 +101,6 @@ public class IrisBoardManager implements BoardProvider, Listener
 		int z = player.getLocation().getBlockZ();
 		IrisBiome b = g.sampleTrueBiome(x, y, z);
 		IrisStructureResult st = g.getStructure(x, y, z);
-
 		tp.put(g.getMetrics().getSpeed());
 		v.add("&7&m------------------");
 		v.add(C.GREEN + "Speed" + C.GRAY + ": " + C.BOLD + "" + C.GRAY + Form.f(g.getMetrics().getPerSecond().getAverage(), 0) + "/s " + Form.duration(g.getMetrics().getTotal().getAverage(), 1) + "");

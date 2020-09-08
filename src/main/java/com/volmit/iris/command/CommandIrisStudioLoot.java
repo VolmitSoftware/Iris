@@ -7,6 +7,7 @@ import org.bukkit.inventory.Inventory;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.util.KList;
@@ -37,7 +38,8 @@ public class CommandIrisStudioLoot extends MortarCommand
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
-			KList<IrisLootTable> tables = Iris.proj.getCurrentProject().getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
+			IrisWorlds.getProvider(sender.player().getWorld()).getPopulators();
+			KList<IrisLootTable> tables = IrisWorlds.getProvider(sender.player().getWorld()).getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
 			Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			p.openInventory(inv);

@@ -26,6 +26,10 @@ public class IrisSettings
 	public boolean parallaxCompression = true;
 
 	@DontObfuscate
+	@Desc("Useful information when creating iris worlds. Shows object loads & more.")
+	public boolean verbose = false;
+
+	@DontObfuscate
 	@Desc("Compression level (0-9) lower is faster, but is not as good compression. Best results around 3-5")
 	public int parallaxCompressionLevel = 2;
 

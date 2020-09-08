@@ -598,7 +598,7 @@ public class IrisDimension extends IrisRegistrant
 	{
 		return parallaxSize.aquire(() ->
 		{
-			Iris.info("Calculating the Parallax Size in Parallel");
+			Iris.verbose("Calculating the Parallax Size in Parallel");
 			O<Integer> xg = new O<>();
 			O<Integer> zg = new O<>();
 			xg.set(0);
@@ -697,7 +697,7 @@ public class IrisDimension extends IrisRegistrant
 			z = z % 2 == 0 ? z + 1 : z;
 			x = Math.max(x, z);
 			z = x;
-			Iris.info("Done! Parallax Size: " + x + ", " + z);
+			Iris.verbose("Done! Parallax Size: " + x + ", " + z);
 			return new ChunkPosition(x, z);
 		});
 	}

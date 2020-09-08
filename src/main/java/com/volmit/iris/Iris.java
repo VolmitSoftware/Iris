@@ -315,7 +315,10 @@ public class Iris extends MortarPlugin
 
 	public static void verbose(String string)
 	{
-		msg(C.GRAY + string);
+		if(IrisSettings.get().verbose)
+		{
+			msg(C.GRAY + string);
+		}
 	}
 
 	public static void success(String string)

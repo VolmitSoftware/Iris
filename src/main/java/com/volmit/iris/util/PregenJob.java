@@ -35,7 +35,7 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private Consumer2<ChunkPosition, Color> consumer;
-	private int cubeSize = 7;
+	private int cubeSize = 5;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
@@ -138,7 +138,7 @@ public class PregenJob implements Listener
 
 		if(first)
 		{
-			sender.sendMessage("Pregen Started for " + Form.f((mcaWidth * mcaWidth)) + " Regions containing " + Form.f((mcaWidth * 16) * (mcaWidth * 16)) + " Chunks");
+			sender.sendMessage("Pregen Started for " + Form.f((size >> 4 >> 5 * size >> 4 >> 5)) + " Regions containing " + Form.f((size >> 4) * (size >> 4)) + " Chunks");
 			first = false;
 			spiraler.next();
 
@@ -148,7 +148,10 @@ public class PregenJob implements Listener
 
 				if(isChunkWithin(chunkX, chunkZ))
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.DARK_GRAY);
+					if(consumer != null)
+					{
+						consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.DARK_GRAY);
+					}
 				}
 			}
 
@@ -163,7 +166,7 @@ public class PregenJob implements Listener
 			{
 				if(consumer != null)
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.YELLOW);
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.cyan.darker().darker());
 				}
 
 				world.loadChunk(chunkX, chunkZ);
@@ -177,7 +180,6 @@ public class PregenJob implements Listener
 
 			else
 			{
-				total--;
 				if(consumer != null)
 				{
 					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.GREEN.darker());
@@ -236,7 +238,7 @@ public class PregenJob implements Listener
 	@EventHandler
 	public void on(ChunkUnloadEvent e)
 	{
-		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()))
+		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
 		{
 			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.GREEN);
 		}

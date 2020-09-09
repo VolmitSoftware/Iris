@@ -202,19 +202,14 @@ public class IrisDepositGenerator
 					continue;
 				}
 
-				boolean allow = true;
-
-				if(g.getDimension().isVanillaCaves())
+				boolean allow = false;
+				BlockData b = data.getBlockData(nx, ny, nz);
+				for(BlockData f : g.getDimension().getRockData())
 				{
-					allow = false;
-					BlockData b = data.getBlockData(nx, ny, nz);
-					for(BlockData f : g.getDimension().getRockData())
+					if(f.getMaterial().equals(b.getMaterial()))
 					{
-						if(f.getMaterial().equals(b.getMaterial()))
-						{
-							allow = true;
-							break;
-						}
+						allow = true;
+						break;
 					}
 				}
 

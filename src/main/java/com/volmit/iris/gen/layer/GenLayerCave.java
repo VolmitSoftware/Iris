@@ -1,5 +1,7 @@
 package com.volmit.iris.gen.layer;
 
+import java.util.function.Function;
+
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
@@ -57,7 +59,25 @@ public class GenLayerCave extends GenLayer
 	public void generateCave(KList<CaveResult> result, double wxx, double wzz, int x, int z, AtomicSliver data, IrisCaveLayer layer, int seed)
 	{
 		double scale = layer.getCaveZoom();
+		Function<Integer, BlockData> fluid = (height) ->
+		{
+			if(!layer.getFluid().hasFluid())
+			{
+				return CAVE_AIR;
+			}
 
+			if(layer.getFluid().isInverseHeight() && height >= layer.getFluid().getFluidHeight())
+			{
+				return layer.getFluid().getFluid();
+			}
+
+			else if(!layer.getFluid().isInverseHeight() && height <= layer.getFluid().getFluidHeight())
+			{
+				return layer.getFluid().getFluid();
+			}
+
+			return CAVE_AIR;
+		};
 		int surface = (int) Math.round(((IrisTerrainProvider) iris).getTerrainHeight((int) wxx, (int) wzz));
 		double wx = wxx + layer.getHorizontalSlope().get(rng, wxx, wzz);
 		double wz = wzz + layer.getHorizontalSlope().get(rng, -wzz, -wxx);
@@ -109,13 +129,13 @@ public class GenLayerCave extends GenLayer
 
 				else
 				{
-					if(dig(x, pu, z, data))
+					if(dig(x, pu, z, data, fluid))
 					{
 						ceiling = pu > ceiling ? pu : ceiling;
 						floor = pu < floor ? pu : floor;
 					}
 
-					if(dig(x, pd, z, data))
+					if(dig(x, pd, z, data, fluid))
 					{
 						ceiling = pd > ceiling ? pd : ceiling;
 						floor = pd < floor ? pd : floor;
@@ -123,7 +143,7 @@ public class GenLayerCave extends GenLayer
 
 					if(tunnelHeight == 1)
 					{
-						if(dig(x, (int) (caveHeight), z, data))
+						if(dig(x, (int) (caveHeight), z, data, fluid))
 						{
 							ceiling = caveHeight > ceiling ? caveHeight : ceiling;
 							floor = caveHeight < floor ? caveHeight : floor;
@@ -139,27 +159,29 @@ public class GenLayerCave extends GenLayer
 		}
 	}
 
-	public boolean dig(int x, int y, int z, AtomicSliver data)
+	public boolean dig(int x, int y, int z, AtomicSliver data, Function<Integer, BlockData> caveFluid)
 	{
 		Material a = data.getType(y);
 		Material c = data.getType(y + 1);
 		Material d = data.getType(y + 2);
 		Material e = data.getType(y + 3);
 		Material f = data.getType(y - 1);
+		BlockData b = caveFluid.apply(y);
+		BlockData b2 = caveFluid.apply(y + 1);
 
-		if(can(a) && canAir(c) && canAir(f) && canWater(d) && canWater(e))
+		if(can(a) && canAir(c, b) && canAir(f, b) && canWater(d) && canWater(e))
 		{
-			data.set(y, CAVE_AIR);
-			data.set(y + 1, CAVE_AIR);
+			data.set(y, b);
+			data.set(y + 1, b2);
 			return true;
 		}
 
 		return false;
 	}
 
-	public boolean canAir(Material m)
+	public boolean canAir(Material m, BlockData caveFluid)
 	{
-		return (B.isSolid(m) || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
+		return (B.isSolid(m) || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(caveFluid.getMaterial()) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean canWater(Material m)

@@ -21,6 +21,10 @@ public class IrisCaveLayer
 	@Desc("The horizontal slope this cave layer follows")
 	private IrisShapedGeneratorStyle horizontalSlope = new IrisShapedGeneratorStyle();
 
+	@DontObfuscate
+	@Desc("If defined, a cave fluid will fill this cave below (or above) the specified fluidHeight in this object.")
+	private IrisCaveFluid fluid = new IrisCaveFluid();
+
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")

@@ -42,6 +42,9 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioHotload hotload;
 
 	@Command
+	private CommandIrisStudioExplorer exp;
+
+	@Command
 	private CommandIrisStudioLoot loot;
 
 	public CommandIrisStudio()

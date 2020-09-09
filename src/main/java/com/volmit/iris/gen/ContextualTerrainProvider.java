@@ -43,6 +43,7 @@ import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;
 
@@ -74,9 +75,11 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	private boolean pregenDone;
 	private volatile boolean hotloadable = false;
 	private final TerrainTarget target;
+	private KSet<String> warnings;
 
 	public ContextualTerrainProvider(TerrainTarget target)
 	{
+		warnings = new KSet<>();
 		this.target = target;
 		pushLatch = new ChronoLatch(3000);
 		tickLatch = new ChronoLatch(650);
@@ -94,6 +97,16 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		dimCache = new AtomicCache<>();
 		dev = false;
 		noLoot = new KList<>(1285);
+	}
+
+	public void warn(String warning)
+	{
+		if(!isDev())
+		{
+			return;
+		}
+
+		warnings.add(warning);
 	}
 
 	protected abstract void onGenerate(RNG masterRandom, int x, int z, TerrainChunk chunk);

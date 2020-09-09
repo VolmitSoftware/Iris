@@ -33,6 +33,14 @@ public class IrisLock
 		{
 			return;
 		}
-		lock.unlock();
+		try
+		{
+			lock.unlock();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
 	}
 }

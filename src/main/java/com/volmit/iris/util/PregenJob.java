@@ -1,6 +1,7 @@
 package com.volmit.iris.util;
 
 import java.awt.Color;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -20,6 +21,7 @@ public class PregenJob implements Listener
 	private int genned;
 	private boolean completed;
 	public static int task = -1;
+	private AtomicInteger g = new AtomicInteger();
 	private PrecisionStopwatch s;
 	private ChronoLatch cl;
 	private ChronoLatch clx;
@@ -35,10 +37,12 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private Consumer2<ChunkPosition, Color> consumer;
-	private int cubeSize = 5;
+	private int cubeSize = 7;
+	int xc = 0;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
+		g.set(0);
 		this.s = PrecisionStopwatch.start();
 		Iris.instance.registerListener(this);
 		this.world = world;
@@ -107,7 +111,7 @@ public class PregenJob implements Listener
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
-		while(p.getMilliseconds() < 5000)
+		while(p.getMilliseconds() < 7000)
 		{
 			tick();
 		}
@@ -161,30 +165,7 @@ public class PregenJob implements Listener
 		if(chunkSpiraler.hasNext())
 		{
 			chunkSpiraler.next();
-
-			if(isChunkWithin(chunkX, chunkZ))
-			{
-				if(consumer != null)
-				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.cyan.darker().darker());
-				}
-
-				world.loadChunk(chunkX, chunkZ);
-				genned++;
-
-				if(consumer != null)
-				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE);
-				}
-			}
-
-			else
-			{
-				if(consumer != null)
-				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.GREEN.darker());
-				}
-			}
+			tickChunk();
 		}
 
 		else if(spiraler.hasNext())
@@ -219,6 +200,38 @@ public class PregenJob implements Listener
 		}
 	}
 
+	private void tickChunk()
+	{
+		tickSyncChunk();
+	}
+
+	private void tickSyncChunk()
+	{
+		if(isChunkWithin(chunkX, chunkZ))
+		{
+			if(consumer != null)
+			{
+				consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.blue.darker().darker());
+			}
+
+			world.loadChunk(chunkX, chunkZ);
+			genned++;
+
+			if(consumer != null)
+			{
+				consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE);
+			}
+		}
+
+		else
+		{
+			if(consumer != null)
+			{
+				consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.blue.brighter().brighter());
+			}
+		}
+	}
+
 	public void saveAllRequest()
 	{
 		if(clf.flip())
@@ -240,7 +253,7 @@ public class PregenJob implements Listener
 	{
 		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
 		{
-			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.GREEN);
+			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.blue.brighter());
 		}
 	}
 

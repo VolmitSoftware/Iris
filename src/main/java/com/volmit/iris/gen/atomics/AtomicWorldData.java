@@ -8,6 +8,7 @@ import java.io.IOException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
@@ -21,6 +22,7 @@ public class AtomicWorldData
 	private KMap<ChunkPosition, Long> lastChunk;
 	private KList<ChunkPosition> unloadRegions;
 	private KList<ChunkPosition> unloadChunks;
+	private IrisLock lock = new IrisLock("ULLock");
 	private long last = M.ms();
 
 	public AtomicWorldData(TerrainTarget world)
@@ -263,8 +265,10 @@ public class AtomicWorldData
 
 	public void clean(int j)
 	{
+		lock.lock();
 		if(M.ms() - last < getUnloadBatchSpeed())
 		{
+			lock.unlock();
 			return;
 		}
 
@@ -331,6 +335,7 @@ public class AtomicWorldData
 		}
 
 		unloadChunks.clear();
+		lock.unlock();
 	}
 
 	private int getUnloadBatchSize()

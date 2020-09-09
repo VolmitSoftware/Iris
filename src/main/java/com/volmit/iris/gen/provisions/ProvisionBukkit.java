@@ -2,6 +2,7 @@ package com.volmit.iris.gen.provisions;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -13,7 +14,6 @@ import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.J;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 
@@ -41,7 +41,7 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 		world.unloadChunkRequest(x, z);
 	}
 
-	public void generateAsync(World world, int x, int z)
+	public void generateAsync(World world, int x, int z, Consumer<Boolean> onDone)
 	{
 		ChunkPosition c = new ChunkPosition(x, z);
 
@@ -50,7 +50,12 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 			TerrainChunk snapshot = TerrainChunk.create(world);
 			snapshot.setRaw(generateChunkData(world, getRNG(world, x, z), x, z, snapshot));
 			precache.put(c, snapshot);
-			J.s(() -> generate(world, x, z));
+			onDone.accept(true);
+		}
+
+		else
+		{
+			onDone.accept(false);
 		}
 	}
 
@@ -70,7 +75,7 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 			{
 				TerrainChunk snapshot = precache.remove(c);
 				snapshot.inject(biome);
-				return snapshot;
+				return snapshot.getRaw();
 			}
 		}
 

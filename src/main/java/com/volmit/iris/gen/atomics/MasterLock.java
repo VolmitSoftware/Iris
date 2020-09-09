@@ -7,9 +7,11 @@ public class MasterLock
 {
 	private KMap<String, IrisLock> locks;
 	private IrisLock lock;
+	private boolean enabled;
 
 	public MasterLock()
 	{
+		enabled = true;
 		locks = new KMap<>();
 		lock = new IrisLock("MasterLock");
 	}
@@ -19,8 +21,18 @@ public class MasterLock
 		locks.clear();
 	}
 
+	public void disable()
+	{
+		enabled = false;
+	}
+
 	public void lock(String key)
 	{
+		if(!enabled)
+		{
+			return;
+		}
+
 		lock.lock();
 		if(!locks.containsKey(key))
 		{
@@ -34,6 +46,11 @@ public class MasterLock
 
 	public void unlock(String key)
 	{
+		if(!enabled)
+		{
+			return;
+		}
+		
 		lock.lock();
 		if(!locks.containsKey(key))
 		{

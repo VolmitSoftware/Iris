@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -30,6 +31,7 @@ public class PregenGui extends JPanel
 	Graphics2D bg;
 	double minC;
 	double maxC;
+	private ReentrantLock l;
 	private BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
 
 	public PregenGui()
@@ -44,11 +46,21 @@ public class PregenGui extends JPanel
 		maxC = Math.floorDiv(job.max(), 16) + 4;
 		Graphics2D g = (Graphics2D) gx;
 		bg = (Graphics2D) image.getGraphics();
-		
+
+		l.lock();
 		while(order.isNotEmpty())
 		{
-			order.pop().run();
+			try
+			{
+				order.pop().run();
+			}
+
+			catch(Throwable e)
+			{
+
+			}
 		}
+		l.unlock();
 
 		g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), new ImageObserver()
 		{
@@ -69,11 +81,8 @@ public class PregenGui extends JPanel
 			g.drawString(i, 20, hh += h);
 		}
 
-		J.a(() ->
-		{
-			J.sleep((long) 500);
-			repaint();
-		});
+		J.sleep((long) 1);
+		repaint();
 	}
 
 	private void draw(ChunkPosition p, Color c, double minC, double maxC, Graphics2D bg)
@@ -94,10 +103,13 @@ public class PregenGui extends JPanel
 	{
 		JFrame frame = new JFrame("Pregen View");
 		PregenGui nv = new PregenGui();
+		nv.l = new ReentrantLock();
 		nv.job = j;
 		j.subscribe((c, b) ->
 		{
+			nv.l.lock();
 			nv.order.add(() -> nv.draw(c, b, nv.minC, nv.maxC, nv.bg));
+			nv.l.unlock();
 		});
 		frame.add(nv);
 		frame.setSize(1000, 1000);

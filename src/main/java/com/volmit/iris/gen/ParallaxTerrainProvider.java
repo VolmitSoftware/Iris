@@ -56,6 +56,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		setSliverCache(new KMap<>());
 		setSliverBuffer(sliverBuffer);
 		setMasterLock(new MasterLock());
+		getMasterLock().disable();
 	}
 
 	public void onInit(RNG rng)
@@ -157,7 +158,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 
 		return new AtomicSliverMap();
 	}
-	
+
 	@Override
 	public List<BlockPopulator> getPopulators()
 	{

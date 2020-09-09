@@ -3,11 +3,15 @@ package com.volmit.iris.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gui.NoiseExplorer;
+import com.volmit.iris.util.Command;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisStudioExplorer extends MortarCommand
 {
+	@Command
+	private CommandIrisStudioExplorerGenerator generator;
+
 	public CommandIrisStudioExplorer()
 	{
 		super("noise", "nmap");
@@ -19,20 +23,28 @@ public class CommandIrisStudioExplorer extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(!IrisSettings.get().isStudio())
+		if(args.length != 0)
 		{
-			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
-			return true;
+			printHelp(sender);
 		}
 
-		if(!IrisSettings.get().isUseServerLaunchedGuis())
+		else
 		{
-			sender.sendMessage("To use Iris Guis, please enable serverLaunchedGuis in Iris/settings.json");
-			return true;
-		}
+			if(!IrisSettings.get().isStudio())
+			{
+				sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+				return true;
+			}
 
-		NoiseExplorer.launch();
-		sender.sendMessage("Opening Noise Explorer!");
+			if(!IrisSettings.get().isUseServerLaunchedGuis())
+			{
+				sender.sendMessage("To use Iris Guis, please enable serverLaunchedGuis in Iris/settings.json");
+				return true;
+			}
+
+			NoiseExplorer.launch();
+			sender.sendMessage("Opening Noise Explorer!");
+		}
 		return true;
 	}
 

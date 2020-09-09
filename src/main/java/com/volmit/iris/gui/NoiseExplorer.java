@@ -3,7 +3,6 @@ package com.volmit.iris.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -56,7 +55,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 	int[][] co;
 	int w = 0;
 	int h = 0;
-	static Function2<Double, Double, Color> renderer;
+	static Function2<Double, Double, Double> generator;
 	static double oxp = 0;
 	static double ozp = 0;
 	double ox = 0;
@@ -207,25 +206,16 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 					int zz = z;
 					gx.queue("a", () ->
 					{
-						if(renderer != null)
+						double n = generator != null ? generator.apply(Double.valueOf((xx * ascale) + oxp), Double.valueOf((zz * ascale) + ozp)) : cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
+
+						if(n > 1 || n < 0)
 						{
-							co[xx][zz] = renderer.apply((xx * ascale) + oxp, (zz * ascale) + ozp).getRGB();
+							return;
 						}
 
-						else
-						{
-							double n = cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
-
-							if(n > 1 || n < 0)
-							{
-								System.out.println("EXCEEDED " + n);
-								return;
-							}
-
-							Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
-							int rgb = color.getRGB();
-							co[xx][zz] = rgb;
-						}
+						Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+						int rgb = color.getRGB();
+						co[xx][zz] = rgb;
 					});
 				}
 
@@ -274,6 +264,34 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		});
 	}
 
+	private static void createAndShowGUI(Function2<Double, Double, Double> gen, String genName)
+	{
+		JFrame frame = new JFrame("Noise Explorer: " + genName);
+		NoiseExplorer nv = new NoiseExplorer();
+		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		JLayeredPane pane = new JLayeredPane();
+		nv.setSize(new Dimension(1440, 820));
+		pane.add(nv, 1, 0);
+		NoiseExplorer.generator = gen;
+		frame.add(pane);
+		File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
+
+		if(file != null)
+		{
+			try
+			{
+				frame.setIconImage(ImageIO.read(file));
+			}
+
+			catch(IOException e)
+			{
+
+			}
+		}
+		frame.setSize(1440, 820);
+		frame.setVisible(true);
+	}
+
 	private static void createAndShowGUI()
 	{
 		JFrame frame = new JFrame("Noise Explorer");
@@ -289,7 +307,6 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			{
 				@SuppressWarnings("unchecked")
 				String b = (String) (((JComboBox<String>) e.getSource()).getSelectedItem());
-				renderer = null;
 				NoiseStyle s = NoiseStyle.valueOf(b);
 				nv.cng = s.create(RNG.r.nextParallelRNG(RNG.r.imax()));
 			}
@@ -317,6 +334,17 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		}
 		frame.setSize(1440, 820);
 		frame.setVisible(true);
+	}
+
+	public static void launch(Function2<Double, Double, Double> gen, String genName)
+	{
+		EventQueue.invokeLater(new Runnable()
+		{
+			public void run()
+			{
+				createAndShowGUI(gen, genName);
+			}
+		});
 	}
 
 	public static void launch()

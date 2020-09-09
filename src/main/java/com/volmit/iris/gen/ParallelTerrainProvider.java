@@ -85,6 +85,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 				int j = jj;
 				int wz = (z * 16) + j;
 				AtomicSliver sliver = map.getSliver(i, j);
+
 				getAccelerant().queue(key, () ->
 				{
 					try
@@ -101,6 +102,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		}
 
 		accelerant.waitFor(key);
+
 		map.write(terrain, terrain, height);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();

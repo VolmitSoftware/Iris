@@ -26,6 +26,12 @@ public class IrisObjectTranslate
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int y = 0;
+	
+	@MinNumber(-128)
+	@MaxNumber(128)
+	@DontObfuscate
+	@Desc("Adds an additional amount of height randomly (translateY + rand(0 - yRandom))")
+	private int yRandom = 0;
 
 	@MinNumber(-128)
 	@MaxNumber(128)

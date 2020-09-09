@@ -347,6 +347,8 @@ public class IrisObject extends IrisRegistrant
 		int ty = config.getTranslate().translate(new BlockVector(0, getCenter().getBlockY(), 0), config.getRotation(), spinx, spiny, spinz).getBlockY();
 		int y = -1;
 		int xx, zz;
+		int yrand = config.getTranslate().getYRandom();
+		yrand = yrand > 0 ? rng.i(0, yrand) : yrand < 0 ? rng.i(yrand, 0) : yrand;
 
 		if(yv < 0)
 		{
@@ -482,7 +484,7 @@ public class IrisObject extends IrisRegistrant
 		}
 
 		int lowest = Integer.MAX_VALUE;
-
+		y += yrand;
 		for(BlockVector g : blocks.keySet())
 		{
 			BlockVector i = g.clone();

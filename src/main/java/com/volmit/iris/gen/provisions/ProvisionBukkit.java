@@ -12,6 +12,10 @@ import com.volmit.iris.gen.scaffold.HeightedFakeWorld;
 import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
+import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -23,10 +27,31 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 	private HeightedFakeWorld fakeworld = null;
 	private boolean worldSet = false;
 	private final TerrainProvider provider;
+	private final KMap<ChunkPosition, TerrainChunk> precache;
 
 	public ProvisionBukkit(TerrainProvider provider)
 	{
 		this.provider = provider;
+		precache = new KMap<>();
+	}
+
+	public void generate(World world, int x, int z)
+	{
+		world.loadChunk(x, z, true);
+		world.unloadChunkRequest(x, z);
+	}
+
+	public void generateAsync(World world, int x, int z)
+	{
+		ChunkPosition c = new ChunkPosition(x, z);
+
+		if(!precache.containsKey(c))
+		{
+			TerrainChunk snapshot = TerrainChunk.create(world);
+			snapshot.setRaw(generateChunkData(world, getRNG(world, x, z), x, z, snapshot));
+			precache.put(c, snapshot);
+			J.s(() -> generate(world, x, z));
+		}
 	}
 
 	@Override
@@ -38,9 +63,25 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 			provider.getTarget().setRealWorld(world);
 		}
 
+		if(precache.size() > 0)
+		{
+			ChunkPosition c = new ChunkPosition(x, z);
+			if(precache.containsKey(c))
+			{
+				TerrainChunk snapshot = precache.remove(c);
+				snapshot.inject(biome);
+				return snapshot;
+			}
+		}
+
 		TerrainChunk terrain = TerrainChunk.create(world, biome);
-		getProvider().generate(random, x, z, terrain);
+		getProvider().generate(getRNG(world, x, z), x, z, terrain);
 		return terrain.getRaw();
+	}
+
+	private Random getRNG(World world, int x, int z)
+	{
+		return new RNG(world.getSeed()).nextParallelRNG(x).nextParallelRNG(z);
 	}
 
 	@Override

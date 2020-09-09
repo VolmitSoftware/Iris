@@ -26,7 +26,7 @@ public class IrisObjectTranslate
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int y = 0;
-	
+
 	@MinNumber(-128)
 	@MaxNumber(128)
 	@DontObfuscate

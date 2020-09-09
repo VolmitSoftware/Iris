@@ -487,15 +487,23 @@ public class StructureTemplate implements Listener, IObjectPlacer
 						Location center = getTileBounds(l).getCenter();
 						TileResult r = structure.getTile(rng, center.getX(), center.getY(), center.getZ());
 
-						int v1 = getVariant(getTileBounds(l), r.getTile());
-						int v2 = getVariant(getTileBounds(l), tileType);
-						if(r == null || !r.getTile().getForceObjects().get(v1).getLoadKey().equals(
-
-								tileType.getForceObjects().get(v2)
-
-										.getLoadKey()))
+						try
 						{
-							continue;
+							int v1 = getVariant(getTileBounds(l), r.getTile());
+							int v2 = getVariant(getTileBounds(l), tileType);
+							if(r == null || !r.getTile().getForceObjects().get(v1).getLoadKey().equals(
+
+									tileType.getForceObjects().get(v2)
+
+											.getLoadKey()))
+							{
+								continue;
+							}
+						}
+
+						catch(Throwable e)
+						{
+
 						}
 					}
 

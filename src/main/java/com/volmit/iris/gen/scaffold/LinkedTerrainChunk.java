@@ -11,19 +11,19 @@ import org.bukkit.material.MaterialData;
 import com.volmit.iris.Iris;
 
 @SuppressWarnings("deprecation")
-public class IrisTerrainChunk implements TerrainChunk
+public class LinkedTerrainChunk implements TerrainChunk
 {
 	private final Biome[] biome2D;
 	private final IrisBiomeStorage biome3D;
-	private final ChunkData rawChunkData;
+	private ChunkData rawChunkData;
 	private final BiomeGrid storage;
 
-	public IrisTerrainChunk(int maxHeight)
+	public LinkedTerrainChunk(int maxHeight)
 	{
 		this(null, maxHeight);
 	}
 
-	public IrisTerrainChunk(BiomeGrid storage, int maxHeight)
+	public LinkedTerrainChunk(BiomeGrid storage, int maxHeight)
 	{
 		this.storage = storage;
 		rawChunkData = createChunkData(maxHeight);
@@ -191,5 +191,31 @@ public class IrisTerrainChunk implements TerrainChunk
 	public ChunkData getRaw()
 	{
 		return rawChunkData;
+	}
+
+	@Override
+	public void setRaw(ChunkData data)
+	{
+		rawChunkData = data;
+	}
+
+	@Override
+	public void inject(BiomeGrid biome)
+	{
+		if(biome2D != null)
+		{
+			for(int i = 0; i < 16; i++)
+			{
+				for(int j = 0; j < 16; j++)
+				{
+					biome.setBiome(i, j, getBiome(i, j));
+				}
+			}
+		}
+
+		else if(biome3D != null)
+		{
+			biome3D.inject(biome);
+		}
 	}
 }

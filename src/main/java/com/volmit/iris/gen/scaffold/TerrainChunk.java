@@ -15,7 +15,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 
 	public static TerrainChunk create(int maxHeight)
 	{
-		return new IrisTerrainChunk(maxHeight);
+		return new LinkedTerrainChunk(maxHeight);
 	}
 
 	public static TerrainChunk create(World world, BiomeGrid grid)
@@ -25,8 +25,10 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 
 	public static TerrainChunk create(int maxHeight, BiomeGrid grid)
 	{
-		return new IrisTerrainChunk(grid, maxHeight);
+		return new LinkedTerrainChunk(grid, maxHeight);
 	}
+
+	public void setRaw(ChunkData data);
 
 	/**
 	 * Get biome at x, z within chunk being generated
@@ -126,4 +128,6 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 	public BlockData getBlockData(int x, int y, int z);
 
 	public ChunkData getRaw();
+
+	public void inject(BiomeGrid biome);
 }

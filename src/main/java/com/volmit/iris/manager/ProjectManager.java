@@ -1,4 +1,4 @@
-package com.volmit.iris;
+package com.volmit.iris.manager;
 
 import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
@@ -26,6 +26,8 @@ import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;

@@ -1,6 +1,5 @@
-package com.volmit.iris;
+package com.volmit.iris.gen.scaffold;
 
-import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;

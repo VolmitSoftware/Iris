@@ -4,9 +4,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisMetrics;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisMetrics;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.MortarCommand;

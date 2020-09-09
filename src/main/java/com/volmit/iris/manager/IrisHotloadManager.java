@@ -1,10 +1,13 @@
-package com.volmit.iris;
+package com.volmit.iris.manager;
 
 import java.io.File;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.FolderWatcher;
 import com.volmit.iris.util.J;

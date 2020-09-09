@@ -14,9 +14,9 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisContext;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
+import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;

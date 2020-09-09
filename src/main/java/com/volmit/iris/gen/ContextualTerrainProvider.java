@@ -22,14 +22,14 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisContext;
-import com.volmit.iris.IrisDataManager;
-import com.volmit.iris.IrisMetrics;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.gen.atomics.AtomicMulticache;
+import com.volmit.iris.gen.scaffold.IrisContext;
+import com.volmit.iris.gen.scaffold.IrisMetrics;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;

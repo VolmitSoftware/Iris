@@ -1,4 +1,4 @@
-package com.volmit.iris.util;
+package com.volmit.iris.structure;
 
 import java.io.File;
 import java.util.Iterator;
@@ -38,6 +38,23 @@ import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.object.TileResult;
+import com.volmit.iris.util.B;
+import com.volmit.iris.util.C;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.IO;
+import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.MaterialBlock;
+import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.UIElement;
+import com.volmit.iris.util.UIStaticDecorator;
+import com.volmit.iris.util.UIWindow;
+import com.volmit.iris.util.Window;
+import com.volmit.iris.util.WindowResolution;
 
 import lombok.Data;
 
@@ -64,6 +81,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	private KMap<Location, Runnable> updates = new KMap<>();
 	private File folder;
 	private CNG variants;
+	private boolean quiet = true;
 	private KMap<Location, Integer> forceVariant = new KMap<>();
 
 	public StructureTemplate(String name, String dimension, Player worker, Location c, int size, int w, int h, boolean use3d)
@@ -74,7 +92,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		folder = Iris.instance.getDataFolder("packs", dimension);
 		gLatch = new ChronoLatch(250);
 		focus = center;
-		dirtyLatch = new ChronoLatch(2350);
+		dirtyLatch = new ChronoLatch(250);
 		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::tick, 0, 0);
 		this.world = c.getWorld();
 		this.center = c.clone();
@@ -142,6 +160,8 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	public void loadStructures(IrisStructure input)
 	{
 		Iris.info("Loading existing structure");
+
+		// TODO load input properties
 
 		for(IrisStructureTile i : structure.getTiles().copy())
 		{
@@ -354,11 +374,15 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 		if(dirtyLatch.couldFlip())
 		{
-			int u = 3;
-			while(updates.size() > 0 && u-- > 0)
-			{
-				runClosestTo();
-			}
+			updateAll();
+		}
+	}
+
+	public void updateAll()
+	{
+		while(updates.size() > 0)
+		{
+			runClosestTo();
 		}
 	}
 
@@ -386,6 +410,11 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	}
 
 	private void mod(Location l)
+	{
+		mod(l, true);
+	}
+
+	private void mod(Location l, boolean u)
 	{
 		if(!isWithinBounds(l))
 		{
@@ -538,8 +567,11 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		}
 
 		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng);
-		center.getWorld().playSound(center, Sound.BLOCK_ANCIENT_DEBRIS_BREAK, 1f, 0.35f);
-		center.getWorld().spawnParticle(Particle.FLASH, center.getX(), center.getY(), center.getZ(), 1);
+		if(!quiet)
+		{
+			center.getWorld().playSound(center, Sound.ENTITY_SHULKER_BULLET_HIT, 1f, 1.6f);
+			center.getWorld().spawnParticle(Particle.FLASH, center.getX(), center.getY(), center.getZ(), 1);
+		}
 	}
 
 	public boolean isWithinBounds(Location l)
@@ -774,7 +806,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			return;
 		}
 
-		world.getBlockAt(x, y, z).setBlockData(d, false);
+		Iris.edit.set(world, x, y, z, d);
 	}
 
 	@Override
@@ -1068,7 +1100,10 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	@EventHandler
 	public void on(BlockBreakEvent e)
 	{
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> mod(e.getBlock().getLocation()), 5);
+		quiet = false;
+		mod(e.getBlock().getLocation(), false);
+		updateAll();
+		quiet = true;
 	}
 
 	@EventHandler
@@ -1134,7 +1169,10 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	@EventHandler
 	public void on(BlockPlaceEvent e)
 	{
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> mod(e.getBlock().getLocation()), 5);
+		quiet = false;
+		mod(e.getBlock().getLocation(), false);
+		updateAll();
+		quiet = true;
 	}
 
 	public void more()

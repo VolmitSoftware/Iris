@@ -1,5 +1,6 @@
-package com.volmit.iris;
+package com.volmit.iris.gen.scaffold;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.RollingSequence;
 
 import lombok.Data;

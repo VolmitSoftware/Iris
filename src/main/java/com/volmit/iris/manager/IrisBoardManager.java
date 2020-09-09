@@ -1,4 +1,4 @@
-package com.volmit.iris;
+package com.volmit.iris.manager;
 
 import java.util.List;
 
@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.noise.CNG;

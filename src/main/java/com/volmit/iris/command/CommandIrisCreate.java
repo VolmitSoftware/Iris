@@ -11,13 +11,13 @@ import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisDataManager;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;

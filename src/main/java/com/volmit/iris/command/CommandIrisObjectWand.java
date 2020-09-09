@@ -4,7 +4,7 @@ import org.bukkit.Sound;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.WandManager;
+import com.volmit.iris.manager.WandManager;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 

@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.WandManager;
+import com.volmit.iris.manager.WandManager;
 import com.volmit.iris.util.Cuboid;
 import com.volmit.iris.util.Direction;
 import com.volmit.iris.util.MortarCommand;

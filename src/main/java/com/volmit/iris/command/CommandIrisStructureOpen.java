@@ -5,9 +5,9 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisStructure;
+import com.volmit.iris.structure.StructureTemplate;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.StructureTemplate;
 
 public class CommandIrisStructureOpen extends MortarCommand
 {

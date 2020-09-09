@@ -1031,6 +1031,7 @@ public class ProjectManager
 
 	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def, IrisDataManager dat)
 	{
+		Object dummy = tryCreate(i);
 		if(step <= 0)
 		{
 			JSONObject m = new JSONObject();
@@ -1047,7 +1048,8 @@ public class ProjectManager
 			schema.put("type", "object");
 
 			Desc d = i.getAnnotation(Desc.class);
-			schema.put("description", d.value());
+			String dsc = i.getSimpleName().replaceAll("\\QIris\\E", "") + "\n\n" + d.value();
+			schema.put("description", dsc);
 
 			JSONObject properties = new JSONObject();
 			JSONArray req = new JSONArray();
@@ -1055,6 +1057,7 @@ public class ProjectManager
 
 			for(java.lang.reflect.Field k : i.getDeclaredFields())
 			{
+				k.setAccessible(true);
 				JSONObject prop = new JSONObject();
 				if(k.isAnnotationPresent(Desc.class))
 				{
@@ -1279,7 +1282,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1299,7 +1302,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1319,7 +1322,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1339,7 +1342,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1359,7 +1362,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1379,7 +1382,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1399,7 +1402,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1419,7 +1422,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1439,7 +1442,7 @@ public class ProjectManager
 									JSONObject items = new JSONObject();
 									items.put("$ref", "#/definitions/" + name);
 									prop.put("items", items);
-									prop.put("description", k.getAnnotation(Desc.class).value());
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 									prop.put("type", tp);
 									properties.put(k.getName(), prop);
 									continue;
@@ -1469,7 +1472,7 @@ public class ProjectManager
 								JSONObject items = new JSONObject();
 								items.put("$ref", "#/definitions/" + name);
 								prop.put("items", items);
-								prop.put("description", k.getAnnotation(Desc.class).value());
+								prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
 								prop.put("type", tp);
 								properties.put(k.getName(), prop);
 								continue;
@@ -1498,7 +1501,7 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										JSONObject scv = getSchemaFor(t.type(), step - 1, def, Iris.globaldata);
 										deff.put("type", tx);
-										deff.put("description", t.type().getDeclaredAnnotation(Desc.class).value());
+										deff.put("description", tx + "\n\n" + t.type().getDeclaredAnnotation(Desc.class).value());
 										deff.put("additionalProperties", false);
 										deff.put("properties", scv.getJSONObject("properties"));
 										if(scv.has("required"))
@@ -1531,7 +1534,58 @@ public class ProjectManager
 						}
 					}
 
-					prop.put("description", k.getAnnotation(Desc.class).value());
+					String tpx = tp;
+
+					if(tp.equals("array") || tp.equals("enum"))
+					{
+						tpx = "List of " + k.getDeclaredAnnotation(ArrayType.class).type().getSimpleName().replaceAll("\\QIris\\E", "") + "s";
+					}
+
+					prop.put("description", tpx + "\n\n" + k.getAnnotation(Desc.class).value());
+
+					if(tp.equals("integer"))
+					{
+						if(k.isAnnotationPresent(MinNumber.class))
+						{
+							prop.put("description", prop.getString("description") + "\n" + "Min: " + (int) k.getDeclaredAnnotation(MinNumber.class).value());
+						}
+
+						if(k.isAnnotationPresent(MaxNumber.class))
+						{
+							prop.put("description", prop.getString("description") + "\n" + "Max: " + (int) k.getDeclaredAnnotation(MaxNumber.class).value());
+						}
+					}
+
+					if(tp.equals("number"))
+					{
+						if(k.isAnnotationPresent(MinNumber.class))
+						{
+							prop.put("description", prop.getString("description") + "\n" + "Min: " + k.getDeclaredAnnotation(MinNumber.class).value());
+						}
+
+						if(k.isAnnotationPresent(MaxNumber.class))
+						{
+							prop.put("description", prop.getString("description") + "\n" + "Max: " + k.getDeclaredAnnotation(MaxNumber.class).value());
+						}
+					}
+
+					if(!tp.equals("array") && !tp.equals("object") && !tp.equals("enum"))
+					{
+						if(dummy != null)
+						{
+							try
+							{
+								prop.put("description", prop.getString("description") + "\n" + "Default Value: " + k.get(dummy));
+							}
+
+							catch(Throwable e)
+							{
+								prop.put("description", prop.getString("description") + "\n" + "Default Value: NONE");
+							}
+						}
+
+					}
+
 					prop.put("type", tp);
 					properties.put(k.getName(), prop);
 				}
@@ -1544,6 +1598,21 @@ public class ProjectManager
 		}
 
 		return schema;
+	}
+
+	private Object tryCreate(Class<?> i)
+	{
+		try
+		{
+			return i.newInstance();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return null;
 	}
 
 	private String[] getFontList()

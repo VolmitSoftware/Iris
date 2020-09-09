@@ -26,7 +26,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @DontObfuscate
-@Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.")
+@Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.\nA biome consists of layers (block palletes), decorations, objects & generators.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements IRare
@@ -38,16 +38,16 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private String name = "A Biome";
 
 	@DontObfuscate
-	@Desc("Place text on terrain")
+	@Desc("Place text on terrain. Iris will render text into block schematics and randomly place them in this biome.")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
 
 	@DontObfuscate
-	@Desc("The type of fluid if this biome is underwater")
+	@Desc("The type of fluid if this biome is underwater. To 'defer' this value to whatever the parent dimension fluid type is, use an emtpy string.")
 	private String fluidType = "";
 
 	@DontObfuscate
-	@Desc("Entity spawns to override or add to this biome")
+	@Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 

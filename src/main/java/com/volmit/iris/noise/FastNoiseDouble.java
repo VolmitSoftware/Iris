@@ -344,7 +344,7 @@ public class FastNoiseDouble
 		n ^= X_PRIME * x;
 		n ^= Y_PRIME * y;
 
-		return (n * n * n * 60493) / (double) 2147483648.0;
+		return ((n * n * n * 60493L) / (double) Long.MAX_VALUE);
 	}
 
 	private static double valCoord3D(long seed, long x, long y, long z)
@@ -354,7 +354,7 @@ public class FastNoiseDouble
 		n ^= Y_PRIME * y;
 		n ^= Z_PRIME * z;
 
-		return (n * n * n * 60493) / (double) 2147483648.0;
+		return ((n * n * n * 60493L) / (double) Long.MAX_VALUE);
 	}
 
 	private static double valCoord4D(long seed, long x, long y, long z, long w)
@@ -365,7 +365,7 @@ public class FastNoiseDouble
 		n ^= Z_PRIME * z;
 		n ^= W_PRIME * w;
 
-		return (n * n * n * 60493) / (double) 2147483648.0;
+		return ((n * n * n * 60493L) / (double) Long.MAX_VALUE);
 	}
 
 	private static double GradCoord2D(long seed, long x, long y, double xd, double yd)

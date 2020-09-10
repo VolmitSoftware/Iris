@@ -24,7 +24,6 @@ import lombok.experimental.Accessors;
 public class IrisBlockData
 {
 	@RegistryListBlockType
-
 	@Required
 	@DontObfuscate
 	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")
@@ -33,6 +32,10 @@ public class IrisBlockData
 	@DontObfuscate
 	@Desc("The resource key. Typically Minecraft")
 	private String key = "minecraft";
+
+	@DontObfuscate
+	@Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
+	private int weight = 1;
 
 	@DontObfuscate
 	@Desc("Optional properties for this block data such as 'waterlogged': true")

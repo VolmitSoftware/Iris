@@ -50,7 +50,7 @@ public class IrisBiomePaletteLayer
 	private double zoom = 5;
 
 	@Required
-	@ArrayType(min = 1, type = String.class)
+	@ArrayType(min = 1, type = IrisBlockData.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("GRASS_BLOCK"));
@@ -105,7 +105,10 @@ public class IrisBiomePaletteLayer
 				BlockData bx = ix.getBlockData();
 				if(bx != null)
 				{
-					blockData.add(bx);
+					for(int i = 0; i < ix.getWeight(); i++)
+					{
+						blockData.add(bx);
+					}
 				}
 			}
 

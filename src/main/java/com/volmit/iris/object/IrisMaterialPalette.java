@@ -91,7 +91,10 @@ public class IrisMaterialPalette
 				BlockData bx = ix.getBlockData();
 				if(bx != null)
 				{
-					blockData.add(bx);
+					for(int i = 0; i < ix.getWeight(); i++)
+					{
+						blockData.add(bx);
+					}
 				}
 			}
 

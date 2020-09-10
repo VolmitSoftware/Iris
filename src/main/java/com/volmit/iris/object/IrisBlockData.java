@@ -8,6 +8,8 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RegistryListBlockType;
 import com.volmit.iris.util.Required;
 
@@ -33,6 +35,8 @@ public class IrisBlockData
 	@Desc("The resource key. Typically Minecraft")
 	private String key = "minecraft";
 
+	@MinNumber(1)
+	@MaxNumber(1000)
 	@DontObfuscate
 	@Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
 	private int weight = 1;

@@ -12,47 +12,59 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @DontObfuscate
 @Desc("Represents a structure in iris.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructure extends IrisRegistrant
 {
+	@Builder.Default
 	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("This is the human readable name for this structure. Such as Red Dungeon or Tropical Village.")
 	private String name = "A Structure Type";
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this structure")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
-	
+
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Wall style noise")
 	private IrisGeneratorStyle wallStyle = NoiseStyle.STATIC.style();
 
+	@Builder.Default
 	@Desc("Setting underwater to true will waterlog blocks")
 	@DontObfuscate
 	private boolean underwater = false;
 
+	@Builder.Default
 	@Desc("The max & min height any part of this structure can place at")
 	@DontObfuscate
 	private IrisObjectLimit clamp = new IrisObjectLimit();
 
+	@Builder.Default
 	@Desc("Setting bore to true will dig out blocks before placing tiles")
 	@DontObfuscate
 	private boolean bore = false;
 
+	@Builder.Default
 	@Required
 	@MinNumber(3)
 	@MaxNumber(64)
@@ -60,10 +72,12 @@ public class IrisStructure extends IrisRegistrant
 	@Desc("This is the x and z size of each grid cell")
 	private int gridSize = 11;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(255)
@@ -71,12 +85,14 @@ public class IrisStructure extends IrisRegistrant
 	@Desc("This is the y size of each grid cell")
 	private int gridHeight = 5;
 
+	@Builder.Default
 	@MinNumber(1)
 	@MaxNumber(82)
 	@DontObfuscate
 	@Desc("This is the maximum layers iris will generate for (height cells)")
 	private int maxLayers = 1;
 
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@MaxNumber(1)
@@ -84,17 +100,19 @@ public class IrisStructure extends IrisRegistrant
 	@Desc("This is the wall chance. Higher values makes more rooms and less open halls")
 	private double wallChance = 0.25;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Edges of tiles replace each other instead of having their own.")
 	private boolean mergeEdges = false;
 
+	@Builder.Default
 	@Required
 	@ArrayType(min = 1, type = IrisStructureTile.class)
 	@DontObfuscate
 	@Desc("The tiles")
 	private KList<IrisStructureTile> tiles = new KList<>();
 
-	private transient AtomicCache<CNG> wallGenerator = new AtomicCache<>();
+	private final transient AtomicCache<CNG> wallGenerator = new AtomicCache<>();
 
 	public TileResult getTile(RNG rng, double x, double y, double z)
 	{

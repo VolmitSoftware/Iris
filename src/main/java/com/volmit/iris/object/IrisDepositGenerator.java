@@ -16,12 +16,17 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Creates ore & other block deposits underground")
 @Data
 public class IrisDepositGenerator
 {
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@MaxNumber(256)
@@ -29,6 +34,7 @@ public class IrisDepositGenerator
 	@Desc("The minimum height this deposit can generate at")
 	private int minHeight = 7;
 
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@MaxNumber(256)
@@ -36,6 +42,7 @@ public class IrisDepositGenerator
 	@Desc("The maximum height this deposit can generate at")
 	private int maxHeight = 55;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(32)
@@ -43,6 +50,7 @@ public class IrisDepositGenerator
 	@Desc("The minimum amount of deposit blocks per clump")
 	private int minSize = 3;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(32)
@@ -50,6 +58,7 @@ public class IrisDepositGenerator
 	@Desc("The maximum amount of deposit blocks per clump")
 	private int maxSize = 5;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(128)
@@ -57,6 +66,7 @@ public class IrisDepositGenerator
 	@Desc("The maximum amount of clumps per chunk")
 	private int maxPerChunk = 3;
 
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@MaxNumber(128)
@@ -64,20 +74,27 @@ public class IrisDepositGenerator
 	@Desc("The minimum amount of clumps per chunk")
 	private int minPerChunk = 1;
 
+	@Builder.Default
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this deposit generator")
 	private KList<String> palette = new KList<String>();
 
+	@Builder.Default
 	@MinNumber(1)
 	@MaxNumber(64)
 	@DontObfuscate
 	@Desc("Ore varience is how many different objects clumps iris will create")
 	private int varience = 3;
 
-	private transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+
+	public IrisDepositGenerator()
+	{
+
+	}
 
 	public IrisObject getClump(RNG rng)
 	{

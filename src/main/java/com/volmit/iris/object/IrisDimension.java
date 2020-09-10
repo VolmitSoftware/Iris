@@ -28,9 +28,13 @@ import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListRegion;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @Desc("Represents a dimension")
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -39,147 +43,180 @@ public class IrisDimension extends IrisRegistrant
 	public static final BlockData STONE = Material.STONE.createBlockData();
 	public static final BlockData WATER = Material.WATER.createBlockData();
 
+	@Builder.Default
 	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Place text on terrain")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this dimension")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@Builder.Default
 	@DontObfuscate
 	@MinNumber(0)
 	@Desc("Try to fill a container with loot up to this many times to avoid too many empty chests.")
 	private int lootTries = 5;
 
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
 	private int version = 1;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisBlockDrops.class)
 	@DontObfuscate
 	@Desc("Define custom block drops for this dimension")
 	private KList<IrisBlockDrops> blockDrops = new KList<>();
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")
 	private double landChance = 0.625;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of regions")
 	private IrisGeneratorStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of land/sea")
 	private IrisGeneratorStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle landBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle shoreBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle seaBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle riverBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle lakeBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle islandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle islandBiomeChanceStyle = NoiseStyle.CELLULAR_HEIGHT_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The placement style of biomes")
 	private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate caves or not.")
 	private boolean caves = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
 	private boolean debugSmartBore = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Carve terrain or not")
 	private boolean carving = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate vanilla caves")
 	private boolean vanillaCaves = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate vanilla structures")
 	private boolean vanillaStructures = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate decorations or not")
 	private boolean decorate = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Use post processing or not")
 	private boolean postProcessing = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Add slabs in post processing")
 	private boolean postProcessingSlabs = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Add painted walls in post processing")
 	private boolean postProcessingWalls = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Use post processing for caves or not")
 	private boolean postProcessCaves = true;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisCompatabilityFilter.class)
 	@DontObfuscate
 	@Desc("Compatability filters")
 	private KList<IrisCompatabilityFilter> compatability = getDefaultCompatability();
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
 
+	@Builder.Default
 	@RegistryListRegion
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -187,6 +224,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
 	private KList<String> regions = new KList<>();
 
+	@Builder.Default
 	@Required
 	@MinNumber(0)
 	@MaxNumber(255)
@@ -194,132 +232,159 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The fluid height for this dimension")
 	private int fluidHeight = 63;
 
+	@Builder.Default
 	@RegistryListBiome
 	@DontObfuscate
 	@Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
 	private String focus = "";
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in or out the biome size. Higher = bigger biomes")
 	private double biomeZoom = 5D;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in or out the terrain. This stretches the terrain. Due to performance improvements, Higher than 2.0 may cause weird rounding artifacts. Lower = more terrain changes per block. Its a true zoom-out.")
 	private double terrainZoom = 2D;
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(360)
 	@DontObfuscate
 	@Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
 	private double dimensionAngleDeg = 0;
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Coordinate fracturing applies noise to the input coordinates. This creates the 'iris swirls' and wavy features. The distance pushes these waves further into places they shouldnt be. This is a block value multiplier.")
 	private double coordFractureDistance = 20;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Coordinate fracturing zoom. Higher = less frequent warping, Lower = more frequent and rapid warping / swirls.")
 	private double coordFractureZoom = 8;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("This zooms in the land space")
 	private double landZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("This zooms oceanic biomes")
 	private double seaZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in continents")
 	private double continentZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Change the size of regions")
 	private double regionZoom = 1;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Disable this to stop placing schematics in biomes")
 	private boolean placeObjects = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Prevent Leaf decay as if placed in creative mode")
 	private boolean preventLeafDecay = false;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@DontObfuscate
 	@Desc("Define global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
 	@DontObfuscate
 	@Desc("Overlay additional noise on top of the interoplated terrain.")
 	private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The noise style for rock types")
 	private IrisGeneratorStyle rockStyle = NoiseStyle.STATIC.style();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisCaveLayer.class)
 	@DontObfuscate
 	@Desc("Define cave layers")
 	private KList<IrisCaveLayer> caveLayers = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisCarveLayer.class)
 	@DontObfuscate
 	@Desc("Define carve layers")
 	private KList<IrisCarveLayer> carveLayers = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The noise style for fluid types")
 	private IrisGeneratorStyle fluidStyle = NoiseStyle.STATIC.style();
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("The rock zoom mostly for zooming in on a wispy palette")
 	private double rockZoom = 5;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
 	private KList<String> rockPalette = new KList<String>().qadd("STONE");
 
+	@Builder.Default
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
 	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisBiomeMutation.class)
 	@DontObfuscate
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();
 
-	private transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> rockData = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> fluidData = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
-	private transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
-	private transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
-	private transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
-	private transient AtomicCache<Double> sinr = new AtomicCache<>();
-	private transient AtomicCache<Double> cosr = new AtomicCache<>();
-	private transient AtomicCache<Double> rad = new AtomicCache<>();
+	private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> rockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> fluidData = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
+	private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
+	private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
+	private final transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
+	private final transient AtomicCache<Double> sinr = new AtomicCache<>();
+	private final transient AtomicCache<Double> cosr = new AtomicCache<>();
+	private final transient AtomicCache<Double> rad = new AtomicCache<>();
+
+	public IrisDimension()
+	{
+
+	}
 
 	public static KList<IrisCompatabilityFilter> getDefaultCompatability()
 	{

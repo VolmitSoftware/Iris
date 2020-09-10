@@ -26,101 +26,131 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @DontObfuscate
 @Desc("Represents an iris entity.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisEntity extends IrisRegistrant
 {
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The type of entity to spawn")
 	private EntityType type = EntityType.PIG;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The custom name of this entity")
 	private String customName = "";
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Should the name on this entity be visible even if you arent looking at it.")
 	private boolean customNameVisible = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If this entity type is a mob, should it be aware of it's surroundings & interact with the world.")
 	private boolean aware = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If this entity type is a creature, should it have ai goals.")
 	private boolean ai = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Should this entity be glowing")
 	private boolean glowing = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Should gravity apply to this entity")
 	private boolean gravity = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("When an entity is invulnerable it can only be damaged by players increative mode.")
 	private boolean invulnerable = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("When an entity is silent it will not produce any sound.")
 	private boolean silent = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Should this entity be allowed to pickup items")
 	private boolean pickupItems = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Should this entity be removed when far away")
 	private boolean removable = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity helmet equipment")
 	private IrisLoot helmet = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity chestplate equipment")
 	private IrisLoot chestplate = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity boots equipment")
 	private IrisLoot boots = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity leggings equipment")
 	private IrisLoot leggings = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity main hand equipment")
 	private IrisLoot mainHand = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity off hand equipment")
 	private IrisLoot offHand = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Make other entities ride this entity")
 	@ArrayType(min = 1, type = IrisEntity.class)
 	private KList<IrisEntity> passengers = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Attribute modifiers for this entity")
 	@ArrayType(min = 1, type = IrisAttributeModifier.class)
 	private KList<IrisAttributeModifier> attributes = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Loot tables for drops")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
 	private IrisEntity leashHolder = null;
+
+	public IrisEntity()
+	{
+
+	}
 
 	public Entity spawn(ParallaxTerrainProvider gen, Location at)
 	{
@@ -251,10 +281,5 @@ public class IrisEntity extends IrisRegistrant
 		}
 
 		return e;
-	}
-
-	public IrisEntity()
-	{
-
 	}
 }

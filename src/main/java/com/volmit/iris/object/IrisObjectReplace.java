@@ -12,31 +12,38 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Find and replace object materials")
 @Data
 public class IrisObjectReplace
 {
+	@Builder.Default
 	@ArrayType(min = 1, type = String.class)
 	@Required
 	@Desc("Find this block")
 	@DontObfuscate
-	private KList<String> find;
+	private KList<String> find = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = String.class)
 	@Required
 	@Desc("Replace it with this block")
 	@DontObfuscate
-	private KList<String> replace;
+	private KList<String> replace = new KList<>();
 
+	@Builder.Default
 	@Desc("Exactly match the block data or not")
 	@DontObfuscate
 	private boolean exact = false;
 
-	private transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
+	private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
 
 	public IrisObjectReplace()
 	{

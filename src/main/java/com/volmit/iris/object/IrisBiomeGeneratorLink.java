@@ -12,17 +12,23 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RegistryListGenerator;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("This represents a link to a generator for a biome")
 @Data
 public class IrisBiomeGeneratorLink
 {
+	@Builder.Default
 	@RegistryListGenerator
 	@DontObfuscate
 	@Desc("The generator id")
 	private String generator = "default";
 
+	@Builder.Default
 	@DependsOn({"min", "max"})
 	@Required
 	@MinNumber(-256)
@@ -31,6 +37,7 @@ public class IrisBiomeGeneratorLink
 	@Desc("The min block value (value + fluidHeight)")
 	private int min = 0;
 
+	@Builder.Default
 	@DependsOn({"min", "max"})
 	@Required
 	@MinNumber(-256)
@@ -39,7 +46,7 @@ public class IrisBiomeGeneratorLink
 	@Desc("The max block value (value + fluidHeight)")
 	private int max = 0;
 
-	private transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
+	private final transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
 	public IrisBiomeGeneratorLink()
 	{

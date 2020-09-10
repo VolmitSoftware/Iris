@@ -16,44 +16,53 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("A text renderer to place text on terrain")
 @Data
 public class IrisTextRenderer
 {
+	@Builder.Default
 	@RegistryListFont
 	@Required
 	@DontObfuscate
 	@Desc("The font to use for this renderer")
-	private String font;
+	private String font = "default";
 
+	@Builder.Default
 	@MinNumber(4)
 	@MaxNumber(48)
 	@DontObfuscate
 	@Desc("The font scale 1 = 1pt = ~1-2 blocks high per character")
 	private int size = 18;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The font style to use while rendering text")
 	private FontStyle fontStyle = FontStyle.PLAIN;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The lines of text to randomly pick from")
 	@ArrayType(min = 1, type = String.class)
 	private KList<String> text = new KList<>();
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The palette of blocks to use when drawing text")
 	private IrisMaterialPalette blockPalette = new IrisMaterialPalette();
 
-	private transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
-	private transient AtomicCache<Font> fontData = new AtomicCache<>();
-	private transient AtomicCache<FontMetrics> fontMetrics = new AtomicCache<>();
-	private transient AtomicCache<Double> maxLength = new AtomicCache<>();
-	private transient AtomicCache<Integer> fontStyleData = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
+	private final transient AtomicCache<Font> fontData = new AtomicCache<>();
+	private final transient AtomicCache<FontMetrics> fontMetrics = new AtomicCache<>();
+	private final transient AtomicCache<Double> maxLength = new AtomicCache<>();
+	private final transient AtomicCache<Integer> fontStyleData = new AtomicCache<>();
 
 	public IrisTextRenderer()
 	{

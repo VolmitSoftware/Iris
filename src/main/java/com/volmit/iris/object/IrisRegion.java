@@ -17,122 +17,148 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @Desc("Represents an iris region")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisRegion extends IrisRegistrant implements IRare
 {
+	@Builder.Default
 	@MinNumber(2)
 	@Required
 	@DontObfuscate
 	@Desc("The name of the region")
 	private String name = "A Region";
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisEffect.class)
 	@DontObfuscate
 	@Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
 	private KList<IrisEffect> effects = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this region")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
+	@Builder.Default
 	@MinNumber(1)
 	@MaxNumber(256)
 	@DontObfuscate
 	@Desc("The rarity of the region")
 	private int rarity = 1;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Place text on terrain")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisBlockDrops.class)
 	@DontObfuscate
 	@Desc("Define custom block drops for this region")
 	private KList<IrisBlockDrops> blockDrops = new KList<>();
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The shore ration (How much percent of land should be a shore)")
 	private double shoreRatio = 0.13;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this region")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The min shore height")
 	private double shoreHeightMin = 1.2;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The the max shore height")
 	private double shoreHeightMax = 3.2;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The varience of the shore height")
 	private double shoreHeightZoom = 3.14;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large land biomes are in this region")
 	private double landBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large shore biomes are in this region")
 	private double shoreBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large lake biomes are in this region")
 	private double lakeBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large river biomes are in this region")
 	private double riverBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large sea biomes are in this region")
 	private double seaBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("How large cave biomes are in this region")
 	private double caveBiomeZoom = 1;
 
+	@Builder.Default
 	@MinNumber(0.0001)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
 	private double biomeImplosionRatio = 0.4;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisStructurePlacement.class)
 	@DontObfuscate
 	@Desc("A list of structure tilesets")
 	private KList<IrisStructurePlacement> structures = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -140,6 +166,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> landBiomes = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -147,6 +174,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> seaBiomes = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -154,86 +182,105 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> shoreBiomes = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> riverBiomes = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> lakeBiomes = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
 	private KList<String> caveBiomes = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisRegionRidge.class)
 	@DontObfuscate
 	@Desc("Ridge biomes create a vein-like network like rivers through this region")
 	private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisRegionSpot.class)
 	@DontObfuscate
 	@Desc("Spot biomes splotch themselves across this region like lakes")
 	private KList<IrisRegionSpot> spotBiomes = new KList<>();
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@Desc("Define regional deposit generators that add onto the global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The style of rivers")
 	private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The style of lakes")
 	private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The style of river chances")
 	private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate lakes in this region")
 	private boolean lakes = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Generate rivers in this region")
 	private boolean rivers = true;
 
+	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Generate lakes in this region")
 	private int lakeRarity = 22;
 
+	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Generate rivers in this region")
 	private int riverRarity = 3;
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("Generate rivers in this region")
 	private double riverThickness = 0.1;
 
-	private transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
-	private transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
-	private transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realLandBiomes = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realLakeBiomes = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realRiverBiomes = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realSeaBiomes = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realShoreBiomes = new AtomicCache<>();
-	private transient AtomicCache<KList<IrisBiome>> realCaveBiomes = new AtomicCache<>();
-	private transient AtomicCache<CNG> lakeGen = new AtomicCache<>();
-	private transient AtomicCache<CNG> riverGen = new AtomicCache<>();
-	private transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
+	private final transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
+	private final transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
+	private final transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realLandBiomes = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realLakeBiomes = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realRiverBiomes = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realSeaBiomes = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realShoreBiomes = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisBiome>> realCaveBiomes = new AtomicCache<>();
+	private final transient AtomicCache<CNG> lakeGen = new AtomicCache<>();
+	private final transient AtomicCache<CNG> riverGen = new AtomicCache<>();
+	private final transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
+
+	public IrisRegion()
+	{
+
+	}
 
 	public boolean isRiver(RNG rng, double x, double z)
 	{

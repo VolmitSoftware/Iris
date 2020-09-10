@@ -9,31 +9,40 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("A gen style")
 @Data
 public class IrisGeneratorStyle
 {
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The chance is 1 in CHANCE per interval")
 	private NoiseStyle style = NoiseStyle.IRIS;
 
+	@Builder.Default
 	@DontObfuscate
 	@MinNumber(0.00001)
 	@Desc("The zoom of this style")
 	private double zoom = 1;
 
+	@Builder.Default
 	@DontObfuscate
 	@MinNumber(0.00001)
 	@Desc("The Output multiplier. Only used if parent is fracture.")
 	private double multiplier = 1;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply a generator to the coordinate field fed into this parent generator. I.e. Distort your generator with another generator.")
 	private IrisGeneratorStyle fracture = null;
 
+	@Builder.Default
 	@DontObfuscate
 	@MinNumber(0.01562)
 	@MaxNumber(64)

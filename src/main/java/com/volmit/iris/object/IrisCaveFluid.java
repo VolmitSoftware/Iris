@@ -10,12 +10,17 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Translate objects")
 @Data
 public class IrisCaveFluid
 {
+	@Builder.Default
 	@Required
 	@MaxNumber(255)
 	@MinNumber(0)
@@ -23,16 +28,18 @@ public class IrisCaveFluid
 	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")
 	private int fluidHeight = 35;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Insead of fluidHeight & below being fluid, turning inverse height on will simply spawn fluid in this cave layer from min(max_height, cave_height) to the fluid height. Basically, fluid will spawn above the fluidHeight value instead of below the fluidHeight.")
 	private boolean inverseHeight = false;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The fluid type that should spawn here")
 	private String fluidType = "CAVE_AIR";
 
-	private transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
+	private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 
 	public IrisCaveFluid()
 	{

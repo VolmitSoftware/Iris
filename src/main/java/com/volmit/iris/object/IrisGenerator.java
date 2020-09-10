@@ -16,84 +16,102 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @Desc("Represents a composite generator of noise gens")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant
 {
+	@Builder.Default
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The zoom or frequency.")
 	private double zoom = 1;
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The opacity, essentially a multiplier on the output.")
 	private double opacity = 1;
 
+	@Builder.Default
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The size of the cell fractures")
 	private double cellFractureZoom = 1D;
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("Cell Fracture Coordinate Shuffling")
 	private double cellFractureShuffle = 12D;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The height of fracture cells. Set to 0 to disable")
 	private double cellFractureHeight = 0D;
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
 	private double cellPercentSize = 0.75D;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The offset to shift this noise x")
 	private double offsetX = 0;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The offset to shift this noise z")
 	private double offsetZ = 0;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The seed for this generator")
 	private long seed = 1;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The interpolator to use when smoothing this generator into other regions & generators")
 	private IrisInterpolator interpolator = new IrisInterpolator();
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Cliff Height Max. Disable with 0 for min and max")
 	private double cliffHeightMax = 0;
 
+	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(8192)
 	@DontObfuscate
 	@Desc("Cliff Height Min. Disable with 0 for min and max")
 	private double cliffHeightMin = 0;
 
+	@Builder.Default
 	@ArrayType(min = 1, type = IrisNoiseGenerator.class)
 	@DontObfuscate
 	@Desc("The list of noise gens this gen contains.")
 	private KList<IrisNoiseGenerator> composite = new KList<IrisNoiseGenerator>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The noise gen for cliff height.")
 	private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 
-	private transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
+	private final transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
 
 	public IrisGenerator()
 	{

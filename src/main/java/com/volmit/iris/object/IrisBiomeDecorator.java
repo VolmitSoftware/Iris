@@ -16,32 +16,41 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisBiomeDecorator
 {
 	@DontObfuscate
+	@Builder.Default
 	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
 	private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
+	@Builder.Default
 	@Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 
 	@DependsOn({"stackMin", "stackMax"})
 	@DontObfuscate
+	@Builder.Default
 	@Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
 	private IrisGeneratorStyle heightVariance = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
+	@Builder.Default
 	@Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")
 	private DecorationPart partOf = DecorationPart.NONE;
 
 	@DependsOn({"stackMin", "stackMax"})
 	@MinNumber(1)
 	@MaxNumber(256)
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
 	private int stackMin = 1;
@@ -49,23 +58,27 @@ public class IrisBiomeDecorator
 	@DependsOn({"stackMin", "stackMax"})
 	@MinNumber(1)
 	@MaxNumber(256)
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The maximum repeat stack height")
 	private int stackMax = 1;
 
 	@MinNumber(0.0001)
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is")
 	private double zoom = 1;
 
 	@MinNumber(0.0001)
 	@DontObfuscate
+	@Builder.Default
 	@Desc("The zoom is for zooming in or out variance. Makes patches have more or less of one type.")
 	private double varianceZoom = 1;
 
 	@DependsOn({"stackMin", "stackMax"})
 	@MinNumber(0.0001)
 	@DontObfuscate
+	@Builder.Default
 	@Desc("The vertical zoom is for wispy stack heights. Zooming this in makes stack heights more slowly change over a distance")
 	private double verticalZoom = 1;
 
@@ -73,19 +86,26 @@ public class IrisBiomeDecorator
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
+	@Builder.Default
 	@Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)")
 	private double chance = 0.1;
 
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
+	@Builder.Default
 	@Desc("The palette of blocks to pick from when this decorator needs to place.")
 	private KList<String> palette = new KList<String>().qadd("GRASS");
 
-	private transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
-	private transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
-	private transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-	private transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
+	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
+	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+
+	public IrisBiomeDecorator()
+	{
+
+	}
 
 	public int getHeight(RNG rng, double x, double z)
 	{

@@ -11,63 +11,78 @@ import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Builder
+@AllArgsConstructor
 @DontObfuscate
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisStructureTile
 {
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this structure tile")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The place mode for this tile")
 	private ObjectPlaceMode placeMode = ObjectPlaceMode.CENTER_HEIGHT;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a ceiling?")
 	private StructureTileCondition ceiling = StructureTileCondition.AGNOSTIC;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a floor?")
 	private StructureTileCondition floor = StructureTileCondition.REQUIRED;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a north wall?")
 	private StructureTileCondition north = StructureTileCondition.AGNOSTIC;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a south wall?")
 	private StructureTileCondition south = StructureTileCondition.AGNOSTIC;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a east wall?")
 	private StructureTileCondition east = StructureTileCondition.AGNOSTIC;
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Is this structure allowed to place if there is supposed to be a west wall?")
 	private StructureTileCondition west = StructureTileCondition.AGNOSTIC;
 
+	@Builder.Default
 	@RegistryListObject
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -75,20 +90,21 @@ public class IrisStructureTile
 	@Desc("List of objects to place centered in this tile")
 	private KList<String> objects = new KList<>();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
 	private boolean smartBore = false;
 
-	private transient KMap<Integer, IrisObject> forceObjects = new KMap<>();
-
+	@Builder.Default
 	@RegistryListObject
 	@ArrayType(min = 1, type = IrisRareObject.class)
 	@DontObfuscate
 	@Desc("List of objects to place centered in this tile but with rarity. These items only place some of the time so specify objects for common stuff too.")
 	private KList<IrisRareObject> rareObjects = new KList<>();
 
-	private transient AtomicCache<Integer> minFaces = new AtomicCache<>();
-	private transient AtomicCache<Integer> maxFaces = new AtomicCache<>();
+	private final transient KMap<Integer, IrisObject> forceObjects = new KMap<>();
+	private final transient AtomicCache<Integer> minFaces = new AtomicCache<>();
+	private final transient AtomicCache<Integer> maxFaces = new AtomicCache<>();
 
 	public IrisStructureTile()
 	{

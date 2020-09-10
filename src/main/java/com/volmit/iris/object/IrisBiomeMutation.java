@@ -13,12 +13,17 @@ import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("A biome mutation if a condition is met")
 @Data
 public class IrisBiomeMutation
 {
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -26,6 +31,7 @@ public class IrisBiomeMutation
 	@Desc("One of The following biomes or regions must show up")
 	private KList<String> sideA = new KList<>();
 
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -33,6 +39,7 @@ public class IrisBiomeMutation
 	@Desc("One of The following biomes or regions must show up")
 	private KList<String> sideB = new KList<>();
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(1024)
@@ -40,6 +47,7 @@ public class IrisBiomeMutation
 	@Desc("The scan radius for placing this mutator")
 	private int radius = 16;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(32)
@@ -47,14 +55,15 @@ public class IrisBiomeMutation
 	@Desc("How many tries per chunk to check for this mutation")
 	private int checks = 2;
 
+	@Builder.Default
 	@RegistryListObject
 	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this biome mutation")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 
-	private transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
-	private transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
+	private final transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
+	private final transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
 
 	public KList<String> getRealSideA(ContextualTerrainProvider xg)
 	{

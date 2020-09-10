@@ -8,17 +8,23 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.NoiseProvider;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Configures rotation for iris")
 @Data
 public class IrisInterpolator
 {
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The interpolation method when two biomes use different heights but this same generator")
 	private InterpolationMethod function = InterpolationMethod.BICUBIC;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@MaxNumber(8192)

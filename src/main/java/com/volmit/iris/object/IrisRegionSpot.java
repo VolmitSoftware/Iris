@@ -9,52 +9,64 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("A spot config")
 @Data
 public class IrisRegionSpot
 {
+	@Builder.Default
 	@RegistryListBiome
 	@Required
 	@DontObfuscate
 	@Desc("The biome to be placed")
-	private String biome;
+	private String biome = "";
 
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Where this spot overrides. Land sea or shore")
 	private InferredType type = InferredType.LAND;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
 	private InferredType as = InferredType.DEFER;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
 	private double noiseMultiplier = 0;
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The scale of splotches")
 	private double scale = 1;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Rarity is how often this splotch appears. higher = less often")
 	private double rarity = 1;
 
+	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The shuffle or how natural the splotch looks like (anti-polygon)")
 	private double shuffle = 128;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
 	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
 
-	private transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
+	private final transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
 
 	public IrisRegionSpot()
 	{

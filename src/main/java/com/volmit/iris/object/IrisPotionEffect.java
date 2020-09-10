@@ -12,18 +12,24 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @DontObfuscate
 @Desc("An iris potion effect")
 @Data
 public class IrisPotionEffect
 {
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The potion effect to apply in this area")
 	private String potionEffect = "";
 
+	@Builder.Default
 	@Required
 	@MinNumber(-1)
 	@MaxNumber(1024)
@@ -31,21 +37,24 @@ public class IrisPotionEffect
 	@Desc("The Potion Strength or -1 to disable")
 	private int strength = -1;
 
+	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The time the potion will last for")
 	private int ticks = 200;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Is the effect ambient")
 	private boolean ambient = false;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("Is the effect showing particles")
 	private boolean particles = true;
 
-	private transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
+	private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
 
 	public IrisPotionEffect()
 	{

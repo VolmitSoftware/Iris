@@ -13,24 +13,32 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Configures rotation for iris")
 @Data
 public class IrisObjectRotation
 {
+	@Builder.Default
 	@DontObfuscate
 	@Desc("If this rotator is enabled or not")
 	private boolean enabled = true;
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The x axis rotation")
 	private IrisAxisRotationClamp xAxis = new IrisAxisRotationClamp();
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The y axis rotation")
 	private IrisAxisRotationClamp yAxis = new IrisAxisRotationClamp(true, 0, 0, 90);
 
+	@Builder.Default
 	@DontObfuscate
 	@Desc("The z axis rotation")
 	private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();

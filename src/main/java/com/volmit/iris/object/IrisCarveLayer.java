@@ -11,36 +11,44 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+@Builder
+@AllArgsConstructor
 @Desc("Translate objects")
 @Data
 public class IrisCarveLayer
 {
+	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The 4d slope this carve layer follows")
 	private IrisGeneratorStyle style = new IrisGeneratorStyle();
 
+	@Builder.Default
 	@MaxNumber(512)
 	@MinNumber(-128)
 	@DontObfuscate
 	@Desc("The max height")
 	private int maxHeight = 220;
 
+	@Builder.Default
 	@MaxNumber(512)
 	@MinNumber(-128)
 	@DontObfuscate
 	@Desc("The min height")
 	private int minHeight = 147;
 
+	@Builder.Default
 	@MaxNumber(1)
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The threshold used as: \n\ncarved = noise(x,y,z) > threshold")
 	private double threshold = 0.5;
 
-	private transient AtomicCache<CNG> cng = new AtomicCache<>();
+	private final transient AtomicCache<CNG> cng = new AtomicCache<>();
 
 	public IrisCarveLayer()
 	{

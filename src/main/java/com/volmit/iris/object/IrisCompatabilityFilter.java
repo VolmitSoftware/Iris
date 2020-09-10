@@ -10,30 +10,28 @@ import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Find and replace object materials for compatability")
 @Data
 public class IrisCompatabilityFilter
 {
-	@Builder.Default
+
 	@Required
 	@DontObfuscate
 	@Desc("When iris sees this block, and it's not reconized")
 	private String when = "";
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("Replace it with this block. Dont worry if this block is also not reconized, iris repeat this compat check.")
 	private String supplement = "";
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("If exact is true, it compares block data for example minecraft:some_log[axis=x]")
 	private boolean exact = false;
@@ -46,10 +44,6 @@ public class IrisCompatabilityFilter
 		this(when, supplement, false);
 	}
 
-	public IrisCompatabilityFilter()
-	{
-
-	}
 
 	public BlockData getFind()
 	{

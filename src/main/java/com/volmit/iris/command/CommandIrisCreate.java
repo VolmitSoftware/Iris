@@ -142,7 +142,7 @@ public class CommandIrisCreate extends MortarCommand
 		}
 
 		sender.sendMessage(worldName + " type installed. Generating Spawn Area...");
-		//@builder
+		//@NoArgsConstructor
 		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(
 			IrisGenConfiguration.builder()
 				.threads(IrisSettings.get().threads)

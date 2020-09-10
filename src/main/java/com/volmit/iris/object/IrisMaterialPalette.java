@@ -14,30 +14,27 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A palette of materials")
 @Data
 public class IrisMaterialPalette
 {
-	@Builder.Default
+
 	@DontObfuscate
 	@Desc("The style of noise")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 
-	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
 	private double zoom = 5;
 
-	@Builder.Default
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -47,11 +44,6 @@ public class IrisMaterialPalette
 	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-
-	public IrisMaterialPalette()
-	{
-
-	}
 
 	public BlockData get(RNG rng, double x, double y, double z)
 	{

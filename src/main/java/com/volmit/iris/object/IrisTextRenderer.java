@@ -17,45 +17,40 @@ import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A text renderer to place text on terrain")
 @Data
 public class IrisTextRenderer
 {
-	@Builder.Default
+
 	@RegistryListFont
 	@Required
 	@DontObfuscate
 	@Desc("The font to use for this renderer")
 	private String font = "default";
 
-	@Builder.Default
 	@MinNumber(4)
 	@MaxNumber(48)
 	@DontObfuscate
 	@Desc("The font scale 1 = 1pt = ~1-2 blocks high per character")
 	private int size = 18;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The font style to use while rendering text")
 	private FontStyle fontStyle = FontStyle.PLAIN;
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The lines of text to randomly pick from")
 	@ArrayType(min = 1, type = String.class)
 	private KList<String> text = new KList<>();
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The palette of blocks to use when drawing text")
@@ -66,11 +61,6 @@ public class IrisTextRenderer
 	private final transient AtomicCache<FontMetrics> fontMetrics = new AtomicCache<>();
 	private final transient AtomicCache<Double> maxLength = new AtomicCache<>();
 	private final transient AtomicCache<Integer> fontStyleData = new AtomicCache<>();
-
-	public IrisTextRenderer()
-	{
-
-	}
 
 	public KList<IrisObject> getObjects(ParallaxTerrainProvider g, RNG rng)
 	{

@@ -37,14 +37,8 @@ public class TerrainTarget
 
 	public static TerrainTarget from(World world)
 	{
-		//@builder
-		return new TerrainTargetBuilder()
-				.environment(world.getEnvironment())
-				.seed(world.getSeed())
-				.folder(world.getWorldFolder())
-				.name(world.getName())
-				.realWorld(world)
-				.build();
+		// @NoArgsConstructor
+		return new TerrainTargetBuilder().environment(world.getEnvironment()).seed(world.getSeed()).folder(world.getWorldFolder()).name(world.getName()).realWorld(world).build();
 		//@done
 	}
 

@@ -16,23 +16,22 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A layer of surface / subsurface material in biomes")
 @Data
 public class IrisBiomePaletteLayer
 {
-	@Builder.Default
+
 	@DontObfuscate
 	@Desc("The style of noise")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 
-	@Builder.Default
 	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(0)
 	@MaxNumber(256)
@@ -40,7 +39,6 @@ public class IrisBiomePaletteLayer
 	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
 
-	@Builder.Default
 	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(1)
 	@MaxNumber(256)
@@ -48,13 +46,11 @@ public class IrisBiomePaletteLayer
 	@Desc("The max thickness of this layer")
 	private int maxHeight = 1;
 
-	@Builder.Default
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The terrain zoom mostly for zooming in on a wispy palette")
 	private double zoom = 5;
 
-	@Builder.Default
 	@Required
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
@@ -64,15 +60,6 @@ public class IrisBiomePaletteLayer
 	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-
-	public IrisBiomePaletteLayer()
-	{
-
-	}
-
-	{
-
-	}
 
 	public CNG getHeightGenerator(RNG rng)
 	{

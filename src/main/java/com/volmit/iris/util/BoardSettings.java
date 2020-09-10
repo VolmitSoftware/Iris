@@ -10,7 +10,7 @@ public class BoardSettings
 {
 	@DontObfuscate
 	private BoardProvider boardProvider;
-	
+
 	@DontObfuscate
 	private ScoreDirection scoreDirection;
 }

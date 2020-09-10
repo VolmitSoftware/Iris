@@ -16,54 +16,48 @@ import com.volmit.iris.util.RegistryListStructure;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents a structure placement")
 @Data
 public class IrisStructurePlacement
 {
-	@Builder.Default
+
 	@RegistryListStructure
 	@Required
 	@DontObfuscate
 	@Desc("The structure tileset to use")
 	private String tileset = "";
 
-	@Builder.Default
 	@Required
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The structure chance zoom. Higher = bigger cells, further away")
 	private double zoom = 1D;
 
-	@Builder.Default
 	@MinNumber(-1)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The ratio. Lower values means cells can get closer to other cells. Negative values means make veins of structures")
 	private double ratio = 0.25D;
 
-	@Builder.Default
 	@Required
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The rarity for this structure")
 	private int rarity = 4;
 
-	@Builder.Default
 	@MinNumber(-1)
 	@MaxNumber(255)
 	@DontObfuscate
 	@Desc("The height or -1 for surface")
 	private int height = -1;
 
-	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The chance cell shuffle (rougher edges)")
@@ -72,11 +66,6 @@ public class IrisStructurePlacement
 	private final transient AtomicCache<CellGenerator> chanceCell = new AtomicCache<>();
 	private final transient AtomicCache<IrisStructure> structure = new AtomicCache<>();
 	private final transient AtomicCache<IrisObjectPlacement> config = new AtomicCache<>();
-
-	public IrisStructurePlacement()
-	{
-
-	}
 
 	public void place(ParallaxTerrainProvider g, RNG rngno, int cx, int cz)
 	{

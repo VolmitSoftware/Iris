@@ -15,37 +15,36 @@ import com.volmit.iris.util.RegistryListEntity;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents an entity spawn")
 @Data
 public class IrisEntitySpawnOverride
 {
-	@Builder.Default
+	
 	@RegistryListEntity
 	@Required
 	@DontObfuscate
 	@Desc("The entity")
 	private String entity = "";
 
-	@Builder.Default
+	
 	@Required
 	@DontObfuscate
 	@Desc("If the following entity type spawns, spawn this entity. Set to unknown for any entity spawn")
 	private EntityType trigger = EntityType.UNKNOWN;
 
-	@Builder.Default
+	
 	@DontObfuscate
 	@Desc("If the source is triggered, cancel spawning the original entity instead of ADDING a new entity.")
 	private boolean cancelSourceSpawn = false;
 
-	@Builder.Default
+	
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The 1 in RARITY chance for this entity to spawn")
@@ -54,10 +53,6 @@ public class IrisEntitySpawnOverride
 	private final transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-	public IrisEntitySpawnOverride()
-	{
-
-	}
 
 	public Entity on(IrisTerrainProvider g, Location at, EntityType t, EntitySpawnEvent ee)
 	{

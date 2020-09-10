@@ -609,7 +609,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 	public Cuboid getBounds(Location center)
 	{
-		//@builder
+		//@NoArgsConstructor
 		return new Cuboid(
 			getTileBounds(center.clone().add(
 					((size / 2) * w) + 1, 
@@ -626,7 +626,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 	public Cuboid getTileBounds(Location l)
 	{
-		//@builder
+		//@NoArgsConstructor
 		return new Cuboid(
 			new Location(l.getWorld(),
 				Math.floorDiv(l.getBlockX(), w) * w, 
@@ -851,7 +851,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	{
 		if(use3d)
 		{
-			//@builder
+			//@NoArgsConstructor
 			structure.getTiles().add(tileFor("Cross Floor",
 					StructureTileCondition.REQUIRED,
 					StructureTileCondition.NEVER,
@@ -1052,7 +1052,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 		else
 		{
-			//@builder
+			//@NoArgsConstructor
 			structure.getTiles().add(tileFor("Cross",
 					StructureTileCondition.REQUIRED,
 					StructureTileCondition.AGNOSTIC,

@@ -15,6 +15,7 @@ import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -32,7 +33,7 @@ public class GenLayerBiome extends GenLayer
 	private BiomeDataProvider lakeProvider;
 	private DimensionalTerrainProvider iris;
 
-	public GenLayerBiome(DimensionalTerrainProvider iris, RNG rng)
+	public GenLayerBiome(@NonNull DimensionalTerrainProvider iris, @NonNull RNG rng)
 	{
 		super(iris, rng);
 		this.iris = iris;

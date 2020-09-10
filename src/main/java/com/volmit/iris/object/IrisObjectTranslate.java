@@ -9,26 +9,24 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Translate objects")
 @Data
 public class IrisObjectTranslate
 {
-	@Builder.Default
+
 	@MinNumber(-128)
 	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int x = 0;
 
-	@Builder.Default
 	@Required
 	@MinNumber(-256)
 	@MaxNumber(256)
@@ -36,26 +34,17 @@ public class IrisObjectTranslate
 	@Desc("The x shift in blocks")
 	private int y = 0;
 
-	@Builder.Default
 	@MinNumber(-128)
 	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("Adds an additional amount of height randomly (translateY + rand(0 - yRandom))")
 	private int yRandom = 0;
 
-	@Builder.Default
 	@MinNumber(-128)
 	@MaxNumber(128)
 	@DontObfuscate
 	@Desc("The x shift in blocks")
 	private int z = 0;
-
-	public IrisObjectTranslate()
-	{
-		x = 0;
-		y = 0;
-		z = 0;
-	}
 
 	public boolean canTranslate()
 	{

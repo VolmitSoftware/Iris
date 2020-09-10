@@ -77,6 +77,33 @@ public class B
 		return getBlockData(bd, defaultCompat);
 	}
 
+	public static String[] getBlockTypes()
+	{
+		KList<String> bt = new KList<String>();
+
+		for(Material i : Material.values())
+		{
+			if(i.isBlock())
+			{
+				String v = i.createBlockData().getAsString(true);
+
+				if(v.contains("["))
+				{
+					v = v.split("\\Q[\\E")[0];
+				}
+
+				if(v.contains(":"))
+				{
+					v = v.split("\\Q:\\E")[1];
+				}
+
+				bt.add(v);
+			}
+		}
+
+		return bt.toArray(new String[bt.size()]);
+	}
+
 	public static BlockData getBlockData(String bdxf, IrisDimension resolver)
 	{
 		try
@@ -163,7 +190,7 @@ public class B
 			return true;
 		}
 
-		//@builder
+		//@NoArgsConstructor
 		boolean str = mat.equals(B.mat("CHEST")) 
 				|| mat.equals(B.mat("TRAPPED_CHEST")) 
 				|| mat.equals(B.mat("SHULKER_BOX")) 
@@ -210,7 +237,7 @@ public class B
 			return true;
 		}
 
-		//@builder
+		//@NoArgsConstructor
 		boolean str = mat.equals(B.mat("CHEST")) 
 				|| mat.equals(B.mat("TRAPPED_CHEST")) 
 				|| mat.equals(B.mat("SHULKER_BOX")) 
@@ -254,7 +281,7 @@ public class B
 			return true;
 		}
 
-		//@builder
+		//@NoArgsConstructor
 		boolean str = mat.equals(B.mat("GLOWSTONE")) 
 				|| mat.equals(B.mat("END_ROD")) 
 				|| mat.equals(B.mat("SOUL_SAND"))
@@ -324,7 +351,7 @@ public class B
 		}
 
 		Material mat = d.getMaterial();
-		//@builder
+		//@NoArgsConstructor
 		return mat.equals(Material.POPPY) 
 				|| mat.equals(Material.DANDELION) 
 				|| mat.equals(B.mat("CORNFLOWER")) 
@@ -425,7 +452,7 @@ public class B
 			return true;
 		}
 
-		//@builder
+		//@NoArgsConstructor
 		boolean str = m.equals(Material.GRASS) 
 				|| m.equals(Material.TALL_GRASS)
 				|| m.equals(B.mat("CORNFLOWER"))

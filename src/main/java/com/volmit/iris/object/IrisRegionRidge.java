@@ -11,42 +11,41 @@ import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A ridge config")
 @Data
 public class IrisRegionRidge
 {
-	@Builder.Default
+	
 	@RegistryListBiome
 	@Required
 	@DontObfuscate
 	@Desc("The biome name")
 	private String biome = "";
 
-	@Builder.Default
+	
 	@Required
 	@DontObfuscate
 	@Desc("The type this biome should override (land sea or shore)")
 	private InferredType type = InferredType.LAND;
 
-	@Builder.Default
+	
 	@DontObfuscate
 	@Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
 	private InferredType as = InferredType.DEFER;
 
-	@Builder.Default
+	
 	@DontObfuscate
 	@Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
 	private double noiseMultiplier = 0;
 
-	@Builder.Default
+	
 	@Required
 	@MinNumber(0)
 	@MaxNumber(1)
@@ -54,36 +53,36 @@ public class IrisRegionRidge
 	@Desc("The chance this biome will be placed in a given spot")
 	private double chance = 0.75;
 
-	@Builder.Default
+	
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The scale of the biome ridge. Higher values = wider veins & bigger connected cells")
 	private double scale = 5;
 
-	@Builder.Default
+	
 	@DontObfuscate
 	@Desc("The chance scale (cell chances)")
 	private double chanceScale = 4;
 
-	@Builder.Default
+	
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The shuffle, how 'natural' this looks. Compared to pure polygons")
 	private double shuffle = 16;
 
-	@Builder.Default
+	
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The chance shuffle (polygon cell chances)")
 	private double chanceShuffle = 128;
 
-	@Builder.Default
+	
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The thickness of the vein")
 	private double thickness = 0.125;
 
-	@Builder.Default
+	
 	@DontObfuscate
 	@Desc("If the noise multiplier is below zero, what should the air be filled with?")
 	private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
@@ -91,10 +90,6 @@ public class IrisRegionRidge
 	private final transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
 	private final transient AtomicCache<CellGenerator> ridge = new AtomicCache<>();
 
-	public IrisRegionRidge()
-	{
-
-	}
 
 	public CellGenerator getSpotGenerator(RNG rng)
 	{

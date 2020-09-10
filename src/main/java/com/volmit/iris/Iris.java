@@ -207,17 +207,8 @@ public class Iris extends MortarPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		//@builder
-		return createProvisionBukkit(IrisGenConfiguration.builder()
-				.threads(IrisSettings.get().threads)
-				.target(TerrainTarget
-						.builder()
-						.environment(Environment.NORMAL)
-						.folder(new File(worldName))
-						.name(worldName)
-						.seed(worldName.hashCode())
-					.build()
-				).build());
+		// @NoArgsConstructor
+		return createProvisionBukkit(IrisGenConfiguration.builder().threads(IrisSettings.get().threads).target(TerrainTarget.builder().environment(Environment.NORMAL).folder(new File(worldName)).name(worldName).seed(worldName.hashCode()).build()).build());
 		//@done
 	}
 
@@ -347,32 +338,13 @@ public class Iris extends MortarPlugin
 
 	public void splash()
 	{
-		//@builder
+		// @NoArgsConstructor
 		String padd = Form.repeat(" ", 8);
 		String padd2 = Form.repeat(" ", 4);
-		String[] info = {
-				"",
-				"",
-				"",
-				"",
-				"",
-				padd2 + C.GREEN + " Iris",
-				padd2 + C.GRAY + " by "+C.randomColor()+"V"+C.randomColor()+"o"+C.randomColor()+"l"+C.randomColor()+"m"+C.randomColor()+"i"+C.randomColor()+"t"+C.randomColor()+"S"+C.randomColor()+"o"+C.randomColor()+"f"+C.randomColor()+"t"+C.randomColor()+"w"+C.randomColor()+"a"+C.randomColor()+"r"+C.randomColor()+"e",
-				padd2 + C.GRAY + " v" + getDescription().getVersion(),
+		String[] info = {"", "", "", "", "", padd2 + C.GREEN + " Iris", padd2 + C.GRAY + " by " + C.randomColor() + "V" + C.randomColor() + "o" + C.randomColor() + "l" + C.randomColor() + "m" + C.randomColor() + "i" + C.randomColor() + "t" + C.randomColor() + "S" + C.randomColor() + "o" + C.randomColor() + "f" + C.randomColor() + "t" + C.randomColor() + "w" + C.randomColor() + "a" + C.randomColor() + "r" + C.randomColor() + "e", padd2 + C.GRAY + " v" + getDescription().getVersion(),
 		};
-        String[] splash = {
-                padd + C.GRAY + "   @@@@@@@@@@@@@@"+ C.DARK_GRAY +"@@@",
-                padd + C.GRAY + " @@&&&&&&&&&"+ C.DARK_GRAY +"&&&&&&" + C.GREEN + "   .(((()))).                     ",
-                padd + C.GRAY + "@@@&&&&&&&&"+ C.DARK_GRAY +"&&&&&" + C.GREEN + "  .((((((())))))).                  ",
-                padd + C.GRAY + "@@@&&&&&"+ C.DARK_GRAY +"&&&&&&&" + C.GREEN + "  ((((((((()))))))))               " + C.GRAY + " @",
-                padd + C.GRAY + "@@@&&&&"+ C.DARK_GRAY +"@@@@@&" + C.GREEN + "    ((((((((-)))))))))              " + C.GRAY + " @@",
-                padd + C.GRAY + "@@@&&" + C.GREEN + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
-                padd + C.GRAY + "@@" + C.GREEN + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@"+ C.GRAY +"&&&&@@@",
-                padd + C.GRAY + "@" + C.GREEN + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&"+ C.GRAY +"&&&&&&&@@@",
-                padd + C.GRAY + "" + C.GREEN + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&"+ C.GRAY +"&&&&&&&&@@@",
-                padd + C.GRAY + "" + C.GREEN + "                     '(((())))'   " + C.DARK_GRAY + "%%&&&&&&"+ C.GRAY +"&&&&&&&@@",
-                padd + C.GRAY + "                               "+C.DARK_GRAY+"@@@"+C.GRAY+"@@@@@@@@@@@@@@"
-        };
+		String[] splash = {padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@", padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.GREEN + "   .(((()))).                     ", padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.GREEN + "  .((((((())))))).                  ", padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.GREEN + "  ((((((((()))))))))               " + C.GRAY + " @", padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.GREEN + "    ((((((((-)))))))))              " + C.GRAY + " @@", padd + C.GRAY + "@@@&&" + C.GREEN + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@", padd + C.GRAY + "@@" + C.GREEN + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@", padd + C.GRAY + "@" + C.GREEN + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@", padd + C.GRAY + "" + C.GREEN + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@", padd + C.GRAY + "" + C.GREEN + "                     '(((())))'   " + C.DARK_GRAY + "%%&&&&&&" + C.GRAY + "&&&&&&&@@", padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
+		};
 		//@done
 		Iris.info(Bukkit.getVersion());
 		Iris.info(Bukkit.getBukkitVersion() + "   bk");

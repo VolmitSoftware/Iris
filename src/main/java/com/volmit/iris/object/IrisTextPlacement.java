@@ -12,69 +12,59 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A text renderer to place text on terrain")
 @Data
 public class IrisTextPlacement
 {
-	@Builder.Default
+
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The chance to place this font per chunk")
 	private double chance = 0.1;
 
-	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The amount of times to place randomly in a chunk if the chance passes")
 	private int density = 1;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The rotation for this text placement")
 	private IrisObjectRotation rotation = new IrisObjectRotation();
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The mode to place this text")
 	private ObjectPlaceMode mode = ObjectPlaceMode.PAINT;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The translation for this text placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The clamp for this text placement")
 	private IrisObjectLimit clamp = new IrisObjectLimit();
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The text renderers to pick from")
 	@ArrayType(min = 1, type = IrisTextRenderer.class)
 	private KList<IrisTextRenderer> render = new KList<>();
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
 	private boolean underwater = false;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("If set to true, Blocks placed underwater that could be waterlogged are waterlogged.")
 	private boolean waterloggable = true;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("If set to true, objects will place on the fluid height level Such as boats.")
 	private boolean onwater = false;
@@ -100,11 +90,6 @@ public class IrisTextPlacement
 
 			return p;
 		});
-	}
-
-	public IrisTextPlacement()
-	{
-
 	}
 
 	public int maxDimension()

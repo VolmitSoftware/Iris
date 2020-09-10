@@ -14,38 +14,34 @@ import com.volmit.iris.util.RegistryListEntity;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisEntityInitialSpawn
 {
-	@Builder.Default
+
 	@RegistryListEntity
 	@Required
 	@DontObfuscate
 	@Desc("The entity")
 	private String entity = "";
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The 1 in RARITY chance for this entity to spawn")
 	private int rarity = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The minumum of this entity to spawn")
 	private int minSpawns = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The max of this entity to spawn")
@@ -53,11 +49,6 @@ public class IrisEntityInitialSpawn
 
 	private final transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
-
-	public IrisEntityInitialSpawn()
-	{
-
-	}
 
 	public void spawn(ParallaxTerrainProvider gen, Chunk c, RNG rng)
 	{

@@ -27,117 +27,96 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents a loot entry")
 @Data
 public class IrisLoot
 {
-	@Builder.Default
+
 	@DontObfuscate
 	@Desc("The target inventory slot types to fill this loot with")
 	private InventorySlotType slotTypes = InventorySlotType.STORAGE;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The sub rarity of this loot. Calculated after this loot table has been picked.")
 	private int rarity = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Minimum amount of this loot")
 	private int minAmount = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Maximum amount of this loot")
 	private int maxAmount = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The display name of this item")
 	private String displayName = null;
 
-	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("Minimum durability percent")
 	private double minDurability = 0;
 
-	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("Maximum durability percent")
 	private double maxDurability = 1;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Define a custom model identifier 1.14+ only")
 	private Integer customModel = null;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Set this to true to prevent it from being broken")
 	private boolean unbreakable = false;
 
-	@Builder.Default
 	@ArrayType(min = 1, type = ItemFlag.class)
 	@DontObfuscate
 	@Desc("The item flags to add")
 	private KList<ItemFlag> itemFlags = new KList<>();
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply enchantments to this item")
 	@ArrayType(min = 1, type = IrisEnchantment.class)
 	private KList<IrisEnchantment> enchantments = new KList<>();
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply attribute modifiers to this item")
 	@ArrayType(min = 1, type = IrisAttributeModifier.class)
 	private KList<IrisAttributeModifier> attributes = new KList<>();
 
-	@Builder.Default
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("Add lore to this item")
 	private KList<String> lore = new KList<>();
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
 	private String type = "";
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The dye color")
 	private DyeColor dyeColor = null;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The leather armor color")
 	private String leatherColor = null;
 
 	private final transient AtomicCache<CNG> chance = new AtomicCache<>();
-
-	public IrisLoot()
-	{
-
-	}
 
 	public Material getType()
 	{

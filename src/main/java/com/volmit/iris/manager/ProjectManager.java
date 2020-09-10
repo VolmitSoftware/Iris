@@ -52,6 +52,7 @@ import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
 import com.volmit.iris.util.ArrayType;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.DependsOn;
@@ -71,6 +72,7 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.RegistryListBiome;
+import com.volmit.iris.util.RegistryListBlockType;
 import com.volmit.iris.util.RegistryListDimension;
 import com.volmit.iris.util.RegistryListEntity;
 import com.volmit.iris.util.RegistryListFont;
@@ -372,7 +374,7 @@ public class ProjectManager
 			}
 		});
 
-		//@builder
+		//@NoArgsConstructor
 		World world = NMSCreator.createWorld(new WorldCreator(wfp)
 				.seed(1337)
 				.generator(gen)
@@ -1124,6 +1126,11 @@ public class ProjectManager
 							prop.put("enum", new JSONArray(getBiomeList(dat)));
 						}
 
+						if(k.isAnnotationPresent(RegistryListBlockType.class))
+						{
+							prop.put("enum", new JSONArray(getBlockTypeList(dat)));
+						}
+
 						if(k.isAnnotationPresent(RegistryListEntity.class))
 						{
 							prop.put("enum", new JSONArray(getEntityList(dat)));
@@ -1278,6 +1285,26 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										deff.put("type", tx);
 										deff.put("enum", new JSONArray(getBiomeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListBlockType.class))
+								{
+									String name = "enblk" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getBlockTypeList(dat)));
 										def.put(name, deff);
 									}
 
@@ -1625,6 +1652,11 @@ public class ProjectManager
 	private String[] getBiomeList(IrisDataManager data)
 	{
 		return data.getBiomeLoader().getPossibleKeys();
+	}
+
+	private String[] getBlockTypeList(IrisDataManager data)
+	{
+		return B.getBlockTypes();
 	}
 
 	private String[] getEntityList(IrisDataManager data)

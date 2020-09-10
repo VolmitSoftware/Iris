@@ -29,7 +29,7 @@ public class GenLayerCave extends GenLayer
 
 	public GenLayerCave(DimensionalTerrainProvider iris, RNG rng)
 	{
-		//@builder
+		//@NoArgsConstructor
 		super(iris, rng);
 		gg = new FastNoiseDouble(324895 * rng.nextParallelRNG(49678).imax());
 		//@done

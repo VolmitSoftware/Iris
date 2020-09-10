@@ -9,19 +9,19 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @AllArgsConstructor
-@Builder
+@NoArgsConstructor
 @Desc("Represents a rotation axis with intervals and maxes. The x and z axis values are defaulted to disabled. The Y axis defaults to on, rotating by 90 degree increments.")
 @Data
 public class IrisAxisRotationClamp
 {
 	@DontObfuscate
-	@Builder.Default
+
 	@Desc("Should this axis be rotated at all?")
 	private boolean enabled = false;
 
@@ -29,7 +29,7 @@ public class IrisAxisRotationClamp
 	@DependsOn({"max"})
 	@MinNumber(-360)
 	@MaxNumber(360)
-	@Builder.Default
+
 	@DontObfuscate
 	@Desc("The minimum angle (from) or set this and max to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double min = 0;
@@ -38,7 +38,7 @@ public class IrisAxisRotationClamp
 	@DependsOn({"min"})
 	@MinNumber(-360)
 	@MaxNumber(360)
-	@Builder.Default
+
 	@DontObfuscate
 	@Desc("The maximum angle (to) or set this and min to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double max = 0;
@@ -48,14 +48,9 @@ public class IrisAxisRotationClamp
 	@MinNumber(0)
 	@MaxNumber(360)
 	@DontObfuscate
-	@Builder.Default
+
 	@Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nSetting this to 0 means totally free rotation.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
 	private double interval = 0;
-
-	public IrisAxisRotationClamp()
-	{
-
-	}
 
 	public boolean isUnlimited()
 	{

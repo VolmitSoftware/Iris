@@ -71,7 +71,7 @@ public class CNG
 
 	public static CNG signature(RNG rng, NoiseType t)
 	{
-		// @builder
+		// @NoArgsConstructor
 		return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
 				.fractureWith(
 						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
@@ -84,7 +84,7 @@ public class CNG
 
 	public static CNG signatureThick(RNG rng, NoiseType t)
 	{
-		// @builder
+		// @NoArgsConstructor
 		return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
 				.fractureWith(
 						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5)
@@ -97,7 +97,7 @@ public class CNG
 
 	public static CNG signatureHalf(RNG rng, NoiseType t)
 	{
-		// @builder
+		// @NoArgsConstructor
 		return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
 				.fractureWith(
 						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)

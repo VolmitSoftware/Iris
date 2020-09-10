@@ -163,7 +163,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 		// Slab
 		if(gen.getDimension().isPostProcessingSlabs())
 		{
-			//@builder
+			//@NoArgsConstructor
 			if((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, currentPostX, currentPostZ, currentData)) 
 			|| (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, currentPostX, currentPostZ, currentData)) 
 			|| (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, currentPostX, currentPostZ, currentData)) 
@@ -323,7 +323,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 					if(gen.getDimension().isPostProcessingSlabs())
 					{
-						//@builder
+						//@NoArgsConstructor
 						if((fa == f + 1 && isSolidNonSlab(x + 1, fa, z, currentPostX, currentPostZ, currentData)) 
 						|| (fb == f + 1 && isSolidNonSlab(x, fb, z + 1, currentPostX, currentPostZ, currentData)) 
 						|| (fc == f + 1 && isSolidNonSlab(x - 1, fc, z, currentPostX, currentPostZ, currentData)) 
@@ -358,7 +358,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 							}
 						}
 
-						//@builder
+						//@NoArgsConstructor
 						if((ca == c - 1 && isSolidNonSlab(x + 1, ca, z, currentPostX, currentPostZ, currentData)) 
 						|| (cb == c - 1 && isSolidNonSlab(x, cb, z + 1, currentPostX, currentPostZ, currentData)) 
 						|| (cc == c - 1 && isSolidNonSlab(x - 1, cc, z, currentPostX, currentPostZ, currentData)) 

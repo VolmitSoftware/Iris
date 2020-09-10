@@ -11,14 +11,13 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents a loot table. Biomes, Regions & Objects can add or replace the virtual table with these loot tables")
 @Data
@@ -26,34 +25,26 @@ import lombok.experimental.Accessors;
 public class IrisLootTable extends IrisRegistrant
 {
 	@Required
-	@Builder.Default
+
 	@Desc("The name of this loot table")
 	@DontObfuscate
 	@MinNumber(2)
 	private String name = "";
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The rarity as in 1 in X chance")
 	private int rarity = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The maximum amount of loot that can be picked in this table at a time.")
 	private int maxPicked = 3;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The loot in this table")
 	@ArrayType(min = 1, type = IrisLoot.class)
 	private KList<IrisLoot> loot = new KList<>();
-
-	public IrisLootTable()
-	{
-
-	}
 
 	public KList<ItemStack> getLoot(boolean debug, RNG rng, InventorySlotType slot, int x, int y, int z, int gg, int ffs)
 	{

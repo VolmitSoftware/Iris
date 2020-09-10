@@ -13,47 +13,38 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents an enchantment & level")
 @Data
 public class IrisEnchantment
 {
-	@Builder.Default
+
 	@Required
 	@DontObfuscate
 	@Desc("The enchantment")
 	private String enchantment = "";
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Minimum amount of this loot")
 	private int minLevel = 1;
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Maximum amount of this loot")
 	private int maxLevel = 1;
 
-	@Builder.Default
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
 	@Desc("The chance that this enchantment is applied (0 to 1)")
 	private double chance = 1;
-
-	public IrisEnchantment()
-	{
-
-	}
 
 	public void apply(RNG rng, ItemMeta meta)
 	{

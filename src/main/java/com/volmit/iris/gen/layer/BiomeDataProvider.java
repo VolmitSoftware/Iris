@@ -1,13 +1,16 @@
 package com.volmit.iris.gen.layer;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisGeneratorStyle;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
+import lombok.NonNull;
 
 @Data
 public class BiomeDataProvider
@@ -16,11 +19,19 @@ public class BiomeDataProvider
 	private CNG generator;
 	private GenLayerBiome layer;
 
-	public BiomeDataProvider(GenLayerBiome layer, InferredType type, RNG rng)
+	public BiomeDataProvider(@NonNull GenLayerBiome layer, @NonNull InferredType type, @NonNull RNG rng)
 	{
 		this.type = type;
 		this.layer = layer;
-		generator = layer.getIris().getDimension().getBiomeStyle(type).create(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
+
+		IrisGeneratorStyle b = layer.getIris().getDimension().getBiomeStyle(type);
+
+		if(b == null)
+		{
+			Iris.error("BIOME STYLE IS NULL FOR " + type);
+		}
+
+		generator = b.create(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
 	}
 
 	public IrisBiome generatePureData(ContextualTerrainProvider g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)

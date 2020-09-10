@@ -12,105 +12,85 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Desc("A noise generator")
 @Data
 public class IrisNoiseGenerator
 {
-	@Builder.Default
+
 	@MinNumber(0.0001)
 	@DontObfuscate
 	@Desc("The coordinate input zoom")
 	private double zoom = 1;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Reverse the output. So that noise = -noise + opacity")
 	private boolean negative = false;
 
-	@Builder.Default
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The output multiplier")
 	private double opacity = 1;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Coordinate offset x")
 	private double offsetX = 0;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Height output offset y")
 	private double offsetY = 0;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Coordinate offset z")
 	private double offsetZ = 0;
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The seed")
 	private long seed = 0;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply a parametric curve on the output")
 	private boolean parametric = false;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply a bezier curve on the output")
 	private boolean bezier = false;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Apply a sin-center curve on the output (0, and 1 = 0 and 0.5 = 1.0 using a sinoid shape.)")
 	private boolean sinCentered = false;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("The exponent noise^EXPONENT")
 	private double exponent = 1;
 
-	@Builder.Default
 	@DontObfuscate
 	@Desc("Enable / disable. Outputs offsetY if disabled")
 	private boolean enabled = true;
 
-	@Builder.Default
 	@Required
 	@DontObfuscate
 	@Desc("The Noise Style")
 	private IrisGeneratorStyle style = NoiseStyle.IRIS.style();
 
-	@Builder.Default
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("Multiple octaves for multple generators of changing zooms added together")
 	private int octaves = 1;
 
-	@Builder.Default
 	@ArrayType(min = 1, type = IrisNoiseGenerator.class)
 	@DontObfuscate
 	@Desc("Apply a child noise generator to fracture the input coordinates of this generator")
 	private KList<IrisNoiseGenerator> fracture = new KList<>();
 
 	private final transient AtomicCache<CNG> generator = new AtomicCache<>();
-
-	public IrisNoiseGenerator()
-	{
-
-	}
 
 	public IrisNoiseGenerator(boolean enabled)
 	{

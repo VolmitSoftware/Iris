@@ -24,6 +24,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListItemType;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
@@ -103,6 +104,7 @@ public class IrisLoot
 	@Desc("Add lore to this item")
 	private KList<String> lore = new KList<>();
 
+	@RegistryListItemType
 	@Required
 	@DontObfuscate
 	@Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")

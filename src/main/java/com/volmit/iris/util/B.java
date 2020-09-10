@@ -104,6 +104,19 @@ public class B
 		return bt.toArray(new String[bt.size()]);
 	}
 
+	public static String[] getItemTypes()
+	{
+		KList<String> bt = new KList<String>();
+
+		for(Material i : Material.values())
+		{
+			String v = i.name().toLowerCase().trim();
+			bt.add(v);
+		}
+
+		return bt.toArray(new String[bt.size()]);
+	}
+
 	public static BlockData getBlockData(String bdxf, IrisDimension resolver)
 	{
 		try
@@ -190,33 +203,8 @@ public class B
 			return true;
 		}
 
-		//@NoArgsConstructor
-		boolean str = mat.equals(B.mat("CHEST")) 
-				|| mat.equals(B.mat("TRAPPED_CHEST")) 
-				|| mat.equals(B.mat("SHULKER_BOX")) 
-				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("ORANGE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("MAGENTA_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("YELLOW_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIME_SHULKER_BOX")) 
-				|| mat.equals(B.mat("PINK_SHULKER_BOX")) 
-				|| mat.equals(B.mat("GRAY_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) 
-				|| mat.equals(B.mat("CYAN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("PURPLE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BLUE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BROWN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("GREEN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("RED_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BLACK_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BARREL")) 
-				|| mat.equals(B.mat("DISPENSER")) 
-				|| mat.equals(B.mat("DROPPER")) 
-				|| mat.equals(B.mat("HOPPER")) 
-				|| mat.equals(B.mat("FURNACE")) 
-				|| mat.equals(B.mat("BLAST_FURNACE")) 
-				|| mat.equals(B.mat("SMOKER"));
+		// @NoArgsConstructor
+		boolean str = mat.equals(B.mat("CHEST")) || mat.equals(B.mat("TRAPPED_CHEST")) || mat.equals(B.mat("SHULKER_BOX")) || mat.equals(B.mat("WHITE_SHULKER_BOX")) || mat.equals(B.mat("ORANGE_SHULKER_BOX")) || mat.equals(B.mat("MAGENTA_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) || mat.equals(B.mat("YELLOW_SHULKER_BOX")) || mat.equals(B.mat("LIME_SHULKER_BOX")) || mat.equals(B.mat("PINK_SHULKER_BOX")) || mat.equals(B.mat("GRAY_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) || mat.equals(B.mat("CYAN_SHULKER_BOX")) || mat.equals(B.mat("PURPLE_SHULKER_BOX")) || mat.equals(B.mat("BLUE_SHULKER_BOX")) || mat.equals(B.mat("BROWN_SHULKER_BOX")) || mat.equals(B.mat("GREEN_SHULKER_BOX")) || mat.equals(B.mat("RED_SHULKER_BOX")) || mat.equals(B.mat("BLACK_SHULKER_BOX")) || mat.equals(B.mat("BARREL")) || mat.equals(B.mat("DISPENSER")) || mat.equals(B.mat("DROPPER")) || mat.equals(B.mat("HOPPER")) || mat.equals(B.mat("FURNACE")) || mat.equals(B.mat("BLAST_FURNACE")) || mat.equals(B.mat("SMOKER"));
 		//@done
 
 		if(str)
@@ -237,30 +225,8 @@ public class B
 			return true;
 		}
 
-		//@NoArgsConstructor
-		boolean str = mat.equals(B.mat("CHEST")) 
-				|| mat.equals(B.mat("TRAPPED_CHEST")) 
-				|| mat.equals(B.mat("SHULKER_BOX")) 
-				|| mat.equals(B.mat("WHITE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("ORANGE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("MAGENTA_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("YELLOW_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIME_SHULKER_BOX")) 
-				|| mat.equals(B.mat("PINK_SHULKER_BOX")) 
-				|| mat.equals(B.mat("GRAY_SHULKER_BOX")) 
-				|| mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) 
-				|| mat.equals(B.mat("CYAN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("PURPLE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BLUE_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BROWN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("GREEN_SHULKER_BOX")) 
-				|| mat.equals(B.mat("RED_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BLACK_SHULKER_BOX")) 
-				|| mat.equals(B.mat("BARREL")) 
-				|| mat.equals(B.mat("DISPENSER")) 
-				|| mat.equals(B.mat("DROPPER")) 
-				|| mat.equals(B.mat("HOPPER"));
+		// @NoArgsConstructor
+		boolean str = mat.equals(B.mat("CHEST")) || mat.equals(B.mat("TRAPPED_CHEST")) || mat.equals(B.mat("SHULKER_BOX")) || mat.equals(B.mat("WHITE_SHULKER_BOX")) || mat.equals(B.mat("ORANGE_SHULKER_BOX")) || mat.equals(B.mat("MAGENTA_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) || mat.equals(B.mat("YELLOW_SHULKER_BOX")) || mat.equals(B.mat("LIME_SHULKER_BOX")) || mat.equals(B.mat("PINK_SHULKER_BOX")) || mat.equals(B.mat("GRAY_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) || mat.equals(B.mat("CYAN_SHULKER_BOX")) || mat.equals(B.mat("PURPLE_SHULKER_BOX")) || mat.equals(B.mat("BLUE_SHULKER_BOX")) || mat.equals(B.mat("BROWN_SHULKER_BOX")) || mat.equals(B.mat("GREEN_SHULKER_BOX")) || mat.equals(B.mat("RED_SHULKER_BOX")) || mat.equals(B.mat("BLACK_SHULKER_BOX")) || mat.equals(B.mat("BARREL")) || mat.equals(B.mat("DISPENSER")) || mat.equals(B.mat("DROPPER")) || mat.equals(B.mat("HOPPER"));
 		//@done
 
 		if(str)
@@ -281,28 +247,8 @@ public class B
 			return true;
 		}
 
-		//@NoArgsConstructor
-		boolean str = mat.equals(B.mat("GLOWSTONE")) 
-				|| mat.equals(B.mat("END_ROD")) 
-				|| mat.equals(B.mat("SOUL_SAND"))
-				|| mat.equals(B.mat("TORCH")) 
-				|| mat.equals(Material.REDSTONE_TORCH) 
-				|| mat.equals(B.mat("SOUL_TORCH")) 
-				|| mat.equals(Material.REDSTONE_WALL_TORCH) 
-				|| mat.equals(Material.WALL_TORCH) 
-				|| mat.equals(B.mat("SOUL_WALL_TORCH")) 
-				|| mat.equals(B.mat("LANTERN")) 
-				|| mat.equals(Material.JACK_O_LANTERN) 
-				|| mat.equals(Material.REDSTONE_LAMP) 
-				|| mat.equals(Material.MAGMA_BLOCK) 
-				|| mat.equals(B.mat("SHROOMLIGHT")) 
-				|| mat.equals(B.mat("SEA_LANTERN")) 
-				|| mat.equals(B.mat("SOUL_LANTERN")) 
-				|| mat.equals(Material.FIRE) 
-				|| mat.equals(B.mat("SOUL_FIRE")) 
-				|| mat.equals(B.mat("SEA_PICKLE")) 
-				|| mat.equals(Material.BREWING_STAND) 
-				|| mat.equals(Material.REDSTONE_ORE);
+		// @NoArgsConstructor
+		boolean str = mat.equals(B.mat("GLOWSTONE")) || mat.equals(B.mat("END_ROD")) || mat.equals(B.mat("SOUL_SAND")) || mat.equals(B.mat("TORCH")) || mat.equals(Material.REDSTONE_TORCH) || mat.equals(B.mat("SOUL_TORCH")) || mat.equals(Material.REDSTONE_WALL_TORCH) || mat.equals(Material.WALL_TORCH) || mat.equals(B.mat("SOUL_WALL_TORCH")) || mat.equals(B.mat("LANTERN")) || mat.equals(Material.JACK_O_LANTERN) || mat.equals(Material.REDSTONE_LAMP) || mat.equals(Material.MAGMA_BLOCK) || mat.equals(B.mat("SHROOMLIGHT")) || mat.equals(B.mat("SEA_LANTERN")) || mat.equals(B.mat("SOUL_LANTERN")) || mat.equals(Material.FIRE) || mat.equals(B.mat("SOUL_FIRE")) || mat.equals(B.mat("SEA_PICKLE")) || mat.equals(Material.BREWING_STAND) || mat.equals(Material.REDSTONE_ORE);
 		//@done
 		if(str)
 		{
@@ -351,36 +297,8 @@ public class B
 		}
 
 		Material mat = d.getMaterial();
-		//@NoArgsConstructor
-		return mat.equals(Material.POPPY) 
-				|| mat.equals(Material.DANDELION) 
-				|| mat.equals(B.mat("CORNFLOWER")) 
-				|| mat.equals(B.mat("SWEET_BERRY_BUSH"))
-				|| mat.equals(B.mat("CRIMSON_ROOTS")) 
-				|| mat.equals(B.mat("WARPED_ROOTS")) 
-				|| mat.equals(B.mat("NETHER_SPROUTS")) 
-				|| mat.equals(B.mat("ALLIUM")) 
-				|| mat.equals(B.mat("AZURE_BLUET")) 
-				|| mat.equals(B.mat("BLUE_ORCHID")) 
-				|| mat.equals(B.mat("POPPY")) 
-				|| mat.equals(B.mat("DANDELION")) 
-				|| mat.equals(B.mat("OXEYE_DAISY")) 
-				|| mat.equals(B.mat("LILY_OF_THE_VALLEY")) 
-				|| mat.equals(B.mat("WITHER_ROSE")) 
-				|| mat.equals(Material.DARK_OAK_SAPLING) 
-				|| mat.equals(Material.ACACIA_SAPLING) 
-				|| mat.equals(Material.JUNGLE_SAPLING) 
-				|| mat.equals(Material.BIRCH_SAPLING) 
-				|| mat.equals(Material.SPRUCE_SAPLING) 
-				|| mat.equals(Material.OAK_SAPLING) 
-				|| mat.equals(Material.ORANGE_TULIP) 
-				|| mat.equals(Material.PINK_TULIP) 
-				|| mat.equals(Material.RED_TULIP) 
-				|| mat.equals(Material.WHITE_TULIP) 
-				|| mat.equals(Material.FERN) 
-				|| mat.equals(Material.LARGE_FERN) 
-				|| mat.equals(Material.GRASS) 
-				|| mat.equals(Material.TALL_GRASS);
+		// @NoArgsConstructor
+		return mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(B.mat("SWEET_BERRY_BUSH")) || mat.equals(B.mat("CRIMSON_ROOTS")) || mat.equals(B.mat("WARPED_ROOTS")) || mat.equals(B.mat("NETHER_SPROUTS")) || mat.equals(B.mat("ALLIUM")) || mat.equals(B.mat("AZURE_BLUET")) || mat.equals(B.mat("BLUE_ORCHID")) || mat.equals(B.mat("POPPY")) || mat.equals(B.mat("DANDELION")) || mat.equals(B.mat("OXEYE_DAISY")) || mat.equals(B.mat("LILY_OF_THE_VALLEY")) || mat.equals(B.mat("WITHER_ROSE")) || mat.equals(Material.DARK_OAK_SAPLING) || mat.equals(Material.ACACIA_SAPLING) || mat.equals(Material.JUNGLE_SAPLING) || mat.equals(Material.BIRCH_SAPLING) || mat.equals(Material.SPRUCE_SAPLING) || mat.equals(Material.OAK_SAPLING) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS);
 		//@done
 	}
 
@@ -452,59 +370,8 @@ public class B
 			return true;
 		}
 
-		//@NoArgsConstructor
-		boolean str = m.equals(Material.GRASS) 
-				|| m.equals(Material.TALL_GRASS)
-				|| m.equals(B.mat("CORNFLOWER"))
-				|| m.equals(Material.SUNFLOWER)
-				|| m.equals(Material.CHORUS_FLOWER)
-				|| m.equals(Material.POPPY)
-				|| m.equals(Material.DANDELION)
-				|| m.equals(Material.OXEYE_DAISY)
-				|| m.equals(Material.ORANGE_TULIP)
-				|| m.equals(Material.PINK_TULIP)
-				|| m.equals(Material.RED_TULIP)
-				|| m.equals(Material.WHITE_TULIP)
-				|| m.equals(Material.LILAC)
-				|| m.equals(Material.DEAD_BUSH)
-				|| m.equals(B.mat("SWEET_BERRY_BUSH"))
-				|| m.equals(Material.ROSE_BUSH)
-				|| m.equals(B.mat("WITHER_ROSE"))
-				|| m.equals(Material.ALLIUM)
-				|| m.equals(Material.BLUE_ORCHID)
-				|| m.equals(B.mat("LILY_OF_THE_VALLEY"))
-				|| m.equals(B.mat("CRIMSON_FUNGUS"))
-				|| m.equals(B.mat("WARPED_FUNGUS"))
-				|| m.equals(Material.RED_MUSHROOM)
-				|| m.equals(Material.BROWN_MUSHROOM)
-				|| m.equals(B.mat("CRIMSON_ROOTS"))
-				|| m.equals(B.mat("AZURE_BLUET"))
-				|| m.equals(B.mat("WEEPING_VINES"))
-				|| m.equals(B.mat("WEEPING_VINES_PLANT"))
-				|| m.equals(B.mat("WARPED_ROOTS"))
-				|| m.equals(B.mat("NETHER_SPROUTS"))
-				|| m.equals(B.mat("TWISTING_VINES"))
-				|| m.equals(B.mat("TWISTING_VINES_PLANT"))
-				|| m.equals(Material.SUGAR_CANE)
-				|| m.equals(Material.WHEAT)
-				|| m.equals(Material.POTATOES)
-				|| m.equals(Material.CARROTS)
-				|| m.equals(Material.BEETROOTS)
-				|| m.equals(Material.NETHER_WART)
-				|| m.equals(B.mat("SEA_PICKLE"))
-				|| m.equals(B.mat("SEAGRASS"))
-				|| m.equals(B.mat("ACACIA_BUTTON"))
-				|| m.equals(B.mat("BIRCH_BUTTON"))
-				|| m.equals(B.mat("CRIMSON_BUTTON"))
-				|| m.equals(B.mat("DARK_OAK_BUTTON"))
-				|| m.equals(B.mat("JUNGLE_BUTTON"))
-				|| m.equals(B.mat("OAK_BUTTON"))
-				|| m.equals(B.mat("POLISHED_BLACKSTONE_BUTTON"))
-				|| m.equals(B.mat("SPRUCE_BUTTON"))
-				|| m.equals(B.mat("STONE_BUTTON"))
-				|| m.equals(B.mat("WARPED_BUTTON"))
-				|| m.equals(Material.TORCH)
-				|| m.equals(B.mat("SOUL_TORCH"));
+		// @NoArgsConstructor
+		boolean str = m.equals(Material.GRASS) || m.equals(Material.TALL_GRASS) || m.equals(B.mat("CORNFLOWER")) || m.equals(Material.SUNFLOWER) || m.equals(Material.CHORUS_FLOWER) || m.equals(Material.POPPY) || m.equals(Material.DANDELION) || m.equals(Material.OXEYE_DAISY) || m.equals(Material.ORANGE_TULIP) || m.equals(Material.PINK_TULIP) || m.equals(Material.RED_TULIP) || m.equals(Material.WHITE_TULIP) || m.equals(Material.LILAC) || m.equals(Material.DEAD_BUSH) || m.equals(B.mat("SWEET_BERRY_BUSH")) || m.equals(Material.ROSE_BUSH) || m.equals(B.mat("WITHER_ROSE")) || m.equals(Material.ALLIUM) || m.equals(Material.BLUE_ORCHID) || m.equals(B.mat("LILY_OF_THE_VALLEY")) || m.equals(B.mat("CRIMSON_FUNGUS")) || m.equals(B.mat("WARPED_FUNGUS")) || m.equals(Material.RED_MUSHROOM) || m.equals(Material.BROWN_MUSHROOM) || m.equals(B.mat("CRIMSON_ROOTS")) || m.equals(B.mat("AZURE_BLUET")) || m.equals(B.mat("WEEPING_VINES")) || m.equals(B.mat("WEEPING_VINES_PLANT")) || m.equals(B.mat("WARPED_ROOTS")) || m.equals(B.mat("NETHER_SPROUTS")) || m.equals(B.mat("TWISTING_VINES")) || m.equals(B.mat("TWISTING_VINES_PLANT")) || m.equals(Material.SUGAR_CANE) || m.equals(Material.WHEAT) || m.equals(Material.POTATOES) || m.equals(Material.CARROTS) || m.equals(Material.BEETROOTS) || m.equals(Material.NETHER_WART) || m.equals(B.mat("SEA_PICKLE")) || m.equals(B.mat("SEAGRASS")) || m.equals(B.mat("ACACIA_BUTTON")) || m.equals(B.mat("BIRCH_BUTTON")) || m.equals(B.mat("CRIMSON_BUTTON")) || m.equals(B.mat("DARK_OAK_BUTTON")) || m.equals(B.mat("JUNGLE_BUTTON")) || m.equals(B.mat("OAK_BUTTON")) || m.equals(B.mat("POLISHED_BLACKSTONE_BUTTON")) || m.equals(B.mat("SPRUCE_BUTTON")) || m.equals(B.mat("STONE_BUTTON")) || m.equals(B.mat("WARPED_BUTTON")) || m.equals(Material.TORCH) || m.equals(B.mat("SOUL_TORCH"));
 		//@done
 
 		if(str)

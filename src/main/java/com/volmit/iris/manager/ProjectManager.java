@@ -77,6 +77,7 @@ import com.volmit.iris.util.RegistryListDimension;
 import com.volmit.iris.util.RegistryListEntity;
 import com.volmit.iris.util.RegistryListFont;
 import com.volmit.iris.util.RegistryListGenerator;
+import com.volmit.iris.util.RegistryListItemType;
 import com.volmit.iris.util.RegistryListLoot;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.RegistryListRegion;
@@ -1120,6 +1121,11 @@ public class ProjectManager
 							prop.put("enum", new JSONArray(getBlockTypeList(dat)));
 						}
 
+						if(k.isAnnotationPresent(RegistryListItemType.class))
+						{
+							prop.put("enum", new JSONArray(getItemTypeList(dat)));
+						}
+
 						if(k.isAnnotationPresent(RegistryListEntity.class))
 						{
 							prop.put("enum", new JSONArray(getEntityList(dat)));
@@ -1294,6 +1300,26 @@ public class ProjectManager
 										JSONObject deff = new JSONObject();
 										deff.put("type", tx);
 										deff.put("enum", new JSONArray(getBlockTypeList(dat)));
+										def.put(name, deff);
+									}
+
+									JSONObject items = new JSONObject();
+									items.put("$ref", "#/definitions/" + name);
+									prop.put("items", items);
+									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
+									prop.put("type", tp);
+									properties.put(k.getName(), prop);
+									continue;
+								}
+
+								if(k.isAnnotationPresent(RegistryListItemType.class))
+								{
+									String name = "enitmty" + t.type().getSimpleName().toLowerCase();
+									if(!def.containsKey(name))
+									{
+										JSONObject deff = new JSONObject();
+										deff.put("type", tx);
+										deff.put("enum", new JSONArray(getItemTypeList(dat)));
 										def.put(name, deff);
 									}
 
@@ -1646,6 +1672,11 @@ public class ProjectManager
 	private String[] getBlockTypeList(IrisDataManager data)
 	{
 		return B.getBlockTypes();
+	}
+
+	private String[] getItemTypeList(IrisDataManager data)
+	{
+		return B.getItemTypes();
 	}
 
 	private String[] getEntityList(IrisDataManager data)

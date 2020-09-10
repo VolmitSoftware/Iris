@@ -15,6 +15,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("Represents a loot table. Biomes, Regions & Objects can add or replace the virtual table with these loot tables")

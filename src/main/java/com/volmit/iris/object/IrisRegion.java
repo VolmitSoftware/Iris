@@ -22,6 +22,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("Represents an iris region")

@@ -29,6 +29,9 @@ import com.volmit.iris.util.RNG;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant

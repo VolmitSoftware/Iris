@@ -17,6 +17,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("A palette of materials")

@@ -11,7 +11,9 @@ import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
+@Accessors(chain = true)
 @AllArgsConstructor
 @Builder
 @Desc("Represents a rotation axis with intervals and maxes. The x and z axis values are defaulted to disabled. The Y axis defaults to on, rotating by 90 degree increments.")

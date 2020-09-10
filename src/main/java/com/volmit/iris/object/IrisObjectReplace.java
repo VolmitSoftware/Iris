@@ -16,6 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import lombok.experimental.Accessors;
+
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("Find and replace object materials")

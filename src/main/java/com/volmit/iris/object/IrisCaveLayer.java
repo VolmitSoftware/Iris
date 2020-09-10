@@ -8,7 +8,9 @@ import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("Translate objects")

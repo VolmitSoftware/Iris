@@ -16,7 +16,9 @@ import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
+@Accessors(chain = true)
 @AllArgsConstructor
 @Builder
 @Desc("Represents an attribute modifier for an item or an entity. This allows you to create modifications to basic game attributes such as MAX_HEALTH or ARMOR_VALUE.")

@@ -19,7 +19,9 @@ import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
+@Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")

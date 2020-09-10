@@ -42,6 +42,10 @@ public class IrisBlockData
 	private int weight = 1;
 
 	@DontObfuscate
+	@Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
+	private IrisBlockData backup = null;
+
+	@DontObfuscate
 	@Desc("Optional properties for this block data such as 'waterlogged': true")
 	private KMap<String, Object> data = new KMap<>();
 
@@ -81,6 +85,11 @@ public class IrisBlockData
 				return b;
 			}
 
+			if(backup != null)
+			{
+				return backup.getBlockData();
+			}
+
 			return B.get("AIR");
 		});
 	}
@@ -89,46 +98,46 @@ public class IrisBlockData
 	{
 		IrisBlockData b = new IrisBlockData();
 		String m = j.toLowerCase().trim();
-	
+
 		if(m.contains(":"))
 		{
 			b.setKey(m.split("\\Q:\\E")[0]);
 			String v = m.split("\\Q:\\E")[1];
-	
+
 			if(v.contains("["))
 			{
 				KList<String> props = new KList<>();
 				String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
 				b.setBlock(v.split("\\Q[\\E")[0]);
-	
+
 				if(rp.contains(","))
 				{
 					props.add(rp.split("\\Q,\\E"));
 				}
-	
+
 				else
 				{
 					props.add(rp);
 				}
-	
+
 				for(String i : props)
 				{
 					Object kg = filter(i.split("\\Q=\\E")[1]);
 					b.data.put(i.split("\\Q=\\E")[0], kg);
 				}
 			}
-	
+
 			else
 			{
 				b.setBlock(v);
 			}
 		}
-	
+
 		else
 		{
 			b.setBlock(m);
 		}
-	
+
 		return b;
 	}
 

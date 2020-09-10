@@ -84,4 +84,76 @@ public class IrisBlockData
 			return B.get("AIR");
 		});
 	}
+
+	public static IrisBlockData from(String j)
+	{
+		IrisBlockData b = new IrisBlockData();
+		String m = j.toLowerCase().trim();
+	
+		if(m.contains(":"))
+		{
+			b.setKey(m.split("\\Q:\\E")[0]);
+			String v = m.split("\\Q:\\E")[1];
+	
+			if(v.contains("["))
+			{
+				KList<String> props = new KList<>();
+				String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
+				b.setBlock(v.split("\\Q[\\E")[0]);
+	
+				if(rp.contains(","))
+				{
+					props.add(rp.split("\\Q,\\E"));
+				}
+	
+				else
+				{
+					props.add(rp);
+				}
+	
+				for(String i : props)
+				{
+					Object kg = filter(i.split("\\Q=\\E")[1]);
+					b.data.put(i.split("\\Q=\\E")[0], kg);
+				}
+			}
+	
+			else
+			{
+				b.setBlock(v);
+			}
+		}
+	
+		else
+		{
+			b.setBlock(m);
+		}
+	
+		return b;
+	}
+
+	private static Object filter(String string)
+	{
+		if(string.equals("true"))
+		{
+			return true;
+		}
+
+		if(string.equals("false"))
+		{
+			return false;
+		}
+
+		try
+		{
+			return Integer.valueOf(string);
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return string;
+	}
 }

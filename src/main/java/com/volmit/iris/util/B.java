@@ -29,8 +29,9 @@ public class B
 		return getBlockData(bd);
 	}
 
-	public static Material getMaterial(String bd)
+	public static Material getMaterial(String bdx)
 	{
+		String bd = bdx.trim().toUpperCase();
 		return types.compute(bd, (k, v) ->
 		{
 			if(k != null && v != null)

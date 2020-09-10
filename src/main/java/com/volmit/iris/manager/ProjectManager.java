@@ -752,7 +752,7 @@ public class ProjectManager
 
 		try
 		{
-			JSONObject ws = newWorkspaceConfig();
+			JSONObject ws = newWorkspaceConfig(Iris.instance.getDataFolder("packs", newName));
 			IO.writeAll(Iris.instance.getDataFile("packs", newName, newName + ".code-workspace"), ws.toString(0));
 		}
 
@@ -878,7 +878,7 @@ public class ProjectManager
 
 		try
 		{
-			JSONObject ws = newWorkspaceConfig();
+			JSONObject ws = newWorkspaceConfig(Iris.instance.getDataFolder("packs", dimension.getLoadKey()));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "regions", exampleRegion.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
 			IO.writeAll(Iris.instance.getDataFile("packs", dimension.getLoadKey(), "biomes", exampleLand1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
@@ -899,7 +899,7 @@ public class ProjectManager
 		return true;
 	}
 
-	private JSONObject newWorkspaceConfig()
+	private JSONObject newWorkspaceConfig(File pack)
 	{
 		Iris.globaldata.clearLists();
 		JSONObject ws = new JSONObject();
@@ -934,7 +934,7 @@ public class ProjectManager
 		settings.put("[json]", jc);
 		settings.put("json.maxItemsComputed", 15000);
 
-		JSONArray schemas = buildSchemas(Iris.globaldata);
+		JSONArray schemas = buildSchemas(Iris.globaldata, pack);
 		settings.put("json.schemas", schemas);
 		ws.put("settings", settings);
 
@@ -952,7 +952,7 @@ public class ProjectManager
 		{
 			Iris.info("Updating Workspace: " + ws.getPath());
 			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
-			JSONObject j = newWorkspaceConfig();
+			JSONObject j = newWorkspaceConfig(ws.getParentFile());
 			IO.writeAll(ws, j.toString(4));
 			Iris.info("Updated Workspace: " + ws.getPath());
 		}
@@ -963,7 +963,7 @@ public class ProjectManager
 
 			try
 			{
-				IO.writeAll(ws, newWorkspaceConfig());
+				IO.writeAll(ws, newWorkspaceConfig(ws.getParentFile()));
 			}
 
 			catch(IOException e1)
@@ -973,25 +973,45 @@ public class ProjectManager
 		}
 	}
 
-	private void ex(JSONArray schemas, Class<?> c, IrisDataManager dat, String v)
+	private void ex(JSONArray schemas, Class<?> c, IrisDataManager dat, String v, File pack)
 	{
 		JSONObject o = getSchemaEntry(c, dat, v);
 		lock.lock();
 		schemas.put(o);
 		lock.unlock();
+
+		J.a(() ->
+		{
+			File f = new File(pack, "_docs/schema/" + c.getSimpleName().replaceAll("\\QIris\\E", "").toLowerCase() + ".json");
+			f.getParentFile().mkdirs();
+			try
+			{
+				IO.writeAll(f, o.toString(4));
+			}
+
+			catch(JSONException e)
+			{
+				e.printStackTrace();
+			}
+
+			catch(IOException e)
+			{
+				e.printStackTrace();
+			}
+		});
 	}
 
-	private JSONArray buildSchemas(IrisDataManager dat)
+	private JSONArray buildSchemas(IrisDataManager dat, File pack)
 	{
 		JSONArray schemas = new JSONArray();
 		TaskGroup g = tx.startWork();
-		g.queue(() -> ex(schemas, IrisDimension.class, dat, "/dimensions/*.json"));
-		g.queue(() -> ex(schemas, IrisEntity.class, dat, "/entities/*.json"));
-		g.queue(() -> ex(schemas, IrisBiome.class, dat, "/biomes/*.json"));
-		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json"));
-		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json"));
-		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json"));
-		g.queue(() -> ex(schemas, IrisLootTable.class, dat, "/loot/*.json"));
+		g.queue(() -> ex(schemas, IrisDimension.class, dat, "/dimensions/*.json", pack));
+		g.queue(() -> ex(schemas, IrisEntity.class, dat, "/entities/*.json", pack));
+		g.queue(() -> ex(schemas, IrisBiome.class, dat, "/biomes/*.json", pack));
+		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json", pack));
+		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json", pack));
+		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json", pack));
+		g.queue(() -> ex(schemas, IrisLootTable.class, dat, "/loot/*.json", pack));
 		g.execute();
 
 		return schemas;

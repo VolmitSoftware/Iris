@@ -5,7 +5,6 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -27,7 +26,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisBiomePaletteLayer
 {
-
 	@DontObfuscate
 	@Desc("The style of noise")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
@@ -55,7 +53,7 @@ public class IrisBiomePaletteLayer
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this layer")
-	private KList<String> palette = new KList<String>().qadd("GRASS_BLOCK");
+	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("GRASS_BLOCK"));
 
 	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
@@ -90,9 +88,9 @@ public class IrisBiomePaletteLayer
 		});
 	}
 
-	public KList<String> add(String b)
+	public KList<IrisBlockData> add(String b)
 	{
-		palette.add(b);
+		palette.add(new IrisBlockData(b));
 
 		return palette;
 	}
@@ -102,9 +100,9 @@ public class IrisBiomePaletteLayer
 		return blockData.aquire(() ->
 		{
 			KList<BlockData> blockData = new KList<>();
-			for(String ix : palette)
+			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = B.getBlockData(ix);
+				BlockData bx = ix.getBlockData();
 				if(bx != null)
 				{
 					blockData.add(bx);

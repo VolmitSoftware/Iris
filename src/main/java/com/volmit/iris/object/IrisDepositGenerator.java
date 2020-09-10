@@ -7,7 +7,6 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -28,7 +27,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisDepositGenerator
 {
-
 	@Required
 	@MinNumber(0)
 	@MaxNumber(256)
@@ -72,10 +70,10 @@ public class IrisDepositGenerator
 	private int minPerChunk = 1;
 
 	@Required
-	@ArrayType(min = 1, type = String.class)
+	@ArrayType(min = 1, type = IrisBlockData.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this deposit generator")
-	private KList<String> palette = new KList<String>();
+	private KList<IrisBlockData> palette = new KList<IrisBlockData>();
 
 	@MinNumber(1)
 	@MaxNumber(64)
@@ -145,9 +143,9 @@ public class IrisDepositGenerator
 		{
 			KList<BlockData> blockData = new KList<>();
 
-			for(String ix : palette)
+			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = B.getBlockData(ix);
+				BlockData bx = ix.getBlockData();
 
 				if(bx != null)
 				{
@@ -211,7 +209,7 @@ public class IrisDepositGenerator
 
 				boolean allow = false;
 				BlockData b = data.getBlockData(nx, ny, nz);
-				for(BlockData f : g.getDimension().getRockData())
+				for(BlockData f : g.getDimension().getRockPalette().getBlockData())
 				{
 					if(f.getMaterial().equals(b.getMaterial()))
 					{

@@ -11,7 +11,6 @@ import com.volmit.iris.gen.ParallelTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -277,10 +276,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Overlay additional noise on top of the interoplated terrain.")
 	private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
 
-	@DontObfuscate
-	@Desc("The noise style for rock types")
-	private IrisGeneratorStyle rockStyle = NoiseStyle.STATIC.style();
-
 	@ArrayType(min = 1, type = IrisCaveLayer.class)
 	@DontObfuscate
 	@Desc("Define cave layers")
@@ -291,10 +286,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define carve layers")
 	private KList<IrisCarveLayer> carveLayers = new KList<>();
 
-	@DontObfuscate
-	@Desc("The noise style for fluid types")
-	private IrisGeneratorStyle fluidStyle = NoiseStyle.STATIC.style();
-
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate
@@ -304,12 +295,12 @@ public class IrisDimension extends IrisRegistrant
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
-	private KList<String> rockPalette = new KList<String>().qadd("STONE");
+	private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qadd("STONE");
 
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
-	private KList<String> fluidPalette = new KList<String>().qadd("WATER");
+	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qadd("WATER");
 
 	@ArrayType(min = 1, type = IrisBiomeMutation.class)
 	@DontObfuscate
@@ -317,8 +308,6 @@ public class IrisDimension extends IrisRegistrant
 	private KList<IrisBiomeMutation> mutations = new KList<>();
 
 	private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> rockData = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> fluidData = new AtomicCache<>();
 	private final transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
 	private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
@@ -474,90 +463,6 @@ public class IrisDimension extends IrisRegistrant
 			CNG coordFracture = CNG.signature(rng.nextParallelRNG(signature));
 			coordFracture.scale(0.012 / coordFractureZoom);
 			return coordFracture;
-		});
-	}
-
-	public BlockData getRock(RNG rng, double x, double y, double z)
-	{
-		if(getRockData().isEmpty())
-		{
-			return STONE;
-		}
-
-		if(getRockData().size() == 1)
-		{
-			return getRockData().get(0);
-		}
-
-		return getRockGenerator(rng).fit(getRockData(), x, y, z);
-	}
-
-	public CNG getRockGenerator(RNG rng)
-	{
-		return rockLayerGenerator.aquire(() ->
-		{
-			RNG rngx = rng.nextParallelRNG((int) (getRockData().size() * getRegions().size() * getLandZoom() * 10357));
-			return rockStyle.create(rngx);
-		});
-	}
-
-	public KList<BlockData> getRockData()
-	{
-		return rockData.aquire(() ->
-		{
-			KList<BlockData> rockData = new KList<>();
-			for(String ix : rockPalette)
-			{
-				BlockData bx = B.getBlockData(ix);
-				if(bx != null)
-				{
-					rockData.add(bx);
-				}
-			}
-
-			return rockData;
-		});
-	}
-
-	public BlockData getFluid(RNG rng, double x, double y, double z)
-	{
-		if(getFluidData().isEmpty())
-		{
-			return WATER;
-		}
-
-		if(getFluidData().size() == 1)
-		{
-			return getFluidData().get(0);
-		}
-
-		return getFluidGenerator(rng).fit(getFluidData(), x, y, z);
-	}
-
-	public CNG getFluidGenerator(RNG rng)
-	{
-		return fluidLayerGenerator.aquire(() ->
-		{
-			RNG rngx = rng.nextParallelRNG(getFluidData().size() * (int) (getRockData().size() * getRegions().size() * getLandZoom() * 10357));
-			return fluidStyle.create(rngx);
-		});
-	}
-
-	public KList<BlockData> getFluidData()
-	{
-		return fluidData.aquire(() ->
-		{
-			KList<BlockData> fluidData = new KList<>();
-			for(String ix : fluidPalette)
-			{
-				BlockData bx = B.getBlockData(ix);
-				if(bx != null)
-				{
-					fluidData.add(bx);
-				}
-			}
-
-			return fluidData;
 		});
 	}
 

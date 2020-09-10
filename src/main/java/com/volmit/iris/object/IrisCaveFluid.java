@@ -37,7 +37,7 @@ public class IrisCaveFluid
 	@Required
 	@DontObfuscate
 	@Desc("The fluid type that should spawn here")
-	private String fluidType = "CAVE_AIR";
+	private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 
 	private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 
@@ -50,7 +50,7 @@ public class IrisCaveFluid
 	{
 		return fluidData.aquire(() ->
 		{
-			BlockData b = B.get(getFluidType());
+			BlockData b = getFluidType().getBlockData();
 
 			if(b != null)
 			{

@@ -374,13 +374,8 @@ public class ProjectManager
 			}
 		});
 
-		//@NoArgsConstructor
-		World world = NMSCreator.createWorld(new WorldCreator(wfp)
-				.seed(1337)
-				.generator(gen)
-				.generateStructures(d.isVanillaStructures())
-				.type(WorldType.NORMAL)
-				.environment(d.getEnvironment()), false);
+		// @NoArgsConstructor
+		World world = NMSCreator.createWorld(new WorldCreator(wfp).seed(1337).generator(gen).generateStructures(d.isVanillaStructures()).type(WorldType.NORMAL).environment(d.getEnvironment()), false);
 		//@done
 		gx.getTarget().setRealWorld(world);
 		Iris.linkMultiverseCore.removeFromConfig(world);
@@ -866,12 +861,6 @@ public class ProjectManager
 		b4.setGenerator(gen.getLoadKey());
 		b4.setMin(-5);
 		b4.setMax(-38);
-		exampleLand2.getLayers().get(0).getPalette().clear();
-		exampleLand2.getLayers().get(0).getPalette().add("RED_SAND");
-		exampleShore1.getLayers().get(0).getPalette().clear();
-		exampleShore1.getLayers().get(0).getPalette().add("SAND");
-		exampleOcean1.getLayers().get(0).getPalette().clear();
-		exampleOcean1.getLayers().get(0).getPalette().add("SAND");
 		exampleLand1.getGenerators().clear();
 		exampleLand1.getGenerators().add(b1);
 		exampleLand2.getGenerators().clear();

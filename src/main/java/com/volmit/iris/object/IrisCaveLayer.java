@@ -17,7 +17,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCaveLayer
 {
-
 	@Required
 	@DontObfuscate
 	@Desc("The vertical slope this cave layer follows")

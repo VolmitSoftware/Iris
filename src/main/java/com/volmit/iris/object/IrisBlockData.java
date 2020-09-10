@@ -41,6 +41,11 @@ public class IrisBlockData
 	private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
 	private final transient AtomicCache<String> realProperties = new AtomicCache<>();
 
+	public IrisBlockData(String b)
+	{
+		this.block = b;
+	}
+
 	public String computeProperties()
 	{
 		if(getData().isEmpty())

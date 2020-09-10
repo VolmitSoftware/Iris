@@ -237,7 +237,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Set Sea Material (water/lava)
 			if(underwater)
 			{
-				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : biomeFluid != null ? biomeFluid : getDimension().getFluid(rockRandom, wx, k, wz);
+				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : biomeFluid != null ? biomeFluid : getDimension().getFluidPalette().get(rockRandom, wx, k, wz);
 			}
 
 			// Set Surface Material for cavern layer surfaces
@@ -259,7 +259,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Set Surface Material for true surface
 			else
 			{
-				block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRock(rockRandom, wx, k, wz);
+				block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRockPalette().get(rockRandom, wx, k, wz);
 				depth++;
 			}
 

@@ -24,21 +24,17 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectReplace
 {
-	
 	@ArrayType(min = 1, type = String.class)
 	@Required
 	@Desc("Find this block")
 	@DontObfuscate
 	private KList<String> find = new KList<>();
 
-	
-	@ArrayType(min = 1, type = String.class)
 	@Required
-	@Desc("Replace it with this block")
+	@Desc("Replace it with this block palette")
 	@DontObfuscate
-	private KList<String> replace = new KList<>();
+	private IrisMaterialPalette replace = new IrisMaterialPalette();
 
-	
 	@Desc("Exactly match the block data or not")
 	@DontObfuscate
 	private boolean exact = false;
@@ -52,13 +48,8 @@ public class IrisObjectReplace
 		return findData.aquire(() -> B.getBlockData(find));
 	}
 
-	public KList<BlockData> getReplace()
-	{
-		return replaceData.aquire(() -> B.getBlockData(replace));
-	}
-
 	public BlockData getReplace(RNG seed, double x, double y, double z)
 	{
-		return replaceGen.aquire(() -> NoiseStyle.STATIC.create(seed).bake()).fit(getReplace(), x, y, z);
+		return getReplace().get(seed, x, y, z);
 	}
 }

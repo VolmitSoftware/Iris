@@ -5,7 +5,6 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -25,7 +24,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisMaterialPalette
 {
-
 	@DontObfuscate
 	@Desc("The style of noise")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
@@ -36,10 +34,10 @@ public class IrisMaterialPalette
 	private double zoom = 5;
 
 	@Required
-	@ArrayType(min = 1, type = String.class)
+	@ArrayType(min = 1, type = IrisBlockData.class)
 	@DontObfuscate
 	@Desc("The palette of blocks to be used in this layer")
-	private KList<String> palette = new KList<String>().qadd("STONE");
+	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
 	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
@@ -69,11 +67,18 @@ public class IrisMaterialPalette
 		});
 	}
 
-	public KList<String> add(String b)
+	public KList<IrisBlockData> add(String b)
 	{
-		palette.add(b);
+		palette.add(new IrisBlockData(b));
 
 		return palette;
+	}
+
+	public IrisMaterialPalette qadd(String b)
+	{
+		palette.add(new IrisBlockData(b));
+
+		return this;
 	}
 
 	public KList<BlockData> getBlockData()
@@ -81,9 +86,9 @@ public class IrisMaterialPalette
 		return blockData.aquire(() ->
 		{
 			KList<BlockData> blockData = new KList<>();
-			for(String ix : palette)
+			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = B.getBlockData(ix);
+				BlockData bx = ix.getBlockData();
 				if(bx != null)
 				{
 					blockData.add(bx);

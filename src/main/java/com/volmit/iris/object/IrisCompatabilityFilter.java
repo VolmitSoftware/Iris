@@ -21,7 +21,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCompatabilityFilter
 {
-
 	@Required
 	@DontObfuscate
 	@Desc("When iris sees this block, and it's not reconized")

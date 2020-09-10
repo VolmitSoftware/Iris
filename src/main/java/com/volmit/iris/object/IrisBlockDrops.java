@@ -23,7 +23,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisBlockDrops
 {
-
 	@Required
 	@ArrayType(min = 1, type = IrisBlockData.class)
 	@Desc("The blocks that drop loot")

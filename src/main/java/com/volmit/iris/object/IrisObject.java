@@ -20,6 +20,7 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
+import com.volmit.iris.util.CarveResult;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
@@ -328,12 +329,21 @@ public class IrisObject extends IrisRegistrant
 		place(x, -1, z, placer, config, rng);
 	}
 
-	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c)
 	{
-		return place(x, yv, z, placer, config, rng, null);
+		if(shitty)
+		{
+			return;
+		}
+		place(x, -1, z, placer, config, rng, null, c);
 	}
 
-	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener)
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	{
+		return place(x, yv, z, placer, config, rng, null, null);
+	}
+
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c)
 	{
 		if(config.isSmartBore())
 		{
@@ -357,7 +367,7 @@ public class IrisObject extends IrisRegistrant
 		{
 			if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT))
 			{
-				y = placer.getHighest(x, z, config.isUnderwater()) + rty;
+				y = (c != null ? c.getSurface() : placer.getHighest(x, z, config.isUnderwater())) + rty;
 			}
 
 			else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT))
@@ -460,6 +470,11 @@ public class IrisObject extends IrisRegistrant
 			{
 				return -1;
 			}
+		}
+
+		if(c != null && Math.max(0, h + yrand + ty) + 1 >= c.getHeight())
+		{
+			return -1;
 		}
 
 		if(config.isUnderwater() && y + rty + ty >= placer.getFluidHeight())

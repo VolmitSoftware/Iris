@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
@@ -7,6 +8,7 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.HeightMap;
@@ -225,6 +227,16 @@ public class IrisDepositGenerator
 							allow = true;
 							break;
 						}
+					}
+				}
+
+				if(!safe && allow)
+				{
+					BlockData b = data.getBlockData(nx, ny, nz);
+
+					if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
+					{
+						allow = false;
 					}
 				}
 

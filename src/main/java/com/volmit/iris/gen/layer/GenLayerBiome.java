@@ -3,6 +3,7 @@ package com.volmit.iris.gen.layer;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.DimensionalTerrainProvider;
+import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
@@ -33,7 +34,7 @@ public class GenLayerBiome extends GenLayer
 	private BiomeDataProvider lakeProvider;
 	private DimensionalTerrainProvider iris;
 
-	public GenLayerBiome(@NonNull DimensionalTerrainProvider iris, @NonNull RNG rng)
+	public GenLayerBiome(@NonNull TopographicTerrainProvider iris, @NonNull RNG rng)
 	{
 		super(iris, rng);
 		this.iris = iris;

@@ -1,13 +1,13 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.gen.DimensionalTerrainProvider;
+import com.volmit.iris.gen.TopographicTerrainProvider;
 
 public abstract class GenLayer
 {
 	protected final RNG rng;
-	protected final DimensionalTerrainProvider iris;
+	protected final TopographicTerrainProvider iris;
 
-	public GenLayer(DimensionalTerrainProvider iris, RNG rng)
+	public GenLayer(TopographicTerrainProvider iris, RNG rng)
 	{
 		this.iris = iris;
 		this.rng = rng;

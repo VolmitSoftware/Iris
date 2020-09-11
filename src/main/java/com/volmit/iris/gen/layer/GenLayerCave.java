@@ -5,8 +5,8 @@ import java.util.function.Function;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.gen.DimensionalTerrainProvider;
 import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.noise.FastNoiseDouble;
 import com.volmit.iris.noise.FastNoiseDouble.CellularDistanceFunction;
@@ -27,7 +27,7 @@ public class GenLayerCave extends GenLayer
 	private static final KList<CaveResult> EMPTY = new KList<>();
 	private FastNoiseDouble gg;
 
-	public GenLayerCave(DimensionalTerrainProvider iris, RNG rng)
+	public GenLayerCave(TopographicTerrainProvider iris, RNG rng)
 	{
 		// @NoArgsConstructor
 		super(iris, rng);

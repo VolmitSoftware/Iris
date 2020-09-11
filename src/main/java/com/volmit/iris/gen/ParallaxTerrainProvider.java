@@ -21,6 +21,7 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisStructurePlacement;
 import com.volmit.iris.object.IrisTextPlacement;
 import com.volmit.iris.util.BiomeMap;
+import com.volmit.iris.util.CarveResult;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.HeightMap;
@@ -240,6 +241,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 					g = placeMutations(ro, random, i, j, g);
 					g = placeText(random, r, b, i, j, g);
 					g = placeObjects(random, r, b, i, j, g);
+					g = placeCarveObjects(random, r, b, i, j, g);
 					g = placeCaveObjects(ro, random, i, j, g);
 					g = placeStructures(randomx, r, b, i, j, g);
 				});
@@ -304,12 +306,49 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	{
 		for(IrisObjectPlacement k : b.getObjects())
 		{
-			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3566522));
 		}
 
 		for(IrisObjectPlacement k : r.getObjects())
 		{
 			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+		}
+
+		return g;
+	}
+
+	private int placeCarveObjects(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g)
+	{
+		if(!getGlCarve().isCouldCarve())
+		{
+			return g;
+		}
+
+		KList<CarveResult> layers = getGlCarve().getCarveLayers((i * 16) + random.nextInt(16), (j * 16) + random.nextInt(16));
+
+		if(layers.isEmpty())
+		{
+			return g + 2;
+		}
+
+		for(CarveResult c : layers)
+		{
+			g = placeCarveObjects(random, r, b, i, j, g, c);
+		}
+
+		return g;
+	}
+
+	private int placeCarveObjects(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g, CarveResult c)
+	{
+		for(IrisObjectPlacement k : b.getObjects())
+		{
+			placeCarveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569221 + g), c);
+		}
+
+		for(IrisObjectPlacement k : r.getObjects())
+		{
+			placeCarveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3561222 + g), c);
 		}
 
 		return g;
@@ -367,6 +406,15 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		{
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
 			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
+		}
+	}
+
+	public void placeCarveObject(IrisObjectPlacement o, int x, int z, RNG rng, CarveResult c)
+	{
+		for(int i = 0; i < o.getTriesForChunk(rng); i++)
+		{
+			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
+			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng, c);
 		}
 	}
 

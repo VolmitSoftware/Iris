@@ -348,6 +348,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
 		super.onGenerate(random, x, z, terrain);
+
+		if(!getDimension().isVanillaCaves())
+		{
+			generateDeposits(random.nextParallelRNG(x * ((z * 39) + 10000)).nextParallelRNG(z + z - x), terrain, x, z);
+		}
 	}
 
 	private void decorateLand(IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
@@ -538,16 +543,13 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	protected void onPreParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
-		if(!getDimension().isVanillaCaves())
-		{
-			generateDeposits(random.nextParallelRNG(x).nextParallelRNG(z), terrain, x, z);
-		}
+
 	}
 
 	public void generateDeposits(RNG rx, TerrainChunk terrain, int x, int z)
 	{
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		RNG ro = rx.nextParallelRNG((x * x * x) - z);
+		RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
 		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
 		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
 

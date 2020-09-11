@@ -11,13 +11,10 @@ import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.M;
 
 import lombok.Data;
@@ -27,28 +24,26 @@ public class AtomicSliver
 {
 	public static final BlockData AIR = B.getBlockData("AIR");
 	public static boolean forgetful = false;
-	private transient KMap<Integer, IrisBiome> truebiome;
-	private transient KMap<Integer, Biome> biome;
+	private transient Biome[] biome;
 	private transient Biome onlyBiome;
 	private transient IrisLock lock = new IrisLock("Sliver");
-	private transient int highestBiome = 0;
+	private transient short highestBiome = 0;
 	private transient long last = M.ms();
-	private transient final int x;
-	private transient final int z;
+	private transient final byte x;
+	private transient final byte z;
 	private transient boolean modified = false;
-	private KMap<Integer, BlockData> block;
-	private KSet<Integer> blockUpdates;
+	private BlockData[] block;
+	private KList<Byte> blockUpdates;
 	private int highestBlock = 0;
 
 	public AtomicSliver(int x, int z)
 	{
 		onlyBiome = null;
-		this.x = x;
-		this.z = z;
-		blockUpdates = new KSet<>();
-		this.block = new KMap<>();
-		this.biome = new KMap<>();
-		this.truebiome = new KMap<>();
+		this.x = (byte) x;
+		this.z = (byte) z;
+		blockUpdates = new KList<>(4);
+		this.block = new BlockData[256];
+		this.biome = new Biome[256];
 	}
 
 	public Material getType(int h)
@@ -56,29 +51,29 @@ public class AtomicSliver
 		return get(h).getMaterial();
 	}
 
-	public KSet<Integer> getUpdatables()
+	public KList<Byte> getUpdatables()
 	{
 		return blockUpdates;
 	}
 
-	public void update(int y)
+	public void update(byte y)
 	{
 		if(forgetful)
 		{
 			return;
 		}
 
-		blockUpdates.add(y);
+		blockUpdates.addIfMissing((byte) (y + Byte.MIN_VALUE));
 	}
 
-	public void dontUpdate(int y)
+	public void dontUpdate(byte y)
 	{
 		if(forgetful)
 		{
 			return;
 		}
 
-		blockUpdates.remove(y);
+		blockUpdates.remove(Byte.valueOf((byte) (y + Byte.MIN_VALUE)));
 	}
 
 	public BlockData get(int h)
@@ -87,7 +82,7 @@ public class AtomicSliver
 		{
 			return null;
 		}
-		BlockData b = block.get(h);
+		BlockData b = block[h];
 		last = M.ms();
 
 		if(b == null)
@@ -104,7 +99,7 @@ public class AtomicSliver
 		{
 			return null;
 		}
-		BlockData b = block.get(h);
+		BlockData b = block[h];
 		last = M.ms();
 
 		if(b.getMaterial().equals(Material.AIR))
@@ -144,16 +139,16 @@ public class AtomicSliver
 
 		lock.lock();
 		modified = true;
-		block.put(h, d);
+		block[h] = d;
 
 		if(B.isUpdatable(d))
 		{
-			update(h);
+			update((byte) h);
 		}
 
 		else
 		{
-			dontUpdate(h);
+			dontUpdate((byte) h);
 		}
 
 		lock.unlock();
@@ -164,30 +159,13 @@ public class AtomicSliver
 		return getType(h).isSolid();
 	}
 
-	public Biome getBiome(int h)
-	{
-		if(!Iris.biome3d)
-		{
-			return onlyBiome != null ? onlyBiome : Biome.THE_VOID;
-		}
-
-		last = M.ms();
-		return biome.containsKey(h) ? biome.get(h) : Biome.THE_VOID;
-	}
-
-	public IrisBiome getTrueBiome(int h)
-	{
-		last = M.ms();
-		return truebiome.get(h);
-	}
-
 	public void set(int h, Biome d)
 	{
 		lock.lock();
 
 		if(Iris.biome3d)
 		{
-			biome.put(h, d);
+			biome[h] = d;
 		}
 
 		else
@@ -196,19 +174,11 @@ public class AtomicSliver
 		}
 
 		modified = true;
-		highestBiome = h > highestBiome ? h : highestBiome;
+		highestBiome = (short) (h > highestBiome ? h : highestBiome);
 		lock.unlock();
 	}
 
-	public void set(int h, IrisBiome d)
-	{
-		lock.lock();
-		modified = true;
-		truebiome.put(h, d);
-		lock.unlock();
-	}
-
-	public void write(ChunkData d)
+	public void write(ChunkData d, boolean skipNull)
 	{
 		if(forgetful)
 		{
@@ -219,14 +189,17 @@ public class AtomicSliver
 
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			if(block.get(i) == null)
+			if(block[i] == null)
 			{
-				d.setBlock(x, i, z, AIR);
+				if(!skipNull)
+				{
+					d.setBlock(x, i, z, AIR);
+				}
 			}
 
 			else
 			{
-				d.setBlock(x, i, z, block.get(i));
+				d.setBlock(x, i, z, block[i]);
 			}
 		}
 		lock.unlock();
@@ -246,9 +219,9 @@ public class AtomicSliver
 
 		for(int i = 0; i <= highestBiome; i++)
 		{
-			if(biome.get(i) != null)
+			if(biome[i] != null)
 			{
-				d.setBiome(x, i, z, biome.get(i));
+				d.setBiome(x, i, z, biome[i]);
 			}
 		}
 
@@ -265,7 +238,7 @@ public class AtomicSliver
 	public void read(DataInputStream din) throws IOException
 	{
 		lock.lock();
-		this.block = new KMap<Integer, BlockData>();
+		this.block = new BlockData[256];
 
 		getUpdatables().clear();
 		// Block Palette
@@ -283,13 +256,13 @@ public class AtomicSliver
 		// Blocks
 		for(int i = 0; i <= h; i++)
 		{
-			block.put(i, palette.get(din.readByte() - Byte.MIN_VALUE).clone());
+			block[i] = palette.get(din.readByte() - Byte.MIN_VALUE).clone();
 		}
 
 		// Updates
 		for(int i = 0; i < u; i++)
 		{
-			update(din.readByte() - Byte.MIN_VALUE);
+			update(din.readByte());
 		}
 
 		modified = false;
@@ -309,7 +282,7 @@ public class AtomicSliver
 
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			BlockData dat = block.get(i);
+			BlockData dat = block[i];
 			String d = (dat == null ? AIR : dat).getAsString(true);
 
 			if(!palette.contains(d))
@@ -330,15 +303,15 @@ public class AtomicSliver
 		// Blocks
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			BlockData dat = block.get(i);
+			BlockData dat = block[i];
 			String d = (dat == null ? AIR : dat).getAsString(true);
 			dos.writeByte(palette.indexOf(d) + Byte.MIN_VALUE);
 		}
 
 		// Updates
-		for(Integer i : getUpdatables())
+		for(Byte i : getUpdatables())
 		{
-			dos.writeByte(i + Byte.MIN_VALUE);
+			dos.writeByte(i);
 		}
 
 		lock.unlock();
@@ -353,15 +326,15 @@ public class AtomicSliver
 		lock.lock();
 		for(int i = 0; i < 256; i++)
 		{
-			if(block.get(i) == null || block.get(i).equals(AIR))
+			if(block[i] == null || block[i].equals(AIR))
 			{
-				BlockData b = atomicSliver.block.get(i);
+				BlockData b = atomicSliver.block[i];
 				if(b == null || b.equals(AIR))
 				{
 					continue;
 				}
 
-				block.put(i, b);
+				block[i] = b;
 			}
 		}
 		lock.unlock();
@@ -375,9 +348,9 @@ public class AtomicSliver
 		}
 		lock.lock();
 
-		for(int i : block.keySet())
+		for(int i = 0; i < block.length; i++)
 		{
-			BlockData b = block.get(i);
+			BlockData b = block[i];
 			if(b != null)
 			{
 				if(b.getMaterial().equals(Material.AIR))
@@ -402,7 +375,7 @@ public class AtomicSliver
 		return M.ms() - last > m;
 	}
 
-	public void inject(KSet<Integer> updatables)
+	public void inject(KList<Byte> updatables)
 	{
 		if(forgetful)
 		{

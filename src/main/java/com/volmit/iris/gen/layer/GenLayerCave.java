@@ -29,7 +29,7 @@ public class GenLayerCave extends GenLayer
 
 	public GenLayerCave(DimensionalTerrainProvider iris, RNG rng)
 	{
-		//@NoArgsConstructor
+		// @NoArgsConstructor
 		super(iris, rng);
 		gg = new FastNoiseDouble(324895 * rng.nextParallelRNG(49678).imax());
 		//@done
@@ -85,6 +85,11 @@ public class GenLayerCave extends GenLayer
 		double distanceCheck = 0.0132 * baseWidth;
 		double distanceTake = 0.0022 * baseWidth;
 		double caveHeightNoise = layer.getVerticalSlope().get(rng, wxx, wzz);
+
+		if(caveHeightNoise > 259 || caveHeightNoise < -1)
+		{
+			return;
+		}
 
 		int ceiling = -256;
 		int floor = 512;

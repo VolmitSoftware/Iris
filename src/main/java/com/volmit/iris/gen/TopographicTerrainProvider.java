@@ -20,6 +20,7 @@ import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
+import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
@@ -33,6 +34,7 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -286,12 +288,6 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		// Carve out biomes
 		KList<CaveResult> caveResults = glCave.genCaves(rx, rz, x, z, sliver);
-		KList<CaveResult> caveResults1 = glCave.genCaves(rx, rz, x, z, null);
-
-		if(caveResults.size() != caveResults1.size())
-		{
-			Iris.warn("REAL: " + caveResults.size() + " Guess: " + caveResults1.size());
-		}
 
 		IrisBiome caveBiome = glBiome.generateData(InferredType.CAVE, wx, wz, rx, rz, region);
 
@@ -300,11 +296,16 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			for(CaveResult i : caveResults)
 			{
+				if(i.getFloor() < 0 || i.getFloor() > 255 || i.getCeiling() > 255 || i.getCeiling() < 0)
+				{
+					continue;
+				}
+
 				if(Iris.biome3d)
 				{
+
 					for(int j = i.getFloor(); j <= i.getCeiling(); j++)
 					{
-						sliver.set(j, caveBiome);
 						sliver.set(j, caveBiome.getGroundBiome(getMasterRandom(), rz, j, rx));
 					}
 				}
@@ -537,7 +538,41 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	protected void onPreParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
+		if(!getDimension().isVanillaCaves())
+		{
+			generateDeposits(random.nextParallelRNG(x).nextParallelRNG(z), terrain, x, z);
+		}
+	}
 
+	public void generateDeposits(RNG rx, TerrainChunk terrain, int x, int z)
+	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
+		RNG ro = rx.nextParallelRNG((x * x * x) - z);
+		IrisRegion region = sampleRegion((x * 16) + 7, (z * 16) + 7);
+		IrisBiome biome = sampleTrueBiome((x * 16) + 7, (z * 16) + 7);
+
+		for(IrisDepositGenerator k : getDimension().getDeposits())
+		{
+			k.generate(terrain, ro, this, x, z, false);
+		}
+
+		for(IrisDepositGenerator k : region.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(terrain, ro, this, x, z, false);
+			}
+		}
+
+		for(IrisDepositGenerator k : biome.getDeposits())
+		{
+			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
+			{
+				k.generate(terrain, ro, this, x, z, false);
+			}
+		}
+		p.end();
+		getMetrics().getDeposits().put(p.getMilliseconds());
 	}
 
 	protected void onPostParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)

@@ -199,7 +199,7 @@ public class ProjectManager
 
 		File packEntry = new File(packs, key);
 
-		if(packEntry.exists())
+		if(packEntry.exists() && packEntry.listFiles().length > 0)
 		{
 			sender.sendMessage("Another pack is using the key " + key + ". IMPORT FAILED!");
 			return;

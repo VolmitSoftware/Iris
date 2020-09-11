@@ -9,6 +9,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
@@ -157,7 +158,12 @@ public class IrisDepositGenerator
 		});
 	}
 
-	public void generate(ChunkData data, RNG rng, TopographicTerrainProvider g, int cx, int cz)
+	public void generate(ChunkData data, RNG rng, TopographicTerrainProvider g, int cx, int cz, boolean safe)
+	{
+		generate(data, rng, g, cx, cz, safe, null);
+	}
+
+	public void generate(ChunkData data, RNG rng, TopographicTerrainProvider g, int cx, int cz, boolean safe, HeightMap he)
 	{
 		for(int l = 0; l < rng.i(getMinPerChunk(), getMaxPerChunk()); l++)
 		{
@@ -174,7 +180,7 @@ public class IrisDepositGenerator
 
 			int x = rng.i(af, bf);
 			int z = rng.i(af, bf);
-			int height = (int) (Math.round(g.getCarvedWaterHeight((cx << 4) + x, (cz << 4) + z))) - 7;
+			int height = (he != null ? he.getHeight((cx << 4) + x, (cz << 4) + z) : (int) (Math.round(g.getCarvedWaterHeight((cx << 4) + x, (cz << 4) + z)))) - 7;
 
 			if(height <= 0)
 			{
@@ -207,14 +213,18 @@ public class IrisDepositGenerator
 					continue;
 				}
 
-				boolean allow = false;
-				BlockData b = data.getBlockData(nx, ny, nz);
-				for(BlockData f : g.getDimension().getRockPalette().getBlockData())
+				boolean allow = !safe;
+
+				if(!allow)
 				{
-					if(f.getMaterial().equals(b.getMaterial()))
+					BlockData b = data.getBlockData(nx, ny, nz);
+					for(BlockData f : g.getDimension().getRockPalette().getBlockData())
 					{
-						allow = true;
-						break;
+						if(f.getMaterial().equals(b.getMaterial()))
+						{
+							allow = true;
+							break;
+						}
 					}
 				}
 

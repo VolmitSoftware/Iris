@@ -112,7 +112,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	@Override
 	public BlockData get(int x, int y, int z)
 	{
-		BlockData b = sampleSliver(x, z).getBlock().get(y);
+		BlockData b = sampleSliver(x, z).getBlock()[y];
 		return b == null ? AIR : b;
 	}
 

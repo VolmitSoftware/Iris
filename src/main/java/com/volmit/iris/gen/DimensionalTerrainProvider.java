@@ -81,7 +81,10 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 
 	public void onInit(RNG masterRandom)
 	{
-
+		if(getDimension().hasSky())
+		{
+			getDimension().getSky().setSkyDimension(true);
+		}
 	}
 
 	public IrisDimension getDimension()

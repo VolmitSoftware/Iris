@@ -12,7 +12,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
@@ -44,23 +43,29 @@ public class GenLayerUpdate extends BlockPopulator
 	@Override
 	public void populate(World w, Random r, Chunk c)
 	{
-		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = gen.getParallaxChunk(c.getX(), c.getZ());
 		RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
-		generateDeposits(w, rx, c);
+
+		if(gen.getDimension().isVanillaCaves())
+		{
+			generateDepositsWithVanillaSaftey(w, rx, c);
+		}
+
 		updateBlocks(w, rx, c, map);
 		spawnInitials(c, rx);
-		p.end();
-		gen.getMetrics().getUpdate().put(p.getMilliseconds());
 	}
 
 	public void spawnInitials(Chunk c, RNG rx)
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		((IrisTerrainProvider) gen).spawnInitials(c, rx);
+		p.end();
+		gen.getMetrics().getSpawns().put(p.getMilliseconds());
 	}
 
-	public void generateDeposits(World w, RNG rx, Chunk c)
+	public void generateDepositsWithVanillaSaftey(World w, RNG rx, Chunk c)
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		int x = c.getX();
 		int z = c.getZ();
 		RNG ro = rx.nextParallelRNG((x * x * x) - z);
@@ -70,14 +75,14 @@ public class GenLayerUpdate extends BlockPopulator
 
 		for(IrisDepositGenerator k : gen.getDimension().getDeposits())
 		{
-			k.generate(terrain, ro, gen, x, z);
+			k.generate(terrain, ro, gen, x, z, true);
 		}
 
 		for(IrisDepositGenerator k : region.getDeposits())
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(terrain, ro, gen, x, z);
+				k.generate(terrain, ro, gen, x, z, true);
 			}
 		}
 
@@ -85,19 +90,23 @@ public class GenLayerUpdate extends BlockPopulator
 		{
 			for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
 			{
-				k.generate(terrain, ro, gen, x, z);
+				k.generate(terrain, ro, gen, x, z, true);
 			}
 		}
+		p.end();
+		gen.getMetrics().getDeposits().put(p.getMilliseconds());
 	}
 
 	private void updateBlocks(World w, RNG rx, Chunk c, AtomicSliverMap map)
 	{
+		PrecisionStopwatch p = PrecisionStopwatch.start();
 		for(int i = 0; i < 16; i++)
 		{
 			for(int j = 0; j < 16; j++)
 			{
-				for(int k : map.getSliver(i, j).getUpdatables())
+				for(byte kv : map.getSliver(i, j).getUpdatables())
 				{
+					byte k = (byte) (kv - Byte.MIN_VALUE);
 					if(k > 255 || k < 0)
 					{
 						continue;
@@ -107,6 +116,8 @@ public class GenLayerUpdate extends BlockPopulator
 				}
 			}
 		}
+		p.end();
+		gen.getMetrics().getUpdate().put(p.getMilliseconds());
 	}
 
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)
@@ -223,9 +234,8 @@ public class GenLayerUpdate extends BlockPopulator
 
 			catch(Throwable e)
 			{
-				Iris.error("NOT INVENTORY: " + data.getMaterial().name());
-			}
 
+			}
 		}
 	}
 

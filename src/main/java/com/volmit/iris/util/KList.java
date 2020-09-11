@@ -688,4 +688,15 @@ public class KList<T> extends ArrayList<T> implements List<T>
 			add(t);
 		}
 	}
+
+	public void addAllIfMissing(KList<T> t)
+	{
+		for(T i : t)
+		{
+			if(!contains(i))
+			{
+				add(i);
+			}
+		}
+	}
 }

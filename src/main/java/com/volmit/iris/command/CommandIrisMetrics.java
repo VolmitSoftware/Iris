@@ -40,9 +40,11 @@ public class CommandIrisMetrics extends MortarCommand
 			sender.sendMessage("Thread Count: " + C.BOLD + "" + C.WHITE + g.getThreads());
 			sender.sendMessage("Total     : " + C.BOLD + "" + C.WHITE + Form.duration(m.getTotal().getAverage(), 2));
 			sender.sendMessage("  Terrain : " + C.BOLD + "" + C.WHITE + Form.duration(m.getTerrain().getAverage(), 2));
+			sender.sendMessage("  Deposits  : " + C.BOLD + "" + C.WHITE + Form.duration(m.getDeposits().getAverage(), 2));
 			sender.sendMessage("  Parallax: " + C.BOLD + "" + C.WHITE + Form.duration(m.getParallax().getAverage(), 2));
 			sender.sendMessage("  Post    : " + C.BOLD + "" + C.WHITE + Form.duration(m.getPost().getAverage(), 2));
-			sender.sendMessage("Updates   : " + C.BOLD + "" + C.WHITE + Form.duration(m.getUpdate().getAverage(), 2));
+			sender.sendMessage("Lighting  : " + C.BOLD + "" + C.WHITE + Form.duration(m.getUpdate().getAverage(), 2));
+			sender.sendMessage("Spawns    : " + C.BOLD + "" + C.WHITE + Form.duration(m.getSpawns().getAverage(), 2));
 
 			return true;
 		}

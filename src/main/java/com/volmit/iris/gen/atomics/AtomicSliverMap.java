@@ -166,13 +166,13 @@ public class AtomicSliverMap
 		return slivers[x * 16 + z];
 	}
 
-	public void write(ChunkData data, BiomeGrid grid, HeightMap height)
+	public void write(ChunkData data, BiomeGrid grid, HeightMap height, boolean skipNull)
 	{
 		for(AtomicSliver i : slivers)
 		{
 			if(i != null)
 			{
-				i.write(data);
+				i.write(data, skipNull);
 				i.write(grid);
 				i.write(height);
 			}

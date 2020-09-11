@@ -72,7 +72,6 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		String key = "c" + x + "," + z;
 		BiomeMap biomeMap = new BiomeMap();
 		int ii, jj;
-
 		onPreGenerate(random, x, z, terrain, height, biomeMap, map);
 
 		for(ii = 0; ii < 16; ii++)
@@ -102,8 +101,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		}
 
 		accelerant.waitFor(key);
-
-		map.write(terrain, terrain, height);
+		map.write(terrain, terrain, height, true);
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
 		onPostGenerate(random, x, z, terrain, height, biomeMap, map);

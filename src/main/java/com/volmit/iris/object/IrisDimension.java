@@ -51,6 +51,10 @@ public class IrisDimension extends IrisRegistrant
 	private String name = "A Dimension";
 
 	@DontObfuscate
+	@Desc("Create an inverted dimension in the sky (like the nether)")
+	private IrisDimension sky = null;
+
+	@DontObfuscate
 	@Desc("Place text on terrain")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
@@ -307,6 +311,7 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();
 
+	private transient boolean skyDimension = false;
 	private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
 	private final transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
 	private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
@@ -315,6 +320,11 @@ public class IrisDimension extends IrisRegistrant
 	private final transient AtomicCache<Double> sinr = new AtomicCache<>();
 	private final transient AtomicCache<Double> cosr = new AtomicCache<>();
 	private final transient AtomicCache<Double> rad = new AtomicCache<>();
+
+	public boolean hasSky()
+	{
+		return getSky() != null;
+	}
 
 	public static KList<IrisCompatabilityFilter> getDefaultCompatability()
 	{

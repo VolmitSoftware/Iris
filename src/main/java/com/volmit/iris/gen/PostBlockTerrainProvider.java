@@ -24,8 +24,6 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	private String postKey;
 	private IrisLock postLock;
 	private PostMasterPatcher patcher;
-	private int minPhase;
-	private int maxPhase;
 
 	public PostBlockTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
@@ -50,23 +48,21 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 			return;
 		}
 
-		int rx, i, j;
+		int rx, i;
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		KList<Runnable> q = new KList<>();
 		for(i = 0; i < 16; i++)
 		{
 			rx = (x << 4) + i;
 
-			for(j = 0; j < 16; j++)
+			int rxx = rx;
+			getAccelerant().queue("post", () ->
 			{
-				int rxx = rx;
-				int rzz = (z << 4) + j;
-
-				getAccelerant().queue("post", () ->
+				for(int j = 0; j < 16; j++)
 				{
-					patcher.onPost(rxx, rzz, x, z, terrain, q);
-				});
-			}
+					patcher.onPost(rxx, (z << 4) + j, x, z, terrain, q);
+				}
+			});
 		}
 
 		getAccelerant().waitFor("post");

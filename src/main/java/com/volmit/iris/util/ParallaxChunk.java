@@ -80,8 +80,9 @@ public class ParallaxChunk implements Writable
 
 	public void injectUpdates(AtomicSliver sliver, int x, int z)
 	{
-		for(Integer i : sliver.getUpdatables())
+		for(Byte b : sliver.getUpdatables())
 		{
+			byte i = (byte) (b - Byte.MIN_VALUE);
 			if(i > 255 || i < 0)
 			{
 				Iris.warn("Block Update out of bounds: " + i);

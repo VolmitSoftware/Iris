@@ -182,7 +182,6 @@ public class IrisEffect
 	private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
 	private final transient AtomicCache<ChronoLatch> latch = new AtomicCache<>();
 
-
 	public boolean canTick()
 	{
 		return latch.aquire(() -> new ChronoLatch(interval)).flip();
@@ -245,7 +244,7 @@ public class IrisEffect
 		{
 			Location part = p.getLocation().clone().add(p.getLocation().getDirection().clone().multiply(RNG.r.i(particleDistance) + particleAway)).clone().add(p.getLocation().getDirection().clone().rotateAroundY(Math.toRadians(90)).multiply(RNG.r.d(-particleDistanceWidth, particleDistanceWidth)));
 
-			part.setY(Math.round(g.getTerrainHeight(part.getBlockX(), part.getBlockZ())) + 1);
+			part.setY(Math.round(g.getCarvedHeight(part.getBlockX(), part.getBlockZ(), true)) + 1);
 			part.add(RNG.r.d(), 0, RNG.r.d());
 			if(extra != 0)
 			{

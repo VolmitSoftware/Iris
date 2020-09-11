@@ -88,6 +88,6 @@ public class IrisEntityInitialSpawn
 
 	private Entity spawn100(ParallaxTerrainProvider g, Location at)
 	{
-		return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)));
+		return getRealEntity(g).spawn(g, at.clone().add(0, 1, 0), rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)));
 	}
 }

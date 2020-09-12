@@ -81,7 +81,7 @@ public class PregenGui extends JPanel
 			g.drawString(i, 20, hh += h);
 		}
 
-		J.sleep((long) 1);
+		J.sleep((long) 1000);
 		repaint();
 	}
 

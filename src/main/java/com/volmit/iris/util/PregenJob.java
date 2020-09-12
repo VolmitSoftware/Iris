@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gui.PregenGui;
 
 public class PregenJob implements Listener
@@ -37,7 +38,7 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private Consumer2<ChunkPosition, Color> consumer;
-	private int cubeSize = 7;
+	private int cubeSize = IrisSettings.get().getPregenTileSize();
 	int xc = 0;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)

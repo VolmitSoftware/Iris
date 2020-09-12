@@ -65,7 +65,6 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 
 	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		getCache().targetChunk(x, z);
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = new AtomicSliverMap();
 		HeightMap height = new HeightMap();

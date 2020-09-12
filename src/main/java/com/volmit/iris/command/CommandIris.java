@@ -21,7 +21,7 @@ public class CommandIris extends MortarCommand
 
 	@Command
 	private CommandIrisDownload download;
-	
+
 	@Command
 	private CommandIrisWhat what;
 

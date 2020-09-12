@@ -1,245 +1,81 @@
 package com.volmit.iris.gen.atomics;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-
-import com.volmit.iris.Iris;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.ChunkPosition;
 
 public class AtomicMulticache
 {
 	public static boolean broken = false;
-	private final AtomicInteger x;
-	private final AtomicInteger z;
-	private int hit = 0;
-	private int miss = 0;
-	private final KMap<Long, Double> height;
-	private final KMap<Long, Integer> carvedHeight;
-	private final KMap<Long, Integer> carvedHeightIgnoreWater;
-	private final KMap<Long, IrisBiome> biome;
-	private final KMap<Long, IrisBiome> rawBiome;
-	private final KMap<Long, IrisRegion> region;
+	private final LoadingCache<ChunkPosition, Double> height;
+	private final LoadingCache<ChunkPosition, Integer> carvedHeight;
+	private final LoadingCache<ChunkPosition, Integer> carvedHeightIgnoreWater;
+	private final LoadingCache<ChunkPosition, IrisBiome> biome;
+	private final LoadingCache<ChunkPosition, IrisBiome> rawBiome;
+	private final LoadingCache<ChunkPosition, IrisRegion> region;
 
-	public AtomicMulticache()
+	public AtomicMulticache(IrisTerrainProvider gen)
 	{
-		x = new AtomicInteger(0);
-		z = new AtomicInteger(0);
-		height = new KMap<Long, Double>();
-		carvedHeight = new KMap<Long, Integer>();
-		carvedHeightIgnoreWater = new KMap<Long, Integer>();
-		biome = new KMap<Long, IrisBiome>();
-		rawBiome = new KMap<Long, IrisBiome>();
-		region = new KMap<Long, IrisRegion>();
-	}
-
-	public void targetChunk(int x, int z)
-	{
-		if(broken)
+		height = Caffeine.newBuilder().maximumSize(getLimit()).build((c) -> gen.getNoiseHeight(c.getX(), c.getZ()) + gen.getFluidHeight());
+		carvedHeight = Caffeine.newBuilder().maximumSize(getLimit()).build((c) ->
 		{
-			return;
-		}
-
-		this.x.set(x);
-		this.z.set(z);
-
-		if(!IrisSettings.get().sharedCaching || Iris.lowMemoryMode)
+			int h = (int) Math.round(gen.getTerrainWaterHeight(c.getX(), c.getZ()));
+			h = gen.getGlCarve().getSurfaceCarve(c.getX(), h, c.getZ());
+			return h;
+		});
+		carvedHeightIgnoreWater = Caffeine.newBuilder().maximumSize(getLimit()).build((c) ->
 		{
-			drop();
-		}
-
-		else
+			int h = (int) Math.round(gen.getTerrainHeight(c.getX(), c.getZ()));
+			h = gen.getGlCarve().getSurfaceCarve(c.getX(), h, c.getZ());
+			return h;
+		});
+		biome = Caffeine.newBuilder().maximumSize(getLimit()).build((c) -> gen.sampleTrueBiomeBase(c.getX(), c.getZ()));
+		rawBiome = Caffeine.newBuilder().maximumSize(getLimit()).build((c) -> gen.computeRawBiome(c.getX(), c.getZ()));
+		region = Caffeine.newBuilder().maximumSize(getLimit()).build((c) ->
 		{
-			if(height.size() > getLimit())
-			{
-				height.clear();
-			}
-
-			if(carvedHeight.size() > getLimit())
-			{
-				carvedHeight.clear();
-			}
-
-			if(carvedHeightIgnoreWater.size() > getLimit())
-			{
-				carvedHeightIgnoreWater.clear();
-			}
-
-			if(biome.size() > getLimit())
-			{
-				biome.clear();
-			}
-
-			if(rawBiome.size() > getLimit())
-			{
-				rawBiome.clear();
-			}
-
-			if(region.size() > getLimit())
-			{
-				region.clear();
-			}
-		}
+			double wx = gen.getModifiedX(c.getX(), c.getZ());
+			double wz = gen.getModifiedZ(c.getX(), c.getZ());
+			return gen.getGlBiome().getRegion(wx, wz);
+		});
 	}
 
 	private int getLimit()
 	{
-		return 1024;
+		return IrisSettings.get().getAtomicCacheSize();
 	}
 
-	public double getHeight(int x, int z, Supplier<Double> g)
+	public double getHeight(int x, int z)
 	{
-		if(broken)
-		{
-			return -5784;
-		}
-
-		long pos = pos(x, z);
-		Double r = height.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			height.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
+		return height.get(new ChunkPosition(x, z));
 	}
 
-	public int getCarvedHeight(int x, int z, Supplier<Integer> g)
+	public int getCarvedHeight(int x, int z)
 	{
-		if(broken)
-		{
-			return -57841;
-		}
-
-		long pos = pos(x, z);
-		Integer r = carvedHeight.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			carvedHeight.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
+		return carvedHeight.get(new ChunkPosition(x, z));
 	}
 
-	public int getCarvedHeightIgnoreWater(int x, int z, Supplier<Integer> g)
+	public int getCarvedHeightIgnoreWater(int x, int z)
 	{
-		if(broken)
-		{
-			return -57841;
-		}
-
-		long pos = pos(x, z);
-		Integer r = carvedHeightIgnoreWater.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			carvedHeightIgnoreWater.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
+		return carvedHeightIgnoreWater.get(new ChunkPosition(x, z));
 	}
 
-	public IrisRegion getRegion(int x, int z, Supplier<IrisRegion> g)
+	public IrisRegion getRegion(int x, int z)
 	{
-		long pos = pos(x, z);
-		IrisRegion r = region.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			region.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
+		return region.get(new ChunkPosition(x, z));
 	}
 
-	public IrisBiome getBiome(int x, int z, Supplier<IrisBiome> g)
+	public IrisBiome getBiome(int x, int z)
 	{
-		long pos = pos(x, z);
-		IrisBiome r = biome.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			biome.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
+		return biome.get(new ChunkPosition(x, z));
 	}
 
-	public IrisBiome getRawBiome(int x, int z, Supplier<IrisBiome> g)
+	public IrisBiome getRawBiome(int x, int z)
 	{
-		if(broken)
-		{
-			return null;
-		}
-		long pos = pos(x, z);
-		IrisBiome r = rawBiome.get(pos);
-
-		if(r == null)
-		{
-			miss++;
-			r = g.get();
-			rawBiome.put(pos, r);
-		}
-
-		else
-		{
-			hit++;
-		}
-
-		return r;
-	}
-
-	public double getCacheHitRate()
-	{
-		return (double) hit / (double) (hit + miss);
-	}
-
-	private long pos(int x, int z)
-	{
-		if(broken)
-		{
-			return 1;
-		}
-		return (((long) x) << 32) | (z & 0xffffffffL);
+		return rawBiome.get(new ChunkPosition(x, z));
 	}
 
 	public void updateHeight(int x, int z, int h)
@@ -248,12 +84,12 @@ public class AtomicMulticache
 		{
 			return;
 		}
-		height.put(pos(x, z), (double) h);
+		height.put(new ChunkPosition(x, z), (double) h);
 	}
 
 	public double getSize()
 	{
-		return height.size() + region.size() + biome.size() + rawBiome.size();
+		return height.estimatedSize() + region.estimatedSize() + biome.estimatedSize() + rawBiome.estimatedSize() + carvedHeight.estimatedSize() + carvedHeightIgnoreWater.estimatedSize();
 	}
 
 	public void drop()
@@ -263,13 +99,11 @@ public class AtomicMulticache
 			return;
 		}
 
-		hit = 0;
-		miss = 0;
-		height.clear();
-		region.clear();
-		biome.clear();
-		rawBiome.clear();
-		carvedHeight.clear();
-		carvedHeightIgnoreWater.clear();
+		height.invalidateAll();
+		region.invalidateAll();
+		biome.invalidateAll();
+		rawBiome.invalidateAll();
+		carvedHeight.invalidateAll();
+		carvedHeightIgnoreWater.invalidateAll();
 	}
 }

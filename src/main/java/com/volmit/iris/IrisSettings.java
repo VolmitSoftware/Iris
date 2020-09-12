@@ -22,6 +22,10 @@ public class IrisSettings
 	public int threads = 16;
 
 	@DontObfuscate
+	@Desc("Iris uses a lot of caching to speed up chunk generation. Setting this higher uses more memory, but may improve performance. Anything past 15,000 should be avoided because there is little benefit past this value.")
+	public int atomicCacheSize = 10000;
+
+	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
 	public boolean parallaxCompression = true;
 
@@ -36,6 +40,10 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("If A is a child of B, and B is a child of A, how deep should iris follow the children in biomes. Lower is faster gen.")
 	public int maxBiomeChildDepth = 5;
+
+	@DontObfuscate
+	@Desc("The size of each tile pregen will generate (in chunks)")
+	public int pregenTileSize = 32;
 
 	@DontObfuscate
 	@Desc("When enabled, The cache is shared for all chunks and cleared periodically instead of per chunk. This uses more memory but provides a ~15% speedup.")

@@ -84,20 +84,10 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	{
 		if(ignoreFluid)
 		{
-			return getCache().getCarvedHeightIgnoreWater(x, z, () ->
-			{
-				int h = (int) Math.round(getTerrainHeight(x, z));
-				h = getGlCarve().getSurfaceCarve(x, h, z);
-				return h;
-			});
+			return getCache().getCarvedHeightIgnoreWater(x, z);
 		}
 
-		return getCache().getCarvedHeightIgnoreWater(x, z, () ->
-		{
-			int h = (int) Math.round(getTerrainWaterHeight(x, z));
-			h = getGlCarve().getSurfaceCarve(x, h, z);
-			return h;
-		});
+		return getCache().getCarvedHeight(x, z);
 	}
 
 	public int getCarvedHeight(int x, int z)
@@ -140,7 +130,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		int height = (int) Math.round(noise);
 		boolean carvable = getGlCarve().couldCarveBelow(rx, height, rz);
 		IrisRegion region = sampleRegion(rx, rz);
-		IrisBiome biome = sampleTrueBiome(rx, rz, noise);
+		IrisBiome biome = sampleTrueBiome(rx, rz);
 		IrisBiome carveBiome = null;
 		Biome onlyBiome = Iris.biome3d ? null : biome.getGroundBiome(getMasterRandom(), rz, getDimension().getFluidHeight(), rx);
 
@@ -582,20 +572,21 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	}
 
-	private double getNoiseHeight(int rx, int rz)
+	public double getNoiseHeight(int rx, int rz)
 	{
 		double h = getBiomeHeight(rx, rz);
 
 		return h;
 	}
 
-	public IrisBiome sampleTrueBiomeBase(int x, int z, int height)
+	public IrisBiome sampleTrueBiomeBase(int x, int z)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
 			return focus();
 		}
 
+		int height = (int) Math.round(getTerrainHeight(x, z));
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = sampleRegion(x, z);
@@ -671,29 +662,19 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		return sampleTrueBiome(x, z);
 	}
 
-	public IrisBiome sampleTrueBiome(int x, int z)
-	{
-		return sampleTrueBiome(x, z, getTerrainHeight(x, z));
-	}
-
 	public IrisRegion sampleRegion(int x, int z)
 	{
-		return getCache().getRegion(x, z, () ->
-		{
-			double wx = getModifiedX(x, z);
-			double wz = getModifiedZ(x, z);
-			return glBiome.getRegion(wx, wz);
-		});
+		return getCache().getRegion(x, z);
 	}
 
-	public IrisBiome sampleTrueBiome(int x, int z, double noise)
+	public IrisBiome sampleTrueBiome(int x, int z)
 	{
 		if(!getDimension().getFocus().equals(""))
 		{
 			return focus();
 		}
 
-		return getCache().getBiome(x, z, () -> sampleTrueBiomeBase(x, z, (int) Math.round(noise)));
+		return getCache().getBiome(x, z);
 	}
 
 	@Override
@@ -724,7 +705,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	public double getTerrainHeight(int x, int z)
 	{
-		return getCache().getHeight(x, z, () -> getNoiseHeight(x, z) + getFluidHeight());
+		return getCache().getHeight(x, z);
 	}
 
 	public double getTerrainWaterHeight(int x, int z)
@@ -885,47 +866,49 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		Iris.info("Loaded " + generators.size() + " Generators");
 	}
+	
+	public IrisBiome computeRawBiome(int x, int z)
+	{
+		if(!getDimension().getFocus().equals(""))
+		{
+			IrisBiome biome = loadBiome(getDimension().getFocus());
+
+			for(String i : getDimension().getRegions())
+			{
+				IrisRegion reg = loadRegion(i);
+
+				if(reg.getLandBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.LAND);
+					break;
+				}
+
+				if(reg.getSeaBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.SEA);
+					break;
+				}
+
+				if(reg.getShoreBiomes().contains(biome.getLoadKey()))
+				{
+					biome.setInferredType(InferredType.SHORE);
+					break;
+				}
+			}
+
+			return biome;
+		}
+
+		double wx = getModifiedX(x, z);
+		double wz = getModifiedZ(x, z);
+		IrisRegion region = glBiome.getRegion(wx, wz);
+		IrisBiome res = glBiome.generateRegionData(wx, wz, x, z, region);
+
+		return res;
+	}
 
 	public IrisBiome sampleBiome(int x, int z)
 	{
-		return getCache().getRawBiome(x, z, () ->
-		{
-			if(!getDimension().getFocus().equals(""))
-			{
-				IrisBiome biome = loadBiome(getDimension().getFocus());
-
-				for(String i : getDimension().getRegions())
-				{
-					IrisRegion reg = loadRegion(i);
-
-					if(reg.getLandBiomes().contains(biome.getLoadKey()))
-					{
-						biome.setInferredType(InferredType.LAND);
-						break;
-					}
-
-					if(reg.getSeaBiomes().contains(biome.getLoadKey()))
-					{
-						biome.setInferredType(InferredType.SEA);
-						break;
-					}
-
-					if(reg.getShoreBiomes().contains(biome.getLoadKey()))
-					{
-						biome.setInferredType(InferredType.SHORE);
-						break;
-					}
-				}
-
-				return biome;
-			}
-
-			double wx = getModifiedX(x, z);
-			double wz = getModifiedZ(x, z);
-			IrisRegion region = glBiome.getRegion(wx, wz);
-			IrisBiome res = glBiome.generateRegionData(wx, wz, x, z, region);
-
-			return res;
-		});
+		return getCache().getRawBiome(x, z);
 	}
 }

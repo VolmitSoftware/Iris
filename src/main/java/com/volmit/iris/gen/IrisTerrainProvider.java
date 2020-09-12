@@ -249,7 +249,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
 		IrisRegion region = sampleRegion(ix, iz);
-		IrisBiome biome = sampleTrueBiome(ix, iz, height);
+		IrisBiome biome = sampleTrueBiome(ix, iz);
 
 		if(biome.getCachedColor() != null)
 		{
@@ -276,7 +276,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);
 		IrisRegion region = sampleRegion(ix, iz);
-		IrisBiome biome = sampleTrueBiome(ix, iz, height);
+		IrisBiome biome = sampleTrueBiome(ix, iz);
 		hb = biome;
 		hr = region;
 		return biome.getName() + " (" + Form.capitalizeWords(biome.getInferredType().name().toLowerCase().replaceAll("\\Q_\\E", " ") + ") in " + region.getName() + "\nY: " + (int) height);

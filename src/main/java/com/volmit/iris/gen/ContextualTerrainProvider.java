@@ -85,7 +85,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
 		hlast = M.ms();
-		cache = new AtomicMulticache();
+		cache = new AtomicMulticache((IrisTerrainProvider) this);
 		CNG.creates = 0;
 		generated = 0;
 		ticks = 0;

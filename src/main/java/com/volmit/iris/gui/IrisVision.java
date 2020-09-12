@@ -124,7 +124,6 @@ public class IrisVision extends JPanel implements MouseWheelListener
 
 	public BufferedImage getTile(KSet<BlockPosition> fg, int div, int x, int z, O<Integer> m)
 	{
-		Iris.proj.getCurrentProject().getCache().targetChunk(x, z);
 		BlockPosition key = new BlockPosition((int) mscale, Math.floorDiv(x, div), Math.floorDiv(z, div));
 		fg.add(key);
 

@@ -141,7 +141,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		boolean carvable = getGlCarve().couldCarveBelow(rx, height, rz);
 		IrisRegion region = sampleRegion(rx, rz);
 		IrisBiome biome = sampleTrueBiome(rx, rz, noise);
-		IrisBiome landBiome = null;
+		IrisBiome carveBiome = null;
 		Biome onlyBiome = Iris.biome3d ? null : biome.getGroundBiome(getMasterRandom(), rz, getDimension().getFluidHeight(), rx);
 
 		if(biome == null)
@@ -185,12 +185,12 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			{
 				if(biomeMap != null)
 				{
-					if(landBiome == null)
+					if(carveBiome == null)
 					{
-						landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
+						carveBiome = biome.getRealCarvingBiome(getData());
 					}
 
-					sliver.set(k, landBiome.getDerivative());
+					sliver.set(k, carveBiome.getDerivative());
 				}
 
 				sliver.set(k, CAVE_AIR);
@@ -245,14 +245,14 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Set Surface Material for cavern layer surfaces
 			else if(carvable && cavernHeights.isNotEmpty() && lastCavernHeight - k >= 0 && lastCavernHeight - k < 5)
 			{
-				if(landBiome == null)
+				if(carveBiome == null)
 				{
-					landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
+					carveBiome = biome.getRealCarvingBiome(getData());
 				}
 
 				if(cavernLayers == null)
 				{
-					cavernLayers = landBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight());
+					cavernLayers = carveBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight());
 				}
 
 				block = cavernLayers.hasIndex(lastCavernHeight - k) ? cavernLayers.get(lastCavernHeight - k) : cavernLayers.get(0);
@@ -277,12 +277,12 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Decorate Cavern surfaces, but not the true surface
 			if((carvable && cavernSurface) && !(k == Math.max(height, fluidHeight) && block.getMaterial().isSolid() && k < 255 && k >= fluidHeight))
 			{
-				if(landBiome == null)
+				if(carveBiome == null)
 				{
-					landBiome = getGlBiome().generateData(InferredType.LAND, wx, wz, rx, rz, region);
+					carveBiome = biome.getRealCarvingBiome(getData());
 				}
 
-				decorateLand(landBiome, sliver, wx, k, wz, rx, rz, block);
+				decorateLand(carveBiome, sliver, wx, k, wz, rx, rz, block);
 			}
 		}
 

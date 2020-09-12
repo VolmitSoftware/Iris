@@ -100,6 +100,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public T load(String name)
 	{
+		if(name.trim().isEmpty())
+		{
+			return null;
+		}
+
 		String key = name + "-" + cname;
 
 		if(loadCache.containsKey(key))

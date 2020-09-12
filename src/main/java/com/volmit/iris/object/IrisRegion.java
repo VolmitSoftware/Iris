@@ -79,7 +79,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this region")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
-	
+
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The min shore height")
@@ -229,6 +229,8 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("Generate rivers in this region")
 	private double riverThickness = 0.1;
 
+	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(true);
+	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(true);
 	private final transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
 	private final transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
 	private final transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
@@ -241,6 +243,42 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	private final transient AtomicCache<CNG> lakeGen = new AtomicCache<>();
 	private final transient AtomicCache<CNG> riverGen = new AtomicCache<>();
 	private final transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
+
+	public KList<IrisObjectPlacement> getSurfaceObjects()
+	{
+		return getSurfaceObjectsCache().aquire(() ->
+		{
+			KList<IrisObjectPlacement> o = getObjects().copy();
+
+			for(IrisObjectPlacement i : o.copy())
+			{
+				if(!i.getCarvingSupport().supportsSurface())
+				{
+					o.remove(i);
+				}
+			}
+
+			return o;
+		});
+	}
+
+	public KList<IrisObjectPlacement> getCarvingObjects()
+	{
+		return getCarveObjectsCache().aquire(() ->
+		{
+			KList<IrisObjectPlacement> o = getObjects().copy();
+
+			for(IrisObjectPlacement i : o.copy())
+			{
+				if(!i.getCarvingSupport().supportsCarving())
+				{
+					o.remove(i);
+				}
+			}
+
+			return o;
+		});
+	}
 
 	public boolean isRiver(RNG rng, double x, double z)
 	{
@@ -368,8 +406,15 @@ public class IrisRegion extends IrisRegistrant implements IRare
 				}
 
 				IrisBiome biome = (g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i);
-				b.put(biome.getLoadKey(), biome);
+
 				names.remove(i);
+				if(biome == null)
+				{
+					continue;
+				}
+				
+				names.add(biome.getCarvingBiome());
+				b.put(biome.getLoadKey(), biome);
 				names.addAll(biome.getChildren());
 			}
 		}

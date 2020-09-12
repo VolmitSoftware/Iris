@@ -30,6 +30,7 @@ public class GenLayerBiome extends GenLayer
 	private BiomeDataProvider landProvider;
 	private BiomeDataProvider shoreProvider;
 	private BiomeDataProvider caveProvider;
+	private BiomeDataProvider carveProvider;
 	private BiomeDataProvider riverProvider;
 	private BiomeDataProvider lakeProvider;
 	private DimensionalTerrainProvider iris;

@@ -304,12 +304,12 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 
 	private int placeObjects(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g)
 	{
-		for(IrisObjectPlacement k : b.getObjects())
+		for(IrisObjectPlacement k : b.getSurfaceObjects())
 		{
 			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3566522));
 		}
 
-		for(IrisObjectPlacement k : r.getObjects())
+		for(IrisObjectPlacement k : r.getSurfaceObjects())
 		{
 			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
 		}
@@ -341,12 +341,12 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 
 	private int placeCarveObjects(RNG random, IrisRegion r, IrisBiome b, int i, int j, int g, CarveResult c)
 	{
-		for(IrisObjectPlacement k : b.getObjects())
+		for(IrisObjectPlacement k : b.getCarvingObjects())
 		{
 			placeCarveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569221 + g), c);
 		}
 
-		for(IrisObjectPlacement k : r.getObjects())
+		for(IrisObjectPlacement k : r.getCarvingObjects())
 		{
 			placeCarveObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3561222 + g), c);
 		}

@@ -8,6 +8,7 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.DependsOn;
@@ -39,186 +40,216 @@ public class IrisBiome extends IrisRegistrant implements IRare
 {
 	@MinNumber(2)
 	@Required
-	
 	@DontObfuscate
 	@Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
 	private String name = "A Biome";
 
 	@DontObfuscate
-	
 	@Desc("Place text on terrain. Iris will render text into block schematics and randomly place them in this biome.")
 	@ArrayType(min = 1, type = IrisTextPlacement.class)
 	private KList<IrisTextPlacement> text = new KList<>();
 
 	@DontObfuscate
-	
 	@Desc("The type of fluid if this biome is underwater. To 'defer' this value to whatever the parent dimension fluid type is, use an emtpy string.")
 	private String fluidType = "";
 
 	@DontObfuscate
-	
 	@Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")
 	@ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
 	@DontObfuscate
-	
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
 	@ArrayType(min = 1, type = IrisEffect.class)
 	@DontObfuscate
-	
 	@Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
 	private KList<IrisEffect> effects = new KList<>();
 
 	@DontObfuscate
-	
 	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
 	@Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
 	private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
 
 	@ArrayType(min = 1, type = IrisBlockDrops.class)
 	@DontObfuscate
-	
 	@Desc("Define custom block drops for this biome")
 	private KList<IrisBlockDrops> blockDrops = new KList<>();
 
 	@DontObfuscate
-	
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
 	@MinNumber(0.0001)
 	@DontObfuscate
-	
 	@DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
 	@Desc("This zooms in the biome colors if multiple derivatives are chosen")
 	private double biomeZoom = 1;
 
 	@DontObfuscate
-	
 	@Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
 	private boolean lockLayers = false;
 
-	
 	@DontObfuscate
 	@Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
 	private int lockLayersMax = 7;
 
 	@MinNumber(1)
-	
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("The rarity of this biome (integer)")
 	private int rarity = 1;
 
 	@DontObfuscate
-	
 	@Desc("A debug color for visualizing this biome with a color. I.e. #F13AF5")
 	private String debugColor = "";
 
 	@Required
 	@DontObfuscate
-	
 	@Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
 	private Biome derivative = Biome.THE_VOID;
 
 	@ArrayType(min = 1, type = Biome.class)
 	@DontObfuscate
-	
 	@Desc("You can instead specify multiple biome derivatives to randomly scatter colors in this biome")
 	private KList<Biome> biomeScatter = new KList<>();
 
 	@ArrayType(min = 1, type = Biome.class)
 	@DontObfuscate
-	
 	@Desc("Since 1.13 supports 3D biomes, you can add different derivative colors for anything above the terrain. (Think swampy tree leaves with a desert looking grass surface)")
 	private KList<Biome> biomeSkyScatter = new KList<>();
 
 	@DontObfuscate
-	
 	@DependsOn({"children"})
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
 	private double childShrinkFactor = 1.5;
 
 	@DontObfuscate
-	
 	@DependsOn({"children"})
 	@Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
 	private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
 	@RegistryListBiome
-	
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
 	private KList<String> children = new KList<>();
 
-	
+	@RegistryListBiome
+	@DontObfuscate
+	@Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
+	private String carvingBiome = "";
+
 	@DontObfuscate
 	@Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
 	private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
 
 	@DontObfuscate
-	
 	@Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
 	private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
 
 	@Required
 	@ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
 	@DontObfuscate
-	
 	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
 	private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 
 	@ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
 	@DontObfuscate
-	
 	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
 	private KList<IrisBiomePaletteLayer> seaLayers = new KList<IrisBiomePaletteLayer>();
 
 	@ArrayType(min = 1, type = IrisBiomeDecorator.class)
 	@DontObfuscate
-	
 	@Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
 	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
 
 	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate
-	
 	@Desc("Objects define what schematics (iob files) iris will place in this biome")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
 
 	@Required
 	@ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
 	@DontObfuscate
-	
 	@Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
 	private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
 
 	@ArrayType(min = 1, type = IrisStructurePlacement.class)
 	@DontObfuscate
-	
 	@Desc("A list of structure tilesets")
 	private KList<IrisStructurePlacement> structures = new KList<>();
 
 	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@DontObfuscate
-	
 	@Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
 	private KList<IrisDepositGenerator> deposits = new KList<>();
 
 	private transient InferredType inferredType;
 
+	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
+	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
 	private final transient AtomicCache<Color> cacheColor = new AtomicCache<>(true);
 	private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
 	private final transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
 	private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
+	private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
 	private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
+
+	public IrisBiome getRealCarvingBiome(IrisDataManager data)
+	{
+		return realCarveBiome.aquire(() ->
+		{
+			IrisBiome biome = data.getBiomeLoader().load(getCarvingBiome());
+
+			if(biome == null)
+			{
+				biome = this;
+			}
+
+			return biome;
+		});
+	}
+
+	public KList<IrisObjectPlacement> getSurfaceObjects()
+	{
+		return getSurfaceObjectsCache().aquire(() ->
+		{
+			KList<IrisObjectPlacement> o = getObjects().copy();
+
+			for(IrisObjectPlacement i : o.copy())
+			{
+				if(!i.getCarvingSupport().supportsSurface())
+				{
+					o.remove(i);
+				}
+			}
+
+			return o;
+		});
+	}
+
+	public KList<IrisObjectPlacement> getCarvingObjects()
+	{
+		return getCarveObjectsCache().aquire(() ->
+		{
+			KList<IrisObjectPlacement> o = getObjects().copy();
+
+			for(IrisObjectPlacement i : o.copy())
+			{
+				if(!i.getCarvingSupport().supportsCarving())
+				{
+					o.remove(i);
+				}
+			}
+
+			return o;
+		});
+	}
 
 	public Color getCachedColor()
 	{

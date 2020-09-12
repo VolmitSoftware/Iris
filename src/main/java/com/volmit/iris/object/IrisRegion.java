@@ -79,7 +79,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("Objects define what schematics (iob files) iris will place in this region")
 	private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
-
+	
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The min shore height")

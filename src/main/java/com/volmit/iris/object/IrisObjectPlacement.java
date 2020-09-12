@@ -26,7 +26,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectPlacement
 {
-
 	@RegistryListObject
 	@Required
 	@ArrayType(min = 1, type = String.class)
@@ -98,6 +97,14 @@ public class IrisObjectPlacement
 	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
 	private boolean underwater = false;
+
+	@DontObfuscate
+	@Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
+	private boolean allowInCarvings = true;
+
+	@DontObfuscate
+	@Desc("If set to true, objects will place on carving ceilings instead of the floors. Make sure to rotate it upside down with rotate if need be as this option does NOT flip your object upside down.")
+	private boolean carvingCeiling = false;
 
 	@DontObfuscate
 	@Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")

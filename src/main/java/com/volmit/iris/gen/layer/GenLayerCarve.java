@@ -72,7 +72,7 @@ public class GenLayerCarve extends GenLayer
 			{
 				if(lastCarve - i > 2 && !(i < terrainHeight && lastCarve - i > terrainHeight))
 				{
-					surfaces.add(new CarveResult(i, lastCarve - i));
+					surfaces.add(new CarveResult(i, lastCarve));
 				}
 			}
 

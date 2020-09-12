@@ -22,8 +22,8 @@ public class IrisSettings
 	public int threads = 16;
 
 	@DontObfuscate
-	@Desc("Iris uses a lot of caching to speed up chunk generation. Setting this higher uses more memory, but may improve performance. Anything past 15,000 should be avoided because there is little benefit past this value.")
-	public int atomicCacheSize = 10000;
+	@Desc("Iris uses a lot of caching to speed up chunk generation. Setting this higher uses more memory, but may improve performance. Anything past 8,000 should be avoided because there is little benefit past this value.")
+	public int atomicCacheSize = 3000;
 
 	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")

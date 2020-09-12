@@ -34,7 +34,6 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.DecorationPart;
-import com.volmit.iris.object.Envelope;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
@@ -71,6 +70,7 @@ import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListBlockType;
 import com.volmit.iris.util.RegistryListDimension;
@@ -950,11 +950,13 @@ public class ProjectManager
 	{
 		try
 		{
+			PrecisionStopwatch p = PrecisionStopwatch.start();
 			Iris.info("Updating Workspace: " + ws.getPath());
 			J.attemptAsync(() -> writeDocs(ws.getParentFile()));
 			JSONObject j = newWorkspaceConfig(ws.getParentFile());
 			IO.writeAll(ws, j.toString(4));
-			Iris.info("Updated Workspace: " + ws.getPath());
+			p.end();
+			Iris.info("Updated Workspace: " + ws.getPath() + " in " + Form.duration(p.getMilliseconds(), 2));
 		}
 
 		catch(Throwable e)
@@ -1003,6 +1005,8 @@ public class ProjectManager
 
 	private JSONArray buildSchemas(IrisDataManager dat, File pack)
 	{
+		String gg = dat.getBiomeLoader().getPreferredFolder();
+		dat.preferFolder(pack.getName());
 		JSONArray schemas = new JSONArray();
 		TaskGroup g = tx.startWork();
 		g.queue(() -> ex(schemas, IrisDimension.class, dat, "/dimensions/*.json", pack));
@@ -1013,6 +1017,7 @@ public class ProjectManager
 		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json", pack));
 		g.queue(() -> ex(schemas, IrisLootTable.class, dat, "/loot/*.json", pack));
 		g.execute();
+		dat.preferFolder(gg);
 
 		return schemas;
 	}
@@ -1022,7 +1027,7 @@ public class ProjectManager
 		Iris.verbose("Processing Folder " + i.getSimpleName() + " " + fileMatch[0]);
 		JSONObject o = new JSONObject();
 		o.put("fileMatch", new JSONArray(fileMatch));
-		o.put("schema", getSchemaFor(i, dat));
+		o.put("schema", new SchemaBuilder(i, dat).compute());
 
 		return o;
 	}
@@ -1568,6 +1573,12 @@ public class ProjectManager
 										deff.put("description", tx + "\n\n" + t.type().getDeclaredAnnotation(Desc.class).value());
 										deff.put("additionalProperties", false);
 										deff.put("properties", scv.getJSONObject("properties"));
+
+										if(deff.getJSONObject("properties").length() == 0)
+										{
+											Iris.warn("Schema Def for " + name + " has " + deff.getJSONObject("properties").length() + " Entries" + " (Step " + step + ")");
+										}
+
 										if(scv.has("required"))
 										{
 											deff.put("required", scv.getJSONArray("required"));
@@ -1930,14 +1941,6 @@ public class ProjectManager
 		}
 
 		IO.writeAll(new File(of, "decoration-part.txt"), m.toString("\n"));
-		m = new KList<>();
-
-		for(Envelope i : Envelope.values())
-		{
-			m.add(i.name());
-		}
-
-		IO.writeAll(new File(of, "envelope.txt"), m.toString("\n"));
 		m = new KList<>();
 
 		for(Environment i : Environment.values())

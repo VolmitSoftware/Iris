@@ -22,6 +22,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected IrisLock lock;
 	protected String preferredFolder = null;
 	protected String[] possibleKeys = null;
+	protected String[] preferredKeys = null;
 
 	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
@@ -33,6 +34,53 @@ public class ResourceLoader<T extends IrisRegistrant>
 		this.root = root;
 		this.folderName = folderName;
 		loadCache = new KMap<>();
+	}
+
+	public String[] getPreferredKeys()
+	{
+		if(preferredFolder == null || preferredFolder.isEmpty())
+		{
+			return getPossibleKeys();
+		}
+
+		if(preferredKeys != null)
+		{
+			return preferredKeys;
+		}
+
+		Iris.info("Building " + resourceTypeName + " Preference Lists");
+		KSet<String> m = new KSet<>();
+
+		for(File i : getFolders())
+		{
+			for(File j : i.listFiles())
+			{
+				if(!j.getPath().contains(preferredFolder))
+				{
+					continue;
+				}
+				
+				if(j.isFile() && j.getName().endsWith(".json"))
+				{
+					m.add(j.getName().replaceAll("\\Q.json\\E", ""));
+				}
+
+				else if(j.isDirectory())
+				{
+					for(File k : j.listFiles())
+					{
+						if(k.isFile() && k.getName().endsWith(".json"))
+						{
+							m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.json\\E", ""));
+						}
+					}
+				}
+			}
+		}
+
+		KList<String> v = new KList<>(m);
+		preferredKeys = v.toArray(new String[v.size()]);
+		return preferredKeys;
 	}
 
 	public String[] getPossibleKeys()

@@ -23,7 +23,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCarveLayer
 {
-
 	@Required
 	@DontObfuscate
 	@Desc("The 4d slope this carve layer follows")

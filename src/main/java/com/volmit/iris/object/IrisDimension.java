@@ -53,7 +53,7 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Create an inverted dimension in the sky (like the nether)")
 	private IrisDimension sky = null;
-	
+
 	@DontObfuscate
 	@Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
 	private String resourcePack = "";

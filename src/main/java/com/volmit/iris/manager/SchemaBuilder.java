@@ -3,6 +3,7 @@ package com.volmit.iris.manager;
 import java.awt.GraphicsEnvironment;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.List;
 
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
@@ -90,7 +91,7 @@ public class SchemaBuilder
 		JSONObject o = new JSONObject();
 		JSONObject properties = new JSONObject();
 		o.put("description", getDescription(c));
-
+		o.put("type", getType(c));
 		JSONArray required = new JSONArray();
 
 		for(Field k : c.getDeclaredFields())
@@ -821,6 +822,36 @@ public class SchemaBuilder
 		d.add("   ");
 		d.add(fancyType);
 		d.add(getDescription(k.getType()));
+
+		try
+		{
+			k.setAccessible(true);
+			Object value = k.get(cl.newInstance());
+
+			if(value != null)
+			{
+				if(value instanceof List)
+				{
+					d.add("* Default Value is an empty list");
+				}
+
+				else if(!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()))
+				{
+					d.add("* Default Value is a default object (create this object to see default properties)");
+				}
+
+				else
+				{
+					d.add("* Default Value is " + value.toString());
+				}
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
 		description.forEach((g) -> d.add(g.trim()));
 		prop.put("type", type);
 		prop.put("description", d.toString("\n"));

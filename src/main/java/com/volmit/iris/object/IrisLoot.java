@@ -39,7 +39,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisLoot
 {
-
 	@DontObfuscate
 	@Desc("The target inventory slot types to fill this loot with")
 	private InventorySlotType slotTypes = InventorySlotType.STORAGE;

@@ -191,7 +191,12 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	@Override
 	protected void onPlayerJoin(Player p)
 	{
+		if(getDimension().getResourcePack().trim().isEmpty())
+		{
+			return;
+		}
 
+		p.setResourcePack(getDimension().getResourcePack());
 	}
 
 	@Override

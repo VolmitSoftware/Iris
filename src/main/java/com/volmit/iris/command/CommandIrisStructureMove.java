@@ -8,11 +8,11 @@ import com.volmit.iris.structure.StructureTemplate;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStructureMore extends MortarCommand
+public class CommandIrisStructureMove extends MortarCommand
 {
-	public CommandIrisStructureMore()
+	public CommandIrisStructureMove()
 	{
-		super("more", "++");
+		super("move", "++");
 		requiresPermission(Iris.perm);
 		setCategory("Structure");
 		setDescription("Load more of the structure");
@@ -43,7 +43,7 @@ public class CommandIrisStructureMore extends MortarCommand
 		}
 
 		m.more();
-		sender.sendMessage("Loading More!");
+		sender.sendMessage("Moving Structure Builder!");
 
 		return true;
 	}

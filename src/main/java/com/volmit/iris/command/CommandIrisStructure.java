@@ -18,7 +18,7 @@ public class CommandIrisStructure extends MortarCommand
 	private CommandIrisStructureSave save;
 
 	@Command
-	private CommandIrisStructureMore more;
+	private CommandIrisStructureMove more;
 
 	@Command
 	private CommandIrisStructureExpand expand;

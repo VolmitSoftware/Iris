@@ -17,7 +17,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 {
 	public CommandIrisStudioGoto()
 	{
-		super("goto", "find");
+		super("goto", "find", "g", "tp");
 		setDescription("Find any biome or a biome border");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");

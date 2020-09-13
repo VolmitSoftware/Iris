@@ -9,7 +9,7 @@ public class CommandIrisStudioUpdate extends MortarCommand
 {
 	public CommandIrisStudioUpdate()
 	{
-		super("update", "upd");
+		super("update", "upd", "u");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Update your dimension project.");
 		setCategory("Studio");

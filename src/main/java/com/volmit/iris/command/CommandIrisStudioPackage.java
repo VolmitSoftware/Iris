@@ -27,7 +27,7 @@ public class CommandIrisStudioPackage extends MortarCommand
 		
 		if(args.length == 0)
 		{
-			sender.sendMessage("/iris std package <DIMENSION> [-o]");
+			sender.sendMessage("/iris std package <DIMENSION> [-o] [-m]");
 			return true;
 		}
 

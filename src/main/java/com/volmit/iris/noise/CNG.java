@@ -72,39 +72,21 @@ public class CNG
 	public static CNG signature(RNG rng, NoiseType t)
 	{
 		// @NoArgsConstructor
-		return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
-				.fractureWith(
-						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
-								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21)
-										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145),
-						44)
-				.bake();
+		return new CNG(rng.nextParallelRNG(17), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145), 44).bake();
 		// @done
 	}
 
 	public static CNG signatureThick(RNG rng, NoiseType t)
 	{
 		// @NoArgsConstructor
-		return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
-				.fractureWith(
-						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5)
-								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11)
-										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145),
-						44)
-				.bake();
+		return new CNG(rng.nextParallelRNG(133), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145), 44).bake();
 		// @done
 	}
 
 	public static CNG signatureHalf(RNG rng, NoiseType t)
 	{
 		// @NoArgsConstructor
-		return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
-				.fractureWith(
-						new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9)
-								.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21)
-										.fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99),
-						22)
-				.bake();
+		return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99), 22).bake();
 		// @done
 	}
 
@@ -349,8 +331,8 @@ public class CNG
 		double scale = noscale ? 1 : this.bakedScale * this.scale;
 		double f = noscale ? 0 : (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
 		double x = dim.length > 0 ? dim[0] + f : 0D;
-		double y = dim.length > 1 ? dim[1] - f : 0D;
-		double z = dim.length > 2 ? dim[2] - f : 0D;
+		double y = dim.length > 1 ? dim[1] + f : 0D;
+		double z = dim.length > 2 ? dim[2] + f : 0D;
 		double n = generator.noise(x * scale, y * scale, z * scale) * opacity;
 		n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
 		double m = 1;

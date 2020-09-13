@@ -5,7 +5,6 @@ import org.bukkit.block.data.BlockData;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -24,11 +23,11 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectReplace
 {
-	@ArrayType(min = 1, type = String.class)
+	@ArrayType(min = 1, type = IrisBlockData.class)
 	@Required
 	@Desc("Find this block")
 	@DontObfuscate
-	private KList<String> find = new KList<>();
+	private KList<IrisBlockData> find = new KList<>();
 
 	@Required
 	@Desc("Replace it with this block palette")
@@ -45,7 +44,22 @@ public class IrisObjectReplace
 
 	public KList<BlockData> getFind()
 	{
-		return findData.aquire(() -> B.getBlockData(find));
+		return findData.aquire(() ->
+		{
+			KList<BlockData> b = new KList<>();
+
+			for(IrisBlockData i : find)
+			{
+				BlockData bx = i.getBlockData();
+
+				if(bx != null)
+				{
+					b.add(bx);
+				}
+			}
+
+			return b;
+		});
 	}
 
 	public BlockData getReplace(RNG seed, double x, double y, double z)

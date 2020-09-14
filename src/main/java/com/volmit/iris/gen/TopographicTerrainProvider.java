@@ -140,9 +140,9 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			throw new RuntimeException("Null Biome!");
 		}
 
-		KList<BlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight());
+		KList<BlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight(), getData());
 		KList<BlockData> cavernLayers = null;
-		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height) : new KList<>();
+		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height, getData()) : new KList<>();
 		BlockData biomeFluid = biome.getFluidType().isEmpty() ? null : B.get(biome.getFluidType());
 
 		boolean caverning = false;
@@ -229,7 +229,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Set Sea Material (water/lava)
 			if(underwater)
 			{
-				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : biomeFluid != null ? biomeFluid : getDimension().getFluidPalette().get(rockRandom, wx, k, wz);
+				block = seaLayers.hasIndex(fluidHeight - k) ? seaLayers.get(depth) : biomeFluid != null ? biomeFluid : getDimension().getFluidPalette().get(rockRandom, wx, k, wz, getData());
 			}
 
 			// Set Surface Material for cavern layer surfaces
@@ -242,7 +242,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				if(cavernLayers == null)
 				{
-					cavernLayers = carveBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight());
+					cavernLayers = carveBiome.generateLayers(rx, rz, getMasterRandom(), 5, height - getFluidHeight(), getData());
 				}
 
 				block = cavernLayers.hasIndex(lastCavernHeight - k) ? cavernLayers.get(lastCavernHeight - k) : cavernLayers.get(0);
@@ -251,7 +251,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Set Surface Material for true surface
 			else
 			{
-				block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRockPalette().get(rockRandom, wx, k, wz);
+				block = layers.hasIndex(depth) ? layers.get(depth) : getDimension().getRockPalette().get(rockRandom, wx, k, wz, getData());
 				depth++;
 			}
 
@@ -300,8 +300,8 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					}
 				}
 
-				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2);
-				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2);
+				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2, getData());
+				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, getData());
 				BlockData blockc = null;
 				for(int j = 0; j < floor.size(); j++)
 				{
@@ -361,7 +361,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				continue;
 			}
 
-			BlockData d = i.getBlockData(biome, rng.nextParallelRNG((int) (38888 + biome.getRarity() + biome.getName().length() + j++)), rx, rz);
+			BlockData d = i.getBlockData(biome, rng.nextParallelRNG((int) (38888 + biome.getRarity() + biome.getName().length() + j++)), rx, rz, getData());
 
 			if(d != null)
 			{
@@ -398,7 +398,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				else
 				{
-					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (10000 * i.getChance()) + i.getStackMax() + i.getStackMin() + i.getZoom())), rx, rz);
+					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (10000 * i.getChance()) + i.getStackMax() + i.getStackMin() + i.getZoom())), rx, rz, getData());
 
 					if(stack == 1)
 					{
@@ -430,7 +430,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		for(IrisBiomeDecorator i : biome.getDecorators())
 		{
-			BlockData d = i.getBlockData(biome, rng.nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz);
+			BlockData d = i.getBlockData(biome, rng.nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz, getData());
 
 			if(d != null)
 			{
@@ -459,7 +459,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				else
 				{
-					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (1000 * i.getChance()) + i.getZoom() * 10)), rx, rz);
+					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (1000 * i.getChance()) + i.getZoom() * 10)), rx, rz, getData());
 
 					if(stack == 1)
 					{
@@ -501,11 +501,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				continue;
 			}
 
-			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz);
+			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
 
 			if(d != null)
 			{
-				int stack = i.getHeight(random.nextParallelRNG((int) (239456 + i.getStackMax() + i.getStackMin() + i.getVerticalZoom() + i.getZoom() + i.getBlockData().size() + j)), rx, rz);
+				int stack = i.getHeight(random.nextParallelRNG((int) (239456 + i.getStackMax() + i.getStackMin() + i.getVerticalZoom() + i.getZoom() + i.getBlockData(getData()).size() + j)), rx, rz, getData());
 
 				if(stack == 1)
 				{

@@ -329,7 +329,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			for(IrisBlockDrops i : cbio.getBlockDrops())
 			{
-				if(i.shouldDropFor(data))
+				if(i.shouldDropFor(data, getData()))
 				{
 					if(!skipParents && i.isSkipParents())
 					{
@@ -350,7 +350,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			for(IrisBlockDrops i : bio.getBlockDrops())
 			{
-				if(i.shouldDropFor(data))
+				if(i.shouldDropFor(data, getData()))
 				{
 					if(!skipParents && i.isSkipParents())
 					{
@@ -371,7 +371,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			for(IrisBlockDrops i : reg.getBlockDrops())
 			{
-				if(i.shouldDropFor(data))
+				if(i.shouldDropFor(data, getData()))
 				{
 					if(!skipParents && i.isSkipParents())
 					{
@@ -392,7 +392,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			for(IrisBlockDrops i : dim.getBlockDrops())
 			{
-				if(i.shouldDropFor(data))
+				if(i.shouldDropFor(data, getData()))
 				{
 					if(i.isReplaceVanillaDrops())
 					{

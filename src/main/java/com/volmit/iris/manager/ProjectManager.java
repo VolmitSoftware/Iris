@@ -1,7 +1,6 @@
 package com.volmit.iris.manager;
 
 import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -19,7 +18,6 @@ import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.block.Biome;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
@@ -38,6 +36,7 @@ import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisBiomeMutation;
+import com.volmit.iris.object.IrisBlockData;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.object.IrisGenerator;
@@ -50,12 +49,8 @@ import com.volmit.iris.object.IrisStructure;
 import com.volmit.iris.object.IrisStructureTile;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.object.StructureTileCondition;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.DependsOn;
-import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
@@ -66,23 +61,9 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.M;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.RegistryListBlockType;
-import com.volmit.iris.util.RegistryListDimension;
-import com.volmit.iris.util.RegistryListEntity;
-import com.volmit.iris.util.RegistryListFont;
-import com.volmit.iris.util.RegistryListGenerator;
-import com.volmit.iris.util.RegistryListItemType;
-import com.volmit.iris.util.RegistryListLoot;
-import com.volmit.iris.util.RegistryListObject;
-import com.volmit.iris.util.RegistryListRegion;
-import com.volmit.iris.util.RegistryListStructure;
-import com.volmit.iris.util.Required;
 import com.volmit.iris.util.TaskExecutor;
 import com.volmit.iris.util.TaskExecutor.TaskGroup;
 
@@ -432,6 +413,15 @@ public class ProjectManager
 		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
 		KSet<IrisLootTable> loot = new KSet<>();
+		KSet<IrisBlockData> blocks = new KSet<>();
+		Iris.globaldata.preferFolder(dim);
+
+		for(String i : Iris.globaldata.getBlockLoader().getPreferredKeys())
+		{
+			blocks.add(Iris.globaldata.getBlockLoader().load(i));
+		}
+
+		Iris.globaldata.preferFolder(null);
 		dimension.getRegions().forEach((i) -> regions.add(Iris.globaldata.getRegionLoader().load(i)));
 		dimension.getLoot().getTables().forEach((i) -> loot.add(Iris.globaldata.getLootLoader().load(i)));
 		regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
@@ -634,6 +624,13 @@ public class ProjectManager
 			{
 				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
+				b.append(IO.hash(a));
+			}
+
+			for(IrisBlockData i : blocks)
+			{
+				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+				IO.writeAll(new File(folder, "blocks/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 
@@ -1015,6 +1012,7 @@ public class ProjectManager
 		g.queue(() -> ex(schemas, IrisRegion.class, dat, "/regions/*.json", pack));
 		g.queue(() -> ex(schemas, IrisGenerator.class, dat, "/generators/*.json", pack));
 		g.queue(() -> ex(schemas, IrisStructure.class, dat, "/structures/*.json", pack));
+		g.queue(() -> ex(schemas, IrisBlockData.class, dat, "/blocks/*.json", pack));
 		g.queue(() -> ex(schemas, IrisLootTable.class, dat, "/loot/*.json", pack));
 		g.execute();
 		dat.preferFolder(gg);
@@ -1030,719 +1028,6 @@ public class ProjectManager
 		o.put("schema", new SchemaBuilder(i, dat).compute());
 
 		return o;
-	}
-
-	public JSONObject getSchemaFor(Class<?> i, IrisDataManager dat)
-	{
-		Iris.verbose("Processing " + i.getSimpleName());
-		KMap<String, JSONObject> def = new KMap<>();
-		JSONObject s = getSchemaFor(i, 7, def, dat);
-		JSONObject defx = new JSONObject();
-		for(String v : def.k())
-		{
-			defx.put(v, def.get(v));
-		}
-
-		s.put("definitions", defx);
-
-		return s;
-	}
-
-	public JSONObject getSchemaFor(Class<?> i, int step, KMap<String, JSONObject> def, IrisDataManager dat)
-	{
-		Object dummy = tryCreate(i);
-		if(step <= 0)
-		{
-			JSONObject m = new JSONObject();
-			m.put("properties", new JSONObject());
-			return m;
-		}
-
-		JSONObject schema = new JSONObject();
-		if(i.isAnnotationPresent(Desc.class))
-		{
-			schema.put("$schema", "http://json-schema.org/draft-07/schema#");
-			schema.put("$id", "http://volmit.com/iris-schema/" + i.getSimpleName().toLowerCase() + ".json");
-			schema.put("title", i.getSimpleName().replaceAll("\\QIris\\E", ""));
-			schema.put("type", "object");
-
-			Desc d = i.getAnnotation(Desc.class);
-			String dsc = i.getSimpleName().replaceAll("\\QIris\\E", "") + "\n\n" + d.value();
-			schema.put("description", dsc);
-
-			JSONObject properties = new JSONObject();
-			JSONArray req = new JSONArray();
-			JSONObject deps = new JSONObject();
-
-			for(java.lang.reflect.Field k : i.getDeclaredFields())
-			{
-				k.setAccessible(true);
-				JSONObject prop = new JSONObject();
-				if(k.isAnnotationPresent(Desc.class))
-				{
-					if(k.isAnnotationPresent(DependsOn.class))
-					{
-						deps.put(k.getName(), new JSONArray(k.getDeclaredAnnotation(DependsOn.class).value()));
-					}
-
-					String tp = "object";
-
-					if(k.getType().equals(int.class) || k.getType().equals(long.class))
-					{
-						tp = "integer";
-
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
-							prop.put("minimum", (int) k.getDeclaredAnnotation(MinNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
-							prop.put("maximum", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
-						}
-					}
-
-					if(k.getType().equals(double.class) || k.getType().equals(float.class))
-					{
-						tp = "number";
-
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
-							prop.put("minimum", k.getDeclaredAnnotation(MinNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
-							prop.put("maximum", k.getDeclaredAnnotation(MaxNumber.class).value());
-						}
-					}
-
-					if(k.getType().equals(boolean.class))
-					{
-						tp = "boolean";
-					}
-
-					if(k.getType().equals(String.class))
-					{
-						tp = "string";
-
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
-							prop.put("minLength", (int) k.getDeclaredAnnotation(MinNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
-							prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(RegistryListBiome.class))
-						{
-							prop.put("enum", new JSONArray(getBiomeList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListBlockType.class))
-						{
-							prop.put("enum", new JSONArray(getBlockTypeList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListItemType.class))
-						{
-							prop.put("enum", new JSONArray(getItemTypeList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListEntity.class))
-						{
-							prop.put("enum", new JSONArray(getEntityList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListFont.class))
-						{
-							prop.put("enum", new JSONArray(getFontList()));
-						}
-
-						if(k.isAnnotationPresent(RegistryListLoot.class))
-						{
-							prop.put("enum", new JSONArray(getLootList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListDimension.class))
-						{
-							prop.put("enum", new JSONArray(getDimensionList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListGenerator.class))
-						{
-							prop.put("enum", new JSONArray(getGeneratorList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListObject.class))
-						{
-							prop.put("enum", new JSONArray(getObjectList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListRegion.class))
-						{
-							prop.put("enum", new JSONArray(getRegionList(dat)));
-						}
-
-						if(k.isAnnotationPresent(RegistryListStructure.class))
-						{
-							prop.put("enum", new JSONArray(getStructureList(dat)));
-						}
-					}
-
-					if(k.getType().isEnum())
-					{
-						tp = "string";
-						JSONArray a = new JSONArray();
-
-						for(Object gg : k.getType().getEnumConstants())
-						{
-							a.put(((Enum<?>) gg).name());
-						}
-
-						prop.put("enum", a);
-					}
-
-					if(k.getType().equals(String.class) && k.getName().equals("potionEffect"))
-					{
-						tp = "string";
-						JSONArray a = new JSONArray();
-
-						for(PotionEffectType gg : PotionEffectType.values())
-						{
-							a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
-						}
-
-						prop.put("enum", a);
-					}
-
-					if(k.getType().equals(String.class) && k.getName().equals("enchantment"))
-					{
-						tp = "string";
-						JSONArray a = new JSONArray();
-
-						for(Field gg : Enchantment.class.getDeclaredFields())
-						{
-							a.put(gg.getName());
-						}
-
-						prop.put("enum", a);
-					}
-
-					if(k.getType().equals(KList.class))
-					{
-						tp = "array";
-					}
-
-					if(k.isAnnotationPresent(Required.class))
-					{
-						req.put(k.getName());
-					}
-
-					if(tp.equals("object"))
-					{
-						if(k.getType().isAnnotationPresent(Desc.class))
-						{
-							prop.put("additionalProperties", false);
-							prop.put("properties", getSchemaFor(k.getType(), step - 1, def, Iris.globaldata).getJSONObject("properties"));
-						}
-					}
-
-					if(tp.equals("array"))
-					{
-						ArrayType t = k.getDeclaredAnnotation(ArrayType.class);
-
-						if(t == null)
-						{
-							Iris.warn("Expected " + ArrayType.class.getSimpleName() + " in " + k.getName() + " in " + i.getSimpleName());
-						}
-
-						if(t.min() > 0)
-						{
-							prop.put("minItems", t.min());
-						}
-
-						if(t != null)
-						{
-							String tx = "object";
-
-							if(t.type().equals(int.class) || k.getType().equals(long.class))
-							{
-								tx = "integer";
-							}
-
-							if(t.type().equals(double.class) || k.getType().equals(float.class))
-							{
-								tx = "number";
-							}
-
-							if(t.type().equals(boolean.class))
-							{
-								tx = "boolean";
-							}
-
-							if(t.type().equals(String.class))
-							{
-								tx = "string";
-
-								if(k.isAnnotationPresent(MinNumber.class))
-								{
-									prop.put("minLength", (int) k.getDeclaredAnnotation(MinNumber.class).value());
-								}
-
-								if(k.isAnnotationPresent(MaxNumber.class))
-								{
-									prop.put("maxLength", (int) k.getDeclaredAnnotation(MaxNumber.class).value());
-								}
-
-								if(k.isAnnotationPresent(RegistryListBiome.class))
-								{
-									String name = "enbiom" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getBiomeList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListBlockType.class))
-								{
-									String name = "enblk" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getBlockTypeList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListItemType.class))
-								{
-									String name = "enitmty" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getItemTypeList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListEntity.class))
-								{
-									String name = "enent" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getEntityList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListFont.class))
-								{
-									String name = "enfong" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getFontList()));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListLoot.class))
-								{
-									String name = "enloot" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getLootList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListDimension.class))
-								{
-									String name = "endim" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getDimensionList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListGenerator.class))
-								{
-									String name = "engen" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getGeneratorList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListObject.class))
-								{
-									String name = "enobj" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getObjectList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListRegion.class))
-								{
-									String name = "enreg" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getRegionList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-
-								if(k.isAnnotationPresent(RegistryListStructure.class))
-								{
-									String name = "enstruct" + t.type().getSimpleName().toLowerCase();
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										deff.put("type", tx);
-										deff.put("enum", new JSONArray(getStructureList(dat)));
-										def.put(name, deff);
-									}
-
-									JSONObject items = new JSONObject();
-									items.put("$ref", "#/definitions/" + name);
-									prop.put("items", items);
-									prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-									prop.put("type", tp);
-									properties.put(k.getName(), prop);
-									continue;
-								}
-							}
-
-							if(t.type().isEnum())
-							{
-								tx = "string";
-								JSONArray a = new JSONArray();
-
-								for(Object gg : t.type().getEnumConstants())
-								{
-									a.put(((Enum<?>) gg).name());
-								}
-
-								String name = "enum" + t.type().getSimpleName().toLowerCase();
-
-								if(!def.containsKey(name))
-								{
-									JSONObject deff = new JSONObject();
-									deff.put("type", tx);
-									deff.put("enum", a);
-									def.put(name, deff);
-								}
-
-								JSONObject items = new JSONObject();
-								items.put("$ref", "#/definitions/" + name);
-								prop.put("items", items);
-								prop.put("description", tp + "\n\n" + k.getAnnotation(Desc.class).value());
-								prop.put("type", tp);
-								properties.put(k.getName(), prop);
-								continue;
-							}
-
-							if(t.type().isEnum())
-							{
-								tx = "string";
-							}
-
-							if(t.type().equals(KList.class))
-							{
-								tx = "array";
-							}
-
-							JSONObject items = new JSONObject();
-
-							if(tx.equals("object"))
-							{
-								if(t.type().isAnnotationPresent(Desc.class))
-								{
-									String name = t.type().getSimpleName().toLowerCase();
-
-									if(!def.containsKey(name))
-									{
-										JSONObject deff = new JSONObject();
-										JSONObject scv = getSchemaFor(t.type(), step - 1, def, Iris.globaldata);
-										deff.put("type", tx);
-										deff.put("description", tx + "\n\n" + t.type().getDeclaredAnnotation(Desc.class).value());
-										deff.put("additionalProperties", false);
-										deff.put("properties", scv.getJSONObject("properties"));
-
-										if(deff.getJSONObject("properties").length() == 0)
-										{
-											Iris.warn("Schema Def for " + name + " has " + deff.getJSONObject("properties").length() + " Entries" + " (Step " + step + ")");
-										}
-
-										if(scv.has("required"))
-										{
-											deff.put("required", scv.getJSONArray("required"));
-										}
-										def.put(name, deff);
-									}
-
-									items.put("$ref", "#/definitions/" + name);
-								}
-
-								else
-								{
-									items.put("type", tx);
-								}
-							}
-
-							else
-							{
-								items.put("type", tx);
-							}
-
-							prop.put("items", items);
-						}
-
-						if(tp.getClass().isAnnotationPresent(Desc.class))
-						{
-							prop.put("properties", getSchemaFor(tp.getClass(), step - 1, def, Iris.globaldata).getJSONObject("properties"));
-						}
-					}
-
-					String tpx = tp;
-
-					if(tp.equals("array") || tp.equals("enum"))
-					{
-						tpx = "List of " + k.getDeclaredAnnotation(ArrayType.class).type().getSimpleName().replaceAll("\\QIris\\E", "") + "s";
-					}
-
-					prop.put("description", tpx + "\n\n" + k.getAnnotation(Desc.class).value());
-
-					if(tp.equals("integer"))
-					{
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
-							prop.put("description", prop.getString("description") + "\n" + "Min: " + (int) k.getDeclaredAnnotation(MinNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
-							prop.put("description", prop.getString("description") + "\n" + "Max: " + (int) k.getDeclaredAnnotation(MaxNumber.class).value());
-						}
-					}
-
-					if(tp.equals("number"))
-					{
-						if(k.isAnnotationPresent(MinNumber.class))
-						{
-							prop.put("description", prop.getString("description") + "\n" + "Min: " + k.getDeclaredAnnotation(MinNumber.class).value());
-						}
-
-						if(k.isAnnotationPresent(MaxNumber.class))
-						{
-							prop.put("description", prop.getString("description") + "\n" + "Max: " + k.getDeclaredAnnotation(MaxNumber.class).value());
-						}
-					}
-
-					if(!tp.equals("array") && !tp.equals("object") && !tp.equals("enum"))
-					{
-						if(dummy != null)
-						{
-							try
-							{
-								prop.put("description", prop.getString("description") + "\n" + "Default Value: " + k.get(dummy));
-							}
-
-							catch(Throwable e)
-							{
-								prop.put("description", prop.getString("description") + "\n" + "Default Value: NONE");
-							}
-						}
-
-					}
-
-					prop.put("type", tp);
-					properties.put(k.getName(), prop);
-				}
-			}
-
-			schema.put("additionalProperties", false);
-			schema.put("properties", properties);
-			schema.put("required", req);
-			schema.put("dependencies", deps);
-		}
-
-		return schema;
-	}
-
-	private Object tryCreate(Class<?> i)
-	{
-		try
-		{
-			return i.newInstance();
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		return null;
-	}
-
-	private String[] getFontList()
-	{
-		return GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-	}
-
-	private String[] getBiomeList(IrisDataManager data)
-	{
-		return data.getBiomeLoader().getPossibleKeys();
-	}
-
-	private String[] getBlockTypeList(IrisDataManager data)
-	{
-		return B.getBlockTypes();
-	}
-
-	private String[] getItemTypeList(IrisDataManager data)
-	{
-		return B.getItemTypes();
-	}
-
-	private String[] getEntityList(IrisDataManager data)
-	{
-		return data.getEntityLoader().getPossibleKeys();
-	}
-
-	private String[] getLootList(IrisDataManager data)
-	{
-		return data.getLootLoader().getPossibleKeys();
-	}
-
-	private String[] getDimensionList(IrisDataManager data)
-	{
-		return data.getDimensionLoader().getPossibleKeys();
-	}
-
-	private String[] getRegionList(IrisDataManager data)
-	{
-		return data.getRegionLoader().getPossibleKeys();
-	}
-
-	private String[] getObjectList(IrisDataManager data)
-	{
-		return data.getObjectLoader().getPossibleKeys();
-	}
-
-	private String[] getStructureList(IrisDataManager data)
-	{
-		return data.getStructureLoader().getPossibleKeys();
-	}
-
-	private String[] getGeneratorList(IrisDataManager data)
-	{
-		return data.getGeneratorLoader().getPossibleKeys();
 	}
 
 	public KList<String> analyzeFolder(File folder, String fn, Object t)

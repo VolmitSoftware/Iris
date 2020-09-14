@@ -39,7 +39,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 	public IrisBoardManager()
 	{
 		Iris.instance.registerListener(this);
-		//@NoArgsConstructor
+		//@builder
 		manager = new BoardManager(Iris.instance, BoardSettings.builder()
 				.boardProvider(this)
 				.scoreDirection(ScoreDirection.DOWN)

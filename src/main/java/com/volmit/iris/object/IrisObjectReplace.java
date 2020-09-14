@@ -3,6 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -42,7 +43,7 @@ public class IrisObjectReplace
 	private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
 	private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
 
-	public KList<BlockData> getFind()
+	public KList<BlockData> getFind(IrisDataManager rdata)
 	{
 		return findData.aquire(() ->
 		{
@@ -50,7 +51,7 @@ public class IrisObjectReplace
 
 			for(IrisBlockData i : find)
 			{
-				BlockData bx = i.getBlockData();
+				BlockData bx = i.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -62,8 +63,8 @@ public class IrisObjectReplace
 		});
 	}
 
-	public BlockData getReplace(RNG seed, double x, double y, double z)
+	public BlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata)
 	{
-		return getReplace().get(seed, x, y, z);
+		return getReplace().get(seed, x, y, z, rdata);
 	}
 }

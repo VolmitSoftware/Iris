@@ -142,6 +142,6 @@ public class IrisTextRenderer
 
 	public void place(ParallaxTerrainProvider g, RNG rng, IrisObjectPlacement config, int xb, int zb)
 	{
-		getObjects(g, rng).get(rng.nextInt(getObjects(g, rng).size())).place(xb, zb, g, config, rng);
+		getObjects(g, rng).get(rng.nextInt(getObjects(g, rng).size())).place(xb, zb, g, config, rng, g.getData());
 	}
 }

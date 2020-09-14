@@ -106,7 +106,7 @@ public class NMSCreator151
 		}
 		DimensionManager actualDimension = DimensionManager.a((int) creator.environment().getId());
 		DimensionManager internalDimension = DimensionManager.register((String) name.toLowerCase(Locale.ENGLISH), (DimensionManager) new DimensionManager(dimension, actualDimension.getSuffix(), actualDimension.folder, (w, manager) -> (WorldProvider) manager.providerFactory.apply(w, manager), actualDimension.hasSkyLight(), actualDimension.getGenLayerZoomer(), actualDimension));
-		//@NoArgsConstructor
+		//@builder
         WorldServer internal = new WorldServer(
         		(MinecraftServer)console, 
         		console.executorService, 

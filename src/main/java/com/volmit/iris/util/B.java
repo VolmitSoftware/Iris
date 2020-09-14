@@ -3,6 +3,7 @@ package com.volmit.iris.util;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
@@ -141,6 +142,11 @@ public class B
 				Iris.warn("Unknown Block Data '" + bd + "'");
 				nulls.add(bd);
 				return bdx;
+			}
+
+			if(resolver.isPreventLeafDecay() && bdx instanceof Leaves)
+			{
+				((Leaves) bdx).setPersistent(true);
 			}
 
 			bdc.put(bd, bdx);

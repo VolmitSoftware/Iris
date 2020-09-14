@@ -128,7 +128,7 @@ public class IrisInterpolation
 
 	public static double bihermite(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return hermite(
 				hermite(p00, p01, p02, p03, muy, tension, bias), 
 				hermite(p10, p11, p12, p13, muy, tension, bias), 
@@ -140,7 +140,7 @@ public class IrisInterpolation
 
 	public static double bihermiteBezier(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return hermiteBezier(
 				hermiteBezier(p00, p01, p02, p03, muy, tension, bias), 
 				hermiteBezier(p10, p11, p12, p13, muy, tension, bias), 
@@ -152,7 +152,7 @@ public class IrisInterpolation
 
 	public static double bihermiteParametric(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias, double a)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return hermiteParametric(
 				hermiteParametric(p00, p01, p02, p03, muy, tension, bias, a), 
 				hermiteParametric(p10, p11, p12, p13, muy, tension, bias, a), 
@@ -187,7 +187,7 @@ public class IrisInterpolation
 
 	public static double bicubic(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return cubic(
 				cubic(p00, p01, p02, p03, muy), 
 				cubic(p10, p11, p12, p13, muy),
@@ -199,7 +199,7 @@ public class IrisInterpolation
 
 	public static double bicubicBezier(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return cubicBezier(
 				cubicBezier(p00, p01, p02, p03, muy), 
 				cubicBezier(p10, p11, p12, p13, muy), 
@@ -211,7 +211,7 @@ public class IrisInterpolation
 
 	public static double bicubicParametric(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double a)
 	{
-		//@NoArgsConstructor
+		//@builder
 		return cubicParametric(
 				cubicParametric(p00, p01, p02, p03, muy,a), 
 				cubicParametric(p10, p11, p12, p13, muy,a), 
@@ -239,7 +239,7 @@ public class IrisInterpolation
 
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return blerp( 
 				n.noise(x1, z1), 
 				n.noise(x2, z1), 
@@ -276,7 +276,7 @@ public class IrisInterpolation
 		int z2 = (int) Math.round((fz + 1) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return blerpBezier( 
 				n.noise(x1, z1), 
 				n.noise(x2, z1), 
@@ -296,7 +296,7 @@ public class IrisInterpolation
 		int z2 = (int) Math.round((fz + 1) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return blerpParametric( 
 				n.noise(x1, z1), 
 				n.noise(x2, z1), 
@@ -316,7 +316,7 @@ public class IrisInterpolation
 		int z2 = (int) Math.round((fz + 1) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return blerpSinCenter( 
 				n.noise(x1, z1), 
 				n.noise(x2, z1), 
@@ -340,7 +340,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bicubic(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 
@@ -376,7 +376,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bicubicBezier(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 
@@ -412,7 +412,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bicubicParametric(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 
@@ -463,7 +463,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bihermite(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 
@@ -499,7 +499,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bihermiteBezier(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 
@@ -535,7 +535,7 @@ public class IrisInterpolation
 		int z3 = (int) Math.round((fz + 2) * rad);
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
-		//@NoArgsConstructor
+		//@builder
 		return bihermiteParametric(
 				n.noise(x0, z0), 
 				n.noise(x0, z1), 

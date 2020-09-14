@@ -29,10 +29,8 @@ public class GenLayerCave extends GenLayer
 
 	public GenLayerCave(TopographicTerrainProvider iris, RNG rng)
 	{
-		// @NoArgsConstructor
 		super(iris, rng);
 		gg = new FastNoiseDouble(324895 * rng.nextParallelRNG(49678).imax());
-		//@done
 	}
 
 	public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, AtomicSliver data)
@@ -61,19 +59,19 @@ public class GenLayerCave extends GenLayer
 		double scale = layer.getCaveZoom();
 		Function<Integer, BlockData> fluid = (height) ->
 		{
-			if(!layer.getFluid().hasFluid())
+			if(!layer.getFluid().hasFluid(iris.getData()))
 			{
 				return CAVE_AIR;
 			}
 
 			if(layer.getFluid().isInverseHeight() && height >= layer.getFluid().getFluidHeight())
 			{
-				return layer.getFluid().getFluid();
+				return layer.getFluid().getFluid(iris.getData());
 			}
 
 			else if(!layer.getFluid().isInverseHeight() && height <= layer.getFluid().getFluidHeight())
 			{
-				return layer.getFluid().getFluid();
+				return layer.getFluid().getFluid(iris.getData());
 			}
 
 			return CAVE_AIR;

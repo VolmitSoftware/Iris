@@ -76,7 +76,7 @@ public class GenLayerText extends GenLayer
 			{
 				if(bufferedImage.getRGB(x, y) != -16777216)
 				{
-					o.setUnsigned(x, 0, y, palette.get(rng, x, w, y));
+					o.setUnsigned(x, 0, y, palette.get(rng, x, w, y, iris.getData()));
 				}
 			}
 		}

@@ -165,7 +165,7 @@ public class NMSCreator161
 		ResourceKey typeKey = (ResourceKey) console.f.a().c(dimensionmanager).orElseThrow(() -> new IllegalStateException("Unregistered dimension type: " + (Object) dimensionmanager));
 		ResourceKey worldKey = ResourceKey.a((ResourceKey) IRegistry.ae, (MinecraftKey) new MinecraftKey(name.toLowerCase(Locale.ENGLISH)));
 
-		//@NoArgsConstructor
+		//@builder
         WorldServer internal = new WorldServer(
         		(MinecraftServer)console, 
         		console.executorService, 

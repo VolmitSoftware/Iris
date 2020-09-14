@@ -160,7 +160,7 @@ public class NMSCreator162
 		}
 
 		final ResourceKey<net.minecraft.server.v1_16_R2.World> worldKey = (ResourceKey<net.minecraft.server.v1_16_R2.World>) ResourceKey.a(IRegistry.L, new MinecraftKey(name.toLowerCase(Locale.ENGLISH)));
-		//@NoArgsConstructor
+		//@builder
 		final WorldServer internal = new WorldServer((MinecraftServer) console, 
 				console.executorService, worldSession, 
 				(IWorldDataServer) worlddata, 

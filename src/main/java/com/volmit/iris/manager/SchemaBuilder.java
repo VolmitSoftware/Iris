@@ -37,7 +37,6 @@ public class SchemaBuilder
 	private static final String SYMBOL_TYPE__N = "";
 	private static final JSONArray POTION_TYPES = getPotionTypes();
 	private static final JSONArray ENCHANT_TYPES = getEnchantmentTypes();
-	private static final JSONArray BLOCK_TYPES = new JSONArray(B.getBlockTypes());
 	private static final JSONArray ITEM_TYPES = new JSONArray(B.getItemTypes());
 	private static final JSONArray FONT_TYPES = new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
 	private final KMap<String, JSONObject> definitions;
@@ -215,7 +214,19 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", BLOCK_TYPES);
+					JSONArray ja = new JSONArray();
+
+					for(String i : data.getBlockLoader().getPreferredKeys())
+					{
+						ja.put(i);
+					}
+
+					for(String i : B.getBlockTypes())
+					{
+						ja.put(i);
+					}
+
+					j.put("enum", ja);
 					definitions.put(key, j);
 				}
 
@@ -550,7 +561,19 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", BLOCK_TYPES);
+							JSONArray ja = new JSONArray();
+
+							for(String i : data.getBlockLoader().getPreferredKeys())
+							{
+								ja.put(i);
+							}
+
+							for(String i : B.getBlockTypes())
+							{
+								ja.put(i);
+							}
+
+							j.put("enum", ja);
 							definitions.put(key, j);
 						}
 

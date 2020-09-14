@@ -3,6 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -41,16 +42,16 @@ public class IrisCaveFluid
 
 	private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 
-	public boolean hasFluid()
+	public boolean hasFluid(IrisDataManager rdata)
 	{
-		return !B.isAir(getFluid());
+		return !B.isAir(getFluid(rdata));
 	}
 
-	public BlockData getFluid()
+	public BlockData getFluid(IrisDataManager rdata)
 	{
 		return fluidData.aquire(() ->
 		{
-			BlockData b = getFluidType().getBlockData();
+			BlockData b = getFluidType().getBlockData(rdata);
 
 			if(b != null)
 			{

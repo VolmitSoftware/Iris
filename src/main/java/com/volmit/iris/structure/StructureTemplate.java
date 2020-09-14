@@ -574,7 +574,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			return;
 		}
 
-		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng);
+		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng, Iris.globaldata);
 		if(!quiet)
 		{
 			center.getWorld().playSound(center, Sound.ENTITY_SHULKER_BULLET_HIT, 1f, 1.6f);
@@ -609,33 +609,15 @@ public class StructureTemplate implements Listener, IObjectPlacer
 
 	public Cuboid getBounds(Location center)
 	{
-		//@NoArgsConstructor
-		return new Cuboid(
-			getTileBounds(center.clone().add(
-					((size / 2) * w) + 1, 
-					!use3d ? 0 : (((size / 2) * h) + 1),
-					((size / 2) * w) + 1)
-					).getUpperSW(), 
-			getTileBounds(center.clone().subtract(
-					((size / 2) * w) + 1, 
-					!use3d ? 0 : (((size / 2) * h) + 1), 
-					((size / 2) * w) + 1)
-					).getLowerNE());
+		// @NoArgsConstructor
+		return new Cuboid(getTileBounds(center.clone().add(((size / 2) * w) + 1, !use3d ? 0 : (((size / 2) * h) + 1), ((size / 2) * w) + 1)).getUpperSW(), getTileBounds(center.clone().subtract(((size / 2) * w) + 1, !use3d ? 0 : (((size / 2) * h) + 1), ((size / 2) * w) + 1)).getLowerNE());
 		//@done
 	}
 
 	public Cuboid getTileBounds(Location l)
 	{
-		//@NoArgsConstructor
-		return new Cuboid(
-			new Location(l.getWorld(),
-				Math.floorDiv(l.getBlockX(), w) * w, 
-				Math.floorDiv(l.getBlockY(), h) * h, 
-				Math.floorDiv(l.getBlockZ(), w) * w), 
-			new Location(l.getWorld(), 
-				((Math.floorDiv(l.getBlockX(), w)+1) * w)-1, 
-				((Math.floorDiv(l.getBlockY(), h)+1) * h)-1, 
-				((Math.floorDiv(l.getBlockZ(), w)+1) * w)-1));
+		// @NoArgsConstructor
+		return new Cuboid(new Location(l.getWorld(), Math.floorDiv(l.getBlockX(), w) * w, Math.floorDiv(l.getBlockY(), h) * h, Math.floorDiv(l.getBlockZ(), w) * w), new Location(l.getWorld(), ((Math.floorDiv(l.getBlockX(), w) + 1) * w) - 1, ((Math.floorDiv(l.getBlockY(), h) + 1) * h) - 1, ((Math.floorDiv(l.getBlockZ(), w) + 1) * w) - 1));
 		//@done
 	}
 
@@ -851,256 +833,46 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	{
 		if(use3d)
 		{
-			//@NoArgsConstructor
-			structure.getTiles().add(tileFor("Cross Floor",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("T-Connect Floor",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Hall Floor",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED
-					));
-			structure.getTiles().add(tileFor("Corner Floor",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Room Floor",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Walled Room Floor",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED
-					));
-			
-			structure.getTiles().add(tileFor("Cross Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("T-Connect Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Hall Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED
-					));
-			structure.getTiles().add(tileFor("Corner Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Room Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Walled Room Ceiling",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED
-					));
-			
-			structure.getTiles().add(tileFor("Cross Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("T-Connect Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Hall Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED
-					));
-			structure.getTiles().add(tileFor("Corner Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Room Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Walled Room Opening",
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED
-					));
-			
-			structure.getTiles().add(tileFor("Cross Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("T-Connect Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Hall Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED
-					));
-			structure.getTiles().add(tileFor("Corner Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Room Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Walled Room Encased",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED
-					));
+			// @NoArgsConstructor
+			structure.getTiles().add(tileFor("Cross Floor", StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("T-Connect Floor", StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Hall Floor", StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED));
+			structure.getTiles().add(tileFor("Corner Floor", StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Room Floor", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Walled Room Floor", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED));
+
+			structure.getTiles().add(tileFor("Cross Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("T-Connect Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Hall Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED));
+			structure.getTiles().add(tileFor("Corner Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Room Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Walled Room Ceiling", StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED));
+
+			structure.getTiles().add(tileFor("Cross Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("T-Connect Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Hall Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED));
+			structure.getTiles().add(tileFor("Corner Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Room Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Walled Room Opening", StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED));
+
+			structure.getTiles().add(tileFor("Cross Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("T-Connect Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Hall Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED));
+			structure.getTiles().add(tileFor("Corner Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Room Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Walled Room Encased", StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED));
 			//@done
 		}
 
 		else
 		{
-			//@NoArgsConstructor
-			structure.getTiles().add(tileFor("Cross",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("T-Connect",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Hall",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.REQUIRED
-					));
-			structure.getTiles().add(tileFor("Corner",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Room",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.NEVER
-					));
-			structure.getTiles().add(tileFor("Walled Room",
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.AGNOSTIC,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED,
-					StructureTileCondition.REQUIRED
-					));
+			// @NoArgsConstructor
+			structure.getTiles().add(tileFor("Cross", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("T-Connect", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Hall", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER, StructureTileCondition.REQUIRED));
+			structure.getTiles().add(tileFor("Corner", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Room", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.NEVER));
+			structure.getTiles().add(tileFor("Walled Room", StructureTileCondition.REQUIRED, StructureTileCondition.AGNOSTIC, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED, StructureTileCondition.REQUIRED));
 			//@done
 		}
 	}

@@ -59,7 +59,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 				{
 					continue;
 				}
-				
+
 				if(j.isFile() && j.getName().endsWith(".json"))
 				{
 					m.add(j.getName().replaceAll("\\Q.json\\E", ""));
@@ -148,6 +148,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public T load(String name)
 	{
+		return load(name, true);
+	}
+
+	public T load(String name, boolean warn)
+	{
 		if(name.trim().isEmpty())
 		{
 			return null;
@@ -180,7 +185,10 @@ public class ResourceLoader<T extends IrisRegistrant>
 			}
 		}
 
-		J.a(() -> Iris.warn("Couldn't find " + resourceTypeName + ": " + name));
+		if(warn)
+		{
+			J.a(() -> Iris.warn("Couldn't find " + resourceTypeName + ": " + name));
+		}
 
 		lock.unlock();
 		return null;

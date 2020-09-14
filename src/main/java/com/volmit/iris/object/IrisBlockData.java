@@ -2,7 +2,9 @@ package com.volmit.iris.object;
 
 import org.bukkit.block.data.BlockData;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -15,6 +17,7 @@ import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -23,13 +26,18 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Represents Block Data")
 @Data
-public class IrisBlockData
+@EqualsAndHashCode(callSuper = false)
+public class IrisBlockData extends IrisRegistrant
 {
 	@RegistryListBlockType
 	@Required
 	@DontObfuscate
 	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")
 	private String block = "air";
+
+	@Desc("Debug this block by printing it to the console when it's used")
+	@DontObfuscate
+	private boolean debug = false;
 
 	@DontObfuscate
 	@Desc("The resource key. Typically Minecraft")
@@ -57,28 +65,86 @@ public class IrisBlockData
 		this.block = b;
 	}
 
-	public String computeProperties()
+	public String computeProperties(KMap<String, Object> data)
 	{
-		if(getData().isEmpty())
+		if(data.isEmpty())
 		{
 			return "";
 		}
 
 		KList<String> r = new KList<>();
 
-		for(String i : getData().keySet())
+		for(String i : data.keySet())
 		{
-			r.add(i + "=" + getData().get(i));
+			r.add(i + "=" + filter(data.get(i).toString()));
 		}
 
 		return "[" + r.toString(",") + "]";
 	}
 
-	public BlockData getBlockData()
+	public String computeProperties()
+	{
+		return computeProperties(getData());
+	}
+
+	public BlockData getBlockData(IrisDataManager data)
 	{
 		return blockdata.aquire(() ->
 		{
-			BlockData b = B.get(getKey() + ":" + getBlock() + computeProperties());
+			BlockData b = null;
+
+			IrisBlockData customData = data.getBlockLoader().load(getBlock(), false);
+
+			if(customData != null)
+			{
+				b = customData.getBlockData(data);
+
+				if(b != null)
+				{
+					b = b.clone();
+
+					String st = b.getAsString(true);
+
+					if(st.contains("["))
+					{
+						st = st.split("\\Q[\\E")[0];
+					}
+
+					KMap<String, Object> cdata = customData.getData().copy();
+
+					for(String i : getData().keySet())
+					{
+						cdata.put(i, getData().get(i));
+					}
+
+					String sx = getKey() + ":" + st.split("\\Q:\\E")[1] + computeProperties(cdata);
+
+					if(debug)
+					{
+						Iris.warn("Debug block data " + sx + " (CUSTOM)");
+					}
+
+					BlockData bx = B.get(sx);
+
+					if(bx != null)
+					{
+						return bx;
+					}
+
+					if(b != null)
+					{
+						return b;
+					}
+				}
+			}
+
+			String ss = getKey() + ":" + getBlock() + computeProperties();
+			b = B.get(ss);
+
+			if(debug)
+			{
+				Iris.warn("Debug block data " + ss);
+			}
 
 			if(b != null)
 			{
@@ -87,7 +153,7 @@ public class IrisBlockData
 
 			if(backup != null)
 			{
-				return backup.getBlockData();
+				return backup.getBlockData(data);
 			}
 
 			return B.get("AIR");
@@ -156,6 +222,16 @@ public class IrisBlockData
 		try
 		{
 			return Integer.valueOf(string);
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		try
+		{
+			return Double.valueOf(string).intValue();
 		}
 
 		catch(Throwable e)

@@ -4,6 +4,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -47,7 +48,7 @@ public class IrisBlockDrops
 
 	private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
 
-	public boolean shouldDropFor(BlockData data)
+	public boolean shouldDropFor(BlockData data, IrisDataManager rdata)
 	{
 		KList<BlockData> list = this.data.aquire(() ->
 		{
@@ -55,7 +56,7 @@ public class IrisBlockDrops
 
 			for(IrisBlockData i : getBlocks())
 			{
-				BlockData dd = i.getBlockData();
+				BlockData dd = i.getBlockData(rdata);
 
 				if(dd != null)
 				{

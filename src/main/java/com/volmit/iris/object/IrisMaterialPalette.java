@@ -3,6 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
@@ -43,26 +44,26 @@ public class IrisMaterialPalette
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-	public BlockData get(RNG rng, double x, double y, double z)
+	public BlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata)
 	{
-		if(getBlockData().isEmpty())
+		if(getBlockData(rdata).isEmpty())
 		{
 			return null;
 		}
 
-		if(getBlockData().size() == 1)
+		if(getBlockData(rdata).size() == 1)
 		{
-			return getBlockData().get(0);
+			return getBlockData(rdata).get(0);
 		}
 
-		return getLayerGenerator(rng).fit(getBlockData(), x / zoom, y / zoom, z / zoom);
+		return getLayerGenerator(rng, rdata).fit(getBlockData(rdata), x / zoom, y / zoom, z / zoom);
 	}
 
-	public CNG getLayerGenerator(RNG rng)
+	public CNG getLayerGenerator(RNG rng, IrisDataManager rdata)
 	{
 		return layerGenerator.aquire(() ->
 		{
-			RNG rngx = rng.nextParallelRNG(-23498896 + getBlockData().size());
+			RNG rngx = rng.nextParallelRNG(-23498896 + getBlockData(rdata).size());
 			return style.create(rngx);
 		});
 	}
@@ -81,14 +82,14 @@ public class IrisMaterialPalette
 		return this;
 	}
 
-	public KList<BlockData> getBlockData()
+	public KList<BlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
 			KList<BlockData> blockData = new KList<>();
 			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = ix.getBlockData();
+				BlockData bx = ix.getBlockData(rdata);
 				if(bx != null)
 				{
 					for(int i = 0; i < ix.getWeight(); i++)

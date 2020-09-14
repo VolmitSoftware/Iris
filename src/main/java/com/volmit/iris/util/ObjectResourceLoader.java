@@ -236,6 +236,11 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 
 	public IrisObject load(String name)
 	{
+		return load(name, true);
+	}
+
+	public IrisObject load(String name, boolean warn)
+	{
 		String key = name + "-" + objectClass.getCanonicalName();
 
 		if(loadCache.containsKey(key))

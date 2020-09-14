@@ -8,6 +8,7 @@ import org.bukkit.block.Biome;
 import com.google.gson.Gson;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisBlockData;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.object.IrisGenerator;
@@ -36,6 +37,7 @@ public class IrisDataManager
 	private ResourceLoader<IrisGenerator> generatorLoader;
 	private ResourceLoader<IrisStructure> structureLoader;
 	private ResourceLoader<IrisEntity> entityLoader;
+	private ResourceLoader<IrisBlockData> blockLoader;
 	private ObjectResourceLoader objectLoader;
 
 	public void hotloaded()
@@ -54,6 +56,7 @@ public class IrisDataManager
 		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
 		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
 		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
+		this.blockLoader = new ResourceLoader<>(packs, "blocks", "Block", IrisBlockData.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
 
 		if(packs.getName().equals("packs"))
@@ -83,6 +86,7 @@ public class IrisDataManager
 	public void dump()
 	{
 		biomeLoader.clearCache();
+		blockLoader.clearCache();
 		lootLoader.clearCache();
 		regionLoader.clearCache();
 		dimensionLoader.clearCache();
@@ -168,6 +172,7 @@ public class IrisDataManager
 	public void preferFolder(String name)
 	{
 		biomeLoader.preferFolder(name);
+		blockLoader.preferFolder(name);
 		lootLoader.preferFolder(name);
 		regionLoader.preferFolder(name);
 		entityLoader.preferFolder(name);
@@ -179,6 +184,7 @@ public class IrisDataManager
 	public void clearLists()
 	{
 		lootLoader.clearList();
+		blockLoader.clearList();
 		entityLoader.clearList();
 		biomeLoader.clearList();
 		regionLoader.clearList();

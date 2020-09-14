@@ -405,7 +405,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		for(int i = 0; i < o.getTriesForChunk(rng); i++)
 		{
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
-			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng);
+			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng, getData());
 		}
 	}
 
@@ -414,7 +414,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		for(int i = 0; i < o.getTriesForChunk(rng); i++)
 		{
 			rng = rng.nextParallelRNG((i * 3 + 8) - 23040);
-			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng, c);
+			o.getSchematic(this, rng).place((x * 16) + rng.nextInt(16), (z * 16) + rng.nextInt(16), this, o, rng, c, getData());
 		}
 	}
 
@@ -432,7 +432,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 				continue;
 			}
 
-			o.getSchematic(this, rng).place(xx, res.get(rng.nextParallelRNG(29345 * (i + 234)).nextInt(res.size())).getFloor() + 2, zz, this, o, rng);
+			o.getSchematic(this, rng).place(xx, res.get(rng.nextParallelRNG(29345 * (i + 234)).nextInt(res.size())).getFloor() + 2, zz, this, o, rng, getData());
 		}
 	}
 

@@ -18,6 +18,7 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.CarveResult;
@@ -320,30 +321,30 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)
 	{
 		if(shitty)
 		{
 			return;
 		}
-		place(x, -1, z, placer, config, rng);
+		place(x, -1, z, placer, config, rng,rdata);
 	}
 
-	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c)
+	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisDataManager rdata)
 	{
 		if(shitty)
 		{
 			return;
 		}
-		place(x, -1, z, placer, config, rng, null, c);
+		place(x, -1, z, placer, config, rng, null, c,rdata);
 	}
 
-	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng)
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)
 	{
-		return place(x, yv, z, placer, config, rng, null, null);
+		return place(x, yv, z, placer, config, rng, null, null,rdata);
 	}
 
-	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c)
+	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata)
 	{
 		if(config.isSmartBore())
 		{
@@ -522,11 +523,11 @@ public class IrisObject extends IrisRegistrant
 
 			for(IrisObjectReplace j : config.getEdit())
 			{
-				for(BlockData k : j.getFind())
+				for(BlockData k : j.getFind(rdata))
 				{
 					if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial()))
 					{
-						data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z).clone();
+						data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z,rdata).clone();
 					}
 				}
 			}

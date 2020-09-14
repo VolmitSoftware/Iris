@@ -7,6 +7,7 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
@@ -87,7 +88,7 @@ public class IrisDepositGenerator
 	private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
 	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
-	public IrisObject getClump(RNG rng)
+	public IrisObject getClump(RNG rng, IrisDataManager rdata)
 	{
 		KList<IrisObject> objects = this.objects.aquire(() ->
 		{
@@ -96,7 +97,7 @@ public class IrisDepositGenerator
 
 			for(int i = 0; i < varience; i++)
 			{
-				objectsf.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598)));
+				objectsf.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598), rdata));
 			}
 
 			return objectsf;
@@ -109,7 +110,7 @@ public class IrisDepositGenerator
 		return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
 	}
 
-	private IrisObject generateClumpObject(RNG rngv)
+	private IrisObject generateClumpObject(RNG rngv, IrisDataManager rdata)
 	{
 		int s = rngv.i(minSize, maxSize);
 		int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
@@ -118,7 +119,7 @@ public class IrisDepositGenerator
 
 		if(s == 1)
 		{
-			o.getBlocks().put(o.getCenter(), nextBlock(rngv));
+			o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
 		}
 
 		else
@@ -128,19 +129,19 @@ public class IrisDepositGenerator
 				s--;
 				BlockVector ang = new BlockVector(rngv.i(-w, w), rngv.i(-w, w), rngv.i(-w, w));
 				BlockVector pos = o.getCenter().clone().add(ang).toBlockVector();
-				o.getBlocks().put(pos, nextBlock(rngv));
+				o.getBlocks().put(pos, nextBlock(rngv, rdata));
 			}
 		}
 
 		return o;
 	}
 
-	private BlockData nextBlock(RNG rngv)
+	private BlockData nextBlock(RNG rngv, IrisDataManager rdata)
 	{
-		return getBlockData().get(rngv.i(0, getBlockData().size() - 1));
+		return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
 	}
 
-	public KList<BlockData> getBlockData()
+	public KList<BlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
@@ -148,7 +149,7 @@ public class IrisDepositGenerator
 
 			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = ix.getBlockData();
+				BlockData bx = ix.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -169,7 +170,7 @@ public class IrisDepositGenerator
 	{
 		for(int l = 0; l < rng.i(getMinPerChunk(), getMaxPerChunk()); l++)
 		{
-			IrisObject clump = getClump(rng);
+			IrisObject clump = getClump(rng, g.getData());
 
 			int af = (int) Math.ceil(clump.getW() / 2D);
 			int bf = (int) Math.floor(16D - (clump.getW() / 2D));
@@ -220,7 +221,7 @@ public class IrisDepositGenerator
 				if(!allow)
 				{
 					BlockData b = data.getBlockData(nx, ny, nz);
-					for(BlockData f : g.getDimension().getRockPalette().getBlockData())
+					for(BlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
 					{
 						if(f.getMaterial().equals(b.getMaterial()))
 						{

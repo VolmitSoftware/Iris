@@ -299,11 +299,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
 	}
 
-	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height)
+	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata)
 	{
 		if(isLockLayers())
 		{
-			return generateLockedLayers(wx, wz, random, maxDepth, height);
+			return generateLockedLayers(wx, wz, random, maxDepth, height, rdata);
 		}
 
 		KList<BlockData> data = new KList<>();
@@ -315,7 +315,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 		for(int i = 0; i < layers.size(); i++)
 		{
-			CNG hgen = getLayerHeightGenerators(random).get(i);
+			CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
 			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
 			if(d < 0)
@@ -332,7 +332,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 				try
 				{
-					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom()));
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
 				}
 
 				catch(Throwable e)
@@ -350,7 +350,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return data;
 	}
 
-	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height)
+	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata)
 	{
 		KList<BlockData> data = new KList<>();
 		KList<BlockData> real = new KList<>();
@@ -362,7 +362,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 		for(int i = 0; i < layers.size(); i++)
 		{
-			CNG hgen = getLayerHeightGenerators(random).get(i);
+			CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
 			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
 			if(d < 0)
@@ -374,7 +374,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			{
 				try
 				{
-					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom()));
+					data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
 				}
 
 				catch(Throwable e)
@@ -420,13 +420,13 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return this;
 	}
 
-	public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth)
+	public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisDataManager rdata)
 	{
 		KList<BlockData> data = new KList<>();
 
 		for(int i = 0; i < seaLayers.size(); i++)
 		{
-			CNG hgen = getLayerSeaHeightGenerators(random).get(i);
+			CNG hgen = getLayerSeaHeightGenerators(random, rdata).get(i);
 			int d = hgen.fit(seaLayers.get(i).getMinHeight(), seaLayers.get(i).getMaxHeight(), wx / seaLayers.get(i).getZoom(), wz / seaLayers.get(i).getZoom());
 
 			if(d < 0)
@@ -443,7 +443,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 				try
 				{
-					data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom()));
+					data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom(), rdata));
 				}
 
 				catch(Throwable e)
@@ -461,7 +461,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return data;
 	}
 
-	public KList<CNG> getLayerHeightGenerators(RNG rng)
+	public KList<CNG> getLayerHeightGenerators(RNG rng, IrisDataManager rdata)
 	{
 		return layerHeightGenerators.aquire(() ->
 		{
@@ -471,14 +471,14 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 			for(IrisBiomePaletteLayer i : getLayers())
 			{
-				layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
+				layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), rdata));
 			}
 
 			return layerHeightGenerators;
 		});
 	}
 
-	public KList<CNG> getLayerSeaHeightGenerators(RNG rng)
+	public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisDataManager data)
 	{
 		return layerSeaHeightGenerators.aquire(() ->
 		{
@@ -488,7 +488,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 			for(IrisBiomePaletteLayer i : getSeaLayers())
 			{
-				layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m)));
+				layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), data));
 			}
 
 			return layerSeaHeightGenerators;

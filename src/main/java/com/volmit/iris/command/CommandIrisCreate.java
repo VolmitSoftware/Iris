@@ -189,7 +189,8 @@ public class CommandIrisCreate extends MortarCommand
 		WorldCreator wc = new WorldCreator(worldName).seed(seed).generator(gen).type(WorldType.NORMAL).environment(dim.getEnvironment());
 
 		World world = NMSCreator.createWorld(wc, false);
-
+		
+		
 		done.set(true);
 		sender.sendMessage(worldName + " Spawn Area generated.");
 
@@ -211,6 +212,12 @@ public class CommandIrisCreate extends MortarCommand
 		IrisDimension dimm = dim;
 		long seedd = seed;
 
+		if(Iris.linkMultiverseCore.supported())
+		{
+			Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
+			sender.sendMessage("Added " + worldName + " to MultiverseCore.");
+		}
+		
 		J.a(() ->
 		{
 			while(!b.get())
@@ -221,12 +228,6 @@ public class CommandIrisCreate extends MortarCommand
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
 			{
 				world.save();
-
-				if(Iris.linkMultiverseCore.supported())
-				{
-					Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
-					sender.sendMessage("Added " + worldName + " to MultiverseCore.");
-				}
 
 				sender.sendMessage("All Done!");
 			});

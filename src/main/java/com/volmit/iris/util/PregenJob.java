@@ -12,6 +12,8 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gui.PregenGui;
 
 public class PregenJob implements Listener
@@ -38,6 +40,7 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private Consumer2<ChunkPosition, Color> consumer;
+	private IrisTerrainProvider tp;
 	private int cubeSize = IrisSettings.get().getPregenTileSize();
 	int xc = 0;
 
@@ -65,6 +68,7 @@ public class PregenJob implements Listener
 		this.chunkZ = 0;
 		completed = false;
 		first = true;
+		tp = (world.getGenerator() instanceof ProvisionBukkit) ? (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider() : null;
 
 		chunkSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
 		{
@@ -220,7 +224,7 @@ public class PregenJob implements Listener
 
 			if(consumer != null)
 			{
-				consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE);
+				consumer.accept(new ChunkPosition(chunkX, chunkZ), tp != null ? tp.render(chunkX * 16, chunkZ * 16) : Color.blue);
 			}
 		}
 
@@ -254,7 +258,7 @@ public class PregenJob implements Listener
 	{
 		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
 		{
-			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.blue.brighter());
+			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
 		}
 	}
 

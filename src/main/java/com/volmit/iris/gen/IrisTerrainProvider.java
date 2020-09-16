@@ -248,7 +248,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		return (x, z) -> render(x, z);
 	}
 
-	private Color render(double x, double z)
+	public Color render(double x, double z)
 	{
 		int ix = (int) x;
 		int iz = (int) z;

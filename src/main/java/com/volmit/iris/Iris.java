@@ -16,7 +16,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
-import com.volmit.iris.auth.Authorizer1;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisTerrainProvider;
@@ -72,7 +71,6 @@ public class Iris extends MortarPlugin
 	{
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4 * 1000 * 1000 * 1000;
-		Authorizer1.validate();
 	}
 
 	private static String findNMSTag()

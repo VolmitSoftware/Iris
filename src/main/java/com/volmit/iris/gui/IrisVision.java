@@ -214,13 +214,13 @@ public class IrisVision extends JPanel implements MouseWheelListener
 			ozp += Math.abs(ozp - oz) * 0.36;
 		}
 
-		if(lid != Iris.proj.getCurrentProject().getCacheID())
+		if(lid != Iris.proj.getActiveProject().getActiveProvider().getCacheID())
 		{
 			working.clear();
 			workingfast.clear();
 			positions.clear();
 			fastpositions.clear();
-			lid = Iris.proj.getCurrentProject().getCacheID();
+			lid = Iris.proj.getActiveProject().getActiveProvider().getCacheID();
 			Iris.info("Hotloading Vision");
 		}
 

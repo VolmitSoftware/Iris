@@ -41,7 +41,7 @@ public class CommandIrisStudioLoot extends MortarCommand
 			IrisWorlds.getProvider(sender.player().getWorld()).getPopulators();
 			KList<IrisLootTable> tables = IrisWorlds.getProvider(sender.player().getWorld()).getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
-			Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+			Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			p.openInventory(inv);
 
 			for(IrisLootTable i : tables)
@@ -83,7 +83,7 @@ public class CommandIrisStudioLoot extends MortarCommand
 					inv.clear();
 				}
 
-				Iris.proj.getCurrentProject().getGlUpdate().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+				Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			}, 0, fast ? 5 : 35));
 
 			return true;

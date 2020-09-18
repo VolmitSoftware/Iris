@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.ProjectManager;
 import com.volmit.iris.manager.WandManager;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.MortarCommand;
@@ -34,7 +35,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 			sender.sendMessage("To use Iris Studio Objects, please enable studio in Iris/settings.json");
 			return true;
 		}
-		
+
 		if(!sender.isPlayer())
 		{
 			sender.sendMessage("You don't have a wand");
@@ -55,7 +56,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 
 		if(file == null || !file.exists())
 		{
-			sender.sendMessage("Can't find " + args[0] + " in the packs folder");
+			sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.workspaceName + " folder");
 		}
 
 		ItemStack wand = sender.player().getInventory().getItemInMainHand();

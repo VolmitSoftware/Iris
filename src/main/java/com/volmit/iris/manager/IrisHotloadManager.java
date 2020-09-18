@@ -27,7 +27,7 @@ public class IrisHotloadManager
 
 		else
 		{
-			w = new FolderWatcher(Iris.instance.getDataFolder("packs"));
+			w = new FolderWatcher(Iris.proj.getWorkspaceFolder());
 		}
 
 		latch = new ChronoLatch(3000);

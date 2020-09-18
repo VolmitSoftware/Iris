@@ -2,6 +2,7 @@ package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.IrisProject;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -30,7 +31,7 @@ public class CommandIrisStudioUpdate extends MortarCommand
 			return true;
 		}
 
-		Iris.proj.updateWorkspace(Iris.proj.getWorkspaceFile(args[0]));
+		new IrisProject(Iris.proj.getWorkspaceFolder(args[0])).updateWorkspace();
 
 		return true;
 	}

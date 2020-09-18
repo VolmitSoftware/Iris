@@ -89,7 +89,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		this.worker = worker;
 		rng = new RNG();
 		variants = NoiseStyle.STATIC.create(rng.nextParallelRNG(397878));
-		folder = Iris.instance.getDataFolder("packs", dimension);
+		folder = Iris.proj.getWorkspaceFolder(dimension);
 		gLatch = new ChronoLatch(250);
 		focus = center;
 		dirtyLatch = new ChronoLatch(250);

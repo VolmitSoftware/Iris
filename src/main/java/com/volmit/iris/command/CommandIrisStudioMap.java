@@ -32,7 +32,7 @@ public class CommandIrisStudioMap extends MortarCommand
 			return true;
 		}
 
-		IrisTerrainProvider g = Iris.proj.getCurrentProject();
+		IrisTerrainProvider g = Iris.proj.getActiveProject().getActiveProvider();
 		IrisVision.launch(g);
 		sender.sendMessage("Opening Map!");
 		return true;

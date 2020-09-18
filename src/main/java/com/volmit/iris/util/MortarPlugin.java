@@ -672,6 +672,15 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 		return f;
 	}
 
+	public File getDataFileList(String pre, String[] strings)
+	{
+		KList<String> v = new KList<String>(strings);
+		v.add(0, pre);
+		File f = new File(getDataFolder(), v.toString(File.separator));
+		f.getParentFile().mkdirs();
+		return f;
+	}
+
 	public File getDataFolder(String... strings)
 	{
 		if(strings.length == 0)
@@ -680,6 +689,20 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 		}
 
 		File f = new File(getDataFolder(), new KList<String>(strings).toString(File.separator));
+		f.mkdirs();
+
+		return f;
+	}
+
+	public File getDataFolderList(String pre, String[] strings)
+	{
+		KList<String> v = new KList<>(strings);
+		v.add(0, pre);
+		if(v.size() == 0)
+		{
+			return super.getDataFolder();
+		}
+		File f = new File(getDataFolder(), v.toString(File.separator));
 		f.mkdirs();
 
 		return f;

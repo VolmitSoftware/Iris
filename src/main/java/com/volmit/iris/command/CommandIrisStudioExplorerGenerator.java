@@ -32,7 +32,7 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 			return true;
 		}
 
-		if(Iris.proj.getCurrentProject() == null)
+		if(!Iris.proj.isProjectOpen())
 		{
 			sender.sendMessage("No project is open");
 			return true;
@@ -47,13 +47,13 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 		else
 		{
 			String g = args[0];
-			IrisGenerator b = Iris.proj.getCurrentProject().getData().getGeneratorLoader().load(g);
+			IrisGenerator b = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(g);
 
 			if(b != null)
 			{
 				NoiseExplorer.launch((x, z) ->
 				{
-					return b.getHeight(x, z, Iris.proj.getCurrentProject().getMasterRandom().nextParallelRNG(3245).lmax());
+					return b.getHeight(x, z, Iris.proj.getActiveProject().getActiveProvider().getMasterRandom().nextParallelRNG(3245).lmax());
 				}, "Gen: " + b.getLoadKey());
 
 				sender.sendMessage("Opening Noise Explorer for gen " + b.getLoadKey());

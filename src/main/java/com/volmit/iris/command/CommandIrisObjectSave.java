@@ -60,7 +60,7 @@ public class CommandIrisObjectSave extends MortarCommand
 			Player p = sender.player();
 			ItemStack wand = p.getInventory().getItemInMainHand();
 			IrisObject o = WandManager.createSchematic(wand);
-			File file = Iris.instance.getDataFile("packs", args[0], "objects", args[1] + ".iob");
+			File file = Iris.proj.getWorkspaceFile(args[0], "objects", args[1] + ".iob");
 
 			if(file.exists())
 			{

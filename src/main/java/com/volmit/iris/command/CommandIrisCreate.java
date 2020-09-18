@@ -18,6 +18,7 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.ProjectManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
@@ -68,11 +69,11 @@ public class CommandIrisCreate extends MortarCommand
 
 		if(dim == null)
 		{
-			for(File i : Iris.instance.getDataFolder("packs").listFiles())
+			for(File i : Iris.proj.getWorkspaceFolder().listFiles())
 			{
 				if(i.isFile() && i.getName().equals(type + ".iris"))
 				{
-					sender.sendMessage("Found " + type + ".iris in packs folder");
+					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.workspaceName + " folder");
 					ZipUtil.unpack(i, iris);
 					break;
 				}
@@ -81,7 +82,7 @@ public class CommandIrisCreate extends MortarCommand
 
 		else
 		{
-			sender.sendMessage("Foind " + type + " dimension in packs folder. Repackaging");
+			sender.sendMessage("Foind " + type + " dimension in " + ProjectManager.workspaceName + " folder. Repackaging");
 			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
 		}
 
@@ -92,7 +93,7 @@ public class CommandIrisCreate extends MortarCommand
 			Iris.globaldata.dump();
 			Iris.globaldata.preferFolder(null);
 			Iris.proj.downloadSearch(sender, type, false);
-			File downloaded = Iris.instance.getDataFolder("packs", type);
+			File downloaded = Iris.proj.getWorkspaceFolder(type);
 
 			for(File i : downloaded.listFiles())
 			{

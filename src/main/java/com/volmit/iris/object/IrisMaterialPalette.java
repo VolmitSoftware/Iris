@@ -68,6 +68,12 @@ public class IrisMaterialPalette
 		});
 	}
 
+	public IrisMaterialPalette qclear()
+	{
+		palette.clear();
+		return this;
+	}
+
 	public KList<IrisBlockData> add(String b)
 	{
 		palette.add(new IrisBlockData(b));

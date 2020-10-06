@@ -298,12 +298,12 @@ public class IrisDimension extends IrisRegistrant
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
-	private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qadd("STONE");
+	private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
 
 	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
-	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qadd("WATER");
+	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
 
 	@ArrayType(min = 1, type = IrisBiomeMutation.class)
 	@DontObfuscate

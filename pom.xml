@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>bytecode.ninja</groupId>
 	<artifactId>Iris</artifactId>
-	<version>1.0.5</version>
+	<version>1.0.6</version>
 	<name>Iris</name>
 	<properties>
 		<skip.copy>false</skip.copy>

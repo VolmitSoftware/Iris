@@ -1,14 +1,11 @@
 package com.volmit.iris.command;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
-import org.zeroturnaround.zip.ZipUtil;
-import org.zeroturnaround.zip.commons.FileUtils;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
@@ -17,11 +14,8 @@ import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.manager.ProjectManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -62,87 +56,9 @@ public class CommandIrisCreate extends MortarCommand
 			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
 			pregen = i.startsWith("pregen=") ? Integer.parseInt(i.split("\\Q=\\E")[1]) : pregen;
 		}
+		
+		IrisDimension dim = Iris.proj.installIntoWorld(sender, type, folder);
 
-		sender.sendMessage("Looking for Package: " + type);
-
-		IrisDimension dim = Iris.globaldata.getDimensionLoader().load(type);
-
-		if(dim == null)
-		{
-			for(File i : Iris.proj.getWorkspaceFolder().listFiles())
-			{
-				if(i.isFile() && i.getName().equals(type + ".iris"))
-				{
-					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.workspaceName + " folder");
-					ZipUtil.unpack(i, iris);
-					break;
-				}
-			}
-		}
-
-		else
-		{
-			sender.sendMessage("Foind " + type + " dimension in " + ProjectManager.workspaceName + " folder. Repackaging");
-			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
-		}
-
-		File dimf = new File(iris, "dimensions/" + type + ".json");
-
-		if(!dimf.exists() || !dimf.isFile())
-		{
-			Iris.globaldata.dump();
-			Iris.globaldata.preferFolder(null);
-			Iris.proj.downloadSearch(sender, type, false);
-			File downloaded = Iris.proj.getWorkspaceFolder(type);
-
-			for(File i : downloaded.listFiles())
-			{
-				if(i.isFile())
-				{
-					try
-					{
-						FileUtils.copyFile(i, new File(iris, i.getName()));
-					}
-
-					catch(IOException e)
-					{
-						e.printStackTrace();
-					}
-				}
-
-				else
-				{
-					try
-					{
-						FileUtils.copyDirectory(i, new File(iris, i.getName()));
-					}
-
-					catch(IOException e)
-					{
-						e.printStackTrace();
-					}
-				}
-			}
-
-			IO.delete(downloaded);
-		}
-
-		if(!dimf.exists() || !dimf.isFile())
-		{
-			sender.sendMessage("Can't find the " + dimf.getName() + " in the dimensions folder of this pack! Failed!");
-			return true;
-		}
-
-		IrisDataManager dm = new IrisDataManager(folder);
-		dim = dm.getDimensionLoader().load(type);
-
-		if(dim == null)
-		{
-			sender.sendMessage("Can't load the dimension! Failed!");
-			return true;
-		}
-
-		sender.sendMessage(worldName + " type installed. Generating Spawn Area...");
 		//@builder
 		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(
 			IrisGenConfiguration.builder()
@@ -190,8 +106,7 @@ public class CommandIrisCreate extends MortarCommand
 		WorldCreator wc = new WorldCreator(worldName).seed(seed).generator(gen).type(WorldType.NORMAL).environment(dim.getEnvironment());
 
 		World world = NMSCreator.createWorld(wc, false);
-		
-		
+
 		done.set(true);
 		sender.sendMessage(worldName + " Spawn Area generated.");
 
@@ -218,7 +133,7 @@ public class CommandIrisCreate extends MortarCommand
 			Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
 			sender.sendMessage("Added " + worldName + " to MultiverseCore.");
 		}
-		
+
 		J.a(() ->
 		{
 			while(!b.get())

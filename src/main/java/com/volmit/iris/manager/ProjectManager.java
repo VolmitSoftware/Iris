@@ -66,6 +66,91 @@ public class ProjectManager
 		}
 	}
 
+	public IrisDimension installIntoWorld(MortarSender sender, String type, File folder)
+	{
+		sender.sendMessage("Looking for Package: " + type);
+		File iris = new File(folder, "iris");
+		IrisDimension dim = Iris.globaldata.getDimensionLoader().load(type);
+
+		if(dim == null)
+		{
+			for(File i : Iris.proj.getWorkspaceFolder().listFiles())
+			{
+				if(i.isFile() && i.getName().equals(type + ".iris"))
+				{
+					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.workspaceName + " folder");
+					ZipUtil.unpack(i, iris);
+					break;
+				}
+			}
+		}
+
+		else
+		{
+			sender.sendMessage("Found " + type + " dimension in " + ProjectManager.workspaceName + " folder. Repackaging");
+			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
+		}
+
+		File dimf = new File(iris, "dimensions/" + type + ".json");
+
+		if(!dimf.exists() || !dimf.isFile())
+		{
+			Iris.globaldata.dump();
+			Iris.globaldata.preferFolder(null);
+			Iris.proj.downloadSearch(sender, type, false);
+			File downloaded = Iris.proj.getWorkspaceFolder(type);
+
+			for(File i : downloaded.listFiles())
+			{
+				if(i.isFile())
+				{
+					try
+					{
+						FileUtils.copyFile(i, new File(iris, i.getName()));
+					}
+
+					catch(IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+
+				else
+				{
+					try
+					{
+						FileUtils.copyDirectory(i, new File(iris, i.getName()));
+					}
+
+					catch(IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+
+			IO.delete(downloaded);
+		}
+
+		if(!dimf.exists() || !dimf.isFile())
+		{
+			sender.sendMessage("Can't find the " + dimf.getName() + " in the dimensions folder of this pack! Failed!");
+			return null;
+		}
+
+		IrisDataManager dm = new IrisDataManager(folder);
+		dim = dm.getDimensionLoader().load(type);
+
+		if(dim == null)
+		{
+			sender.sendMessage("Can't load the dimension! Failed!");
+			return null;
+		}
+
+		sender.sendMessage(folder.getName() + " type installed. ");
+		return dim;
+	}
+
 	public void downloadSearch(MortarSender sender, String key, boolean trim)
 	{
 		String repo = getListing(false).get(key);

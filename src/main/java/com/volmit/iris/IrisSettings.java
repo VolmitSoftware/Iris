@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IO;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.JSONException;
 import com.volmit.iris.util.JSONObject;
 
@@ -20,6 +21,10 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("Iris generator threads (must be 2 or higher). Threads in iris are not a perfect scale for performance as a lot of data has to be shared. 16 Threads is a good rule of thumb. Use 8 threads on a quad core processor.")
 	public int threads = 16;
+
+	@DontObfuscate
+	@Desc("The default world type incase iris doesnt have a dimension to use.")
+	public String defaultWorldType = "overworld";
 
 	@DontObfuscate
 	@Desc("Iris uses a lot of caching to speed up chunk generation. Setting this higher uses more memory, but may improve performance. Anything past 8,000 should be avoided because there is little benefit past this value.")
@@ -66,11 +71,17 @@ public class IrisSettings
 	public boolean metrics = true;
 
 	@DontObfuscate
+	@Desc("Skips preparing spawn by using nms to hijack the world init phase")
+	public boolean skipPrepareSpawnNMS = true;
+
+	@DontObfuscate
 	@Desc("Used to activate Iris")
 	public String activationCode = "";
 
 	public static IrisSettings get()
 	{
+		IrisSettings defaults = new IrisSettings();
+		JSONObject def = new JSONObject(new Gson().toJson(defaults));
 		if(settings == null)
 		{
 			settings = new IrisSettings();
@@ -94,7 +105,37 @@ public class IrisSettings
 			{
 				try
 				{
-					settings = new Gson().fromJson(IO.readAll(s), IrisSettings.class);
+					String ss = IO.readAll(s);
+					settings = new Gson().fromJson(ss, IrisSettings.class);
+
+					J.a(() ->
+					{
+						JSONObject j = new JSONObject(ss);
+						boolean u = false;
+						for(String i : def.keySet())
+						{
+							if(!j.has(i))
+							{
+								u = true;
+								j.put(i, def.get(i));
+								Iris.verbose("Adding new config key: " + i);
+							}
+						}
+
+						if(u)
+						{
+							try
+							{
+								IO.writeAll(s, j.toString(4));
+								Iris.info("Updated Configuration Files");
+							}
+
+							catch(Throwable e)
+							{
+
+							}
+						}
+					});
 				}
 
 				catch(JSONException | IOException e)

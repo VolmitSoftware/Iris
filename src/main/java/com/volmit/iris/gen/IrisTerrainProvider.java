@@ -542,12 +542,22 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	@Override
 	public boolean shouldGenerateCaves()
 	{
+		if(getDimension() == null)
+		{
+			return false;
+		}
+		
 		return getDimension().isVanillaCaves();
 	}
 
 	@Override
 	public boolean shouldGenerateVanillaStructures()
 	{
+		if(getDimension() == null)
+		{
+			return false;
+		}
+		
 		return getDimension().isVanillaStructures();
 	}
 

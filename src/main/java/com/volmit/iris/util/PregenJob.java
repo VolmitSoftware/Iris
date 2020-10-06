@@ -182,7 +182,7 @@ public class PregenJob implements Listener
 			{
 				chunkSpiraler.next();
 
-				if(isChunkWithin(chunkX, chunkZ))
+				if(isChunkWithin(chunkX, chunkZ) && consumer != null)
 				{
 					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE.darker().darker());
 				}

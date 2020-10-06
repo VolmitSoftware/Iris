@@ -2,17 +2,20 @@ package com.volmit.iris.gen;
 
 import java.io.File;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
@@ -40,7 +43,23 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 			if(!folder.exists())
 			{
 				Iris.error("Missing World iris/dimensions folder! (" + folder.getAbsolutePath() + ")");
-				setDimensionName("error-missing-dimension");
+				setDimensionName(IrisSettings.get().getDefaultWorldType());
+				Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender()), getDimensionName(), getTarget().getFolder());
+				return;
+			}
+
+			if(!folder.exists())
+			{
+				Iris.error("Missing World iris/dimensions folder! (" + folder.getAbsolutePath() + ")");
+				try
+				{
+					throw new RuntimeException("Cant find dimension data!");
+				}
+
+				catch(Throwable e)
+				{
+					fail(e);
+				}
 				return;
 			}
 
@@ -53,9 +72,20 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 				}
 			}
 
-			Iris.error("Missing World iris/dimensions/<dimension-name>.json file. Assuming overworld!");
-			setDimensionName("error-missing-dimension");
-			fail(new RuntimeException("Missing dimension folder/file in " + folder.getAbsolutePath()));
+			if(!folder.exists())
+			{
+				Iris.error("Missing World iris/dimensions folder! (" + folder.getAbsolutePath() + ")");
+				try
+				{
+					throw new RuntimeException("Cant find dimension data!");
+				}
+
+				catch(Throwable e)
+				{
+					fail(e);
+				}
+				return;
+			}
 		}
 
 		try
@@ -67,6 +97,11 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 		{
 
 		}
+	}
+
+	protected void useDefaultDimensionSetupNOW()
+	{
+
 	}
 
 	public void onPlayerLeft(Player p)

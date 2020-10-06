@@ -30,6 +30,7 @@ import com.volmit.iris.manager.IrisHotloadManager;
 import com.volmit.iris.manager.ProjectManager;
 import com.volmit.iris.manager.StructureManager;
 import com.volmit.iris.manager.WandManager;
+import com.volmit.iris.object.IrisCompat;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
@@ -60,6 +61,7 @@ public class Iris extends MortarPlugin
 	public static boolean awareEntities = doesSupportAwareness();
 	public static boolean biome3d = doesSupport3DBiomes();
 	public static boolean lowMemoryMode = false;
+	public static IrisCompat compat;
 
 	@Permission
 	public static PermissionIris perm;
@@ -141,6 +143,7 @@ public class Iris extends MortarPlugin
 	public void onEnable()
 	{
 		instance = this;
+		compat = IrisCompat.configured(getDataFile("compat.json"));
 		lock = new IrisLock("Iris");
 		proj = new ProjectManager();
 		hotloader = new IrisHotloadManager();

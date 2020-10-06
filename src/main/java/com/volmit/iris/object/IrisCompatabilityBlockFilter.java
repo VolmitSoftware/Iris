@@ -19,7 +19,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Find and replace object materials for compatability")
 @Data
-public class IrisCompatabilityFilter
+public class IrisCompatabilityBlockFilter
 {
 	@Required
 	@DontObfuscate
@@ -38,7 +38,7 @@ public class IrisCompatabilityFilter
 	private final transient AtomicCache<BlockData> findData = new AtomicCache<>(true);
 	private final transient AtomicCache<BlockData> replaceData = new AtomicCache<>(true);
 
-	public IrisCompatabilityFilter(String when, String supplement)
+	public IrisCompatabilityBlockFilter(String when, String supplement)
 	{
 		this(when, supplement, false);
 	}
@@ -53,8 +53,13 @@ public class IrisCompatabilityFilter
 	{
 		return replaceData.aquire(() ->
 		{
-			BlockData b = B.getBlockData(supplement);
+			BlockData b = B.parseBlockDataOrNull(supplement);
 
+			if(b == null)
+			{
+				return null;
+			}
+			
 			Iris.warn("Compat: Using " + supplement + " in place of " + when + " since this server doesnt support '" + supplement + "'");
 
 			return b;

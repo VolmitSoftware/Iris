@@ -23,6 +23,7 @@ public class B
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
 	private static final KMap<String, Material> types = new KMap<>();
+	private static final KMap<String, Material> typesb = new KMap<>();
 	private static IrisLock lock = new IrisLock("Typelock");
 
 	public static BlockData get(String bd)
@@ -31,6 +32,30 @@ public class B
 	}
 
 	public static Material getMaterial(String bdx)
+	{
+		String bd = bdx.trim().toUpperCase();
+		return typesb.compute(bd, (k, v) ->
+		{
+			if(k != null && v != null)
+			{
+				return v;
+			}
+
+			try
+			{
+				return Material.valueOf(k);
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+
+			return defaultCompat.resolveItem(bdx);
+		});
+	}
+
+	public static Material getMaterialOrNull(String bdx)
 	{
 		String bd = bdx.trim().toUpperCase();
 		return types.compute(bd, (k, v) ->
@@ -134,7 +159,7 @@ public class B
 
 			if(bdx == null)
 			{
-				bdx = resolver.resolve(bd);
+				bdx = resolver.resolveBlock(bd);
 			}
 
 			if(bdx == null)
@@ -160,6 +185,42 @@ public class B
 		}
 
 		return AIR;
+	}
+
+	public static BlockData parseBlockDataOrNull(String ix)
+	{
+		try
+		{
+			BlockData bx = Bukkit.createBlockData(ix);
+
+			if(bx != null)
+			{
+				return bx;
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		String i = ix.toUpperCase().trim();
+		i = i.equals("WOOL") ? "WHITE_WOOL" : i;
+		i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
+
+		try
+		{
+			Material m = Material.valueOf(i);
+
+			return m.createBlockData();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return null;
 	}
 
 	public static BlockData parseBlockData(String ix)

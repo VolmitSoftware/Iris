@@ -26,6 +26,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.gen.atomics.AtomicMulticache;
 import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.gen.scaffold.IrisMetrics;
+import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -54,6 +55,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public abstract class ContextualTerrainProvider implements TerrainProvider, Listener
 {
+	private Provisioned provisioner;
 	private KList<BlockPosition> noLoot;
 	private BlockPosition allowLoot;
 	private AtomicMulticache cache;

@@ -2,6 +2,7 @@ package com.volmit.iris.manager;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,7 +23,7 @@ public class EditManager implements Listener
 	{
 		this.editors = new KMap<>();
 		Iris.instance.registerListener(this);
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 20);
+		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 0);
 	}
 
 	public BlockData get(World world, int x, int y, int z)
@@ -33,6 +34,26 @@ public class EditManager implements Listener
 	public void set(World world, int x, int y, int z, BlockData d)
 	{
 		open(world).set(x, y, z, d);
+	}
+
+	public void setBiome(World world, int x, int y, int z, Biome d)
+	{
+		open(world).setBiome(x, y, z, d);
+	}
+
+	public void setBiome(World world, int x, int z, Biome d)
+	{
+		open(world).setBiome(x, z, d);
+	}
+
+	public Biome getBiome(World world, int x, int y, int z)
+	{
+		return open(world).getBiome(x, y, z);
+	}
+
+	public Biome getBiome(World world, int x, int z)
+	{
+		return open(world).getBiome(x, z);
 	}
 
 	@EventHandler

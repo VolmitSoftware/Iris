@@ -35,6 +35,10 @@ public class IrisSettings
 	public boolean parallaxCompression = true;
 
 	@DontObfuscate
+	@Desc("Uses a lot of cpu and slows down hotloading")
+	public boolean regenerateLoadedChunksOnHotload = false;
+
+	@DontObfuscate
 	@Desc("Useful information when creating iris worlds. Shows object loads & more.")
 	public boolean verbose = false;
 

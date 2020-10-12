@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
@@ -207,7 +206,7 @@ public class IrisProject
 
 		if(sender.isPlayer())
 		{
-			sender.player().teleport(new Location(world, 0, 0, world.getHighestBlockYAt(0, 0)));
+			sender.player().teleport(world.getSpawnLocation());
 		}
 
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->

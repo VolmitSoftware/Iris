@@ -12,14 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.object.InterpolationMethod;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisGenerator;
-import com.volmit.iris.object.IrisInterpolator;
-import com.volmit.iris.object.IrisNoiseGenerator;
-import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.J;
@@ -448,101 +441,7 @@ public class ProjectManager
 
 	public void create(MortarSender sender, String s)
 	{
-		if(generate(sender, s))
-		{
-			Iris.proj.open(sender, s);
-		}
-	}
-
-	private boolean generate(MortarSender sender, String s)
-	{
-		IrisDimension dimension = new IrisDimension();
-		dimension.setLoadKey(s);
-		dimension.setName(Form.capitalizeWords(s.replaceAll("\\Q-\\E", " ")));
-
-		if(getWorkspaceFile(dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json").exists())
-		{
-			sender.sendMessage("Project Already Exists! Open it instead!");
-			return false;
-		}
-		sender.sendMessage("Creating New Project \"" + dimension.getName() + "\"...");
-		IrisRegion exampleRegion = new IrisRegion();
-		exampleRegion.setName("Example Region");
-		exampleRegion.setLoadKey("example-region");
-		IrisBiome exampleLand1 = new IrisBiome();
-		exampleLand1.setName("Example Land 1");
-		exampleLand1.setLoadKey("land-1");
-		IrisBiome exampleShore1 = new IrisBiome();
-		exampleShore1.setName("Example Shore");
-		exampleShore1.setLoadKey("shore");
-		IrisBiome exampleOcean1 = new IrisBiome();
-		exampleOcean1.setName("Example Sea");
-		exampleOcean1.setLoadKey("sea");
-		IrisBiome exampleLand2 = new IrisBiome();
-		exampleLand2.setName("Example Land 2");
-		exampleLand2.setLoadKey("land-2");
-		exampleLand2.setRarity(4);
-		dimension.setSeaZoom(1);
-		dimension.setLandZoom(1.5);
-		IrisGenerator gen = new IrisGenerator();
-		IrisNoiseGenerator gg = new IrisNoiseGenerator(true);
-		gen.getComposite().add(gg);
-		IrisInterpolator it = new IrisInterpolator();
-		it.setFunction(InterpolationMethod.BILINEAR_STARCAST_9);
-		it.setHorizontalScale(9);
-		gen.setInterpolator(it);
-		gen.setLoadKey("example-generator");
-		IrisBiomeGeneratorLink b1 = new IrisBiomeGeneratorLink();
-		b1.setGenerator(gen.getLoadKey());
-		b1.setMin(3);
-		b1.setMax(7);
-		IrisBiomeGeneratorLink b2 = new IrisBiomeGeneratorLink();
-		b2.setGenerator(gen.getLoadKey());
-		b2.setMin(12);
-		b2.setMax(35);
-		IrisBiomeGeneratorLink b3 = new IrisBiomeGeneratorLink();
-		b3.setGenerator(gen.getLoadKey());
-		b3.setMin(-1);
-		b3.setMax(1);
-		IrisBiomeGeneratorLink b4 = new IrisBiomeGeneratorLink();
-		b4.setGenerator(gen.getLoadKey());
-		b4.setMin(-5);
-		b4.setMax(-38);
-		exampleLand1.getGenerators().clear();
-		exampleLand1.getGenerators().add(b1);
-		exampleLand2.getGenerators().clear();
-		exampleLand2.getGenerators().add(b2);
-		exampleShore1.getGenerators().clear();
-		exampleShore1.getGenerators().add(b3);
-		exampleOcean1.getGenerators().clear();
-		exampleOcean1.getGenerators().add(b4);
-		exampleRegion.getLandBiomes().add(exampleLand1.getLoadKey());
-		exampleRegion.getLandBiomes().add(exampleLand2.getLoadKey());
-		exampleRegion.getShoreBiomes().add(exampleShore1.getLoadKey());
-		exampleRegion.getSeaBiomes().add(exampleOcean1.getLoadKey());
-		dimension.getRegions().add(exampleRegion.getLoadKey());
-		IrisProject project = new IrisProject(getWorkspaceFolder(dimension.getLoadKey()));
-		try
-		{
-			JSONObject ws = project.createCodeWorkspaceConfig();
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "dimensions", dimension.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(dimension)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "regions", exampleRegion.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleRegion)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "biomes", exampleLand1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand1)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "biomes", exampleLand2.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleLand2)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "biomes", exampleShore1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleShore1)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "biomes", exampleOcean1.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(exampleOcean1)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), "generators", gen.getLoadKey() + ".json"), new JSONObject(new Gson().toJson(gen)).toString(4));
-			IO.writeAll(getWorkspaceFile(dimension.getLoadKey(), dimension.getLoadKey() + ".code-workspace"), ws.toString(0));
-		}
-
-		catch(JSONException | IOException e)
-		{
-			sender.sendMessage("Failed! Check the console.");
-			e.printStackTrace();
-			return false;
-		}
-
-		return true;
+		create(sender, s, "example");
 	}
 
 	public void updateWorkspace()

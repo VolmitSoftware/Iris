@@ -3,9 +3,13 @@ package com.volmit.iris.gen;
 import java.io.IOException;
 import java.util.List;
 
+import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.atomics.AtomicWorldData;
@@ -33,6 +37,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Spiraler;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -96,6 +101,24 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		super.onHotload();
 		setCacheID(RNG.r.simax());
+
+		if(IrisSettings.get().isRegenerateLoadedChunksOnHotload())
+		{
+			World w = getTarget().getRealWorld();
+
+			if(w != null)
+			{
+				for(Player i : w.getPlayers())
+				{
+					new Spiraler(10, 10, (a, b) -> getProvisioner().regenerate(i.getLocation().getChunk().getX() + a, i.getLocation().getChunk().getZ() + b)).drain();
+				}
+
+				for(Chunk i : w.getLoadedChunks())
+				{
+					getProvisioner().regenerate(i.getX(), i.getZ());
+				}
+			}
+		}
 	}
 
 	@Override
@@ -174,6 +197,27 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		return g;
 	}
 
+	public void forgetThisParallaxChunk(int x, int z)
+	{
+		getParallaxChunk(x, z).reset();
+		getSliverCache().clear();
+		getCache().drop();
+	}
+
+	public void forgetParallaxChunksNear(int x, int z)
+	{
+		getSliverCache().clear();
+		getCache().drop();
+		ChunkPosition rad = getDimension().getParallaxSize(this);
+		for(int ii = x - (rad.getX() / 2); ii <= x + (rad.getX() / 2); ii++)
+		{
+			for(int jj = z - (rad.getZ() / 2); jj <= z + (rad.getZ() / 2); jj++)
+			{
+				getParallaxChunk(ii, jj).reset();
+			}
+		}
+	}
+
 	@Override
 	protected void onPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
@@ -219,8 +263,8 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 			for(int jj = z - (rad.getZ() / 2); jj <= z + (rad.getZ() / 2); jj++)
 			{
 				int j = jj;
-
-				RNG random = getMasterRandom().nextParallelRNG(i).nextParallelRNG(j);
+				RNG salt = new RNG(2922 + i + j).nextParallelRNG(i - 293938).nextParallelRNG(j + 294416);
+				RNG random = getMasterRandom().nextParallelRNG(i + salt.imax()).nextParallelRNG(j + salt.imax());
 
 				if(isParallaxGenerated(ii, jj))
 				{
@@ -236,7 +280,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 				{
 					IrisBiome b = sampleTrueBiome((i * 16) + 7, (j * 16) + 7);
 					IrisRegion r = sampleRegion((i * 16) + 7, (j * 16) + 7);
-					RNG ro = getMasterRandom().nextParallelRNG(496888 + i + j);
+					RNG ro = getMasterRandom().nextParallelRNG(196888 + i + j + 2225).nextParallelRNG(salt.i(-i, i)).nextParallelRNG(salt.i(-j, j));
 					int g = 1;
 					g = placeMutations(ro, random, i, j, g);
 					g = placeText(random, r, b, i, j, g);

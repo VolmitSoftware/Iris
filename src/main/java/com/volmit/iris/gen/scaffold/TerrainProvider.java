@@ -2,12 +2,20 @@ package com.volmit.iris.gen.scaffold;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 
 import org.bukkit.generator.BlockPopulator;
+import org.bukkit.util.BlockVector;
 
 public interface TerrainProvider
 {
 	public TerrainTarget getTarget();
+	
+	public Provisioned getProvisioner();
+	
+	public void setProvisioner(Provisioned p);
+
+	public BlockVector computeSpawn(Function<BlockVector, Boolean> allowed);
 
 	public void generate(Random random, int x, int z, TerrainChunk chunk);
 
@@ -18,9 +26,9 @@ public interface TerrainProvider
 	public boolean isParallelCapable();
 
 	public boolean shouldGenerateMobs();
-	
+
 	public boolean shouldGenerateCaves();
-	
+
 	public boolean shouldGenerateDecorations();
 
 	public boolean shouldGenerateVanillaStructures();

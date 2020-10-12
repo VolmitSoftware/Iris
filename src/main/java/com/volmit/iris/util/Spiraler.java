@@ -14,15 +14,24 @@ public class Spiraler
 		retarget(sizeX, sizeZ);
 	}
 
+	public void drain()
+	{
+		while(hasNext())
+		{
+			next();
+		}
+	}
+
 	static void Spiral(int X, int Y)
 	{
 
 	}
 
-	public void setOffset(int ox, int oz)
+	public Spiraler setOffset(int ox, int oz)
 	{
 		this.ox = ox;
 		this.oz = oz;
+		return this;
 	}
 
 	public void retarget(int sizeX, int sizeZ)

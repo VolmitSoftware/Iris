@@ -35,6 +35,9 @@ public class CommandIris extends MortarCommand
 	private CommandIrisLMM lmm;
 
 	@Command
+	private CommandIrisRegen regen;
+
+	@Command
 	private CommandIrisPregen pregen;
 
 	public CommandIris()

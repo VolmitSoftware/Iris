@@ -1,6 +1,7 @@
 package com.volmit.iris.edit;
 
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.util.M;
@@ -36,5 +37,31 @@ public class BukkitBlockEditor implements BlockEditor
 	public long last()
 	{
 		return M.ms();
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void setBiome(int x, int z, Biome b)
+	{
+		world.setBiome(x, z, b);
+	}
+
+	@Override
+	public void setBiome(int x, int y, int z, Biome b)
+	{
+		world.setBiome(x, y, z, b);
+	}
+
+	@Override
+	public Biome getBiome(int x, int y, int z)
+	{
+		return world.getBiome(x, y, z);
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public Biome getBiome(int x, int z)
+	{
+		return world.getBiome(x, z);
 	}
 }

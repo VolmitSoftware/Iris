@@ -3,6 +3,7 @@ package com.volmit.iris.gen;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.Random;
+import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -12,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
@@ -443,6 +445,32 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	}
 
 	@Override
+	public BlockVector computeSpawn(Function<BlockVector, Boolean> allowed)
+	{
+		RNG r = new RNG(489886222).nextParallelRNG(-293667771);
+		int x = 0;
+		int y = 0;
+		int z = 0;
+
+		for(int i = 0; i < 64; i++)
+		{
+			x = r.i(-64 - (i * 2), 64 + (i * 2));
+			z = r.i(-64 - (i * 2), 64 + (i * 2));
+			y = (int) Math.round(getTerrainHeight(x, z));
+			BlockVector b = new BlockVector(x, y, z);
+
+			if(y <= getFluidHeight() || !allowed.apply(b))
+			{
+				continue;
+			}
+
+			return b;
+		}
+
+		return new BlockVector(x, y, z);
+	}
+
+	@Override
 	protected void onSpawn(EntitySpawnEvent e)
 	{
 		if(isSpawnable())
@@ -546,7 +574,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			return false;
 		}
-		
+
 		return getDimension().isVanillaCaves();
 	}
 
@@ -557,21 +585,19 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		{
 			return false;
 		}
-		
+
 		return getDimension().isVanillaStructures();
 	}
 
 	@Override
 	public boolean shouldGenerateMobs()
 	{
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean shouldGenerateDecorations()
 	{
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 }

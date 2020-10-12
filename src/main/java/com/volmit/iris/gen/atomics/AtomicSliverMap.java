@@ -210,4 +210,19 @@ public class AtomicSliverMap
 			}
 		}
 	}
+
+	public void reset()
+	{
+		setParallaxGenerated(false);
+		setWorldGenerated(false);
+		getStructures().clear();
+
+		for(int i = 0; i < 16; i++)
+		{
+			for(int j = 0; j < 16; j++)
+			{
+				slivers[i * 16 + j] = new AtomicSliver(i, j);
+			}
+		}
+	}
 }

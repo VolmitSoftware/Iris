@@ -38,10 +38,13 @@ import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
 import com.volmit.iris.util.MortarPlugin;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.Permission;
+import com.volmit.iris.util.Queue;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.ShurikenQueue;
 
 public class Iris extends MortarPlugin
 {
@@ -57,6 +60,7 @@ public class Iris extends MortarPlugin
 	public static String nmsTag = findNMSTag();
 	public static MultiverseCoreLink linkMultiverseCore;
 	private static IrisLock lock = new IrisLock("Iris");
+	private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 	public static boolean customModels = doesSupportCustomModels();
 	public static boolean awareEntities = doesSupportAwareness();
 	public static boolean biome3d = doesSupport3DBiomes();
@@ -156,7 +160,42 @@ public class Iris extends MortarPlugin
 		J.a(() -> IO.delete(getTemp()));
 		J.a(() -> bstats());
 		J.s(this::splash, 20);
+		J.sr(() -> tickQueue(syncJobs), 0);
 		super.onEnable();
+	}
+
+	public static void sq(Runnable r)
+	{
+		synchronized(syncJobs)
+		{
+			syncJobs.queue(r);
+		}
+	}
+
+	private void tickQueue(Queue<Runnable> q)
+	{
+		synchronized(q)
+		{
+			if(!q.hasNext())
+			{
+				return;
+			}
+
+			long ms = M.ms();
+
+			while(q.hasNext() && M.ms() - ms < 25)
+			{
+				try
+				{
+					q.next().run();
+				}
+
+				catch(Throwable e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	private void bstats()
@@ -399,5 +438,18 @@ public class Iris extends MortarPlugin
 				e.printStackTrace();
 			}
 		}, RNG.r.i(100, 1200));
+	}
+
+	public static String jobCount()
+	{
+		return syncJobs.size() + "S";
+	}
+
+	public static void clearQueues()
+	{
+		synchronized(syncJobs)
+		{
+			syncJobs.clear();
+		}
 	}
 }

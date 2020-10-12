@@ -87,7 +87,15 @@ public class EditManager implements Listener
 
 		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit"))
 		{
-			e = new WEBlockEditor(world);
+			try
+			{
+				e = new WEBlockEditor(world);
+			}
+
+			catch(Throwable ex)
+			{
+				e = new BukkitBlockEditor(world);
+			}
 		}
 
 		else

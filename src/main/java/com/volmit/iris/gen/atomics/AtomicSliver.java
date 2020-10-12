@@ -48,7 +48,12 @@ public class AtomicSliver
 
 	public Material getType(int h)
 	{
-		return get(h).getMaterial();
+		return getTypeSafe(h);
+	}
+
+	public Material getTypeSafe(int h)
+	{
+		return get(h > 255 ? 255 : h < 0 ? 0 : h).getMaterial();
 	}
 
 	public KList<Byte> getUpdatables()

@@ -164,11 +164,11 @@ public class GenLayerCave extends GenLayer
 
 	public boolean dig(int x, int y, int z, AtomicSliver data, Function<Integer, BlockData> caveFluid)
 	{
-		Material a = data.getType(y);
-		Material c = data.getType(y + 1);
-		Material d = data.getType(y + 2);
-		Material e = data.getType(y + 3);
-		Material f = data.getType(y - 1);
+		Material a = data.getTypeSafe(y);
+		Material c = data.getTypeSafe(y + 1);
+		Material d = data.getTypeSafe(y + 2);
+		Material e = data.getTypeSafe(y + 3);
+		Material f = data.getTypeSafe(y - 1);
 		BlockData b = caveFluid.apply(y);
 		BlockData b2 = caveFluid.apply(y + 1);
 

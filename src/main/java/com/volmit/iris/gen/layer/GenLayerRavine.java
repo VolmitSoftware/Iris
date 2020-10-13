@@ -40,11 +40,15 @@ public class GenLayerRavine extends GenLayer
 		return 0;
 	}
 
-	private float[] d = new float[1024];
-
-	private void set(TerrainChunk pos, int x, int y, int z, BlockData b)
+	private void set(TerrainChunk pos, int x, int y, int z, BlockData b, HeightMap h, AtomicSliverMap map)
 	{
 		pos.setBlock(x, y, z, b);
+		map.getSliver(x, z).set(y, b);
+
+		if(h.getHeight(x, z) > y)
+		{
+			h.setHeight(x, z, y);
+		}
 	}
 
 	private BlockData get(TerrainChunk pos, int x, int y, int z)
@@ -56,6 +60,8 @@ public class GenLayerRavine extends GenLayer
 	{
 		return map.getBiome(n6, i).getSurfaceBlock(n6, i, rmg, iris.getData());
 	}
+
+	private float[] ravineCache = new float[1024];
 
 	private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, int n3, int n4, double d4, RNG bbx, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
@@ -83,7 +89,7 @@ public class GenLayerRavine extends GenLayer
 			{
 				f6 = 1.0f + random.nextFloat() * random.nextFloat() * 1.0f;
 			}
-			this.d[i] = f6 * f6;
+			this.ravineCache[i] = f6 * f6;
 		}
 		while(n3 < n4)
 		{
@@ -190,7 +196,7 @@ public class GenLayerRavine extends GenLayer
 								for(int j = n10; j > n9; --j)
 								{
 									double d15 = ((double) (j - 1) + 0.5 - sy) / d8;
-									if((d13 * d13 + d14 * d14) * (double) this.d[j - 1] + d15 * d15 / 6.0 >= 1.0)
+									if((d13 * d13 + d14 * d14) * (double) this.ravineCache[j - 1] + d15 * d15 / 6.0 >= 1.0)
 									{
 										continue;
 									}
@@ -204,18 +210,18 @@ public class GenLayerRavine extends GenLayer
 
 									if(j - 1 < 10)
 									{
-										set(terrain, n6, j, i, LAVA);
+										set(terrain, n6, j, i, LAVA, height, map);
 										continue;
 									}
 
-									set(terrain, n6, j, i, CAVE_AIR);
+									set(terrain, n6, j, i, CAVE_AIR, height, map);
 									if(!bl2 || !isDirt(get(terrain, n6, j - 1, i)))
 									{
 										continue;
 									}
 
 									cSet(bps, n6 + tx * 16, 0, i + tz * 16);
-									set(terrain, n6, j - 1, i, getSurfaceBlock(terrain, biomeMap, n6, i, rng));
+									set(terrain, n6, j - 1, i, getSurfaceBlock(terrain, biomeMap, n6, i, rng), height, map);
 								}
 							}
 						}

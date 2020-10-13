@@ -93,7 +93,7 @@ public class GroupedExecutor
 
 			catch(Throwable e)
 			{
-
+				e.printStackTrace();
 			}
 
 			mirror.compute(q, (k, v) -> v - 1);

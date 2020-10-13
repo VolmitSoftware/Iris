@@ -85,6 +85,11 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	@Override
 	public BlockData getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
+		if(y > 255 || y < 0)
+		{
+			return null;
+		}
+		
 		if(x >> 4 == currentPostX && z >> 4 == currentPostZ)
 		{
 			getPostLock().lock();

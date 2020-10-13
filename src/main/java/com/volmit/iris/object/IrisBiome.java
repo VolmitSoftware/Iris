@@ -17,6 +17,7 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
@@ -190,6 +191,9 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	private transient InferredType inferredType;
 
+	private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
+	private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
+	private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
 	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
 	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
 	private final transient AtomicCache<Color> cacheColor = new AtomicCache<>(true);
@@ -200,6 +204,51 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
+
+	public double getGenLinkMax(String loadKey)
+	{
+		return genCacheMax.aquire(() ->
+		{
+			KMap<String, Integer> l = new KMap<>();
+
+			for(IrisBiomeGeneratorLink i : getGenerators())
+			{
+				l.put(i.getGenerator(), i.getMax());
+			}
+
+			return l;
+		}).compute(loadKey, (k, v) -> v != null ? v : 0);
+	}
+
+	public double getGenLinkMin(String loadKey)
+	{
+		return genCacheMin.aquire(() ->
+		{
+			KMap<String, Integer> l = new KMap<>();
+
+			for(IrisBiomeGeneratorLink i : getGenerators())
+			{
+				l.put(i.getGenerator(), i.getMin());
+			}
+
+			return l;
+		}).compute(loadKey, (k, v) -> v != null ? v : 0);
+	}
+
+	public IrisBiomeGeneratorLink getGenLink(String loadKey)
+	{
+		return genCache.aquire(() ->
+		{
+			KMap<String, IrisBiomeGeneratorLink> l = new KMap<>();
+
+			for(IrisBiomeGeneratorLink i : getGenerators())
+			{
+				l.put(i.getGenerator(), i);
+			}
+
+			return l;
+		}).get(loadKey);
+	}
 
 	public IrisBiome getRealCarvingBiome(IrisDataManager data)
 	{
@@ -617,7 +666,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		{
 			return B.get("AIR");
 		}
-		
+
 		return getLayers().get(0).get(rng, x, 0, z, idm);
 	}
 }

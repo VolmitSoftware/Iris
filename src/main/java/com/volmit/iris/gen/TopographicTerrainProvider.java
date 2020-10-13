@@ -20,7 +20,6 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
-import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
@@ -781,16 +780,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			try
 			{
-				IrisBiome b = sampleBiome((int) xx, (int) zz);
-
-				for(int j = 0; j < b.getGenerators().size(); j++)
-				{
-					IrisBiomeGeneratorLink i = b.getGenerators().get(j);
-					if(i.getGenerator().equals(gen.getLoadKey()))
-					{
-						return i.getMax();
-					}
-				}
+				return sampleBiome((int) xx, (int) zz).getGenLinkMax(gen.getLoadKey());
 			}
 
 			catch(Throwable e)
@@ -805,16 +795,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			try
 			{
-				IrisBiome b = sampleBiome((int) xx, (int) zz);
-
-				for(int j = 0; j < b.getGenerators().size(); j++)
-				{
-					IrisBiomeGeneratorLink i = b.getGenerators().get(j);
-					if(i.getGenerator().equals(gen.getLoadKey()))
-					{
-						return i.getMin();
-					}
-				}
+				return sampleBiome((int) xx, (int) zz).getGenLinkMin(gen.getLoadKey());
 			}
 
 			catch(Throwable e)

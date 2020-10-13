@@ -41,15 +41,15 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("Useful information when creating iris worlds. Shows object loads & more.")
 	public boolean verbose = false;
-	
+
 	@DontObfuscate
 	@Desc("System Effects")
 	public boolean systemEffects = true;
-	
+
 	@DontObfuscate
 	@Desc("System Spawn Overrides")
 	public boolean systemEntitySpawnOverrides = true;
-	
+
 	@DontObfuscate
 	@Desc("System Spawn Initials")
 	public boolean systemEntityInitialSpawns = true;
@@ -96,6 +96,11 @@ public class IrisSettings
 
 	public static IrisSettings get()
 	{
+		if(settings != null)
+		{
+			return settings;
+		}
+
 		IrisSettings defaults = new IrisSettings();
 		JSONObject def = new JSONObject(new Gson().toJson(defaults));
 		if(settings == null)
@@ -157,7 +162,7 @@ public class IrisSettings
 				catch(JSONException | IOException e)
 				{
 					e.printStackTrace();
-					//noinspection ResultOfMethodCallIgnored
+					// noinspection ResultOfMethodCallIgnored
 					s.delete();
 				}
 			}

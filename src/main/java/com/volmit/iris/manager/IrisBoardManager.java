@@ -110,7 +110,12 @@ public class IrisBoardManager implements BoardProvider, Listener
 		v.add(C.GREEN + "Parallax" + C.GRAY + ": " + Form.f((int) g.getParallaxMap().getLoadedChunks().size()));
 		v.add(C.GREEN + "Objects" + C.GRAY + ": " + Form.f(g.getData().getObjectLoader().count()));
 		v.add(C.GREEN + "Memory" + C.GRAY + ": " + mem);
-		v.add(C.GREEN + "Jobs" + C.GRAY + ": " + Iris.jobCount());
+
+		if(Iris.jobCount() > 0)
+		{
+			v.add(C.GREEN + "Tasks" + C.GRAY + ": " + Iris.jobCount());
+		}
+
 		v.add("&7&m------------------");
 		v.add(C.GREEN + "Heightmap" + C.GRAY + ": " + (int) g.getTerrainHeight(x, z));
 

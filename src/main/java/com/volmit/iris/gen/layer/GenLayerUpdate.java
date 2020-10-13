@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
@@ -57,6 +58,11 @@ public class GenLayerUpdate extends BlockPopulator
 
 	public void spawnInitials(Chunk c, RNG rx)
 	{
+		if(!IrisSettings.get().isSystemEntityInitialSpawns())
+		{
+			return;
+		}
+		
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		((IrisTerrainProvider) gen).spawnInitials(c, rx);
 		p.end();

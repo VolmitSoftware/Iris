@@ -41,6 +41,18 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("Useful information when creating iris worlds. Shows object loads & more.")
 	public boolean verbose = false;
+	
+	@DontObfuscate
+	@Desc("System Effects")
+	public boolean systemEffects = true;
+	
+	@DontObfuscate
+	@Desc("System Spawn Overrides")
+	public boolean systemEntitySpawnOverrides = true;
+	
+	@DontObfuscate
+	@Desc("System Spawn Initials")
+	public boolean systemEntityInitialSpawns = true;
 
 	@DontObfuscate
 	@Desc("Compression level (0-9) lower is faster, but is not as good compression. Best results around 3-5")

@@ -440,9 +440,9 @@ public class Iris extends MortarPlugin
 		}, RNG.r.i(100, 1200));
 	}
 
-	public static String jobCount()
+	public static int jobCount()
 	{
-		return syncJobs.size() + "S";
+		return syncJobs.size();
 	}
 
 	public static void clearQueues()

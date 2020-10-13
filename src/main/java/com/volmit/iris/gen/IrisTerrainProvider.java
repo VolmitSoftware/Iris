@@ -133,6 +133,16 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		spawnable = true;
 		super.onTick(ticks);
+		tickEffects();
+	}
+
+	protected void tickEffects()
+	{
+		if(!IrisSettings.get().isSystemEffects())
+		{
+			return;
+		}
+
 		for(Player i : getTarget().getPlayers())
 		{
 			Location l = i.getLocation();
@@ -475,6 +485,11 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		if(isSpawnable())
 		{
+			if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+			{
+				return;
+			}
+
 			int x = e.getEntity().getLocation().getBlockX();
 			int y = e.getEntity().getLocation().getBlockY();
 			int z = e.getEntity().getLocation().getBlockZ();

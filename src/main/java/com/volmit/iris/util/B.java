@@ -31,6 +31,11 @@ public class B
 		return getBlockData(bd);
 	}
 
+	public static boolean isWater(BlockData b)
+	{
+		return b.getMaterial().equals(Material.WATER);
+	}
+
 	public static Material getMaterial(String bdx)
 	{
 		String bd = bdx.trim().toUpperCase();

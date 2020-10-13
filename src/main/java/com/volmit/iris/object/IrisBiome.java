@@ -11,6 +11,7 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -608,5 +609,15 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		}
 
 		return getBiomeGenerator(rng).fit(biomeScatter, x, y, z);
+	}
+
+	public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisDataManager idm)
+	{
+		if(getLayers().isEmpty())
+		{
+			return B.get("AIR");
+		}
+		
+		return getLayers().get(0).get(rng, x, 0, z, idm);
 	}
 }

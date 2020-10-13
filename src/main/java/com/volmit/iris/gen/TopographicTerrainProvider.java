@@ -12,6 +12,7 @@ import com.volmit.iris.gen.atomics.AtomicSliverMap;
 import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.layer.GenLayerCarve;
 import com.volmit.iris.gen.layer.GenLayerCave;
+import com.volmit.iris.gen.layer.GenLayerRavine;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.noise.CNG;
@@ -49,6 +50,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	private GenLayerCave glCave;
 	private GenLayerCarve glCarve;
 	private GenLayerBiome glBiome;
+	private GenLayerRavine glRavine;
 	private RNG rockRandom;
 	private IrisLock regionLock;
 	private KMap<String, IrisGenerator> generators;
@@ -78,6 +80,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		setRockRandom(getMasterRandom().nextParallelRNG(2858678));
 		setGlCave(new GenLayerCave(this, rng.nextParallelRNG(238948)));
 		setGlCarve(new GenLayerCarve(this, rng.nextParallelRNG(968346576)));
+		setGlRavine(new GenLayerRavine(this, rng.nextParallelRNG(-229354923)));
 	}
 
 	public int getCarvedHeight(int x, int z, boolean ignoreFluid)
@@ -533,7 +536,10 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	protected void onPreParallaxPostGenerate(RNG random, int x, int z, TerrainChunk terrain, HeightMap height, BiomeMap biomeMap, AtomicSliverMap map)
 	{
-
+		if(getDimension().isRavines())
+		{
+			getGlRavine().generateRavines(random.nextParallelRNG(x - 283845).nextParallelRNG(z + 23845868), x, z, terrain, height, biomeMap, map);
+		}
 	}
 
 	public void generateDeposits(RNG rx, TerrainChunk terrain, int x, int z)

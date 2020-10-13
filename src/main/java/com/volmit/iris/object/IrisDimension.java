@@ -168,6 +168,22 @@ public class IrisDimension extends IrisRegistrant
 	private boolean decorate = true;
 
 	@DontObfuscate
+	@Desc("Generate ravines or not")
+	private boolean ravines = true;
+
+	@Required
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("The rarity of a ravine layer having a lib (or rib) that sticks in or out by one block. Minecraft's default is 3.")
+	private int ravineRibRarity = 2;
+
+	@Required
+	@MinNumber(1)
+	@DontObfuscate
+	@Desc("The rarity of ravines. Each chunk has a 1 in X chance")
+	private int ravineRarity = 50;
+
+	@DontObfuscate
 	@Desc("Use post processing or not")
 	private boolean postProcessing = true;
 

@@ -20,7 +20,7 @@ public class GenLayerText extends GenLayer
 {
 	public static final BlockData AIR = B.getBlockData("AIR");
 
-	private AtomicCache<IrisObject> debug = new AtomicCache<>();
+	private final AtomicCache<IrisObject> debug = new AtomicCache<>();
 
 	public GenLayerText(TopographicTerrainProvider iris, RNG rng)
 	{
@@ -30,9 +30,7 @@ public class GenLayerText extends GenLayer
 	public IrisObject getDebug()
 	{
 		return debug.aquire(() ->
-		{
-			return createTextObject("Test", "Impact", 24, B.get("STONE"));
-		});
+				createTextObject("Test", "Impact", 24, B.get("STONE")));
 	}
 
 	public IrisObject createTextObject(String text, String font, int size, BlockData b)

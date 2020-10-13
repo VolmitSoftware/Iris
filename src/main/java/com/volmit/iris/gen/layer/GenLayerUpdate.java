@@ -32,8 +32,8 @@ import com.volmit.iris.util.RNG;
 
 public class GenLayerUpdate extends BlockPopulator
 {
-	private ParallaxTerrainProvider gen;
-	private RNG rng;
+	private final ParallaxTerrainProvider gen;
+	private final RNG rng;
 
 	public GenLayerUpdate(ParallaxTerrainProvider gen)
 	{
@@ -52,7 +52,7 @@ public class GenLayerUpdate extends BlockPopulator
 			generateDepositsWithVanillaSaftey(w, rx, c);
 		}
 
-		updateBlocks(w, rx, c, map);
+		updateBlocks(rx, c, map);
 		spawnInitials(c, rx);
 	}
 
@@ -103,7 +103,7 @@ public class GenLayerUpdate extends BlockPopulator
 		gen.getMetrics().getDeposits().put(p.getMilliseconds());
 	}
 
-	private void updateBlocks(World w, RNG rx, Chunk c, AtomicSliverMap map)
+	private void updateBlocks(RNG rx, Chunk c, AtomicSliverMap map)
 	{
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		for(int i = 0; i < 16; i++)
@@ -159,7 +159,7 @@ public class GenLayerUpdate extends BlockPopulator
 		IrisRegion region = gen.sampleRegion(rx, rz);
 		IrisBiome biomeSurface = gen.sampleTrueBiome(rx, rz);
 		IrisBiome biomeUnder = gen.sampleTrueBiome(rx, b.getY(), rz);
-		KList<IrisLootTable> tables = new KList<IrisLootTable>();
+		KList<IrisLootTable> tables = new KList<>();
 		IrisStructureResult structure = gen.getStructure(rx, b.getY(), rz);
 		double multiplier = 1D * gen.getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
 		injectTables(tables, gen.getDimension().getLoot());
@@ -238,7 +238,7 @@ public class GenLayerUpdate extends BlockPopulator
 				addItems(false, m.getInventory(), rng, tables, slot, rx, b.getY(), rz, 15);
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}

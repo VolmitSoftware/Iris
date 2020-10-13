@@ -15,14 +15,14 @@ import com.volmit.iris.util.M;
 
 public class AtomicWorldData
 {
-	private TerrainTarget world;
-	private KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
-	private KMap<ChunkPosition, AtomicRegionData> loadedSections;
-	private KMap<ChunkPosition, Long> lastRegion;
-	private KMap<ChunkPosition, Long> lastChunk;
-	private KList<ChunkPosition> unloadRegions;
-	private KList<ChunkPosition> unloadChunks;
-	private IrisLock lock = new IrisLock("ULLock");
+	private final TerrainTarget world;
+	private final KMap<ChunkPosition, AtomicSliverMap> loadedChunks;
+	private final KMap<ChunkPosition, AtomicRegionData> loadedSections;
+	private final KMap<ChunkPosition, Long> lastRegion;
+	private final KMap<ChunkPosition, Long> lastChunk;
+	private final KList<ChunkPosition> unloadRegions;
+	private final KList<ChunkPosition> unloadChunks;
+	private final IrisLock lock = new IrisLock("ULLock");
 	private long last = M.ms();
 
 	public AtomicWorldData(TerrainTarget world)
@@ -34,6 +34,7 @@ public class AtomicWorldData
 		lastChunk = new KMap<>();
 		unloadRegions = new KList<>();
 		unloadChunks = new KList<>();
+		//noinspection ResultOfMethodCallIgnored
 		getSubregionFolder().mkdirs();
 	}
 
@@ -83,6 +84,7 @@ public class AtomicWorldData
 	public void deleteSection(int x, int z) throws IOException
 	{
 		unloadSection(x, z, false);
+		//noinspection ResultOfMethodCallIgnored
 		getSubregionFile(x, z).delete();
 	}
 
@@ -263,7 +265,7 @@ public class AtomicWorldData
 		return loadedChunks;
 	}
 
-	public void clean(int j)
+	public void clean()
 	{
 		lock.lock();
 		if(M.ms() - last < getUnloadBatchSpeed())

@@ -59,10 +59,7 @@ public class GenLayerBiome extends GenLayer
 			return null;
 		}
 
-		double x = bx;
-		double z = bz;
-
-		return regionGenerator.fitRarity(iris.getDimension().getAllRegions(iris), x, z);
+		return regionGenerator.fitRarity(iris.getDimension().getAllRegions(iris), bx, bz);
 	}
 
 	public IrisBiome generateData(double bx, double bz, int rawX, int rawZ)
@@ -127,8 +124,6 @@ public class GenLayerBiome extends GenLayer
 
 	public InferredType getType(double bx, double bz, IrisRegion region)
 	{
-		double x = bx;
-		double z = bz;
 		double c = iris.getDimension().getLandChance();
 		InferredType bridge;
 
@@ -142,14 +137,14 @@ public class GenLayerBiome extends GenLayer
 			bridge = InferredType.SEA;
 		}
 
-		bridge = bridgeGenerator.fitDouble(0, 1, x, z) < c ? InferredType.LAND : InferredType.SEA;
+		bridge = bridgeGenerator.fitDouble(0, 1, bx, bz) < c ? InferredType.LAND : InferredType.SEA;
 
-		if(bridge.equals(InferredType.LAND) && region.isLake(lakeRandom, x, z))
+		if(bridge.equals(InferredType.LAND) && region.isLake(lakeRandom, bx, bz))
 		{
 			bridge = InferredType.LAKE;
 		}
 
-		if(bridge.equals(InferredType.LAND) && region.isRiver(riverRandom, x, z))
+		if(bridge.equals(InferredType.LAND) && region.isRiver(riverRandom, bx, bz))
 		{
 			bridge = InferredType.RIVER;
 		}

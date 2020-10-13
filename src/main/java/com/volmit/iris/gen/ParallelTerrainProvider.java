@@ -34,7 +34,6 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		setThreads(tc);
 		GroupedExecutor e = getAccelerant();
 		setAccelerant(new GroupedExecutor(threads, Thread.MAX_PRIORITY, "Iris Generator - " + getTarget().getName()));
-		;
 		Iris.executors.add(getAccelerant());
 
 		if(e != null)

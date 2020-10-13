@@ -74,7 +74,7 @@ public class AtomicSliverMap
 			return null;
 		}
 
-		return new IrisStructureResult(s.getTiles().get(Integer.valueOf(a[1])), s);
+		return new IrisStructureResult(s.getTiles().get(Integer.parseInt(a[1])), s);
 	}
 
 	public void write(OutputStream out) throws IOException

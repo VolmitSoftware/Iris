@@ -76,7 +76,7 @@ public class Iris extends MortarPlugin
 	public Iris()
 	{
 		IO.delete(new File("iris"));
-		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4 * 1000 * 1000 * 1000;
+		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4gb
 	}
 
 	private static String findNMSTag()
@@ -107,21 +107,21 @@ public class Iris extends MortarPlugin
 
 	private static boolean doesSupport3DBiomes()
 	{
-		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
 		return v >= 15;
 	}
 
 	private static boolean doesSupportCustomModels()
 	{
-		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
 		return v >= 14;
 	}
 
 	private static boolean doesSupportAwareness()
 	{
-		int v = Integer.valueOf(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
 		return v >= 15;
 	}
@@ -158,9 +158,9 @@ public class Iris extends MortarPlugin
 		linkMultiverseCore = new MultiverseCoreLink();
 		edit = new EditManager();
 		J.a(() -> IO.delete(getTemp()));
-		J.a(() -> bstats());
+		J.a(this::bstats);
 		J.s(this::splash, 20);
-		J.sr(() -> tickQueue(syncJobs), 0);
+		J.sr(this::tickQueue, 0);
 		super.onEnable();
 	}
 
@@ -172,22 +172,22 @@ public class Iris extends MortarPlugin
 		}
 	}
 
-	private void tickQueue(Queue<Runnable> q)
+	private void tickQueue()
 	{
-		synchronized(q)
+		synchronized(Iris.syncJobs)
 		{
-			if(!q.hasNext())
+			if(!Iris.syncJobs.hasNext())
 			{
 				return;
 			}
 
 			long ms = M.ms();
 
-			while(q.hasNext() && M.ms() - ms < 25)
+			while(Iris.syncJobs.hasNext() && M.ms() - ms < 25)
 			{
 				try
 				{
-					q.next().run();
+					Iris.syncJobs.next().run();
 				}
 
 				catch(Throwable e)
@@ -271,7 +271,7 @@ public class Iris extends MortarPlugin
 		{
 			try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
 			{
-				byte dataBuffer[] = new byte[1024];
+				byte[] dataBuffer = new byte[1024];
 				int bytesRead;
 				while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
 				{
@@ -280,7 +280,7 @@ public class Iris extends MortarPlugin
 				}
 			}
 
-			catch(IOException e)
+			catch(IOException ignored)
 			{
 
 			}
@@ -296,7 +296,7 @@ public class Iris extends MortarPlugin
 
 		try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
 		{
-			byte dataBuffer[] = new byte[1024];
+			byte[] dataBuffer = new byte[1024];
 			int bytesRead;
 			while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
 			{
@@ -304,7 +304,7 @@ public class Iris extends MortarPlugin
 			}
 		}
 
-		catch(IOException e)
+		catch(IOException ignored)
 		{
 
 		}
@@ -314,7 +314,7 @@ public class Iris extends MortarPlugin
 			return IO.readAll(f);
 		}
 
-		catch(IOException e)
+		catch(IOException ignored)
 		{
 
 		}
@@ -329,7 +329,7 @@ public class Iris extends MortarPlugin
 
 		try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
 		{
-			byte dataBuffer[] = new byte[1024];
+			byte[] dataBuffer = new byte[1024];
 			int bytesRead;
 			while((bytesRead = in.read(dataBuffer, 0, 1024)) != -1)
 			{
@@ -337,7 +337,7 @@ public class Iris extends MortarPlugin
 			}
 		}
 
-		catch(IOException e)
+		catch(IOException ignored)
 		{
 
 		}
@@ -395,7 +395,7 @@ public class Iris extends MortarPlugin
 			splash[i] += info[i];
 		}
 
-		Iris.info("\n\n " + new KList<String>(splash).toString("\n") + "\n");
+		Iris.info("\n\n " + new KList<>(splash).toString("\n") + "\n");
 
 		if(lowMemoryMode)
 		{

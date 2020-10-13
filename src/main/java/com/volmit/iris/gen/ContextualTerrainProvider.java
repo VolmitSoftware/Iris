@@ -202,6 +202,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 				if(getNoLoot().size() > 1024)
 				{
+					//noinspection ListRemoveInLoop
 					for(int i = 0; i < 64; i++)
 					{
 						getNoLoot().remove(0);
@@ -358,7 +359,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		onClose();
 	}
 
-	protected void generateFailure(Random no, int x, int z, TerrainChunk chunk)
+	protected void generateFailure(TerrainChunk chunk)
 	{
 		for(int i = 0; i < 16; i++)
 		{
@@ -391,7 +392,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 		if(failing)
 		{
-			generateFailure(no, x, z, terrain);
+			generateFailure(terrain);
 			return;
 		}
 
@@ -414,7 +415,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		}
 
 		setHotloadable(true);
-		generateFailure(no, x, z, terrain);
+		generateFailure(terrain);
 	}
 
 	private void doCheckHotload()
@@ -432,11 +433,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		if(getPushLatch().flip())
 		{
 			Iris.hotloader.check((IrisContext) this);
-
-			if(this instanceof IrisContext)
-			{
-				IrisContext.pushContext((IrisContext) this);
-			}
+			IrisContext.pushContext((IrisContext) this);
 		}
 	}
 

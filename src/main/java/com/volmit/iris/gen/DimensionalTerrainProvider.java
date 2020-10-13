@@ -93,7 +93,7 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 			getData().preferFolder(getDimension().getLoadFile().getParentFile().getParentFile().getName());
 		}
 
-		catch(Throwable e)
+		catch(Throwable ignored)
 		{
 
 		}
@@ -176,11 +176,11 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 
 	public double getZoomed(double modified)
 	{
-		return (double) (modified) / getDimension().getTerrainZoom();
+		return modified / getDimension().getTerrainZoom();
 	}
 
 	public double getUnzoomed(double modified)
 	{
-		return (double) (modified) * getDimension().getTerrainZoom();
+		return modified * getDimension().getTerrainZoom();
 	}
 }

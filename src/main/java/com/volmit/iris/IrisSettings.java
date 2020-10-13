@@ -146,7 +146,7 @@ public class IrisSettings
 								Iris.info("Updated Configuration Files");
 							}
 
-							catch(Throwable e)
+							catch(Throwable ignored)
 							{
 
 							}
@@ -157,6 +157,7 @@ public class IrisSettings
 				catch(JSONException | IOException e)
 				{
 					e.printStackTrace();
+					//noinspection ResultOfMethodCallIgnored
 					s.delete();
 				}
 			}

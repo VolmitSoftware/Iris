@@ -5,8 +5,8 @@ import com.volmit.iris.util.KMap;
 
 public class MasterLock
 {
-	private KMap<String, IrisLock> locks;
-	private IrisLock lock;
+	private final KMap<String, IrisLock> locks;
+	private final IrisLock lock;
 	private boolean enabled;
 
 	public MasterLock()

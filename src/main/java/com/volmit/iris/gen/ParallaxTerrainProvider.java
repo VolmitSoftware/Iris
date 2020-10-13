@@ -242,7 +242,7 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		p.end();
 		getMetrics().getParallax().put(p.getMilliseconds());
 		super.onPostParallaxPostGenerate(random, x, z, terrain, height, biomeMap, map);
-		getParallaxMap().clean(getTicks());
+		getParallaxMap().clean();
 		getData().getObjectLoader().clean();
 	}
 

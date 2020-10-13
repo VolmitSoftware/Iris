@@ -53,7 +53,7 @@ public class AtomicSliver
 
 	public Material getTypeSafe(int h)
 	{
-		return get(h > 255 ? 255 : h < 0 ? 0 : h).getMaterial();
+		return get(h > 255 ? 255 : Math.max(h, 0)).getMaterial();
 	}
 
 	public KList<Byte> getUpdatables()
@@ -125,7 +125,7 @@ public class AtomicSliver
 		setSilently(h, d);
 		modified = true;
 		lock.lock();
-		highestBlock = h > highestBlock ? h : highestBlock;
+		highestBlock = Math.max(h, highestBlock);
 		lock.unlock();
 	}
 

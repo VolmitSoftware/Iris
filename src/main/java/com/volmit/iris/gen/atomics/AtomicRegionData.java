@@ -42,8 +42,8 @@ public class AtomicRegionData
 
 		for(String i : tags.keySet())
 		{
-			int x = Integer.valueOf(i.split("\\Q.\\E")[0]);
-			int z = Integer.valueOf(i.split("\\Q.\\E")[1]);
+			int x = Integer.parseInt(i.split("\\Q.\\E")[0]);
+			int z = Integer.parseInt(i.split("\\Q.\\E")[1]);
 			tag[(z << 5) | x] = tags.get(i);
 		}
 
@@ -104,8 +104,7 @@ public class AtomicRegionData
 		tag[(rz << 5) | rx] = new ByteArrayTag(rx + "." + rz, b);
 	}
 
-	public AtomicSliverMap get(int rx, int rz) throws IOException
-	{
+	public AtomicSliverMap get(int rx, int rz) {
 		AtomicSliverMap data = new AtomicSliverMap();
 
 		if(!contains(rx, rz))

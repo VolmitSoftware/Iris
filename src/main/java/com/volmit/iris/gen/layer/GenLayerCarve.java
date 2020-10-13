@@ -14,7 +14,7 @@ public class GenLayerCarve extends GenLayer
 	private static final KList<CarveResult> EMPTY_LIST = new KList<>();
 
 	@Getter
-	private boolean couldCarve;
+	private final boolean couldCarve;
 
 	@Getter
 	private int minimum;
@@ -37,12 +37,12 @@ public class GenLayerCarve extends GenLayer
 		}
 	}
 
-	public boolean couldCarve(int x, int y, int z)
+	public boolean couldCarve(int y)
 	{
 		return couldCarve && y >= minimum && y <= maximum;
 	}
 
-	public boolean couldCarveBelow(int x, int y, int z)
+	public boolean couldCarveBelow(int y)
 	{
 		return couldCarve && y <= maximum;
 	}
@@ -89,7 +89,7 @@ public class GenLayerCarve extends GenLayer
 
 	public int getSurfaceCarve(int x, int y, int z)
 	{
-		if(couldCarveBelow(x, y, z))
+		if(couldCarveBelow(y))
 		{
 			int h = y;
 
@@ -111,17 +111,14 @@ public class GenLayerCarve extends GenLayer
 
 	public boolean isCarved(int xc, int y, int zc)
 	{
-		if(!couldCarve(xc, y, zc))
+		if(!couldCarve(y))
 		{
 			return false;
 		}
 
-		double x = ((double) xc);
-		double z = ((double) zc);
-
 		for(IrisCarveLayer i : iris.getDimension().getCarveLayers())
 		{
-			if(i.isCarved(rng, x, y, z))
+			if(i.isCarved(rng, xc, y, zc))
 			{
 				return true;
 			}

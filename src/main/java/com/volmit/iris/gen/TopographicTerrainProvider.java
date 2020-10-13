@@ -54,13 +54,17 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	private RNG rockRandom;
 	private IrisLock regionLock;
 	private KMap<String, IrisGenerator> generators;
+	private KList<IrisGenerator> generatorList;
 	private CNG masterFracture;
+	private int generatorSize;
 	private ChronoLatch cwarn = new ChronoLatch(1000);
 
 	public TopographicTerrainProvider(TerrainTarget t, String dimensionName, int threads)
 	{
 		super(t, dimensionName, threads);
+		setGeneratorSize(0);
 		setGenerators(new KMap<>());
+		setGeneratorList(new KList<>());
 		setRegionLock(new IrisLock("BiomeChunkGenerator"));
 	}
 
@@ -132,7 +136,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		int depth = 0;
 		double noise = getTerrainHeight(rx, rz);
 		int height = (int) Math.round(noise);
-		boolean carvable = getGlCarve().couldCarveBelow(rx, height, rz);
+		boolean carvable = getGlCarve().couldCarveBelow(height);
 		IrisRegion region = sampleRegion(rx, rz);
 		IrisBiome biome = sampleTrueBiome(rx, rz);
 		IrisBiome carveBiome = null;
@@ -264,7 +268,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			// Decorate underwater surface
 			if(!cavernSurface && (k == height && B.isSolid(block.getMaterial()) && k < fluidHeight))
 			{
-				decorateUnderwater(crand, biome, sliver, wx, k, wz, rx, rz, block);
+				decorateUnderwater(crand, biome, sliver, k, rx, rz);
 			}
 
 			// Decorate Cavern surfaces, but not the true surface
@@ -275,7 +279,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					carveBiome = biome.getRealCarvingBiome(getData());
 				}
 
-				decorateLand(crand, carveBiome, sliver, wx, k, wz, rx, rz, block);
+				decorateLand(crand, carveBiome, sliver, k, rx, rz, block);
 			}
 		}
 
@@ -323,7 +327,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				if(blockc != null && !sliver.isSolid(i.getFloor() + 1))
 				{
-					decorateCave(crand, caveBiome, sliver, wx, i.getFloor(), wz, rx, rz, blockc);
+					decorateCave(crand, caveBiome, sliver, i.getFloor(), rx, rz, blockc);
 				}
 			}
 		}
@@ -333,7 +337,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		// Decorate True Surface
 		if(block.getMaterial().isSolid())
 		{
-			decorateLand(crand, biome, sliver, wx, Math.max(height, fluidHeight), wz, rx, rz, block);
+			decorateLand(crand, biome, sliver, Math.max(height, fluidHeight), rx, rz, block);
 		}
 	}
 
@@ -348,7 +352,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		}
 	}
 
-	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
+	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, BlockData block)
 	{
 		if(!getDimension().isDecorate())
 		{
@@ -364,7 +368,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				continue;
 			}
 
-			BlockData d = i.getBlockData(biome, rng.nextParallelRNG((int) (38888 + biome.getRarity() + biome.getName().length() + j++)), rx, rz, getData());
+			BlockData d = i.getBlockData(biome, rng.nextParallelRNG(38888 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
 
 			if(d != null)
 			{
@@ -422,7 +426,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		}
 	}
 
-	private void decorateCave(RNG rng, IrisBiome biome, AtomicSliver sliver, double wx, int k, double wz, int rx, int rz, BlockData block)
+	private void decorateCave(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, BlockData block)
 	{
 		if(!getDimension().isDecorate())
 		{
@@ -488,7 +492,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		}
 	}
 
-	private void decorateUnderwater(RNG random, IrisBiome biome, AtomicSliver sliver, double wx, int y, double wz, int rx, int rz, BlockData block)
+	private void decorateUnderwater(RNG random, IrisBiome biome, AtomicSliver sliver, int y, int rx, int rz)
 	{
 		if(!getDimension().isDecorate())
 		{
@@ -580,9 +584,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	public double getNoiseHeight(int rx, int rz)
 	{
-		double h = getBiomeHeight(rx, rz);
-
-		return h;
+		return getBiomeHeight(rx, rz);
 	}
 
 	public IrisBiome sampleTrueBiomeBase(int x, int z)
@@ -728,7 +730,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		buildGenLayers(getMasterRandom());
 	}
 
-	public void registerGenerator(IrisGenerator g, IrisDimension dim)
+	public void registerGenerator(IrisGenerator g)
 	{
 		KMap<String, IrisGenerator> generators = this.generators;
 
@@ -739,6 +741,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			return;
 		}
 
+		generatorList.add(g);
 		getRegionLock().unlock();
 		generators.put(g.getLoadKey(), g);
 	}
@@ -750,13 +753,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	protected double getRawBiomeHeight(double rrx, double rrz)
 	{
-		double rx = rrx;
-		double rz = rrz;
 		double h = 0;
 
-		for(IrisGenerator i : getGenerators().values())
+		for(int j = 0; j < generatorSize; j++)
 		{
-			h += interpolateGenerator(rx, rz, i);
+			h += interpolateGenerator(rrx, rrz, generatorList.get(j));
 		}
 
 		return h;
@@ -782,8 +783,9 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			{
 				IrisBiome b = sampleBiome((int) xx, (int) zz);
 
-				for(IrisBiomeGeneratorLink i : b.getGenerators())
+				for(int j = 0; j < b.getGenerators().size(); j++)
 				{
+					IrisBiomeGeneratorLink i = b.getGenerators().get(j);
 					if(i.getGenerator().equals(gen.getLoadKey()))
 					{
 						return i.getMax();
@@ -805,8 +807,9 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			{
 				IrisBiome b = sampleBiome((int) xx, (int) zz);
 
-				for(IrisBiomeGeneratorLink i : b.getGenerators())
+				for(int j = 0; j < b.getGenerators().size(); j++)
 				{
+					IrisBiomeGeneratorLink i = b.getGenerators().get(j);
 					if(i.getGenerator().equals(gen.getLoadKey()))
 					{
 						return i.getMin();
@@ -828,8 +831,10 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	protected void loadGenerators()
 	{
+		generatorList.clear();
 		generators.clear();
 		loadGenerators(getDimension());
+		generatorSize = generatorList.size();
 	}
 
 	protected void loadGenerators(IrisDimension dim)
@@ -865,7 +870,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			{
 				touch.add(next);
 				IrisBiome biome = loadBiome(next);
-				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator(this), dim));
+				biome.getGenerators().forEach((i) -> registerGenerator(i.getCachedGenerator(this)));
 				loadQueue.addAll(biome.getChildren());
 			}
 		}
@@ -908,9 +913,8 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		double wx = getModifiedX(x, z);
 		double wz = getModifiedZ(x, z);
 		IrisRegion region = glBiome.getRegion(wx, wz);
-		IrisBiome res = glBiome.generateRegionData(wx, wz, x, z, region);
 
-		return res;
+		return glBiome.generateRegionData(wx, wz, x, z, region);
 	}
 
 	public IrisBiome sampleBiome(int x, int z)

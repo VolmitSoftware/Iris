@@ -257,7 +257,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 
 	public Renderer createRenderer()
 	{
-		return (x, z) -> render(x, z);
+		return this::render;
 	}
 
 	public Color render(double x, double z)
@@ -281,9 +281,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		float s = 0.25f + shift + sat;
 		float b = (float) (Math.max(0, Math.min(height + getFluidHeight(), 255)) / 255);
 
-		Color c = Color.getHSBColor(h, s, b);
-
-		return c;
+		return Color.getHSBColor(h, s, b);
 
 	}
 
@@ -323,7 +321,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		IrisBiome bio = sampleTrueBiome(x, z);
 		IrisBiome cbio = y < getFluidHeight() ? sampleTrueBiome(x, y, z) : null;
 
-		if(cbio != null && bio.equals(cbio))
+		if(bio.equals(cbio))
 		{
 			cbio = null;
 		}
@@ -337,7 +335,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		KList<ItemStack> drops = new KList<>();
 		boolean skipParents = false;
 
-		if(!skipParents && cbio != null)
+		if(cbio != null)
 		{
 			for(IrisBlockDrops i : cbio.getBlockDrops())
 			{

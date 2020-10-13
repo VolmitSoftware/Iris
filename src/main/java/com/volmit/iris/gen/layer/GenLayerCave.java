@@ -5,7 +5,6 @@ import java.util.function.Function;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.noise.FastNoiseDouble;
@@ -25,7 +24,7 @@ public class GenLayerCave extends GenLayer
 	public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
 	public static final BlockData AIR = B.getBlockData("AIR");
 	private static final KList<CaveResult> EMPTY = new KList<>();
-	private FastNoiseDouble gg;
+	private final FastNoiseDouble gg;
 
 	public GenLayerCave(TopographicTerrainProvider iris, RNG rng)
 	{
@@ -76,7 +75,7 @@ public class GenLayerCave extends GenLayer
 
 			return CAVE_AIR;
 		};
-		int surface = (int) Math.round(((IrisTerrainProvider) iris).getTerrainHeight((int) wxx, (int) wzz));
+		int surface = (int) Math.round(iris.getTerrainHeight((int) wxx, (int) wzz));
 		double wx = wxx + layer.getHorizontalSlope().get(rng, wxx, wzz);
 		double wz = wzz + layer.getHorizontalSlope().get(rng, -wzz, -wxx);
 		double baseWidth = (14 * scale);
@@ -118,15 +117,15 @@ public class GenLayerCave extends GenLayer
 
 				if(data == null)
 				{
-					ceiling = pu > ceiling ? pu : ceiling;
-					floor = pu < floor ? pu : floor;
-					ceiling = pd > ceiling ? pd : ceiling;
-					floor = pd < floor ? pd : floor;
+					ceiling = Math.max(pu, ceiling);
+					floor = Math.min(pu, floor);
+					ceiling = Math.max(pd, ceiling);
+					floor = Math.min(pd, floor);
 
 					if(tunnelHeight == 1)
 					{
-						ceiling = caveHeight > ceiling ? caveHeight : ceiling;
-						floor = caveHeight < floor ? caveHeight : floor;
+						ceiling = Math.max(caveHeight, ceiling);
+						floor = Math.min(caveHeight, floor);
 					}
 				}
 
@@ -134,22 +133,22 @@ public class GenLayerCave extends GenLayer
 				{
 					if(dig(x, pu, z, data, fluid))
 					{
-						ceiling = pu > ceiling ? pu : ceiling;
-						floor = pu < floor ? pu : floor;
+						ceiling = Math.max(pu, ceiling);
+						floor = Math.min(pu, floor);
 					}
 
 					if(dig(x, pd, z, data, fluid))
 					{
-						ceiling = pd > ceiling ? pd : ceiling;
-						floor = pd < floor ? pd : floor;
+						ceiling = Math.max(pd, ceiling);
+						floor = Math.min(pd, floor);
 					}
 
 					if(tunnelHeight == 1)
 					{
-						if(dig(x, (int) (caveHeight), z, data, fluid))
+						if(dig(x, caveHeight, z, data, fluid))
 						{
-							ceiling = caveHeight > ceiling ? caveHeight : ceiling;
-							floor = caveHeight < floor ? caveHeight : floor;
+							ceiling = Math.max(caveHeight, ceiling);
+							floor = Math.min(caveHeight, floor);
 						}
 					}
 				}

@@ -56,7 +56,7 @@ public class GenLayerRavine extends GenLayer
 		return pos.getBlockData(x, y, z);
 	}
 
-	private BlockData getSurfaceBlock(TerrainChunk pos, BiomeMap map, int n6, int i, RNG rmg)
+	private BlockData getSurfaceBlock(BiomeMap map, int n6, int i, RNG rmg)
 	{
 		return map.getBiome(n6, i).getSurfaceBlock(n6, i, rmg, iris.getData());
 	}
@@ -93,15 +93,15 @@ public class GenLayerRavine extends GenLayer
 		}
 		while(n3 < n4)
 		{
-			double d7 = 1.5 + (double) (MathHelper.sin((float) ((float) n3 * 3.1415927f / (float) n4)) * f * 1.0f);
+			double d7 = 1.5 + (double) (MathHelper.sin((float) n3 * 3.1415927f / (float) n4) * f * 1.0f);
 			double d8 = d7 * d4;
 			d7 *= (double) random.nextFloat() * 0.25 + 0.75;
 			d8 *= (double) random.nextFloat() * 0.25 + 0.75;
-			float f7 = MathHelper.cos((float) f3);
-			float f8 = MathHelper.sin((float) f3);
-			sx += (double) (MathHelper.cos((float) f2) * f7);
-			sy += (double) f8;
-			sz += (double) (MathHelper.sin((float) f2) * f7);
+			float f7 = MathHelper.cos(f3);
+			float f8 = MathHelper.sin(f3);
+			sx = sx + (double) (MathHelper.cos(f2) * f7);
+			sy += f8;
+			sz += MathHelper.sin(f2) * f7;
 			f3 *= 0.7f;
 			f3 += f5 * 0.05f;
 			f2 += f4 * 0.05f;
@@ -122,12 +122,12 @@ public class GenLayerRavine extends GenLayer
 				if(sx >= x - 16.0 - d7 * 2.0 && sz >= z - 16.0 - d7 * 2.0 && sx <= x + 16.0 + d7 * 2.0 && sz <= z + 16.0 + d7 * 2.0)
 				{
 					int n6;
-					int n7 = MathHelper.floor((double) (sx - d7)) - tx * 16 - 1;
-					int n8 = MathHelper.floor((double) (sx + d7)) - tx * 16 + 1;
-					int n9 = MathHelper.floor((double) (sy - d8)) - 1;
-					int n10 = MathHelper.floor((double) (sy + d8)) + 1;
-					int n11 = MathHelper.floor((double) (sz - d7)) - tz * 16 - 1;
-					int n12 = MathHelper.floor((double) (sz + d7)) - tz * 16 + 1;
+					int n7 = MathHelper.floor(sx - d7) - tx * 16 - 1;
+					int n8 = MathHelper.floor(sx + d7) - tx * 16 + 1;
+					int n9 = MathHelper.floor(sy - d8) - 1;
+					int n10 = MathHelper.floor(sy + d8) + 1;
+					int n11 = MathHelper.floor(sz - d7) - tz * 16 - 1;
+					int n12 = MathHelper.floor(sz + d7) - tz * 16 + 1;
 					if(n7 < 0)
 					{
 						n7 = 0;
@@ -221,7 +221,7 @@ public class GenLayerRavine extends GenLayer
 									}
 
 									cSet(bps, n6 + tx * 16, 0, i + tz * 16);
-									set(terrain, n6, j - 1, i, getSurfaceBlock(terrain, biomeMap, n6, i, rng), height, map);
+									set(terrain, n6, j - 1, i, getSurfaceBlock(biomeMap, n6, i, rng), height, map);
 								}
 							}
 						}

@@ -90,7 +90,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 			getPostLock().lock();
 			BlockData d = currentData.getBlockData(x & 15, y, z & 15);
 			getPostLock().unlock();
-			return d == null ? AIR : d;
+			return d;
 		}
 
 		return sampleSliver(x, z).get(y);

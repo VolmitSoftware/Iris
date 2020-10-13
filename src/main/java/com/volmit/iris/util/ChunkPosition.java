@@ -1,7 +1,5 @@
 package com.volmit.iris.util;
 
-import java.util.Objects;
-
 public class ChunkPosition
 {
 	private int x;
@@ -36,7 +34,11 @@ public class ChunkPosition
 	@Override
 	public int hashCode()
 	{
-		return Objects.hash(x, z);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + x;
+		result = prime * result + z;
+		return result;
 	}
 
 	@Override

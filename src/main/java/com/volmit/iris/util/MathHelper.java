@@ -2,20 +2,26 @@ package com.volmit.iris.util;
 
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.IntPredicate;
-import net.minecraft.server.v1_16_R2.BaseBlockPosition;
-import net.minecraft.server.v1_16_R2.SystemUtils;
 
 public class MathHelper
 {
 	public static final float a = MathHelper.c(2.0f);
-	private static final float[] b = (float[]) SystemUtils.a((Object) new float[65536], var0 ->
+	private static final float[] b = (float[]) a((Object) new float[65536], var0 ->
 	{
 		for(int var1 = 0; var1 < ((float[]) var0).length; ++var1)
 		{
 			((float[]) var0)[var1] = (float) Math.sin((double) var1 * 3.141592653589793 * 2.0 / 65536.0);
 		}
 	});
+
+	public static <T> T a(T var0, Consumer<T> var1)
+	{
+		var1.accept(var0);
+		return var0;
+	}
+
 	private static final Random c = new Random();
 	private static final int[] d = new int[] {0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
 	private static final double e = Double.longBitsToDouble(4805340802404319232L);
@@ -319,9 +325,9 @@ public class MathHelper
 		return var0 - (double) MathHelper.d(var0);
 	}
 
-	public static long a(BaseBlockPosition var0)
+	public static long a(BlockPosition var0)
 	{
-		return MathHelper.c(var0.getX(), var0.getY(), var0.getZ());
+		return c(var0.getX(), var0.getY(), var0.getZ());
 	}
 
 	public static long c(int var0, int var1, int var2)
@@ -359,16 +365,19 @@ public class MathHelper
 		{
 			return Double.NaN;
 		}
+		@SuppressWarnings("unused")
 		boolean bl = var6 = var0 < 0.0;
 		if(var6)
 		{
 			var0 = -var0;
 		}
+		@SuppressWarnings("unused")
 		boolean bl2 = var7 = var2 < 0.0;
 		if(var7)
 		{
 			var2 = -var2;
 		}
+		@SuppressWarnings("unused")
 		boolean bl3 = var8 = var0 > var2;
 		if(var8)
 		{

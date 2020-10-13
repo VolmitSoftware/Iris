@@ -21,7 +21,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 {
 	private static final BlockData WATER = B.getBlockData("WATER");
 	private static final BlockData AIR = B.getBlockData("AIR");
-	private RNG rng;
+	private final RNG rng;
 
 	@DontObfuscate
 	public PostMasterPatcher(PostBlockTerrainProvider gen, int phase)

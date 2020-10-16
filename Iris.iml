@@ -42,6 +42,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bukkit.craftbukkit:cb-1.14.4:1.14.4" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bstats:bstats-bukkit:1.7" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: io.lumine.xikage:MythicMobs:4.9.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.projectlombok:lombok:1.18.10" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.code.gson:gson:2.8.5" level="project" />
   </component>

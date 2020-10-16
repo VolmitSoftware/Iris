@@ -23,6 +23,7 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.link.MultiverseCoreLink;
+import com.volmit.iris.link.MythicMobsLink;
 import com.volmit.iris.manager.EditManager;
 import com.volmit.iris.manager.IrisBoardManager;
 import com.volmit.iris.manager.IrisDataManager;
@@ -59,6 +60,7 @@ public class Iris extends MortarPlugin
 	public static IrisBoardManager board;
 	public static String nmsTag = findNMSTag();
 	public static MultiverseCoreLink linkMultiverseCore;
+	public static MythicMobsLink linkMythicMobs;
 	private static IrisLock lock = new IrisLock("Iris");
 	private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 	public static boolean customModels = doesSupportCustomModels();
@@ -156,6 +158,7 @@ public class Iris extends MortarPlugin
 		struct = new StructureManager();
 		board = new IrisBoardManager();
 		linkMultiverseCore = new MultiverseCoreLink();
+		linkMythicMobs = new MythicMobsLink();
 		edit = new EditManager();
 		J.a(() -> IO.delete(getTemp()));
 		J.a(this::bstats);

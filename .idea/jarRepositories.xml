@@ -36,5 +36,10 @@
       <option name="name" value="CodeMC" />
       <option name="url" value="https://repo.codemc.org/repository/maven-public" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="nexus" />
+      <option name="name" value="Lumine Releases" />
+      <option name="url" value="https://mvn.lumine.io/repository/maven-public/" />
+    </remote-repository>
   </component>
 </project>

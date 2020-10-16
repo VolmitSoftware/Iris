@@ -24,6 +24,7 @@ import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.RegistryListMythical;
 import com.volmit.iris.util.Required;
 
 import lombok.AllArgsConstructor;
@@ -41,11 +42,15 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisEntity extends IrisRegistrant
 {
-
 	@Required
 	@DontObfuscate
-	@Desc("The type of entity to spawn")
-	private EntityType type = EntityType.PIG;
+	@Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
+	private EntityType type = EntityType.UNKNOWN;
+
+	@RegistryListMythical
+	@Desc("The type of mythic mob (if mythic mobs is installed). If this is set, make sure to set 'type' to UNKNOWN")
+	@DontObfuscate
+	private String mythicalType = "";
 
 	@DontObfuscate
 	@Desc("The custom name of this entity")
@@ -136,7 +141,7 @@ public class IrisEntity extends IrisRegistrant
 
 	public Entity spawn(ParallaxTerrainProvider gen, Location at, RNG rng)
 	{
-		Entity e = at.getWorld().spawnEntity(at, getType());
+		Entity e = doSpawn(at);
 		e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);
 		e.setCustomNameVisible(isCustomNameVisible());
 		e.setGlowing(isGlowing());
@@ -258,5 +263,20 @@ public class IrisEntity extends IrisRegistrant
 		}
 
 		return e;
+	}
+
+	private Entity doSpawn(Location at)
+	{
+		if(isMythical())
+		{
+			return Iris.linkMythicMobs.spawn(getMythicalType(), at);
+		}
+
+		return at.getWorld().spawnEntity(at, getType());
+	}
+
+	public boolean isMythical()
+	{
+		return Iris.linkMythicMobs.supported() && !getMythicalType().trim().isEmpty();
 	}
 }

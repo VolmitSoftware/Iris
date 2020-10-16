@@ -490,6 +490,11 @@ public class B
 
 	public static boolean isAir(BlockData d)
 	{
+		if(d == null)
+		{
+			return true;
+		}
+
 		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR) || d.getMaterial().equals(Material.VOID_AIR);
 	}
 }

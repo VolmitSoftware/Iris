@@ -353,9 +353,12 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3566522));
 		}
 
-		for(IrisObjectPlacement k : r.getSurfaceObjects())
+		if(r != null)
 		{
-			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+			for(IrisObjectPlacement k : r.getSurfaceObjects())
+			{
+				placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3569222));
+			}
 		}
 
 		return g;

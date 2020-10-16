@@ -402,6 +402,11 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 	private int nearestCaveFloor(int floor, int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
+		if(floor > 255)
+		{
+			return 255;
+		}
+
 		if(B.isAir(getPostBlock(x, floor, z, currentPostX, currentPostZ, currentData)))
 		{
 			if(B.isAir(getPostBlock(x, floor - 1, z, currentPostX, currentPostZ, currentData)))
@@ -430,6 +435,11 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 	private int nearestCaveCeiling(int ceiling, int x, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
+		if(ceiling > 255)
+		{
+			return 255;
+		}
+
 		if(B.isAir(getPostBlock(x, ceiling, z, currentPostX, currentPostZ, currentData)))
 		{
 			if(B.isAir(getPostBlock(x, ceiling + 1, z, currentPostX, currentPostZ, currentData)))

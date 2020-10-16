@@ -9,6 +9,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
@@ -351,6 +352,16 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		for(IrisObjectPlacement k : b.getSurfaceObjects())
 		{
 			placeObject(k, i, j, random.nextParallelRNG((34 * ((i * 30) + (j * 30) + g++) * i * j) + i - j + 3566522));
+		}
+
+		if(r == null)
+		{
+			Iris.error("R Null");
+		}
+
+		if(r.getSurfaceObjects() == null)
+		{
+			Iris.error("Surface objects null");
 		}
 
 		if(r != null)

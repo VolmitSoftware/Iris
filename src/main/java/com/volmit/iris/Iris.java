@@ -81,6 +81,20 @@ public class Iris extends MortarPlugin
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4gb
 	}
 
+	public static int getThreadCount()
+	{
+		int tc = IrisSettings.get().forceThreadCount;
+
+		if(tc <= 0)
+		{
+			int p = Runtime.getRuntime().availableProcessors();
+
+			return p > 16 ? 16 : p < 4 ? 4 : p;
+		}
+
+		return tc;
+	}
+
 	private static String findNMSTag()
 	{
 		try
@@ -253,7 +267,7 @@ public class Iris extends MortarPlugin
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
 		// @NoArgsConstructor
-		return createProvisionBukkit(IrisGenConfiguration.builder().threads(IrisSettings.get().threads).target(TerrainTarget.builder().environment(Environment.NORMAL).folder(new File(worldName)).name(worldName).seed(worldName.hashCode()).build()).build());
+		return createProvisionBukkit(IrisGenConfiguration.builder().threads(getThreadCount()).target(TerrainTarget.builder().environment(Environment.NORMAL).folder(new File(worldName)).name(worldName).seed(worldName.hashCode()).build()).build());
 		//@done
 	}
 

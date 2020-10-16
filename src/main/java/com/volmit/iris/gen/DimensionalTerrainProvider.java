@@ -126,11 +126,6 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 	{
 		IrisDimension d = loadDimension(getDimensionName());
 
-		if(d == null)
-		{
-			Iris.error("Can't find dimension: " + getDimensionName());
-		}
-
 		return d;
 	}
 

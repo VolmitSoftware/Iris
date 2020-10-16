@@ -185,7 +185,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			}
 		}
 
-		if(warn)
+		if(warn && !resourceTypeName.equals("Dimension"))
 		{
 			J.a(() -> Iris.warn("Couldn't find " + resourceTypeName + ": " + name));
 		}

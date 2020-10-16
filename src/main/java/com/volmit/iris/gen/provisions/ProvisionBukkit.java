@@ -15,7 +15,6 @@ import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.scaffold.HeightedFakeWorld;
 import com.volmit.iris.gen.scaffold.Provisioned;
@@ -38,7 +37,7 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 	private final TerrainProvider provider;
 	private final KMap<ChunkPosition, TerrainChunk> precache;
 	private KList<ChunkPosition> regenerated = new KList<ChunkPosition>();
-	private Executor e = Executors.newFixedThreadPool(IrisSettings.get().getThreads());
+	private Executor e = Executors.newFixedThreadPool(Iris.getThreadCount());
 	private World cachedWorld;
 
 	public ProvisionBukkit(TerrainProvider provider)

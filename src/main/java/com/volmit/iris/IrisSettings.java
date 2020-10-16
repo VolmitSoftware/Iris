@@ -20,7 +20,7 @@ public class IrisSettings
 
 	@DontObfuscate
 	@Desc("Iris generator threads (must be 2 or higher). Threads in iris are not a perfect scale for performance as a lot of data has to be shared. 16 Threads is a good rule of thumb. Use 8 threads on a quad core processor.")
-	public int threads = 16;
+	public int forceThreadCount = -1;
 
 	@DontObfuscate
 	@Desc("The default world type incase iris doesnt have a dimension to use.")

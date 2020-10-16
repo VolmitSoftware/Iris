@@ -229,8 +229,8 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("Generate rivers in this region")
 	private double riverThickness = 0.1;
 
-	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(true);
-	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(true);
+	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
+	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
 	private final transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
 	private final transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
 	private final transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
@@ -412,7 +412,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 				{
 					continue;
 				}
-				
+
 				names.add(biome.getCarvingBiome());
 				b.put(biome.getLoadKey(), biome);
 				names.addAll(biome.getChildren());

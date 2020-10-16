@@ -8,7 +8,6 @@ import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.NMSCreator;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
@@ -56,13 +55,13 @@ public class CommandIrisCreate extends MortarCommand
 			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
 			pregen = i.startsWith("pregen=") ? Integer.parseInt(i.split("\\Q=\\E")[1]) : pregen;
 		}
-		
+
 		IrisDimension dim = Iris.proj.installIntoWorld(sender, type, folder);
 
 		//@builder
 		ProvisionBukkit gen = Iris.instance.createProvisionBukkit(
 			IrisGenConfiguration.builder()
-				.threads(IrisSettings.get().threads)
+				.threads(Iris.getThreadCount())
 				.dimension(dim.getLoadKey())
 				.target(TerrainTarget
 					.builder()
@@ -74,7 +73,7 @@ public class CommandIrisCreate extends MortarCommand
 			).build());
 		//@done
 
-		sender.sendMessage("Generating with " + IrisSettings.get().threads + " threads per chunk");
+		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
 		O<Boolean> done = new O<Boolean>();
 		done.set(false);
 

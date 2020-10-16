@@ -131,7 +131,7 @@ public class IrisProject
 		//@builder
 		ProvisionBukkit gen = Iris.instance
 				.createProvisionBukkit(IrisGenConfiguration.builder()
-						.threads(IrisSettings.get().threads)
+						.threads(Iris.getThreadCount())
 						.dimension(getName())
 						.target(TerrainTarget.builder()
 								.environment(d.getEnvironment())
@@ -144,7 +144,7 @@ public class IrisProject
 
 		IrisTerrainProvider gx = (IrisTerrainProvider) gen.getProvider();
 		gx.setDev(true);
-		sender.sendMessage("Generating with " + IrisSettings.get().threads + " threads per chunk");
+		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
 		O<Boolean> done = new O<Boolean>();
 		done.set(false);
 		activeProvider = gx;

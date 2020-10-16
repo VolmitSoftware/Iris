@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
@@ -26,8 +27,10 @@ public class CommandIrisWhatHand extends MortarCommand
 		{
 			Player p = sender.player();
 			BlockData bd = p.getInventory().getItemInMainHand().getType().createBlockData();
-			sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
-			sender.sendMessage("Full: " + C.WHITE + bd.getAsString(true));
+			if(!bd.getMaterial().equals(Material.AIR)) {
+				sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
+				sender.sendMessage("Full: " + C.WHITE + bd.getAsString(true));
+			}
 		}
 
 		else

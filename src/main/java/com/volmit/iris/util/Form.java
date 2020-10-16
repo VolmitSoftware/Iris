@@ -72,24 +72,24 @@ public class Form
 	 */
 	public static String capitalize(String s)
 	{
-		StringBuilder roll = new StringBuilder();
+		String roll = "";
 		boolean f = true;
 
 		for(Character i : s.trim().toCharArray())
 		{
 			if(f)
 			{
-				roll.append(Character.toUpperCase(i));
+				roll += Character.toUpperCase(i);
 				f = false;
 			}
 
 			else
 			{
-				roll.append(i);
+				roll += i;
 			}
 		}
 
-		return roll.toString();
+		return roll;
 	}
 
 	/**
@@ -101,11 +101,11 @@ public class Form
 	 */
 	public static String capitalizeWords(String s)
 	{
-		StringBuilder rollx = new StringBuilder();
+		String rollx = "";
 
 		for(String i : s.trim().split(" "))
 		{
-			rollx.append(" ").append(capitalize(i.trim()));
+			rollx += " " + capitalize(i.trim());
 		}
 
 		return rollx.substring(1);
@@ -1038,27 +1038,27 @@ public class Form
 	 */
 	public static String cname(String clazz)
 	{
-		StringBuilder codeName = new StringBuilder();
+		String codeName = "";
 
 		for(Character i : clazz.toCharArray())
 		{
 			if(Character.isUpperCase(i))
 			{
-				codeName.append("-").append(Character.toLowerCase(i));
+				codeName = codeName + "-" + Character.toLowerCase(i);
 			}
 
 			else
 			{
-				codeName.append(i);
+				codeName = codeName + i;
 			}
 		}
 
-		if(codeName.toString().startsWith("-"))
+		if(codeName.startsWith("-"))
 		{
-			codeName = new StringBuilder(codeName.substring(1));
+			codeName = codeName.substring(1);
 		}
 
-		return codeName.toString();
+		return codeName;
 	}
 
 	/**
@@ -1439,17 +1439,17 @@ public class Form
 		roman_numerals.put("IV", 4);
 		roman_numerals.put("I", 1);
 
-		StringBuilder res = new StringBuilder();
+		String res = "";
 
 		for(Map.Entry<String, Integer> entry : roman_numerals.entrySet())
 		{
 			int matches = num / entry.getValue();
 
-			res.append(repeat(entry.getKey(), matches));
+			res += repeat(entry.getKey(), matches);
 			num = num % entry.getValue();
 		}
 
-		return res.toString();
+		return res;
 	}
 
 	/**

@@ -153,7 +153,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		}
 
 		KList<String> v = new KList<>(m);
-		possibleKeys = v.toArray(new String[v.size()]);
+		possibleKeys = v.toArray(new String[0]);
 		return possibleKeys;
 	}
 
@@ -201,7 +201,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		}
 
 		KList<String> v = new KList<>(m);
-		possibleKeys = v.toArray(new String[v.size()]);
+		possibleKeys = v.toArray(new String[0]);
 		return possibleKeys;
 	}
 

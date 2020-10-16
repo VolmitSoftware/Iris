@@ -47,7 +47,7 @@ public class MythicMobsLink
 			}
 		}
 
-		return v.toArray(new String[v.size()]);
+		return v.toArray(new String[0]);
 	}
 
 	public Plugin getMythicMobs()

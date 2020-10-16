@@ -5,10 +5,7 @@ public class DoubleArrayUtils
 {
 	public static void shiftRight(double[] values, double push)
 	{
-		for(int index = values.length - 2; index >= 0; index--)
-		{
-			values[index + 1] = values[index];
-		}
+        if (values.length - 2 + 1 >= 0) System.arraycopy(values, 0, values, 1, values.length - 2 + 1);
 
 		values[0] = push;
 	}

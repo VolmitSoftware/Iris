@@ -72,24 +72,24 @@ public class Form
 	 */
 	public static String capitalize(String s)
 	{
-		String roll = "";
+		StringBuilder roll = new StringBuilder();
 		boolean f = true;
 
 		for(Character i : s.trim().toCharArray())
 		{
 			if(f)
 			{
-				roll += Character.toUpperCase(i);
+				roll.append(Character.toUpperCase(i));
 				f = false;
 			}
 
 			else
 			{
-				roll += i;
+				roll.append(i);
 			}
 		}
 
-		return roll;
+		return roll.toString();
 	}
 
 	/**
@@ -101,11 +101,11 @@ public class Form
 	 */
 	public static String capitalizeWords(String s)
 	{
-		String rollx = "";
+		StringBuilder rollx = new StringBuilder();
 
 		for(String i : s.trim().split(" "))
 		{
-			rollx += " " + capitalize(i.trim());
+			rollx.append(" ").append(capitalize(i.trim()));
 		}
 
 		return rollx.substring(1);
@@ -876,7 +876,7 @@ public class Form
 	 */
 	public static String ofSize(long s, int div)
 	{
-		Double d = (double) s;
+		double d = (double) s;
 		String sub = "Bytes";
 
 		if(d > div - 1)
@@ -929,7 +929,7 @@ public class Form
 	 */
 	public static String ofSize(long s, int div, int dec)
 	{
-		Double d = (double) s;
+		double d = (double) s;
 		String sub = "Bytes";
 
 		if(d > div - 1)
@@ -979,7 +979,7 @@ public class Form
 		{
 			s = -s;
 		}
-		Double d = (double) s;
+		double d = (double) s;
 		String sub = "Grams";
 
 		if(d > div - 1)
@@ -1038,27 +1038,27 @@ public class Form
 	 */
 	public static String cname(String clazz)
 	{
-		String codeName = "";
+		StringBuilder codeName = new StringBuilder();
 
 		for(Character i : clazz.toCharArray())
 		{
 			if(Character.isUpperCase(i))
 			{
-				codeName = codeName + "-" + Character.toLowerCase(i);
+				codeName.append("-").append(Character.toLowerCase(i));
 			}
 
 			else
 			{
-				codeName = codeName + i;
+				codeName.append(i);
 			}
 		}
 
-		if(codeName.startsWith("-"))
+		if(codeName.toString().startsWith("-"))
 		{
-			codeName = codeName.substring(1);
+			codeName = new StringBuilder(codeName.substring(1));
 		}
 
-		return codeName;
+		return codeName.toString();
 	}
 
 	/**
@@ -1439,17 +1439,17 @@ public class Form
 		roman_numerals.put("IV", 4);
 		roman_numerals.put("I", 1);
 
-		String res = "";
+		StringBuilder res = new StringBuilder();
 
 		for(Map.Entry<String, Integer> entry : roman_numerals.entrySet())
 		{
 			int matches = num / entry.getValue();
 
-			res += repeat(entry.getKey(), matches);
+			res.append(repeat(entry.getKey(), matches));
 			num = num % entry.getValue();
 		}
 
-		return res;
+		return res.toString();
 	}
 
 	/**

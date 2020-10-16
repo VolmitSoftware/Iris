@@ -36,9 +36,9 @@ public class CommandIrisDownload extends MortarCommand
 
 		for(String i : args)
 		{
-			if(i.equals("-t") || i.equals("--trim"))
-			{
+			if (i.equals("-t") || i.equals("--trim")) {
 				trim = true;
+				break;
 			}
 		}
 

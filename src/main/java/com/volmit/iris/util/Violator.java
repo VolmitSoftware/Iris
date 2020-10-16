@@ -31,28 +31,28 @@ public class Violator
 		{
 			Constructor<?> co = (Constructor<?>) o;
 
-			String mx = "";
+			StringBuilder mx = new StringBuilder();
 
 			for(Class<?> i : co.getParameterTypes())
 			{
-				mx += "," + i.getCanonicalName();
+				mx.append(",").append(i.getCanonicalName());
 			}
 
-			mx = mx.length() >= 1 ? mx.substring(1) : mx;
+			mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
 			return id(co.getDeclaringClass(), null) + "(" + mx + ")";
 		}
 
 		if(o instanceof Method)
 		{
-			String mx = "";
+			StringBuilder mx = new StringBuilder();
 
 			for(Class<?> i : ((Method) o).getParameterTypes())
 			{
-				mx += "," + i.getCanonicalName();
+				mx.append(",").append(i.getCanonicalName());
 			}
 
-			mx = mx.length() >= 1 ? mx.substring(1) : mx;
+			mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
 			return id(((Method) o).getDeclaringClass(), null) + "." + ((Method) o).getName() + "(" + mx + ")";
 		}
@@ -83,14 +83,14 @@ public class Violator
 
 	public static Constructor<?> getConstructor(Class<?> c, Class<?>... params) throws NoSuchMethodException, SecurityException
 	{
-		String mx = "";
+		StringBuilder mx = new StringBuilder();
 
 		for(Class<?> i : params)
 		{
-			mx += "," + i.getCanonicalName();
+			mx.append(",").append(i.getCanonicalName());
 		}
 
-		mx = mx.length() >= 1 ? mx.substring(1) : mx;
+		mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
 		if(!h(id(c, null) + "(" + mx + ")"))
 		{
@@ -159,14 +159,14 @@ public class Violator
 	public static Method getMethod(Class<?> c, String name, Class<?>... pars) throws Throwable
 	{
 		String iv = "";
-		String mx = "";
+		StringBuilder mx = new StringBuilder();
 
 		for(Class<?> i : pars)
 		{
-			mx += "," + i.getCanonicalName();
+			mx.append(",").append(i.getCanonicalName());
 		}
 
-		mx = mx.length() >= 1 ? mx.substring(1) : mx;
+		mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 		iv = id(c, null) + "." + name + "(" + mx + ")";
 
 		if(!h(iv))
@@ -191,7 +191,7 @@ public class Violator
 
 		try
 		{
-			Constructor<?> co = getConstructor(c, cv.toArray(new Class<?>[cv.size()]));
+			Constructor<?> co = getConstructor(c, cv.toArray(new Class<?>[0]));
 			return (T) co.newInstance(parameters);
 		}
 
@@ -206,14 +206,14 @@ public class Violator
 	public static Method getDeclaredMethod(Class<?> c, String name, Class<?>... pars) throws Throwable
 	{
 		String iv = "";
-		String mx = "";
+		StringBuilder mx = new StringBuilder();
 
 		for(Class<?> i : pars)
 		{
-			mx += "," + i.getCanonicalName();
+			mx.append(",").append(i.getCanonicalName());
 		}
 
-		mx = mx.length() >= 1 ? mx.substring(1) : mx;
+		mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 		iv = id(c, null) + "." + name + "(" + mx + ")";
 
 		if(!h(iv))

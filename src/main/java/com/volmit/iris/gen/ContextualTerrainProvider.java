@@ -81,6 +81,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 	public ContextualTerrainProvider(TerrainTarget target)
 	{
+		metrics = new IrisMetrics(256);
 		warnings = new KSet<>();
 		this.target = target;
 		pushLatch = new ChronoLatch(3000);
@@ -202,7 +203,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 				if(getNoLoot().size() > 1024)
 				{
-					//noinspection ListRemoveInLoop
+					// noinspection ListRemoveInLoop
 					for(int i = 0; i < 64; i++)
 					{
 						getNoLoot().remove(0);

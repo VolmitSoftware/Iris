@@ -100,7 +100,7 @@ public class AtomicSliver
 
 	public BlockData getOrNull(int h)
 	{
-		if(forgetful)
+		if(forgetful || oob(h))
 		{
 			return null;
 		}
@@ -117,7 +117,7 @@ public class AtomicSliver
 
 	public void set(int h, BlockData d)
 	{
-		if(forgetful)
+		if(forgetful || oob(h))
 		{
 			return;
 		}
@@ -138,7 +138,11 @@ public class AtomicSliver
 
 		if(d == null)
 		{
-			Iris.warn("Null set at " + h + " of " + x + " " + z);
+			return;
+		}
+
+		if(oob(h))
+		{
 			return;
 		}
 
@@ -159,13 +163,28 @@ public class AtomicSliver
 		lock.unlock();
 	}
 
+	private boolean oob(int h)
+	{
+		return h > 255 || h < 0;
+	}
+
 	public boolean isSolid(int h)
 	{
+		if(oob(h))
+		{
+			return false;
+		}
+
 		return getType(h).isSolid();
 	}
 
 	public void set(int h, Biome d)
 	{
+		if(oob(h))
+		{
+			return;
+		}
+
 		lock.lock();
 
 		if(Iris.biome3d)

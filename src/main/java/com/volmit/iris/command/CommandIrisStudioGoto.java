@@ -74,10 +74,10 @@ public class CommandIrisStudioGoto extends MortarCommand
 
 			for(String i : args)
 			{
-				if(i.equalsIgnoreCase("-cave"))
-				{
-					cave = true;
-				}
+                if (i.equalsIgnoreCase("-cave")) {
+                    cave = true;
+                    break;
+                }
 			}
 
 			IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()) : g.loadBiome(args[0]);

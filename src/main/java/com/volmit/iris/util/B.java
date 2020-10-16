@@ -133,7 +133,7 @@ public class B
 			}
 		}
 
-		return bt.toArray(new String[0]);
+		return bt.toArray(new String[bt.size()]);
 	}
 
 	public static String[] getItemTypes()
@@ -146,7 +146,7 @@ public class B
 			bt.add(v);
 		}
 
-		return bt.toArray(new String[0]);
+		return bt.toArray(new String[bt.size()]);
 	}
 
 	public static BlockData getBlockData(String bdxf, IrisDimension resolver)

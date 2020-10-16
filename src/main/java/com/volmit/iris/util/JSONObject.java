@@ -1652,7 +1652,7 @@ public class JSONObject
 	 */
 	public static Object stringToValue(String string)
 	{
-		double d;
+		Double d;
 		if(string.equals(""))
 		{
 			return string;
@@ -1682,8 +1682,8 @@ public class JSONObject
 			{
 				if(string.indexOf('.') > -1 || string.indexOf('e') > -1 || string.indexOf('E') > -1)
 				{
-					d = Double.parseDouble(string);
-					if(!Double.isInfinite(d) && !Double.isNaN(d))
+					d = Double.valueOf(string);
+					if(!d.isInfinite() && !d.isNaN())
 					{
 						return d;
 					}

@@ -39,10 +39,10 @@ public class CommandIrisStructureCreate extends MortarCommand
 
 		for(String i : args)
 		{
-            if (i.equalsIgnoreCase("-3d")) {
-                d3 = true;
-                break;
-            }
+			if(i.equalsIgnoreCase("-3d"))
+			{
+				d3 = true;
+			}
 		}
 
 		sender.sendMessage("Creating new Structure");

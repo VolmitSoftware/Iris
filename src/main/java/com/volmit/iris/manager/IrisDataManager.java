@@ -99,17 +99,17 @@ public class IrisDataManager
 	{
 		File examples = new File(dataFolder, "example");
 		examples.mkdirs();
-		StringBuilder biomes = new StringBuilder();
-		StringBuilder envs = new StringBuilder();
+		String biomes = "";
+		String envs = "";
 
 		for(Biome i : Biome.values())
 		{
-			biomes.append(i.name()).append("\n");
+			biomes += i.name() + "\n";
 		}
 
 		for(Environment i : Environment.values())
 		{
-			envs.append(i.name()).append("\n");
+			envs += i.name() + "\n";
 		}
 
 		try
@@ -118,8 +118,8 @@ public class IrisDataManager
 			new File(examples, "example-pack/biomes").mkdirs();
 			new File(examples, "example-pack/dimensions").mkdirs();
 			new File(examples, "example-pack/generators").mkdirs();
-			IO.writeAll(new File(examples, "biome-list.txt"), biomes.toString());
-			IO.writeAll(new File(examples, "environment-list.txt"), envs.toString());
+			IO.writeAll(new File(examples, "biome-list.txt"), biomes);
+			IO.writeAll(new File(examples, "environment-list.txt"), envs);
 
 			IrisGenerator gen = new IrisGenerator();
 			IrisNoiseGenerator n = new IrisNoiseGenerator();

@@ -38,10 +38,10 @@ public class CommandIrisStudioPackage extends MortarCommand
 
 			for(String i : args)
 			{
-                if (i.equalsIgnoreCase("-o")) {
-                    o = true;
-                    break;
-                }
+				if(i.equalsIgnoreCase("-o"))
+				{
+					o = true;
+				}
 			}
 
 			String dim = args[0];

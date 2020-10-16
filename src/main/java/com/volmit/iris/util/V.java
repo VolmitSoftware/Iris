@@ -117,7 +117,7 @@ public class V
 
 		try
 		{
-			return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[0])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[0]))).invoke(o, parameters);
+			return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()]))).invoke(o, parameters);
 		}
 
 		catch(Throwable e)

@@ -407,33 +407,33 @@ public class IO
 	public static String readAll(File f) throws IOException
 	{
 		BufferedReader bu = new BufferedReader(new FileReader(f));
-		StringBuilder c = new StringBuilder();
+		String c = "";
 		String l = "";
 
 		while((l = bu.readLine()) != null)
 		{
-			c.append(l).append("\n");
+			c += l + "\n";
 		}
 
 		bu.close();
 
-		return c.toString();
+		return c;
 	}
 
 	public static String readAll(InputStream in) throws IOException
 	{
 		BufferedReader bu = new BufferedReader(new InputStreamReader(in));
-		StringBuilder c = new StringBuilder();
+		String c = "";
 		String l = "";
 
 		while((l = bu.readLine()) != null)
 		{
-			c.append(l).append("\n");
+			c += l + "\n";
 		}
 
 		bu.close();
 
-		return c.toString();
+		return c;
 	}
 
 	/**

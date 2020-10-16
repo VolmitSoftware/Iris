@@ -51,10 +51,10 @@ public class CommandIrisObjectSave extends MortarCommand
 
 			for(String i : args)
 			{
-                if (i.equals("-o")) {
-                    overwrite = true;
-                    break;
-                }
+				if(i.equals("-o"))
+				{
+					overwrite = true;
+				}
 			}
 
 			Player p = sender.player();

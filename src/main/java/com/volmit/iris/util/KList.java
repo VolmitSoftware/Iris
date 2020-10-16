@@ -253,7 +253,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 
 		for(String i : toStringList())
 		{
-			b.append(split).append(i);
+			b.append(split + i);
 		}
 
 		return b.toString().substring(split.length());
@@ -382,7 +382,10 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	@SuppressWarnings("unchecked")
 	public KList<T> add(T... t)
 	{
-		Collections.addAll(super, t);
+		for(T i : t)
+		{
+			super.add(i);
+		}
 
 		return this;
 	}

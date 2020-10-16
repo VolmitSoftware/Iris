@@ -115,7 +115,7 @@ public class VirtualCommand
 			return true;
 		}
 
-		return command.handle(vs, chain.toArray(new String[0]));
+		return command.handle(vs, chain.toArray(new String[chain.size()]));
 	}
 
 	private boolean checkPermissions(CommandSender sender, ICommand command2)

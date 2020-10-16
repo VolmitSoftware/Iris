@@ -79,7 +79,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		}
 
 		KList<String> v = new KList<>(m);
-		preferredKeys = v.toArray(new String[0]);
+		preferredKeys = v.toArray(new String[v.size()]);
 		return preferredKeys;
 	}
 
@@ -116,7 +116,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		}
 
 		KList<String> v = new KList<>(m);
-		possibleKeys = v.toArray(new String[0]);
+		possibleKeys = v.toArray(new String[v.size()]);
 		return possibleKeys;
 	}
 

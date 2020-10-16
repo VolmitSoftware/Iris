@@ -253,7 +253,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 
 		for(String i : toStringList())
 		{
-			b.append(split + i);
+			b.append(split).append(i);
 		}
 
 		return b.toString().substring(split.length());

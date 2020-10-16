@@ -382,10 +382,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 	@SuppressWarnings("unchecked")
 	public KList<T> add(T... t)
 	{
-		for(T i : t)
-		{
-			super.add(i);
-		}
+		Collections.addAll(super, t);
 
 		return this;
 	}

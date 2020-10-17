@@ -22,6 +22,12 @@ public class CommandIrisCTC extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(args.length == 0)
+		{
+			sender.sendMessage("/iris ctc " + getArgsUsage());
+			return true;
+		}
+		
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();

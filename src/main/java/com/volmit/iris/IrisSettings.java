@@ -90,10 +90,6 @@ public class IrisSettings
 	@Desc("Skips preparing spawn by using nms to hijack the world init phase")
 	public boolean skipPrepareSpawnNMS = true;
 
-	@DontObfuscate
-	@Desc("Used to activate Iris")
-	public String activationCode = "";
-
 	public static IrisSettings get()
 	{
 		if(settings != null)

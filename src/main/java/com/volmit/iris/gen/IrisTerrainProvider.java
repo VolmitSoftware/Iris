@@ -1,8 +1,11 @@
 package com.volmit.iris.gen;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.bukkit.Bukkit;
@@ -33,10 +36,15 @@ import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.O;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.Spiraler;
 
+import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -612,5 +620,85 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	public boolean shouldGenerateDecorations()
 	{
 		return true;
+	}
+
+	public File[] scrapeRegion(int x, int z, Consumer<Double> progress)
+	{
+		int minX = x << 5;
+		int minZ = z << 5;
+		int maxX = x + 31;
+		int maxZ = z + 31;
+		AtomicInteger outputs = new AtomicInteger(0);
+
+		new Spiraler(36, 36, (vx, vz) ->
+		{
+			int ax = vx + 16 + minX;
+			int az = vz + 16 + minZ;
+
+			if(ax > maxX || ax < minX || az > maxZ || az < minZ)
+			{
+				return;
+			}
+
+			PaperLib.getChunkAtAsyncUrgently(getTarget().getRealWorld(), ax, az, true).thenAccept((c) ->
+			{
+				outputs.addAndGet(1);
+			});
+		}).drain();
+
+		long ms = M.ms();
+		int lastChange = outputs.get();
+		while(outputs.get() != 1024)
+		{
+			J.sleep(1000);
+
+			if(outputs.get() != lastChange)
+			{
+				lastChange = outputs.get();
+				ms = M.ms();
+				progress.accept((double) lastChange / 1024D);
+			}
+
+			if(outputs.get() == lastChange && M.ms() - ms > 60000)
+			{
+				Iris.error("Cant get this chunk region waited 60 seconds!");
+				break;
+			}
+		}
+
+		progress.accept(1D);
+		O<Boolean> b = new O<Boolean>();
+		b.set(false);
+		J.s(() ->
+		{
+			getTarget().getRealWorld().save();
+			Iris.instance.getServer().dispatchCommand(Bukkit.getConsoleSender(), "save-all");
+			b.set(true);
+		});
+
+		try
+		{
+			getParallaxMap().saveAll();
+		}
+
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		while(!b.get())
+		{
+			J.sleep(10);
+		}
+
+		File r = new File(getTarget().getRealWorld().getWorldFolder(), "region/r." + x + "." + z + ".mca");
+		File p = new File(getTarget().getRealWorld().getWorldFolder(), "parallax/sr." + x + "." + z + ".smca");
+
+		if(r.exists() && p.exists())
+		{
+			return new File[] {r, p};
+		}
+
+		return null;
 	}
 }

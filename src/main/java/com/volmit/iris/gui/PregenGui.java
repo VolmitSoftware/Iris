@@ -81,7 +81,7 @@ public class PregenGui extends JPanel
 			g.drawString(i, 20, hh += h);
 		}
 
-		J.sleep((long) 1);
+		J.sleep((long) 250);
 		repaint();
 	}
 
@@ -99,6 +99,7 @@ public class PregenGui extends JPanel
 		bg.fillRect(x, z, xa - x, za - z);
 	}
 
+	@SuppressWarnings("deprecation")
 	private static void createAndShowGUI(PregenJob j)
 	{
 		JFrame frame = new JFrame("Pregen View");
@@ -107,6 +108,10 @@ public class PregenGui extends JPanel
 		nv.job = j;
 		j.subscribe((c, b) ->
 		{
+			if(b.equals(Color.pink) && c.equals(new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE)))
+			{
+				frame.hide();
+			}
 			nv.l.lock();
 			nv.order.add(() -> nv.draw(c, b, nv.minC, nv.maxC, nv.bg));
 			nv.l.unlock();

@@ -12,15 +12,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
+import lombok.Getter;
 
 public class PregenJob implements Listener
 {
+	@Getter
 	private World world;
 	private int size;
 	private int total;
@@ -43,12 +44,14 @@ public class PregenJob implements Listener
 	private Spiraler spiraler;
 	private Spiraler chunkSpiraler;
 	private boolean first;
-	private Consumer2<ChunkPosition, Color> consumer;
+	private static Consumer2<ChunkPosition, Color> consumer;
 	private IrisTerrainProvider tp;
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = IrisSettings.get().getPregenTileSize();
+	private int cubeSize = 32;
+	private long nogen = M.ms();
+	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
 	int xc = 0;
 
@@ -109,6 +112,11 @@ public class PregenJob implements Listener
 		try
 		{
 			Bukkit.getScheduler().cancelTask(task);
+
+			if(consumer != null)
+			{
+				consumer.accept(new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE), Color.pink);
+			}
 		}
 
 		catch(Throwable e)
@@ -172,7 +180,7 @@ public class PregenJob implements Listener
 
 	public void tick()
 	{
-		if((total - genned < 0 || genned > (((size + 32) / 16) * (size + 32) / 16)) && !completed)
+		if(M.ms() - nogen > 5000 && Math.min((double) genned / (double) total, 1.0) > 0.99 && !completed)
 		{
 			completed = true;
 
@@ -185,7 +193,12 @@ public class PregenJob implements Listener
 			Iris.instance.unregisterListener(this);
 			completed = true;
 			sender.sendMessage("Pregen Completed!");
+			if(consumer != null)
+			{
+				consumer.accept(new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE), Color.pink);
+			}
 			onDone.run();
+			return;
 		}
 
 		if(completed)
@@ -221,10 +234,22 @@ public class PregenJob implements Listener
 			tickChunk();
 		}
 
-		else if(spiraler.hasNext())
+		else if(spiraler.hasNext() || requeueMCA.isNotEmpty())
 		{
 			saveAllRequest();
-			spiraler.next();
+
+			if(requeueMCA.isNotEmpty())
+			{
+				ChunkPosition posf = requeueMCA.popRandom();
+				mcaX = posf.getX();
+				mcaZ = posf.getZ();
+				chunkSpiraler.retarget(cubeSize, cubeSize);
+			}
+
+			else if(spiraler.hasNext())
+			{
+				spiraler.next();
+			}
 
 			while(chunkSpiraler.hasNext())
 			{
@@ -284,10 +309,11 @@ public class PregenJob implements Listener
 							consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
 						}
 
-						PaperLib.getChunkAtAsync(world, cx, cz).thenAccept(chunk ->
+						PaperLib.getChunkAtAsyncUrgently(world, cx, cz, true).thenAccept(chunk ->
 						{
 							working.release();
 							genned++;
+							nogen = M.ms();
 
 							if(consumer != null)
 							{
@@ -312,6 +338,7 @@ public class PregenJob implements Listener
 
 				world.loadChunk(chunkX, chunkZ);
 				genned++;
+				nogen = M.ms();
 
 				if(consumer != null)
 				{
@@ -391,5 +418,11 @@ public class PregenJob implements Listener
 
 		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) s.getMilliseconds(), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
 		};
+	}
+
+	public void progressMCA(Color color, int x, int z, double pct)
+	{
+		// TODO Auto-generated method stub
+
 	}
 }

@@ -8,7 +8,6 @@ import java.util.function.Function;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -31,6 +30,7 @@ import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisEntityInitialSpawn;
 import com.volmit.iris.object.IrisEntitySpawnOverride;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
@@ -331,7 +331,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 			return;
 		}
 
-		BlockData data = e.getBlockState().getBlockData();
+		FastBlockData data = FastBlockData.of(e.getBlockState().getBlockData());
 		KList<ItemStack> drops = new KList<>();
 		boolean skipParents = false;
 

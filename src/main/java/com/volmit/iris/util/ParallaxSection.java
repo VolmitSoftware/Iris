@@ -20,7 +20,7 @@ public class ParallaxSection implements Writable
 	public ParallaxSection()
 	{
 		updates = new KSet<Short>();
-		this.block = new DataPalette<BlockData>(B.get("AIR"))
+		this.block = new DataPalette<BlockData>(B.get("AIR").getBlockData())
 		{
 			@Override
 			public void writeType(BlockData t, DataOutputStream o) throws IOException
@@ -31,7 +31,7 @@ public class ParallaxSection implements Writable
 			@Override
 			public BlockData readType(DataInputStream i) throws IOException
 			{
-				return B.get(i.readUTF());
+				return B.get(i.readUTF()).getBlockData();
 			}
 		};
 	}
@@ -55,7 +55,7 @@ public class ParallaxSection implements Writable
 	{
 		block.set(x, y, z, d);
 
-		if(B.isUpdatable(d))
+		if(B.isUpdatable(FastBlockData.of(d)))
 		{
 			update(x, y, z);
 		}

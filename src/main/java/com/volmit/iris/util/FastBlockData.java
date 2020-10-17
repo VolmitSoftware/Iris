@@ -13,12 +13,18 @@ public class FastBlockData
 	{
 		this.blockData = d;
 		this.type = null;
+		optimize();
 	}
 
 	private FastBlockData(Material m)
 	{
 		this.type = m;
 		this.blockData = null;
+	}
+
+	public Material getMaterial()
+	{
+		return type != null ? type : blockData.getMaterial();
 	}
 
 	public static FastBlockData of(Material type)
@@ -40,7 +46,7 @@ public class FastBlockData
 	{
 		if(hasBlockData())
 		{
-			BlockData f = getDefaultBlockData(type);
+			BlockData f = getDefaultBlockData(getMaterial());
 
 			if(f.hashCode() == getBlockData().hashCode())
 			{
@@ -63,7 +69,7 @@ public class FastBlockData
 		return blockData != null;
 	}
 
-	public BlockData getBlockData()
+	public BlockData createBlockData()
 	{
 		if(blockData != null)
 		{
@@ -71,5 +77,61 @@ public class FastBlockData
 		}
 
 		return type.createBlockData();
+	}
+
+	public BlockData getBlockData()
+	{
+		if(blockData == null)
+		{
+			blockData = createBlockData();
+		}
+
+		return blockData;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		if(hasBlockData())
+		{
+			return getBlockData().hashCode();
+		}
+
+		return getType().hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(this == obj)
+		{
+			return true;
+		}
+		if(obj == null)
+		{
+			return false;
+		}
+		if(getClass() != obj.getClass())
+		{
+			return false;
+		}
+		FastBlockData other = (FastBlockData) obj;
+
+		if(other.hashCode() == hashCode())
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	public FastBlockData clone()
+	{
+		return hasBlockData() ? new FastBlockData(blockData.clone()) : new FastBlockData(getType());
+	}
+
+	public boolean matches(FastBlockData data)
+	{
+		return (data.hasBlockData() && hasBlockData() && getBlockData().matches(data.getBlockData())) || (!data.hasBlockData() && !hasBlockData() && getType().equals(data.getType()));
 	}
 }

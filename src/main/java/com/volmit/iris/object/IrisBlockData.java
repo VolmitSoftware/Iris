@@ -1,13 +1,12 @@
 package com.volmit.iris.object;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.MaxNumber;
@@ -57,7 +56,7 @@ public class IrisBlockData extends IrisRegistrant
 	@Desc("Optional properties for this block data such as 'waterlogged': true")
 	private KMap<String, Object> data = new KMap<>();
 
-	private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
+	private final transient AtomicCache<FastBlockData> blockdata = new AtomicCache<>();
 	private final transient AtomicCache<String> realProperties = new AtomicCache<>();
 
 	public IrisBlockData(String b)
@@ -87,11 +86,11 @@ public class IrisBlockData extends IrisRegistrant
 		return computeProperties(getData());
 	}
 
-	public BlockData getBlockData(IrisDataManager data)
+	public FastBlockData getBlockData(IrisDataManager data)
 	{
 		return blockdata.aquire(() ->
 		{
-			BlockData b = null;
+			FastBlockData b = null;
 
 			IrisBlockData customData = data.getBlockLoader().load(getBlock(), false);
 
@@ -103,7 +102,7 @@ public class IrisBlockData extends IrisRegistrant
 				{
 					b = b.clone();
 
-					String st = b.getAsString(true);
+					String st = b.getBlockData().getAsString(true);
 
 					if(st.contains("["))
 					{
@@ -124,7 +123,7 @@ public class IrisBlockData extends IrisRegistrant
 						Iris.warn("Debug block data " + sx + " (CUSTOM)");
 					}
 
-					BlockData bx = B.get(sx);
+					FastBlockData bx = B.get(sx);
 
 					if(bx != null)
 					{

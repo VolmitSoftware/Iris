@@ -47,6 +47,8 @@ import com.volmit.iris.util.Queue;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.ShurikenQueue;
 
+import io.papermc.lib.PaperLib;
+
 public class Iris extends MortarPlugin
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
@@ -178,6 +180,7 @@ public class Iris extends MortarPlugin
 		J.a(this::bstats);
 		J.s(this::splash, 20);
 		J.sr(this::tickQueue, 0);
+		PaperLib.suggestPaper(this);
 		super.onEnable();
 	}
 

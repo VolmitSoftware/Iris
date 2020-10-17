@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 
@@ -29,6 +28,7 @@ import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CarveResult;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
@@ -129,15 +129,15 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	}
 
 	@Override
-	public void set(int x, int y, int z, BlockData d)
+	public void set(int x, int y, int z, FastBlockData d)
 	{
 		getParallaxSliver(x, z).set(y, d);
 	}
 
 	@Override
-	public BlockData get(int x, int y, int z)
+	public FastBlockData get(int x, int y, int z)
 	{
-		BlockData b = sampleSliver(x, z).getBlock()[y];
+		FastBlockData b = sampleSliver(x, z).getBlock()[y];
 		return b == null ? AIR : b;
 	}
 

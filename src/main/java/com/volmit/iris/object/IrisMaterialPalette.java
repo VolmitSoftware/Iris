@@ -1,13 +1,12 @@
 package com.volmit.iris.object;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
@@ -40,11 +39,11 @@ public class IrisMaterialPalette
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
-	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-	public BlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata)
+	public FastBlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata)
 	{
 		if(getBlockData(rdata).isEmpty())
 		{
@@ -88,14 +87,14 @@ public class IrisMaterialPalette
 		return this;
 	}
 
-	public KList<BlockData> getBlockData(IrisDataManager rdata)
+	public KList<FastBlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<BlockData> blockData = new KList<>();
+			KList<FastBlockData> blockData = new KList<>();
 			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = ix.getBlockData(rdata);
+				FastBlockData bx = ix.getBlockData(rdata);
 				if(bx != null)
 				{
 					for(int i = 0; i < ix.getWeight(); i++)

@@ -6,7 +6,6 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -25,6 +24,7 @@ import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.LootMode;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -62,7 +62,7 @@ public class GenLayerUpdate extends BlockPopulator
 		{
 			return;
 		}
-		
+
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		((IrisTerrainProvider) gen).spawnInitials(c, rx);
 		p.end();
@@ -129,14 +129,14 @@ public class GenLayerUpdate extends BlockPopulator
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)
 	{
 		Block b = c.getBlock(x, y, z);
-		BlockData d = b.getBlockData();
+		FastBlockData d = FastBlockData.of(b.getBlockData());
 
-		if(B.isLit(d.getMaterial()))
+		if(B.isLit(d))
 		{
 			updateLight(b, d);
 		}
 
-		else if(B.isStorage(d.getMaterial()))
+		else if(B.isStorage(d))
 		{
 			updateStorage(b, d, rx, rz, rng);
 		}
@@ -219,11 +219,11 @@ public class GenLayerUpdate extends BlockPopulator
 		scramble(inv, rng);
 	}
 
-	public void updateStorage(Block b, BlockData data, int rx, int rz, RNG rng)
+	public void updateStorage(Block b, FastBlockData data, int rx, int rz, RNG rng)
 	{
 		InventorySlotType slot = null;
 
-		if(B.isStorageChest(data.getMaterial()))
+		if(B.isStorageChest(data))
 		{
 			slot = InventorySlotType.STORAGE;
 		}
@@ -307,9 +307,9 @@ public class GenLayerUpdate extends BlockPopulator
 		}
 	}
 
-	public void updateLight(Block b, BlockData data)
+	public void updateLight(Block b, FastBlockData data)
 	{
 		b.setType(Material.AIR, false);
-		b.setBlockData(data, false);
+		b.setBlockData(data.getBlockData(), false);
 	}
 }

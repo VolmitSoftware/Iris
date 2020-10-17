@@ -1,12 +1,11 @@
 package com.volmit.iris.object;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;
@@ -40,18 +39,18 @@ public class IrisCaveFluid
 	@Desc("The fluid type that should spawn here")
 	private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 
-	private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
+	private final transient AtomicCache<FastBlockData> fluidData = new AtomicCache<>();
 
 	public boolean hasFluid(IrisDataManager rdata)
 	{
 		return !B.isAir(getFluid(rdata));
 	}
 
-	public BlockData getFluid(IrisDataManager rdata)
+	public FastBlockData getFluid(IrisDataManager rdata)
 	{
 		return fluidData.aquire(() ->
 		{
-			BlockData b = getFluidType().getBlockData(rdata);
+			FastBlockData b = getFluidType().getBlockData(rdata);
 
 			if(b != null)
 			{

@@ -6,12 +6,12 @@ import java.io.IOException;
 
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;
@@ -22,7 +22,7 @@ import lombok.Data;
 @Data
 public class AtomicSliver
 {
-	public static final BlockData AIR = B.getBlockData("AIR");
+	public static final FastBlockData AIR = B.getBlockData("AIR");
 	public static boolean forgetful = false;
 	private transient Biome[] biome;
 	private transient Biome onlyBiome;
@@ -32,7 +32,7 @@ public class AtomicSliver
 	private transient final byte x;
 	private transient final byte z;
 	private transient boolean modified = false;
-	private BlockData[] block;
+	private FastBlockData[] block;
 	private KList<Byte> blockUpdates;
 	private int highestBlock = 0;
 
@@ -42,7 +42,7 @@ public class AtomicSliver
 		this.x = (byte) x;
 		this.z = (byte) z;
 		blockUpdates = new KList<>(4);
-		this.block = new BlockData[256];
+		this.block = new FastBlockData[256];
 		this.biome = new Biome[256];
 	}
 
@@ -81,13 +81,13 @@ public class AtomicSliver
 		blockUpdates.remove(Byte.valueOf((byte) (y + Byte.MIN_VALUE)));
 	}
 
-	public BlockData get(int h)
+	public FastBlockData get(int h)
 	{
 		if(forgetful)
 		{
 			return null;
 		}
-		BlockData b = block[h];
+		FastBlockData b = block[h];
 		last = M.ms();
 
 		if(b == null)
@@ -98,13 +98,13 @@ public class AtomicSliver
 		return b;
 	}
 
-	public BlockData getOrNull(int h)
+	public FastBlockData getOrNull(int h)
 	{
 		if(forgetful || oob(h))
 		{
 			return null;
 		}
-		BlockData b = block[h];
+		FastBlockData b = block[h];
 		last = M.ms();
 
 		if(b.getMaterial().equals(Material.AIR))
@@ -115,7 +115,7 @@ public class AtomicSliver
 		return b;
 	}
 
-	public void set(int h, BlockData d)
+	public void set(int h, FastBlockData d)
 	{
 		if(forgetful || oob(h))
 		{
@@ -129,7 +129,7 @@ public class AtomicSliver
 		lock.unlock();
 	}
 
-	public void setSilently(int h, BlockData d)
+	public void setSilently(int h, FastBlockData d)
 	{
 		if(forgetful)
 		{
@@ -217,13 +217,13 @@ public class AtomicSliver
 			{
 				if(!skipNull)
 				{
-					d.setBlock(x, i, z, AIR);
+					d.setBlock(x, i, z, AIR.getMaterial());
 				}
 			}
 
 			else
 			{
-				d.setBlock(x, i, z, block[i]);
+				d.setBlock(x, i, z, block[i].getBlockData());
 			}
 		}
 		lock.unlock();
@@ -262,14 +262,14 @@ public class AtomicSliver
 	public void read(DataInputStream din) throws IOException
 	{
 		lock.lock();
-		this.block = new BlockData[256];
+		this.block = new FastBlockData[256];
 
 		getUpdatables().clear();
 		// Block Palette
 		int p = din.readByte() - Byte.MIN_VALUE;
 		int h = din.readByte() - Byte.MIN_VALUE;
 		int u = din.readByte() - Byte.MIN_VALUE;
-		KList<BlockData> palette = new KList<BlockData>();
+		KList<FastBlockData> palette = new KList<FastBlockData>();
 		highestBlock = h;
 
 		for(int i = 0; i < p; i++)
@@ -306,8 +306,8 @@ public class AtomicSliver
 
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			BlockData dat = block[i];
-			String d = (dat == null ? AIR : dat).getAsString(true);
+			FastBlockData dat = block[i];
+			String d = (dat == null ? AIR : dat).getBlockData().getAsString(true);
 
 			if(!palette.contains(d))
 			{
@@ -327,8 +327,8 @@ public class AtomicSliver
 		// Blocks
 		for(int i = 0; i <= highestBlock; i++)
 		{
-			BlockData dat = block[i];
-			String d = (dat == null ? AIR : dat).getAsString(true);
+			FastBlockData dat = block[i];
+			String d = (dat == null ? AIR : dat).getBlockData().getAsString(true);
 			dos.writeByte(palette.indexOf(d) + Byte.MIN_VALUE);
 		}
 
@@ -352,7 +352,7 @@ public class AtomicSliver
 		{
 			if(block[i] == null || block[i].equals(AIR))
 			{
-				BlockData b = atomicSliver.block[i];
+				FastBlockData b = atomicSliver.block[i];
 				if(b == null || b.equals(AIR))
 				{
 					continue;
@@ -374,7 +374,7 @@ public class AtomicSliver
 
 		for(int i = 0; i < block.length; i++)
 		{
-			BlockData b = block[i];
+			FastBlockData b = block[i];
 			if(b != null)
 			{
 				if(b.getMaterial().equals(Material.AIR))
@@ -382,7 +382,15 @@ public class AtomicSliver
 					continue;
 				}
 
-				currentData.setBlock(x, i, z, b);
+				if(b.hasBlockData())
+				{
+					currentData.setBlock(x, i, z, b.getBlockData());
+				}
+
+				else
+				{
+					currentData.setBlock(x, i, z, b.getType());
+				}
 			}
 		}
 

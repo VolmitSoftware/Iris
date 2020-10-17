@@ -3,7 +3,6 @@ package com.volmit.iris.object;
 import java.awt.Color;
 
 import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
@@ -15,6 +14,7 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -349,14 +349,14 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
 	}
 
-	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata)
+	public KList<FastBlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata)
 	{
 		if(isLockLayers())
 		{
 			return generateLockedLayers(wx, wz, random, maxDepth, height, rdata);
 		}
 
-		KList<BlockData> data = new KList<>();
+		KList<FastBlockData> data = new KList<>();
 
 		if(maxDepth <= 0)
 		{
@@ -400,10 +400,10 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return data;
 	}
 
-	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata)
+	public KList<FastBlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata)
 	{
-		KList<BlockData> data = new KList<>();
-		KList<BlockData> real = new KList<>();
+		KList<FastBlockData> data = new KList<>();
+		KList<FastBlockData> real = new KList<>();
 		int maxDepth = Math.min(maxDepthf, getLockLayersMax());
 		if(maxDepth <= 0)
 		{
@@ -470,9 +470,9 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return this;
 	}
 
-	public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisDataManager rdata)
+	public KList<FastBlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisDataManager rdata)
 	{
-		KList<BlockData> data = new KList<>();
+		KList<FastBlockData> data = new KList<>();
 
 		for(int i = 0; i < seaLayers.size(); i++)
 		{
@@ -660,7 +660,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return getBiomeGenerator(rng).fit(biomeScatter, x, y, z);
 	}
 
-	public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisDataManager idm)
+	public FastBlockData getSurfaceBlock(int x, int z, RNG rng, IrisDataManager idm)
 	{
 		if(getLayers().isEmpty())
 		{

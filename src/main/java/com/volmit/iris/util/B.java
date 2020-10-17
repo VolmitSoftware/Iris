@@ -1,54 +1,128 @@
 package com.volmit.iris.util;
 
+import java.util.concurrent.TimeUnit;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
 
 public class B
 {
-	private static final BlockData AIR = Material.AIR.createBlockData();
-	private static final KMap<String, BlockData> bdc = new KMap<>();
+	private static final FastBlockData AIR = FastBlockData.of(Material.AIR);
+	private static final LoadingCache<String, FastBlockData> bdc = Caffeine.newBuilder().expireAfterAccess(60000, TimeUnit.MILLISECONDS).build((c) -> null);
 	private static final KList<String> nulls = new KList<>();
-	private static final KList<Material> storage = new KList<>();
-	private static final KList<Material> storageChest = new KList<>();
-	private static final KList<Material> lit = new KList<>();
-	private static final KList<Material> updatable = new KList<>();
-	private static final KList<Material> notUpdatable = new KList<>();
+	private static final KList<FastBlockData> storage = new KList<>();
+	private static final KList<FastBlockData> storageChest = new KList<>();
+	private static final KList<FastBlockData> lit = new KList<>();
+	private static final KList<FastBlockData> updatable = new KList<>();
+	private static final KList<FastBlockData> notUpdatable = new KList<>();
 	private static final KList<String> canPlaceOn = new KList<>();
-	private static final KList<Material> decorant = new KList<>();
+	private static final KList<FastBlockData> decorant = new KList<>();
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
-	private static final KMap<String, Material> types = new KMap<>();
-	private static final KMap<String, Material> typesb = new KMap<>();
+	private static final LoadingCache<String, FastBlockData> types = Caffeine.newBuilder().expireAfterAccess(30000, TimeUnit.MILLISECONDS).build((c) -> null);
+	private static final LoadingCache<String, FastBlockData> typesb = Caffeine.newBuilder().expireAfterAccess(30000, TimeUnit.MILLISECONDS).build((c) -> null);
 	private static IrisLock lock = new IrisLock("Typelock");
 
-	public static BlockData get(String bd)
+	public static FastBlockData get(String bd)
 	{
 		return getBlockData(bd);
 	}
 
-	public static boolean isWater(BlockData b)
+	public static boolean isWater(FastBlockData b)
 	{
 		return b.getMaterial().equals(Material.WATER);
+	}
+
+	public static FastBlockData getAir()
+	{
+		return AIR;
+	}
+
+	public static LoadingCache<String, FastBlockData> getBdc()
+	{
+		return bdc;
+	}
+
+	public static KList<String> getNulls()
+	{
+		return nulls;
+	}
+
+	public static KList<FastBlockData> getStorage()
+	{
+		return storage;
+	}
+
+	public static KList<FastBlockData> getStoragechest()
+	{
+		return storageChest;
+	}
+
+	public static KList<FastBlockData> getLit()
+	{
+		return lit;
+	}
+
+	public static KList<FastBlockData> getUpdatable()
+	{
+		return updatable;
+	}
+
+	public static KList<FastBlockData> getNotupdatable()
+	{
+		return notUpdatable;
+	}
+
+	public static KList<String> getCanplaceon()
+	{
+		return canPlaceOn;
+	}
+
+	public static KList<FastBlockData> getDecorant()
+	{
+		return decorant;
+	}
+
+	public static IrisDimension getDefaultcompat()
+	{
+		return defaultCompat;
+	}
+
+	public static KMap<Material, Boolean> getSolid()
+	{
+		return solid;
+	}
+
+	public static LoadingCache<String, FastBlockData> getTypes()
+	{
+		return types;
+	}
+
+	public static LoadingCache<String, FastBlockData> getTypesb()
+	{
+		return typesb;
+	}
+
+	public static IrisLock getLock()
+	{
+		return lock;
 	}
 
 	public static Material getMaterial(String bdx)
 	{
 		String bd = bdx.trim().toUpperCase();
-		return typesb.compute(bd, (k, v) ->
-		{
-			if(k != null && v != null)
-			{
-				return v;
-			}
 
+		return typesb.get(bd, (k) ->
+		{
 			try
 			{
-				return Material.valueOf(k);
+				return FastBlockData.of(Material.valueOf(k));
 			}
 
 			catch(Throwable e)
@@ -56,23 +130,19 @@ public class B
 
 			}
 
-			return defaultCompat.resolveItem(bdx);
-		});
+			return FastBlockData.of(defaultCompat.resolveItem(bdx));
+		}).getType();
 	}
 
 	public static Material getMaterialOrNull(String bdx)
 	{
 		String bd = bdx.trim().toUpperCase();
-		return types.compute(bd, (k, v) ->
-		{
-			if(k != null && v != null)
-			{
-				return v;
-			}
 
+		return typesb.get(bd, (k) ->
+		{
 			try
 			{
-				return Material.valueOf(k);
+				return FastBlockData.of(Material.valueOf(k));
 			}
 
 			catch(Throwable e)
@@ -81,10 +151,10 @@ public class B
 			}
 
 			return null;
-		});
+		}).getType();
 	}
 
-	public static boolean isSolid(BlockData mat)
+	public static boolean isSolid(FastBlockData mat)
 	{
 		return isSolid(mat.getMaterial());
 	}
@@ -99,14 +169,14 @@ public class B
 		return solid.get(mat);
 	}
 
-	public static Material mat(String bd)
+	public static FastBlockData mat(String bd)
 	{
-		return getBlockData(bd).getMaterial();
+		return getBlockData(bd);
 	}
 
-	public static BlockData getBlockData(String bd)
+	public static FastBlockData getBlockData(String bd)
 	{
-		return getBlockData(bd, defaultCompat);
+		return getBlockData(bd, defaultCompat).optimize();
 	}
 
 	public static String[] getBlockTypes()
@@ -149,18 +219,18 @@ public class B
 		return bt.toArray(new String[bt.size()]);
 	}
 
-	public static BlockData getBlockData(String bdxf, IrisDimension resolver)
+	public static FastBlockData getBlockData(String bdxf, IrisDimension resolver)
 	{
 		try
 		{
 			String bd = bdxf.trim();
-
-			if(bdc.containsKey(bd))
+			FastBlockData fff = bdc.get(bd);
+			if(fff != null)
 			{
-				return bdc.get(bd).clone();
+				return fff.clone();
 			}
 
-			BlockData bdx = parseBlockData(bd);
+			FastBlockData bdx = parseBlockData(bd);
 
 			if(bdx == null)
 			{
@@ -192,11 +262,11 @@ public class B
 		return AIR;
 	}
 
-	public static BlockData parseBlockDataOrNull(String ix)
+	public static FastBlockData parseBlockDataOrNull(String ix)
 	{
 		try
 		{
-			BlockData bx = Bukkit.createBlockData(ix);
+			FastBlockData bx = FastBlockData.of(Bukkit.createBlockData(ix));
 
 			if(bx != null)
 			{
@@ -215,9 +285,7 @@ public class B
 
 		try
 		{
-			Material m = Material.valueOf(i);
-
-			return m.createBlockData();
+			return FastBlockData.of(Material.valueOf(i));
 		}
 
 		catch(Throwable e)
@@ -228,11 +296,11 @@ public class B
 		return null;
 	}
 
-	public static BlockData parseBlockData(String ix)
+	public static FastBlockData parseBlockData(String ix)
 	{
 		try
 		{
-			BlockData bx = Bukkit.createBlockData(ix);
+			FastBlockData bx = FastBlockData.of(Bukkit.createBlockData(ix));
 
 			if(bx != null)
 			{
@@ -251,9 +319,7 @@ public class B
 
 		try
 		{
-			Material m = Material.valueOf(i);
-
-			return m.createBlockData();
+			return FastBlockData.of(Material.valueOf(i));
 		}
 
 		catch(Throwable e)
@@ -264,12 +330,7 @@ public class B
 		return AIR;
 	}
 
-	public static boolean isUpdatable(BlockData mat)
-	{
-		return isUpdatable(mat.getMaterial());
-	}
-
-	public static boolean isStorage(Material mat)
+	public static boolean isStorage(FastBlockData mat)
 	{
 		if(storage.contains(mat))
 		{
@@ -291,7 +352,7 @@ public class B
 		return false;
 	}
 
-	public static boolean isStorageChest(Material mat)
+	public static boolean isStorageChest(FastBlockData mat)
 	{
 		if(storageChest.contains(mat))
 		{
@@ -313,7 +374,7 @@ public class B
 		return false;
 	}
 
-	public static boolean isLit(Material mat)
+	public static boolean isLit(FastBlockData mat)
 	{
 		if(lit.contains(mat))
 		{
@@ -321,7 +382,7 @@ public class B
 		}
 
 		// @NoArgsConstructor
-		boolean str = mat.equals(B.mat("GLOWSTONE")) || mat.equals(B.mat("END_ROD")) || mat.equals(B.mat("SOUL_SAND")) || mat.equals(B.mat("TORCH")) || mat.equals(Material.REDSTONE_TORCH) || mat.equals(B.mat("SOUL_TORCH")) || mat.equals(Material.REDSTONE_WALL_TORCH) || mat.equals(Material.WALL_TORCH) || mat.equals(B.mat("SOUL_WALL_TORCH")) || mat.equals(B.mat("LANTERN")) || mat.equals(Material.JACK_O_LANTERN) || mat.equals(Material.REDSTONE_LAMP) || mat.equals(Material.MAGMA_BLOCK) || mat.equals(B.mat("SHROOMLIGHT")) || mat.equals(B.mat("SEA_LANTERN")) || mat.equals(B.mat("SOUL_LANTERN")) || mat.equals(Material.FIRE) || mat.equals(B.mat("SOUL_FIRE")) || mat.equals(B.mat("SEA_PICKLE")) || mat.equals(Material.BREWING_STAND) || mat.equals(Material.REDSTONE_ORE);
+		boolean str = mat.equals(B.mat("GLOWSTONE")) || mat.equals(B.mat("END_ROD")) || mat.equals(B.mat("SOUL_SAND")) || mat.equals(B.mat("TORCH")) || mat.getType().equals(Material.REDSTONE_TORCH) || mat.equals(B.mat("SOUL_TORCH")) || mat.getType().equals(Material.REDSTONE_WALL_TORCH) || mat.getType().equals(Material.WALL_TORCH) || mat.equals(B.mat("SOUL_WALL_TORCH")) || mat.equals(B.mat("LANTERN")) || mat.getType().equals(Material.JACK_O_LANTERN) || mat.getType().equals(Material.REDSTONE_LAMP) || mat.getType().equals(Material.MAGMA_BLOCK) || mat.equals(B.mat("SHROOMLIGHT")) || mat.equals(B.mat("SEA_LANTERN")) || mat.equals(B.mat("SOUL_LANTERN")) || mat.getType().equals(Material.FIRE) || mat.equals(B.mat("SOUL_FIRE")) || mat.equals(B.mat("SEA_PICKLE")) || mat.getType().equals(Material.BREWING_STAND) || mat.getType().equals(Material.REDSTONE_ORE);
 		//@done
 		if(str)
 		{
@@ -334,7 +395,7 @@ public class B
 		return false;
 	}
 
-	public static boolean isUpdatable(Material mat)
+	public static boolean isUpdatable(FastBlockData mat)
 	{
 		if(updatable.contains(mat))
 		{
@@ -362,16 +423,16 @@ public class B
 		return false;
 	}
 
-	public static boolean isFoliage(BlockData d)
+	public static boolean isFoliage(FastBlockData d)
 	{
 		if(isFluid(d) || isAir(d) || isSolid(d))
 		{
 			return false;
 		}
 
-		Material mat = d.getMaterial();
+		FastBlockData mat = d;
 		// @NoArgsConstructor
-		return mat.equals(Material.POPPY) || mat.equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(B.mat("SWEET_BERRY_BUSH")) || mat.equals(B.mat("CRIMSON_ROOTS")) || mat.equals(B.mat("WARPED_ROOTS")) || mat.equals(B.mat("NETHER_SPROUTS")) || mat.equals(B.mat("ALLIUM")) || mat.equals(B.mat("AZURE_BLUET")) || mat.equals(B.mat("BLUE_ORCHID")) || mat.equals(B.mat("POPPY")) || mat.equals(B.mat("DANDELION")) || mat.equals(B.mat("OXEYE_DAISY")) || mat.equals(B.mat("LILY_OF_THE_VALLEY")) || mat.equals(B.mat("WITHER_ROSE")) || mat.equals(Material.DARK_OAK_SAPLING) || mat.equals(Material.ACACIA_SAPLING) || mat.equals(Material.JUNGLE_SAPLING) || mat.equals(Material.BIRCH_SAPLING) || mat.equals(Material.SPRUCE_SAPLING) || mat.equals(Material.OAK_SAPLING) || mat.equals(Material.ORANGE_TULIP) || mat.equals(Material.PINK_TULIP) || mat.equals(Material.RED_TULIP) || mat.equals(Material.WHITE_TULIP) || mat.equals(Material.FERN) || mat.equals(Material.LARGE_FERN) || mat.equals(Material.GRASS) || mat.equals(Material.TALL_GRASS);
+		return mat.getType().equals(Material.POPPY) || mat.getType().equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(B.mat("SWEET_BERRY_BUSH")) || mat.equals(B.mat("CRIMSON_ROOTS")) || mat.equals(B.mat("WARPED_ROOTS")) || mat.equals(B.mat("NETHER_SPROUTS")) || mat.equals(B.mat("ALLIUM")) || mat.equals(B.mat("AZURE_BLUET")) || mat.equals(B.mat("BLUE_ORCHID")) || mat.equals(B.mat("POPPY")) || mat.equals(B.mat("DANDELION")) || mat.equals(B.mat("OXEYE_DAISY")) || mat.equals(B.mat("LILY_OF_THE_VALLEY")) || mat.equals(B.mat("WITHER_ROSE")) || mat.getType().equals(Material.DARK_OAK_SAPLING) || mat.getType().equals(Material.ACACIA_SAPLING) || mat.getType().equals(Material.JUNGLE_SAPLING) || mat.getType().equals(Material.BIRCH_SAPLING) || mat.getType().equals(Material.SPRUCE_SAPLING) || mat.getType().equals(Material.OAK_SAPLING) || mat.getType().equals(Material.ORANGE_TULIP) || mat.getType().equals(Material.PINK_TULIP) || mat.getType().equals(Material.RED_TULIP) || mat.getType().equals(Material.WHITE_TULIP) || mat.getType().equals(Material.FERN) || mat.getType().equals(Material.LARGE_FERN) || mat.getType().equals(Material.GRASS) || mat.getType().equals(Material.TALL_GRASS);
 		//@done
 	}
 
@@ -395,7 +456,7 @@ public class B
 			}
 		}
 
-		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR")))
+		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR").getMaterial()))
 		{
 			lock.lock();
 			canPlaceOn.add(key);
@@ -436,7 +497,7 @@ public class B
 		return true;
 	}
 
-	public static boolean isDecorant(Material m)
+	public static boolean isDecorant(FastBlockData m)
 	{
 		if(decorant.contains(m))
 		{
@@ -444,7 +505,7 @@ public class B
 		}
 
 		// @NoArgsConstructor
-		boolean str = m.equals(Material.GRASS) || m.equals(Material.TALL_GRASS) || m.equals(B.mat("CORNFLOWER")) || m.equals(Material.SUNFLOWER) || m.equals(Material.CHORUS_FLOWER) || m.equals(Material.POPPY) || m.equals(Material.DANDELION) || m.equals(Material.OXEYE_DAISY) || m.equals(Material.ORANGE_TULIP) || m.equals(Material.PINK_TULIP) || m.equals(Material.RED_TULIP) || m.equals(Material.WHITE_TULIP) || m.equals(Material.LILAC) || m.equals(Material.DEAD_BUSH) || m.equals(B.mat("SWEET_BERRY_BUSH")) || m.equals(Material.ROSE_BUSH) || m.equals(B.mat("WITHER_ROSE")) || m.equals(Material.ALLIUM) || m.equals(Material.BLUE_ORCHID) || m.equals(B.mat("LILY_OF_THE_VALLEY")) || m.equals(B.mat("CRIMSON_FUNGUS")) || m.equals(B.mat("WARPED_FUNGUS")) || m.equals(Material.RED_MUSHROOM) || m.equals(Material.BROWN_MUSHROOM) || m.equals(B.mat("CRIMSON_ROOTS")) || m.equals(B.mat("AZURE_BLUET")) || m.equals(B.mat("WEEPING_VINES")) || m.equals(B.mat("WEEPING_VINES_PLANT")) || m.equals(B.mat("WARPED_ROOTS")) || m.equals(B.mat("NETHER_SPROUTS")) || m.equals(B.mat("TWISTING_VINES")) || m.equals(B.mat("TWISTING_VINES_PLANT")) || m.equals(Material.SUGAR_CANE) || m.equals(Material.WHEAT) || m.equals(Material.POTATOES) || m.equals(Material.CARROTS) || m.equals(Material.BEETROOTS) || m.equals(Material.NETHER_WART) || m.equals(B.mat("SEA_PICKLE")) || m.equals(B.mat("SEAGRASS")) || m.equals(B.mat("ACACIA_BUTTON")) || m.equals(B.mat("BIRCH_BUTTON")) || m.equals(B.mat("CRIMSON_BUTTON")) || m.equals(B.mat("DARK_OAK_BUTTON")) || m.equals(B.mat("JUNGLE_BUTTON")) || m.equals(B.mat("OAK_BUTTON")) || m.equals(B.mat("POLISHED_BLACKSTONE_BUTTON")) || m.equals(B.mat("SPRUCE_BUTTON")) || m.equals(B.mat("STONE_BUTTON")) || m.equals(B.mat("WARPED_BUTTON")) || m.equals(Material.TORCH) || m.equals(B.mat("SOUL_TORCH"));
+		boolean str = m.getType().equals(Material.GRASS) || m.getType().equals(Material.TALL_GRASS) || m.equals(B.mat("CORNFLOWER")) || m.getType().equals(Material.SUNFLOWER) || m.getType().equals(Material.CHORUS_FLOWER) || m.getType().equals(Material.POPPY) || m.getType().equals(Material.DANDELION) || m.getType().equals(Material.OXEYE_DAISY) || m.getType().equals(Material.ORANGE_TULIP) || m.getType().equals(Material.PINK_TULIP) || m.getType().equals(Material.RED_TULIP) || m.getType().equals(Material.WHITE_TULIP) || m.getType().equals(Material.LILAC) || m.getType().equals(Material.DEAD_BUSH) || m.equals(B.mat("SWEET_BERRY_BUSH")) || m.getType().equals(Material.ROSE_BUSH) || m.equals(B.mat("WITHER_ROSE")) || m.getType().equals(Material.ALLIUM) || m.getType().equals(Material.BLUE_ORCHID) || m.equals(B.mat("LILY_OF_THE_VALLEY")) || m.equals(B.mat("CRIMSON_FUNGUS")) || m.equals(B.mat("WARPED_FUNGUS")) || m.getType().equals(Material.RED_MUSHROOM) || m.getType().equals(Material.BROWN_MUSHROOM) || m.equals(B.mat("CRIMSON_ROOTS")) || m.equals(B.mat("AZURE_BLUET")) || m.equals(B.mat("WEEPING_VINES")) || m.equals(B.mat("WEEPING_VINES_PLANT")) || m.equals(B.mat("WARPED_ROOTS")) || m.equals(B.mat("NETHER_SPROUTS")) || m.equals(B.mat("TWISTING_VINES")) || m.equals(B.mat("TWISTING_VINES_PLANT")) || m.getType().equals(Material.SUGAR_CANE) || m.getType().equals(Material.WHEAT) || m.getType().equals(Material.POTATOES) || m.getType().equals(Material.CARROTS) || m.getType().equals(Material.BEETROOTS) || m.getType().equals(Material.NETHER_WART) || m.equals(B.mat("SEA_PICKLE")) || m.equals(B.mat("SEAGRASS")) || m.equals(B.mat("ACACIA_BUTTON")) || m.equals(B.mat("BIRCH_BUTTON")) || m.equals(B.mat("CRIMSON_BUTTON")) || m.equals(B.mat("DARK_OAK_BUTTON")) || m.equals(B.mat("JUNGLE_BUTTON")) || m.equals(B.mat("OAK_BUTTON")) || m.equals(B.mat("POLISHED_BLACKSTONE_BUTTON")) || m.equals(B.mat("SPRUCE_BUTTON")) || m.equals(B.mat("STONE_BUTTON")) || m.equals(B.mat("WARPED_BUTTON")) || m.getType().equals(Material.TORCH) || m.equals(B.mat("SOUL_TORCH"));
 		//@done
 
 		if(str)
@@ -456,13 +517,13 @@ public class B
 		return false;
 	}
 
-	public static KList<BlockData> getBlockData(KList<String> find)
+	public static KList<FastBlockData> getBlockData(KList<String> find)
 	{
-		KList<BlockData> b = new KList<>();
+		KList<FastBlockData> b = new KList<>();
 
 		for(String i : find)
 		{
-			BlockData bd = getBlockData(i);
+			FastBlockData bd = getBlockData(i);
 
 			if(bd != null)
 			{
@@ -473,22 +534,22 @@ public class B
 		return b;
 	}
 
-	public static boolean isFoliagePlantable(BlockData d)
+	public static boolean isFoliagePlantable(FastBlockData d)
 	{
 		return d.getMaterial().equals(Material.GRASS_BLOCK) || d.getMaterial().equals(Material.DIRT) || d.getMaterial().equals(Material.COARSE_DIRT) || d.getMaterial().equals(Material.PODZOL);
 	}
 
-	public static boolean isFluid(BlockData d)
+	public static boolean isFluid(FastBlockData d)
 	{
 		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.LAVA);
 	}
 
-	public static boolean isAirOrFluid(BlockData d)
+	public static boolean isAirOrFluid(FastBlockData d)
 	{
 		return isAir(d) || isFluid(d);
 	}
 
-	public static boolean isAir(BlockData d)
+	public static boolean isAir(FastBlockData d)
 	{
 		if(d == null)
 		{

@@ -5,20 +5,19 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.object.IrisMaterialPalette;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.RNG;
 
 public class GenLayerText extends GenLayer
 {
-	public static final BlockData AIR = B.getBlockData("AIR");
+	public static final FastBlockData AIR = B.getBlockData("AIR");
 
 	private final AtomicCache<IrisObject> debug = new AtomicCache<>();
 
@@ -29,11 +28,10 @@ public class GenLayerText extends GenLayer
 
 	public IrisObject getDebug()
 	{
-		return debug.aquire(() ->
-				createTextObject("Test", "Impact", 24, B.get("STONE")));
+		return debug.aquire(() -> createTextObject("Test", "Impact", 24, B.get("STONE")));
 	}
 
-	public IrisObject createTextObject(String text, String font, int size, BlockData b)
+	public IrisObject createTextObject(String text, String font, int size, FastBlockData b)
 	{
 		Font f = new Font(font, Font.PLAIN, size);
 		int w = ((Graphics2D) new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).getGraphics()).getFontMetrics(f).stringWidth(text);

@@ -3,7 +3,6 @@ package com.volmit.iris.gen.layer;
 import java.util.function.Function;
 
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicSliver;
@@ -14,6 +13,7 @@ import com.volmit.iris.noise.FastNoiseDouble.NoiseType;
 import com.volmit.iris.object.IrisCaveLayer;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
@@ -21,8 +21,8 @@ import com.volmit.iris.util.RNG;
 public class GenLayerCave extends GenLayer
 {
 	public static boolean bad = false;
-	public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
-	public static final BlockData AIR = B.getBlockData("AIR");
+	public static final FastBlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
+	public static final FastBlockData AIR = B.getBlockData("AIR");
 	private static final KList<CaveResult> EMPTY = new KList<>();
 	private final FastNoiseDouble gg;
 
@@ -56,7 +56,7 @@ public class GenLayerCave extends GenLayer
 	public void generateCave(KList<CaveResult> result, double wxx, double wzz, int x, int z, AtomicSliver data, IrisCaveLayer layer, int seed)
 	{
 		double scale = layer.getCaveZoom();
-		Function<Integer, BlockData> fluid = (height) ->
+		Function<Integer, FastBlockData> fluid = (height) ->
 		{
 			if(!layer.getFluid().hasFluid(iris.getData()))
 			{
@@ -161,15 +161,15 @@ public class GenLayerCave extends GenLayer
 		}
 	}
 
-	public boolean dig(int x, int y, int z, AtomicSliver data, Function<Integer, BlockData> caveFluid)
+	public boolean dig(int x, int y, int z, AtomicSliver data, Function<Integer, FastBlockData> caveFluid)
 	{
 		Material a = data.getTypeSafe(y);
 		Material c = data.getTypeSafe(y + 1);
 		Material d = data.getTypeSafe(y + 2);
 		Material e = data.getTypeSafe(y + 3);
 		Material f = data.getTypeSafe(y - 1);
-		BlockData b = caveFluid.apply(y);
-		BlockData b2 = caveFluid.apply(y + 1);
+		FastBlockData b = caveFluid.apply(y);
+		FastBlockData b2 = caveFluid.apply(y + 1);
 
 		if(can(a) && canAir(c, b) && canAir(f, b) && canWater(d) && canWater(e))
 		{
@@ -181,9 +181,9 @@ public class GenLayerCave extends GenLayer
 		return false;
 	}
 
-	public boolean canAir(Material m, BlockData caveFluid)
+	public boolean canAir(Material m, FastBlockData caveFluid)
 	{
-		return (B.isSolid(m) || (B.isDecorant(m)) || m.equals(Material.AIR) || m.equals(caveFluid.getMaterial()) || m.equals(B.mat("CAVE_AIR"))) && !m.equals(Material.BEDROCK);
+		return (B.isSolid(m) || (B.isDecorant(FastBlockData.of(m))) || m.equals(Material.AIR) || m.equals(caveFluid.getMaterial()) || m.equals(B.mat("CAVE_AIR").getMaterial())) && !m.equals(Material.BEDROCK);
 	}
 
 	public boolean canWater(Material m)

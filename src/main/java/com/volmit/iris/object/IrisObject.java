@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
@@ -23,6 +22,7 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.CarveResult;
 import com.volmit.iris.util.ChunkPosition;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;
@@ -30,7 +30,6 @@ import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
@@ -38,12 +37,12 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
-	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
-	private static final BlockData VAIR = B.getBlockData("VOID_AIR");
-	private static final BlockData VAIR_DEBUG = B.getBlockData("COBWEB");
-	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
+	private static final FastBlockData AIR = B.getBlockData("CAVE_AIR");
+	private static final FastBlockData VAIR = B.getBlockData("VOID_AIR");
+	private static final FastBlockData VAIR_DEBUG = B.getBlockData("COBWEB");
+	private static final FastBlockData[] SNOW_LAYERS = new FastBlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
-	private KMap<BlockVector, BlockData> blocks;
+	private KMap<BlockVector, FastBlockData> blocks;
 	private int w;
 	private int d;
 	private int h;
@@ -278,7 +277,7 @@ public class IrisObject extends IrisRegistrant
 			dos.writeShort(i.getBlockX());
 			dos.writeShort(i.getBlockY());
 			dos.writeShort(i.getBlockZ());
-			dos.writeUTF(blocks.get(i).getAsString(true));
+			dos.writeUTF(blocks.get(i).getBlockData().getAsString(true));
 		}
 	}
 
@@ -288,7 +287,7 @@ public class IrisObject extends IrisRegistrant
 		{
 			return;
 		}
-		KMap<BlockVector, BlockData> d = blocks.copy();
+		KMap<BlockVector, FastBlockData> d = blocks.copy();
 		blocks.clear();
 
 		for(BlockVector i : d.k())
@@ -297,7 +296,7 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public void setUnsigned(int x, int y, int z, BlockData block)
+	public void setUnsigned(int x, int y, int z, FastBlockData block)
 	{
 		if(shitty)
 		{
@@ -327,7 +326,7 @@ public class IrisObject extends IrisRegistrant
 		{
 			return;
 		}
-		place(x, -1, z, placer, config, rng,rdata);
+		place(x, -1, z, placer, config, rng, rdata);
 	}
 
 	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisDataManager rdata)
@@ -336,12 +335,12 @@ public class IrisObject extends IrisRegistrant
 		{
 			return;
 		}
-		place(x, -1, z, placer, config, rng, null, c,rdata);
+		place(x, -1, z, placer, config, rng, null, c, rdata);
 	}
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)
 	{
-		return place(x, yv, z, placer, config, rng, null, null,rdata);
+		return place(x, yv, z, placer, config, rng, null, null, rdata);
 	}
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata)
@@ -509,25 +508,25 @@ public class IrisObject extends IrisRegistrant
 			BlockVector i = g.clone();
 			i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
 			i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
-			BlockData data = blocks.get(g).clone();
+			FastBlockData data = blocks.get(g).clone();
 
 			if(stilting && i.getBlockY() < lowest && !B.isAir(data))
 			{
 				lowest = i.getBlockY();
 			}
 
-			if(placer.isPreventingDecay() && data instanceof Leaves && !((Leaves) data).isPersistent())
+			if(placer.isPreventingDecay() && (data.getBlockData()) instanceof Leaves && !((Leaves) (data.getBlockData())).isPersistent())
 			{
-				((Leaves) data).setPersistent(true);
+				((Leaves) data.getBlockData()).setPersistent(true);
 			}
 
 			for(IrisObjectReplace j : config.getEdit())
 			{
-				for(BlockData k : j.getFind(rdata))
+				for(FastBlockData k : j.getFind(rdata))
 				{
 					if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial()))
 					{
-						data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z,rdata).clone();
+						data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 					}
 				}
 			}
@@ -597,7 +596,7 @@ public class IrisObject extends IrisRegistrant
 					continue;
 				}
 
-				BlockData d = blocks.get(i);
+				FastBlockData d = blocks.get(i);
 
 				if(d == null || B.isAir(d))
 				{
@@ -655,7 +654,7 @@ public class IrisObject extends IrisRegistrant
 			return;
 		}
 
-		KMap<BlockVector, BlockData> v = blocks.copy();
+		KMap<BlockVector, FastBlockData> v = blocks.copy();
 		blocks.clear();
 
 		for(BlockVector i : v.keySet())
@@ -673,7 +672,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : blocks.keySet())
 		{
-			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);
+			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i).getBlockData(), false);
 		}
 	}
 }

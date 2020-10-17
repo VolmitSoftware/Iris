@@ -12,6 +12,7 @@ import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
@@ -86,7 +87,7 @@ public class IrisDepositGenerator
 	private int varience = 3;
 
 	private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
 
 	public IrisObject getClump(RNG rng, IrisDataManager rdata)
 	{
@@ -136,20 +137,20 @@ public class IrisDepositGenerator
 		return o;
 	}
 
-	private BlockData nextBlock(RNG rngv, IrisDataManager rdata)
+	private FastBlockData nextBlock(RNG rngv, IrisDataManager rdata)
 	{
 		return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
 	}
 
-	public KList<BlockData> getBlockData(IrisDataManager rdata)
+	public KList<FastBlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<BlockData> blockData = new KList<>();
+			KList<FastBlockData> blockData = new KList<>();
 
 			for(IrisBlockData ix : palette)
 			{
-				BlockData bx = ix.getBlockData(rdata);
+				FastBlockData bx = ix.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -220,8 +221,8 @@ public class IrisDepositGenerator
 
 				if(!allow)
 				{
-					BlockData b = data.getBlockData(nx, ny, nz);
-					for(BlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
+					FastBlockData b = FastBlockData.of(data.getBlockData(nx, ny, nz));
+					for(FastBlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
 					{
 						if(f.getMaterial().equals(b.getMaterial()))
 						{
@@ -235,7 +236,7 @@ public class IrisDepositGenerator
 				{
 					BlockData b = data.getBlockData(nx, ny, nz);
 
-					if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE")) || b.getMaterial().equals(B.mat("FROSTED_ICE")) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
+					if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE").getMaterial()) || b.getMaterial().equals(B.mat("FROSTED_ICE").getMaterial()) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
 					{
 						allow = false;
 					}
@@ -243,7 +244,7 @@ public class IrisDepositGenerator
 
 				if(allow)
 				{
-					data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
+					data.setBlock(nx, ny, nz, clump.getBlocks().get(j).getBlockData());
 				}
 			}
 		}

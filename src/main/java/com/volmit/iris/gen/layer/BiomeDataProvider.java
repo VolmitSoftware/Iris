@@ -18,6 +18,8 @@ public class BiomeDataProvider
 	private InferredType type;
 	private CNG generator;
 	private GenLayerBiome layer;
+	private double offx = 0;
+	private double offz = 0;
 
 	public BiomeDataProvider(@NonNull GenLayerBiome layer, @NonNull InferredType type, @NonNull RNG rng)
 	{
@@ -31,16 +33,22 @@ public class BiomeDataProvider
 			Iris.error("BIOME STYLE IS NULL FOR " + type);
 		}
 
-		generator = b.create(rng.nextParallelRNG(4645079 + (type.ordinal() * 23845)));
+		generator = b.create(rng.nextParallelRNG((layer.getIris().getDimension().isAggressiveBiomeReshuffle() ? (177 + type.ordinal() + rng.nextParallelRNG(229 - type.ordinal()).nextInt()) : 4645079) + (type.ordinal() * 23845)));
+
+		if(layer.getIris().getDimension().isAggressiveBiomeReshuffle())
+		{
+			offx += generator.fitDouble(-1000, 1000, 10000, -10000);
+			offz += generator.fitDouble(-1000, 1000, -10000, 10000);
+		}
 	}
 
 	public IrisBiome generatePureData(ContextualTerrainProvider g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, true);
+		return layer.generateBiomeData(bx + offx, bz + offz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), (int) (rawX + offx), (int) (rawZ + offz), true);
 	}
 
 	public IrisBiome generateData(ContextualTerrainProvider g, double bx, double bz, int rawX, int rawZ, IrisRegion regionData)
 	{
-		return layer.generateBiomeData(bx, bz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), rawX, rawZ, false);
+		return layer.generateBiomeData(bx + offx, bz + offz, regionData, getGenerator(), regionData.getBiomes(g, getType()), getType(), (int) (rawX + offx), (int) (rawZ + offz), false);
 	}
 }

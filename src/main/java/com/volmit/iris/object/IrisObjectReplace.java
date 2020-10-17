@@ -1,13 +1,12 @@
 package com.volmit.iris.object;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
@@ -40,18 +39,18 @@ public class IrisObjectReplace
 	private boolean exact = false;
 
 	private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> findData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> replaceData = new AtomicCache<>();
 
-	public KList<BlockData> getFind(IrisDataManager rdata)
+	public KList<FastBlockData> getFind(IrisDataManager rdata)
 	{
 		return findData.aquire(() ->
 		{
-			KList<BlockData> b = new KList<>();
+			KList<FastBlockData> b = new KList<>();
 
 			for(IrisBlockData i : find)
 			{
-				BlockData bx = i.getBlockData(rdata);
+				FastBlockData bx = i.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -63,7 +62,7 @@ public class IrisObjectReplace
 		});
 	}
 
-	public BlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata)
+	public FastBlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata)
 	{
 		return getReplace().get(seed, x, y, z, rdata);
 	}

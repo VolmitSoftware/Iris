@@ -4,7 +4,6 @@ import java.io.File;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
@@ -15,6 +14,7 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.RNG;
 
@@ -26,10 +26,10 @@ import lombok.EqualsAndHashCode;
 public abstract class DimensionalTerrainProvider extends ContextualTerrainProvider
 {
 	private String dimensionName;
-	protected static final BlockData AIR = Material.AIR.createBlockData();
-	protected static final BlockData CAVE_AIR = B.get("CAVE_AIR");
-	protected static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
-	protected static final BlockData WATER = Material.WATER.createBlockData();
+	protected static final FastBlockData AIR = FastBlockData.of(Material.AIR);
+	protected static final FastBlockData CAVE_AIR = B.get("CAVE_AIR");
+	protected static final FastBlockData BEDROCK = FastBlockData.of(Material.BEDROCK);
+	protected static final FastBlockData WATER = FastBlockData.of(Material.WATER);
 
 	public DimensionalTerrainProvider(TerrainTarget t, String dimensionName)
 	{

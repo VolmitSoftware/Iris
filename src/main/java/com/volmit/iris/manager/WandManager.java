@@ -26,6 +26,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Cuboid;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 
@@ -202,7 +203,7 @@ public class WandManager implements Listener
 				}
 
 				BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-				s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b.getBlockData());
+				s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), FastBlockData.of(b.getBlockData()));
 			}
 
 			return s;

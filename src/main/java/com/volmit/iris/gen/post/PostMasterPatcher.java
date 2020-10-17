@@ -1,7 +1,6 @@
 package com.volmit.iris.gen.post;
 
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.block.data.type.Slab.Type;
@@ -13,14 +12,15 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 
 public class PostMasterPatcher extends IrisPostBlockFilter
 {
-	private static final BlockData WATER = B.getBlockData("WATER");
-	private static final BlockData AIR = B.getBlockData("AIR");
+	private static final FastBlockData WATER = B.getBlockData("WATER");
+	private static final FastBlockData AIR = B.getBlockData("AIR");
 	private final RNG rng;
 
 	@DontObfuscate
@@ -82,8 +82,8 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 		if(g >= 3)
 		{
-			BlockData bc = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
-			BlockData b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
+			FastBlockData bc = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
+			FastBlockData b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
 			Material m = bc.getMaterial();
 
 			if(m.isSolid())
@@ -105,10 +105,10 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 			if(g >= 3)
 			{
-				BlockData ba = getPostBlock(x, ha, z, currentPostX, currentPostZ, currentData);
-				BlockData bb = getPostBlock(x, hb, z, currentPostX, currentPostZ, currentData);
-				BlockData bc = getPostBlock(x, hc, z, currentPostX, currentPostZ, currentData);
-				BlockData bd = getPostBlock(x, hd, z, currentPostX, currentPostZ, currentData);
+				FastBlockData ba = getPostBlock(x, ha, z, currentPostX, currentPostZ, currentData);
+				FastBlockData bb = getPostBlock(x, hb, z, currentPostX, currentPostZ, currentData);
+				FastBlockData bc = getPostBlock(x, hc, z, currentPostX, currentPostZ, currentData);
+				FastBlockData bd = getPostBlock(x, hd, z, currentPostX, currentPostZ, currentData);
 				g = 0;
 				g = B.isSolid(ba) ? g + 1 : g;
 				g = B.isSolid(bb) ? g + 1 : g;
@@ -138,7 +138,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 					for(int i = h; i > h - max; i--)
 					{
-						BlockData d = biome.getWall().get(rng, x + i, i + h, z + i, gen.getData());
+						FastBlockData d = biome.getWall().get(rng, x + i, i + h, z + i, gen.getData());
 
 						if(d != null)
 						{
@@ -170,7 +170,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 			|| (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
 			//@done
 			{
-				BlockData d = biome.getSlab().get(rng, x, h, z, gen.getData());
+				FastBlockData d = biome.getSlab().get(rng, x, h, z, gen.getData());
 
 				if(d != null)
 				{
@@ -202,11 +202,11 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 		}
 
 		// Waterlogging
-		BlockData b = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
+		FastBlockData b = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
 
-		if(b instanceof Waterlogged)
+		if(b.getBlockData() instanceof Waterlogged)
 		{
-			Waterlogged ww = (Waterlogged) b;
+			Waterlogged ww = (Waterlogged) b.getBlockData();
 			boolean w = false;
 			if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData))
 			{
@@ -221,7 +221,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 			if(w != ww.isWaterlogged())
 			{
 				ww.setWaterlogged(w);
-				setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
+				setPostBlock(x, h, z, b, currentPostX, currentPostZ, currentData);
 			}
 		}
 
@@ -279,7 +279,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 					if(g >= 3)
 					{
-						BlockData bc = getPostBlock(x, f, z, currentPostX, currentPostZ, currentData);
+						FastBlockData bc = getPostBlock(x, f, z, currentPostX, currentPostZ, currentData);
 						b = getPostBlock(x, f + 1, z, currentPostX, currentPostZ, currentData);
 						Material m = bc.getMaterial();
 
@@ -302,10 +302,10 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 						if(g >= 3)
 						{
-							BlockData ba = getPostBlock(x, fa, z, currentPostX, currentPostZ, currentData);
-							BlockData bb = getPostBlock(x, fb, z, currentPostX, currentPostZ, currentData);
-							BlockData bc = getPostBlock(x, fc, z, currentPostX, currentPostZ, currentData);
-							BlockData bd = getPostBlock(x, fd, z, currentPostX, currentPostZ, currentData);
+							FastBlockData ba = getPostBlock(x, fa, z, currentPostX, currentPostZ, currentData);
+							FastBlockData bb = getPostBlock(x, fb, z, currentPostX, currentPostZ, currentData);
+							FastBlockData bc = getPostBlock(x, fc, z, currentPostX, currentPostZ, currentData);
+							FastBlockData bd = getPostBlock(x, fd, z, currentPostX, currentPostZ, currentData);
 							g = 0;
 							g = B.isSolid(ba) ? g + 1 : g;
 							g = B.isSolid(bb) ? g + 1 : g;
@@ -330,7 +330,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 						|| (fd == f + 1 && isSolidNonSlab(x, fd, z - 1, currentPostX, currentPostZ, currentData)))
 						//@done
 						{
-							BlockData d = cave.getSlab().get(rng, x, f, z, gen.getData());
+							FastBlockData d = cave.getSlab().get(rng, x, f, z, gen.getData());
 
 							if(d != null)
 							{
@@ -365,7 +365,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 						|| (cd == c - 1 && isSolidNonSlab(x, cd, z - 1, currentPostX, currentPostZ, currentData)))
 						//@done
 						{
-							BlockData d = cave.getSlab().get(rng, x, c, z, gen.getData());
+							FastBlockData d = cave.getSlab().get(rng, x, c, z, gen.getData());
 
 							if(d != null)
 							{
@@ -376,7 +376,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 									cancel = true;
 								}
 
-								if(!(d instanceof Slab))
+								if(!(d.getBlockData() instanceof Slab))
 								{
 									cancel = true;
 								}
@@ -388,9 +388,9 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 								if(!cancel && isAirOrWater(x, c, z, currentPostX, currentPostZ, currentData))
 								{
-									Slab slab = (Slab) d.clone();
+									Slab slab = (Slab) d.getBlockData();
 									slab.setType(Type.TOP);
-									setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+									setPostBlock(x, c, z, d, currentPostX, currentPostZ, currentData);
 								}
 							}
 						}

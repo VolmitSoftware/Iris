@@ -1,7 +1,5 @@
 package com.volmit.iris.object;
 
-import org.bukkit.block.data.BlockData;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
@@ -10,6 +8,7 @@ import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
@@ -91,7 +90,7 @@ public class IrisBiomeDecorator
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
 
 	public int getHeight(RNG rng, double x, double z, IrisDataManager data)
 	{
@@ -127,7 +126,7 @@ public class IrisBiomeDecorator
 		return palette;
 	}
 
-	public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	public FastBlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
 	{
 		if(getBlockData(data).isEmpty())
 		{
@@ -151,14 +150,14 @@ public class IrisBiomeDecorator
 		return null;
 	}
 
-	public KList<BlockData> getBlockData(IrisDataManager data)
+	public KList<FastBlockData> getBlockData(IrisDataManager data)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<BlockData> blockData = new KList<>();
+			KList<FastBlockData> blockData = new KList<>();
 			for(IrisBlockData i : palette)
 			{
-				BlockData bx = i.getBlockData(data);
+				FastBlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
 					blockData.add(bx);

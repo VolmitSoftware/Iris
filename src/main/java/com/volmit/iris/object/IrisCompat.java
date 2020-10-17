@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.IOException;
 
 import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.util.B;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -20,7 +20,7 @@ public class IrisCompat
 {
 	private KList<IrisCompatabilityBlockFilter> blockFilters = new KList<>();
 	private KList<IrisCompatabilityItemFilter> itemFilters = new KList<>();
-	private transient KMap<String, BlockData> blockResolves = new KMap<>();
+	private transient KMap<String, FastBlockData> blockResolves = new KMap<>();
 	private transient KMap<String, Material> itemResolves = new KMap<>();
 
 	public IrisCompat()
@@ -29,7 +29,7 @@ public class IrisCompat
 		itemFilters = getDefaultItemCompatabilityFilters();
 	}
 
-	public BlockData getBlock(String n)
+	public FastBlockData getBlock(String n)
 	{
 		return blockResolves.compute(n, (k, v) ->
 		{
@@ -41,7 +41,7 @@ public class IrisCompat
 			String buf = k;
 			int err = 16;
 
-			BlockData tx = B.parseBlockDataOrNull(buf);
+			FastBlockData tx = B.parseBlockDataOrNull(buf);
 
 			if(tx != null)
 			{
@@ -59,7 +59,7 @@ public class IrisCompat
 				{
 					if(i.getWhen().equalsIgnoreCase(buf))
 					{
-						BlockData b = i.getReplace();
+						FastBlockData b = i.getReplace();
 
 						if(b != null)
 						{
@@ -121,29 +121,29 @@ public class IrisCompat
 			}
 
 			buf = k;
-			BlockData tx = B.parseBlockDataOrNull(buf);
+			FastBlockData tx = B.parseBlockDataOrNull(buf);
 
 			if(tx != null)
 			{
-				return tx.getMaterial();
+				return tx.getType();
 			}
 
 			searching: while(true)
 			{
 				if(err-- <= 0)
 				{
-					return B.parseBlockDataOrNull("STONE").getMaterial();
+					return B.parseBlockDataOrNull("STONE").getType();
 				}
 
 				for(IrisCompatabilityBlockFilter i : blockFilters)
 				{
 					if(i.getWhen().equalsIgnoreCase(buf))
 					{
-						BlockData b = i.getReplace();
+						FastBlockData b = i.getReplace();
 
 						if(b != null)
 						{
-							return b.getMaterial();
+							return b.getType();
 						}
 
 						buf = i.getSupplement();
@@ -151,7 +151,7 @@ public class IrisCompat
 					}
 				}
 
-				return B.parseBlockDataOrNull("STONE").getMaterial();
+				return B.parseBlockDataOrNull("STONE").getType();
 			}
 		});
 	}

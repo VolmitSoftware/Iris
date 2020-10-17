@@ -370,12 +370,12 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 				if(j == i || j + i == 16)
 				{
-					chunk.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA"));
+					chunk.setBlock(i, h, j, B.getBlockData("RED_TERRACOTTA").getType());
 				}
 
 				else
 				{
-					chunk.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA"));
+					chunk.setBlock(i, h, j, B.getBlockData("BLACK_TERRACOTTA").getType());
 				}
 			}
 		}

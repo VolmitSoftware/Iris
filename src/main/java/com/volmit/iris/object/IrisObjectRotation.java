@@ -11,6 +11,7 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 
 import lombok.AllArgsConstructor;
@@ -111,15 +112,16 @@ public class IrisObjectRotation
 		return BlockFace.SOUTH;
 	}
 
-	public BlockData rotate(BlockData d, int spinxx, int spinyy, int spinzz)
+	public FastBlockData rotate(FastBlockData dd, int spinxx, int spinyy, int spinzz)
 	{
+		BlockData d = dd.getBlockData();
 		int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
 		int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
 		int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
 
 		if(!canRotate())
 		{
-			return d;
+			return FastBlockData.of(d);
 		}
 
 		if(d instanceof Directional)
@@ -179,7 +181,7 @@ public class IrisObjectRotation
 			}
 		}
 
-		return d;
+		return FastBlockData.of(d);
 	}
 
 	public BlockVector rotate(BlockVector b, int spinx, int spiny, int spinz)

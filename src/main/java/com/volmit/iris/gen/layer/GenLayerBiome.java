@@ -41,14 +41,14 @@ public class GenLayerBiome extends GenLayer
 		this.iris = iris;
 		riverRandom = iris.getMasterRandom().nextParallelRNG(-324778);
 		lakeRandom = iris.getMasterRandom().nextParallelRNG(-868778);
-		seaProvider = new BiomeDataProvider(this, InferredType.SEA, rng);
-		landProvider = new BiomeDataProvider(this, InferredType.LAND, rng);
-		shoreProvider = new BiomeDataProvider(this, InferredType.SHORE, rng);
-		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, rng);
-		riverProvider = new BiomeDataProvider(this, InferredType.RIVER, rng);
-		lakeProvider = new BiomeDataProvider(this, InferredType.LAKE, rng);
-		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519)).bake().scale(1D / iris.getDimension().getRegionZoom());
-		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462)).bake().scale(1D / iris.getDimension().getContinentZoom());
+		seaProvider = new BiomeDataProvider(this, InferredType.SEA, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG((int) (29866777 * iris.getDimension().getCoordFractureZoom())));
+		landProvider = new BiomeDataProvider(this, InferredType.LAND, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG(-38356777 * iris.getMasterRandom().nextParallelRNG(2344).nextInt()));
+		shoreProvider = new BiomeDataProvider(this, InferredType.SHORE, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG(29899571 + iris.getMasterRandom().nextParallelRNG(-222344).nextInt()));
+		caveProvider = new BiomeDataProvider(this, InferredType.CAVE, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG(983564346 * -iris.getMasterRandom().nextParallelRNG(-44).nextInt()));
+		riverProvider = new BiomeDataProvider(this, InferredType.RIVER, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG(-266717 - iris.getMasterRandom().nextParallelRNG(8100044).nextInt()));
+		lakeProvider = new BiomeDataProvider(this, InferredType.LAKE, !iris.getDimension().isAggressiveBiomeReshuffle() ? rng : rng.nextParallelRNG((int) (-298356111 * iris.getTarget().getSeed())));
+		regionGenerator = iris.getDimension().getRegionStyle().create(rng.nextParallelRNG(1188519 + (iris.getDimension().isAggressiveBiomeReshuffle() ? 329395 + (iris.getDimension().getName().hashCode()) : 0))).bake().scale(1D / iris.getDimension().getRegionZoom());
+		bridgeGenerator = iris.getDimension().getContinentalStyle().create(rng.nextParallelRNG(1541462 + (iris.getDimension().isAggressiveBiomeReshuffle() ? 29355 * (iris.getDimension().getRegions().size()) : 0))).bake().scale(1D / iris.getDimension().getContinentZoom());
 	}
 
 	public IrisRegion getRegion(double bx, double bz)

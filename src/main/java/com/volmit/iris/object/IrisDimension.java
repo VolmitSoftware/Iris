@@ -14,6 +14,7 @@ import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;
@@ -53,6 +54,10 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Create an inverted dimension in the sky (like the nether)")
 	private IrisDimension sky = null;
+
+	@DontObfuscate
+	@Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
+	private boolean aggressiveBiomeReshuffle = false;
 
 	@DontObfuscate
 	@Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
@@ -498,7 +503,7 @@ public class IrisDimension extends IrisRegistrant
 		});
 	}
 
-	public BlockData resolveBlock(String bd)
+	public FastBlockData resolveBlock(String bd)
 	{
 		return Iris.compat.getBlock(bd);
 	}

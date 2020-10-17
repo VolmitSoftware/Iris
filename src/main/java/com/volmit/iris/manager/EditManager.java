@@ -3,7 +3,6 @@ package com.volmit.iris.manager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
@@ -12,6 +11,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.edit.BlockEditor;
 import com.volmit.iris.edit.BukkitBlockEditor;
 import com.volmit.iris.edit.WEBlockEditor;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
 
@@ -26,14 +26,14 @@ public class EditManager implements Listener
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 0);
 	}
 
-	public BlockData get(World world, int x, int y, int z)
+	public FastBlockData get(World world, int x, int y, int z)
 	{
-		return open(world).get(x, y, z);
+		return FastBlockData.of(open(world).get(x, y, z));
 	}
 
-	public void set(World world, int x, int y, int z, BlockData d)
+	public void set(World world, int x, int y, int z, FastBlockData d)
 	{
-		open(world).set(x, y, z, d);
+		open(world).set(x, y, z, d.getBlockData());
 	}
 
 	public void setBiome(World world, int x, int y, int z, Biome d)

@@ -17,11 +17,9 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
-import lombok.Getter;
 
 public class PregenJob implements Listener
 {
-	@Getter
 	private World world;
 	private int size;
 	private int total;
@@ -418,11 +416,5 @@ public class PregenJob implements Listener
 
 		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) s.getMilliseconds(), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
 		};
-	}
-
-	public void progressMCA(Color color, int x, int z, double pct)
-	{
-		// TODO Auto-generated method stub
-
 	}
 }

@@ -6,13 +6,13 @@ import com.volmit.iris.util.J;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisDownload extends MortarCommand
+public class CommandIrisUpdateProject extends MortarCommand
 {
-	public CommandIrisDownload()
+	public CommandIrisUpdateProject()
 	{
-		super("download", "down", "dl");
+		super("update-project", "^project");
 		requiresPermission(Iris.perm.studio);
-		setDescription("Download a project.");
+		setDescription("Update a project from git.");
 		setCategory("Studio");
 	}
 
@@ -21,23 +21,11 @@ public class CommandIrisDownload extends MortarCommand
 	{
 		if(args.length < 1)
 		{
-			sender.sendMessage("/iris dl " + C.BOLD + "<NAME>");
+			sender.sendMessage("/iris update-project " + C.BOLD + "<PROJECT>");
 			return true;
 		}
 
-		boolean trim = false;
-
-		for(String i : args)
-		{
-			if(i.equals("-t") || i.equals("--trim"))
-			{
-				trim = true;
-			}
-		}
-
-		boolean btrim = trim;
-
-		J.a(() -> Iris.proj.downloadSearch(sender, args[0], btrim));
+		J.a(() -> Iris.proj.downloadSearch(sender, args[0], false, true));
 
 		return true;
 	}
@@ -45,6 +33,6 @@ public class CommandIrisDownload extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "<name> [-t/--trim]";
+		return "<project>";
 	}
 }

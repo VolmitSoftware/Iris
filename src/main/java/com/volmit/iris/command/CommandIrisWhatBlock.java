@@ -1,7 +1,6 @@
 package com.volmit.iris.command;
 
 import org.bukkit.FluidCollisionMode;
-import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 

@@ -7,6 +7,8 @@ import org.bukkit.WorldCreator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 
+import io.papermc.lib.PaperLib;
+
 public class NMSCreator
 {
 	public static World createWorld(WorldCreator creator)
@@ -18,31 +20,34 @@ public class NMSCreator
 	{
 		if(IrisSettings.get().isSkipPrepareSpawnNMS())
 		{
-			try
+			if(!PaperLib.isPaper())
 			{
-				String code = Iris.nmsTag();
+				try
+				{
+					String code = Iris.nmsTag();
 
-				if(code.equals("v1_16_R2"))
-				{
-					return NMSCreator162.createWorld(creator, loadSpawn);
+					if(code.equals("v1_16_R2"))
+					{
+						return NMSCreator162.createWorld(creator, loadSpawn);
+					}
+					else if(code.equals("v1_16_R1"))
+					{
+						return NMSCreator161.createWorld(creator, loadSpawn);
+					}
+					else if(code.equals("v1_15_R1"))
+					{
+						return NMSCreator151.createWorld(creator, loadSpawn);
+					}
+					else if(code.equals("v1_14_R1"))
+					{
+						return NMSCreator141.createWorld(creator, loadSpawn);
+					}
 				}
-				else if(code.equals("v1_16_R1"))
-				{
-					return NMSCreator161.createWorld(creator, loadSpawn);
-				}
-				else if(code.equals("v1_15_R1"))
-				{
-					return NMSCreator151.createWorld(creator, loadSpawn);
-				}
-				else if(code.equals("v1_14_R1"))
-				{
-					return NMSCreator141.createWorld(creator, loadSpawn);
-				}
-			}
 
-			catch(Throwable e)
-			{
+				catch(Throwable e)
+				{
 
+				}
 			}
 		}
 

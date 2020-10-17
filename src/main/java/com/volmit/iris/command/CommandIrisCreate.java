@@ -34,6 +34,11 @@ public class CommandIrisCreate extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(args.length == 0)
+		{
+			sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000] [-zip]");
+		}
+
 		String worldName = args[0];
 		String type = "overworld";
 		long seed = 1337;

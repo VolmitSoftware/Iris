@@ -81,7 +81,17 @@ public class ProjectManager
 		else
 		{
 			sender.sendMessage("Found " + type + " dimension in " + ProjectManager.workspaceName + " folder. Repackaging");
-			ZipUtil.unpack(Iris.proj.compilePackage(sender, type, true, true), iris);
+			File f = new IrisProject(new File(getWorkspaceFolder(), type)).getPath();
+
+			try
+			{
+				FileUtils.copyDirectory(f, iris);
+			}
+
+			catch(IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
 
 		File dimf = new File(iris, "dimensions/" + type + ".json");
@@ -146,6 +156,11 @@ public class ProjectManager
 
 	public void downloadSearch(MortarSender sender, String key, boolean trim)
 	{
+		downloadSearch(sender, key, trim, false);
+	}
+
+	public void downloadSearch(MortarSender sender, String key, boolean trim, boolean forceOverwrite)
+	{
 		String repo = getListing(false).get(key);
 
 		if(repo == null)
@@ -157,7 +172,7 @@ public class ProjectManager
 		sender.sendMessage("Found '" + key + "' in the Iris Listing as " + repo);
 		try
 		{
-			download(sender, repo, trim);
+			download(sender, repo, trim, forceOverwrite);
 		}
 		catch(JsonSyntaxException | IOException e)
 		{
@@ -166,6 +181,11 @@ public class ProjectManager
 	}
 
 	public void download(MortarSender sender, String repo, boolean trim) throws JsonSyntaxException, IOException
+	{
+		download(sender, repo, trim, false);
+	}
+
+	public void download(MortarSender sender, String repo, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException
 	{
 		String url = "https://codeload.github.com/" + repo + "/zip/master";
 		sender.sendMessage("Downloading " + url);
@@ -208,6 +228,13 @@ public class ProjectManager
 		String key = dim.getName().split("\\Q.\\E")[0];
 		IrisDimension d = new Gson().fromJson(IO.readAll(dim), IrisDimension.class);
 		sender.sendMessage("Importing " + d.getName() + " (" + key + ")");
+		File packEntry = new File(packs, key);
+
+		if(forceOverwrite)
+		{
+			IO.delete(packEntry);
+		}
+
 		Iris.globaldata.dump();
 		Iris.globaldata.preferFolder(null);
 
@@ -216,8 +243,6 @@ public class ProjectManager
 			sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
 			return;
 		}
-
-		File packEntry = new File(packs, key);
 
 		if(packEntry.exists() && packEntry.listFiles().length > 0)
 		{

@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>bytecode.ninja</groupId>
 	<artifactId>Iris</artifactId>
-	<version>1.0.13</version>
+	<version>1.0.14</version>
 	<name>Iris</name>
 	<properties>
 		<skip.copy>false</skip.copy>
@@ -145,6 +145,10 @@
 			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
 		</repository>
 		<repository>
+			<id>papermc</id>
+			<url>https://papermc.io/repo/repository/maven-public/</url>
+		</repository>
+		<repository>
 			<id>bcn</id>
 			<url>http://bytecode.ninja/repository/bcn/</url>
 		</repository>
@@ -169,6 +173,13 @@
 			<artifactId>spigot-api</artifactId>
 			<version>1.16.1-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
+		</dependency>
+		<!-- Paper API -->
+		<dependency>
+			<groupId>io.papermc</groupId>
+			<artifactId>paperlib</artifactId>
+			<version>1.0.5</version>
+			<scope>compile</scope>
 		</dependency>
 		<!-- NMS -->
 		<dependency>

@@ -23,6 +23,12 @@ public class CommandIris extends MortarCommand
 	private CommandIrisDownload download;
 
 	@Command
+	private CommandIrisUpdateProject updateProject;
+
+	@Command
+	private CommandIrisUpdateWorld updateWorld;
+
+	@Command
 	private CommandIrisWhat what;
 
 	@Command

@@ -32,6 +32,11 @@
       <option name="url" value="https://maven.enginehub.org/repo/" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="everything" />
+      <option name="name" value="everything" />
+      <option name="url" value="https://repo.citizensnpcs.co/" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="bcn" />
       <option name="name" value="bcn" />
       <option name="url" value="http://bytecode.ninja/repository/bcn/" />

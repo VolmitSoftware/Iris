@@ -272,11 +272,21 @@ public class IrisEntity extends IrisRegistrant
 			return Iris.linkMythicMobs.spawn(getMythicalType(), at);
 		}
 
+		if(isCitizens())
+		{
+			return Iris.linkCitizens.spawn(getType(), at);
+		}
+
 		return at.getWorld().spawnEntity(at, getType());
 	}
 
 	public boolean isMythical()
 	{
 		return Iris.linkMythicMobs.supported() && !getMythicalType().trim().isEmpty();
+	}
+
+	public boolean isCitizens()
+	{
+		return Iris.linkCitizens.supported(); // TODO Need to determine how to tell if entity needs to be Citizen NPC (eg. getCitizensType())
 	}
 }

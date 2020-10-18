@@ -179,4 +179,12 @@ public class IrisSettings
 
 		return settings;
 	}
+
+	public static void invalidate()
+	{
+		synchronized(settings)
+		{
+			settings = null;
+		}
+	}
 }

@@ -489,6 +489,11 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	@Override
 	protected void onSpawn(EntitySpawnEvent e)
 	{
+		if(getTarget().getRealWorld() == null || !getTarget().getRealWorld().equals(e.getEntity().getWorld()))
+		{
+			return;
+		}
+
 		if(isSpawnable())
 		{
 			if(!IrisSettings.get().isSystemEntitySpawnOverrides())

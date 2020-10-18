@@ -5,7 +5,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.object.IrisBiome;
@@ -26,15 +25,9 @@ public class CommandIrisStudioGoto extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
-			return true;
-		}
-
 		if(args.length < 1)
 		{
-			sender.sendMessage("/iris world goto " + getArgsUsage());
+			sender.sendMessage("/iris std goto " + getArgsUsage());
 			return true;
 		}
 

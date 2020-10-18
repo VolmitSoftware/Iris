@@ -7,6 +7,7 @@ import org.bukkit.inventory.Inventory;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
@@ -38,7 +39,14 @@ public class CommandIrisStudioLoot extends MortarCommand
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
-			IrisWorlds.getProvider(sender.player().getWorld()).getPopulators();
+			IrisTerrainProvider prov = IrisWorlds.getProvider(sender.player().getWorld());
+
+			if(prov == null)
+			{
+				sender.sendMessage("You can only use /iris loot in a studio world of iris.");
+				return true;
+			}
+
 			KList<IrisLootTable> tables = IrisWorlds.getProvider(sender.player().getWorld()).getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
 			Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);

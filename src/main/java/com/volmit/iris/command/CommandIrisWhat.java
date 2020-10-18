@@ -12,6 +12,9 @@ public class CommandIrisWhat extends MortarCommand
 
 	@Command
 	private CommandIrisWhatHand hand;
+	
+	@Command
+	private CommandIrisWhatBiome biome;
 
 	public CommandIrisWhat()
 	{

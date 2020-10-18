@@ -4,16 +4,16 @@ import com.volmit.iris.util.RNG;
 
 public class WhiteNoise implements NoiseGenerator
 {
-	private final FastNoiseDouble n;
+	private final FastNoise n;
 
 	public WhiteNoise(long seed)
 	{
-		n = new FastNoiseDouble(new RNG(seed).lmax());
+		n = new FastNoise(new RNG(seed).imax());
 	}
 
 	private double f(double m)
 	{
-		return m;
+		return (m % 8192) * 1024;
 	}
 
 	@Override

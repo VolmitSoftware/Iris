@@ -13,3 +13,5 @@ lint/out.jar
 lint/mapping.txt
 
 .DS_Store
+
+.idea/

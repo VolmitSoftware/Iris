@@ -1,2 +1,2 @@
 # Iris
-World Generator
+Dimension Generator

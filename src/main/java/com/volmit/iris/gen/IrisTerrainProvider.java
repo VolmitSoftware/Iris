@@ -609,7 +609,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		if(getDimension() == null)
 		{
-			return false;
+			return true;
 		}
 
 		return getDimension().isVanillaStructures();

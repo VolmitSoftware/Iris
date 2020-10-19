@@ -69,7 +69,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		HeightMap height = new HeightMap();
 		String key = "c" + x + "," + z;
 		BiomeMap biomeMap = new BiomeMap();
-		int ii, jj;
+		int ii;
 		onPreGenerate(random, x, z, terrain, height, biomeMap, map);
 
 		for(ii = 0; ii < 16; ii++)
@@ -77,14 +77,14 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 			int i = ii;
 			int wx = (x * 16) + i;
 
-			for(jj = 0; jj < 16; jj++)
+			getAccelerant().queue(key, () ->
 			{
-				int j = jj;
-				int wz = (z * 16) + j;
-				AtomicSliver sliver = map.getSliver(i, j);
-
-				getAccelerant().queue(key, () ->
+				for(int jj = 0; jj < 16; jj++)
 				{
+					int j = jj;
+					int wz = (z * 16) + j;
+					AtomicSliver sliver = map.getSliver(i, j);
+
 					try
 					{
 						onGenerateColumn(x, z, wx, wz, i, j, sliver, biomeMap);
@@ -94,8 +94,8 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 					{
 						fail(e);
 					}
-				});
-			}
+				}
+			});
 		}
 
 		accelerant.waitFor(key);

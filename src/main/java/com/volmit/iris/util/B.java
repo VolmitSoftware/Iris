@@ -138,20 +138,15 @@ public class B
 	{
 		String bd = bdx.trim().toUpperCase();
 
-		return typesb.get(bd, (k) ->
+		try
 		{
-			try
-			{
-				return FastBlockData.of(Material.valueOf(k));
-			}
+			return Material.valueOf(bd);
+		}
 
-			catch(Throwable e)
-			{
-
-			}
-
+		catch(Throwable e)
+		{
 			return null;
-		}).getType();
+		}
 	}
 
 	public static boolean isSolid(FastBlockData mat)
@@ -337,8 +332,33 @@ public class B
 			return true;
 		}
 
-		// @NoArgsConstructor
-		boolean str = mat.equals(B.mat("CHEST")) || mat.equals(B.mat("TRAPPED_CHEST")) || mat.equals(B.mat("SHULKER_BOX")) || mat.equals(B.mat("WHITE_SHULKER_BOX")) || mat.equals(B.mat("ORANGE_SHULKER_BOX")) || mat.equals(B.mat("MAGENTA_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) || mat.equals(B.mat("YELLOW_SHULKER_BOX")) || mat.equals(B.mat("LIME_SHULKER_BOX")) || mat.equals(B.mat("PINK_SHULKER_BOX")) || mat.equals(B.mat("GRAY_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) || mat.equals(B.mat("CYAN_SHULKER_BOX")) || mat.equals(B.mat("PURPLE_SHULKER_BOX")) || mat.equals(B.mat("BLUE_SHULKER_BOX")) || mat.equals(B.mat("BROWN_SHULKER_BOX")) || mat.equals(B.mat("GREEN_SHULKER_BOX")) || mat.equals(B.mat("RED_SHULKER_BOX")) || mat.equals(B.mat("BLACK_SHULKER_BOX")) || mat.equals(B.mat("BARREL")) || mat.equals(B.mat("DISPENSER")) || mat.equals(B.mat("DROPPER")) || mat.equals(B.mat("HOPPER")) || mat.equals(B.mat("FURNACE")) || mat.equals(B.mat("BLAST_FURNACE")) || mat.equals(B.mat("SMOKER"));
+		// @builder
+		boolean str = mat.matEquals(B.mat("CHEST")) 
+				|| mat.matEquals(B.mat("TRAPPED_CHEST")) 
+				|| mat.matEquals(B.mat("SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("WHITE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("ORANGE_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("MAGENTA_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIGHT_BLUE_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("YELLOW_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIME_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("PINK_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("GRAY_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIGHT_GRAY_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("CYAN_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("PURPLE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BLUE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BROWN_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("GREEN_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("RED_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BLACK_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("BARREL")) 
+				|| mat.matEquals(B.mat("DISPENSER")) 
+				|| mat.matEquals(B.mat("DROPPER")) 
+				|| mat.matEquals(B.mat("HOPPER"))
+				|| mat.matEquals(B.mat("FURNACE"))
+				|| mat.matEquals(B.mat("BLAST_FURNACE"))
+				|| mat.matEquals(B.mat("SMOKER"));
 		//@done
 
 		if(str)
@@ -359,8 +379,30 @@ public class B
 			return true;
 		}
 
-		// @NoArgsConstructor
-		boolean str = mat.equals(B.mat("CHEST")) || mat.equals(B.mat("TRAPPED_CHEST")) || mat.equals(B.mat("SHULKER_BOX")) || mat.equals(B.mat("WHITE_SHULKER_BOX")) || mat.equals(B.mat("ORANGE_SHULKER_BOX")) || mat.equals(B.mat("MAGENTA_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_BLUE_SHULKER_BOX")) || mat.equals(B.mat("YELLOW_SHULKER_BOX")) || mat.equals(B.mat("LIME_SHULKER_BOX")) || mat.equals(B.mat("PINK_SHULKER_BOX")) || mat.equals(B.mat("GRAY_SHULKER_BOX")) || mat.equals(B.mat("LIGHT_GRAY_SHULKER_BOX")) || mat.equals(B.mat("CYAN_SHULKER_BOX")) || mat.equals(B.mat("PURPLE_SHULKER_BOX")) || mat.equals(B.mat("BLUE_SHULKER_BOX")) || mat.equals(B.mat("BROWN_SHULKER_BOX")) || mat.equals(B.mat("GREEN_SHULKER_BOX")) || mat.equals(B.mat("RED_SHULKER_BOX")) || mat.equals(B.mat("BLACK_SHULKER_BOX")) || mat.equals(B.mat("BARREL")) || mat.equals(B.mat("DISPENSER")) || mat.equals(B.mat("DROPPER")) || mat.equals(B.mat("HOPPER"));
+		// @builder
+		boolean str = mat.matEquals(B.mat("CHEST")) 
+				|| mat.matEquals(B.mat("TRAPPED_CHEST")) 
+				|| mat.matEquals(B.mat("SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("WHITE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("ORANGE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("MAGENTA_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIGHT_BLUE_SHULKER_BOX"))
+				|| mat.matEquals(B.mat("YELLOW_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIME_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("PINK_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("GRAY_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("LIGHT_GRAY_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("CYAN_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("PURPLE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BLUE_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BROWN_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("GREEN_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("RED_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BLACK_SHULKER_BOX")) 
+				|| mat.matEquals(B.mat("BARREL")) 
+				|| mat.matEquals(B.mat("DISPENSER")) 
+				|| mat.matEquals(B.mat("DROPPER")) 
+				|| mat.matEquals(B.mat("HOPPER"));
 		//@done
 
 		if(str)
@@ -381,8 +423,28 @@ public class B
 			return true;
 		}
 
-		// @NoArgsConstructor
-		boolean str = mat.equals(B.mat("GLOWSTONE")) || mat.equals(B.mat("END_ROD")) || mat.equals(B.mat("SOUL_SAND")) || mat.equals(B.mat("TORCH")) || mat.getType().equals(Material.REDSTONE_TORCH) || mat.equals(B.mat("SOUL_TORCH")) || mat.getType().equals(Material.REDSTONE_WALL_TORCH) || mat.getType().equals(Material.WALL_TORCH) || mat.equals(B.mat("SOUL_WALL_TORCH")) || mat.equals(B.mat("LANTERN")) || mat.getType().equals(Material.JACK_O_LANTERN) || mat.getType().equals(Material.REDSTONE_LAMP) || mat.getType().equals(Material.MAGMA_BLOCK) || mat.equals(B.mat("SHROOMLIGHT")) || mat.equals(B.mat("SEA_LANTERN")) || mat.equals(B.mat("SOUL_LANTERN")) || mat.getType().equals(Material.FIRE) || mat.equals(B.mat("SOUL_FIRE")) || mat.equals(B.mat("SEA_PICKLE")) || mat.getType().equals(Material.BREWING_STAND) || mat.getType().equals(Material.REDSTONE_ORE);
+		// @builder
+		boolean str = mat.matEquals(B.mat("GLOWSTONE")) 
+				|| mat.matEquals(B.mat("END_ROD")) 
+				|| mat.matEquals(B.mat("SOUL_SAND")) 
+				|| mat.matEquals(B.mat("TORCH")) 
+				|| mat.getType().equals(Material.REDSTONE_TORCH) 
+				|| mat.matEquals(B.mat("SOUL_TORCH")) 
+				|| mat.getType().equals(Material.REDSTONE_WALL_TORCH)
+				|| mat.getType().equals(Material.WALL_TORCH) 
+				|| mat.matEquals(B.mat("SOUL_WALL_TORCH")) 
+				|| mat.matEquals(B.mat("LANTERN")) 
+				|| mat.getType().equals(Material.JACK_O_LANTERN)
+				|| mat.getType().equals(Material.REDSTONE_LAMP) 
+				|| mat.getType().equals(Material.MAGMA_BLOCK) 
+				|| mat.matEquals(B.mat("SHROOMLIGHT")) 
+				|| mat.matEquals(B.mat("SEA_LANTERN")) 
+				|| mat.matEquals(B.mat("SOUL_LANTERN")) 
+				|| mat.getType().equals(Material.FIRE) 
+				|| mat.matEquals(B.mat("SOUL_FIRE")) 
+				|| mat.matEquals(B.mat("SEA_PICKLE")) 
+				|| mat.getType().equals(Material.BREWING_STAND) 
+				|| mat.getType().equals(Material.REDSTONE_ORE);
 		//@done
 		if(str)
 		{
@@ -431,8 +493,36 @@ public class B
 		}
 
 		FastBlockData mat = d;
-		// @NoArgsConstructor
-		return mat.getType().equals(Material.POPPY) || mat.getType().equals(Material.DANDELION) || mat.equals(B.mat("CORNFLOWER")) || mat.equals(B.mat("SWEET_BERRY_BUSH")) || mat.equals(B.mat("CRIMSON_ROOTS")) || mat.equals(B.mat("WARPED_ROOTS")) || mat.equals(B.mat("NETHER_SPROUTS")) || mat.equals(B.mat("ALLIUM")) || mat.equals(B.mat("AZURE_BLUET")) || mat.equals(B.mat("BLUE_ORCHID")) || mat.equals(B.mat("POPPY")) || mat.equals(B.mat("DANDELION")) || mat.equals(B.mat("OXEYE_DAISY")) || mat.equals(B.mat("LILY_OF_THE_VALLEY")) || mat.equals(B.mat("WITHER_ROSE")) || mat.getType().equals(Material.DARK_OAK_SAPLING) || mat.getType().equals(Material.ACACIA_SAPLING) || mat.getType().equals(Material.JUNGLE_SAPLING) || mat.getType().equals(Material.BIRCH_SAPLING) || mat.getType().equals(Material.SPRUCE_SAPLING) || mat.getType().equals(Material.OAK_SAPLING) || mat.getType().equals(Material.ORANGE_TULIP) || mat.getType().equals(Material.PINK_TULIP) || mat.getType().equals(Material.RED_TULIP) || mat.getType().equals(Material.WHITE_TULIP) || mat.getType().equals(Material.FERN) || mat.getType().equals(Material.LARGE_FERN) || mat.getType().equals(Material.GRASS) || mat.getType().equals(Material.TALL_GRASS);
+		// @builder
+		return mat.getType().equals(Material.POPPY) 
+				|| mat.getType().equals(Material.DANDELION) 
+				|| mat.matEquals(B.mat("CORNFLOWER"))
+				|| mat.matEquals(B.mat("SWEET_BERRY_BUSH"))
+				|| mat.matEquals(B.mat("CRIMSON_ROOTS")) 
+				|| mat.matEquals(B.mat("WARPED_ROOTS")) 
+				|| mat.matEquals(B.mat("NETHER_SPROUTS"))
+				|| mat.matEquals(B.mat("ALLIUM")) 
+				|| mat.matEquals(B.mat("AZURE_BLUET"))
+				|| mat.matEquals(B.mat("BLUE_ORCHID")) 
+				|| mat.matEquals(B.mat("POPPY")) 
+				|| mat.matEquals(B.mat("DANDELION")) 
+				|| mat.matEquals(B.mat("OXEYE_DAISY")) 
+				|| mat.matEquals(B.mat("LILY_OF_THE_VALLEY")) 
+				|| mat.matEquals(B.mat("WITHER_ROSE")) 
+				|| mat.getType().equals(Material.DARK_OAK_SAPLING)
+				|| mat.getType().equals(Material.ACACIA_SAPLING) 
+				|| mat.getType().equals(Material.JUNGLE_SAPLING)
+				|| mat.getType().equals(Material.BIRCH_SAPLING) 
+				|| mat.getType().equals(Material.SPRUCE_SAPLING)
+				|| mat.getType().equals(Material.OAK_SAPLING) 
+				|| mat.getType().equals(Material.ORANGE_TULIP)
+				|| mat.getType().equals(Material.PINK_TULIP) 
+				|| mat.getType().equals(Material.RED_TULIP) 
+				|| mat.getType().equals(Material.WHITE_TULIP)
+				|| mat.getType().equals(Material.FERN) 
+				|| mat.getType().equals(Material.LARGE_FERN) 
+				|| mat.getType().equals(Material.GRASS) 
+				|| mat.getType().equals(Material.TALL_GRASS);
 		//@done
 	}
 

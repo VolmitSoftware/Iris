@@ -1,5 +1,6 @@
 package com.volmit.iris.gen.layer;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import org.bukkit.Chunk;
@@ -196,24 +197,16 @@ public class GenLayerUpdate extends BlockPopulator
 	{
 		KList<ItemStack> items = new KList<>();
 
-		for(int t = 0; t < gen.getDimension().getLootTries(); t++)
+		int b = 4;
+		for(IrisLootTable i : tables)
 		{
-			int b = 4;
-			for(IrisLootTable i : tables)
-			{
-				b++;
-				items.addAll(i.getLoot(debug, rng.nextParallelRNG(345911 * -t), slot, x, y, z, t + b + b, mgf + b));
-			}
+			b++;
+			items.addAll(i.getLoot(debug, items.isEmpty(), rng.nextParallelRNG(345911), slot, x, y, z, b + b, mgf + b));
+		}
 
-			for(ItemStack i : items)
-			{
-				inv.addItem(i);
-			}
-
-			if(items.isNotEmpty())
-			{
-				break;
-			}
+		for(ItemStack i : items)
+		{
+			inv.addItem(i);
 		}
 
 		scramble(inv, rng);
@@ -231,11 +224,12 @@ public class GenLayerUpdate extends BlockPopulator
 		if(slot != null)
 		{
 			KList<IrisLootTable> tables = getLootTables(rng.nextParallelRNG(4568111), b);
+			InventorySlotType slott = slot;
 
 			try
 			{
 				InventoryHolder m = (InventoryHolder) b.getState();
-				addItems(false, m.getInventory(), rng, tables, slot, rx, b.getY(), rz, 15);
+				addItems(false, m.getInventory(), rng, tables, slott, rx, b.getY(), rz, 15);
 			}
 
 			catch(Throwable ignored)
@@ -247,64 +241,49 @@ public class GenLayerUpdate extends BlockPopulator
 
 	public void scramble(Inventory inventory, RNG rng)
 	{
-		KList<ItemStack> v = new KList<>();
+		ItemStack[] items = inventory.getContents();
+		ItemStack[] nitems = new ItemStack[inventory.getSize()];
+		System.arraycopy(items, 0, nitems, 0, items.length);
+		boolean packedFull = false;
 
-		for(ItemStack i : inventory.getContents())
+		splitting: for(int i = 0; i < nitems.length; i++)
 		{
-			if(i == null)
-			{
-				continue;
-			}
+			ItemStack is = nitems[i];
 
-			v.add(i);
+			if(is != null && is.getAmount() > 1 && !packedFull)
+			{
+				for(int j = 0; j < nitems.length; j++)
+				{
+					if(nitems[j] == null)
+					{
+						int take = rng.nextInt(is.getAmount());
+						take = take == 0 ? 1 : take;
+						is.setAmount(is.getAmount() - take);
+						nitems[j] = is.clone();
+						nitems[j].setAmount(take);
+						continue splitting;
+					}
+				}
+
+				packedFull = true;
+			}
 		}
 
-		inventory.clear();
-		int sz = inventory.getSize();
-		int tr = 5;
-
-		while(v.isNotEmpty())
+		for(int i = 0; i < 4; i++)
 		{
-			int slot = rng.i(0, sz - 1);
-
-			if(inventory.getItem(slot) == null)
+			try
 			{
-				tr = tr < 5 ? tr + 1 : tr;
-				int pick = rng.i(0, v.size() - 1);
-				ItemStack g = v.get(pick);
-
-				if(g.getAmount() == 1)
-				{
-					v.remove(pick);
-					inventory.setItem(pick, g);
-				}
-
-				else
-				{
-					int portion = rng.i(1, g.getAmount() - 1);
-					ItemStack port = g.clone();
-					port.setAmount(portion);
-					g.setAmount(g.getAmount() - portion);
-					v.add(g);
-					inventory.setItem(slot, port);
-				}
-			}
-
-			else
-			{
-				tr--;
-			}
-
-			if(tr <= 0)
-			{
+				Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
 				break;
 			}
+
+			catch(Throwable e)
+			{
+
+			}
 		}
 
-		for(ItemStack i : v)
-		{
-			inventory.addItem(i);
-		}
+		inventory.setContents(nitems);
 	}
 
 	public void updateLight(Block b, FastBlockData data)

@@ -9,6 +9,8 @@ import net.minecraft.server.v1_16_R2.IChunkAccess;
 import net.minecraft.server.v1_16_R2.MinecraftServer;
 import net.minecraft.server.v1_16_R2.RegistryMaterials;
 import net.minecraft.server.v1_16_R2.StructureManager;
+import net.minecraft.server.v1_16_R2.StructureSettings;
+import net.minecraft.server.v1_16_R2.WorldChunkManager;
 import net.minecraft.server.v1_16_R2.WorldDataServer;
 import net.minecraft.server.v1_16_R2.WorldDimension;
 import net.minecraft.server.v1_16_R2.WorldServer;
@@ -16,7 +18,7 @@ import net.minecraft.server.v1_16_R2.WorldServer;
 public class WorldCracker162
 {
 	@SuppressWarnings("unused")
-	public static void go(World world, int x, int z)
+	public static void printSignature(World world, int x, int z) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
 		WorldServer ws = ((CraftWorld) world).getHandle();
 		MinecraftServer server = ws.getMinecraftServer();
@@ -26,6 +28,8 @@ public class WorldCracker162
 		WorldDimension wdm = (WorldDimension) registrymaterials.a(WorldDimension.OVERWORLD);
 		DimensionManager dm = wdm.b();
 		ChunkGenerator cg = wdm.c();
+		StructureSettings ss = cg.getSettings();
 		IChunkAccess ica = ws.getChunkAt(x, z);
+		WorldChunkManager wcm = cg.getWorldChunkManager();
 	}
 }

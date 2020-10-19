@@ -56,7 +56,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 
 		if(file == null || !file.exists())
 		{
-			sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.workspaceName + " folder");
+			sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
 		}
 
 		ItemStack wand = sender.player().getInventory().getItemInMainHand();

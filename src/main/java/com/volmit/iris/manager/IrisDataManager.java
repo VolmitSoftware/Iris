@@ -43,7 +43,7 @@ public class IrisDataManager
 	public IrisDataManager(File dataFolder)
 	{
 		this.dataFolder = dataFolder;
-		this.packs = new File(dataFolder, ProjectManager.workspaceName);
+		this.packs = new File(dataFolder, ProjectManager.WORKSPACE_NAME);
 		boolean pr = false;
 		if(!packs.exists())
 		{
@@ -65,7 +65,7 @@ public class IrisDataManager
 			return;
 		}
 
-		File packs = this.packs.getName().equals(ProjectManager.workspaceName) ? this.packs : dataFolder;
+		File packs = this.packs.getName().equals(ProjectManager.WORKSPACE_NAME) ? this.packs : dataFolder;
 		packs.mkdirs();
 		this.lootLoader = new ResourceLoader<>(packs, "loot", "Loot", IrisLootTable.class);
 		this.entityLoader = new ResourceLoader<>(packs, "entities", "Entity", IrisEntity.class);
@@ -77,7 +77,7 @@ public class IrisDataManager
 		this.blockLoader = new ResourceLoader<>(packs, "blocks", "Block", IrisBlockData.class);
 		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
 
-		if(packs.getName().equals(ProjectManager.workspaceName))
+		if(packs.getName().equals(ProjectManager.WORKSPACE_NAME))
 		{
 			writeExamples();
 		}

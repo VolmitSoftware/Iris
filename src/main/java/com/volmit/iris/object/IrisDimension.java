@@ -82,11 +82,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
-	@DontObfuscate
-	@MinNumber(0)
-	@Desc("Try to fill a container with loot up to this many times to avoid too many empty chests.")
-	private int lootTries = 5;
-
 	@Required
 	@MinNumber(0)
 	@DontObfuscate

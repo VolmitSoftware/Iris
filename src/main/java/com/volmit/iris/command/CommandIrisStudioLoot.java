@@ -47,7 +47,8 @@ public class CommandIrisStudioLoot extends MortarCommand
 				return true;
 			}
 
-			KList<IrisLootTable> tables = IrisWorlds.getProvider(sender.player().getWorld()).getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
+			prov.initGLUpdate();
+			KList<IrisLootTable> tables = prov.getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
 			Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
 			p.openInventory(inv);

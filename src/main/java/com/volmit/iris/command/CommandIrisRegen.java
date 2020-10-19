@@ -4,6 +4,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.util.MortarCommand;
@@ -34,6 +35,13 @@ public class CommandIrisRegen extends MortarCommand
 			}
 
 			Provisioned pr = (Provisioned) world.getGenerator();
+
+			if(((IrisTerrainProvider) pr.getProvider()).isFailing())
+			{
+				sender.sendMessage("This world is in a failed state! Cannot Regenerate!");
+				return true;
+			}
+
 			pr.clearRegeneratedLists();
 			if(args.length == 0)
 			{

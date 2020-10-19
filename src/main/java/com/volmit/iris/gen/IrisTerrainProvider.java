@@ -141,7 +141,15 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		spawnable = true;
 		super.onTick(ticks);
-		tickEffects();
+		try
+		{
+			tickEffects();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
 	}
 
 	protected void tickEffects()
@@ -494,66 +502,74 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 			return;
 		}
 
-		if(isSpawnable())
+		try
 		{
-			if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+			if(isSpawnable())
 			{
-				return;
-			}
+				if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+				{
+					return;
+				}
 
-			int x = e.getEntity().getLocation().getBlockX();
-			int y = e.getEntity().getLocation().getBlockY();
-			int z = e.getEntity().getLocation().getBlockZ();
-			IrisDimension dim = getDimension();
-			IrisRegion region = sampleRegion(x, z);
-			IrisBiome above = sampleTrueBiome(x, z);
-			IrisBiome below = sampleTrueBiome(x, y, z);
+				int x = e.getEntity().getLocation().getBlockX();
+				int y = e.getEntity().getLocation().getBlockY();
+				int z = e.getEntity().getLocation().getBlockZ();
+				IrisDimension dim = getDimension();
+				IrisRegion region = sampleRegion(x, z);
+				IrisBiome above = sampleTrueBiome(x, z);
+				IrisBiome below = sampleTrueBiome(x, y, z);
 
-			if(above.getLoadKey().equals(below.getLoadKey()))
-			{
-				below = null;
-			}
+				if(above.getLoadKey().equals(below.getLoadKey()))
+				{
+					below = null;
+				}
 
-			IrisStructureResult res = getStructure(x, y, z);
+				IrisStructureResult res = getStructure(x, y, z);
 
-			if(res != null && res.getTile() != null)
-			{
-				if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
+				if(res != null && res.getTile() != null)
+				{
+					if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(res != null && res.getStructure() != null)
+				{
+					if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(below != null)
+				{
+					if(trySpawn(below.getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(trySpawn(above.getEntitySpawnOverrides(), e))
+				{
+					return;
+				}
+
+				if(trySpawn(region.getEntitySpawnOverrides(), e))
+				{
+					return;
+				}
+
+				if(trySpawn(dim.getEntitySpawnOverrides(), e))
 				{
 					return;
 				}
 			}
-
-			if(res != null && res.getStructure() != null)
-			{
-				if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-			}
-
-			if(below != null)
-			{
-				if(trySpawn(below.getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-			}
-
-			if(trySpawn(above.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
-
-			if(trySpawn(region.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
-
-			if(trySpawn(dim.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
+		}
+		
+		catch(Throwable xe)
+		{
+			
 		}
 	}
 

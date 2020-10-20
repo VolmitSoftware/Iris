@@ -22,6 +22,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
 
 import com.mojang.serialization.Codec;
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.GeneratedChunk;
@@ -34,7 +35,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.server.v1_16_R2.BiomeBase;
 import net.minecraft.server.v1_16_R2.BiomeManager;
-import net.minecraft.server.v1_16_R2.BiomeSettingsGeneration;
 import net.minecraft.server.v1_16_R2.BiomeSettingsMobs;
 import net.minecraft.server.v1_16_R2.Block;
 import net.minecraft.server.v1_16_R2.BlockColumn;
@@ -83,7 +83,6 @@ import net.minecraft.server.v1_16_R2.StructureStart;
 import net.minecraft.server.v1_16_R2.SystemUtils;
 import net.minecraft.server.v1_16_R2.WorldChunkManager;
 import net.minecraft.server.v1_16_R2.WorldChunkManagerTheEnd;
-import net.minecraft.server.v1_16_R2.WorldGenFeatureConfigured;
 import net.minecraft.server.v1_16_R2.WorldGenFeatureDefinedStructureJigsawJunction;
 import net.minecraft.server.v1_16_R2.WorldGenFeatureDefinedStructurePoolTemplate;
 import net.minecraft.server.v1_16_R2.WorldGenFeaturePillagerOutpostPoolPiece;
@@ -92,33 +91,6 @@ import net.minecraft.server.v1_16_R2.WorldServer;
 
 public class NMSChunkGenerator16_2 extends ChunkGenerator
 {
-	private static final float[] i = SystemUtils.a((new float[13824]), (afloat) ->
-	{ // CraftBukkit - decompile error
-		for(int i = 0; i < 24; ++i)
-		{
-			for(int j = 0; j < 24; ++j)
-			{
-				for(int k = 0; k < 24; ++k)
-				{
-					afloat[i * 24 * 24 + j * 24 + k] = (float) b(j - 12, k - 12, i - 12);
-				}
-			}
-		}
-
-	});
-	private static final float[] j = SystemUtils.a((new float[25]), (afloat) ->
-	{ // CraftBukkit - decompile error
-		for(int i = -2; i <= 2; ++i)
-		{
-			for(int j = -2; j <= 2; ++j)
-			{
-				float f = 10.0F / MathHelper.c((float) (i * i + j * j) + 0.2F);
-
-				afloat[i + 2 + (j + 2) * 5] = f;
-			}
-		}
-
-	});
 	private static final IBlockData k = Blocks.AIR.getBlockData();
 	private final Provisioned provisioned;
 	private final int maxHeight;
@@ -138,6 +110,7 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 	private final long w;
 	protected final Supplier<GeneratorSettingBase> h;
 	private final O<WorldServer> ws;
+	private BlockColumn BC;
 
 	public NMSChunkGenerator16_2(Provisioned p, O<WorldServer> ws, WorldChunkManager worldchunkmanager, long i, Supplier<GeneratorSettingBase> supplier)
 	{
@@ -180,6 +153,7 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		{
 			this.v = null;
 		}
+		BC = new BlockColumn(new IBlockData[this.xzSize * this.maxHeight]);
 	}
 
 	public int getSpawnHeight()
@@ -216,255 +190,46 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		return this.w == i && this.h.get().a(resourcekey);
 	}
 
-	private double a(int i, int j, int k, double d0, double d1, double d2, double d3)
-	{
-		double d4 = 0.0D;
-		double d5 = 0.0D;
-		double d6 = 0.0D;
-		double d7 = 1.0D;
-
-		for(int l = 0; l < 16; ++l)
-		{
-			double d8 = NoiseGeneratorOctaves.a((double) i * d0 * d7);
-			double d9 = NoiseGeneratorOctaves.a((double) j * d1 * d7);
-			double d10 = NoiseGeneratorOctaves.a((double) k * d0 * d7);
-			double d11 = d1 * d7;
-			NoiseGeneratorPerlin noisegeneratorperlin = this.q.a(l);
-
-			if(noisegeneratorperlin != null)
-			{
-				d4 += noisegeneratorperlin.a(d8, d9, d10, d11, (double) j * d11) / d7;
-			}
-
-			NoiseGeneratorPerlin noisegeneratorperlin1 = this.r.a(l);
-
-			if(noisegeneratorperlin1 != null)
-			{
-				d5 += noisegeneratorperlin1.a(d8, d9, d10, d11, (double) j * d11) / d7;
-			}
-
-			if(l < 8)
-			{
-				NoiseGeneratorPerlin noisegeneratorperlin2 = this.s.a(l);
-
-				if(noisegeneratorperlin2 != null)
-				{
-					d6 += noisegeneratorperlin2.a(NoiseGeneratorOctaves.a((double) i * d2 * d7), NoiseGeneratorOctaves.a((double) j * d3 * d7), NoiseGeneratorOctaves.a((double) k * d2 * d7), d3 * d7, (double) j * d3 * d7) / d7;
-				}
-			}
-
-			d7 /= 2.0D;
-		}
-
-		return MathHelper.b(d4 / 512.0D, d5 / 512.0D, (d6 / 10.0D + 1.0D) / 2.0D);
-	}
-
-	private double[] getFilledNoiseArray(int x, int z)
-	{
-		double[] noiseArray = new double[this.xzSize + 1];
-
-		this.fillNoiseArray(noiseArray, x, z);
-		return noiseArray;
-	}
-
-	private void fillNoiseArray(double[] noiseArray, int x, int z)
-	{
-		NoiseSettings noisesettings = this.h.get().b();
-		double d0;
-		double d1;
-		double d2;
-		double d3;
-
-		if(this.v != null)
-		{
-			d0 = (double) (WorldChunkManagerTheEnd.a(this.v, x, z) - 8.0F);
-			if(d0 > 0.0D)
-			{
-				d1 = 0.25D;
-			}
-			else
-			{
-				d1 = 1.0D;
-			}
-		}
-		else
-		{
-			float f = 0.0F;
-			float f1 = 0.0F;
-			float f2 = 0.0F;
-			int k = this.getSeaLevel();
-			float f3 = this.b.getBiome(x, k, z).h();
-
-			for(int l = -2; l <= 2; ++l)
-			{
-				for(int i1 = -2; i1 <= 2; ++i1)
-				{
-					BiomeBase biomebase = this.b.getBiome(x + l, k, z + i1);
-					float f4 = biomebase.h();
-					float f5 = biomebase.j();
-					float f6;
-					float f7;
-
-					if(noisesettings.l() && f4 > 0.0F)
-					{
-						f6 = 1.0F + f4 * 2.0F;
-						f7 = 1.0F + f5 * 4.0F;
-					}
-					else
-					{
-						f6 = f4;
-						f7 = f5;
-					}
-					// CraftBukkit start - fix MC-54738
-					if(f6 < -1.8F)
-					{
-						f6 = -1.8F;
-					}
-					// CraftBukkit end
-
-					float f8 = f4 > f3 ? 0.5F : 1.0F;
-					float f9 = f8 * NMSChunkGenerator16_2.j[l + 2 + (i1 + 2) * 5] / (f6 + 2.0F);
-
-					f += f7 * f9;
-					f1 += f6 * f9;
-					f2 += f9;
-				}
-			}
-
-			float f10 = f1 / f2;
-			float f11 = f / f2;
-
-			d2 = (double) (f10 * 0.5F - 0.125F);
-			d3 = (double) (f11 * 0.9F + 0.1F);
-			d0 = d2 * 0.265625D;
-			d1 = 96.0D / d3;
-		}
-
-		double d4 = 684.412D * noisesettings.b().a();
-		double d5 = 684.412D * noisesettings.b().b();
-		double d6 = d4 / noisesettings.b().c();
-		double d7 = d5 / noisesettings.b().d();
-
-		d2 = (double) noisesettings.c().a();
-		d3 = (double) noisesettings.c().b();
-		double d8 = (double) noisesettings.c().c();
-		double d9 = (double) noisesettings.d().a();
-		double d10 = (double) noisesettings.d().b();
-		double d11 = (double) noisesettings.d().c();
-		double d12 = noisesettings.j() ? this.c(x, z) : 0.0D;
-		double d13 = noisesettings.g();
-		double d14 = noisesettings.h();
-
-		for(int j1 = 0; j1 <= this.xzSize; ++j1)
-		{
-			double d15 = this.a(x, j1, z, d4, d5, d6, d7);
-			double d16 = 1.0D - (double) j1 * 2.0D / (double) this.xzSize + d12;
-			double d17 = d16 * d13 + d14;
-			double d18 = (d17 + d0) * d1;
-
-			if(d18 > 0.0D)
-			{
-				d15 += d18 * 4.0D;
-			}
-			else
-			{
-				d15 += d18;
-			}
-
-			double d19;
-
-			if(d3 > 0.0D)
-			{
-				d19 = ((double) (this.xzSize - j1) - d8) / d3;
-				d15 = MathHelper.b(d2, d15, d19);
-			}
-
-			if(d10 > 0.0D)
-			{
-				d19 = ((double) j1 - d11) / d10;
-				d15 = MathHelper.b(d9, d15, d19);
-			}
-
-			noiseArray[j1] = d15;
-		}
-
-	}
-
-	private double c(int x, int z)
-	{
-		double noiseOrSomething = this.u.a((double) (x * 200), 10.0D, (double) (z * 200), 1.0D, 0.0D, true);
-		double noiseOrSomething2;
-
-		if(noiseOrSomething < 0.0D)
-		{
-			noiseOrSomething2 = -noiseOrSomething * 0.3D;
-		}
-		else
-		{
-			noiseOrSomething2 = noiseOrSomething;
-		}
-
-		double result = noiseOrSomething2 * 24.575625D - 2.0D;
-
-		return result < 0.0D ? result * 0.009486607142857142D : Math.min(result, 1.0D) * 0.006640625D;
-	}
-
 	@Override
 	public int getBaseHeight(int i, int j, HeightMap.Type heightmap_type)
 	{
-		return this.a(i, j, (IBlockData[]) null, heightmap_type.e());
+		if(heightmap_type.equals(HeightMap.Type.MOTION_BLOCKING))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
+		}
+
+		if(heightmap_type.equals(HeightMap.Type.MOTION_BLOCKING_NO_LEAVES))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
+		}
+
+		if(heightmap_type.equals(HeightMap.Type.OCEAN_FLOOR))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
+		}
+
+		if(heightmap_type.equals(HeightMap.Type.OCEAN_FLOOR_WG))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
+		}
+
+		if(heightmap_type.equals(HeightMap.Type.WORLD_SURFACE))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
+		}
+
+		if(heightmap_type.equals(HeightMap.Type.WORLD_SURFACE_WG))
+		{
+			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
+		}
+
+		return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
 	}
 
 	@Override
 	public IBlockAccess a(int x, int z)
 	{
-		IBlockData[] aiblockdata = new IBlockData[this.xzSize * this.maxHeight];
-
-		this.a(x, z, aiblockdata, (Predicate<IBlockData>) null);
-		return new BlockColumn(aiblockdata);
-	}
-
-	private int a(int i, int j, @Nullable IBlockData[] aiblockdata, @Nullable Predicate<IBlockData> predicate)
-	{
-		int k = Math.floorDiv(i, this.m);
-		int l = Math.floorDiv(j, this.m);
-		int i1 = Math.floorMod(i, this.m);
-		int j1 = Math.floorMod(j, this.m);
-		double d0 = (double) i1 / (double) this.m;
-		double d1 = (double) j1 / (double) this.m;
-		double[][] noiseArrayNeighbors = new double[][] {this.getFilledNoiseArray(k, l), this.getFilledNoiseArray(k, l + 1), this.getFilledNoiseArray(k + 1, l), this.getFilledNoiseArray(k + 1, l + 1)};
-
-		for(int k1 = this.xzSize - 1; k1 >= 0; --k1)
-		{
-			double d2 = noiseArrayNeighbors[0][k1];
-			double d3 = noiseArrayNeighbors[1][k1];
-			double d4 = noiseArrayNeighbors[2][k1];
-			double d5 = noiseArrayNeighbors[3][k1];
-			double d6 = noiseArrayNeighbors[0][k1 + 1];
-			double d7 = noiseArrayNeighbors[1][k1 + 1];
-			double d8 = noiseArrayNeighbors[2][k1 + 1];
-			double d9 = noiseArrayNeighbors[3][k1 + 1];
-
-			for(int l1 = this.maxHeight - 1; l1 >= 0; --l1)
-			{
-				double d10 = (double) l1 / (double) this.maxHeight;
-				double d11 = MathHelper.a(d10, d0, d1, d2, d6, d4, d8, d3, d7, d5, d9);
-				int i2 = k1 * this.maxHeight + l1;
-				IBlockData iblockdata = this.a(d11, i2);
-
-				if(aiblockdata != null)
-				{
-					aiblockdata[i2] = iblockdata;
-				}
-
-				if(predicate != null && predicate.test(iblockdata))
-				{
-					return i2 + 1;
-				}
-			}
-		}
-
-		return 0;
+		return BC;
 	}
 
 	protected IBlockData a(double d0, int i)
@@ -559,9 +324,6 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		ProtoChunk protochunk = (ProtoChunk) ichunkaccess;
 		HeightMap heightmap = protochunk.a(HeightMap.Type.OCEAN_FLOOR_WG);
 		HeightMap heightmap1 = protochunk.a(HeightMap.Type.WORLD_SURFACE_WG);
-		BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
-		ObjectListIterator<StructurePiece> objectlistiterator = objectlist.iterator();
-		ObjectListIterator<WorldGenFeatureDefinedStructureJigsawJunction> objectlistiterator1 = objectlist1.iterator();
 		GeneratedChunk gc = ((ProvisionBukkit) provisioned).generateNMSChunkData(ws.get().getWorld(), new Random(i + j), i, j, new ChunkData()
 		{
 			public int getMaxHeight()
@@ -821,6 +583,47 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 				while(iterator.hasNext())
 				{
 					var13 = (StructureGenerator<?>) iterator.next();
+
+					if(var13.equals(StructureGenerator.VILLAGE))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.JUNGLE_PYRAMID))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.IGLOO))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.NETHER_FOSSIL))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.SHIPWRECK))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.SHIPWRECK))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.MONUMENT))
+					{
+						continue;
+					}
+
+					if(var13.equals(StructureGenerator.BASTION_REMNANT))
+					{
+						continue;
+					}
+
 					var5.b(var3, var10, stage);
 					int var14 = var6.getX() >> 4;
 					int var15 = var6.getZ() >> 4;
@@ -831,6 +634,7 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 					{
 						var0.a(SectionPosition.a((BlockPosition) var6), var13).forEach(var8 -> var8.a((GeneratorAccessSeed) var2, var0, var1, (Random) var5, new StructureBoundingBox(var16, var17, var16 + 15, var17 + 15), new ChunkCoordIntPair(var14, var15)));
 					}
+
 					catch(Exception var18)
 					{
 

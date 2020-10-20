@@ -13,7 +13,7 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
@@ -75,7 +75,7 @@ public class PregenJob implements Listener
 		this.chunkZ = 0;
 		completed = false;
 		first = true;
-		tp = (world.getGenerator() instanceof ProvisionBukkit) ? (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider() : null;
+		tp = IrisWorlds.getProvider(world);
 
 		chunkSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
 		{

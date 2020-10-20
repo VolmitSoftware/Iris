@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -27,7 +28,7 @@ public class CommandIrisCTC extends MortarCommand
 			sender.sendMessage("/iris ctc " + getArgsUsage());
 			return true;
 		}
-		
+
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
@@ -39,7 +40,7 @@ public class CommandIrisCTC extends MortarCommand
 				return true;
 			}
 
-			IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider();
+			IrisTerrainProvider g = IrisWorlds.getProvider(world);
 			int m = Math.min(Math.max(Integer.valueOf(args[0]), 2), 256);
 			g.changeThreadCount(m);
 			sender.sendMessage("Thread count changed to " + m);

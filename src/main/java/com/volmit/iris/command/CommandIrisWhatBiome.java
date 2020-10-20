@@ -5,7 +5,7 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -31,7 +31,9 @@ public class CommandIrisWhatBiome extends MortarCommand
 
 			try
 			{
-				IrisBiome b = ((IrisTerrainProvider) ((ProvisionBukkit) w.getGenerator()).getProvider()).sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
+
+				IrisTerrainProvider g = IrisWorlds.getProvider(w);
+				IrisBiome b = g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
 				sender.sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
 			}
 

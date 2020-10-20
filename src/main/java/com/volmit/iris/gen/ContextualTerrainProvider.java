@@ -43,7 +43,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KSet;

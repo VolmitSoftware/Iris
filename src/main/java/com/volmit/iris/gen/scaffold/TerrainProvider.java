@@ -7,8 +7,6 @@ import java.util.function.Function;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.util.HeightMap;
-
 public interface TerrainProvider
 {
 	public TerrainTarget getTarget();

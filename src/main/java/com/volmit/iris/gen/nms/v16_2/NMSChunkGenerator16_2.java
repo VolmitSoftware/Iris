@@ -5,11 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
-
-import javax.annotation.Nullable;
 
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -22,17 +18,17 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
 
 import com.mojang.serialization.Codec;
-import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.Provisioned;
+import com.volmit.iris.gen.scaffold.ProvisionedHolder;
+import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.V;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.server.v1_16_R2.BiomeBase;
 import net.minecraft.server.v1_16_R2.BiomeManager;
 import net.minecraft.server.v1_16_R2.BiomeSettingsMobs;
@@ -57,12 +53,6 @@ import net.minecraft.server.v1_16_R2.IChunkAccess;
 import net.minecraft.server.v1_16_R2.IRegistry;
 import net.minecraft.server.v1_16_R2.IRegistryCustom;
 import net.minecraft.server.v1_16_R2.IStructureAccess;
-import net.minecraft.server.v1_16_R2.MathHelper;
-import net.minecraft.server.v1_16_R2.NoiseGenerator;
-import net.minecraft.server.v1_16_R2.NoiseGenerator3;
-import net.minecraft.server.v1_16_R2.NoiseGenerator3Handler;
-import net.minecraft.server.v1_16_R2.NoiseGeneratorOctaves;
-import net.minecraft.server.v1_16_R2.NoiseGeneratorPerlin;
 import net.minecraft.server.v1_16_R2.NoiseSettings;
 import net.minecraft.server.v1_16_R2.PacketDebug;
 import net.minecraft.server.v1_16_R2.ProtoChunk;
@@ -80,31 +70,20 @@ import net.minecraft.server.v1_16_R2.StructureManager;
 import net.minecraft.server.v1_16_R2.StructurePiece;
 import net.minecraft.server.v1_16_R2.StructureSettingsFeature;
 import net.minecraft.server.v1_16_R2.StructureStart;
-import net.minecraft.server.v1_16_R2.SystemUtils;
 import net.minecraft.server.v1_16_R2.WorldChunkManager;
-import net.minecraft.server.v1_16_R2.WorldChunkManagerTheEnd;
 import net.minecraft.server.v1_16_R2.WorldGenFeatureDefinedStructureJigsawJunction;
 import net.minecraft.server.v1_16_R2.WorldGenFeatureDefinedStructurePoolTemplate;
 import net.minecraft.server.v1_16_R2.WorldGenFeaturePillagerOutpostPoolPiece;
 import net.minecraft.server.v1_16_R2.WorldGenStage;
 import net.minecraft.server.v1_16_R2.WorldServer;
 
-public class NMSChunkGenerator16_2 extends ChunkGenerator
+@SuppressWarnings("deprecation")
+public class NMSChunkGenerator16_2 extends ChunkGenerator implements ProvisionedHolder
 {
 	private static final IBlockData k = Blocks.AIR.getBlockData();
 	private final Provisioned provisioned;
 	private final int maxHeight;
-	private final int m;
-	private final int n;
 	private final int xzSize;
-	private final int p;
-	protected final SeededRandom e;
-	private final NoiseGeneratorOctaves q;
-	private final NoiseGeneratorOctaves r;
-	private final NoiseGeneratorOctaves s;
-	private final NoiseGenerator t;
-	private final NoiseGeneratorOctaves u;
-	private final NoiseGenerator3Handler v;
 	protected final IBlockData f;
 	protected final IBlockData g;
 	private final long w;
@@ -129,30 +108,9 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		NoiseSettings noisesettings = generatorsettingbase.b();
 
 		this.maxHeight = noisesettings.f() * 4;
-		this.m = noisesettings.e() * 4;
 		this.f = generatorsettingbase.c();
 		this.g = generatorsettingbase.d();
-		this.n = 16 / this.m;
 		this.xzSize = noisesettings.a() / this.maxHeight;
-		this.p = 16 / this.m;
-		this.e = new SeededRandom(i);
-		this.q = new NoiseGeneratorOctaves(this.e, IntStream.rangeClosed(-15, 0));
-		this.r = new NoiseGeneratorOctaves(this.e, IntStream.rangeClosed(-15, 0));
-		this.s = new NoiseGeneratorOctaves(this.e, IntStream.rangeClosed(-7, 0));
-		this.t = (NoiseGenerator) (noisesettings.i() ? new NoiseGenerator3(this.e, IntStream.rangeClosed(-3, 0)) : new NoiseGeneratorOctaves(this.e, IntStream.rangeClosed(-3, 0)));
-		this.e.a(2620);
-		this.u = new NoiseGeneratorOctaves(this.e, IntStream.rangeClosed(-15, 0));
-		if(noisesettings.k())
-		{
-			SeededRandom seededrandom = new SeededRandom(i);
-
-			seededrandom.a(17292);
-			this.v = new NoiseGenerator3Handler(seededrandom);
-		}
-		else
-		{
-			this.v = null;
-		}
 		BC = new BlockColumn(new IBlockData[this.xzSize * this.maxHeight]);
 	}
 
@@ -193,37 +151,7 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 	@Override
 	public int getBaseHeight(int i, int j, HeightMap.Type heightmap_type)
 	{
-		if(heightmap_type.equals(HeightMap.Type.MOTION_BLOCKING))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
-		}
-
-		if(heightmap_type.equals(HeightMap.Type.MOTION_BLOCKING_NO_LEAVES))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
-		}
-
-		if(heightmap_type.equals(HeightMap.Type.OCEAN_FLOOR))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
-		}
-
-		if(heightmap_type.equals(HeightMap.Type.OCEAN_FLOOR_WG))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getNoiseHeight(i, j);
-		}
-
-		if(heightmap_type.equals(HeightMap.Type.WORLD_SURFACE))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
-		}
-
-		if(heightmap_type.equals(HeightMap.Type.WORLD_SURFACE_WG))
-		{
-			return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
-		}
-
-		return (int) ((IrisTerrainProvider) provisioned.getProvider()).getTerrainWaterHeight(i, j);
+		return 63;
 	}
 
 	@Override
@@ -336,7 +264,6 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 				this.setBlock(x, y, z, material.createBlockData());
 			}
 
-			@SuppressWarnings("deprecation")
 			public void setBlock(int x, int y, int z, MaterialData material)
 			{
 				this.setBlock(x, y, z, CraftMagicNumbers.getBlock((MaterialData) material));
@@ -352,7 +279,6 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 				this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material.createBlockData());
 			}
 
-			@SuppressWarnings("deprecation")
 			public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material)
 			{
 				this.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, CraftMagicNumbers.getBlock((MaterialData) material));
@@ -368,7 +294,6 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 				return CraftMagicNumbers.getMaterial((Block) this.getTypeId(x, y, z).getBlock());
 			}
 
-			@SuppressWarnings("deprecation")
 			public MaterialData getTypeAndData(int x, int y, int z)
 			{
 				return CraftMagicNumbers.getMaterial((IBlockData) this.getTypeId(x, y, z));
@@ -646,17 +571,6 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		}
 	}
 
-	private static double b(int i, int j, int k)
-	{
-		double d0 = (double) (i * i + k * k);
-		double d1 = (double) j + 0.5D;
-		double d2 = d1 * d1;
-		double d3 = Math.pow(2.718281828459045D, -(d2 / 16.0D + d0 / 16.0D));
-		double d4 = -d1 * MathHelper.i(d2 / 2.0D + d0 / 2.0D) / 2.0D;
-
-		return d4 * d3;
-	}
-
 	@Override
 	public int getSeaLevel()
 	{
@@ -716,12 +630,12 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 		ChunkCoordIntPair chunkcoordintpair = ichunkaccess.getPos();
 		BiomeBase biomebase = this.b.getBiome((chunkcoordintpair.x << 2) + 2, 0, (chunkcoordintpair.z << 2) + 2);
 		this.a(StructureFeatures.k, iregistrycustom, structuremanager, ichunkaccess, definedstructuremanager, i, chunkcoordintpair, biomebase);
-		for(Supplier supplier : biomebase.e().a())
+		for(Supplier<StructureFeature<?, ?>> supplier : biomebase.e().a())
 		{
-			StructureFeature structurefeature = (StructureFeature) supplier.get();
+			StructureFeature<?, ?> structurefeature = (StructureFeature<?, ?>) supplier.get();
 			if(StructureFeature.c == StructureGenerator.STRONGHOLD)
 			{
-				StructureFeature structureFeature = structurefeature;
+				StructureFeature<?, ?> structureFeature = structurefeature;
 				synchronized(structureFeature)
 				{
 					this.a(structurefeature, iregistrycustom, structuremanager, ichunkaccess, definedstructuremanager, i, chunkcoordintpair, biomebase);
@@ -734,19 +648,18 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 
 	private void a(StructureFeature<?, ?> structurefeature, IRegistryCustom iregistrycustom, StructureManager structuremanager, IChunkAccess ichunkaccess, DefinedStructureManager definedstructuremanager, long i, ChunkCoordIntPair chunkcoordintpair, BiomeBase biomebase)
 	{
-		StructureStart structurestart = structuremanager.a(SectionPosition.a((ChunkCoordIntPair) ichunkaccess.getPos(), (int) 0), structurefeature.d, (IStructureAccess) ichunkaccess);
+		StructureStart<?> structurestart = structuremanager.a(SectionPosition.a((ChunkCoordIntPair) ichunkaccess.getPos(), (int) 0), structurefeature.d, (IStructureAccess) ichunkaccess);
 		int j = structurestart != null ? structurestart.j() : 0;
 		StructureSettingsFeature structuresettingsfeature = getSettings().a(structurefeature.d);
 		if(structuresettingsfeature != null)
 		{
-			StructureStart structurestart1 = structurefeature.a(iregistrycustom, this, this.b, definedstructuremanager, i, chunkcoordintpair, biomebase, j, structuresettingsfeature);
+			StructureStart<?> structurestart1 = structurefeature.a(iregistrycustom, this, this.b, definedstructuremanager, i, chunkcoordintpair, biomebase, j, structuresettingsfeature);
 			structuremanager.a(SectionPosition.a((ChunkCoordIntPair) ichunkaccess.getPos(), (int) 0), structurefeature.d, structurestart1, (IStructureAccess) ichunkaccess);
 		}
 	}
 
 	public void storeStructures(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, IChunkAccess ichunkaccess)
 	{
-		boolean flag = true;
 		int i = ichunkaccess.getPos().x;
 		int j = ichunkaccess.getPos().z;
 		int k = i << 4;
@@ -759,14 +672,14 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 			while(j1 <= j + 8)
 			{
 				long k1 = ChunkCoordIntPair.pair((int) i1, (int) j1);
-				for(StructureStart structurestart : generatoraccessseed.getChunkAt(i1, j1).h().values())
+				for(StructureStart<?> structurestart : generatoraccessseed.getChunkAt(i1, j1).h().values())
 				{
 					try
 					{
 						if(structurestart == StructureStart.a || !structurestart.c().a(k, l, k + 15, l + 15))
 							continue;
 						structuremanager.a(sectionposition, structurestart.l(), k1, (IStructureAccess) ichunkaccess);
-						PacketDebug.a((GeneratorAccessSeed) generatoraccessseed, (StructureStart) structurestart);
+						PacketDebug.a((GeneratorAccessSeed) generatoraccessseed, (StructureStart<?>) structurestart);
 					}
 					catch(Exception exception)
 					{
@@ -781,5 +694,29 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator
 			}
 			++i1;
 		}
+	}
+
+	@Override
+	public Provisioned getProvisioned()
+	{
+		return provisioned;
+	}
+
+	@Override
+	public void clearRegeneratedLists()
+	{
+		getProvisioned().clearRegeneratedLists();
+	}
+
+	@Override
+	public TerrainProvider getProvider()
+	{
+		return getProvisioned().getProvider();
+	}
+
+	@Override
+	public void regenerate(int x, int z)
+	{
+		getProvisioned().regenerate(x, z);
 	}
 }

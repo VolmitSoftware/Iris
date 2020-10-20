@@ -22,6 +22,7 @@ import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.nms.INMS;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.link.MultiverseCoreLink;
 import com.volmit.iris.link.MythicMobsLink;
@@ -223,7 +224,7 @@ public class Iris extends MortarPlugin
 			{
 				if(i.getGenerator() instanceof ProvisionBukkit)
 				{
-					((IrisTerrainProvider) ((ProvisionBukkit) i.getGenerator()).getProvider()).close();
+					IrisWorlds.getProvider(i).close();
 				}
 			}
 

@@ -7,7 +7,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Random;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
@@ -52,7 +51,6 @@ import net.minecraft.server.v1_16_R2.MobSpawnerPatrol;
 import net.minecraft.server.v1_16_R2.MobSpawnerPhantom;
 import net.minecraft.server.v1_16_R2.MobSpawnerTrader;
 import net.minecraft.server.v1_16_R2.NBTBase;
-import net.minecraft.server.v1_16_R2.RegistryMaterials;
 import net.minecraft.server.v1_16_R2.RegistryReadOps;
 import net.minecraft.server.v1_16_R2.ResourceKey;
 import net.minecraft.server.v1_16_R2.SaveData;
@@ -151,11 +149,9 @@ class NMSCreator16_2 implements INMSCreator
 		}
 		final long j = BiomeManager.a(creator.seed());
 		final List<MobSpawner> list = (List<MobSpawner>) ImmutableList.of((MobSpawner) new MobSpawnerPhantom(), (MobSpawner) new MobSpawnerPatrol(), (MobSpawner) new MobSpawnerCat(), (MobSpawner) new VillageSiege(), (MobSpawner) new MobSpawnerTrader((IWorldDataServer) worlddata));
-		final RegistryMaterials<WorldDimension> registrymaterials = (RegistryMaterials<WorldDimension>) worlddata.getGeneratorSettings().d();
-		final WorldDimension worlddimension = (WorldDimension) registrymaterials.a((ResourceKey) actualDimension);
 		DimensionManager dimensionmanager;
 		net.minecraft.server.v1_16_R2.ChunkGenerator chunkgenerator;
-		long ll = new Random().nextLong();
+		long ll = creator.seed();
 		dimensionmanager = (DimensionManager) getConsoleDimension(console).a().d(DimensionManager.OVERWORLD);
 		O<WorldServer> ws = new O<WorldServer>();
 		chunkgenerator = new NMSChunkGenerator16_2(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));

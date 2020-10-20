@@ -10,7 +10,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.BoardManager;
@@ -56,7 +56,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 	@DontObfuscate
 	private boolean isIrisWorld(World w)
 	{
-		return (w.getGenerator() instanceof ProvisionBukkit) && ((IrisTerrainProvider) ((ProvisionBukkit) w.getGenerator()).getProvider()).isDev();
+		return IrisWorlds.getProvider(w).isDev();
 	}
 
 	public void updatePlayer(Player p)
@@ -90,7 +90,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 			return v;
 		}
 
-		IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) player.getWorld().getGenerator()).getProvider();
+		IrisTerrainProvider g = IrisWorlds.getProvider(player.getWorld());
 
 		if(cl.flip())
 		{

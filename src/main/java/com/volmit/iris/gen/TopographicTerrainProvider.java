@@ -12,6 +12,7 @@ import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.layer.GenLayerCarve;
 import com.volmit.iris.gen.layer.GenLayerCave;
 import com.volmit.iris.gen.layer.GenLayerRavine;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.noise.CNG;
@@ -119,7 +120,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	}
 
 	@Override
-	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
+	protected int onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
 	{
 		if(x > 15 || x < 0 || z > 15 || z < 0)
 		{
@@ -339,17 +340,21 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			decorateLand(crand, biome, sliver, Math.max(height, fluidHeight), rx, rz, block);
 		}
+
+		return height;
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		GeneratedChunk map = super.onGenerate(random, x, z, terrain);
 
 		if(!getDimension().isVanillaCaves())
 		{
 			generateDeposits(random.nextParallelRNG(x * ((z * 39) + 10000)).nextParallelRNG(z + z - x), terrain, x, z);
 		}
+		
+		return map;
 	}
 
 	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, FastBlockData block)

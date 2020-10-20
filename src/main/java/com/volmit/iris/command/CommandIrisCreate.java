@@ -9,7 +9,7 @@ import org.bukkit.WorldType;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.NMSCreator;
+import com.volmit.iris.gen.nms.INMS;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -109,7 +109,7 @@ public class CommandIrisCreate extends MortarCommand
 
 		WorldCreator wc = new WorldCreator(worldName).seed(seed).generator(gen).type(WorldType.NORMAL).environment(dim.getEnvironment());
 
-		World world = NMSCreator.createWorld(wc, false);
+		World world = INMS.get().createWorld(wc, false);
 
 		done.set(true);
 		sender.sendMessage(worldName + " Spawn Area generated.");

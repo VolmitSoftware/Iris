@@ -7,6 +7,8 @@ import java.util.function.Function;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.util.BlockVector;
 
+import com.volmit.iris.util.HeightMap;
+
 public interface TerrainProvider
 {
 	public TerrainTarget getTarget();
@@ -17,7 +19,7 @@ public interface TerrainProvider
 
 	public BlockVector computeSpawn(Function<BlockVector, Boolean> allowed);
 
-	public void generate(Random random, int x, int z, TerrainChunk chunk);
+	public GeneratedChunk generate(Random random, int x, int z, TerrainChunk chunk);
 
 	public boolean canSpawn(int x, int z);
 

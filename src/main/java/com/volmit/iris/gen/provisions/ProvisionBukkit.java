@@ -15,6 +15,7 @@ import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.HeightedFakeWorld;
 import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
@@ -198,17 +199,7 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 	@Override
 	public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 	{
-		cachedWorld = world;
-		if(!worldSet)
-		{
-			worldSet = true;
-			provider.getTarget().setRealWorld(world);
-
-			if(world.getSpawnLocation().getY() == 0 && world.getSpawnLocation().getZ() == 0 && world.getSpawnLocation().getX() == 0)
-			{
-				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> fixSpawn(world));
-			}
-		}
+		cacheWorld(world);
 
 		if(precache.size() > 0)
 		{
@@ -224,6 +215,28 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 		TerrainChunk terrain = TerrainChunk.create(world, biome);
 		getProvider().generate(getRNG(world, x, z), x, z, terrain);
 		return terrain.getRaw();
+	}
+
+	public GeneratedChunk generateNMSChunkData(World world, Random random, int x, int z, ChunkData nmsData, BiomeGrid biome)
+	{
+		cacheWorld(world);
+		TerrainChunk terrain = TerrainChunk.create(nmsData, biome);
+		return getProvider().generate(getRNG(world, x, z), x, z, terrain);
+	}
+
+	private void cacheWorld(World world)
+	{
+		cachedWorld = world;
+		if(!worldSet)
+		{
+			worldSet = true;
+			provider.getTarget().setRealWorld(world);
+
+			if(world.getSpawnLocation().getY() == 0 && world.getSpawnLocation().getZ() == 0 && world.getSpawnLocation().getX() == 0)
+			{
+				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> fixSpawn(world));
+			}
+		}
 	}
 
 	private Random getRNG(World world, int x, int z)

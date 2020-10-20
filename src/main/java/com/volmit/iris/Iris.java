@@ -19,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.nms.INMS;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -60,7 +61,6 @@ public class Iris extends MortarPlugin
 	public static StructureManager struct;
 	public static EditManager edit;
 	public static IrisBoardManager board;
-	public static String nmsTag = findNMSTag();
 	public static MultiverseCoreLink linkMultiverseCore;
 	public static MythicMobsLink linkMythicMobs;
 	private static IrisLock lock = new IrisLock("Iris");
@@ -79,6 +79,7 @@ public class Iris extends MortarPlugin
 
 	public Iris()
 	{
+		INMS.get();
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4gb
 	}
@@ -95,22 +96,6 @@ public class Iris extends MortarPlugin
 		}
 
 		return tc;
-	}
-
-	private static String findNMSTag()
-	{
-		try
-		{
-			return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];
-		}
-
-		catch(Throwable e)
-		{
-			Iris.error("Failed to determine server nms version!");
-			e.printStackTrace();
-		}
-
-		return "UNKNOWN NMS VERSION";
 	}
 
 	public ProvisionBukkit createProvisionBukkit(IrisGenConfiguration config)
@@ -277,6 +262,13 @@ public class Iris extends MortarPlugin
 	public static void msg(String string)
 	{
 		lock.lock();
+		if(instance == null)
+		{
+			System.out.println("[Iris]: " + string);
+			lock.unlock();
+			return;
+		}
+
 		String msg = C.GREEN + "[Iris]: " + C.GRAY + string;
 		Bukkit.getConsoleSender().sendMessage(msg);
 		lock.unlock();
@@ -436,11 +428,6 @@ public class Iris extends MortarPlugin
 		{
 			Iris.verbose("* This version of minecraft does not support entity awareness.");
 		}
-	}
-
-	public static String nmsTag()
-	{
-		return nmsTag;
 	}
 
 	@SuppressWarnings("deprecation")

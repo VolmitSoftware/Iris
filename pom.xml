@@ -190,12 +190,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.16.1</artifactId>
-			<version>1.16.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
 			<artifactId>cb-1.15.1</artifactId>
 			<version>1.15.1</version>
 			<scope>provided</scope>

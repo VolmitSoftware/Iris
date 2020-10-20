@@ -3,6 +3,7 @@ package com.volmit.iris.gen;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.gen.atomics.AtomicSliverMap;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.BiomeMap;
@@ -44,7 +45,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		Iris.info("Thread Count changed to " + getThreads());
 	}
 
-	protected abstract void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
+	protected abstract int onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
 
 	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)
 	{
@@ -62,7 +63,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		return onSampleColumnHeight(x >> 4, z >> 4, x, z, x & 15, z & 15);
 	}
 
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 		AtomicSliverMap map = new AtomicSliverMap();
@@ -103,6 +104,14 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
 		onPostGenerate(random, x, z, terrain, height, biomeMap, map);
+		return GeneratedChunk.builder()
+				.biomeMap(biomeMap)
+				.sliverMap(map)
+				.height(height)
+				.terrain(terrain)
+				.x(x)
+				.z(z)
+				.build();
 	}
 
 	protected void onClose()

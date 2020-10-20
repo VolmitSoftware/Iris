@@ -16,7 +16,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.NMSCreator;
+import com.volmit.iris.gen.nms.INMS;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -191,7 +191,7 @@ public class IrisProject
 		});
 
 		//@builder
-		World world = NMSCreator.createWorld(new WorldCreator(wfp)
+		World world = INMS.get().createWorld(new WorldCreator(wfp)
 				.seed(1337)
 				.generator(gen)
 				.generateStructures(d.isVanillaStructures())

@@ -20,6 +20,7 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
@@ -91,18 +92,19 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	}
 
 	@Override
-	public void generate(Random no, int x, int z, TerrainChunk terrain)
+	public GeneratedChunk generate(Random no, int x, int z, TerrainChunk terrain)
 	{
 		PrecisionStopwatch s = PrecisionStopwatch.start();
-		super.generate(no, x, z, terrain);
+		GeneratedChunk c = super.generate(no, x, z, terrain);
 		s.end();
 		getMetrics().getTotal().put(s.getMilliseconds());
+		return c;
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		return super.onGenerate(random, x, z, terrain);
 	}
 
 	public void onInit(RNG rng)
@@ -566,10 +568,10 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 				}
 			}
 		}
-		
+
 		catch(Throwable xe)
 		{
-			
+
 		}
 	}
 

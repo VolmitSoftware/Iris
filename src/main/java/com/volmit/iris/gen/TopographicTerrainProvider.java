@@ -20,6 +20,7 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisCaveFluid;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
@@ -142,6 +143,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		IrisBiome biome = sampleTrueBiome(rx, rz);
 		IrisBiome carveBiome = null;
 		Biome onlyBiome = Iris.biome3d ? null : biome.getGroundBiome(getMasterRandom(), rz, getDimension().getFluidHeight(), rx);
+		IrisCaveFluid forceFluid = getDimension().getForceFluid().hasFluid(getData()) ? getDimension().getForceFluid() : null;
 
 		if(biome == null)
 		{
@@ -282,6 +284,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				decorateLand(crand, carveBiome, sliver, k, rx, rz, block);
 			}
+
+			if(forceFluid != null && B.isAir(block) && (forceFluid.isInverseHeight() ? k >= forceFluid.getFluidHeight() : k <= forceFluid.getFluidHeight()))
+			{
+				sliver.set(k, forceFluid.getFluid(getData()));
+			}
 		}
 
 		// Carve out biomes
@@ -353,7 +360,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			generateDeposits(random.nextParallelRNG(x * ((z * 39) + 10000)).nextParallelRNG(z + z - x), terrain, x, z);
 		}
-		
+
 		return map;
 	}
 

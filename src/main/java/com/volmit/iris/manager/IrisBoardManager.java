@@ -56,7 +56,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 	@DontObfuscate
 	private boolean isIrisWorld(World w)
 	{
-		return IrisWorlds.getProvider(w).isDev();
+		return IrisWorlds.isIrisWorld(w) && IrisWorlds.getProvider(w).isDev();
 	}
 
 	public void updatePlayer(Player p)

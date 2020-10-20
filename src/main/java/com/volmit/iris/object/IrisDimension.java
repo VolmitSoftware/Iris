@@ -164,6 +164,10 @@ public class IrisDimension extends IrisRegistrant
 	private boolean vanillaStructures = false;
 
 	@DontObfuscate
+	@Desc("If defined, If air is defined below the area, this fluid will always place")
+	private IrisCaveFluid forceFluid = new IrisCaveFluid();
+	
+	@DontObfuscate
 	@Desc("Generate decorations or not")
 	private boolean decorate = true;
 

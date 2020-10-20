@@ -22,7 +22,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCaveFluid
 {
-
 	@Required
 	@MaxNumber(255)
 	@MinNumber(0)

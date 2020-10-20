@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.gen.nms.INMSCreator;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.V;
@@ -154,7 +155,7 @@ class NMSCreator16_2 implements INMSCreator
 		long ll = creator.seed();
 		dimensionmanager = (DimensionManager) getConsoleDimension(console).a().d(DimensionManager.OVERWORLD);
 		O<WorldServer> ws = new O<WorldServer>();
-		chunkgenerator = new NMSChunkGenerator16_2(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));
+		chunkgenerator = PaperLib.isPaper() ? new NMSChunkGenerator16_2_PAPER(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c)) : new NMSChunkGenerator16_2_SPIGOT(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));
 		final ResourceKey<net.minecraft.server.v1_16_R2.World> worldKey = (ResourceKey<net.minecraft.server.v1_16_R2.World>) ResourceKey.a(IRegistry.L, new MinecraftKey(name.toLowerCase(Locale.ENGLISH)));
 		//@builder
 		final WorldServer internal = new WorldServer((MinecraftServer) console, 
@@ -171,6 +172,7 @@ class NMSCreator16_2 implements INMSCreator
 				creator.environment(), 
 				server.getGenerator(name));
 		//@done
+		IrisWorlds.register(internal.getWorld(), pro);
 		ws.set(internal);
 		if(!worlds.containsKey(name.toLowerCase(Locale.ENGLISH)))
 		{

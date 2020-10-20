@@ -10,6 +10,8 @@ import java.util.function.Supplier;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.objects.ObjectList;
 import org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_16_R2.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_16_R2.util.CraftMagicNumbers;
@@ -27,8 +29,6 @@ import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.util.O;
 import com.volmit.iris.util.V;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.server.v1_16_R2.BiomeBase;
 import net.minecraft.server.v1_16_R2.BiomeManager;
 import net.minecraft.server.v1_16_R2.BiomeSettingsMobs;
@@ -78,7 +78,7 @@ import net.minecraft.server.v1_16_R2.WorldGenStage;
 import net.minecraft.server.v1_16_R2.WorldServer;
 
 @SuppressWarnings("deprecation")
-public class NMSChunkGenerator16_2 extends ChunkGenerator implements ProvisionedHolder
+public class NMSChunkGenerator16_2_SPIGOT extends ChunkGenerator implements ProvisionedHolder
 {
 	private static final IBlockData k = Blocks.AIR.getBlockData();
 	private final Provisioned provisioned;
@@ -91,12 +91,12 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator implements Provisioned
 	private final O<WorldServer> ws;
 	private BlockColumn BC;
 
-	public NMSChunkGenerator16_2(Provisioned p, O<WorldServer> ws, WorldChunkManager worldchunkmanager, long i, Supplier<GeneratorSettingBase> supplier)
+	public NMSChunkGenerator16_2_SPIGOT(Provisioned p, O<WorldServer> ws, WorldChunkManager worldchunkmanager, long i, Supplier<GeneratorSettingBase> supplier)
 	{
 		this(p, ws, worldchunkmanager, worldchunkmanager, i, supplier);
 	}
 
-	private NMSChunkGenerator16_2(Provisioned p, O<WorldServer> ws, WorldChunkManager worldchunkmanager, WorldChunkManager worldchunkmanager1, long i, Supplier<GeneratorSettingBase> supplier)
+	private NMSChunkGenerator16_2_SPIGOT(Provisioned p, O<WorldServer> ws, WorldChunkManager worldchunkmanager, WorldChunkManager worldchunkmanager1, long i, Supplier<GeneratorSettingBase> supplier)
 	{
 		super(worldchunkmanager, worldchunkmanager1, supplier.get().a(), i);
 		this.provisioned = p;
@@ -174,7 +174,7 @@ public class NMSChunkGenerator16_2 extends ChunkGenerator implements Provisioned
 		}
 		else
 		{
-			iblockdata = NMSChunkGenerator16_2.k;
+			iblockdata = NMSChunkGenerator16_2_SPIGOT.k;
 		}
 
 		return iblockdata;

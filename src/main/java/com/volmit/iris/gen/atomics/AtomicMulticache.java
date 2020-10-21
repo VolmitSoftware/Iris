@@ -3,7 +3,7 @@ package com.volmit.iris.gen.atomics;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.SkyTerrainProvider;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.ChunkPosition;
@@ -18,7 +18,7 @@ public class AtomicMulticache
 	private final LoadingCache<ChunkPosition, IrisBiome> rawBiome;
 	private final LoadingCache<ChunkPosition, IrisRegion> region;
 
-	public AtomicMulticache(IrisTerrainProvider gen)
+	public AtomicMulticache(SkyTerrainProvider gen)
 	{
 		height = Caffeine.newBuilder().maximumSize(getLimit()).build((c) -> gen.getNoiseHeight(c.getX(), c.getZ()) + gen.getFluidHeight());
 		carvedHeight = Caffeine.newBuilder().maximumSize(getLimit()).build((c) ->

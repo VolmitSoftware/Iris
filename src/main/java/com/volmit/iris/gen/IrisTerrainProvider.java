@@ -253,6 +253,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 		getData().dump();
 		getCache().drop();
 		onHotload();
+		skyHotload();
 		Iris.proj.updateWorkspace();
 	}
 

@@ -155,23 +155,31 @@ public class WandManager implements Listener
 	@EventHandler
 	public void on(PlayerInteractEvent e)
 	{
-		if(e.getHand().equals(EquipmentSlot.HAND) && isWand(e.getPlayer().getInventory().getItemInMainHand()))
+		try
 		{
-			if(e.getAction().equals(Action.LEFT_CLICK_BLOCK))
+			if(e.getHand().equals(EquipmentSlot.HAND) && isWand(e.getPlayer().getInventory().getItemInMainHand()))
 			{
-				e.setCancelled(true);
-				e.getPlayer().getInventory().setItemInMainHand(update(true, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
-				e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.67f);
-				e.getPlayer().updateInventory();
-			}
+				if(e.getAction().equals(Action.LEFT_CLICK_BLOCK))
+				{
+					e.setCancelled(true);
+					e.getPlayer().getInventory().setItemInMainHand(update(true, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
+					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.67f);
+					e.getPlayer().updateInventory();
+				}
 
-			else if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
-			{
-				e.setCancelled(true);
-				e.getPlayer().getInventory().setItemInMainHand(update(false, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
-				e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 1.17f);
-				e.getPlayer().updateInventory();
+				else if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
+				{
+					e.setCancelled(true);
+					e.getPlayer().getInventory().setItemInMainHand(update(false, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
+					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 1.17f);
+					e.getPlayer().updateInventory();
+				}
 			}
+		}
+
+		catch(Throwable ex)
+		{
+
 		}
 	}
 

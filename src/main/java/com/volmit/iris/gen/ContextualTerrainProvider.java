@@ -89,7 +89,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
 		hlast = M.ms();
-		cache = new AtomicMulticache((IrisTerrainProvider) this);
+		cache = new AtomicMulticache((SkyTerrainProvider) this);
 		CNG.creates = 0;
 		generated = 0;
 		ticks = 0;
@@ -470,7 +470,6 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 				Iris.instance.imsg(i, C.DARK_RED + "Iris Generator has crashed!");
 				Iris.instance.imsg(i, C.RED + "- Check the console for the error.");
 				Iris.instance.imsg(i, C.RED + "- To Regen, use /iris std open <dim>");
-				Iris.instance.imsg(i, C.RED + "- To Retry the chunk, use /iris world retry");
 			}
 		});
 

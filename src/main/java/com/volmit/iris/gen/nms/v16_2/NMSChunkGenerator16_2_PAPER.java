@@ -418,12 +418,20 @@ public class NMSChunkGenerator16_2_PAPER extends ChunkGenerator implements Provi
 		{
 			for(int zz = 0; zz < 16; zz++)
 			{
-				int y = gc.getHeight().getHeight(xx, zz);
-				if(y < getSeaLevel())
+				try
 				{
-					heightmap.a(xx, y, zz, Blocks.STONE.getBlockData());
+					int y = gc.getHeight().getHeight(xx, zz);
+					if(y < getSeaLevel())
+					{
+						heightmap.a(xx, y, zz, Blocks.STONE.getBlockData());
+					}
+					heightmap1.a(xx, Math.max(y, getSeaLevel()), zz, Blocks.STONE.getBlockData());
 				}
-				heightmap1.a(xx, Math.max(y, getSeaLevel()), zz, Blocks.STONE.getBlockData());
+
+				catch(Throwable e)
+				{
+
+				}
 			}
 		}
 	}

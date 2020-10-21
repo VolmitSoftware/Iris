@@ -91,7 +91,7 @@ public class ProjectManager
 
 			catch(IOException e)
 			{
-				e.printStackTrace();
+				
 			}
 		}
 

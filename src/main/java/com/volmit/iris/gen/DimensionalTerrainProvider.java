@@ -26,6 +26,7 @@ import lombok.EqualsAndHashCode;
 public abstract class DimensionalTerrainProvider extends ContextualTerrainProvider
 {
 	private String dimensionName;
+	private IrisDimension forceDimension;
 	protected static final FastBlockData AIR = FastBlockData.of(Material.AIR);
 	protected static final FastBlockData CAVE_AIR = B.get("CAVE_AIR");
 	protected static final FastBlockData BEDROCK = FastBlockData.of(Material.BEDROCK);
@@ -35,6 +36,7 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 	{
 		super(t);
 		setDimensionName(dimensionName);
+		setForceDimension(null);
 
 		if(getDimensionName().isEmpty())
 		{
@@ -99,6 +101,11 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 		}
 	}
 
+	protected void forceDimension(IrisDimension sky)
+	{
+		setForceDimension(sky);
+	}
+
 	protected void useDefaultDimensionSetupNOW()
 	{
 
@@ -124,6 +131,11 @@ public abstract class DimensionalTerrainProvider extends ContextualTerrainProvid
 
 	public IrisDimension getDimension()
 	{
+		if(forceDimension != null)
+		{
+			return forceDimension;
+		}
+
 		IrisDimension d = loadDimension(getDimensionName());
 
 		return d;

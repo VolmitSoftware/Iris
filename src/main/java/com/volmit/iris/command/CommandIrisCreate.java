@@ -37,6 +37,7 @@ public class CommandIrisCreate extends MortarCommand
 		if(args.length == 0)
 		{
 			sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000] [-zip]");
+			return true;
 		}
 
 		String worldName = args[0];

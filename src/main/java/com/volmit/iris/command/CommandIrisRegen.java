@@ -61,6 +61,7 @@ public class CommandIrisRegen extends MortarCommand
 			{
 				sender.sendMessage("/iris regen [SIZE]");
 			}
+
 			return true;
 		}
 

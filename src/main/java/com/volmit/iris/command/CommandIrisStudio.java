@@ -47,6 +47,9 @@ public class CommandIrisStudio extends MortarCommand
 	@Command
 	private CommandIrisStudioLoot loot;
 
+	@Command
+	private CommandIrisStudioTP tp;
+
 	public CommandIrisStudio()
 	{
 		super("studio", "std");

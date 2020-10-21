@@ -31,7 +31,15 @@ public class CommandIrisStudioUpdate extends MortarCommand
 			return true;
 		}
 
-		new IrisProject(Iris.proj.getWorkspaceFolder(args[0])).updateWorkspace();
+		if(new IrisProject(Iris.proj.getWorkspaceFolder(args[0])).updateWorkspace())
+		{
+			sender.sendMessage("Updated Code Workspace for " + args[0]);
+		}
+
+		else
+		{
+			sender.sendMessage("Invalid project: " + args[0] + ". Try deleting the code-workspace file and try again.");
+		}
 
 		return true;
 	}

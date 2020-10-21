@@ -47,10 +47,36 @@ public class CommandIrisStudioLoot extends MortarCommand
 				return true;
 			}
 
+			try
+			{
+				if(Iris.proj.getActiveProject().getActiveProvider().getGlUpdate() == null)
+				{
+					sender.sendMessage("You can only use /iris loot in a studio world of iris.");
+					return true;
+				}
+			}
+
+			catch(Throwable e)
+			{
+				sender.sendMessage("You can only use /iris loot in a studio world of iris.");
+				return true;
+			}
+
 			prov.initGLUpdate();
 			KList<IrisLootTable> tables = prov.getGlUpdate().getLootTables(RNG.r, p.getLocation().getBlock());
 			Inventory inv = Bukkit.createInventory(null, 27 * 2);
-			Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+
+			try
+			{
+				Iris.proj.getActiveProject().getActiveProvider().getGlUpdate().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+			}
+
+			catch(Throwable e)
+			{
+				sender.sendMessage("You can only use /iris loot in a studio world of iris.");
+				return true;
+			}
+
 			p.openInventory(inv);
 
 			for(IrisLootTable i : tables)

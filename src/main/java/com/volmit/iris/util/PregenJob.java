@@ -17,6 +17,7 @@ import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
+import org.bukkit.scheduler.BukkitTask;
 
 public class PregenJob implements Listener
 {
@@ -51,6 +52,8 @@ public class PregenJob implements Listener
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
+	private BukkitTask pausedTask;
+	private boolean isPaused = false;
 	int xc = 0;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
@@ -117,6 +120,40 @@ public class PregenJob implements Listener
 			}
 		}
 
+		catch(Throwable e)
+		{
+
+		}
+		task = -1;
+	}
+
+	// TODO: Cannot get paused value from this. Have to check bukkit tasks, not sure how.
+	// TODO: Trying to add functionality here to allow for pausing an continuing.
+	public static boolean isPaused(){
+		return false;
+		//return this.isPaused;
+	}
+
+	public static void pause()
+	{
+		try
+		{
+			// Save the task, tell bukkit to cancel it
+			stop();
+		}
+		catch(Throwable e)
+		{
+
+		}
+		task = -1;
+	}
+
+	public static void resume()
+	{
+		try
+		{
+			// Load task and tell bukkit to continue it
+		}
 		catch(Throwable e)
 		{
 

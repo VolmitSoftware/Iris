@@ -373,9 +373,17 @@ public class PregenJob implements Listener
 	@EventHandler
 	public void on(ChunkUnloadEvent e)
 	{
-		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
+		try
 		{
-			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
+			if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
+			{
+				consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
+			}
+		}
+
+		catch(Throwable ex)
+		{
+
 		}
 	}
 

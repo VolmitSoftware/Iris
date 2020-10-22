@@ -98,4 +98,9 @@ public class PrecisionStopwatch {
 	public boolean isProfiling() {
 		return profiling;
 	}
+
+	public void rewind(long l)
+	{
+		startMillis -= l;
+	}
 }

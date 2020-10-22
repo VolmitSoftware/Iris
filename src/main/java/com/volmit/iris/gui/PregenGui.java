@@ -5,6 +5,8 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.File;
@@ -16,13 +18,14 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.PregenJob;
 
-public class PregenGui extends JPanel
+public class PregenGui extends JPanel implements KeyListener
 {
 	private PregenJob job;
 	private static final long serialVersionUID = 2094606939770332040L;
@@ -76,12 +79,25 @@ public class PregenGui extends JPanel
 		String[] prog = job.getProgress();
 		int h = g.getFontMetrics().getHeight() + 5;
 		int hh = 20;
-		for(String i : prog)
+
+		if(job.paused())
 		{
-			g.drawString(i, 20, hh += h);
+			g.drawString("PAUSED", 20, hh += h);
+
+			g.drawString("Press P to Resume", 20, hh += h);
 		}
 
-		J.sleep((long) 250);
+		else
+		{
+			for(String i : prog)
+			{
+				g.drawString(i, 20, hh += h);
+			}
+
+			g.drawString("Press P to Pause", 20, hh += h);
+		}
+
+		J.sleep((long) (IrisSettings.get().isMaxPregenGuiFPS() ? 4 : 250));
 		repaint();
 	}
 
@@ -104,6 +120,7 @@ public class PregenGui extends JPanel
 	{
 		JFrame frame = new JFrame("Pregen View");
 		PregenGui nv = new PregenGui();
+		frame.addKeyListener(nv);
 		nv.l = new ReentrantLock();
 		nv.job = j;
 		j.subscribe((c, b) ->
@@ -141,5 +158,26 @@ public class PregenGui extends JPanel
 		{
 			createAndShowGUI(g);
 		});
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e)
+	{
+
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e)
+	{
+
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e)
+	{
+		if(e.getKeyCode() == KeyEvent.VK_P)
+		{
+			PregenJob.pauseResume();
+		}
 	}
 }

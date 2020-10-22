@@ -1,4 +1,5 @@
- <project xmlns="http://maven.apache.org/POM/4.0.0"
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -153,10 +154,6 @@
 			<url>http://bytecode.ninja/repository/bcn/</url>
 		</repository>
 		<repository>
-			<id>CodeMC</id>
-			<url>https://repo.codemc.org/repository/maven-public</url>
-		</repository>
-		<repository>
 			<id>nexus</id>
 			<name>Lumine Releases</name>
 			<url>https://mvn.lumine.io/repository/maven-public/</url>
@@ -188,18 +185,6 @@
 			<version>1.16.2</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.15.1</artifactId>
-			<version>1.15.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.14.4</artifactId>
-			<version>1.14.4</version>
-			<scope>provided</scope>
-		</dependency>
 		<!-- Hooks -->
 		<dependency>
 			<groupId>com.sk89q.worldedit</groupId>
@@ -218,11 +203,6 @@
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
 			<version>2.8.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.bstats</groupId>
-			<artifactId>bstats-bukkit</artifactId>
-			<version>1.7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

@@ -12,15 +12,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
-import org.bukkit.scheduler.BukkitTask;
 
 public class PregenJob implements Listener
 {
+	private static PregenJob instance;
 	private World world;
 	private int size;
 	private int total;
@@ -52,13 +53,15 @@ public class PregenJob implements Listener
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
-	private BukkitTask pausedTask;
-	private boolean isPaused = false;
+	private boolean paused = false;
+	private long pausedAt = 0;
+	private double pms = 0;
 	int xc = 0;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
 		g.set(0);
+		instance = this;
 		working = new Semaphore(tc());
 		this.s = PrecisionStopwatch.start();
 		Iris.instance.registerListener(this);
@@ -105,7 +108,7 @@ public class PregenJob implements Listener
 
 	public int tc()
 	{
-		return 48;
+		return IrisSettings.get().maxAsyncChunkPregenThreads;
 	}
 
 	public static void stop()
@@ -127,42 +130,36 @@ public class PregenJob implements Listener
 		task = -1;
 	}
 
-	// TODO: Cannot get paused value from this. Have to check bukkit tasks, not sure how.
-	// TODO: Trying to add functionality here to allow for pausing an continuing.
-	public static boolean isPaused(){
-		return false;
-		//return this.isPaused;
-	}
-
 	public static void pause()
 	{
-		try
+		if(instance.paused)
 		{
-			// Save the task, tell bukkit to cancel it
-			stop();
+			return;
 		}
-		catch(Throwable e)
-		{
 
-		}
-		task = -1;
+		instance.pms = instance.s.getMilliseconds();
+		instance.paused = true;
+		instance.pausedAt = M.ms();
 	}
 
 	public static void resume()
 	{
-		try
+		if(!instance.paused)
 		{
-			// Load task and tell bukkit to continue it
+			return;
 		}
-		catch(Throwable e)
-		{
 
-		}
-		task = -1;
+		instance.paused = false;
+		instance.s.rewind(instance.pausedAt - M.ms());
 	}
 
 	public void onTick()
 	{
+		if(paused)
+		{
+			return;
+		}
+
 		if(completed)
 		{
 			return;
@@ -192,7 +189,11 @@ public class PregenJob implements Listener
 	private void tickMetrics()
 	{
 		long eta = (long) ((total - genned) * (s.getMilliseconds() / (double) genned));
-		String ss = "Pregen: " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0) + ", Elapsed: " + Form.duration((long) s.getMilliseconds()) + ", ETA: " + (genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta)) + " MS: " + Form.duration((s.getMilliseconds() / (double) genned), 2);
+		String ss = "Pregen: " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0) + ", Elapsed: " +
+
+				Form.duration((long) (paused ? pms : s.getMilliseconds()))
+
+				+ ", ETA: " + (genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta)) + " MS: " + Form.duration((s.getMilliseconds() / (double) genned), 2);
 		Iris.info(ss);
 		if(sender.isPlayer() && sender.player().isOnline())
 		{
@@ -459,7 +460,30 @@ public class PregenJob implements Listener
 	{
 		long eta = (long) ((total - genned) * 1000D / cps);
 
-		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) s.getMilliseconds(), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
+		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) (paused ? pms : s.getMilliseconds()), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
 		};
+	}
+
+	public static void pauseResume()
+	{
+		if(instance.paused)
+		{
+			resume();
+		}
+
+		else
+		{
+			pause();
+		}
+	}
+
+	public static boolean isPaused()
+	{
+		return instance.paused;
+	}
+
+	public boolean paused()
+	{
+		return paused;
 	}
 }

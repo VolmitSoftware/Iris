@@ -2,6 +2,8 @@ package com.volmit.iris.gen.nms.v16_2;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -210,11 +212,85 @@ class NMSCreator16_2 implements INMSCreator
 
 	private Dimension getConsoleDimension(DedicatedServer console)
 	{
-		if(PaperLib.isPaper())
+		Dimension dim = null;
+
+		try
 		{
-			return new V((MinecraftServer) console, true).get("customRegistry");
+			dim = new V((MinecraftServer) console, true).get("customRegistry");
+
+			if(dim != null)
+			{
+				return dim;
+			}
 		}
 
-		return console.f;
+		catch(Throwable e)
+		{
+
+		}
+
+		try
+		{
+			dim = new V((MinecraftServer) console, true).get("f");
+
+			if(dim != null)
+			{
+				return dim;
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		for(Field i : MinecraftServer.class.getDeclaredFields())
+		{
+			if(i.getType().equals(dim.getClass()))
+			{
+				i.setAccessible(true);
+
+				if(Modifier.isStatic(i.getModifiers()))
+				{
+					try
+					{
+						return (Dimension) i.get(null);
+					}
+
+					catch(Throwable e)
+					{
+						e.printStackTrace();
+					}
+				}
+
+				else
+				{
+					try
+					{
+						return (Dimension) i.get((MinecraftServer) console);
+					}
+
+					catch(Throwable e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if(dim == null)
+		{
+			try
+			{
+				throw new RuntimeException("Cannot find dimension field!");
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		return dim;
 	}
 }

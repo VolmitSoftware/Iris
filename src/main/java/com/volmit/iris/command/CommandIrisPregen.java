@@ -40,36 +40,30 @@ public class CommandIrisPregen extends MortarCommand
 			}
 			return true;
 		}
-		/* TODO: help
 		else if(args[0].equalsIgnoreCase("pause"))
 		{
 			if(PregenJob.task == -1)
 			{
 				sender.sendMessage("No Active Pregens");
 			}
+
 			else
 			{
-				if (PregenJob.isPaused()) {
-					PregenJob.resume();
-				} else {
-					PregenJob.pause();
+				PregenJob.pauseResume();
+
+				if(PregenJob.isPaused())
+				{
+					sender.sendMessage("Pregen Paused");
 				}
-				sender.sendMessage("Paused Active Pregen");
+
+				else
+				{
+					sender.sendMessage("Pregen Resumed");
+				}
 			}
-			return true;
-		} else if(args[0].equalsIgnoreCase("resume")){
-			if(!PregenJob.isPaused())
-			{
-				sender.sendMessage("No Paused Pregens");
-			}
-			else
-			{
-				sender.sendMessage("Resumed Paused Pregen");
-				PregenJob.resume();
-			}
+
 			return true;
 		}
-		*/
 
 		if(sender.isPlayer())
 		{

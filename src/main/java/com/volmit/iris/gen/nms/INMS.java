@@ -3,6 +3,7 @@ package com.volmit.iris.gen.nms;
 import org.bukkit.Bukkit;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.nms.v16_2.NMSBinding16_2;
 import com.volmit.iris.gen.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.KMap;
@@ -22,6 +23,11 @@ public class INMS
 
 	private static final String getNMSTag()
 	{
+		if(IrisSettings.get().disableNMS)
+		{
+			return "BUKKIT";
+		}
+
 		try
 		{
 			return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];

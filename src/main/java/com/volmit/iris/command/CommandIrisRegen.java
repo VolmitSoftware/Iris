@@ -52,7 +52,6 @@ public class CommandIrisRegen extends MortarCommand
 				sender.sendMessage("Regenerating " + (m * m) + " Chunks Surrounding you");
 				new Spiraler(m, m, (a, b) -> IrisWorlds.getProvisioned(world).regenerate(a + p.getLocation().getChunk().getX(), b + p.getLocation().getChunk().getZ())).drain();
 			}
-
 			catch(Throwable e)
 			{
 				sender.sendMessage("/iris regen [SIZE]");
@@ -60,7 +59,6 @@ public class CommandIrisRegen extends MortarCommand
 
 			return true;
 		}
-
 		else
 		{
 			sender.sendMessage("Players only.");

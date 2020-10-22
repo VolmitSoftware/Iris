@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
+import com.volmit.iris.link.CitizensLink;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -64,6 +65,7 @@ public class Iris extends MortarPlugin
 	public static IrisBoardManager board;
 	public static MultiverseCoreLink linkMultiverseCore;
 	public static MythicMobsLink linkMythicMobs;
+	public static CitizensLink linkCitizens;
 	private static IrisLock lock = new IrisLock("Iris");
 	private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 	public static boolean customModels = doesSupportCustomModels();

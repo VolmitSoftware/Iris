@@ -722,6 +722,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 	public int getFluidHeight()
 	{
+		if(getDimension() == null)
+		{
+			return 63;
+		}
+
 		return getDimension().getFluidHeight();
 	}
 

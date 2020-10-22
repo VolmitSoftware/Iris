@@ -48,13 +48,22 @@ public class CommandIrisStructureCreate extends MortarCommand
 			width = 5;
 			height = 5;
 		} else if (args.length == 3){
-			sender.sendMessage("No height specified, taking width as height");
-			width = Integer.parseInt(args[2]);
-			height = Integer.parseInt(args[2]);
+			if (args[2].equalsIgnoreCase("-3d"))
+			{
+				sender.sendMessage("No width and height specified. Taking defaults (5 and 5)");
+				width = 5;
+				height = 5;
+				d3 = true;
+			} else {
+				sender.sendMessage("No height specified, taking width as height");
+				width = Integer.parseInt(args[2]);
+				height = Integer.parseInt(args[2]);
+			}
 		} else if (args.length == 4){
 			width = Integer.parseInt(args[2]);
 
-			if (!args[3].equalsIgnoreCase("-3d")) {
+			if (args[3].equalsIgnoreCase("-3d"))
+			{
 				sender.sendMessage("No height specified, taking width as height");
 				height = Integer.parseInt(args[2]);
 			} else {

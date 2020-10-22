@@ -19,8 +19,8 @@ public abstract class MortarCommand implements ICommand
 	private String description;
 
 	/**
-	 * Override this with a super constructor as most commands shouldn't change these
-	 * parameters
+	 * Override this with a super constructor as most commands shouldn't change
+	 * these parameters
 	 *
 	 * @param node
 	 *            the node (primary node) i.e. volume
@@ -90,6 +90,21 @@ public abstract class MortarCommand implements ICommand
 		}
 
 		requiredPermissions.add(node);
+	}
+
+	public void rejectAny(MortarSender sender, String[] a)
+	{
+		if(a.length > 0)
+		{
+			String m = "";
+
+			for(String i : a)
+			{
+				m += i + " ";
+			}
+
+			sender.sendMessage("Unknown Parameters: " + m);
+		}
 	}
 
 	@Override

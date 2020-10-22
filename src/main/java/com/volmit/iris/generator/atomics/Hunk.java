@@ -2,6 +2,10 @@ package com.volmit.iris.generator.atomics;
 
 import org.bouncycastle.util.Arrays;
 
+import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.Supplier2;
+import com.volmit.iris.util.Supplier3;
+
 import lombok.Data;
 
 @Data
@@ -132,6 +136,25 @@ public class Hunk<T>
 		}
 	}
 
+	public void set(int x, int z, int y1, int y2, T t)
+	{
+		set(x, x, y1, y2, z, z, t);
+	}
+
+	public void set(int x1, int y1, int z1, int x2, int y2, int z2, T t)
+	{
+		for(int i = x1; i <= x2; i++)
+		{
+			for(int j = y1; j <= y2; j++)
+			{
+				for(int k = z1; k <= z2; k++)
+				{
+					set(i, j, k, t);
+				}
+			}
+		}
+	}
+
 	public void set(int x, int y, int z, T t)
 	{
 		data[index(x, y, z)] = t;
@@ -160,6 +183,45 @@ public class Hunk<T>
 		}
 
 		return (z * w * h) + (y * w) + x;
+	}
+
+	public void fill(int ox, int oy, int oz, Function3<Integer, Integer, Integer, T> f)
+	{
+		for(int i = ox; i < ox + getW(); i++)
+		{
+			for(int j = oy; j < oy + getH(); j++)
+			{
+				for(int k = oz; k < oz + getD(); k++)
+				{
+					set(i - ox, j - oy, k - oz, f.apply(i, j, k));
+				}
+			}
+		}
+	}
+
+	public void forEach(Supplier3<Integer, Integer, Integer> t)
+	{
+		for(int i = 0; i < getW(); i++)
+		{
+			for(int j = 0; j < getH(); j++)
+			{
+				for(int k = 0; k < getD(); k++)
+				{
+					t.get(i, j, k);
+				}
+			}
+		}
+	}
+
+	public void forEachXZ(Supplier2<Integer, Integer> t)
+	{
+		for(int i = 0; i < getW(); i++)
+		{
+			for(int k = 0; k < getD(); k++)
+			{
+				t.get(i, k);
+			}
+		}
 	}
 
 	public void fill(T t)

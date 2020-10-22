@@ -20,17 +20,17 @@ public class TerrainNode
 
 	public TerrainNode(Biome biome, BlockData block)
 	{
-		this((byte) (biome.ordinal() + Byte.MIN_VALUE), (short) (paletteOf(block) + Short.MIN_VALUE));
+		this((byte) (biome.ordinal()), (short) (paletteOf(block)));
 	}
 
 	public TerrainNode setBlockData(BlockData block)
 	{
-		return new TerrainNode(biome, (short) (paletteOf(block) + Short.MIN_VALUE));
+		return new TerrainNode(biome, (short) (paletteOf(block)));
 	}
 
 	public TerrainNode setBiome(Biome biome)
 	{
-		return new TerrainNode((byte) (biome.ordinal() + Byte.MIN_VALUE), block);
+		return new TerrainNode((byte) (biome.ordinal()), block);
 	}
 
 	public BlockData getBlockData()

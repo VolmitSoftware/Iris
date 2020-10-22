@@ -82,6 +82,7 @@ public class Iris extends MortarPlugin
 
 	public Iris()
 	{
+		instance = this;
 		INMS.get();
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4gb

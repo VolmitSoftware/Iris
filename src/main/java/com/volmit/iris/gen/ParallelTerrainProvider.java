@@ -104,14 +104,7 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		getMetrics().getTerrain().put(p.getMilliseconds());
 		p = PrecisionStopwatch.start();
 		onPostGenerate(random, x, z, terrain, height, biomeMap, map);
-		return GeneratedChunk.builder()
-				.biomeMap(biomeMap)
-				.sliverMap(map)
-				.height(height)
-				.terrain(terrain)
-				.x(x)
-				.z(z)
-				.build();
+		return GeneratedChunk.builder().biomeMap(biomeMap).sliverMap(map).height(height).terrain(terrain).x(x).z(z).build();
 	}
 
 	protected void onClose()

@@ -295,7 +295,7 @@ public class IrisEntity extends IrisRegistrant
 
 		if(isCitizens())
 		{
-			return Iris.linkCitizens.spawn(getType(), at);
+			// TODO: return Iris.linkCitizens.spawn(getType(), at); SPAWN SOME TYPE TOO
 		}
 
 		return at.getWorld().spawnEntity(at, getType());
@@ -308,6 +308,8 @@ public class IrisEntity extends IrisRegistrant
 
 	public boolean isCitizens()
 	{
-		return Iris.linkCitizens.supported(); // TODO Need to determine how to tell if entity needs to be Citizen NPC (eg. getCitizensType())
+		return false;
+
+		// TODO: return Iris.linkCitizens.supported() && someType is not empty;
 	}
 }

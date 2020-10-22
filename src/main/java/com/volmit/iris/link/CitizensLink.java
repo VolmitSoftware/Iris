@@ -10,37 +10,37 @@ import org.bukkit.plugin.Plugin;
 
 public class CitizensLink
 {
-    public CitizensLink()
-    {
+	public CitizensLink()
+	{
 
-    }
+	}
 
-    public boolean supported()
-    {
-        return getCitizens() != null;
-    }
+	public boolean supported()
+	{
+		return getCitizens() != null;
+	}
 
-    public Entity spawn(EntityType name, Location a)
-    {
-        if(!supported())
-        {
-            return null;
-        }
+	public Entity spawn(EntityType type, String npcType, Location a)
+	{
+		if(!supported())
+		{
+			return null;
+		}
 
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(name, "");
-        npc.spawn(a);
-        return npc.getEntity();
-    }
+		NPC npc = CitizensAPI.getNPCRegistry().createNPC(type, "");
+		npc.spawn(a);
+		return npc.getEntity();
+	}
 
-    public Plugin getCitizens()
-    {
-        Plugin p = Bukkit.getPluginManager().getPlugin("Citizens");
+	public Plugin getCitizens()
+	{
+		Plugin p = Bukkit.getPluginManager().getPlugin("Citizens");
 
-        if(p == null)
-        {
-            return null;
-        }
+		if(p == null)
+		{
+			return null;
+		}
 
-        return p;
-    }
+		return p;
+	}
 }

@@ -37,46 +37,36 @@ public class CommandIrisStructureCreate extends MortarCommand
 		int height;
 
 
-		switch (args.length) {
-			case 0: {
-				sender.sendMessage("Please specify the name of the object you wish to create");
-				return true;
-			}
-			case 1: {
-				sender.sendMessage("Please specify the name of the dimension you are in");
-				return true;
-			}
-			case 2: {
-				sender.sendMessage("No width and height specified. Taking defaults (5 and 5)");
-				return true;
-			}
-			case 3: {
+		if (args.length == 0){
+			sender.sendMessage("Please specify the name of the object you wish to create");
+			return true;
+		} else if (args.length == 1){
+			sender.sendMessage("Please specify the name of the dimension you are in");
+			return true;
+		} else if (args.length == 2){
+			sender.sendMessage("No width and height specified. Taking defaults (5 and 5)");
+			width = 5;
+			height = 5;
+		} else if (args.length == 3){
+			sender.sendMessage("No height specified, taking width as height");
+			width = Integer.parseInt(args[2]);
+			height = Integer.parseInt(args[2]);
+		} else if (args.length == 4){
+			width = Integer.parseInt(args[2]);
+
+			if (!args[3].equalsIgnoreCase("-3d")) {
 				sender.sendMessage("No height specified, taking width as height");
-				width = Integer.parseInt(args[2]);
 				height = Integer.parseInt(args[2]);
-			}
-			case 4: {
-				if (!args[3].equalsIgnoreCase("-3d")) {
-					sender.sendMessage("No height specified, taking width as height");
-					width = Integer.parseInt(args[2]);
-					height = Integer.parseInt(args[2]);
-					return true;
-				} else {
-					width = Integer.parseInt(args[2]);
-					height = Integer.parseInt(args[3]);
-					break;
-				}
-			}
-			case 5: {
-				width = Integer.parseInt(args[2]);
+			} else {
 				height = Integer.parseInt(args[3]);
-				d3 = true;
 			}
-			default: {
-				width = Integer.parseInt(args[2]);
-				height = Integer.parseInt(args[3]);
-				break;
-			}
+		} else if (args[3].equalsIgnoreCase("-3d")){
+			width = Integer.parseInt(args[2]);
+			height = Integer.parseInt(args[3]);
+			d3 = true;
+		} else {
+			width = Integer.parseInt(args[2]);
+			height = Integer.parseInt(args[3]);
 		}
 
 		sender.sendMessage("Creating new Structure");

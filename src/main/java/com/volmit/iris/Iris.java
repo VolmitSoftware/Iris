@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.net.URL;
 
 import com.volmit.iris.link.CitizensLink;
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -43,6 +42,7 @@ import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
+import com.volmit.iris.util.MetricsLite;
 import com.volmit.iris.util.MortarPlugin;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.Permission;
@@ -208,7 +208,10 @@ public class Iris extends MortarPlugin
 
 	private void bstats()
 	{
-		new Metrics(this, 8757);
+		J.s(() ->
+		{
+			new MetricsLite(Iris.instance, 8757);
+		});
 	}
 
 	public static File getTemp()

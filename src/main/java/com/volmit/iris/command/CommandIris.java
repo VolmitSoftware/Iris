@@ -46,6 +46,9 @@ public class CommandIris extends MortarCommand
 	@Command
 	private CommandIrisPregen pregen;
 
+	@Command
+	private CommandIrisReload reload;
+
 	public CommandIris()
 	{
 		super("iris", "ir", "irs");

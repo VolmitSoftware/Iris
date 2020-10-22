@@ -31,6 +31,14 @@ public class IrisSettings
 	public int atomicCacheSize = 3000;
 
 	@DontObfuscate
+	@Desc("Max pregen async chunk threads.")
+	public int maxAsyncChunkPregenThreads = 300;
+
+	@DontObfuscate
+	@Desc("More cpu for pregen gui but looks nice.")
+	public boolean maxPregenGuiFPS = false;
+
+	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
 	public boolean parallaxCompression = true;
 
@@ -49,6 +57,10 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("System Effects")
 	public boolean systemEffects = true;
+
+	@DontObfuscate
+	@Desc("Disable all nms")
+	public boolean disableNMS = false;
 
 	@DontObfuscate
 	@Desc("System Spawn Overrides")

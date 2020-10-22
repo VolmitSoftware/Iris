@@ -100,6 +100,11 @@ public class FastBlockData
 		return getType().hashCode();
 	}
 
+	public boolean matEquals(FastBlockData obj)
+	{
+		return getMaterial().equals(obj.getMaterial());
+	}
+
 	@Override
 	public boolean equals(Object obj)
 	{

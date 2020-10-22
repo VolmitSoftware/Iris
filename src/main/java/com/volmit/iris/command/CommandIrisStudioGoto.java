@@ -5,9 +5,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -26,15 +26,9 @@ public class CommandIrisStudioGoto extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
-			return true;
-		}
-
 		if(args.length < 1)
 		{
-			sender.sendMessage("/iris world goto " + getArgsUsage());
+			sender.sendMessage("/iris std goto " + getArgsUsage());
 			return true;
 		}
 
@@ -49,7 +43,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 				return true;
 			}
 
-			IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider();
+			IrisTerrainProvider g = IrisWorlds.getProvider(world);
 			int tries = 10000;
 			boolean cave = false;
 			IrisBiome biome2 = null;

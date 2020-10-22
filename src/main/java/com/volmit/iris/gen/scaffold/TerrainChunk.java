@@ -23,6 +23,11 @@ public interface TerrainChunk extends BiomeGrid, ChunkData
 		return create(world.getMaxHeight(), grid);
 	}
 
+	public static TerrainChunk create(ChunkData raw, BiomeGrid grid)
+	{
+		return new LinkedTerrainChunk(grid, raw);
+	}
+
 	public static TerrainChunk create(int maxHeight, BiomeGrid grid)
 	{
 		return new LinkedTerrainChunk(grid, maxHeight);

@@ -27,7 +27,8 @@ import lombok.Data;
 @Data
 public class ProjectManager
 {
-	public static final String workspaceName = "packs";
+	public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing.json";
+	public static final String WORKSPACE_NAME = "packs";
 	private KMap<String, String> cacheListing = null;
 	private IrisProject activeProject;
 
@@ -71,7 +72,7 @@ public class ProjectManager
 			{
 				if(i.isFile() && i.getName().equals(type + ".iris"))
 				{
-					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.workspaceName + " folder");
+					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.WORKSPACE_NAME + " folder");
 					ZipUtil.unpack(i, iris);
 					break;
 				}
@@ -80,7 +81,7 @@ public class ProjectManager
 
 		else
 		{
-			sender.sendMessage("Found " + type + " dimension in " + ProjectManager.workspaceName + " folder. Repackaging");
+			sender.sendMessage("Found " + type + " dimension in " + ProjectManager.WORKSPACE_NAME + " folder. Repackaging");
 			File f = new IrisProject(new File(getWorkspaceFolder(), type)).getPath();
 
 			try
@@ -90,7 +91,7 @@ public class ProjectManager
 
 			catch(IOException e)
 			{
-				e.printStackTrace();
+				
 			}
 		}
 
@@ -277,12 +278,12 @@ public class ProjectManager
 
 		if(cached)
 		{
-			a = new JSONArray(Iris.getCached("cachedlisting", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/listing.json"));
+			a = new JSONArray(Iris.getCached("cachedlisting", LISTING));
 		}
 
 		else
 		{
-			a = new JSONArray(Iris.getNonCached(!cached + "listing", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/listing.json"));
+			a = new JSONArray(Iris.getNonCached(!cached + "listing", LISTING));
 		}
 
 		KMap<String, String> l = new KMap<>();
@@ -331,12 +332,12 @@ public class ProjectManager
 
 	public File getWorkspaceFolder(String... sub)
 	{
-		return Iris.instance.getDataFolderList(workspaceName, sub);
+		return Iris.instance.getDataFolderList(WORKSPACE_NAME, sub);
 	}
 
 	public File getWorkspaceFile(String... sub)
 	{
-		return Iris.instance.getDataFileList(workspaceName, sub);
+		return Iris.instance.getDataFileList(WORKSPACE_NAME, sub);
 	}
 
 	public void close()

@@ -1,5 +1,6 @@
 package com.volmit.iris.gen;
 
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.RNG;
@@ -12,8 +13,9 @@ public abstract class SkyTerrainProvider extends PostBlockTerrainProvider
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		GeneratedChunk gc = super.onGenerate(random, x, z, terrain);
+		return gc;
 	}
 }

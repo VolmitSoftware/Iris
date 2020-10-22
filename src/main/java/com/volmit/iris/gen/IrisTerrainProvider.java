@@ -20,6 +20,7 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.atomics.AtomicRegionData;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
@@ -91,18 +92,19 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	}
 
 	@Override
-	public void generate(Random no, int x, int z, TerrainChunk terrain)
+	public GeneratedChunk generate(Random no, int x, int z, TerrainChunk terrain)
 	{
 		PrecisionStopwatch s = PrecisionStopwatch.start();
-		super.generate(no, x, z, terrain);
+		GeneratedChunk c = super.generate(no, x, z, terrain);
 		s.end();
 		getMetrics().getTotal().put(s.getMilliseconds());
+		return c;
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		return super.onGenerate(random, x, z, terrain);
 	}
 
 	public void onInit(RNG rng)
@@ -141,7 +143,15 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		spawnable = true;
 		super.onTick(ticks);
-		tickEffects();
+		try
+		{
+			tickEffects();
+		}
+
+		catch(Throwable e)
+		{
+
+		}
 	}
 
 	protected void tickEffects()
@@ -489,66 +499,79 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	@Override
 	protected void onSpawn(EntitySpawnEvent e)
 	{
-		if(isSpawnable())
+		if(getTarget().getRealWorld() == null || !getTarget().getRealWorld().equals(e.getEntity().getWorld()))
 		{
-			if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+			return;
+		}
+
+		try
+		{
+			if(isSpawnable())
 			{
-				return;
-			}
+				if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+				{
+					return;
+				}
 
-			int x = e.getEntity().getLocation().getBlockX();
-			int y = e.getEntity().getLocation().getBlockY();
-			int z = e.getEntity().getLocation().getBlockZ();
-			IrisDimension dim = getDimension();
-			IrisRegion region = sampleRegion(x, z);
-			IrisBiome above = sampleTrueBiome(x, z);
-			IrisBiome below = sampleTrueBiome(x, y, z);
+				int x = e.getEntity().getLocation().getBlockX();
+				int y = e.getEntity().getLocation().getBlockY();
+				int z = e.getEntity().getLocation().getBlockZ();
+				IrisDimension dim = getDimension();
+				IrisRegion region = sampleRegion(x, z);
+				IrisBiome above = sampleTrueBiome(x, z);
+				IrisBiome below = sampleTrueBiome(x, y, z);
 
-			if(above.getLoadKey().equals(below.getLoadKey()))
-			{
-				below = null;
-			}
+				if(above.getLoadKey().equals(below.getLoadKey()))
+				{
+					below = null;
+				}
 
-			IrisStructureResult res = getStructure(x, y, z);
+				IrisStructureResult res = getStructure(x, y, z);
 
-			if(res != null && res.getTile() != null)
-			{
-				if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
+				if(res != null && res.getTile() != null)
+				{
+					if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(res != null && res.getStructure() != null)
+				{
+					if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(below != null)
+				{
+					if(trySpawn(below.getEntitySpawnOverrides(), e))
+					{
+						return;
+					}
+				}
+
+				if(trySpawn(above.getEntitySpawnOverrides(), e))
+				{
+					return;
+				}
+
+				if(trySpawn(region.getEntitySpawnOverrides(), e))
+				{
+					return;
+				}
+
+				if(trySpawn(dim.getEntitySpawnOverrides(), e))
 				{
 					return;
 				}
 			}
+		}
 
-			if(res != null && res.getStructure() != null)
-			{
-				if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-			}
+		catch(Throwable xe)
+		{
 
-			if(below != null)
-			{
-				if(trySpawn(below.getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-			}
-
-			if(trySpawn(above.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
-
-			if(trySpawn(region.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
-
-			if(trySpawn(dim.getEntitySpawnOverrides(), e))
-			{
-				return;
-			}
 		}
 	}
 
@@ -604,7 +627,7 @@ public class IrisTerrainProvider extends SkyTerrainProvider implements IrisConte
 	{
 		if(getDimension() == null)
 		{
-			return false;
+			return true;
 		}
 
 		return getDimension().isVanillaStructures();

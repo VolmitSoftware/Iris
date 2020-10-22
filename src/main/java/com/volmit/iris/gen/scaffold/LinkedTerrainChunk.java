@@ -23,6 +23,14 @@ public class LinkedTerrainChunk implements TerrainChunk
 		this(null, maxHeight);
 	}
 
+	public LinkedTerrainChunk(BiomeGrid storage, ChunkData data)
+	{
+		this.storage = storage;
+		rawChunkData = data;
+		biome2D = storage != null ? null : Iris.biome3d ? null : new Biome[256];
+		biome3D = storage != null ? null : Iris.biome3d ? new IrisBiomeStorage() : null;
+	}
+
 	public LinkedTerrainChunk(BiomeGrid storage, int maxHeight)
 	{
 		this.storage = storage;

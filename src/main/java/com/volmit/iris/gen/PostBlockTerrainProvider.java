@@ -4,6 +4,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.post.PostMasterPatcher;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.CaveResult;
@@ -39,13 +40,13 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		GeneratedChunk map = super.onGenerate(random, x, z, terrain);
 
 		if(!getDimension().isPostProcessing())
 		{
-			return;
+			return map;
 		}
 
 		int rx, i;
@@ -74,6 +75,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 
 		p.end();
 		getMetrics().getPost().put(p.getMilliseconds());
+		return map;
 	}
 
 	@Override

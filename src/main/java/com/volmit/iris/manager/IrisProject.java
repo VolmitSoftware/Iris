@@ -16,7 +16,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.NMSCreator;
+import com.volmit.iris.gen.nms.INMS;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
@@ -191,7 +191,7 @@ public class IrisProject
 		});
 
 		//@builder
-		World world = NMSCreator.createWorld(new WorldCreator(wfp)
+		World world = INMS.get().createWorld(new WorldCreator(wfp)
 				.seed(1337)
 				.generator(gen)
 				.generateStructures(d.isVanillaStructures())
@@ -238,7 +238,7 @@ public class IrisProject
 		return new File(path, getName() + ".code-workspace");
 	}
 
-	public void updateWorkspace()
+	public boolean updateWorkspace()
 	{
 		getPath().mkdirs();
 		File ws = getCodeWorkspaceFile();
@@ -251,6 +251,7 @@ public class IrisProject
 			IO.writeAll(ws, j.toString(4));
 			p.end();
 			Iris.info("Updated Workspace: " + ws.getPath() + " in " + Form.duration(p.getMilliseconds(), 2));
+			return true;
 		}
 
 		catch(Throwable e)
@@ -267,6 +268,8 @@ public class IrisProject
 				e1.printStackTrace();
 			}
 		}
+		
+		return false;
 	}
 
 	public JSONObject createCodeWorkspaceConfig()

@@ -217,14 +217,14 @@ public class IrisLoot
 		return new ItemStack(Material.AIR);
 	}
 
-	public ItemStack get(boolean debug, IrisLootTable table, RNG rng, int x, int y, int z)
+	public ItemStack get(boolean debug, boolean giveSomething, IrisLootTable table, RNG rng, int x, int y, int z)
 	{
 		if(debug)
 		{
 			chance.reset();
 		}
 
-		if(chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1)
+		if(giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1)
 		{
 			if(getType() == null)
 			{

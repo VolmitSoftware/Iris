@@ -15,6 +15,9 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioOpen open;
 
 	@Command
+	private CommandIrisStudioSummon summon;
+
+	@Command
 	private CommandIrisStudioClose close;
 
 	@Command
@@ -43,6 +46,9 @@ public class CommandIrisStudio extends MortarCommand
 
 	@Command
 	private CommandIrisStudioLoot loot;
+
+	@Command
+	private CommandIrisStudioTP tp;
 
 	public CommandIrisStudio()
 	{

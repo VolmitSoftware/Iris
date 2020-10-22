@@ -8,12 +8,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.edit.BlockEditor;
 import com.volmit.iris.edit.BukkitBlockEditor;
 import com.volmit.iris.edit.WEBlockEditor;
 import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
+
+import io.papermc.lib.PaperLib;
 
 public class EditManager implements Listener
 {
@@ -85,7 +88,7 @@ public class EditManager implements Listener
 
 		BlockEditor e = null;
 
-		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit"))
+		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().isIgnoreWorldEdit())
 		{
 			try
 			{

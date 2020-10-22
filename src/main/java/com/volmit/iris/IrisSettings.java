@@ -43,6 +43,10 @@ public class IrisSettings
 	public boolean verbose = false;
 
 	@DontObfuscate
+	@Desc("If true, will not use world edit even if its on the server")
+	public boolean ignoreWorldEdit = false;
+
+	@DontObfuscate
 	@Desc("System Effects")
 	public boolean systemEffects = true;
 
@@ -178,5 +182,13 @@ public class IrisSettings
 		}
 
 		return settings;
+	}
+
+	public static void invalidate()
+	{
+		synchronized(settings)
+		{
+			settings = null;
+		}
 	}
 }

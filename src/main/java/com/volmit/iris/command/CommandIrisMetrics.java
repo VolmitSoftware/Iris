@@ -7,6 +7,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisMetrics;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.MortarCommand;
@@ -35,7 +36,7 @@ public class CommandIrisMetrics extends MortarCommand
 				return true;
 			}
 
-			IrisTerrainProvider g = (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider();
+			IrisTerrainProvider g = IrisWorlds.getProvider(world);
 			IrisMetrics m = g.getMetrics();
 			sender.sendMessage("Thread Count: " + C.BOLD + "" + C.WHITE + g.getThreads());
 			sender.sendMessage("Total     : " + C.BOLD + "" + C.WHITE + Form.duration(m.getTotal().getAverage(), 2));

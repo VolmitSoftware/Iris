@@ -39,14 +39,19 @@ public class IrisLootTable extends IrisRegistrant
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The maximum amount of loot that can be picked in this table at a time.")
-	private int maxPicked = 3;
+	private int maxPicked = 5;
+
+	@MinNumber(0)
+	@DontObfuscate
+	@Desc("The minimum amount of loot that can be picked in this table at a time.")
+	private int minPicked = 1;
 
 	@DontObfuscate
 	@Desc("The loot in this table")
 	@ArrayType(min = 1, type = IrisLoot.class)
 	private KList<IrisLoot> loot = new KList<>();
 
-	public KList<ItemStack> getLoot(boolean debug, RNG rng, InventorySlotType slot, int x, int y, int z, int gg, int ffs)
+	public KList<ItemStack> getLoot(boolean debug, boolean doSomething, RNG rng, InventorySlotType slot, int x, int y, int z, int gg, int ffs)
 	{
 		KList<ItemStack> lootf = new KList<>();
 
@@ -56,7 +61,7 @@ public class IrisLootTable extends IrisRegistrant
 		{
 			if(i.getSlotTypes().equals(slot))
 			{
-				ItemStack item = i.get(debug, this, rng, x, y, z);
+				ItemStack item = i.get(debug, false, this, rng, x, y, z);
 
 				if(item != null)
 				{
@@ -69,6 +74,18 @@ public class IrisLootTable extends IrisRegistrant
 			if(m > maxPicked)
 			{
 				break;
+			}
+		}
+
+		if(lootf.size() < getMinPicked())
+		{
+			for(int i = 0; i < getMinPicked() - lootf.size(); i++)
+			{
+				ItemStack item = loot.get(rng.nextParallelRNG(3945).nextInt(loot.size())).get(debug, doSomething, this, rng, x, y, z);
+				if(item != null)
+				{
+					lootf.add(item);
+				}
 			}
 		}
 

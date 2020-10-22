@@ -6,10 +6,13 @@ import java.util.Random;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attributable;
+import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Panda;
+import org.bukkit.entity.Panda.Gene;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
@@ -134,6 +137,18 @@ public class IrisEntity extends IrisRegistrant
 	@Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
 	private IrisEntity leashHolder = null;
 
+	@DontObfuscate
+	@Desc("The main gene for a panda if the entity type is a panda")
+	private Gene pandaMainGene = Gene.NORMAL;
+
+	@DontObfuscate
+	@Desc("The hidden gene for a panda if the entity type is a panda")
+	private Gene pandaHiddenGene = Gene.NORMAL;
+
+	@DontObfuscate
+	@Desc("The this entity is ageable, set it's baby status")
+	private boolean baby = false;
+
 	public Entity spawn(ParallaxTerrainProvider gen, Location at)
 	{
 		return spawn(gen, at, new RNG(at.hashCode()));
@@ -184,15 +199,10 @@ public class IrisEntity extends IrisRegistrant
 					{
 						KList<ItemStack> items = new KList<>();
 
-						for(int t = 0; t < gen.getDimension().getLootTries(); t++)
+						for(String fi : getLoot().getTables())
 						{
-							int b = 4;
-							for(String fi : getLoot().getTables())
-							{
-								IrisLootTable i = gen.getData().getLootLoader().load(fi);
-								b++;
-								items.addAll(i.getLoot(gen.isDev(), rng.nextParallelRNG(345911 * -t), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), t + b + b, b));
-							}
+							IrisLootTable i = gen.getData().getLootLoader().load(fi);
+							items.addAll(i.getLoot(gen.isDev(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), 8, 4));
 						}
 
 						return items;
@@ -254,6 +264,17 @@ public class IrisEntity extends IrisRegistrant
 			{
 				l.getEquipment().setItemInOffHand(getOffHand().get(gen.isDev(), rng));
 			}
+		}
+
+		if(e instanceof Ageable && isBaby())
+		{
+			((Ageable) e).setBaby();
+		}
+
+		if(e instanceof Panda)
+		{
+			((Panda) e).setMainGene(getPandaMainGene());
+			((Panda) e).setMainGene(getPandaHiddenGene());
 		}
 
 		if(Iris.awareEntities && e instanceof Mob)

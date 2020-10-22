@@ -184,16 +184,19 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 		return new AtomicSliverMap();
 	}
 
-	@Override
-	public List<BlockPopulator> getPopulators()
+	public void initGLUpdate()
 	{
-		List<BlockPopulator> g = new KList<>();
-
 		if(getGlUpdate() == null)
 		{
 			setGlUpdate(new GenLayerUpdate(this));
 		}
+	}
 
+	@Override
+	public List<BlockPopulator> getPopulators()
+	{
+		List<BlockPopulator> g = new KList<>();
+		initGLUpdate();
 		g.add(getGlUpdate());
 		return g;
 	}
@@ -447,11 +450,21 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	{
 		for(IrisStructurePlacement k : r.getStructures())
 		{
+			if(k == null)
+			{
+				continue;
+			}
+
 			k.place(this, random.nextParallelRNG(2228 * 2 * g++), i, j);
 		}
 
 		for(IrisStructurePlacement k : b.getStructures())
 		{
+			if(k == null)
+			{
+				continue;
+			}
+
 			k.place(this, random.nextParallelRNG(-22228 * 4 * g++), i, j);
 		}
 

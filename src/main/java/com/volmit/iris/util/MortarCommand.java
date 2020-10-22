@@ -19,7 +19,7 @@ public abstract class MortarCommand implements ICommand
 	private String description;
 
 	/**
-	 * Override this with a super constructor as most commands shouldnt change these
+	 * Override this with a super constructor as most commands shouldn't change these
 	 * parameters
 	 *
 	 * @param node

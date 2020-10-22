@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.nms;
+package com.volmit.iris.gen.nms.v16_2;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Random;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
@@ -23,8 +22,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.gen.nms.INMSCreator;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
+import com.volmit.iris.gen.scaffold.Provisioned;
+import com.volmit.iris.util.O;
 import com.volmit.iris.util.V;
 
+import io.papermc.lib.PaperLib;
 import net.minecraft.server.v1_16_R2.BiomeBase;
 import net.minecraft.server.v1_16_R2.BiomeManager;
 import net.minecraft.server.v1_16_R2.Convertable;
@@ -38,6 +42,7 @@ import net.minecraft.server.v1_16_R2.GameRules;
 import net.minecraft.server.v1_16_R2.GeneratorSettingBase;
 import net.minecraft.server.v1_16_R2.GeneratorSettings;
 import net.minecraft.server.v1_16_R2.IRegistry;
+import net.minecraft.server.v1_16_R2.IRegistryCustom.Dimension;
 import net.minecraft.server.v1_16_R2.IWorldDataServer;
 import net.minecraft.server.v1_16_R2.MinecraftKey;
 import net.minecraft.server.v1_16_R2.MinecraftServer;
@@ -47,21 +52,23 @@ import net.minecraft.server.v1_16_R2.MobSpawnerPatrol;
 import net.minecraft.server.v1_16_R2.MobSpawnerPhantom;
 import net.minecraft.server.v1_16_R2.MobSpawnerTrader;
 import net.minecraft.server.v1_16_R2.NBTBase;
-import net.minecraft.server.v1_16_R2.RegistryMaterials;
 import net.minecraft.server.v1_16_R2.RegistryReadOps;
 import net.minecraft.server.v1_16_R2.ResourceKey;
 import net.minecraft.server.v1_16_R2.SaveData;
 import net.minecraft.server.v1_16_R2.VillageSiege;
+import net.minecraft.server.v1_16_R2.WorldChunkManager;
+import net.minecraft.server.v1_16_R2.WorldChunkManagerOverworld;
 import net.minecraft.server.v1_16_R2.WorldDataServer;
 import net.minecraft.server.v1_16_R2.WorldDimension;
 import net.minecraft.server.v1_16_R2.WorldServer;
 import net.minecraft.server.v1_16_R2.WorldSettings;
 
-public class NMSCreator162
+class NMSCreator16_2 implements INMSCreator
 {
 	@SuppressWarnings({"unchecked", "rawtypes", "resource"})
-	public static World createWorld(WorldCreator creator, boolean loadSpawn)
+	public World createWorld(WorldCreator creator, boolean loadSpawn)
 	{
+		Provisioned pro = (Provisioned) creator.generator();
 		CraftServer server = ((CraftServer) Bukkit.getServer());
 		Map<String, World> worlds = new V(server).get("worlds");
 		DedicatedServer console = new V(server).get("console");
@@ -121,7 +128,7 @@ public class NMSCreator162
 		}
 		MinecraftServer.convertWorld(worldSession);
 		final boolean hardcore = creator.hardcore();
-		final RegistryReadOps<NBTBase> registryreadops = (RegistryReadOps<NBTBase>) RegistryReadOps.a((DynamicOps) DynamicOpsNBT.a, console.dataPackResources.h(), console.f);
+		final RegistryReadOps<NBTBase> registryreadops = (RegistryReadOps<NBTBase>) RegistryReadOps.a((DynamicOps) DynamicOpsNBT.a, console.dataPackResources.h(), getConsoleDimension(console));
 		WorldDataServer worlddata = (WorldDataServer) worldSession.a((DynamicOps) registryreadops, console.datapackconfiguration);
 		if(worlddata == null)
 		{
@@ -130,7 +137,7 @@ public class NMSCreator162
 			properties.put("level-seed", Objects.toString(creator.seed()));
 			properties.put("generate-structures", Objects.toString(creator.generateStructures()));
 			properties.put("level-type", Objects.toString(creator.type().getName()));
-			final GeneratorSettings generatorsettings = GeneratorSettings.a(console.aX(), properties);
+			final GeneratorSettings generatorsettings = GeneratorSettings.a(getConsoleDimension(console), properties);
 			@SuppressWarnings("deprecation")
 			final WorldSettings worldSettings = new WorldSettings(name, EnumGamemode.getById(server.getDefaultGameMode().getValue()), hardcore, EnumDifficulty.EASY, false, new GameRules(), console.datapackconfiguration);
 			worlddata = new WorldDataServer(worldSettings, generatorsettings, Lifecycle.stable());
@@ -143,22 +150,12 @@ public class NMSCreator162
 		}
 		final long j = BiomeManager.a(creator.seed());
 		final List<MobSpawner> list = (List<MobSpawner>) ImmutableList.of((MobSpawner) new MobSpawnerPhantom(), (MobSpawner) new MobSpawnerPatrol(), (MobSpawner) new MobSpawnerCat(), (MobSpawner) new VillageSiege(), (MobSpawner) new MobSpawnerTrader((IWorldDataServer) worlddata));
-		final RegistryMaterials<WorldDimension> registrymaterials = (RegistryMaterials<WorldDimension>) worlddata.getGeneratorSettings().d();
-		final WorldDimension worlddimension = (WorldDimension) registrymaterials.a((ResourceKey) actualDimension);
 		DimensionManager dimensionmanager;
 		net.minecraft.server.v1_16_R2.ChunkGenerator chunkgenerator;
-
-		if(worlddimension == null)
-		{
-			dimensionmanager = (DimensionManager) console.f.a().d(DimensionManager.OVERWORLD);
-			chunkgenerator = (net.minecraft.server.v1_16_R2.ChunkGenerator) GeneratorSettings.a((IRegistry<BiomeBase>) console.f.b(IRegistry.ay), (IRegistry<GeneratorSettingBase>) console.f.b(IRegistry.ar), new Random().nextLong());
-		}
-		else
-		{
-			dimensionmanager = worlddimension.b();
-			chunkgenerator = worlddimension.c();
-		}
-
+		long ll = creator.seed();
+		dimensionmanager = (DimensionManager) getConsoleDimension(console).a().d(DimensionManager.OVERWORLD);
+		O<WorldServer> ws = new O<WorldServer>();
+		chunkgenerator = PaperLib.isPaper() ? new NMSChunkGenerator16_2_PAPER(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c)) : new NMSChunkGenerator16_2_SPIGOT(pro, ws, (WorldChunkManager) new WorldChunkManagerOverworld(ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));
 		final ResourceKey<net.minecraft.server.v1_16_R2.World> worldKey = (ResourceKey<net.minecraft.server.v1_16_R2.World>) ResourceKey.a(IRegistry.L, new MinecraftKey(name.toLowerCase(Locale.ENGLISH)));
 		//@builder
 		final WorldServer internal = new WorldServer((MinecraftServer) console, 
@@ -173,8 +170,10 @@ public class NMSCreator162
 				(List) ((creator.environment() == World.Environment.NORMAL) ? list : ImmutableList.of()),
 				true, 
 				creator.environment(), 
-				generator);
+				server.getGenerator(name));
 		//@done
+		IrisWorlds.register(internal.getWorld(), pro);
+		ws.set(internal);
 		if(!worlds.containsKey(name.toLowerCase(Locale.ENGLISH)))
 		{
 			try
@@ -189,10 +188,12 @@ public class NMSCreator162
 
 			return null;
 		}
+
 		console.initWorld(internal, (IWorldDataServer) worlddata, (SaveData) worlddata, worlddata.getGeneratorSettings());
 		internal.setSpawnFlags(true, true);
 		console.worldServer.put(internal.getDimensionKey(), internal);
 		server.getPluginManager().callEvent((Event) new WorldInitEvent((World) internal.getWorld()));
+
 		if(loadSpawn)
 		{
 			server.getServer().loadSpawn(internal.getChunkProvider().playerChunkMap.worldLoadListener, internal);
@@ -205,5 +206,15 @@ public class NMSCreator162
 
 		server.getPluginManager().callEvent((Event) new WorldLoadEvent((World) internal.getWorld()));
 		return (World) internal.getWorld();
+	}
+
+	private Dimension getConsoleDimension(DedicatedServer console)
+	{
+		if(PaperLib.isPaper())
+		{
+			return new V((MinecraftServer) console, true).get("customRegistry");
+		}
+
+		return console.f;
 	}
 }

@@ -24,6 +24,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.gen.atomics.AtomicMulticache;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.IrisContext;
 import com.volmit.iris.gen.scaffold.IrisMetrics;
 import com.volmit.iris.gen.scaffold.Provisioned;
@@ -88,7 +89,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		tickLatch = new ChronoLatch(650);
 		perSecond = new ChronoLatch(1000);
 		hlast = M.ms();
-		cache = new AtomicMulticache((IrisTerrainProvider) this);
+		cache = new AtomicMulticache((SkyTerrainProvider) this);
 		CNG.creates = 0;
 		generated = 0;
 		ticks = 0;
@@ -112,7 +113,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		warnings.add(warning);
 	}
 
-	protected abstract void onGenerate(RNG masterRandom, int x, int z, TerrainChunk chunk);
+	protected abstract GeneratedChunk onGenerate(RNG masterRandom, int x, int z, TerrainChunk chunk);
 
 	protected abstract void onInit(RNG masterRandom);
 
@@ -382,7 +383,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	}
 
 	@Override
-	public void generate(Random no, int x, int z, TerrainChunk terrain)
+	public GeneratedChunk generate(Random no, int x, int z, TerrainChunk terrain)
 	{
 		setHotloadable(false);
 		if(!isDev())
@@ -394,20 +395,20 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 		if(failing)
 		{
 			generateFailure(terrain);
-			return;
+			return GeneratedChunk.builder().build();
 		}
 
 		try
 		{
 			RNG random = new RNG(getTarget().getSeed());
 			init(random.nextParallelRNG(0));
-			onGenerate(random, x, z, terrain);
+			GeneratedChunk c = onGenerate(random, x, z, terrain);
 			generated++;
 			long hits = CNG.hits;
 			CNG.hits = 0;
 			Iris.instance.hit(hits);
 			setHotloadable(true);
-			return;
+			return c;
 		}
 
 		catch(Throwable e)
@@ -417,6 +418,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 		setHotloadable(true);
 		generateFailure(terrain);
+		return GeneratedChunk.builder().build();
 	}
 
 	private void doCheckHotload()
@@ -468,7 +470,6 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 				Iris.instance.imsg(i, C.DARK_RED + "Iris Generator has crashed!");
 				Iris.instance.imsg(i, C.RED + "- Check the console for the error.");
 				Iris.instance.imsg(i, C.RED + "- To Regen, use /iris std open <dim>");
-				Iris.instance.imsg(i, C.RED + "- To Retry the chunk, use /iris world retry");
 			}
 		});
 

@@ -82,11 +82,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
-	@DontObfuscate
-	@MinNumber(0)
-	@Desc("Try to fill a container with loot up to this many times to avoid too many empty chests.")
-	private int lootTries = 5;
-
 	@Required
 	@MinNumber(0)
 	@DontObfuscate
@@ -168,6 +163,10 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Generate vanilla structures")
 	private boolean vanillaStructures = false;
 
+	@DontObfuscate
+	@Desc("If defined, If air is defined below the area, this fluid will always place")
+	private IrisCaveFluid forceFluid = new IrisCaveFluid();
+	
 	@DontObfuscate
 	@Desc("Generate decorations or not")
 	private boolean decorate = true;

@@ -94,8 +94,16 @@ public class IrisCompat
 				return txf;
 			}
 
+			int nomore = 64;
+
 			searching: while(true)
 			{
+				if(nomore < 0)
+				{
+					return B.parseBlockDataOrNull("STONE").getType();
+				}
+
+				nomore--;
 				if(err-- <= 0)
 				{
 					break;
@@ -127,9 +135,17 @@ public class IrisCompat
 			{
 				return tx.getType();
 			}
+			nomore = 64;
 
 			searching: while(true)
 			{
+				if(nomore < 0)
+				{
+					return B.parseBlockDataOrNull("STONE").getType();
+				}
+
+				nomore--;
+
 				if(err-- <= 0)
 				{
 					return B.parseBlockDataOrNull("STONE").getType();

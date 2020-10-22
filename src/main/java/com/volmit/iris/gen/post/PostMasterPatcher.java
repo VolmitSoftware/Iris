@@ -388,7 +388,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 
 								if(!cancel && isAirOrWater(x, c, z, currentPostX, currentPostZ, currentData))
 								{
-									Slab slab = (Slab) d.getBlockData();
+									Slab slab = (Slab) d.getBlockData().clone();
 									slab.setType(Type.TOP);
 									setPostBlock(x, c, z, d, currentPostX, currentPostZ, currentData);
 								}

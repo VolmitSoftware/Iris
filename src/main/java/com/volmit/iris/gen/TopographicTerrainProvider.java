@@ -12,6 +12,7 @@ import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.layer.GenLayerCarve;
 import com.volmit.iris.gen.layer.GenLayerCave;
 import com.volmit.iris.gen.layer.GenLayerRavine;
+import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.noise.CNG;
@@ -19,6 +20,7 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisCaveFluid;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
@@ -119,7 +121,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 	}
 
 	@Override
-	protected void onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
+	protected int onGenerateColumn(int cx, int cz, int rx, int rz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled)
 	{
 		if(x > 15 || x < 0 || z > 15 || z < 0)
 		{
@@ -141,6 +143,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		IrisBiome biome = sampleTrueBiome(rx, rz);
 		IrisBiome carveBiome = null;
 		Biome onlyBiome = Iris.biome3d ? null : biome.getGroundBiome(getMasterRandom(), rz, getDimension().getFluidHeight(), rx);
+		IrisCaveFluid forceFluid = getDimension().getForceFluid().hasFluid(getData()) ? getDimension().getForceFluid() : null;
 
 		if(biome == null)
 		{
@@ -281,6 +284,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 				decorateLand(crand, carveBiome, sliver, k, rx, rz, block);
 			}
+
+			if(forceFluid != null && B.isAir(block) && (forceFluid.isInverseHeight() ? k >= forceFluid.getFluidHeight() : k <= forceFluid.getFluidHeight()))
+			{
+				sliver.set(k, forceFluid.getFluid(getData()));
+			}
 		}
 
 		// Carve out biomes
@@ -339,17 +347,21 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		{
 			decorateLand(crand, biome, sliver, Math.max(height, fluidHeight), rx, rz, block);
 		}
+
+		return height;
 	}
 
 	@Override
-	protected void onGenerate(RNG random, int x, int z, TerrainChunk terrain)
+	protected GeneratedChunk onGenerate(RNG random, int x, int z, TerrainChunk terrain)
 	{
-		super.onGenerate(random, x, z, terrain);
+		GeneratedChunk map = super.onGenerate(random, x, z, terrain);
 
 		if(!getDimension().isVanillaCaves())
 		{
 			generateDeposits(random.nextParallelRNG(x * ((z * 39) + 10000)).nextParallelRNG(z + z - x), terrain, x, z);
 		}
+
+		return map;
 	}
 
 	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, FastBlockData block)

@@ -17,7 +17,7 @@ public interface TerrainProvider
 
 	public BlockVector computeSpawn(Function<BlockVector, Boolean> allowed);
 
-	public void generate(Random random, int x, int z, TerrainChunk chunk);
+	public GeneratedChunk generate(Random random, int x, int z, TerrainChunk chunk);
 
 	public boolean canSpawn(int x, int z);
 

@@ -13,15 +13,14 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gui.PregenGui;
 
 import io.papermc.lib.PaperLib;
-import lombok.Getter;
+import org.bukkit.scheduler.BukkitTask;
 
 public class PregenJob implements Listener
 {
-	@Getter
 	private World world;
 	private int size;
 	private int total;
@@ -53,6 +52,8 @@ public class PregenJob implements Listener
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
+	private BukkitTask pausedTask;
+	private boolean isPaused = false;
 	int xc = 0;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
@@ -77,7 +78,7 @@ public class PregenJob implements Listener
 		this.chunkZ = 0;
 		completed = false;
 		first = true;
-		tp = (world.getGenerator() instanceof ProvisionBukkit) ? (IrisTerrainProvider) ((ProvisionBukkit) world.getGenerator()).getProvider() : null;
+		tp = IrisWorlds.getProvider(world);
 
 		chunkSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
 		{
@@ -119,6 +120,40 @@ public class PregenJob implements Listener
 			}
 		}
 
+		catch(Throwable e)
+		{
+
+		}
+		task = -1;
+	}
+
+	// TODO: Cannot get paused value from this. Have to check bukkit tasks, not sure how.
+	// TODO: Trying to add functionality here to allow for pausing an continuing.
+	public static boolean isPaused(){
+		return false;
+		//return this.isPaused;
+	}
+
+	public static void pause()
+	{
+		try
+		{
+			// Save the task, tell bukkit to cancel it
+			stop();
+		}
+		catch(Throwable e)
+		{
+
+		}
+		task = -1;
+	}
+
+	public static void resume()
+	{
+		try
+		{
+			// Load task and tell bukkit to continue it
+		}
 		catch(Throwable e)
 		{
 
@@ -375,9 +410,17 @@ public class PregenJob implements Listener
 	@EventHandler
 	public void on(ChunkUnloadEvent e)
 	{
-		if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
+		try
 		{
-			consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
+			if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
+			{
+				consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
+			}
+		}
+
+		catch(Throwable ex)
+		{
+
 		}
 	}
 
@@ -418,11 +461,5 @@ public class PregenJob implements Listener
 
 		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) s.getMilliseconds(), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
 		};
-	}
-
-	public void progressMCA(Color color, int x, int z, double pct)
-	{
-		// TODO Auto-generated method stub
-
 	}
 }

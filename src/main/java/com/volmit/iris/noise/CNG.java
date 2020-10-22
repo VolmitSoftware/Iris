@@ -285,6 +285,7 @@ public class CNG
 		{
 			Iris.error("Failed to sample noise into array " + v.size() + " nodes");
 			Iris.error("Noise Source: " + generator.getClass().getSimpleName());
+
 		}
 
 		return v.get(0);

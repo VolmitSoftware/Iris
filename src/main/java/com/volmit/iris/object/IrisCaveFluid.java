@@ -22,12 +22,11 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCaveFluid
 {
-
 	@Required
 	@MaxNumber(255)
 	@MinNumber(0)
 	@DontObfuscate
-	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")
+	@Desc("The fluid height of the cave")
 	private int fluidHeight = 35;
 
 	@DontObfuscate

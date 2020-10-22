@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisMetrics;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.util.C;
@@ -30,7 +29,7 @@ public class CommandIrisMetrics extends MortarCommand
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
-			if(!(world.getGenerator() instanceof ProvisionBukkit))
+			if(!IrisWorlds.isIrisWorld(world))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;

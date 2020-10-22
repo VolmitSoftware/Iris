@@ -228,7 +228,7 @@ public class Iris extends MortarPlugin
 
 			for(World i : Bukkit.getWorlds())
 			{
-				if(i.getGenerator() instanceof ProvisionBukkit)
+				if(IrisWorlds.isIrisWorld(i))
 				{
 					IrisWorlds.getProvider(i).close();
 				}

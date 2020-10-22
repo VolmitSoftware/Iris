@@ -50,7 +50,9 @@ public abstract class MortarCommand implements ICommand
 					continue;
 				}
 			}
+
 			b = true;
+
 			sender.sendMessage(C.GREEN + i.getNode() + " " + C.WHITE + i.getArgsUsage() + C.GRAY + " - " + i.getDescription());
 		}
 
@@ -92,18 +94,27 @@ public abstract class MortarCommand implements ICommand
 		requiredPermissions.add(node);
 	}
 
-	public void rejectAny(MortarSender sender, String[] a)
+	public void rejectAny(int past, MortarSender sender, String[] a)
 	{
-		if(a.length > 0)
+		if(a.length > past)
 		{
+			int p = past;
+
 			String m = "";
 
 			for(String i : a)
 			{
-				m += i + " ";
+				p--;
+				if(p < 0)
+				{
+					m += i + ", ";
+				}
 			}
 
-			sender.sendMessage("Unknown Parameters: " + m);
+			if(!m.trim().isEmpty())
+			{
+				sender.sendMessage("Parameters Ignored: " + m);
+			}
 		}
 	}
 

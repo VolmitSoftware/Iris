@@ -37,7 +37,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 			Player p = sender.player();
 			World world = p.getWorld();
 
-			if(!(world.getGenerator() instanceof ProvisionBukkit))
+			if(!IrisWorlds.isIrisWorld(world))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;

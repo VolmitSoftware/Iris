@@ -4,9 +4,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
-import com.volmit.iris.gen.scaffold.Provisioned;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.Spiraler;
@@ -28,25 +26,23 @@ public class CommandIrisRegen extends MortarCommand
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
-			if(!(world.getGenerator() instanceof ProvisionBukkit))
+			if(!IrisWorlds.isIrisWorld(world))
 			{
 				sender.sendMessage("You must be in an iris world.");
 				return true;
 			}
 
-			Provisioned pr = (Provisioned) world.getGenerator();
-
-			if(((IrisTerrainProvider) pr.getProvider()).isFailing())
+			if(IrisWorlds.getProvider(world).isFailing())
 			{
 				sender.sendMessage("This world is in a failed state! Cannot Regenerate!");
 				return true;
 			}
 
-			pr.clearRegeneratedLists();
+			IrisWorlds.getProvisioned(world).clearRegeneratedLists();
 			if(args.length == 0)
 			{
 				sender.sendMessage("Regenerating your chunk");
-				pr.regenerate(p.getLocation().getChunk().getX(), p.getLocation().getChunk().getZ());
+				IrisWorlds.getProvisioned(world).regenerate(p.getLocation().getChunk().getX(), p.getLocation().getChunk().getZ());
 				return true;
 			}
 
@@ -54,7 +50,7 @@ public class CommandIrisRegen extends MortarCommand
 			{
 				int m = Integer.valueOf(args[0]);
 				sender.sendMessage("Regenerating " + (m * m) + " Chunks Surrounding you");
-				new Spiraler(m, m, (a, b) -> pr.regenerate(a + p.getLocation().getChunk().getX(), b + p.getLocation().getChunk().getZ())).drain();
+				new Spiraler(m, m, (a, b) -> IrisWorlds.getProvisioned(world).regenerate(a + p.getLocation().getChunk().getX(), b + p.getLocation().getChunk().getZ())).drain();
 			}
 
 			catch(Throwable e)

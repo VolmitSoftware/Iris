@@ -75,7 +75,6 @@ public class CommandIrisPregen extends MortarCommand
 
 			return true;
 		}
-
 		else
 		{
 			sender.sendMessage("Players only.");

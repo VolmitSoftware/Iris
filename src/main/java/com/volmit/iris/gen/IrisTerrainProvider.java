@@ -51,7 +51,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisTerrainProvider extends SkyTerrainProvider implements IrisContext
+public class IrisTerrainProvider extends PostBlockTerrainProvider implements IrisContext
 {
 	private IrisBiome hb = null;
 	private IrisRegion hr = null;

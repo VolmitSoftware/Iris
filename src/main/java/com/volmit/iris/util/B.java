@@ -1,32 +1,23 @@
 package com.volmit.iris.util;
 
-import java.util.concurrent.TimeUnit;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.type.Leaves;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
 
 public class B
 {
 	private static final FastBlockData AIR = FastBlockData.of(Material.AIR);
-	private static final LoadingCache<String, FastBlockData> bdc = Caffeine.newBuilder().expireAfterAccess(60000, TimeUnit.MILLISECONDS).build((c) -> null);
+	private static final KMap<String, FastBlockData> bdc = new KMap<>();
 	private static final KList<String> nulls = new KList<>();
-	private static final KList<FastBlockData> storage = new KList<>();
-	private static final KList<FastBlockData> storageChest = new KList<>();
-	private static final KList<FastBlockData> lit = new KList<>();
-	private static final KList<FastBlockData> updatable = new KList<>();
-	private static final KList<FastBlockData> notUpdatable = new KList<>();
 	private static final KList<String> canPlaceOn = new KList<>();
 	private static final KList<FastBlockData> decorant = new KList<>();
 	private static final IrisDimension defaultCompat = new IrisDimension();
 	private static final KMap<Material, Boolean> solid = new KMap<>();
-	private static final LoadingCache<String, FastBlockData> types = Caffeine.newBuilder().expireAfterAccess(30000, TimeUnit.MILLISECONDS).build((c) -> null);
-	private static final LoadingCache<String, FastBlockData> typesb = Caffeine.newBuilder().expireAfterAccess(30000, TimeUnit.MILLISECONDS).build((c) -> null);
+	private static final KMap<String, FastBlockData> types = new KMap<>();
+	private static final KMap<String, FastBlockData> typesb = new KMap<>();
 	private static IrisLock lock = new IrisLock("Typelock");
 
 	public static FastBlockData get(String bd)
@@ -44,7 +35,7 @@ public class B
 		return AIR;
 	}
 
-	public static LoadingCache<String, FastBlockData> getBdc()
+	public static KMap<String, FastBlockData> getBdc()
 	{
 		return bdc;
 	}
@@ -52,31 +43,6 @@ public class B
 	public static KList<String> getNulls()
 	{
 		return nulls;
-	}
-
-	public static KList<FastBlockData> getStorage()
-	{
-		return storage;
-	}
-
-	public static KList<FastBlockData> getStoragechest()
-	{
-		return storageChest;
-	}
-
-	public static KList<FastBlockData> getLit()
-	{
-		return lit;
-	}
-
-	public static KList<FastBlockData> getUpdatable()
-	{
-		return updatable;
-	}
-
-	public static KList<FastBlockData> getNotupdatable()
-	{
-		return notUpdatable;
 	}
 
 	public static KList<String> getCanplaceon()
@@ -99,12 +65,12 @@ public class B
 		return solid;
 	}
 
-	public static LoadingCache<String, FastBlockData> getTypes()
+	public static KMap<String, FastBlockData> getTypes()
 	{
 		return types;
 	}
 
-	public static LoadingCache<String, FastBlockData> getTypesb()
+	public static KMap<String, FastBlockData> getTypesb()
 	{
 		return typesb;
 	}
@@ -118,8 +84,13 @@ public class B
 	{
 		String bd = bdx.trim().toUpperCase();
 
-		return typesb.get(bd, (k) ->
+		return typesb.compute(bd, (k, v) ->
 		{
+			if(v != null)
+			{
+				return v;
+			}
+
 			try
 			{
 				return FastBlockData.of(Material.valueOf(k));
@@ -156,12 +127,7 @@ public class B
 
 	public static boolean isSolid(Material mat)
 	{
-		if(!solid.containsKey(mat))
-		{
-			solid.put(mat, mat.isSolid());
-		}
-
-		return solid.get(mat);
+		return mat.isSolid();
 	}
 
 	public static FastBlockData mat(String bd)
@@ -327,13 +293,8 @@ public class B
 
 	public static boolean isStorage(FastBlockData mat)
 	{
-		if(storage.contains(mat))
-		{
-			return true;
-		}
-
 		// @builder
-		boolean str = mat.matEquals(B.mat("CHEST")) 
+		return mat.matEquals(B.mat("CHEST")) 
 				|| mat.matEquals(B.mat("TRAPPED_CHEST")) 
 				|| mat.matEquals(B.mat("SHULKER_BOX")) 
 				|| mat.matEquals(B.mat("WHITE_SHULKER_BOX")) 
@@ -360,27 +321,12 @@ public class B
 				|| mat.matEquals(B.mat("BLAST_FURNACE"))
 				|| mat.matEquals(B.mat("SMOKER"));
 		//@done
-
-		if(str)
-		{
-			lock.lock();
-			storage.add(mat);
-			lock.unlock();
-			return true;
-		}
-
-		return false;
 	}
 
 	public static boolean isStorageChest(FastBlockData mat)
 	{
-		if(storageChest.contains(mat))
-		{
-			return true;
-		}
-
 		// @builder
-		boolean str = mat.matEquals(B.mat("CHEST")) 
+		return mat.matEquals(B.mat("CHEST")) 
 				|| mat.matEquals(B.mat("TRAPPED_CHEST")) 
 				|| mat.matEquals(B.mat("SHULKER_BOX")) 
 				|| mat.matEquals(B.mat("WHITE_SHULKER_BOX")) 
@@ -404,27 +350,12 @@ public class B
 				|| mat.matEquals(B.mat("DROPPER")) 
 				|| mat.matEquals(B.mat("HOPPER"));
 		//@done
-
-		if(str)
-		{
-			lock.lock();
-			storageChest.add(mat);
-			lock.unlock();
-			return true;
-		}
-
-		return false;
 	}
 
 	public static boolean isLit(FastBlockData mat)
 	{
-		if(lit.contains(mat))
-		{
-			return true;
-		}
-
 		// @builder
-		boolean str = mat.matEquals(B.mat("GLOWSTONE")) 
+		return mat.matEquals(B.mat("GLOWSTONE")) 
 				|| mat.matEquals(B.mat("END_ROD")) 
 				|| mat.matEquals(B.mat("SOUL_SAND")) 
 				|| mat.matEquals(B.mat("TORCH")) 
@@ -446,43 +377,11 @@ public class B
 				|| mat.getType().equals(Material.BREWING_STAND) 
 				|| mat.getType().equals(Material.REDSTONE_ORE);
 		//@done
-		if(str)
-		{
-			lock.lock();
-			lit.add(mat);
-			lock.unlock();
-			return true;
-		}
-
-		return false;
 	}
 
 	public static boolean isUpdatable(FastBlockData mat)
 	{
-		if(updatable.contains(mat))
-		{
-			return true;
-		}
-
-		if(notUpdatable.contains(mat))
-		{
-			return false;
-		}
-
-		boolean str = isLit(mat) || isStorage(mat);
-
-		if(str)
-		{
-			lock.lock();
-			updatable.add(mat);
-			lock.unlock();
-			return true;
-		}
-
-		lock.lock();
-		notUpdatable.add(mat);
-		lock.unlock();
-		return false;
+		return isLit(mat) || isStorage(mat);
 	}
 
 	public static boolean isFoliage(FastBlockData d)

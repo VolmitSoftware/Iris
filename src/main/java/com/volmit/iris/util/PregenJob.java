@@ -169,7 +169,10 @@ public class PregenJob implements Listener
 
 		if(PaperLib.isPaper())
 		{
-			tickPaper();
+			for(int i = 0; i < 16; i++)
+			{
+				tickPaper();
+			}
 		}
 
 		else

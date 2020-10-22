@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.MortarCommand;

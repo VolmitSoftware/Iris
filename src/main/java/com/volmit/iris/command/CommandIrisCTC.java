@@ -43,7 +43,6 @@ public class CommandIrisCTC extends MortarCommand
 			int m = Math.min(Math.max(Integer.valueOf(args[0]), 2), 256);
 			g.changeThreadCount(m);
 			sender.sendMessage("Thread count changed to " + m);
-			rejectAny(1, sender, args);
 			return true;
 		}
 

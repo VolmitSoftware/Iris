@@ -60,11 +60,12 @@ public class CommandIrisStructureCreate extends MortarCommand
 			} else {
 				height = Integer.parseInt(args[3]);
 			}
-		} else if (args[3].equalsIgnoreCase("-3d")){
-			width = Integer.parseInt(args[2]);
-			height = Integer.parseInt(args[3]);
-			d3 = true;
 		} else {
+			for (String i : args){
+				if (i.equalsIgnoreCase("-3d")){
+					d3 = true;
+				}
+			}
 			width = Integer.parseInt(args[2]);
 			height = Integer.parseInt(args[3]);
 		}

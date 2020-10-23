@@ -36,6 +36,7 @@ public class CommandIrisCTC extends MortarCommand
 
 			if(args.length == 0){
 				sender.sendMessage("Current threads: " + g.getThreadCount());
+				sender.sendMessage("You can change the treadcount with /iris ctc <number>");
 				return true;
 			}
 

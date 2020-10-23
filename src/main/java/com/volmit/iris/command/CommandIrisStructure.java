@@ -48,6 +48,8 @@ public class CommandIrisStructure extends MortarCommand
 		
 		sender.sendMessage("Iris Structure Commands");
 		printHelp(sender);
+		sender.sendMessage("Note: This is a Procedural Structure creator,");
+		sender.sendMessage("not an object creator, see '/iris object'.");
 		return true;
 	}
 

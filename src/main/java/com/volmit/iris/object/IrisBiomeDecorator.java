@@ -156,6 +156,25 @@ public class IrisBiomeDecorator
 		return null;
 	}
 
+	public FastBlockData getBlockData100(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	{
+		if(getBlockData(data).isEmpty())
+		{
+			Iris.warn("Empty Block Data for " + b.getName());
+			return null;
+		}
+
+		double xx = x / getZoom();
+		double zz = z / getZoom();
+
+		if(getBlockData(data).size() == 1)
+		{
+			return getBlockData(data).get(0);
+		}
+
+		return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz);
+	}
+
 	public FastBlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
 	{
 		if(getBlockDataTops(data).isEmpty())

@@ -22,12 +22,6 @@ public class CommandIrisCTC extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(args.length == 0)
-		{
-			sender.sendMessage("/iris ctc " + getArgsUsage());
-			return true;
-		}
-
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
@@ -38,8 +32,14 @@ public class CommandIrisCTC extends MortarCommand
 				sender.sendMessage("You must be in an iris world.");
 				return true;
 			}
-
 			IrisTerrainProvider g = IrisWorlds.getProvider(world);
+
+			if(args.length == 0){
+				sender.sendMessage("Current threads: " + g.getThreadCount());
+				return true;
+			}
+
+
 			int m = Math.min(Math.max(Integer.valueOf(args[0]), 2), 256);
 			g.changeThreadCount(m);
 			sender.sendMessage("Thread count changed to " + m);

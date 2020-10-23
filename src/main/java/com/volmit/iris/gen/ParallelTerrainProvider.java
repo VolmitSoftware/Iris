@@ -45,6 +45,10 @@ public abstract class ParallelTerrainProvider extends DimensionalTerrainProvider
 		Iris.info("Thread Count changed to " + getThreads());
 	}
 
+	public int getThreadCount(){
+		return getThreads();
+	}
+
 	protected abstract int onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap, boolean sampled);
 
 	protected void onGenerateColumn(int cx, int cz, int wx, int wz, int x, int z, AtomicSliver sliver, BiomeMap biomeMap)

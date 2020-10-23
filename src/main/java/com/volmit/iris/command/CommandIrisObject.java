@@ -40,7 +40,7 @@ public class CommandIrisObject extends MortarCommand
 
 	public CommandIrisObject()
 	{
-		super("object", "iob", "o");
+		super("object", "iob", "o", "obj");
 		requiresPermission(Iris.perm);
 		setCategory("Object");
 		setDescription("Object Commands");

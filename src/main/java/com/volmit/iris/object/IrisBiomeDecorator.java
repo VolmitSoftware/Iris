@@ -87,10 +87,16 @@ public class IrisBiomeDecorator
 	@Desc("The palette of blocks to pick from when this decorator needs to place.")
 	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("grass"));
 
+	@ArrayType(min = 1, type = IrisBlockData.class)
+	@DontObfuscate
+	@Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
+	private KList<IrisBlockData> topPalette = new KList<IrisBlockData>();
+
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<FastBlockData>> blockDataTops = new AtomicCache<>();
 
 	public int getHeight(RNG rng, double x, double z, IrisDataManager data)
 	{
@@ -150,6 +156,29 @@ public class IrisBiomeDecorator
 		return null;
 	}
 
+	public FastBlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	{
+		if(getBlockDataTops(data).isEmpty())
+		{
+			return null;
+		}
+
+		double xx = x / getZoom();
+		double zz = z / getZoom();
+
+		if(getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance)
+		{
+			if(getBlockData(data).size() == 1)
+			{
+				return getBlockDataTops(data).get(0);
+			}
+
+			return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), xx, zz);
+		}
+
+		return null;
+	}
+
 	public KList<FastBlockData> getBlockData(IrisDataManager data)
 	{
 		return blockData.aquire(() ->
@@ -165,6 +194,24 @@ public class IrisBiomeDecorator
 			}
 
 			return blockData;
+		});
+	}
+
+	public KList<FastBlockData> getBlockDataTops(IrisDataManager data)
+	{
+		return blockDataTops.aquire(() ->
+		{
+			KList<FastBlockData> blockDataTops = new KList<>();
+			for(IrisBlockData i : topPalette)
+			{
+				FastBlockData bx = i.getBlockData(data);
+				if(bx != null)
+				{
+					blockDataTops.add(bx);
+				}
+			}
+
+			return blockDataTops;
 		});
 	}
 }

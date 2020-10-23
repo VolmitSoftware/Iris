@@ -419,6 +419,12 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				else
 				{
 					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (10000 * i.getChance()) + i.getStackMax() + i.getStackMin() + i.getZoom())), rx, rz, getData());
+					FastBlockData top = null;
+
+					if(stack > 1 && i.getTopPalette().hasElements())
+					{
+						top = i.getBlockData(biome, rng.nextParallelRNG(38887 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
+					}
 
 					if(stack == 1)
 					{
@@ -429,7 +435,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					{
 						for(int l = 0; l < stack; l++)
 						{
-							sliver.set(k + l + 1, d);
+							sliver.set(k + l + 1, l == stack - 1 && top != null ? top : d);
 						}
 					}
 				}

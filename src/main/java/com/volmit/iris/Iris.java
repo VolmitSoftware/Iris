@@ -276,7 +276,7 @@ public class Iris extends MortarPlugin
 			return;
 		}
 
-		String msg = C.GREEN + "[Iris]: " + C.GRAY + string;
+		String msg = C.GRAY + "[" + C.GREEN + "Iris" + C.GRAY + "]: " + string;
 		Bukkit.getConsoleSender().sendMessage(msg);
 		lock.unlock();
 	}

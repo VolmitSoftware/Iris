@@ -17,7 +17,7 @@ public class CommandIrisWhatHand extends MortarCommand
 		setDescription("Get the block data for holding.");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Wut");
-		setDescription("What block holding");
+		setDescription("What block am I holding");
 	}
 
 	@Override
@@ -30,6 +30,8 @@ public class CommandIrisWhatHand extends MortarCommand
 			if(!bd.getMaterial().equals(Material.AIR)) {
 				sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
 				sender.sendMessage("Full: " + C.WHITE + bd.getAsString(true));
+			} else {
+				sender.sendMessage("Please hold a block");
 			}
 		}
 

@@ -13,7 +13,7 @@ public class CommandIrisCTC extends MortarCommand
 {
 	public CommandIrisCTC()
 	{
-		super("ctc");
+		super("ctc", "threads", "thread");
 		setDescription("Change generator thread count");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");

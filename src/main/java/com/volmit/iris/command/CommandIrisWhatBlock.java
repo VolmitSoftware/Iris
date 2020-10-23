@@ -15,11 +15,11 @@ public class CommandIrisWhatBlock extends MortarCommand
 {
 	public CommandIrisWhatBlock()
 	{
-		super("block", "b");
+		super("block", "l", "bl");
 		setDescription("Get the block data for looking.");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Wut");
-		setDescription("WAILA,WAWLA etc");
+		setDescription("WAILA, WAWLA etc");
 	}
 
 	@Override
@@ -27,8 +27,18 @@ public class CommandIrisWhatBlock extends MortarCommand
 	{
 		if(sender.isPlayer())
 		{
+			BlockData bd;
 			Player p = sender.player();
-			BlockData bd = p.getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
+			try
+			{
+				bd = p.getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
+			}
+			catch (NullPointerException e)
+			{
+				sender.sendMessage("Please look at any block, not at the sky");
+				bd = null;
+			}
+
 			if(bd != null)
 			{
 				sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
@@ -68,6 +78,8 @@ public class CommandIrisWhatBlock extends MortarCommand
 				{
 					sender.sendMessage(C.YELLOW + "* Solid Block");
 				}
+			} else {
+				sender.sendMessage("Please look at any block, not at the sky");
 			}
 		}
 

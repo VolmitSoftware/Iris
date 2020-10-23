@@ -14,11 +14,11 @@ public class CommandIrisWhatBiome extends MortarCommand
 {
 	public CommandIrisWhatBiome()
 	{
-		super("biome", "bi");
+		super("biome", "bi", "b");
 		setDescription("Get the biome data you are in.");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Wut");
-		setDescription("What biome am i In");
+		setDescription("What biome am I in");
 	}
 
 	@Override

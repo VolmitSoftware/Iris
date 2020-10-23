@@ -14,6 +14,7 @@ import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 import org.bukkit.event.Event;
 import org.bukkit.event.world.WorldInitEvent;
@@ -70,6 +71,11 @@ class NMSCreator16_2 implements INMSCreator
 	@SuppressWarnings({"unchecked", "rawtypes", "resource"})
 	public World createWorld(WorldCreator creator, boolean loadSpawn)
 	{
+		if(!creator.environment().equals(Environment.NORMAL))
+		{
+			return creator.createWorld();
+		}
+
 		Provisioned pro = (Provisioned) creator.generator();
 		CraftServer server = ((CraftServer) Bukkit.getServer());
 		Map<String, World> worlds = new V(server).get("worlds");

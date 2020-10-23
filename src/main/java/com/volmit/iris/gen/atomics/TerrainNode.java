@@ -1,4 +1,4 @@
-package com.volmit.iris.generator.atomics;
+package com.volmit.iris.gen.atomics;
 
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

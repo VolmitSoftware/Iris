@@ -1,4 +1,4 @@
-package com.volmit.iris.generator.atomics;
+package com.volmit.iris.gen.atomics;
 
 public class HeightHunk extends Hunk<Byte>
 {

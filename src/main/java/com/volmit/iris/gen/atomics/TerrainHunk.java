@@ -1,4 +1,4 @@
-package com.volmit.iris.generator.atomics;
+package com.volmit.iris.gen.atomics;
 
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -28,11 +28,19 @@ public class TerrainHunk extends Hunk<TerrainNode> implements BiomeGrid, ChunkDa
 		this.biome = new Hunk<IrisBiome>(w, h, d);
 	}
 
-	public TerrainHunk(int w, int h, int d, HeightHunk hh)
+	public TerrainHunk(int w, int h, int d, Hunk<Double> noise)
 	{
 		super(w, h, d);
-		this.height = hh;
+		this.height = new HeightHunk(w, d);
 		this.biome = new Hunk<IrisBiome>(w, h, d);
+
+		for(int i = 0; i < w; i++)
+		{
+			for(int j = 0; j < d; j++)
+			{
+				height.setHeight(i, noise.highestNonNull(i, j), j);
+			}
+		}
 	}
 
 	@Override
@@ -131,6 +139,18 @@ public class TerrainHunk extends Hunk<TerrainNode> implements BiomeGrid, ChunkDa
 		if(n == null)
 		{
 			return Material.VOID_AIR.createBlockData();
+		}
+
+		return n.getBlockData();
+	}
+
+	public BlockData getBlockDataOrNull(int x, int y, int z)
+	{
+		TerrainNode n = get(x, y, z);
+
+		if(n == null)
+		{
+			return null;
 		}
 
 		return n.getBlockData();
@@ -237,5 +257,27 @@ public class TerrainHunk extends Hunk<TerrainNode> implements BiomeGrid, ChunkDa
 		b.biome = Hunk.combined(null, hhunks.toArray(new Hunk[hhunks.size()]));
 
 		return b;
+	}
+
+	public void into(ChunkData c)
+	{
+
+		for(int i = 0; i < w; i++)
+		{
+			for(int j = 0; j < h; j++)
+			{
+				for(int k = 0; k < d; k++)
+				{
+					BlockData n = getBlockData(i, j, k);
+
+					if(n == null)
+					{
+						continue;
+					}
+
+					c.setBlock(i, j, k, n);
+				}
+			}
+		}
 	}
 }

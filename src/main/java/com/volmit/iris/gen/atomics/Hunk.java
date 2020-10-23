@@ -1,7 +1,8 @@
-package com.volmit.iris.generator.atomics;
+package com.volmit.iris.gen.atomics;
 
 import org.bouncycastle.util.Arrays;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.Supplier2;
 import com.volmit.iris.util.Supplier3;
@@ -19,6 +20,11 @@ public class Hunk<T>
 	@SuppressWarnings("unchecked")
 	public Hunk(int w, int h, int d)
 	{
+		if(w * h * d < 0)
+		{
+			Iris.error(w + " " + h + " " + d + " is not valid!");
+		}
+
 		this.w = w;
 		this.h = h;
 		this.d = d;
@@ -138,7 +144,10 @@ public class Hunk<T>
 
 	public void set(int x, int z, int y1, int y2, T t)
 	{
-		set(x, x, y1, y2, z, z, t);
+		for(int i = y1; i <= y2; i++)
+		{
+			set(x, i, z, t);
+		}
 	}
 
 	public void set(int x1, int y1, int z1, int x2, int y2, int z2, T t)
@@ -163,6 +172,21 @@ public class Hunk<T>
 	public T get(int x, int y, int z)
 	{
 		return data[index(x, y, z)];
+	}
+
+	public T get(int x, int y, int z, T oob)
+	{
+		if(x >= w || y >= h || z >= d)
+		{
+			return oob;
+		}
+
+		return data[index(x, y, z)];
+	}
+
+	public T getClosest(int x, int y, int z)
+	{
+		return data[index(x >= w ? w - 1 : x, y >= h ? h - 1 : y, z >= d ? d - 1 : z)];
 	}
 
 	public void setInvertedY(int x, int y, int z, T t)
@@ -276,5 +300,18 @@ public class Hunk<T>
 		}
 
 		return b;
+	}
+
+	public int highestNonNull(int x, int z)
+	{
+		for(int i = h - 1; i >= 0; i--)
+		{
+			if(get(x, i, z) != null)
+			{
+				return i;
+			}
+		}
+
+		return 0;
 	}
 }

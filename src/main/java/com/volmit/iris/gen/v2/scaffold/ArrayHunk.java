@@ -1,28 +1,23 @@
-package com.volmit.iris.gen.atomics;
+package com.volmit.iris.gen.v2.scaffold;
 
 import org.bouncycastle.util.Arrays;
-
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.Function3;
-import com.volmit.iris.util.Supplier2;
-import com.volmit.iris.util.Supplier3;
 
 import lombok.Data;
 
 @Data
-public class Hunk<T>
+public class ArrayHunk<T> implements Hunk<T>
 {
-	protected final int w;
-	protected final int h;
-	protected final int d;
-	protected final T[] data;
+	private final int w;
+	private final int h;
+	private final int d;
+	private final T[] data;
 
 	@SuppressWarnings("unchecked")
-	public Hunk(int w, int h, int d)
+	public ArrayHunk(int w, int h, int d)
 	{
 		if(w * h * d < 0)
 		{
-			Iris.error(w + " " + h + " " + d + " is not valid!");
+			throw new RuntimeException("Unsupported size " + w + " " + h + " " + d);
 		}
 
 		this.w = w;
@@ -49,9 +44,10 @@ public class Hunk<T>
 	 *            The max z (exclusive)
 	 * @return the new hunk (x2-x1, y2-y1, z2-z1)
 	 */
-	public Hunk<T> crop(int x1, int y1, int z1, int x2, int y2, int z2)
+	@Override
+	public ArrayHunk<T> crop(int x1, int y1, int z1, int x2, int y2, int z2)
 	{
-		Hunk<T> h = new Hunk<T>(x2 - x1, y2 - y1, z2 - z1);
+		ArrayHunk<T> h = new ArrayHunk<T>(x2 - x1, y2 - y1, z2 - z1);
 
 		for(int i = x1; i < x2; i++)
 		{
@@ -79,7 +75,8 @@ public class Hunk<T>
 	 * @param hunk
 	 *            the hunk to insert
 	 */
-	public void insert(int offX, int offY, int offZ, Hunk<T> hunk)
+	@Override
+	public void insert(int offX, int offY, int offZ, ArrayHunk<T> hunk)
 	{
 		insert(offX, offY, offZ, hunk, false);
 	}
@@ -90,7 +87,8 @@ public class Hunk<T>
 	 * @param hunk
 	 *            the hunk to insert
 	 */
-	public void insert(Hunk<T> hunk)
+	@Override
+	public void insert(ArrayHunk<T> hunk)
 	{
 		insert(0, 0, 0, hunk, false);
 	}
@@ -103,7 +101,8 @@ public class Hunk<T>
 	 * @param inverted
 	 *            invert the inserted hunk or not
 	 */
-	public void insert(Hunk<T> hunk, boolean inverted)
+	@Override
+	public void insert(ArrayHunk<T> hunk, boolean inverted)
 	{
 		insert(0, 0, 0, hunk, inverted);
 	}
@@ -123,7 +122,8 @@ public class Hunk<T>
 	 * @param invertY
 	 *            should the inserted hunk be inverted
 	 */
-	public void insert(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY)
+	@Override
+	public void insert(int offX, int offY, int offZ, ArrayHunk<T> hunk, boolean invertY)
 	{
 		if(offX + (hunk.getW() - 1) >= w || offY + (hunk.getH() - 1) >= h || offZ + (hunk.getD() - 1) >= d || offX < 0 || offY < 0 || offZ < 0)
 		{
@@ -142,14 +142,25 @@ public class Hunk<T>
 		}
 	}
 
-	public void set(int x, int z, int y1, int y2, T t)
-	{
-		for(int i = y1; i <= y2; i++)
-		{
-			set(x, i, z, t);
-		}
-	}
-
+	/**
+	 * Set a region
+	 * 
+	 * @param x1
+	 *            inclusive 1st x
+	 * @param y1
+	 *            inclusive 1st y
+	 * @param z1
+	 *            inclusive 1st z
+	 * @param x2
+	 *            inclusive 2nd x
+	 * @param y2
+	 *            inclusive 2nd y
+	 * @param z2
+	 *            inclusive 2nd z
+	 * @param t
+	 *            the value to set
+	 */
+	@Override
 	public void set(int x1, int y1, int z1, int x2, int y2, int z2, T t)
 	{
 		for(int i = x1; i <= x2; i++)
@@ -164,39 +175,56 @@ public class Hunk<T>
 		}
 	}
 
+	/**
+	 * Set a value at the given position
+	 * 
+	 * @param x
+	 *            the x
+	 * @param y
+	 *            the y
+	 * @param z
+	 *            the z
+	 * @param t
+	 *            the value
+	 */
+	@Override
 	public void set(int x, int y, int z, T t)
 	{
 		data[index(x, y, z)] = t;
 	}
 
+	/**
+	 * Get a value at the given position
+	 * 
+	 * @param x
+	 *            the x
+	 * @param y
+	 *            the y
+	 * @param z
+	 *            the z
+	 * @return the value or null
+	 */
+	@Override
 	public T get(int x, int y, int z)
 	{
 		return data[index(x, y, z)];
 	}
 
-	public T get(int x, int y, int z, T oob)
-	{
-		if(x >= w || y >= h || z >= d)
-		{
-			return oob;
-		}
-
-		return data[index(x, y, z)];
-	}
-
+	/**
+	 * Get the value to the closest valid position
+	 * 
+	 * @param x
+	 *            the x
+	 * @param y
+	 *            the y
+	 * @param z
+	 *            the z
+	 * @return the value closest to the border of the hunk
+	 */
+	@Override
 	public T getClosest(int x, int y, int z)
 	{
 		return data[index(x >= w ? w - 1 : x, y >= h ? h - 1 : y, z >= d ? d - 1 : z)];
-	}
-
-	public void setInvertedY(int x, int y, int z, T t)
-	{
-		data[index(x, h - y, z)] = t;
-	}
-
-	public T getInvertedY(int x, int y, int z)
-	{
-		return data[index(x, h - y, z)];
 	}
 
 	protected int index(int x, int y, int z)
@@ -209,68 +237,29 @@ public class Hunk<T>
 		return (z * w * h) + (y * w) + x;
 	}
 
-	public void fill(int ox, int oy, int oz, Function3<Integer, Integer, Integer, T> f)
-	{
-		for(int i = ox; i < ox + getW(); i++)
-		{
-			for(int j = oy; j < oy + getH(); j++)
-			{
-				for(int k = oz; k < oz + getD(); k++)
-				{
-					set(i - ox, j - oy, k - oz, f.apply(i, j, k));
-				}
-			}
-		}
-	}
-
-	public void forEach(Supplier3<Integer, Integer, Integer> t)
-	{
-		for(int i = 0; i < getW(); i++)
-		{
-			for(int j = 0; j < getH(); j++)
-			{
-				for(int k = 0; k < getD(); k++)
-				{
-					t.get(i, j, k);
-				}
-			}
-		}
-	}
-
-	public void forEachXZ(Supplier2<Integer, Integer> t)
-	{
-		for(int i = 0; i < getW(); i++)
-		{
-			for(int k = 0; k < getD(); k++)
-			{
-				t.get(i, k);
-			}
-		}
-	}
-
+	@Override
 	public void fill(T t)
 	{
 		Arrays.fill(data, t);
 	}
 
 	@SafeVarargs
-	public static <T> Hunk<T> combined(T defaultNode, Hunk<T>... hunks)
+	public static <T> ArrayHunk<T> combined(ArrayHunk<T>... hunks)
 	{
 		int w = 0;
 		int h = 0;
 		int d = 0;
 
-		for(Hunk<T> i : hunks)
+		for(ArrayHunk<T> i : hunks)
 		{
 			w = Math.max(w, i.getW());
 			h = Math.max(h, i.getH());
 			d = Math.max(d, i.getD());
 		}
 
-		Hunk<T> b = new Hunk<T>(w, h, d);
-		b.fill(defaultNode);
+		ArrayHunk<T> b = new ArrayHunk<T>(w, h, d);
 
-		for(Hunk<T> i : hunks)
+		for(ArrayHunk<T> i : hunks)
 		{
 			b.insert(i);
 		}
@@ -278,40 +267,21 @@ public class Hunk<T>
 		return b;
 	}
 
-	@SafeVarargs
-	public static <T> Hunk<T> combined(Hunk<T>... hunks)
+	@Override
+	public int getWidth()
 	{
-		int w = 0;
-		int h = 0;
-		int d = 0;
-
-		for(Hunk<T> i : hunks)
-		{
-			w = Math.max(w, i.getW());
-			h = Math.max(h, i.getH());
-			d = Math.max(d, i.getD());
-		}
-
-		Hunk<T> b = new Hunk<T>(w, h, d);
-
-		for(Hunk<T> i : hunks)
-		{
-			b.insert(i);
-		}
-
-		return b;
+		return w;
 	}
 
-	public int highestNonNull(int x, int z)
+	@Override
+	public int getDepth()
 	{
-		for(int i = h - 1; i >= 0; i--)
-		{
-			if(get(x, i, z) != null)
-			{
-				return i;
-			}
-		}
+		return h;
+	}
 
-		return 0;
+	@Override
+	public int getHeight()
+	{
+		return d;
 	}
 }

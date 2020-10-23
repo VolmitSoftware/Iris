@@ -551,6 +551,11 @@ public class NMSChunkGenerator16_2_PAPER extends ChunkGenerator implements Provi
 					{
 						continue;
 					}
+					
+					if(var13.equals(StructureGenerator.OCEAN_RUIN))
+					{
+						continue;
+					}
 
 					if(var13.equals(StructureGenerator.BASTION_REMNANT))
 					{

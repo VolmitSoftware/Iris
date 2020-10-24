@@ -26,6 +26,12 @@ public class ArrayHunk<T> implements Hunk<T>
 		data = (T[]) new Object[w * h * d];
 	}
 
+	@Override
+	public Hunk<T> croppedView(int x1, int y1, int z1, int x2, int y2, int z2)
+	{
+		return new HunkView<T>(this, x2 - x1, y2 - y1, z2 - z1, x1, y1, z1);
+	}
+
 	/**
 	 * Create a new hunk from a section of this hunk.
 	 * 
@@ -76,7 +82,7 @@ public class ArrayHunk<T> implements Hunk<T>
 	 *            the hunk to insert
 	 */
 	@Override
-	public void insert(int offX, int offY, int offZ, ArrayHunk<T> hunk)
+	public void insert(int offX, int offY, int offZ, Hunk<T> hunk)
 	{
 		insert(offX, offY, offZ, hunk, false);
 	}
@@ -88,7 +94,7 @@ public class ArrayHunk<T> implements Hunk<T>
 	 *            the hunk to insert
 	 */
 	@Override
-	public void insert(ArrayHunk<T> hunk)
+	public void insert(Hunk<T> hunk)
 	{
 		insert(0, 0, 0, hunk, false);
 	}
@@ -102,7 +108,7 @@ public class ArrayHunk<T> implements Hunk<T>
 	 *            invert the inserted hunk or not
 	 */
 	@Override
-	public void insert(ArrayHunk<T> hunk, boolean inverted)
+	public void insert(Hunk<T> hunk, boolean inverted)
 	{
 		insert(0, 0, 0, hunk, inverted);
 	}
@@ -123,18 +129,18 @@ public class ArrayHunk<T> implements Hunk<T>
 	 *            should the inserted hunk be inverted
 	 */
 	@Override
-	public void insert(int offX, int offY, int offZ, ArrayHunk<T> hunk, boolean invertY)
+	public void insert(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY)
 	{
-		if(offX + (hunk.getW() - 1) >= w || offY + (hunk.getH() - 1) >= h || offZ + (hunk.getD() - 1) >= d || offX < 0 || offY < 0 || offZ < 0)
+		if(offX + (hunk.getWidth() - 1) >= w || offY + (hunk.getHeight() - 1) >= h || offZ + (hunk.getDepth() - 1) >= d || offX < 0 || offY < 0 || offZ < 0)
 		{
-			throw new RuntimeException("Cannot insert hunk " + hunk.getW() + "," + hunk.getH() + "," + hunk.getD() + " into Hunk " + w + "," + h + "," + d + " with offset " + offZ + "," + offY + "," + offZ);
+			throw new RuntimeException("Cannot insert hunk " + hunk.getWidth() + "," + hunk.getHeight() + "," + hunk.getDepth() + " into Hunk " + w + "," + h + "," + d + " with offset " + offZ + "," + offY + "," + offZ);
 		}
 
-		for(int i = offX; i < offX + hunk.getW(); i++)
+		for(int i = offX; i < offX + hunk.getWidth(); i++)
 		{
-			for(int j = offY; j < offY + hunk.getH(); j++)
+			for(int j = offY; j < offY + hunk.getHeight(); j++)
 			{
-				for(int k = offZ; k < offZ + hunk.getD(); k++)
+				for(int k = offZ; k < offZ + hunk.getDepth(); k++)
 				{
 					set(i, j, k, hunk.get(i - offX, j - offY, k - offZ));
 				}
@@ -283,5 +289,35 @@ public class ArrayHunk<T> implements Hunk<T>
 	public int getHeight()
 	{
 		return d;
+	}
+
+	@Override
+	public Hunk<T> getFace(HunkFace f)
+	{
+		switch(f)
+		{
+			case BOTTOM:
+				return croppedView(0, 0, 0, getWidth() - 1, 0, getDepth() - 1);
+			case EAST:
+				return croppedView(getWidth() - 1, 0, 0, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			case NORTH:
+				return croppedView(0, 0, 0, getWidth() - 1, getHeight() - 1, 0);
+			case SOUTH:
+				return croppedView(0, 0, 0, 0, getHeight() - 1, getDepth() - 1);
+			case TOP:
+				return croppedView(0, getHeight() - 1, 0, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			case WEST:
+				return croppedView(0, 0, getDepth() - 1, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			default:
+				break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Hunk<T> getSource()
+	{
+		return null;
 	}
 }

@@ -2,6 +2,9 @@ package com.volmit.iris.gen.v2.scaffold;
 
 public class HunkView<T> implements Hunk<T>
 {
+	private final int ox;
+	private final int oy;
+	private final int oz;
 	private final int w;
 	private final int h;
 	private final int d;
@@ -14,10 +17,24 @@ public class HunkView<T> implements Hunk<T>
 
 	public HunkView(Hunk<T> src, int w, int h, int d)
 	{
+		this(src, w, h, d, 0, 0, 0);
+	}
+
+	public HunkView(Hunk<T> src, int w, int h, int d, int ox, int oy, int oz)
+	{
 		this.src = src;
 		this.w = w;
 		this.h = h;
 		this.d = d;
+		this.ox = ox;
+		this.oy = oy;
+		this.oz = oz;
+	}
+
+	@Override
+	public Hunk<T> croppedView(int x1, int y1, int z1, int x2, int y2, int z2)
+	{
+		return new HunkView<T>(this, x2 - x1, y2 - y1, z2 - z1, x1 + ox, y1 + oy, z1 + oz);
 	}
 
 	@Override
@@ -40,18 +57,18 @@ public class HunkView<T> implements Hunk<T>
 	}
 
 	@Override
-	public void insert(int offX, int offY, int offZ, ArrayHunk<T> hunk, boolean invertY)
+	public void insert(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY)
 	{
-		if(offX + (hunk.getW() - 1) >= w || offY + (hunk.getH() - 1) >= h || offZ + (hunk.getD() - 1) >= d || offX < 0 || offY < 0 || offZ < 0)
+		if(offX + (hunk.getWidth() - 1) >= w || offY + (hunk.getHeight() - 1) >= h || offZ + (hunk.getDepth() - 1) >= d || offX < 0 || offY < 0 || offZ < 0)
 		{
-			throw new RuntimeException("Cannot insert hunk " + hunk.getW() + "," + hunk.getH() + "," + hunk.getD() + " into Hunk " + w + "," + h + "," + d + " with offset " + offZ + "," + offY + "," + offZ);
+			throw new RuntimeException("Cannot insert hunk " + hunk.getWidth() + "," + hunk.getHeight() + "," + hunk.getDepth() + " into Hunk " + w + "," + h + "," + d + " with offset " + offZ + "," + offY + "," + offZ);
 		}
 
-		for(int i = offX; i < offX + hunk.getW(); i++)
+		for(int i = offX; i < offX + hunk.getWidth(); i++)
 		{
-			for(int j = offY; j < offY + hunk.getH(); j++)
+			for(int j = offY; j < offY + hunk.getHeight(); j++)
 			{
-				for(int k = offZ; k < offZ + hunk.getD(); k++)
+				for(int k = offZ; k < offZ + hunk.getDepth(); k++)
 				{
 					set(i, j, k, hunk.get(i - offX, j - offY, k - offZ));
 				}
@@ -78,7 +95,7 @@ public class HunkView<T> implements Hunk<T>
 			throw new RuntimeException(x + " " + y + " " + z + " is out of the bounds 0,0,0 - " + (w - 1) + "," + (h - 1) + "," + (d - 1));
 		}
 
-		src.set(x, y, z, t);
+		src.set(x + ox, y + oy, z + oz, t);
 	}
 
 	@Override
@@ -89,19 +106,19 @@ public class HunkView<T> implements Hunk<T>
 			throw new RuntimeException(x + " " + y + " " + z + " is out of the bounds 0,0,0 - " + (w - 1) + "," + (h - 1) + "," + (d - 1));
 		}
 
-		return src.get(x, y, z);
+		return src.get(x + ox, y + oy, z + oz);
 	}
 
 	@Override
 	public T getClosest(int x, int y, int z)
 	{
-		return src.get(x >= w ? w - 1 : x, y >= h ? h - 1 : y, z >= d ? d - 1 : z);
+		return src.get(x >= w ? w + ox - 1 : x + ox, y >= h ? h + oy - 1 : y + oy, z >= d ? d + oz - 1 : z + oz);
 	}
 
 	@Override
 	public void fill(T t)
 	{
-		set(0, 0, 0, w - 1, h - 1, d - 1, t);
+		set(0 + ox, 0 + oy, 0 + oz, w - 1 + ox, h - 1 + oy, d - 1 + oz, t);
 	}
 
 	@Override
@@ -122,4 +139,33 @@ public class HunkView<T> implements Hunk<T>
 		return h;
 	}
 
+	@Override
+	public Hunk<T> getFace(HunkFace f)
+	{
+		switch(f)
+		{
+			case BOTTOM:
+				return croppedView(0, 0, 0, getWidth() - 1, 0, getDepth() - 1);
+			case EAST:
+				return croppedView(getWidth() - 1, 0, 0, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			case NORTH:
+				return croppedView(0, 0, 0, getWidth() - 1, getHeight() - 1, 0);
+			case SOUTH:
+				return croppedView(0, 0, 0, 0, getHeight() - 1, getDepth() - 1);
+			case TOP:
+				return croppedView(0, getHeight() - 1, 0, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			case WEST:
+				return croppedView(0, 0, getDepth() - 1, getWidth() - 1, getHeight() - 1, getDepth() - 1);
+			default:
+				break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Hunk<T> getSource()
+	{
+		return src;
+	}
 }

@@ -1,7 +1,27 @@
 package com.volmit.iris.gen.v2.scaffold;
 
+import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
+
 public interface Hunk<T>
 {
+	public static <T> Hunk<T> create(int w, int h, int d)
+	{
+		return new ArrayHunk<>(w, h, d);
+	}
+
+	public static <T> Hunk<T> view(Hunk<T> src)
+	{
+		return new HunkView<T>(src);
+	}
+
+	public static Hunk<BlockData> view(ChunkData src)
+	{
+		return new ChunkDataHunkView(src);
+	}
+
+	public Hunk<T> getSource();
+
 	/**
 	 * @return The X length
 	 */
@@ -16,6 +36,8 @@ public interface Hunk<T>
 	 * @return The Y length
 	 */
 	public int getHeight();
+
+	public Hunk<T> getFace(HunkFace f);
 
 	/**
 	 * Create a new view of this same hunk from a section of this hunk.
@@ -33,7 +55,7 @@ public interface Hunk<T>
 	 *            The max y (exclusive)
 	 * @param z2
 	 *            The max z (exclusive)
-	 * @return the new hunk (x2-x1, y2-y1, z2-z1)
+	 * @return the cropped view of this hunk (x2-x1, y2-y1, z2-z1)
 	 */
 	public Hunk<T> croppedView(int x1, int y1, int z1, int x2, int y2, int z2);
 

@@ -59,7 +59,11 @@ public class CommandIris extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		TestGen.gen(sender.player());
+		if(args.length == 1 && args[0].equalsIgnoreCase("test!"))
+		{
+			TestGen.gen(sender.player());
+			return true;
+		}
 
 		sender.sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
 		printHelp(sender);

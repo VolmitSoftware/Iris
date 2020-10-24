@@ -275,7 +275,7 @@ public class IrisInterpolation
 		int z1 = (int) Math.round(fz * rad);
 		int x2 = (int) Math.round((fx + 1) * rad);
 		int z2 = (int) Math.round((fz + 1) * rad);
-
+		
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder

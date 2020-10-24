@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.noise.CNGFactory;
 import com.volmit.iris.noise.NoiseType;
@@ -406,6 +407,16 @@ public enum NoiseStyle
 	private NoiseStyle(CNGFactory f)
 	{
 		this.f = f;
+	}
+
+	public ProceduralStream<Double> stream(RNG seed)
+	{
+		return create(seed).stream();
+	}
+
+	public ProceduralStream<Double> stream(long seed)
+	{
+		return create(new RNG(seed)).stream();
 	}
 
 	public CNG create(RNG seed)

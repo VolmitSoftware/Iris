@@ -35,22 +35,22 @@ public class InterpolatorFactory<T>
 	{
 		return new StarcastStream<>(stream, radius, checks);
 	}
-	
+
 	public StarcastStream<T> starcast3(int radius)
 	{
 		return starcast(radius, 3);
 	}
-	
+
 	public StarcastStream<T> starcast6(int radius)
 	{
 		return starcast(radius, 6);
 	}
-	
+
 	public StarcastStream<T> starcast9(int radius)
 	{
 		return starcast(radius, 9);
 	}
-	
+
 	public BiHermiteStream<T> bihermite(int rx, int ry, double tension, double bias)
 	{
 		return new BiHermiteStream<>(stream, rx, ry, tension, bias);

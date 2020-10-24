@@ -2,6 +2,8 @@ package com.volmit.iris.gen.v2;
 
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -28,10 +30,10 @@ public class TestGen
 					}).convertCached((m) -> m.createBlockData());
 			ProceduralStream<Double> terrain = NoiseStyle.CELLULAR.stream(1337)
 					.fit(1, 32)
-					.offset(1000, 1000)
-					.zoom(2.5)
-					.interpolate().starcast(8, 9)
-					.into().bilinear(8);
+					.zoom(1.75)
+					.interpolate().bilinear(4)
+					.into().starcast(4, 9);
+					
 			//@done
 
 			@Override
@@ -39,7 +41,7 @@ public class TestGen
 			{
 				ChunkData c = createChunkData(world);
 				Hunk<BlockData> data = Hunk.view(c);
-				terrain.fillUp2D(data, x * 16, z * 16, rock);
+				terrain.fill2D(data, x * 16, z * 16, rock);
 
 				return c;
 			}

@@ -25,4 +25,14 @@ public class BlockPosition
 	{
 		return z >> 4;
 	}
+
+	public boolean is(int x, int z)
+	{
+		return this.x == x && this.z == z;
+	}
+
+	public boolean is(int x, int y, int z)
+	{
+		return this.x == x && this.y == y && this.z == z;
+	}
 }

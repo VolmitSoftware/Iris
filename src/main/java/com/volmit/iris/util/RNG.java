@@ -39,7 +39,6 @@ public class RNG extends Random
 		return new RNG(sx + signature);
 	}
 
-	@Deprecated
 	public RNG nextRNG()
 	{
 		return new RNG(nextLong());

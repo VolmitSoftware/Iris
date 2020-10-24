@@ -1,8 +1,8 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.gen.v2.DataProvider;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -48,11 +48,11 @@ public class IrisBiomeGeneratorLink
 
 	private final transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
-	public IrisGenerator getCachedGenerator(ContextualTerrainProvider g)
+	public IrisGenerator getCachedGenerator(DataProvider g)
 	{
 		return gen.aquire(() ->
 		{
-			IrisGenerator gen = g != null ? g.loadGenerator(getGenerator()) : Iris.globaldata.getGeneratorLoader().load(getGenerator());
+			IrisGenerator gen = g != null ? g.getData().getGeneratorLoader().load(getGenerator()) : Iris.globaldata.getGeneratorLoader().load(getGenerator());
 
 			if(gen == null)
 			{
@@ -63,7 +63,7 @@ public class IrisBiomeGeneratorLink
 		});
 	}
 
-	public double getHeight(ContextualTerrainProvider xg, double x, double z, long seed)
+	public double getHeight(DataProvider xg, double x, double z, long seed)
 	{
 		double g = getCachedGenerator(xg).getHeight(x, z, seed);
 		g = g < 0 ? 0 : g;

@@ -19,6 +19,11 @@ public class AwareConversionStream2D<T, V> extends BasicLayer implements Procedu
 	@Override
 	public double toDouble(V t)
 	{
+		if(t instanceof Double)
+		{
+			return (double) t;
+		}
+
 		return 0;
 	}
 

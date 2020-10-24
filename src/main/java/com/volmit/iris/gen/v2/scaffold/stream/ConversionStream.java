@@ -20,6 +20,11 @@ public class ConversionStream<T, V> extends BasicLayer implements ProceduralStre
 	@Override
 	public double toDouble(V t)
 	{
+		if(t instanceof Double)
+		{
+			return (double) t;
+		}
+		
 		return 0;
 	}
 

@@ -12,6 +12,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.v2.scaffold.Hunk;
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.object.NoiseStyle;
@@ -22,27 +23,13 @@ public class TestGen
 	{
 		p.teleport(new WorldCreator("t/" + UUID.randomUUID().toString()).generator(new ChunkGenerator()
 		{
-			//@builder
-			ProceduralStream<BlockData> rock = NoiseStyle.STATIC.stream(1337)
-					.select(new Material[] {
-						Material.STONE, 
-						Material.ANDESITE
-					}).convertCached((m) -> m.createBlockData());
-			ProceduralStream<Double> terrain = NoiseStyle.CELLULAR.stream(1337)
-					.fit(1, 32)
-					.zoom(1.75)
-					.interpolate().bilinear(4)
-					.into().starcast(4, 9);
-					
-			//@done
+			IrisTerrainGenerator tg = new IrisTerrainGenerator(1337, Iris.globaldata.getDimensionLoader().load("overworld"), Iris.globaldata);
 
 			@Override
 			public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome)
 			{
 				ChunkData c = createChunkData(world);
-				Hunk<BlockData> data = Hunk.view(c);
-				terrain.fill2D(data, x * 16, z * 16, rock);
-
+				tg.generate(x, z, Hunk.view(c), null);
 				return c;
 			}
 		}).createWorld().getSpawnLocation());

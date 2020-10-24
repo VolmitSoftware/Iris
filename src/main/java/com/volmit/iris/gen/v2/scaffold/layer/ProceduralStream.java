@@ -11,6 +11,7 @@ import com.volmit.iris.gen.v2.scaffold.stream.CachedStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.ClampedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ConversionStream;
 import com.volmit.iris.gen.v2.scaffold.stream.FittedStream;
+import com.volmit.iris.gen.v2.scaffold.stream.ForceDoubleStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
 import com.volmit.iris.gen.v2.scaffold.stream.OffsetStream;
 import com.volmit.iris.gen.v2.scaffold.stream.RoundingStream;
@@ -24,6 +25,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 	default ProceduralStream<Integer> round()
 	{
 		return new RoundingStream(this);
+	}
+
+	default ProceduralStream<T> forceDouble()
+	{
+		return new ForceDoubleStream<T>(this);
 	}
 
 	default ProceduralStream<T> cache2D(int maxSize)
@@ -115,7 +121,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 		}
 	}
 
-	default <V> void fillUp2D(Hunk<V> h, double x, double z, V v)
+	default <V> void fill2D(Hunk<V> h, double x, double z, V v)
 	{
 		for(int i = 0; i < h.getWidth(); i++)
 		{
@@ -131,7 +137,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 		}
 	}
 
-	default <V> void fillUp3D(Hunk<V> h, double x, int y, double z, V v)
+	default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v)
 	{
 		for(int i = 0; i < h.getWidth(); i++)
 		{

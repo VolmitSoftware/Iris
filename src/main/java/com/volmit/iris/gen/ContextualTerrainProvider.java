@@ -31,6 +31,7 @@ import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
+import com.volmit.iris.gen.v2.DataProvider;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;
@@ -54,7 +55,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public abstract class ContextualTerrainProvider implements TerrainProvider, Listener
+public abstract class ContextualTerrainProvider implements TerrainProvider, Listener, DataProvider
 {
 	private Provisioned provisioner;
 	private KList<BlockPosition> noLoot;

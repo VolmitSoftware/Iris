@@ -1,25 +1,31 @@
 package com.volmit.iris.gen.v2;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.NoiseStyle;
+import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 
 @Data
-public class IrisComplex
+public class IrisComplex implements DataProvider
 {
+	private IrisDataManager data;
 	private ProceduralStream<IrisRegion> regionStream;
 	private ProceduralStream<InferredType> bridgeStream;
 	private ProceduralStream<IrisBiome> landBiomeStream;
 	private ProceduralStream<IrisBiome> seaBiomeStream;
 	private ProceduralStream<IrisBiome> shoreBiomeStream;
 	private ProceduralStream<IrisBiome> baseBiomeStream;
+	private ProceduralStream<Double> heightStream;
+	private ProceduralStream<Double> heightMinStream;
 
 	public IrisComplex()
 	{
@@ -53,6 +59,7 @@ public class IrisComplex
 
 	public void flash(long seed, IrisDimension dimension, IrisDataManager data)
 	{
+		this.data = data;
 		RNG rng = new RNG(seed);
 		//@builder
 		regionStream = NoiseStyle.CELLULAR.stream(rng.nextRNG())
@@ -81,6 +88,25 @@ public class IrisComplex
 				.convert((v) -> v >= dimension.getLandChance() ? InferredType.SEA : InferredType.LAND);
 		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA) 
 				? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z));
+		heightStream = baseBiomeStream.convertAware2D((b, x, z) -> {
+			double h = 0;
+			for(IrisBiomeGeneratorLink i : b.getGenerators())
+			{
+				// TODO Use gen interp ..... or 
+				// try trilerp again....
+				try
+				{
+					h += i.getHeight(this, x, z, seed);
+				}
+
+				catch(Throwable e)
+				{
+					e.printStackTrace();
+				}
+			}
+			
+			return h+63;
+		}).forceDouble().interpolate().starcast9(12).into().bihermite(4, 0.01, 0);
 		//@done
 	}
 }

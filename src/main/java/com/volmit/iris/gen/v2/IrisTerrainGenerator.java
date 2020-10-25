@@ -35,7 +35,7 @@ public class IrisTerrainGenerator
 	public ProceduralStream<Double> height = NoiseStyle.CELLULAR
 			.stream(69)
 			.fit(1, 69)
-			.interpolate().starcast9(4).into().bilinear(4)
+			.interpolate().bistarcast9(4).into().bilinear(4)
 			;
 	
 	public ProceduralStream<BlockData> rock = NoiseStyle.STATIC
@@ -46,6 +46,6 @@ public class IrisTerrainGenerator
 	public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
 	{
 		RNG rng = new RNG((((long) x) << 32) | (z & 0xffffffffL));
-		complex.getHeightStream().fill2D(blocks, x * 16, z * 16, Material.STONE.createBlockData());
+		complex.getHeightStream().fill2D(blocks, x * 16, z * 16, complex.getTerrainStream());
 	}
 }

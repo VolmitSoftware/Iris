@@ -4,32 +4,158 @@ import java.util.List;
 import java.util.function.Function;
 
 import com.volmit.iris.gen.v2.scaffold.Hunk;
+import com.volmit.iris.gen.v2.scaffold.Significance;
+import com.volmit.iris.gen.v2.scaffold.stream.AddingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream3D;
 import com.volmit.iris.gen.v2.scaffold.stream.CachedConversionStream;
 import com.volmit.iris.gen.v2.scaffold.stream.CachedStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.ClampedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ConversionStream;
+import com.volmit.iris.gen.v2.scaffold.stream.DividingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.FittedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ForceDoubleStream;
+import com.volmit.iris.gen.v2.scaffold.stream.FunctionStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
+import com.volmit.iris.gen.v2.scaffold.stream.ModuloStream;
+import com.volmit.iris.gen.v2.scaffold.stream.MultiplyingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.OffsetStream;
+import com.volmit.iris.gen.v2.scaffold.stream.RoundingDoubleStream;
 import com.volmit.iris.gen.v2.scaffold.stream.RoundingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.SelectionStream;
+import com.volmit.iris.gen.v2.scaffold.stream.SignificanceStream;
+import com.volmit.iris.gen.v2.scaffold.stream.SubtractingStream;
+import com.volmit.iris.gen.v2.scaffold.stream.To3DStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ZoomStream;
+import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.Function4;
 
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 {
+	public static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f)
+	{
+		return of(f, Interpolated.DOUBLE);
+	}
+
+	public static ProceduralStream<Double> ofDouble(Function3<Double, Double, Double, Double> f)
+	{
+		return of(f, Interpolated.DOUBLE);
+	}
+
+	public static <T> ProceduralStream<T> of(Function2<Double, Double, T> f, Interpolated<T> helper)
+	{
+		return of(f, (x, y, z) -> f.apply(x, z), helper);
+	}
+
+	public static <T> ProceduralStream<T> of(Function3<Double, Double, Double, T> f, Interpolated<T> helper)
+	{
+		return of((x, z) -> f.apply(x, 0D, z), f, helper);
+	}
+
+	public static <T> ProceduralStream<T> of(Function2<Double, Double, T> f, Function3<Double, Double, Double, T> f2, Interpolated<T> helper)
+	{
+		return new FunctionStream<>(f, f2, helper);
+	}
+
+	default ProceduralStream<T> add(Function3<Double, Double, Double, Double> a)
+	{
+		return new AddingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> add(Function2<Double, Double, Double> a)
+	{
+		return new AddingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> add(double a)
+	{
+		return new AddingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> subtract(Function3<Double, Double, Double, Double> a)
+	{
+		return new SubtractingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> subtract(Function2<Double, Double, Double> a)
+	{
+		return new SubtractingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> subtract(double a)
+	{
+		return new SubtractingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> multiply(Function3<Double, Double, Double, Double> a)
+	{
+		return new MultiplyingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> multiply(Function2<Double, Double, Double> a)
+	{
+		return new MultiplyingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> multiply(double a)
+	{
+		return new MultiplyingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> divide(Function3<Double, Double, Double, Double> a)
+	{
+		return new DividingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> divide(Function2<Double, Double, Double> a)
+	{
+		return new DividingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> divide(double a)
+	{
+		return new DividingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> modulo(Function3<Double, Double, Double, Double> a)
+	{
+		return new ModuloStream<>(this, a);
+	}
+
+	default ProceduralStream<T> modulo(Function2<Double, Double, Double> a)
+	{
+		return new ModuloStream<>(this, a);
+	}
+
+	default ProceduralStream<T> modulo(double a)
+	{
+		return new ModuloStream<>(this, a);
+	}
+
 	default ProceduralStream<Integer> round()
 	{
 		return new RoundingStream(this);
 	}
 
+	default ProceduralStream<Double> roundDouble()
+	{
+		return new RoundingDoubleStream(this);
+	}
+
 	default ProceduralStream<T> forceDouble()
 	{
 		return new ForceDoubleStream<T>(this);
+	}
+
+	default ProceduralStream<Significance<T>> significance(double radius, int checks)
+	{
+		return new SignificanceStream<Significance<T>, T>(this, radius, checks);
+	}
+
+	default ProceduralStream<T> to3D()
+	{
+		return new To3DStream<T>(this);
 	}
 
 	default ProceduralStream<T> cache2D(int maxSize)

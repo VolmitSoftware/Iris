@@ -1,6 +1,8 @@
 package com.volmit.iris.util;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,6 +30,7 @@ public class PregenJob implements Listener
 	private int genned;
 	private boolean completed;
 	public static int task = -1;
+	private int ticks;
 	private Semaphore working;
 	private AtomicInteger g = new AtomicInteger();
 	private PrecisionStopwatch s;
@@ -94,6 +97,7 @@ public class PregenJob implements Listener
 			mcaX = x;
 			mcaZ = z;
 			chunkSpiraler.retarget(cubeSize, cubeSize);
+			ticks++;
 		});
 
 		chunkSpiraler.setOffset(Math.floorDiv(cubeSize, 2), Math.floorDiv(cubeSize, 2));
@@ -103,6 +107,7 @@ public class PregenJob implements Listener
 			stop();
 		}
 		PregenGui.launch(this);
+		fastFowardTicksIfPossible();
 		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
 	}
 
@@ -155,6 +160,11 @@ public class PregenJob implements Listener
 
 	public void onTick()
 	{
+		onTick(false);
+	}
+
+	public void onTick(boolean skip)
+	{
 		if(paused)
 		{
 			return;
@@ -165,13 +175,18 @@ public class PregenJob implements Listener
 			return;
 		}
 
+		if(skip)
+		{
+			tick(skip);
+		}
+
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		if(PaperLib.isPaper())
 		{
 			for(int i = 0; i < 16; i++)
 			{
-				tickPaper();
+				tickPaper(skip);
 			}
 		}
 
@@ -179,7 +194,7 @@ public class PregenJob implements Listener
 		{
 			while(p.getMilliseconds() < 7000)
 			{
-				tick();
+				tick(skip);
 			}
 		}
 
@@ -206,6 +221,11 @@ public class PregenJob implements Listener
 
 	public void tickPaper()
 	{
+		tickPaper(false);
+	}
+
+	public void tickPaper(boolean skip)
+	{
 		if(working.getQueueLength() >= tc() / 2)
 		{
 			return;
@@ -213,11 +233,16 @@ public class PregenJob implements Listener
 
 		for(int i = 0; i < 128; i++)
 		{
-			tick();
+			tick(skip);
 		}
 	}
 
 	public void tick()
+	{
+		tick(false);
+	}
+
+	public void tick(boolean skip)
 	{
 		if(M.ms() - nogen > 5000 && Math.min((double) genned / (double) total, 1.0) > 0.99 && !completed)
 		{
@@ -270,12 +295,18 @@ public class PregenJob implements Listener
 		if(chunkSpiraler.hasNext())
 		{
 			chunkSpiraler.next();
-			tickChunk();
+			if(!skip)
+			{
+				tickChunk();
+			}
 		}
 
 		else if(spiraler.hasNext() || requeueMCA.isNotEmpty())
 		{
-			saveAllRequest();
+			if(!skip)
+			{
+				saveAllRequest();
+			}
 
 			if(requeueMCA.isNotEmpty())
 			{
@@ -395,6 +426,30 @@ public class PregenJob implements Listener
 		}
 	}
 
+	public void fastFowardTicksIfPossible()
+	{
+		try
+		{
+			int ticks = Integer.valueOf(IO.readAll(new File(world.getWorldFolder(), "pregen.ticks")).trim());
+			ticks -= 6;
+
+			if(ticks <= 0)
+			{
+				return;
+			}
+
+			for(int i = 0; i < ticks; i++)
+			{
+				spiraler.next();
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+	}
+
 	public void saveAllRequest()
 	{
 		if(clf.flip())
@@ -403,6 +458,19 @@ public class PregenJob implements Listener
 			{
 				world.unloadChunkRequest(i.getX(), i.getZ());
 			}
+
+			J.a(() ->
+			{
+				try
+				{
+					IO.writeAll(new File(world.getWorldFolder(), "pregen.ticks"), ticks + "");
+				}
+
+				catch(IOException e)
+				{
+					e.printStackTrace();
+				}
+			});
 		}
 
 		if(clx.flip())

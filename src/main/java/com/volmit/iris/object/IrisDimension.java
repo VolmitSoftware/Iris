@@ -93,6 +93,10 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define custom block drops for this dimension")
 	private KList<IrisBlockDrops> blockDrops = new KList<>();
 
+	@DontObfuscate
+	@Desc("Should bedrock be generated or not.")
+	private boolean bedrock = true;
+
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
@@ -166,7 +170,7 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("If defined, If air is defined below the area, this fluid will always place")
 	private IrisCaveFluid forceFluid = new IrisCaveFluid();
-	
+
 	@DontObfuscate
 	@Desc("Generate decorations or not")
 	private boolean decorate = true;

@@ -170,7 +170,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			boolean underwater = k > height && k <= fluidHeight;
 
 			// Bedrock
-			if(bedrock)
+			if(bedrock && getDimension().isBedrock())
 			{
 				if(biomeMap != null)
 				{

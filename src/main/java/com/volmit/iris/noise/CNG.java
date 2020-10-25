@@ -54,7 +54,7 @@ public class CNG
 
 	public ProceduralStream<Double> stream(double min, double max)
 	{
-		return new FittedStream(stream(), min, max);
+		return new FittedStream<Double>(stream(), min, max);
 	}
 
 	public static CNG signature(RNG rng)

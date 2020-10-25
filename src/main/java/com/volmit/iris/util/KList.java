@@ -51,6 +51,14 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		return this;
 	}
 
+	public void addMultiple(T t, int c)
+	{
+		for(int i = 0; i < c; i++)
+		{
+			add(t);
+		}
+	}
+
 	private KList<T> add(Enumeration<T> e)
 	{
 		while(e.hasMoreElements())
@@ -688,7 +696,7 @@ public class KList<T> extends ArrayList<T> implements List<T>
 			add(t);
 			return true;
 		}
-		
+
 		return false;
 	}
 

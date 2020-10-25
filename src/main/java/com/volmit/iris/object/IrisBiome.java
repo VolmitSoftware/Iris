@@ -7,6 +7,7 @@ import org.bukkit.block.Biome;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.gen.v2.DataProvider;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
@@ -611,7 +612,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));
 	}
 
-	public KList<IrisBiome> getRealChildren(ContextualTerrainProvider g)
+	public KList<IrisBiome> getRealChildren(DataProvider g)
 	{
 		return realChildren.aquire(() ->
 		{
@@ -619,7 +620,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 			for(String i : getChildren())
 			{
-				realChildren.add(g != null ? g.loadBiome(i) : Iris.globaldata.getBiomeLoader().load(i));
+				realChildren.add(g != null ? g.getData().getBiomeLoader().load(i) : Iris.globaldata.getBiomeLoader().load(i));
 			}
 
 			return realChildren;

@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
-import com.volmit.iris.link.CitizensLink;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -24,6 +23,7 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
+import com.volmit.iris.link.CitizensLink;
 import com.volmit.iris.link.MultiverseCoreLink;
 import com.volmit.iris.link.MythicMobsLink;
 import com.volmit.iris.manager.EditManager;
@@ -85,7 +85,7 @@ public class Iris extends MortarPlugin
 		instance = this;
 		INMS.get();
 		IO.delete(new File("iris"));
-		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4gb
+		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4g
 	}
 
 	public static int getThreadCount()

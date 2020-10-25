@@ -30,6 +30,8 @@ import com.volmit.iris.gen.v2.scaffold.stream.ZoomStream;
 import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.Function4;
+import com.volmit.iris.util.IRare;
+import com.volmit.iris.util.KList;
 
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 {
@@ -216,6 +218,26 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 	default <V> ProceduralStream<V> select(List<V> types)
 	{
 		return new SelectionStream<V>(this, types);
+	}
+
+	@SuppressWarnings("unchecked")
+	default <V> ProceduralStream<V> selectRarity(V... types)
+	{
+		KList<V> rarityTypes = new KList<>();
+
+		for(V i : types)
+		{
+			rarityTypes.addMultiple(i, IRare.get(i));
+		}
+
+		return new SelectionStream<V>(this, rarityTypes);
+	}
+
+	default <V> ProceduralStream<V> selectRarity(List<V> types)
+	{
+		KList<V> rarityTypes = new KList<>();
+		types.forEach((i) -> rarityTypes.addMultiple(i, IRare.get(i)));
+		return new SelectionStream<V>(this, rarityTypes);
 	}
 
 	default ProceduralStream<T> clamp(double min, double max)

@@ -4,9 +4,11 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomePaletteLayer;
@@ -22,12 +24,14 @@ import lombok.Data;
 @Data
 public class IrisComplex implements DataProvider
 {
+	private RNG rng;
 	private IrisDataManager data;
 	private KList<IrisGenerator> generators;
 	private static final BlockData AIR = Material.AIR.createBlockData();
 	private ProceduralStream<IrisRegion> regionStream;
 	private ProceduralStream<InferredType> bridgeStream;
 	private ProceduralStream<IrisBiome> landBiomeStream;
+	private ProceduralStream<IrisBiome> caveBiomeStream;
 	private ProceduralStream<IrisBiome> seaBiomeStream;
 	private ProceduralStream<IrisBiome> shoreBiomeStream;
 	private ProceduralStream<IrisBiome> baseBiomeStream;
@@ -47,7 +51,7 @@ public class IrisComplex implements DataProvider
 		switch(type)
 		{
 			case CAVE:
-				break;
+				return caveBiomeStream;
 			case DEFER:
 				break;
 			case LAKE:
@@ -69,6 +73,7 @@ public class IrisComplex implements DataProvider
 
 	public void flash(long seed, IrisDimension dimension, IrisDataManager data)
 	{
+		this.rng = new RNG(seed);
 		this.data = data;
 		double fluidHeight = dimension.getFluidHeight();
 		generators = new KList<>();
@@ -89,24 +94,31 @@ public class IrisComplex implements DataProvider
 			.select(dimension.getRegions())
 			.convertCached((s) -> data.getRegionLoader().load(s))
 			.cache2D(1024);
+		caveBiomeStream = regionStream.convertCached((r) 
+			-> dimension.getCaveBiomeStyle().create(rng.nextRNG()).stream()
+				.zoom(r.getCaveBiomeZoom())
+				.selectRarity(r.getCaveBiomes())
+				.convertCached((s) -> data.getBiomeLoader().load(s))
+			).convertAware2D((str, x, z) -> str.get(x, z))
+				.cache2D(1024);
 		landBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getLandBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getLandBiomeZoom())
-				.select(r.getLandBiomes())
+				.selectRarity(r.getLandBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		seaBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getSeaBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getSeaBiomeZoom())
-				.select(r.getSeaBiomes())
+				.selectRarity(r.getSeaBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		shoreBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getShoreBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getShoreBiomeZoom())
-				.select(r.getShoreBiomes())
+				.selectRarity(r.getShoreBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
@@ -114,6 +126,7 @@ public class IrisComplex implements DataProvider
 			.convert((v) -> v >= dimension.getLandChance() ? InferredType.SEA : InferredType.LAND);
 		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA) 
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))
+			.convertAware2D(this::implode)
 			.cache2D(1024);
 		heightStream = baseBiomeStream.convertAware2D((b, x, z) -> getHeight(b, x, z, seed))
 			.forceDouble().add(fluidHeight).roundDouble()
@@ -161,6 +174,36 @@ public class IrisComplex implements DataProvider
 			}
 		});
 		//@done
+	}
+
+	private IrisBiome implode(IrisBiome b, Double x, Double z)
+	{
+		if(b.getChildren().isEmpty())
+		{
+			return b;
+		}
+
+		return implode(b, x, z, 3);
+	}
+
+	private IrisBiome implode(IrisBiome b, Double x, Double z, int max)
+	{
+		if(max < 0)
+		{
+			return b;
+		}
+
+		if(b.getChildren().isEmpty())
+		{
+			return b;
+		}
+
+		CNG childCell = b.getChildrenGenerator(rng, 123, b.getChildShrinkFactor());
+		KList<IrisBiome> chx = b.getRealChildren(this).copy();
+		chx.add(b);
+		IrisBiome biome = childCell.fitRarity(chx, x, z);
+		biome.setInferredType(b.getInferredType());
+		return implode(biome, x, z, max - 1);
 	}
 
 	private IrisBiome fixBiomeType(Double height, IrisBiome biome, IrisRegion region, Double x, Double z, double fluidHeight)

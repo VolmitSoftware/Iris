@@ -27,7 +27,7 @@ public class IrisTerrainGenerator
 	{
 		complex.flash(seed, dimension, data);
 	}
-	
+
 	public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
 	{
 		// RNG rng = new RNG((((long) x) << 32) | (z & 0xffffffffL));

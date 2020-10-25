@@ -340,6 +340,11 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			}
 		}
 
+		if(Math.max(height, fluidHeight) > 255)
+		{
+			return height;
+		}
+		
 		block = sliver.get(Math.max(height, fluidHeight));
 
 		// Decorate True Surface

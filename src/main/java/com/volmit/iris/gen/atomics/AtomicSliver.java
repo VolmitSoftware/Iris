@@ -87,7 +87,7 @@ public class AtomicSliver
 		{
 			return null;
 		}
-		FastBlockData b = block[h];
+		FastBlockData b = block[h < 256 ? h : 256];
 		last = M.ms();
 
 		if(b == null)

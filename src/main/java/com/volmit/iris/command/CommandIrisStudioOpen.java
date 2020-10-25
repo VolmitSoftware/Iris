@@ -24,9 +24,10 @@ public class CommandIrisStudioOpen extends MortarCommand
 			return true;
 		}
 		
-		if(args.length != 1)
+		if(args.length < 1)
 		{
 			sender.sendMessage("/iris std open <DIMENSION> (file name without .json)");
+			return true;
 		}
 
 		Iris.proj.open(sender, args[0]);

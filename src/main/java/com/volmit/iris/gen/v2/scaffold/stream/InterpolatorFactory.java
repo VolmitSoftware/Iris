@@ -1,6 +1,7 @@
 package com.volmit.iris.gen.v2.scaffold.stream;
 
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
+import com.volmit.iris.object.InterpolationMethod;
 
 public class InterpolatorFactory<T>
 {
@@ -9,6 +10,21 @@ public class InterpolatorFactory<T>
 	public InterpolatorFactory(ProceduralStream<T> stream)
 	{
 		this.stream = stream;
+	}
+
+	public InterpolatingStream<T> with(InterpolationMethod t, int rx)
+	{
+		return new InterpolatingStream<T>(stream, rx, t);
+	}
+
+	public TrilinearStream<T> trilinear(int rx, int ry, int rz)
+	{
+		return new TrilinearStream<>(stream, rx, ry, rz);
+	}
+
+	public TricubicStream<T> tricubic(int rx, int ry, int rz)
+	{
+		return new TricubicStream<>(stream, rx, ry, rz);
 	}
 
 	public BicubicStream<T> bicubic(int rx, int ry)
@@ -31,24 +47,44 @@ public class InterpolatorFactory<T>
 		return bilinear(r, r);
 	}
 
-	public StarcastStream<T> starcast(int radius, int checks)
+	public TriStarcastStream<T> tristarcast(int radius, int checks)
 	{
-		return new StarcastStream<>(stream, radius, checks);
+		return new TriStarcastStream<>(stream, radius, checks);
 	}
 
-	public StarcastStream<T> starcast3(int radius)
+	public TriStarcastStream<T> tristarcast3(int radius)
 	{
-		return starcast(radius, 3);
+		return tristarcast(radius, 3);
 	}
 
-	public StarcastStream<T> starcast6(int radius)
+	public TriStarcastStream<T> tristarcast6(int radius)
 	{
-		return starcast(radius, 6);
+		return tristarcast(radius, 6);
 	}
 
-	public StarcastStream<T> starcast9(int radius)
+	public TriStarcastStream<T> tristarcast9(int radius)
 	{
-		return starcast(radius, 9);
+		return tristarcast(radius, 9);
+	}
+
+	public BiStarcastStream<T> bistarcast(int radius, int checks)
+	{
+		return new BiStarcastStream<>(stream, radius, checks);
+	}
+
+	public BiStarcastStream<T> bistarcast3(int radius)
+	{
+		return bistarcast(radius, 3);
+	}
+
+	public BiStarcastStream<T> bistarcast6(int radius)
+	{
+		return bistarcast(radius, 6);
+	}
+
+	public BiStarcastStream<T> bistarcast9(int radius)
+	{
+		return bistarcast(radius, 9);
 	}
 
 	public BiHermiteStream<T> bihermite(int rx, int ry, double tension, double bias)

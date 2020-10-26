@@ -1,5 +1,6 @@
 package com.volmit.iris.gen.v2;
 
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -43,7 +44,9 @@ public class IrisTerrainGenerator
 
 	public void generateDecorations(int x, int z, Hunk<BlockData> blocks)
 	{
-
+		blocks.iterateSurfaces2D((b) -> !b.getMaterial().isAir() && !b.getMaterial().equals(Material.WATER) && !b.getMaterial().equals(Material.LAVA), (xx,zz,top,bottom) -> {
+			
+		});
 	}
 
 	public void generateTerrain(int x, int z, Hunk<BlockData> blocks)

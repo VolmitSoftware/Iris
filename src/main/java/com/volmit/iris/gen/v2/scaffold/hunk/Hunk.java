@@ -1,7 +1,8 @@
 package com.volmit.iris.gen.v2.scaffold.hunk;
 
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 
+import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
@@ -41,6 +42,16 @@ public interface Hunk<T>
 	public static Hunk<BlockData> view(ChunkData src)
 	{
 		return new ChunkDataHunkView(src);
+	}
+
+	public static Hunk<BlockData> viewBlocks(Chunk src)
+	{
+		return new ChunkHunkView(src);
+	}
+
+	public static Hunk<Biome> viewBiomes(Chunk src)
+	{
+		return new ChunkBiomeHunkView(src);
 	}
 
 	public static <T> Hunk<T> newHunk(int w, int h, int d)
@@ -166,57 +177,248 @@ public interface Hunk<T>
 		return b;
 	}
 
-	default Hunk<T> iterate(Consumer3<Integer, Integer, Integer> c)
+	default Hunk<T> invertY()
 	{
-		for(int i = 0; i < getWidth(); i++)
+		return new InvertedHunkView<T>(this);
+	}
+
+	default Hunk<T> rotateX(double degrees)
+	{
+		return new RotatedXHunkView<T>(this, degrees);
+	}
+
+	default Hunk<T> rotateY(double degrees)
+	{
+		return new RotatedYHunkView<T>(this, degrees);
+	}
+
+	default Hunk<T> rotateZ(double degrees)
+	{
+		return new RotatedZHunkView<T>(this, degrees);
+	}
+
+	default int getMaximumDimension()
+	{
+		return Math.max(getWidth(), Math.max(getHeight(), getDepth()));
+	}
+
+	default int getIdeal2DParallelism()
+	{
+		return getMax2DParallelism() / 2;
+	}
+
+	default int getIdeal3DParallelism()
+	{
+		return getMax3DParallelism() / 2;
+	}
+
+	default int getMinimumDimension()
+	{
+		return Math.min(getWidth(), Math.min(getHeight(), getDepth()));
+	}
+
+	default int getMax2DParallelism()
+	{
+		return (int) Math.pow(getMinimumDimension() / 2, 2);
+	}
+
+	default int getMax3DParallelism()
+	{
+		return (int) Math.pow(getMinimumDimension() / 2, 3);
+	}
+
+	default int filterDimension(int dim)
+	{
+		if(dim <= 1)
 		{
-			for(int j = 0; j < getWidth(); j++)
+			return 1;
+		}
+
+		dim = dim % 2 != 0 ? dim + 1 : dim;
+
+		if(dim > getMinimumDimension() / 2)
+		{
+			if(dim <= 2)
 			{
-				for(int k = 0; k < getWidth(); k++)
+				return 1;
+			}
+
+			dim -= 2;
+		}
+
+		return dim;
+	}
+
+	default int get2DDimension(int sections)
+	{
+		if(sections <= 1)
+		{
+			return 1;
+		}
+
+		return filterDimension((int) Math.ceil(Math.sqrt(sections)));
+	}
+
+	default int get3DDimension(int sections)
+	{
+		if(sections <= 1)
+		{
+			return 1;
+		}
+
+		return filterDimension((int) Math.ceil(Math.cbrt(sections)));
+	}
+
+	default Hunk<T> iterateSurfaces2D(Predicate<T> p, Consumer4<Integer, Integer, Integer, Integer> c)
+	{
+		return iterateSurfaces2D(getIdeal2DParallelism(), p, c);
+	}
+
+	default Hunk<T> iterateSurfaces2D(int parallelism, Predicate<T> p, Consumer4<Integer, Integer, Integer, Integer> c)
+	{
+		iterate2DTop(parallelism, (x, z) ->
+		{
+			int in = getHeight() - 1;
+			boolean hitting = false;
+			for(int i = getHeight() - 1; i >= 0; i--)
+			{
+				boolean solid = p.test(get(x, i, z));
+
+				if(!hitting && solid)
 				{
-					c.accept(i, j, k);
+					in = i;
+					hitting = true;
+				}
+
+				else if(hitting && !solid)
+				{
+					hitting = false;
+					c.accept(x, z, in, i - 1);
 				}
 			}
-		}
+		});
+
+		return this;
+	}
+
+	default Hunk<T> iterate2DTop(Consumer2<Integer, Integer> c)
+	{
+		return iterate2DTop(getIdeal2DParallelism(), c);
+	}
+
+	default Hunk<T> iterate2DTop(int parallelism, Consumer2<Integer, Integer> c)
+	{
+		compute2D(parallelism, (x, y, z, h) ->
+		{
+			for(int i = 0; i < h.getWidth(); i++)
+			{
+				for(int k = 0; k < h.getDepth(); k++)
+				{
+					c.accept(i + x, k + z);
+				}
+			}
+		});
+
+		return this;
+	}
+
+	default Hunk<T> iterate(Predicate<T> p, Consumer3<Integer, Integer, Integer> c)
+	{
+		return iterate(getIdeal3DParallelism(), p, c);
+	}
+
+	default Hunk<T> iterate(int parallelism, Predicate<T> p, Consumer3<Integer, Integer, Integer> c)
+	{
+		iterate(parallelism, (x, y, z, t) ->
+		{
+			if(p.test(t))
+			{
+				c.accept(x, y, z);
+			}
+		});
+
+		return this;
+	}
+
+	default Hunk<T> iterate(Predicate<T> p, Consumer4<Integer, Integer, Integer, T> c)
+	{
+		return iterate(getIdeal3DParallelism(), p, c);
+	}
+
+	default Hunk<T> iterate(int parallelism, Predicate<T> p, Consumer4<Integer, Integer, Integer, T> c)
+	{
+		iterate(parallelism, (x, y, z, t) ->
+		{
+			if(p.test(t))
+			{
+				c.accept(x, y, z, t);
+			}
+		});
+
+		return this;
+	}
+
+	default Hunk<T> iterate(Consumer3<Integer, Integer, Integer> c)
+	{
+		return iterate(getIdeal3DParallelism(), c);
+	}
+
+	default Hunk<T> iterate(int parallelism, Consumer3<Integer, Integer, Integer> c)
+	{
+		compute3D(parallelism, (x, y, z, h) ->
+		{
+			for(int i = 0; i < h.getWidth(); i++)
+			{
+				for(int j = 0; j < h.getHeight(); j++)
+				{
+					for(int k = 0; k < h.getDepth(); k++)
+					{
+						c.accept(i + x, j + y, k + z);
+					}
+				}
+			}
+		});
 
 		return this;
 	}
 
 	default Hunk<T> iterate(Consumer4<Integer, Integer, Integer, T> c)
 	{
-		for(int i = 0; i < getWidth(); i++)
+		return iterate(getIdeal3DParallelism(), c);
+	}
+
+	default Hunk<T> iterate(int parallelism, Consumer4<Integer, Integer, Integer, T> c)
+	{
+		compute3D(parallelism, (x, y, z, h) ->
 		{
-			for(int j = 0; j < getWidth(); j++)
+			for(int i = 0; i < h.getWidth(); i++)
 			{
-				for(int k = 0; k < getWidth(); k++)
+				for(int j = 0; j < h.getHeight(); j++)
 				{
-					c.accept(i, j, k, get(i, j, k));
+					for(int k = 0; k < h.getDepth(); k++)
+					{
+						c.accept(i + x, j + y, k + z, h.get(i, j, k));
+					}
 				}
 			}
-		}
+		});
 
 		return this;
 	}
 
-	default Hunk<T> compute3D(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
+	default Hunk<T> compute2D(Consumer4<Integer, Integer, Integer, Hunk<T>> v)
 	{
-		BurstExecutor e = MultiBurst.burst.burst(parallelism);
-		KList<Runnable> rq = new KList<Runnable>(parallelism);
-		getSections3D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
-		{
-			v.accept(xx, yy, zz, h);
-			synchronized(rq)
-			{
-				rq.add(r);
-			}
-		}), (xx, yy, zz, c) -> insert(xx, yy, zz, c));
-		e.complete();
-		rq.forEach(Runnable::run);
-		return this;
+		return compute2D(getIdeal2DParallelism(), v);
 	}
 
 	default Hunk<T> compute2D(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
 	{
+		if(get2DDimension(parallelism) == 1)
+		{
+			v.accept(0, 0, 0, this);
+			return this;
+		}
+
 		BurstExecutor e = MultiBurst.burst.burst(parallelism);
 		KList<Runnable> rq = new KList<Runnable>(parallelism);
 		getSections2D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
@@ -232,21 +434,29 @@ public interface Hunk<T>
 		return this;
 	}
 
-	default Hunk<T> compute2DAtomically(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
+	default Hunk<T> compute3D(Consumer4<Integer, Integer, Integer, Hunk<T>> v)
 	{
-		BurstExecutor e = MultiBurst.burst.burst(parallelism);
-		KList<Runnable> rq = new KList<Runnable>(parallelism);
-		getAtomicSections2D(parallelism, (xx, yy, zz, h) -> e.queue(() -> v.accept(xx, yy, zz, h)));
-		e.complete();
-		rq.forEach(Runnable::run);
-		return this;
+		return compute3D(getIdeal3DParallelism(), v);
 	}
 
-	default Hunk<T> compute3DAtomically(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
+	default Hunk<T> compute3D(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
 	{
+		if(get3DDimension(parallelism) == 1)
+		{
+			v.accept(0, 0, 0, this);
+			return this;
+		}
+
 		BurstExecutor e = MultiBurst.burst.burst(parallelism);
 		KList<Runnable> rq = new KList<Runnable>(parallelism);
-		getAtomicSections3D(parallelism, (xx, yy, zz, h) -> e.queue(() -> v.accept(xx, yy, zz, h)));
+		getSections3D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
+		{
+			v.accept(xx, yy, zz, h);
+			synchronized(rq)
+			{
+				rq.add(r);
+			}
+		}), (xx, yy, zz, c) -> insert(xx, yy, zz, c));
 		e.complete();
 		rq.forEach(Runnable::run);
 		return this;
@@ -259,9 +469,14 @@ public interface Hunk<T>
 
 	default Hunk<T> getSections2D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter)
 	{
-		int dim = (int) Math.ceil(Math.sqrt(sections));
-		dim = dim < 2 ? 2 : dim;
-		dim = dim % 2 != 0 ? dim + 1 : dim;
+		int dim = (int) get2DDimension(sections);
+
+		if(sections <= 1)
+		{
+			getSection(0, 0, 0, getWidth(), getHeight(), getDepth(), (hh, r) -> v.accept(0, 0, 0, hh, r), inserter);
+			return this;
+		}
+
 		int w = getWidth() / dim;
 		int d = getDepth() / dim;
 		int i, j;
@@ -280,29 +495,6 @@ public interface Hunk<T>
 		return this;
 	}
 
-	default Hunk<T> getAtomicSections2D(int sections, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
-	{
-		int dim = (int) Math.ceil(Math.sqrt(sections));
-		dim = dim < 2 ? 2 : dim;
-		dim = dim % 2 != 0 ? dim + 1 : dim;
-		int w = getWidth() / dim;
-		int d = getDepth() / dim;
-		int i, j;
-
-		for(i = 0; i < getWidth(); i += w)
-		{
-			int ii = i;
-
-			for(j = 0; j < getDepth(); j += d)
-			{
-				int jj = j;
-				getAtomicSection(i, 0, j, i + w, getHeight(), j + d, (h) -> v.accept(ii, 0, jj, h));
-			}
-		}
-
-		return this;
-	}
-
 	default Hunk<T> getSections3D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v)
 	{
 		return getSections3D(sections, v, (xx, yy, zz, c) -> insert(xx, yy, zz, c));
@@ -310,9 +502,14 @@ public interface Hunk<T>
 
 	default Hunk<T> getSections3D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter)
 	{
-		int dim = (int) Math.ceil(Math.cbrt(sections));
-		dim = dim < 2 ? 2 : dim;
-		dim = dim % 2 != 0 ? dim + 1 : dim;
+		int dim = (int) get3DDimension(sections);
+
+		if(sections <= 1)
+		{
+			getSection(0, 0, 0, getWidth(), getHeight(), getDepth(), (hh, r) -> v.accept(0, 0, 0, hh, r), inserter);
+			return this;
+		}
+
 		int w = getWidth() / dim;
 		int h = getHeight() / dim;
 		int d = getDepth() / dim;
@@ -337,35 +534,6 @@ public interface Hunk<T>
 		return this;
 	}
 
-	default Hunk<T> getAtomicSections3D(int sections, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
-	{
-		int dim = (int) Math.ceil(Math.cbrt(sections));
-		dim = dim < 2 ? 2 : dim;
-		dim = dim % 2 != 0 ? dim + 1 : dim;
-		int w = getWidth() / dim;
-		int h = getHeight() / dim;
-		int d = getDepth() / dim;
-		int i, j, k;
-
-		for(i = 0; i < getWidth(); i += w)
-		{
-			int ii = i;
-
-			for(j = 0; j < getHeight(); j += d)
-			{
-				int jj = j;
-
-				for(k = 0; k < getDepth(); k += d)
-				{
-					int kk = k;
-					getAtomicSection(i, j, k, i + w, j + h, k + d, (hh) -> v.accept(ii, jj, kk, hh));
-				}
-			}
-		}
-
-		return this;
-	}
-
 	default Hunk<T> getSection(int x, int y, int z, int x1, int y1, int z1, Consumer2<Hunk<T>, Runnable> v)
 	{
 		return getSection(x, y, z, x1, y1, z1, v, (xx, yy, zz, c) -> insert(xx, yy, zz, c));
@@ -375,12 +543,6 @@ public interface Hunk<T>
 	{
 		Hunk<T> copy = crop(x, y, z, x1, y1, z1);
 		v.accept(copy, () -> inserter.accept(x, y, z, copy));
-		return this;
-	}
-
-	default Hunk<T> getAtomicSection(int x, int y, int z, int x1, int y1, int z1, Consumer<Hunk<T>> v)
-	{
-		v.accept(croppedView(x, y, z, x1, y1, z1));
 		return this;
 	}
 
@@ -608,6 +770,31 @@ public interface Hunk<T>
 		setRaw(x, y, z, t);
 	}
 
+	default void setIfExists(int x, int y, int z, T t)
+	{
+		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth())
+		{
+			return;
+		}
+
+		setRaw(x, y, z, t);
+	}
+
+	default T getIfExists(int x, int y, int z, T t)
+	{
+		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth())
+		{
+			return t;
+		}
+
+		return getOr(x, y, z, t);
+	}
+
+	default T getIfExists(int x, int y, int z)
+	{
+		return getIfExists(x, y, z, null);
+	}
+
 	/**
 	 * Set a value at the given position without checking coordinate bounds
 	 * 
@@ -650,6 +837,19 @@ public interface Hunk<T>
 	{
 		enforceBounds(x, y, z);
 		return getRaw(x, y, z);
+	}
+
+	default T getOr(int x, int y, int z, T t)
+	{
+		enforceBounds(x, y, z);
+		T v = getRaw(x, y, z);
+
+		if(v == null)
+		{
+			return t;
+		}
+
+		return v;
 	}
 
 	/**

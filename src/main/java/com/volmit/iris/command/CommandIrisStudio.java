@@ -49,6 +49,9 @@ public class CommandIrisStudio extends MortarCommand
 
 	@Command
 	private CommandIrisStudioTP tp;
+	
+	@Command
+	private CommandIrisStudioConvert convert;
 
 	public CommandIrisStudio()
 	{

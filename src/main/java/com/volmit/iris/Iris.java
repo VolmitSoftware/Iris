@@ -15,6 +15,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
+import com.minelazz.epicworldgenerator.structures.StructureObject;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisTerrainProvider;
@@ -26,6 +27,7 @@ import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.link.CitizensLink;
 import com.volmit.iris.link.MultiverseCoreLink;
 import com.volmit.iris.link.MythicMobsLink;
+import com.volmit.iris.manager.ConversionManager;
 import com.volmit.iris.manager.EditManager;
 import com.volmit.iris.manager.IrisBoardManager;
 import com.volmit.iris.manager.IrisDataManager;
@@ -58,6 +60,7 @@ public class Iris extends MortarPlugin
 	public static Iris instance;
 	public static IrisDataManager globaldata;
 	public static ProjectManager proj;
+	public static ConversionManager convert;
 	public static IrisHotloadManager hotloader;
 	public static WandManager wand;
 	public static StructureManager struct;
@@ -158,6 +161,7 @@ public class Iris extends MortarPlugin
 		lock = new IrisLock("Iris");
 		proj = new ProjectManager();
 		hotloader = new IrisHotloadManager();
+		convert = new ConversionManager();
 		globaldata = new IrisDataManager(getDataFolder());
 		wand = new WandManager();
 		struct = new StructureManager();
@@ -171,6 +175,15 @@ public class Iris extends MortarPlugin
 		J.sr(this::tickQueue, 0);
 		PaperLib.suggestPaper(this);
 		super.onEnable();
+		try
+		{
+			StructureObject.convert(getDataFile("rock.ewg"));
+		}
+		catch(ClassNotFoundException | IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public static void sq(Runnable r)

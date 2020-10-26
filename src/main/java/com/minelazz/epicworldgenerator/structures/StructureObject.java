@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.EnumSet;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -28,6 +29,7 @@ public class StructureObject implements Serializable
 		FileInputStream fin = new FileInputStream(so);
 		ObjectInputStream in = new ObjectInputStream(fin);
 		StructureObject o = (StructureObject) in.readObject();
+		in.close();
 		int maxX = 0;
 		int maxY = 0;
 		int maxZ = 0;
@@ -64,18 +66,17 @@ public class StructureObject implements Serializable
 
 			if(bdx != null)
 			{
-				iob.getBlocks().put(new BlockVector(i.x, i.y, i.z), FastBlockData.of(bdx));
-				Iris.info("Mapped " + i.x + " " + i.y + " " + i.z + " to " + bdx.getAsString(true));
+				iob.getBlocks().put(new BlockVector(i.x, -i.y, i.z), FastBlockData.of(bdx));
 			}
 		}
 
-		return null;
+		return iob;
 	}
 
 	@SuppressWarnings("deprecation")
 	private static final FastBlockData map(int id, int dat)
 	{
-		for(Material i : Material.values())
+		for(Material i : EnumSet.allOf(Material.class))
 		{
 			if(!i.isLegacy())
 			{

@@ -5,7 +5,6 @@ import java.util.function.Function;
 
 import com.volmit.iris.gen.v2.scaffold.Significance;
 import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
-import com.volmit.iris.gen.v2.scaffold.multicore.BurstExecutor;
 import com.volmit.iris.gen.v2.scaffold.stream.AddingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream3D;

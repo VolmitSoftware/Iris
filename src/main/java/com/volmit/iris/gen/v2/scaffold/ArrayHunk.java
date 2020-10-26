@@ -282,13 +282,13 @@ public class ArrayHunk<T> implements Hunk<T>
 	@Override
 	public int getDepth()
 	{
-		return h;
+		return d;
 	}
 
 	@Override
 	public int getHeight()
 	{
-		return d;
+		return h;
 	}
 
 	@Override

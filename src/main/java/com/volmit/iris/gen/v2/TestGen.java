@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -31,7 +32,19 @@ public class TestGen
 			{
 				PrecisionStopwatch p = PrecisionStopwatch.start();
 				ChunkData c = createChunkData(world);
-				tg.generate(x, z, Hunk.view(c), null);
+				Hunk<Biome> b = Hunk.create(16, 256, 16);
+				tg.generate(x, z, Hunk.view(c), b);
+
+				for(int i = 0; i < 16; i++)
+				{
+					for(int j = 0; j < 256; j++)
+					{
+						for(int k = 0; k < 16; k++)
+						{
+							biome.setBiome(i, j, k, b.get(i, j, k));
+						}
+					}
+				}
 
 				Iris.info("Generated " + x + " " + z + " in " + Form.duration(p.getMilliseconds(), 2));
 				return c;

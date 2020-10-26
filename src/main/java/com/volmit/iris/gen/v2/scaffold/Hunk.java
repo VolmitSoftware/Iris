@@ -1,6 +1,8 @@
 package com.volmit.iris.gen.v2.scaffold;
 
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 public interface Hunk<T>
@@ -13,6 +15,11 @@ public interface Hunk<T>
 	public static <T> Hunk<T> view(Hunk<T> src)
 	{
 		return new HunkView<T>(src);
+	}
+
+	public static Hunk<Biome> view(BiomeGrid biome)
+	{
+		return new BiomeGridHunkView(biome);
 	}
 
 	public static Hunk<BlockData> view(ChunkData src)
@@ -93,7 +100,7 @@ public interface Hunk<T>
 	 */
 	default void insert(int offX, int offY, int offZ, Hunk<T> hunk)
 	{
-		insert(0, 0, 0, hunk, false);
+		insert(offX, offY, offZ, hunk, false);
 	}
 
 	/**

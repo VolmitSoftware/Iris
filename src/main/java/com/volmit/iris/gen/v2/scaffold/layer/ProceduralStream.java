@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import com.volmit.iris.gen.v2.scaffold.Hunk;
 import com.volmit.iris.gen.v2.scaffold.Significance;
+import com.volmit.iris.gen.v2.scaffold.multicore.BurstExecutor;
 import com.volmit.iris.gen.v2.scaffold.stream.AddingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream3D;
@@ -17,6 +18,8 @@ import com.volmit.iris.gen.v2.scaffold.stream.FittedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ForceDoubleStream;
 import com.volmit.iris.gen.v2.scaffold.stream.FunctionStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
+import com.volmit.iris.gen.v2.scaffold.stream.MaxingStream;
+import com.volmit.iris.gen.v2.scaffold.stream.MinningStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ModuloStream;
 import com.volmit.iris.gen.v2.scaffold.stream.MultiplyingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.OffsetStream;
@@ -70,9 +73,44 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 		return new AddingStream<>(this, a);
 	}
 
+	default ProceduralStream<T> add2D(Function2<Double, Double, Double> a)
+	{
+		return new AddingStream<>(this, a);
+	}
+
 	default ProceduralStream<T> add(double a)
 	{
 		return new AddingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> max(Function3<Double, Double, Double, Double> a)
+	{
+		return new MaxingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> max(Function2<Double, Double, Double> a)
+	{
+		return new MaxingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> max(double a)
+	{
+		return new MaxingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> min(Function3<Double, Double, Double, Double> a)
+	{
+		return new MinningStream<>(this, a);
+	}
+
+	default ProceduralStream<T> min(Function2<Double, Double, Double> a)
+	{
+		return new MinningStream<>(this, a);
+	}
+
+	default ProceduralStream<T> min(double a)
+	{
+		return new MinningStream<>(this, a);
 	}
 
 	default ProceduralStream<T> subtract(Function3<Double, Double, Double, Double> a)
@@ -337,6 +375,80 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 					h.set(i, j, k, v.get(i + x, j, k + z));
 				}
 			}
+		}
+	}
+
+	default <V> void fill2DYLocked(Hunk<V> h, double x, double z, ProceduralStream<V> v)
+	{
+		for(int i = 0; i < h.getWidth(); i++)
+		{
+			for(int k = 0; k < h.getDepth(); k++)
+			{
+				double n = getDouble(i + x, k + z);
+				V yy = v.get(i + x, k + z);
+				for(int j = 0; j < Math.min(h.getHeight(), n); j++)
+				{
+					h.set(i, j, k, yy);
+				}
+			}
+		}
+	}
+
+	default <V> void fill2DParallel(BurstExecutor burster, int parallelismRooted, Hunk<V> h, double x, double z, ProceduralStream<V> v)
+	{
+		parallelismRooted = parallelismRooted % 2 != 0 ? parallelismRooted + 1 : parallelismRooted;
+		KList<Runnable> future = new KList<>();
+		int w = h.getWidth() / parallelismRooted;
+		int d = h.getDepth() / parallelismRooted;
+		int i, j;
+
+		for(i = 0; i < h.getWidth(); i += w)
+		{
+			int ii = i;
+
+			for(j = 0; j < h.getDepth(); j += d)
+			{
+				int jj = j;
+				Hunk<V> mh = h.crop(i, 0, j, i + w, h.getHeight(), j + d);
+				burster.queue(() -> fill2D(mh, x + ii, z + jj, v));
+				future.add(() -> h.insert(ii, 0, jj, mh));
+			}
+		}
+
+		burster.complete();
+
+		for(Runnable vx : future)
+		{
+			vx.run();
+		}
+	}
+
+	default <V> void fill2DParallelYLocked(BurstExecutor burster, int parallelismRooted, Hunk<V> h, double x, double z, ProceduralStream<V> v)
+	{
+		parallelismRooted = parallelismRooted % 2 != 0 ? parallelismRooted + 1 : parallelismRooted;
+		KList<Runnable> future = new KList<>();
+		int w = h.getWidth() / parallelismRooted;
+		int d = h.getDepth() / parallelismRooted;
+		int i, j;
+
+		for(i = 0; i < h.getWidth(); i += w)
+		{
+			int ii = i;
+
+			for(j = 0; j < h.getDepth(); j += d)
+			{
+				int jj = j;
+				Hunk<V> mh = h.crop(i, 0, j, i + w, h.getHeight(), j + d);
+				burster.queue(() -> fill2DYLocked(mh, x + ii, z + jj, v));
+				future.add(() -> h.insert(ii, 0, jj, mh));
+			}
+		}
+
+		burster.complete();
+
+		for(Runnable vx : future)
+		{
+			vx.run();
 		}
 	}
 

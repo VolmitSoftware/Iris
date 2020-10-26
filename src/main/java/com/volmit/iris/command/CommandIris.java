@@ -1,6 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.v2.TestGen;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -58,11 +59,11 @@ public class CommandIris extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		// if(args.length == 1 && args[0].equalsIgnoreCase("test!"))
-		// {
-		// TestGen.gen(sender.player());
-		// return true;
-		// }
+		if(args.length == 1 && args[0].equalsIgnoreCase("test!"))
+		{
+			TestGen.gen(sender.player());
+			return true;
+		}
 
 		sender.sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
 		printHelp(sender);

@@ -1,10 +1,10 @@
 package com.volmit.iris.gen.v2;
 
 import org.bukkit.Material;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.layer.GenLayerBiome;
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
 import com.volmit.iris.manager.IrisDataManager;
@@ -36,7 +36,11 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<IrisBiome> shoreBiomeStream;
 	private ProceduralStream<IrisBiome> baseBiomeStream;
 	private ProceduralStream<IrisBiome> trueBiomeStream;
+	private ProceduralStream<Biome> trueBiomeDerivativeStream;
 	private ProceduralStream<Double> heightStream;
+	private ProceduralStream<Double> maxHeightStream;
+	private ProceduralStream<Double> overlayStream;
+	private ProceduralStream<Double> heightFluidStream;
 	private ProceduralStream<BlockData> terrainStream;
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
@@ -83,6 +87,8 @@ public class IrisComplex implements DataProvider
 			.getAllBiomes(this).forEach((b) -> b
 				.getGenerators()
 				.forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
+		overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
+		dimension.getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, x, z)));
 		rockStream = dimension.getRockPalette().getLayerGenerator(rng.nextRNG(), data).stream()
 			.select(dimension.getRockPalette().getBlockData(data))
 			.convert((v) -> v.getBlockData());
@@ -98,28 +104,32 @@ public class IrisComplex implements DataProvider
 			-> dimension.getCaveBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getCaveBiomeZoom())
 				.selectRarity(r.getCaveBiomes())
-				.convertCached((s) -> data.getBiomeLoader().load(s))
+				.convertCached((s) -> data.getBiomeLoader().load(s)
+						.setInferredType(InferredType.CAVE))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		landBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getLandBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getLandBiomeZoom())
 				.selectRarity(r.getLandBiomes())
-				.convertCached((s) -> data.getBiomeLoader().load(s))
+				.convertCached((s) -> data.getBiomeLoader().load(s)
+						.setInferredType(InferredType.LAND))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		seaBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getSeaBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getSeaBiomeZoom())
 				.selectRarity(r.getSeaBiomes())
-				.convertCached((s) -> data.getBiomeLoader().load(s))
+				.convertCached((s) -> data.getBiomeLoader().load(s)
+						.setInferredType(InferredType.SEA))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		shoreBiomeStream = regionStream.convertCached((r) 
 			-> dimension.getShoreBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getShoreBiomeZoom())
 				.selectRarity(r.getShoreBiomes())
-				.convertCached((s) -> data.getBiomeLoader().load(s))
+				.convertCached((s) -> data.getBiomeLoader().load(s)
+						.setInferredType(InferredType.SHORE))
 			).convertAware2D((str, x, z) -> str.get(x, z))
 				.cache2D(1024);
 		bridgeStream = dimension.getContinentalStyle().create(rng.nextRNG()).stream()
@@ -129,17 +139,27 @@ public class IrisComplex implements DataProvider
 			.convertAware2D(this::implode)
 			.cache2D(1024);
 		heightStream = baseBiomeStream.convertAware2D((b, x, z) -> getHeight(b, x, z, seed))
-			.forceDouble().add(fluidHeight).roundDouble()
+			.forceDouble().add(fluidHeight)
+			.add2D(overlayStream::get).roundDouble()
 			.cache2D(1024);
 		trueBiomeStream = heightStream
 				.convertAware2D((h, x, z) -> 
-					fixBiomeType(h, baseBiomeStream.get(x, z),regionStream.get(x, z), x, z, fluidHeight))
+					fixBiomeType(h, baseBiomeStream.get(x, z),
+							regionStream.get(x, z), x, z, fluidHeight))
 				.cache2D(1024);
+		trueBiomeDerivativeStream = trueBiomeStream.convert((b) -> b.getDerivative());
+		heightFluidStream = heightStream.max(fluidHeight);
+		maxHeightStream = ProceduralStream.ofDouble((x, z) -> 255D);
 		terrainStream = ProceduralStream.of((x, y, z) -> {
 			double height = heightStream.get(x, z);
 			IrisBiome biome = trueBiomeStream.get(x, z);
 			int depth = (int) (Math.round(height) - y);
 			int atDepth = 0;
+			
+			if(y > height && y <= fluidHeight)
+			{
+				return fluidStream.get(x, y, z);
+			}
 			
 			if(depth < -1)
 			{
@@ -210,7 +230,7 @@ public class IrisComplex implements DataProvider
 	{
 		double sh = region.getShoreHeight(x, z);
 
-		if(height > fluidHeight && height <= fluidHeight + sh && !biome.isShore())
+		if(height >= fluidHeight && height <= fluidHeight + sh && !biome.isShore())
 		{
 			return shoreBiomeStream.get(x, z);
 		}
@@ -220,9 +240,14 @@ public class IrisComplex implements DataProvider
 			return landBiomeStream.get(x, z);
 		}
 
-		if(height <= fluidHeight && !biome.isAquatic())
+		if(height < fluidHeight && !biome.isAquatic())
 		{
 			return seaBiomeStream.get(x, z);
+		}
+
+		if(height == fluidHeight && !biome.isShore())
+		{
+			return shoreBiomeStream.get(x, z);
 		}
 
 		return biome;

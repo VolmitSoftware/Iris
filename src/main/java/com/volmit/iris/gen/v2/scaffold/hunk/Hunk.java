@@ -273,7 +273,7 @@ public interface Hunk<T>
 			for(j = 0; j < getDepth(); j += d)
 			{
 				int jj = j;
-				getSection(i, 0, j, i + w - 1, getHeight() - 1, j + d - 1, (h, r) -> v.accept(ii, 0, jj, h, r), inserter);
+				getSection(i, 0, j, i + w, getHeight(), j + d, (h, r) -> v.accept(ii, 0, jj, h, r), inserter);
 			}
 		}
 
@@ -296,7 +296,7 @@ public interface Hunk<T>
 			for(j = 0; j < getDepth(); j += d)
 			{
 				int jj = j;
-				getAtomicSection(i, 0, j, i + w - 1, getHeight() - 1, j + d - 1, (h) -> v.accept(ii, 0, jj, h));
+				getAtomicSection(i, 0, j, i + w, getHeight(), j + d, (h) -> v.accept(ii, 0, jj, h));
 			}
 		}
 
@@ -329,7 +329,7 @@ public interface Hunk<T>
 				for(k = 0; k < getDepth(); k += d)
 				{
 					int kk = k;
-					getSection(i, j, k, i + w - 1, j + h - 1, k + d - 1, (hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
+					getSection(i, j, k, i + w, j + h, k + d, (hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
 				}
 			}
 		}
@@ -358,7 +358,7 @@ public interface Hunk<T>
 				for(k = 0; k < getDepth(); k += d)
 				{
 					int kk = k;
-					getAtomicSection(i, j, k, i + w - 1, j + h - 1, k + d - 1, (hh) -> v.accept(ii, jj, kk, hh));
+					getAtomicSection(i, j, k, i + w, j + h, k + d, (hh) -> v.accept(ii, jj, kk, hh));
 				}
 			}
 		}
@@ -394,7 +394,7 @@ public interface Hunk<T>
 
 	default void enforceBounds(int x, int y, int z, int w, int h, int d)
 	{
-		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth() || x + w < 0 || x + w >= getWidth() || y + h < 0 || y + h >= getHeight() || z + d < 0 || z + d >= getDepth())
+		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth() || x + w < 0 || x + w > getWidth() || y + h < 0 || y + h > getHeight() || z + d < 0 || z + d > getDepth())
 		{
 			throw new IndexOutOfBoundsException("The hunk " + w + "," + h + "," + d + " with an offset of " + x + "," + y + "," + z + " does not fit within the parent hunk " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
 		}

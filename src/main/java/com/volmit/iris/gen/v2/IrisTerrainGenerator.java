@@ -33,12 +33,12 @@ public class IrisTerrainGenerator
 
 	private <V, T> void fill2D(ProceduralStream<T> t, Hunk<V> h, double x, double z, ProceduralStream<V> v)
 	{
-		t.fill2D(h, x * 16, z * 16, v);
+		t.fill2D(h, x * 16, z * 16, v, 8);
 	}
 
 	private <V, T> void fill2DYLock(ProceduralStream<T> t, Hunk<V> h, double x, double z, ProceduralStream<V> v)
 	{
-		t.fill2DYLocked(h, x * 16, z * 16, v);
+		t.fill2DYLocked(h, x * 16, z * 16, v, 8);
 	}
 
 	public void generateDecorations(int x, int z, Hunk<BlockData> blocks)

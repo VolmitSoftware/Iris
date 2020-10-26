@@ -1,4 +1,4 @@
-package com.volmit.iris.gen.v2.scaffold;
+package com.volmit.iris.gen.v2.scaffold.hunk;
 
 public enum HunkFace
 {

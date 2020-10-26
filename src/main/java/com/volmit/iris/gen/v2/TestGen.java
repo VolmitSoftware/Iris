@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.v2.scaffold.Hunk;
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.PrecisionStopwatch;
 
@@ -32,7 +32,7 @@ public class TestGen
 			{
 				PrecisionStopwatch p = PrecisionStopwatch.start();
 				ChunkData c = createChunkData(world);
-				Hunk<Biome> b = Hunk.create(16, 256, 16);
+				Hunk<Biome> b = Hunk.newHunk(16, 256, 16);
 				tg.generate(x, z, Hunk.view(c), b);
 
 				for(int i = 0; i < 16; i++)

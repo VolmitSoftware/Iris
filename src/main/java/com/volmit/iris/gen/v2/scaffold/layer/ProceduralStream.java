@@ -3,8 +3,8 @@ package com.volmit.iris.gen.v2.scaffold.layer;
 import java.util.List;
 import java.util.function.Function;
 
-import com.volmit.iris.gen.v2.scaffold.Hunk;
 import com.volmit.iris.gen.v2.scaffold.Significance;
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.gen.v2.scaffold.multicore.BurstExecutor;
 import com.volmit.iris.gen.v2.scaffold.stream.AddingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.AwareConversionStream2D;
@@ -293,163 +293,142 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 		return new FittedStream<T>(this, inMin, inMax, min, max);
 	}
 
-	default void fill(Hunk<T> h, double x, double y, double z)
+	default void fill(Hunk<T> h, double x, double y, double z, int parallelism)
 	{
-		for(int i = 0; i < h.getWidth(); i++)
+		h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) -> hh.set(xv, yv, zv, get(xx + xv + x, yy + yv + y, zz + zv + z))));
+	}
+
+	default <V> void fill2D(Hunk<V> h, double x, double z, V v, int parallelism)
+	{
+		h.compute2D(parallelism, (xx, __, zz, hh) ->
 		{
-			for(int j = 0; j < h.getHeight(); j++)
+			for(int i = 0; i < hh.getWidth(); i++)
 			{
-				for(int k = 0; k < h.getDepth(); k++)
+				for(int k = 0; k < hh.getDepth(); k++)
 				{
-					h.set(i, j, k, get(i + x, j + y, k + z));
+					double n = getDouble(i + x + xx, k + z + zz);
+
+					for(int j = 0; j < Math.min(h.getHeight(), n); j++)
+					{
+						hh.set(i, j, k, v);
+					}
 				}
 			}
-		}
+		});
+	}
+
+	default <V> void fill2D(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism)
+	{
+		h.compute2D(parallelism, (xx, yy, zz, hh) ->
+		{
+			for(int i = 0; i < hh.getWidth(); i++)
+			{
+				for(int k = 0; k < hh.getDepth(); k++)
+				{
+					double n = getDouble(i + x + xx, k + z + zz);
+
+					for(int j = 0; j < Math.min(h.getHeight(), n); j++)
+					{
+						hh.set(i, j, k, v.get(i + x + xx, j + yy, k + z + zz));
+					}
+				}
+			}
+		});
+	}
+
+	default <V> void fill2DYLocked(Hunk<V> h, double x, double z, V v, int parallelism)
+	{
+		h.compute2D(parallelism, (xx, yy, zz, hh) ->
+		{
+			for(int i = 0; i < hh.getWidth(); i++)
+			{
+				for(int k = 0; k < hh.getDepth(); k++)
+				{
+					double n = getDouble(i + x + xx, k + z + zz);
+
+					for(int j = 0; j < Math.min(h.getHeight(), n); j++)
+					{
+						hh.set(i, j, k, v);
+					}
+				}
+			}
+		});
+	}
+
+	default <V> void fill2DYLocked(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism)
+	{
+		h.compute2D(parallelism, (xx, yy, zz, hh) ->
+		{
+			for(int i = 0; i < hh.getWidth(); i++)
+			{
+				for(int k = 0; k < hh.getDepth(); k++)
+				{
+					double n = getDouble(i + x + xx, k + z + zz);
+
+					for(int j = 0; j < Math.min(h.getHeight(), n); j++)
+					{
+						hh.set(i, j, k, v.get(i + x + xx, k + z + zz));
+					}
+				}
+			}
+		});
+	}
+
+	default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v, int parallelism)
+	{
+		h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
+		{
+			if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5)
+			{
+				hh.set(xv, yv, zv, v);
+			}
+		}));
+	}
+
+	default <V> void fill3D(Hunk<V> h, double x, int y, double z, ProceduralStream<V> v, int parallelism)
+	{
+		h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
+		{
+			if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5)
+			{
+				hh.set(xv, yv, zv, v.get(xx + xv + x, yy + yv + y, zz + zv + z));
+			}
+		}));
+	}
+
+	default void fill(Hunk<T> h, double x, double y, double z)
+	{
+		fill(h, x, z, 4);
 	}
 
 	default <V> void fill2D(Hunk<V> h, double x, double z, V v)
 	{
-		for(int i = 0; i < h.getWidth(); i++)
-		{
-			for(int k = 0; k < h.getDepth(); k++)
-			{
-				double n = getDouble(i + x, k + z);
-
-				for(int j = 0; j < Math.min(h.getHeight(), n); j++)
-				{
-					h.set(i, j, k, v);
-				}
-			}
-		}
-	}
-
-	default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v)
-	{
-		for(int i = 0; i < h.getWidth(); i++)
-		{
-			for(int k = 0; k < h.getDepth(); k++)
-			{
-
-				for(int j = 0; j < h.getHeight(); j++)
-				{
-					double n = getDouble(i + x, j + y, k + z);
-
-					if(n >= 0.5)
-					{
-						h.set(i, j, k, v);
-					}
-				}
-			}
-		}
-	}
-
-	default <V> void fill3D(Hunk<V> h, double x, int y, double z, ProceduralStream<V> v)
-	{
-		for(int i = 0; i < h.getWidth(); i++)
-		{
-			for(int k = 0; k < h.getDepth(); k++)
-			{
-				for(int j = 0; j < h.getHeight(); j++)
-				{
-					double n = getDouble(i + x, j + y, k + z);
-
-					if(n >= 0.5)
-					{
-						h.set(i, j, k, v.get(i + x, j + y, k + z));
-					}
-				}
-			}
-		}
+		fill2D(h, x, z, v, 4);
 	}
 
 	default <V> void fill2D(Hunk<V> h, double x, double z, ProceduralStream<V> v)
 	{
-		for(int i = 0; i < h.getWidth(); i++)
-		{
-			for(int k = 0; k < h.getDepth(); k++)
-			{
-				double n = getDouble(i + x, k + z);
+		fill2D(h, x, z, v, 4);
+	}
 
-				for(int j = 0; j < Math.min(h.getHeight(), n); j++)
-				{
-					h.set(i, j, k, v.get(i + x, j, k + z));
-				}
-			}
-		}
+	default <V> void fill2DYLocked(Hunk<V> h, double x, double z, V v)
+	{
+		fill2DYLocked(h, x, z, v, 4);
 	}
 
 	default <V> void fill2DYLocked(Hunk<V> h, double x, double z, ProceduralStream<V> v)
 	{
-		for(int i = 0; i < h.getWidth(); i++)
-		{
-			for(int k = 0; k < h.getDepth(); k++)
-			{
-				double n = getDouble(i + x, k + z);
-				V yy = v.get(i + x, k + z);
-				for(int j = 0; j < Math.min(h.getHeight(), n); j++)
-				{
-					h.set(i, j, k, yy);
-				}
-			}
-		}
+		fill2DYLocked(h, x, z, v, 4);
 	}
 
-	default <V> void fill2DParallel(BurstExecutor burster, int parallelismRooted, Hunk<V> h, double x, double z, ProceduralStream<V> v)
+	default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v)
 	{
-		parallelismRooted = parallelismRooted % 2 != 0 ? parallelismRooted + 1 : parallelismRooted;
-		KList<Runnable> future = new KList<>();
-		int w = h.getWidth() / parallelismRooted;
-		int d = h.getDepth() / parallelismRooted;
-		int i, j;
-
-		for(i = 0; i < h.getWidth(); i += w)
-		{
-			int ii = i;
-
-			for(j = 0; j < h.getDepth(); j += d)
-			{
-				int jj = j;
-				Hunk<V> mh = h.crop(i, 0, j, i + w, h.getHeight(), j + d);
-				burster.queue(() -> fill2D(mh, x + ii, z + jj, v));
-				future.add(() -> h.insert(ii, 0, jj, mh));
-			}
-		}
-
-		burster.complete();
-
-		for(Runnable vx : future)
-		{
-			vx.run();
-		}
+		fill3D(h, x, y, z, v, 4);
 	}
 
-	default <V> void fill2DParallelYLocked(BurstExecutor burster, int parallelismRooted, Hunk<V> h, double x, double z, ProceduralStream<V> v)
+	default <V> void fill3D(Hunk<V> h, double x, int y, double z, ProceduralStream<V> v)
 	{
-		parallelismRooted = parallelismRooted % 2 != 0 ? parallelismRooted + 1 : parallelismRooted;
-		KList<Runnable> future = new KList<>();
-		int w = h.getWidth() / parallelismRooted;
-		int d = h.getDepth() / parallelismRooted;
-		int i, j;
-
-		for(i = 0; i < h.getWidth(); i += w)
-		{
-			int ii = i;
-
-			for(j = 0; j < h.getDepth(); j += d)
-			{
-				int jj = j;
-				Hunk<V> mh = h.crop(i, 0, j, i + w, h.getHeight(), j + d);
-				burster.queue(() -> fill2DYLocked(mh, x + ii, z + jj, v));
-				future.add(() -> h.insert(ii, 0, jj, mh));
-			}
-		}
-
-		burster.complete();
-
-		for(Runnable vx : future)
-		{
-			vx.run();
-		}
+		fill3D(h, x, y, z, v, 4);
 	}
 
 	public T get(double x, double z);

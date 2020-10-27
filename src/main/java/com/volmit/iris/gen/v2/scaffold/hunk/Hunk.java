@@ -14,6 +14,7 @@ import com.volmit.iris.util.Consumer2;
 import com.volmit.iris.util.Consumer3;
 import com.volmit.iris.util.Consumer4;
 import com.volmit.iris.util.Consumer5;
+import com.volmit.iris.util.Consumer6;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.KList;
 
@@ -204,12 +205,12 @@ public interface Hunk<T>
 
 	default int getIdeal2DParallelism()
 	{
-		return getMax2DParallelism() / 2;
+		return getMax2DParallelism() / 4;
 	}
 
 	default int getIdeal3DParallelism()
 	{
-		return getMax3DParallelism() / 2;
+		return getMax3DParallelism() / 8;
 	}
 
 	default int getMinimumDimension()
@@ -269,15 +270,16 @@ public interface Hunk<T>
 		return filterDimension((int) Math.ceil(Math.cbrt(sections)));
 	}
 
-	default Hunk<T> iterateSurfaces2D(Predicate<T> p, Consumer4<Integer, Integer, Integer, Integer> c)
+	default Hunk<T> iterateSurfaces2D(Predicate<T> p, Consumer6<Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
 		return iterateSurfaces2D(getIdeal2DParallelism(), p, c);
 	}
 
-	default Hunk<T> iterateSurfaces2D(int parallelism, Predicate<T> p, Consumer4<Integer, Integer, Integer, Integer> c)
+	default Hunk<T> iterateSurfaces2D(int parallelism, Predicate<T> p, Consumer6<Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
-		iterate2DTop(parallelism, (x, z) ->
+		iterate2DTop(parallelism, (x, z, h) ->
 		{
+			int last = -1;
 			int in = getHeight() - 1;
 			boolean hitting = false;
 			for(int i = getHeight() - 1; i >= 0; i--)
@@ -293,20 +295,26 @@ public interface Hunk<T>
 				else if(hitting && !solid)
 				{
 					hitting = false;
-					c.accept(x, z, in, i - 1);
+					c.accept(x, z, in, i - 1, last, h);
+					last = i - 1;
 				}
+			}
+
+			if(hitting)
+			{
+				c.accept(x, z, in, 0, last, h);
 			}
 		});
 
 		return this;
 	}
 
-	default Hunk<T> iterate2DTop(Consumer2<Integer, Integer> c)
+	default Hunk<T> iterate2DTop(Consumer3<Integer, Integer, Hunk<T>> c)
 	{
 		return iterate2DTop(getIdeal2DParallelism(), c);
 	}
 
-	default Hunk<T> iterate2DTop(int parallelism, Consumer2<Integer, Integer> c)
+	default Hunk<T> iterate2DTop(int parallelism, Consumer3<Integer, Integer, Hunk<T>> c)
 	{
 		compute2D(parallelism, (x, y, z, h) ->
 		{
@@ -314,7 +322,7 @@ public interface Hunk<T>
 			{
 				for(int k = 0; k < h.getDepth(); k++)
 				{
-					c.accept(i + x, k + z);
+					c.accept(i + x, k + z, h);
 				}
 			}
 		});
@@ -478,7 +486,9 @@ public interface Hunk<T>
 		}
 
 		int w = getWidth() / dim;
+		int wr = getWidth() - (w * dim);
 		int d = getDepth() / dim;
+		int dr = getDepth() - (d * dim);
 		int i, j;
 
 		for(i = 0; i < getWidth(); i += w)
@@ -488,7 +498,9 @@ public interface Hunk<T>
 			for(j = 0; j < getDepth(); j += d)
 			{
 				int jj = j;
-				getSection(i, 0, j, i + w, getHeight(), j + d, (h, r) -> v.accept(ii, 0, jj, h, r), inserter);
+				getSection(i, 0, j, i + w + (i == 0 ? wr : 0), getHeight(), j + d + (j == 0 ? dr : 0), (h, r) -> v.accept(ii, 0, jj, h, r), inserter);
+				i = i == 0 ? i + wr : i;
+				j = j == 0 ? j + dr : j;
 			}
 		}
 
@@ -513,6 +525,9 @@ public interface Hunk<T>
 		int w = getWidth() / dim;
 		int h = getHeight() / dim;
 		int d = getDepth() / dim;
+		int wr = getWidth() - (w * dim);
+		int hr = getHeight() - (h * dim);
+		int dr = getDepth() - (d * dim);
 		int i, j, k;
 
 		for(i = 0; i < getWidth(); i += w)
@@ -526,7 +541,14 @@ public interface Hunk<T>
 				for(k = 0; k < getDepth(); k += d)
 				{
 					int kk = k;
-					getSection(i, j, k, i + w, j + h, k + d, (hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
+					getSection(ii, jj, kk, 
+							i + w + (i == 0 ? wr : 0), 
+							j + h + (j == 0 ? hr : 0), 
+							k + d + (k == 0 ? dr : 0), 
+							(hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
+					i = i == 0 ? i + wr : i;
+					j = j == 0 ? j + hr : j;
+					k = k == 0 ? k + dr : k;
 				}
 			}
 		}

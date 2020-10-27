@@ -164,10 +164,10 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
 	private KList<IrisBiomePaletteLayer> seaLayers = new KList<IrisBiomePaletteLayer>();
 
-	@ArrayType(min = 1, type = IrisBiomeDecorator.class)
+	@ArrayType(min = 1, type = IrisDecorator.class)
 	@DontObfuscate
 	@Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-	private KList<IrisBiomeDecorator> decorators = new KList<IrisBiomeDecorator>();
+	private KList<IrisDecorator> decorators = new KList<IrisDecorator>();
 
 	@ArrayType(min = 1, type = IrisObjectPlacement.class)
 	@DontObfuscate

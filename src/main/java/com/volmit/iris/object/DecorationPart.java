@@ -16,5 +16,9 @@ public enum DecorationPart
 
 	@Desc("Target sea surfaces (typically for lilypads)")
 	@DontObfuscate
-	SEA_SURFACE
+	SEA_SURFACE,
+
+	@Desc("Decorates on cave & carving ceilings or underside of overhangs")
+	@DontObfuscate
+	CEILING,
 }

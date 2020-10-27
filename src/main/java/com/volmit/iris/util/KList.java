@@ -41,6 +41,12 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		add(e);
 	}
 
+	public int indexOfAddIfNeeded(T v)
+	{
+		addIfMissing(v);
+		return indexOf(v);
+	}
+
 	/**
 	 * Remove the last element
 	 */

@@ -38,6 +38,11 @@ public class RNG extends Random
 	{
 		return new RNG(sx + signature);
 	}
+	
+	public RNG nextParallelRNG(long signature)
+	{
+		return new RNG(sx + signature);
+	}
 
 	public RNG nextRNG()
 	{

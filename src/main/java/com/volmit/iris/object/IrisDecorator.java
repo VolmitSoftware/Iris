@@ -25,7 +25,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
-public class IrisBiomeDecorator
+public class IrisDecorator
 {
 	@DontObfuscate
 	@Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
@@ -232,5 +232,10 @@ public class IrisBiomeDecorator
 
 			return blockDataTops;
 		});
+	}
+
+	public boolean isStacking()
+	{
+		return getStackMax() > 1;
 	}
 }

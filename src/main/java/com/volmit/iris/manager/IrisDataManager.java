@@ -7,7 +7,7 @@ import org.bukkit.block.Biome;
 
 import com.google.gson.Gson;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.object.IrisBlockData;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisEntity;
@@ -154,7 +154,7 @@ public class IrisDataManager
 
 			IrisBiome biome = new IrisBiome();
 			biome.getChildren().add("another_biome");
-			biome.getDecorators().add(new IrisBiomeDecorator());
+			biome.getDecorators().add(new IrisDecorator());
 			biome.getObjects().add(o);
 
 			IO.writeAll(new File(examples, "example-pack/biomes/example-biome.json"), new JSONObject(new Gson().toJson(biome)).toString(4));

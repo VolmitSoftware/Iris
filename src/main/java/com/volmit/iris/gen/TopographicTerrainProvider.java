@@ -19,7 +19,7 @@ import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisBiomeDecorator;
+import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.object.IrisCaveFluid;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisDimension;
@@ -378,7 +378,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		int j = 0;
 
-		for(IrisBiomeDecorator i : biome.getDecorators())
+		for(IrisDecorator i : biome.getDecorators())
 		{
 			if(i.getPartOf().equals(DecorationPart.SHORE_LINE) && (!touchesSea(rx, rz) || k != getFluidHeight()))
 			{
@@ -461,7 +461,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		int j = 0;
 
-		for(IrisBiomeDecorator i : biome.getDecorators())
+		for(IrisDecorator i : biome.getDecorators())
 		{
 			FastBlockData d = i.getBlockData(biome, rng.nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz, getData());
 
@@ -528,7 +528,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		int j = 0;
 
-		for(IrisBiomeDecorator i : biome.getDecorators())
+		for(IrisDecorator i : biome.getDecorators())
 		{
 			if(biome.getInferredType().equals(InferredType.SHORE))
 			{

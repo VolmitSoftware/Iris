@@ -79,10 +79,9 @@ public class CommandIrisStructureCreate extends MortarCommand
 			height = Integer.parseInt(args[3]);
 		}
 
-		if (width % 2 == 0 || height % 2 == 0){
-			sender.sendMessage("Width and/or height is an even number. Adding one");
+		if (width % 2 == 0){
+			sender.sendMessage("Width is an even number. Adding one");
 			width += width % 2 == 0 ? 1 : 0;
-			height += height % 2 == 0 ? 1 : 0;
 		}
 
 		sender.sendMessage("Creating new Structure");

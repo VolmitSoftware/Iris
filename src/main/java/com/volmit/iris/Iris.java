@@ -11,7 +11,6 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_16_R2.CraftWorld;
 import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
@@ -54,7 +53,6 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.ShurikenQueue;
 
 import io.papermc.lib.PaperLib;
-import net.minecraft.server.v1_16_R2.WorldServer;
 
 public class Iris extends MortarPlugin
 {

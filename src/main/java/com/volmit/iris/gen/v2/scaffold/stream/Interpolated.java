@@ -2,10 +2,15 @@ package com.volmit.iris.gen.v2.scaffold.stream;
 
 import java.util.function.Function;
 
+import org.bukkit.block.data.BlockData;
+
 import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
+import com.volmit.iris.util.RNG;
 
 public interface Interpolated<T>
 {
+	public static final Interpolated<BlockData> BLOCK_DATA = of((t) -> 0D, (t) -> null);
+	public static final Interpolated<RNG> RNG = of((t) -> 0D, (t) -> null);
 	public static final Interpolated<Double> DOUBLE = of((t) -> t, (t) -> t);
 	public static final Interpolated<Integer> INT = of((t) -> Double.valueOf(t), (t) -> t.intValue());
 	public static final Interpolated<Long> LONG = of((t) -> Double.valueOf(t), (t) -> t.longValue());

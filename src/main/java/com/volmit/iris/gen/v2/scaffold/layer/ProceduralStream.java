@@ -12,6 +12,8 @@ import com.volmit.iris.gen.v2.scaffold.stream.CachedConversionStream;
 import com.volmit.iris.gen.v2.scaffold.stream.CachedStream2D;
 import com.volmit.iris.gen.v2.scaffold.stream.ClampedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ConversionStream;
+import com.volmit.iris.gen.v2.scaffold.stream.CoordinateBitShiftLeftStream;
+import com.volmit.iris.gen.v2.scaffold.stream.CoordinateBitShiftRightStream;
 import com.volmit.iris.gen.v2.scaffold.stream.DividingStream;
 import com.volmit.iris.gen.v2.scaffold.stream.FittedStream;
 import com.volmit.iris.gen.v2.scaffold.stream.ForceDoubleStream;
@@ -80,6 +82,46 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 	default ProceduralStream<T> add(double a)
 	{
 		return new AddingStream<>(this, a);
+	}
+
+	default ProceduralStream<T> blockToChunkCoords()
+	{
+		return bitShiftCoordsRight(4);
+	}
+
+	default ProceduralStream<T> chunkToRegionCoords()
+	{
+		return bitShiftCoordsRight(5);
+	}
+
+	default ProceduralStream<T> blockToRegionCoords()
+	{
+		return blockToChunkCoords().chunkToRegionCoords();
+	}
+
+	default ProceduralStream<T> regionToBlockCoords()
+	{
+		return regionToChunkCoords().chunkToBlockCoords();
+	}
+
+	default ProceduralStream<T> regionToChunkCoords()
+	{
+		return bitShiftCoordsLeft(5);
+	}
+
+	default ProceduralStream<T> chunkToBlockCoords()
+	{
+		return bitShiftCoordsLeft(4);
+	}
+
+	default ProceduralStream<T> bitShiftCoordsRight(int a)
+	{
+		return new CoordinateBitShiftRightStream<>(this, a);
+	}
+
+	default ProceduralStream<T> bitShiftCoordsLeft(int a)
+	{
+		return new CoordinateBitShiftLeftStream<>(this, a);
 	}
 
 	default ProceduralStream<T> max(Function3<Double, Double, Double, Double> a)

@@ -686,6 +686,12 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		return this;
 	}
 
+	public KList<T> qaddIfMissing(T t)
+	{
+		addIfMissing(t);
+		return this;
+	}
+
 	public KList<T> removeDuplicates()
 	{
 		KSet<T> v = new KSet<>();

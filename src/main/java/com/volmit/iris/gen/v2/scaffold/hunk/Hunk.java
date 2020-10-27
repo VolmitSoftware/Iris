@@ -14,7 +14,7 @@ import com.volmit.iris.util.Consumer2;
 import com.volmit.iris.util.Consumer3;
 import com.volmit.iris.util.Consumer4;
 import com.volmit.iris.util.Consumer5;
-import com.volmit.iris.util.Consumer6;
+import com.volmit.iris.util.Consumer8;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.KList;
 
@@ -178,6 +178,11 @@ public interface Hunk<T>
 		return b;
 	}
 
+	default boolean isAtomic()
+	{
+		return false;
+	}
+	
 	default Hunk<T> invertY()
 	{
 		return new InvertedHunkView<T>(this);
@@ -270,21 +275,143 @@ public interface Hunk<T>
 		return filterDimension((int) Math.ceil(Math.cbrt(sections)));
 	}
 
-	default Hunk<T> iterateSurfaces2D(Predicate<T> p, Consumer6<Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
+	/**
+	 * Iterate surfaces on 2d. Raytraces with a front and a back which stretches
+	 * through surfaces. Essentially what is returned is the following (in
+	 * order)<br>
+	 * <br>
+	 * 
+	 * The predicate is used to determine if the given block type is solid or not.
+	 * 
+	 * <br>
+	 * <br>
+	 * ================================================ <br>
+	 * AX, AZ: Hunk Relative X and Z
+	 * 
+	 * <br>
+	 * <br>
+	 * HX, HZ: Hunk Positional X and Z (in its parent hunk)
+	 * 
+	 * <br>
+	 * <br>
+	 * TOP: The top of this surface (top+1 is air above a surface)
+	 * 
+	 * <br>
+	 * <br>
+	 * BOTTOM: The bottom of this surface (bottom is the lowest SOLID surface before
+	 * either air or bedrock going down further)
+	 * 
+	 * <br>
+	 * <br>
+	 * LAST_BOTTOM: The previous bottom. If your surface is the top surface, this
+	 * will be -1 as there is no bottom-of-surface above you. However if you are not
+	 * the top surface, this value is equal to the next solid layer above TOP, such
+	 * that ((LAST_BOTTOM - 1) - (TOP + 1)) is how many air blocks are between your
+	 * surface and the surface above you
+	 * 
+	 * <br>
+	 * <br>
+	 * HUNK: The hunk to set data to. <br>
+	 * ================================================ <br>
+	 * <br>
+	 * If we assume your chunk coordinates are x and z, then <br>
+	 * <br>
+	 * bX = (x * 16)<br>
+	 * bZ = (z * 16)<br>
+	 * <br>
+	 * (ax, az, hx, hz, top, bottom, lastBottom, hunk) {<br>
+	 * actualBlockX = ax+hx;<br>
+	 * actualBlockZ = az+hz;<br>
+	 * <br>
+	 * hunkX = ax;<br>
+	 * hunkZ = az;<br>
+	 * <br>
+	 * hunk.set(hunkX, ?, hunkZ, noise(actualBlockX, ?, actualBlockZ));<br>
+	 * }<br>
+	 * 
+	 * @param p
+	 *            the predicate
+	 * @param c
+	 *            the consumer
+	 * @return this
+	 */
+	default Hunk<T> iterateSurfaces2D(Predicate<T> p, Consumer8<Integer, Integer, Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
 		return iterateSurfaces2D(getIdeal2DParallelism(), p, c);
 	}
 
-	default Hunk<T> iterateSurfaces2D(int parallelism, Predicate<T> p, Consumer6<Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
+	/**
+	 * Iterate surfaces on 2d. Raytraces with a front and a back which stretches
+	 * through surfaces. Essentially what is returned is the following (in
+	 * order)<br>
+	 * <br>
+	 * 
+	 * The predicate is used to determine if the given block type is solid or not.
+	 * 
+	 * <br>
+	 * <br>
+	 * ================================================ <br>
+	 * AX, AZ: Hunk Relative X and Z
+	 * 
+	 * <br>
+	 * <br>
+	 * HX, HZ: Hunk Positional X and Z (in its parent hunk)
+	 * 
+	 * <br>
+	 * <br>
+	 * TOP: The top of this surface (top+1 is air above a surface)
+	 * 
+	 * <br>
+	 * <br>
+	 * BOTTOM: The bottom of this surface (bottom is the lowest SOLID surface before
+	 * either air or bedrock going down further)
+	 * 
+	 * <br>
+	 * <br>
+	 * LAST_BOTTOM: The previous bottom. If your surface is the top surface, this
+	 * will be -1 as there is no bottom-of-surface above you. However if you are not
+	 * the top surface, this value is equal to the next solid layer above TOP, such
+	 * that ((LAST_BOTTOM - 1) - (TOP + 1)) is how many air blocks are between your
+	 * surface and the surface above you
+	 * 
+	 * <br>
+	 * <br>
+	 * HUNK: The hunk to set data to. <br>
+	 * ================================================ <br>
+	 * <br>
+	 * If we assume your chunk coordinates are x and z, then <br>
+	 * <br>
+	 * bX = (x * 16)<br>
+	 * bZ = (z * 16)<br>
+	 * <br>
+	 * (ax, az, hx, hz, top, bottom, lastBottom, hunk) {<br>
+	 * actualBlockX = ax+hx;<br>
+	 * actualBlockZ = az+hz;<br>
+	 * <br>
+	 * hunkX = ax;<br>
+	 * hunkZ = az;<br>
+	 * <br>
+	 * hunk.set(hunkX, ?, hunkZ, noise(actualBlockX, ?, actualBlockZ));<br>
+	 * }<br>
+	 * 
+	 * @param parallelism
+	 *            the ideal threads to use on this
+	 * @param p
+	 *            the predicate
+	 * @param c
+	 *            the consumer
+	 * @return this
+	 */
+	default Hunk<T> iterateSurfaces2D(int parallelism, Predicate<T> p, Consumer8<Integer, Integer, Integer, Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
-		iterate2DTop(parallelism, (x, z, h) ->
+		iterate2DTop(parallelism, (ax, az, hox, hoz, h) ->
 		{
 			int last = -1;
 			int in = getHeight() - 1;
 			boolean hitting = false;
 			for(int i = getHeight() - 1; i >= 0; i--)
 			{
-				boolean solid = p.test(get(x, i, z));
+				boolean solid = p.test(h.get(ax, i, az));
 
 				if(!hitting && solid)
 				{
@@ -295,26 +422,55 @@ public interface Hunk<T>
 				else if(hitting && !solid)
 				{
 					hitting = false;
-					c.accept(x, z, in, i - 1, last, h);
+					c.accept(ax, az, hox, hoz, in, i - 1, last, h);
 					last = i - 1;
 				}
 			}
 
 			if(hitting)
 			{
-				c.accept(x, z, in, 0, last, h);
+				c.accept(ax, az, hox, hoz, in, 0, last, h);
 			}
 		});
 
 		return this;
 	}
 
-	default Hunk<T> iterate2DTop(Consumer3<Integer, Integer, Hunk<T>> c)
+	/**
+	 * Iterate on the xz top of this hunk. When using this consumer, given
+	 * 
+	 * consumer: (ax, az, hx, hz, hunk)
+	 * 
+	 * hunk.set(ax, ?, az, NOISE.get(ax+hx, az+hz));
+	 * 
+	 * @param c
+	 *            the consumer hunkX, hunkZ, hunkOffsetX, hunkOffsetZ.
+	 * @return this
+	 */
+	default Hunk<T> iterate2DTop(Consumer5<Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
 		return iterate2DTop(getIdeal2DParallelism(), c);
 	}
 
-	default Hunk<T> iterate2DTop(int parallelism, Consumer3<Integer, Integer, Hunk<T>> c)
+	default Hunk<T> drift(int x, int y, int z)
+	{
+		return new DriftHunkView<>(this, x, y, z);
+	}
+
+	/**
+	 * Iterate on the xz top of this hunk. When using this consumer, given
+	 * 
+	 * consumer: (ax, az, hx, hz, hunk)
+	 * 
+	 * hunk.set(ax, ?, az, NOISE.get(ax+hx, az+hz));
+	 * 
+	 * @param parallelism
+	 *            the target parallelism value or 0 to disable
+	 * @param c
+	 *            the consumer hunkX, hunkZ, hunkOffsetX, hunkOffsetZ.
+	 * @return this
+	 */
+	default Hunk<T> iterate2DTop(int parallelism, Consumer5<Integer, Integer, Integer, Integer, Hunk<T>> c)
 	{
 		compute2D(parallelism, (x, y, z, h) ->
 		{
@@ -322,7 +478,7 @@ public interface Hunk<T>
 			{
 				for(int k = 0; k < h.getDepth(); k++)
 				{
-					c.accept(i + x, k + z, h);
+					c.accept(i, k, x, z, h);
 				}
 			}
 		});
@@ -432,6 +588,7 @@ public interface Hunk<T>
 		getSections2D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
 		{
 			v.accept(xx, yy, zz, h);
+			
 			synchronized(rq)
 			{
 				rq.add(r);
@@ -541,11 +698,7 @@ public interface Hunk<T>
 				for(k = 0; k < getDepth(); k += d)
 				{
 					int kk = k;
-					getSection(ii, jj, kk, 
-							i + w + (i == 0 ? wr : 0), 
-							j + h + (j == 0 ? hr : 0), 
-							k + d + (k == 0 ? dr : 0), 
-							(hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
+					getSection(ii, jj, kk, i + w + (i == 0 ? wr : 0), j + h + (j == 0 ? hr : 0), k + d + (k == 0 ? dr : 0), (hh, r) -> v.accept(ii, jj, kk, hh, r), inserter);
 					i = i == 0 ? i + wr : i;
 					j = j == 0 ? j + hr : j;
 					k = k == 0 ? k + dr : k;

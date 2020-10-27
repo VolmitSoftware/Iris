@@ -18,6 +18,12 @@ public class AtomicDoubleHunk extends StorageHunk<Double> implements Hunk<Double
 	}
 
 	@Override
+	public boolean isAtomic()
+	{
+		return true;
+	}
+
+	@Override
 	public void setRaw(int x, int y, int z, Double t)
 	{
 		data.set(index(x, y, z), t);

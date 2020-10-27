@@ -110,7 +110,7 @@ public class IrisComplex implements DataProvider
 			.convert((v) -> v.getBlockData());
 		regionStream = dimension.getRegionStyle().create(rng.nextRNG()).stream()
 			.zoom(dimension.getRegionZoom())
-			.select(dimension.getRegions())
+			.selectRarity(dimension.getRegions())
 			.convertCached((s) -> data.getRegionLoader().load(s))
 			.cache2D(1024);
 		caveBiomeStream = regionStream.convertCached((r) 
@@ -210,7 +210,7 @@ public class IrisComplex implements DataProvider
 	private IrisDecorator decorateFor(IrisBiome b, double x, double z, DecorationPart part)
 	{
 		RNG rngc = chunkRngStream.get(x, z);
-		
+
 		for(IrisDecorator i : b.getDecorators())
 		{
 			if(!i.getPartOf().equals(part))
@@ -218,11 +218,10 @@ public class IrisComplex implements DataProvider
 				continue;
 			}
 
-			FastBlockData block =  i.getBlockData(b, rngc, x, z, data);
+			FastBlockData block = i.getBlockData(b, rngc, x, z, data);
 
 			if(block != null)
 			{
-				Iris.info("DECO AT " + x + " " + z);
 				return i;
 			}
 		}
@@ -264,7 +263,7 @@ public class IrisComplex implements DataProvider
 	{
 		double sh = region.getShoreHeight(x, z);
 
-		if(height >= fluidHeight && height <= fluidHeight + sh && !biome.isShore())
+		if(height >= fluidHeight-1 && height <= fluidHeight + sh && !biome.isShore())
 		{
 			return shoreBiomeStream.get(x, z);
 		}

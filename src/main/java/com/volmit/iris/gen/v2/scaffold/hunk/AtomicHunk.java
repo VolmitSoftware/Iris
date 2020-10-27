@@ -16,6 +16,12 @@ public class AtomicHunk<T> extends StorageHunk<T> implements Hunk<T>
 		super(w, h, d);
 		data = new AtomicReferenceArray<T>(w * h * d);
 	}
+	
+	@Override
+	public boolean isAtomic()
+	{
+		return true;
+	}
 
 	@Override
 	public void setRaw(int x, int y, int z, T t)

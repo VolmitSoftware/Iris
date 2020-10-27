@@ -9,12 +9,15 @@ import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
 import com.volmit.iris.gen.v2.scaffold.stream.Interpolated;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
+import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.object.IrisBiomePaletteLayer;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;
@@ -25,6 +28,7 @@ import lombok.Data;
 public class IrisComplex implements DataProvider
 {
 	private RNG rng;
+	private double fluidHeight;
 	private IrisDataManager data;
 	private KList<IrisGenerator> generators;
 	private static final BlockData AIR = Material.AIR.createBlockData();
@@ -41,6 +45,12 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<Double> maxHeightStream;
 	private ProceduralStream<Double> overlayStream;
 	private ProceduralStream<Double> heightFluidStream;
+	private ProceduralStream<RNG> rngStream;
+	private ProceduralStream<RNG> chunkRngStream;
+	private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
+	private ProceduralStream<IrisDecorator> terrainCeilingDecoration;
+	private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
+	private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
 	private ProceduralStream<BlockData> terrainStream;
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
@@ -79,7 +89,7 @@ public class IrisComplex implements DataProvider
 	{
 		this.rng = new RNG(seed);
 		this.data = data;
-		double fluidHeight = dimension.getFluidHeight();
+		fluidHeight = dimension.getFluidHeight();
 		generators = new KList<>();
 		RNG rng = new RNG(seed);
 		//@builder
@@ -89,6 +99,9 @@ public class IrisComplex implements DataProvider
 				.forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
 		overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
 		dimension.getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, x, z)));
+		rngStream = ProceduralStream.of((x, z) -> new RNG(((x.longValue()) << 32) | (z.longValue() & 0xffffffffL)).nextParallelRNG(seed), Interpolated.RNG)
+			.cache2D(64);
+		chunkRngStream = rngStream.blockToChunkCoords();
 		rockStream = dimension.getRockPalette().getLayerGenerator(rng.nextRNG(), data).stream()
 			.select(dimension.getRockPalette().getBlockData(data))
 			.convert((v) -> v.getBlockData());
@@ -150,50 +163,71 @@ public class IrisComplex implements DataProvider
 		trueBiomeDerivativeStream = trueBiomeStream.convert((b) -> b.getDerivative());
 		heightFluidStream = heightStream.max(fluidHeight);
 		maxHeightStream = ProceduralStream.ofDouble((x, z) -> 255D);
-		terrainStream = ProceduralStream.of((x, y, z) -> {
-			double height = heightStream.get(x, z);
-			IrisBiome biome = trueBiomeStream.get(x, z);
-			int depth = (int) (Math.round(height) - y);
-			int atDepth = 0;
-			
-			if(y > height && y <= fluidHeight)
-			{
-				return fluidStream.get(x, y, z);
-			}
-			
-			if(depth < -1)
-			{
-				return AIR;
-			}
-			
-			for(IrisBiomePaletteLayer i : biome.getLayers())
-			{
-				int th = i.getHeightGenerator(rng, data).fit(i.getMinHeight(), i.getMaxHeight(), x, z);
-				
-				if(atDepth + th >= depth)
-				{
-					return i.get(rng, x, y, z, data).getBlockData();
-				}
-				
-				atDepth += th;
-			}
-			
-			return rockStream.get(x, y, z);
-		}, new Interpolated<BlockData>()
+		terrainSurfaceDecoration = trueBiomeStream
+			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
+		terrainCeilingDecoration = trueBiomeStream
+			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
+		shoreSurfaceDecoration = trueBiomeStream
+			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
+		seaSurfaceDecoration = trueBiomeStream
+			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
+		terrainStream = ProceduralStream.of(this::fillTerrain, Interpolated.BLOCK_DATA);
+		//@done
+	}
+
+	private BlockData fillTerrain(Double x, Double y, Double z)
+	{
+		double height = heightStream.get(x, z);
+		IrisBiome biome = trueBiomeStream.get(x, z);
+		int depth = (int) (Math.round(height) - y);
+		int atDepth = 0;
+
+		if(y > height && y <= fluidHeight)
 		{
-			@Override
-			public double toDouble(BlockData t)
+			return fluidStream.get(x, y, z);
+		}
+
+		if(depth < -1)
+		{
+			return AIR;
+		}
+
+		for(IrisBiomePaletteLayer i : biome.getLayers())
+		{
+			int th = i.getHeightGenerator(rng, data).fit(i.getMinHeight(), i.getMaxHeight(), x, z);
+
+			if(atDepth + th >= depth)
 			{
-				return 0;
+				return i.get(rng, x, y, z, data).getBlockData();
 			}
 
-			@Override
-			public BlockData fromDouble(double d)
+			atDepth += th;
+		}
+
+		return rockStream.get(x, y, z);
+	}
+
+	private IrisDecorator decorateFor(IrisBiome b, double x, double z, DecorationPart part)
+	{
+		RNG rngc = chunkRngStream.get(x, z);
+		
+		for(IrisDecorator i : b.getDecorators())
+		{
+			if(!i.getPartOf().equals(part))
 			{
-				return null;
+				continue;
 			}
-		});
-		//@done
+
+			FastBlockData block =  i.getBlockData(b, rngc, x, z, data);
+
+			if(block != null)
+			{
+				Iris.info("DECO AT " + x + " " + z);
+				return i;
+			}
+		}
+
+		return null;
 	}
 
 	private IrisBiome implode(IrisBiome b, Double x, Double z)

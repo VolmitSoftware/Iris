@@ -86,7 +86,7 @@ class NMSCreator16_2 implements INMSCreator
 		org.bukkit.generator.ChunkGenerator generator = creator.generator();
 		final File folder = new File(server.getWorldContainer(), name);
 		final World world = server.getWorld(name);
-
+		
 		if(world != null)
 		{
 			return world;

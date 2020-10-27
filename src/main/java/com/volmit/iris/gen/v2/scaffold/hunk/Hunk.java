@@ -182,7 +182,7 @@ public interface Hunk<T>
 	{
 		return false;
 	}
-	
+
 	default Hunk<T> invertY()
 	{
 		return new InvertedHunkView<T>(this);
@@ -588,7 +588,7 @@ public interface Hunk<T>
 		getSections2D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
 		{
 			v.accept(xx, yy, zz, h);
-			
+
 			synchronized(rq)
 			{
 				rq.add(r);

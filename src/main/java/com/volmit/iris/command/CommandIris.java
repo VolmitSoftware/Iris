@@ -1,6 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.v2.TestGen;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.MortarCommand;
@@ -59,7 +60,7 @@ public class CommandIris extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(args.length == 1 && args[0].equalsIgnoreCase("test!"))
+		if(args.length == 1 && args[0].equalsIgnoreCase("test!") && IrisSettings.get().allowExperimentalV2Generator)
 		{
 			TestGen.gen(sender.player());
 			return true;

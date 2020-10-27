@@ -51,6 +51,10 @@ public class IrisSettings
 	public boolean verbose = false;
 
 	@DontObfuscate
+	@Desc("Experiments...")
+	public boolean allowExperimentalV2Generator = false;
+
+	@DontObfuscate
 	@Desc("If true, will not use world edit even if its on the server")
 	public boolean ignoreWorldEdit = false;
 

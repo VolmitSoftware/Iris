@@ -506,67 +506,75 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 
 		try
 		{
-			if(isSpawnable())
+			if(!IrisSettings.get().isSystemEntitySpawnOverrides())
 			{
-				if(!IrisSettings.get().isSystemEntitySpawnOverrides())
-				{
-					return;
-				}
-
-				int x = e.getEntity().getLocation().getBlockX();
-				int y = e.getEntity().getLocation().getBlockY();
-				int z = e.getEntity().getLocation().getBlockZ();
-				IrisDimension dim = getDimension();
-				IrisRegion region = sampleRegion(x, z);
-				IrisBiome above = sampleTrueBiome(x, z);
-				IrisBiome below = sampleTrueBiome(x, y, z);
-
-				if(above.getLoadKey().equals(below.getLoadKey()))
-				{
-					below = null;
-				}
-
-				IrisStructureResult res = getStructure(x, y, z);
-
-				if(res != null && res.getTile() != null)
-				{
-					if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
-					{
-						return;
-					}
-				}
-
-				if(res != null && res.getStructure() != null)
-				{
-					if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
-					{
-						return;
-					}
-				}
-
-				if(below != null)
-				{
-					if(trySpawn(below.getEntitySpawnOverrides(), e))
-					{
-						return;
-					}
-				}
-
-				if(trySpawn(above.getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-
-				if(trySpawn(region.getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
-
-				if(trySpawn(dim.getEntitySpawnOverrides(), e))
-				{
-					return;
-				}
+				return;
 			}
+
+			int x = e.getEntity().getLocation().getBlockX();
+			int y = e.getEntity().getLocation().getBlockY();
+			int z = e.getEntity().getLocation().getBlockZ();
+
+			J.a(() ->
+			{
+				if(isSpawnable())
+				{
+
+					IrisDimension dim = getDimension();
+					IrisRegion region = sampleRegion(x, z);
+					IrisBiome above = sampleTrueBiome(x, z);
+					IrisBiome bbelow = sampleTrueBiome(x, y, z);
+					IrisStructureResult res = getStructure(x, y, z);
+					if(above.getLoadKey().equals(bbelow.getLoadKey()))
+					{
+						bbelow = null;
+					}
+
+					IrisBiome below = bbelow;
+
+					J.s(() ->
+					{
+						if(res != null && res.getTile() != null)
+						{
+							if(trySpawn(res.getTile().getEntitySpawnOverrides(), e))
+							{
+								return;
+							}
+						}
+
+						if(res != null && res.getStructure() != null)
+						{
+							if(trySpawn(res.getStructure().getEntitySpawnOverrides(), e))
+							{
+								return;
+							}
+						}
+
+						if(below != null)
+						{
+							if(trySpawn(below.getEntitySpawnOverrides(), e))
+							{
+								return;
+							}
+						}
+
+						if(trySpawn(above.getEntitySpawnOverrides(), e))
+						{
+							return;
+						}
+
+						if(trySpawn(region.getEntitySpawnOverrides(), e))
+						{
+							return;
+						}
+
+						if(trySpawn(dim.getEntitySpawnOverrides(), e))
+						{
+							return;
+						}
+					});
+				}
+			});
 		}
 
 		catch(Throwable xe)

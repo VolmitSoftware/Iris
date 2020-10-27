@@ -226,7 +226,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void on(EntitySpawnEvent e)
 	{
-		onSpawn(e);
+		J.a(() -> onSpawn(e));
 	}
 
 	protected abstract void onSpawn(EntitySpawnEvent e);
@@ -288,15 +288,14 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	{
 		if(getTarget().isWorld(e.getFrom().getWorld()) && !getTarget().isWorld(e.getTo().getWorld()))
 		{
-			tick();
-			onPlayerLeft(e.getPlayer());
+			J.a(() -> onPlayerLeft(e.getPlayer()));
 		}
 
 		if(!getTarget().isWorld(e.getFrom().getWorld()) && getTarget().isWorld(e.getTo().getWorld()))
 		{
-			tick();
-			onPlayerJoin(e.getPlayer());
+			J.a(() -> onPlayerJoin(e.getPlayer()));
 		}
+
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -304,8 +303,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	{
 		if(getTarget().isWorld(e.getPlayer().getWorld()))
 		{
-			tick();
-			onPlayerLeft(e.getPlayer());
+			J.a(() -> onPlayerLeft(e.getPlayer()));
 		}
 	}
 
@@ -314,8 +312,7 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	{
 		if(getTarget().isWorld(e.getPlayer().getWorld()))
 		{
-			tick();
-			onPlayerJoin(e.getPlayer());
+			J.a(() -> onPlayerJoin(e.getPlayer()));
 		}
 	}
 
@@ -324,7 +321,6 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	{
 		if(getTarget().isWorld(e.getWorld()))
 		{
-			tick();
 			onChunkLoaded(e.getChunk());
 		}
 	}
@@ -334,7 +330,6 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	{
 		if(getTarget().isWorld(e.getWorld()))
 		{
-			tick();
 			onChunkUnloaded(e.getChunk());
 		}
 	}

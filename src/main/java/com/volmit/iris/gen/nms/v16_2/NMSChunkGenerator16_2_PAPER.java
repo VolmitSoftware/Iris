@@ -531,6 +531,11 @@ public class NMSChunkGenerator16_2_PAPER extends ChunkGenerator implements Provi
 					{
 						continue;
 					}
+					
+					if(var13.equals(StructureGenerator.MINESHAFT))
+					{
+						continue;
+					}
 
 					if(var13.equals(StructureGenerator.NETHER_FOSSIL))
 					{

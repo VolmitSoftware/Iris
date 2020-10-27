@@ -529,6 +529,11 @@ public class NMSChunkGenerator16_2_SPIGOT extends ChunkGenerator implements Prov
 						continue;
 					}
 
+					if(var13.equals(StructureGenerator.MINESHAFT))
+					{
+						continue;
+					}
+
 					if(var13.equals(StructureGenerator.NETHER_FOSSIL))
 					{
 						continue;

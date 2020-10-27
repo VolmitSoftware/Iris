@@ -34,6 +34,11 @@ public class CommandIrisStructureOpen extends MortarCommand
 			return true;
 		}
 
+		if(args.length == 0){
+			sender.sendMessage("Please specify the structure you wish to load");
+			return true;
+		}
+
 		Player p = sender.player();
 
 		IrisStructure structure = Iris.globaldata.getStructureLoader().load(args[0]);

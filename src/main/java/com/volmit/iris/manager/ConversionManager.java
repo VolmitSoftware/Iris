@@ -1,26 +1,17 @@
 package com.volmit.iris.manager;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.bukkit.Bukkit;
 
 import com.minelazz.epicworldgenerator.structures.StructureObject;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
-import com.sk89q.worldedit.math.BlockVector3;
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.Converter;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.SKConversion;
 
 public class ConversionManager
 {
@@ -34,50 +25,53 @@ public class ConversionManager
 
 		J.s(() ->
 		{
-			if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit"))
+			J.attemptAsync(() ->
 			{
-				converters.add(new Converter()
+				if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit"))
 				{
-					@Override
-					public String getOutExtension()
+					converters.add(new Converter()
 					{
-						return "iob";
-					}
+						@Override
+						public String getOutExtension()
+						{
+							return "iob";
+						}
 
-					@Override
-					public String getInExtension()
-					{
-						return "schem";
-					}
+						@Override
+						public String getInExtension()
+						{
+							return "schem";
+						}
 
-					@Override
-					public void convert(File in, File out)
-					{
-						convertSchematic(in, out);
-					}
-				});
+						@Override
+						public void convert(File in, File out)
+						{
+							SKConversion.convertSchematic(in, out);
+						}
+					});
 
-				converters.add(new Converter()
-				{
-					@Override
-					public String getOutExtension()
+					converters.add(new Converter()
 					{
-						return "iob";
-					}
+						@Override
+						public String getOutExtension()
+						{
+							return "iob";
+						}
 
-					@Override
-					public String getInExtension()
-					{
-						return "schematic";
-					}
+						@Override
+						public String getInExtension()
+						{
+							return "schematic";
+						}
 
-					@Override
-					public void convert(File in, File out)
-					{
-						convertSchematic(in, out);
-					}
-				});
-			}
+						@Override
+						public void convert(File in, File out)
+						{
+							SKConversion.convertSchematic(in, out);
+						}
+					});
+				}
+			});
 		}, 5);
 
 		converters.add(new Converter()
@@ -108,38 +102,6 @@ public class ConversionManager
 				}
 			}
 		});
-	}
-
-	public void convertSchematic(File in, File out)
-	{
-		ClipboardFormat format = ClipboardFormats.findByFile(in);
-		try(ClipboardReader reader = format.getReader(new FileInputStream(in)))
-		{
-			Clipboard clipboard = reader.read();
-			BlockVector3 size = clipboard.getMaximumPoint().subtract(clipboard.getMinimumPoint());
-			IrisObject o = new IrisObject(size.getBlockX() + 1, size.getBlockY() + 1, size.getBlockZ() + 1);
-
-			for(int i = clipboard.getMinimumPoint().getBlockX(); i <= clipboard.getMaximumPoint().getBlockX(); i++)
-			{
-				for(int j = clipboard.getMinimumPoint().getBlockY(); j <= clipboard.getMaximumPoint().getBlockY(); j++)
-				{
-					for(int k = clipboard.getMinimumPoint().getBlockZ(); k <= clipboard.getMaximumPoint().getBlockZ(); k++)
-					{
-						o.setUnsigned(i - clipboard.getMinimumPoint().getBlockX(), j - clipboard.getMinimumPoint().getBlockY(), k - clipboard.getMinimumPoint().getBlockZ(), FastBlockData.of(BukkitAdapter.adapt(clipboard.getFullBlock(BlockVector3.at(i, j, k)))));
-					}
-				}
-			}
-
-			o.write(out);
-		}
-		catch(FileNotFoundException e)
-		{
-			e.printStackTrace();
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
 	}
 
 	public void check(MortarSender s)

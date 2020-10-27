@@ -173,6 +173,20 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	{
 		try
 		{
+			if(getParallaxMap() == null)
+			{
+				if(getTarget() == null)
+				{
+					Iris.warn("Parallax map was accessed before init! Serving a dummy chunk!");
+					return new AtomicSliverMap();
+				}
+
+				else
+				{
+					setParallaxMap(new AtomicWorldData(getTarget()));
+				}
+			}
+
 			return getParallaxMap().loadChunk(x, z);
 		}
 

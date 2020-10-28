@@ -1,5 +1,6 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import org.bouncycastle.util.Arrays;
 
 import lombok.Data;
@@ -12,7 +13,7 @@ public class ArrayHunk<T> extends StorageHunk<T> implements Hunk<T>
 	private final T[] data;
 
 	@SuppressWarnings("unchecked")
-	protected ArrayHunk(int w, int h, int d)
+	public ArrayHunk(int w, int h, int d)
 	{
 		super(w, h, d);
 		data = (T[]) new Object[w * h * d];

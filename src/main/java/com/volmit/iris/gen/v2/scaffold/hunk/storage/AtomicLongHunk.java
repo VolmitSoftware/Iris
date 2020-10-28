@@ -1,7 +1,8 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
 import java.util.concurrent.atomic.AtomicLongArray;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +12,7 @@ public class AtomicLongHunk extends StorageHunk<Long> implements Hunk<Long>
 {
 	private final AtomicLongArray data;
 
-	protected AtomicLongHunk(int w, int h, int d)
+	public AtomicLongHunk(int w, int h, int d)
 	{
 		super(w, h, d);
 		data = new AtomicLongArray(w * h * d);

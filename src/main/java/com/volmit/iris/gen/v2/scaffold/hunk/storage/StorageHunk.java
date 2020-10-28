@@ -1,5 +1,6 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import lombok.Data;
 
 @Data
@@ -9,7 +10,7 @@ public abstract class StorageHunk<T> implements Hunk<T>
 	private final int height;
 	private final int depth;
 
-	protected StorageHunk(int width, int height, int depth)
+	public StorageHunk(int width, int height, int depth)
 	{
 		if(width <= 0 || height <= 0 || depth <= 0)
 		{

@@ -1,7 +1,8 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
 import com.google.common.util.concurrent.AtomicDoubleArray;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +12,7 @@ public class AtomicDoubleHunk extends StorageHunk<Double> implements Hunk<Double
 {
 	private final AtomicDoubleArray data;
 
-	protected AtomicDoubleHunk(int w, int h, int d)
+	public AtomicDoubleHunk(int w, int h, int d)
 	{
 		super(w, h, d);
 		data = new AtomicDoubleArray(w * h * d);

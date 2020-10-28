@@ -1,5 +1,6 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.KMap;
 
@@ -12,7 +13,7 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 {
 	private final KMap<BlockPosition, T> data;
 
-	protected MappedHunk(int w, int h, int d)
+	public MappedHunk(int w, int h, int d)
 	{
 		super(w, h, d);
 		data = new KMap<>();

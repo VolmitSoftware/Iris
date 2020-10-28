@@ -1,7 +1,8 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.storage;
 
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +12,7 @@ public class AtomicIntegerHunk extends StorageHunk<Integer> implements Hunk<Inte
 {
 	private final AtomicIntegerArray data;
 
-	protected AtomicIntegerHunk(int w, int h, int d)
+	public AtomicIntegerHunk(int w, int h, int d)
 	{
 		super(w, h, d);
 		data = new AtomicIntegerArray(w * h * d);

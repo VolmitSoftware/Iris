@@ -205,15 +205,6 @@ public class Iris extends MortarPlugin
 		J.sr(this::tickQueue, 0);
 		PaperLib.suggestPaper(this);
 		super.onEnable();
-		try
-		{
-			StructureObject.convert(getDataFile("rock.ewg"));
-		}
-		catch(ClassNotFoundException | IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	public static void sq(Runnable r)

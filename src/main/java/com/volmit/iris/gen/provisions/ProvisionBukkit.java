@@ -21,7 +21,6 @@ import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;

@@ -15,7 +15,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;

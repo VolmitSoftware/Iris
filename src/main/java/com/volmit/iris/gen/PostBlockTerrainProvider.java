@@ -8,7 +8,6 @@ import com.volmit.iris.gen.scaffold.GeneratedChunk;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.util.CaveResult;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IPostBlockAccess;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;

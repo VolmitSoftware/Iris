@@ -34,7 +34,6 @@ import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisEntityInitialSpawn;
 import com.volmit.iris.object.IrisEntitySpawnOverride;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.J;

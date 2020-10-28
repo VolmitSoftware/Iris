@@ -5,7 +5,6 @@ import org.bukkit.Chunk;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.FastBlockData;
 
 public class ChunkHunkView implements Hunk<BlockData>
 {

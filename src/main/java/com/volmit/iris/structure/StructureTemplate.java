@@ -41,7 +41,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.Cuboid;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.IObjectPlacer;

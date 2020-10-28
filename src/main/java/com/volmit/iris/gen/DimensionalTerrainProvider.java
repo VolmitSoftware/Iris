@@ -14,7 +14,6 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.RNG;
 

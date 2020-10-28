@@ -11,7 +11,6 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;

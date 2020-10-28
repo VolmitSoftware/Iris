@@ -15,7 +15,6 @@ import org.bukkit.util.BlockVector;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 
 public class StructureObject implements Serializable
 {

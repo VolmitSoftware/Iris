@@ -17,7 +17,6 @@ import com.volmit.iris.object.IrisBiomePaletteLayer;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.RNG;

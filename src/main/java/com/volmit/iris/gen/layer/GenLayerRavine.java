@@ -11,7 +11,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.MathHelper;

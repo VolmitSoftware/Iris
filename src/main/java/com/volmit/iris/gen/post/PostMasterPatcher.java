@@ -12,7 +12,6 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IrisPostBlockFilter;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;

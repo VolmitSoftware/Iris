@@ -25,7 +25,6 @@ import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.LootMode;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IrisStructureResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.PrecisionStopwatch;

@@ -30,7 +30,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.BiomeMap;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.HeightMap;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KList;

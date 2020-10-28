@@ -22,7 +22,6 @@ import com.volmit.iris.util.B;
 import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.CarveResult;
 import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.KMap;

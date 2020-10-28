@@ -12,7 +12,6 @@ import com.volmit.iris.IrisSettings;
 import com.volmit.iris.edit.BlockEditor;
 import com.volmit.iris.edit.BukkitBlockEditor;
 import com.volmit.iris.edit.WEBlockEditor;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
 

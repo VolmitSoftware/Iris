@@ -11,7 +11,6 @@ import com.volmit.iris.gen.atomics.AtomicCache;
 import com.volmit.iris.object.IrisMaterialPalette;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.RNG;
 

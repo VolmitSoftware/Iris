@@ -14,7 +14,6 @@ import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.IrisPostBlockFilter;

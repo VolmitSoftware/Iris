@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.C;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 

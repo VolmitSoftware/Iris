@@ -8,7 +8,6 @@ import org.bukkit.Material;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.util.B;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.IO;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;

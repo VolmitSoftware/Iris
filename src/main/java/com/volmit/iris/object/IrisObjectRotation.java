@@ -11,7 +11,6 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 
 import lombok.AllArgsConstructor;

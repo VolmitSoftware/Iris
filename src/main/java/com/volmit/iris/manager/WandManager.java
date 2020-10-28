@@ -26,7 +26,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.C;
 import com.volmit.iris.util.Cuboid;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 

@@ -6,7 +6,6 @@ import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;

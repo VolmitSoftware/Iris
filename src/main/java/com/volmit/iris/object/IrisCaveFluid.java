@@ -5,7 +5,6 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.FastBlockData;
 import com.volmit.iris.util.MaxNumber;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.Required;

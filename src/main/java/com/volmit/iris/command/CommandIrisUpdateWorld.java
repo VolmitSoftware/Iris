@@ -3,10 +3,7 @@ package com.volmit.iris.command;
 import java.io.File;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.*;
 
 public class CommandIrisUpdateWorld extends MortarCommand
 {
@@ -16,6 +13,11 @@ public class CommandIrisUpdateWorld extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setDescription("Update a world from a project.");
 		setCategory("Studio");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

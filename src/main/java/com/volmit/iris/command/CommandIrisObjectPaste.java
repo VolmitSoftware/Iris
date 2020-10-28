@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import java.io.File;
 import java.util.Set;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -27,6 +28,11 @@ public class CommandIrisObjectPaste extends MortarCommand
 		setDescription("Paste an object");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

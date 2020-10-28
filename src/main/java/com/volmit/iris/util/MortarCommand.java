@@ -1,5 +1,9 @@
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import org.bukkit.Sound;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
@@ -37,6 +41,35 @@ public abstract class MortarCommand implements ICommand
 		description = "No Description";
 	}
 
+	@Override
+	public KList<String> handleTab(MortarSender sender, String[] args)
+	{
+		KList<String> v = new KList<>();
+		if(args.length == 0)
+		{
+			for(MortarCommand i : getChildren())
+			{
+				v.add(i.getNode());
+			}
+		}
+
+		addTabOptions(sender, args, v);
+
+		if(v.isEmpty())
+		{
+			return null;
+		}
+
+		if(sender.isPlayer() && IrisSettings.get().commandSounds)
+		{
+			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 0.25f, 1.7f);
+		}
+
+		return v;
+	}
+
+	public abstract void addTabOptions(MortarSender sender, String[] args, KList<String> list);
+
 	public void printHelp(MortarSender sender)
 	{
 		boolean b = false;
@@ -59,6 +92,12 @@ public abstract class MortarCommand implements ICommand
 		if(!b)
 		{
 			sender.sendMessage("There are either no sub-commands or you do not have permission to use them.");
+		}
+
+		if(sender.isPlayer() && IrisSettings.get().commandSounds)
+		{
+			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 0.28f, 1.4f);
+			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ITEM_AXE_STRIP, 0.35f, 1.7f);
 		}
 	}
 

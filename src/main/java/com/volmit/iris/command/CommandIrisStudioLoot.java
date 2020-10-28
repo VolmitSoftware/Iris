@@ -28,6 +28,11 @@ public class CommandIrisStudioLoot extends MortarCommand
 	}
 
 	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
+
+	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
 		if(!IrisSettings.get().isStudio())

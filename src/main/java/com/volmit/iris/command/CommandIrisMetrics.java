@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.*;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -7,10 +8,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.IrisTerrainProvider;
 import com.volmit.iris.gen.scaffold.IrisMetrics;
 import com.volmit.iris.gen.scaffold.IrisWorlds;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisMetrics extends MortarCommand
 {
@@ -22,6 +19,11 @@ public class CommandIrisMetrics extends MortarCommand
 		setCategory("Metrics");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

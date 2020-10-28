@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import java.awt.Desktop;
 import java.io.File;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
@@ -18,6 +19,11 @@ public class CommandIrisStudioEditBiome extends MortarCommand
 		setDescription("Open this biome file in vscode");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Studio");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

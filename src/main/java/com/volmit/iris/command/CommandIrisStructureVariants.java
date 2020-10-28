@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
@@ -15,6 +16,11 @@ public class CommandIrisStructureVariants extends MortarCommand
 		requiresPermission(Iris.perm);
 		setCategory("Structure");
 		setDescription("Change or add variants in tile looking at");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

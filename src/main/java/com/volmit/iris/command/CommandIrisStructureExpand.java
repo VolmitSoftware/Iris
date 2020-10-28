@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
@@ -16,6 +17,11 @@ public class CommandIrisStructureExpand extends MortarCommand
 		requiresPermission(Iris.perm);
 		setCategory("Structure");
 		setDescription("Expand out more of the structure");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

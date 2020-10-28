@@ -2,7 +2,9 @@ package com.volmit.iris.util;
 
 import java.lang.reflect.Field;
 
+import com.volmit.iris.IrisSettings;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 
 import com.volmit.iris.Iris;
@@ -78,7 +80,9 @@ public class VirtualCommand
 		vs.setTag(tag);
 
 		if(label != null)
+		{
 			vs.setCommand(label);
+		}
 
 		if(chain.isEmpty())
 		{
@@ -104,6 +108,11 @@ public class VirtualCommand
 					c.remove(0);
 					if(cmd.hit(sender, c, vs.getCommand()))
 					{
+						if(vs.isPlayer() && IrisSettings.get().commandSounds)
+						{
+							vs.player().getWorld().playSound(vs.player().getLocation(), Sound.ITEM_AXE_STRIP, 0.35f, 1.8f);
+						}
+
 						return true;
 					}
 				}
@@ -116,6 +125,53 @@ public class VirtualCommand
 		}
 
 		return command.handle(vs, chain.toArray(new String[chain.size()]));
+	}
+
+	public KList<String> hitTab(CommandSender sender, KList<String> chain, String label)
+	{
+		MortarSender vs = new MortarSender(sender);
+		vs.setTag(tag);
+
+		if(label != null)
+			vs.setCommand(label);
+
+		if(chain.isEmpty())
+		{
+			if(!checkPermissions(sender, command))
+			{
+				return null;
+			}
+
+			return command.handleTab(vs, new String[0]);
+		}
+
+		String nl = chain.get(0);
+
+		for(KList<String> i : children.k())
+		{
+			for(String j : i)
+			{
+				if(j.equalsIgnoreCase(nl))
+				{
+					vs.setCommand(chain.get(0));
+					VirtualCommand cmd = children.get(i);
+					KList<String> c = chain.copy();
+					c.remove(0);
+					KList<String> v = cmd.hitTab(sender, c, vs.getCommand());
+					if(v != null)
+					{
+						return v;
+					}
+				}
+			}
+		}
+
+		if(!checkPermissions(sender, command))
+		{
+			return null;
+		}
+
+		return command.handleTab(vs, chain.toArray(new String[chain.size()]));
 	}
 
 	private boolean checkPermissions(CommandSender sender, ICommand command2)

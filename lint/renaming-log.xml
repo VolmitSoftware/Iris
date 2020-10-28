@@ -2840,7 +2840,7 @@
    <method old="run()V" new="run" s="297" e="298"/>
    <field old="val$g Lcom/volmit/iris/gen/IrisChunkGenerator;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.util.MortarPlugin" new="com.volmit.iris.util.MortarPlugin">
+  <class old="com.volmit.iris.util.VolmitPlugin" new="com.volmit.iris.util.VolmitPlugin">
    <method old="chain(Lcom/volmit/iris/util/MortarCommand;Ljava/lang/String;Lorg/bukkit/configuration/file/FileConfiguration;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="138" e="147"/>
    <method old="chain(Lcom/volmit/iris/util/MortarPermission;Lorg/bukkit/configuration/file/FileConfiguration;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="107" e="122"/>
    <method old="computePermissions()Lcom/volmit/iris/util/KList;" new="hashCode" s="199" e="218"/>

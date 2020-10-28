@@ -1,10 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.*;
 
 public class CommandIrisUpdateProject extends MortarCommand
 {
@@ -14,6 +11,11 @@ public class CommandIrisUpdateProject extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setDescription("Update a project from git.");
 		setCategory("Studio");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

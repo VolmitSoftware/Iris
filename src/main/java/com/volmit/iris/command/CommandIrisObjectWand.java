@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Sound;
 
 import com.volmit.iris.Iris;
@@ -18,6 +19,11 @@ public class CommandIrisObjectWand extends MortarCommand
 		setDescription("Get an Iris Wand for selecting objects");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

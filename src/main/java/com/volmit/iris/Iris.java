@@ -15,7 +15,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
-import com.minelazz.epicworldgenerator.structures.StructureObject;
 import com.volmit.iris.command.CommandIris;
 import com.volmit.iris.command.PermissionIris;
 import com.volmit.iris.gen.IrisTerrainProvider;
@@ -45,7 +44,7 @@ import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.MetricsLite;
-import com.volmit.iris.util.MortarPlugin;
+import com.volmit.iris.util.VolmitPlugin;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.Permission;
 import com.volmit.iris.util.Queue;
@@ -54,7 +53,7 @@ import com.volmit.iris.util.ShurikenQueue;
 
 import io.papermc.lib.PaperLib;
 
-public class Iris extends MortarPlugin
+public class Iris extends VolmitPlugin
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;

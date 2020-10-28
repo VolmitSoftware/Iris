@@ -3109,7 +3109,7 @@ Class: public com.volmit.iris.command.PermissionIrisStudio	NameNotChanged
 Class: public abstract com.volmit.iris.gen.ContextualChunkGenerator	NameNotChanged
 	Source: "ContextualChunkGenerator.java"
 	FieldsOf: com.volmit.iris.gen.ContextualChunkGenerator
-		private static com.volmit.iris.util.MortarPlugin[] a	=>	e
+		private static com.volmit.iris.util.VolmitPlugin[] a	=>	e
 		private com.volmit.iris.util.BlockPosition allowLoot	=>	d
 		private com.volmit.iris.gen.atomics.AtomicMulticache cache	=>	b
 		private com.volmit.iris.IrisDataManager data	=>	a
@@ -3134,8 +3134,8 @@ Class: public abstract com.volmit.iris.gen.ContextualChunkGenerator	NameNotChang
 	MethodsOf: com.volmit.iris.gen.ContextualChunkGenerator
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
-		public static com.volmit.iris.util.MortarPlugin[] a()	=>	b()
-		public static void a(com.volmit.iris.util.MortarPlugin[])	=>	b(com.volmit.iris.util.MortarPlugin[])
+		public static com.volmit.iris.util.VolmitPlugin[] a()	=>	b()
+		public static void a(com.volmit.iris.util.VolmitPlugin[])	=>	b(com.volmit.iris.util.VolmitPlugin[])
 		private static java.lang.Throwable b(java.lang.Throwable) 	SignatureNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean canSpawn(org.bukkit.World, int, int) 	SignatureNotChanged
@@ -16012,9 +16012,9 @@ Class: public abstract com.volmit.iris.util.MortarPermission	NameNotChanged
 		91	=>	23
 		92	=>	18
 
-Class: public abstract com.volmit.iris.util.MortarPlugin	NameNotChanged
+Class: public abstract com.volmit.iris.util.VolmitPlugin	NameNotChanged
 	Source: "MortarPlugin.java"
-	FieldsOf: com.volmit.iris.util.MortarPlugin
+	FieldsOf: com.volmit.iris.util.VolmitPlugin
 		private static java.lang.String a	=>	c
 		public static boolean bad	NameNotChanged
 		private com.volmit.iris.util.KMap cachedClassControllers	=>	a
@@ -16023,7 +16023,7 @@ Class: public abstract com.volmit.iris.util.MortarPlugin	NameNotChanged
 		private com.volmit.iris.util.KMap commands	=>	d
 		private com.volmit.iris.util.KMap controllers	=>	f
 		private com.volmit.iris.util.KList permissionCache	=>	g
-	MethodsOf: com.volmit.iris.util.MortarPlugin
+	MethodsOf: com.volmit.iris.util.VolmitPlugin
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		public static java.lang.String a()	=>	l()
@@ -16069,7 +16069,7 @@ Class: public abstract com.volmit.iris.util.MortarPlugin	NameNotChanged
 		private void unregisterPermissions()	=>	g()
 		public void v(java.lang.Object) 	SignatureNotChanged
 		public void w(java.lang.Object) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.util.MortarPlugin
+	LineNumbersOf: com.volmit.iris.util.VolmitPlugin
 		26	=>	176
 		28	=>	130
 		43	=>	191
@@ -20093,7 +20093,7 @@ Class: public final org.zeroturnaround.zip.extra.ZipShort	NameNotChanged
 AutoReflectionClass: com.volmit.iris.util.a
 
 
-TraceBackClass: com.volmit.iris.util.MortarPlugin	Data: 33452 a3452 b3452 z
+TraceBackClass: com.volmit.iris.util.VolmitPlugin	Data: 33452 a3452 b3452 z
 ForwardClass: com.volmit.iris.Iris Package: com.volmit.iris	Data: 12115 a2114 b2115 c2116 N
 ForwardClass: com.volmit.iris.activation.IrisActivation2 Package: com.volmit.iris.activation	Data: 24327 a4327 b4327 c4328 E
 ForwardClass: com.volmit.iris.command.PermissionIris Package: com.volmit.iris.command	Data: 53961 a3961 b3961 r
@@ -20388,7 +20388,7 @@ MemberClass: com.volmit.iris.util.MaxNumber	Data: 2983
 MemberClass: com.volmit.iris.util.MinNumber	Data: 2981
 MemberClass: com.volmit.iris.util.MortarCommand	Data: 3404
 MemberClass: com.volmit.iris.util.MortarPermission	Data: 3766
-MemberClass: com.volmit.iris.util.MortarPlugin	Data: 3324
+MemberClass: com.volmit.iris.util.VolmitPlugin	Data: 3324
 MemberClass: com.volmit.iris.util.MortarSender	Data: 3310
 MemberClass: com.volmit.iris.util.NBTConstants	Data: 3257
 MemberClass: com.volmit.iris.util.NBTInputStream	Data: 3448

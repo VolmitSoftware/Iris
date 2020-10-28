@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -17,6 +18,13 @@ public class CommandIrisRegen extends MortarCommand
 		setDescription("Regenerate chunks");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Regen");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+		list.add("3");
+		list.add("7");
+		list.add("9");
 	}
 
 	@Override

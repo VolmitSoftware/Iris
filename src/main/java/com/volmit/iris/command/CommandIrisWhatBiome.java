@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -19,6 +20,11 @@ public class CommandIrisWhatBiome extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setCategory("Wut");
 		setDescription("What biome am I in");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

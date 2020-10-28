@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -22,6 +23,11 @@ public class CommandIrisObjectXPY extends MortarCommand
 		requiresPermission(Iris.perm);
 		setCategory("Object");
 		setDescription("Auto select up and out");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

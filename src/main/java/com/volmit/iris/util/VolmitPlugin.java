@@ -6,9 +6,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
@@ -16,14 +18,17 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.volmit.iris.Iris;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public abstract class MortarPlugin extends JavaPlugin implements Listener
+public abstract class VolmitPlugin extends JavaPlugin implements Listener
 {
 	public static boolean bad = false;
 	private KMap<KList<String>, VirtualCommand> commands;
@@ -469,6 +474,42 @@ public abstract class MortarPlugin extends JavaPlugin implements Listener
 				}
 			}
 		}
+	}
+
+	@Nullable
+	@Override
+	public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+							    @NotNull String alias, @NotNull String[] args) {
+		KList<String> chain = new KList<String>();
+
+		for(String i : args)
+		{
+			if(i.trim().isEmpty())
+			{
+				continue;
+			}
+
+			chain.add(i.trim());
+		}
+
+		for(KList<String> i : commands.k())
+		{
+			for(String j : i)
+			{
+				if(j.equalsIgnoreCase(alias))
+				{
+					VirtualCommand cmd = commands.get(i);
+
+					List<String> v = cmd.hitTab(sender, chain.copy(), alias);
+					if(v != null)
+					{
+						return v;
+					}
+				}
+			}
+		}
+
+		return super.onTabComplete(sender, command, alias, args);
 	}
 
 	@Override

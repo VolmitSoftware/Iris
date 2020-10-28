@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -17,6 +18,11 @@ public class CommandIrisStudioClose extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setDescription("Close the existing dimension");
 		setCategory("Studio");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

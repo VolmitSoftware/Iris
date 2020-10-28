@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -20,6 +21,14 @@ public class CommandIrisStudioGoto extends MortarCommand
 		setDescription("Find any biome or a biome border");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+		if(args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld()))
+		{
+			list.add(IrisWorlds.getProvider(sender.player().getWorld()).getData().getBiomeLoader().getPreferredKeys());
+		}
 	}
 
 	@Override

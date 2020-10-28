@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gui.NoiseExplorer;
 import com.volmit.iris.util.Command;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -18,6 +19,11 @@ public class CommandIrisStudioExplorer extends MortarCommand
 		setDescription("Explore different noise generators visually");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

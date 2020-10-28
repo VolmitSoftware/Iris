@@ -2,6 +2,7 @@ package com.volmit.iris.command;
 
 import java.io.File;
 
+import com.volmit.iris.util.*;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -14,12 +15,6 @@ import com.volmit.iris.gen.provisions.ProvisionBukkit;
 import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.O;
-import com.volmit.iris.util.PregenJob;
 
 public class CommandIrisCreate extends MortarCommand
 {
@@ -29,6 +24,11 @@ public class CommandIrisCreate extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setCategory("Create");
 		setDescription("Create a new Iris World!");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

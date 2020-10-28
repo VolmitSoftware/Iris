@@ -39,6 +39,10 @@ public class IrisSettings
 	public boolean maxPregenGuiFPS = false;
 
 	@DontObfuscate
+	@Desc("Adds sound to commands.")
+	public boolean commandSounds = true;
+
+	@DontObfuscate
 	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
 	public boolean parallaxCompression = true;
 

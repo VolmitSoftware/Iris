@@ -1,6 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -14,6 +15,11 @@ public class CommandIrisLMM extends MortarCommand
 		setCategory("World");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

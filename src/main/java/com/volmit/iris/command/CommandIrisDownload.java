@@ -1,10 +1,10 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.manager.ProjectManager;
+import com.volmit.iris.util.*;
+
+import java.util.Map;
 
 public class CommandIrisDownload extends MortarCommand
 {
@@ -16,6 +16,11 @@ public class CommandIrisDownload extends MortarCommand
 		setCategory("Studio");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

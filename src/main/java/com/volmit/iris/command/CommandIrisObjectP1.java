@@ -2,6 +2,7 @@ package com.volmit.iris.command;
 
 import java.util.Set;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,6 +24,11 @@ public class CommandIrisObjectP1 extends MortarCommand
 		setDescription("Set point 1 to pos (or look)");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@SuppressWarnings("deprecation")
 	@Override
 	public boolean handle(MortarSender sender, String[] args)

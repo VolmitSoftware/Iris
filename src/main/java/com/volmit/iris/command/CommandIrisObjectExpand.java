@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.*;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -7,10 +8,6 @@ import org.bukkit.entity.Player;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.WandManager;
-import com.volmit.iris.util.Cuboid;
-import com.volmit.iris.util.Direction;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisObjectExpand extends MortarCommand
 {
@@ -22,6 +19,11 @@ public class CommandIrisObjectExpand extends MortarCommand
 		setDescription("Expand based on looking direction");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

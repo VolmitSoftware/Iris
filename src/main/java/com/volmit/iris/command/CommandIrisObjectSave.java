@@ -2,6 +2,7 @@ package com.volmit.iris.command;
 
 import java.io.File;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +24,11 @@ public class CommandIrisObjectSave extends MortarCommand
 		setDescription("Save an object");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

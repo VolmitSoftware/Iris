@@ -50,4 +50,6 @@ public interface ICommand
 	 * @return return true to mark it as handled
 	 */
 	public boolean handle(MortarSender sender, String[] args);
+
+	public KList<String> handleTab(MortarSender sender, String[] args);
 }

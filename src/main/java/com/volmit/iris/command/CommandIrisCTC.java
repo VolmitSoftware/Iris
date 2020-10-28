@@ -1,5 +1,6 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.KList;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -19,6 +20,14 @@ public class CommandIrisCTC extends MortarCommand
 		setCategory("World");
 	}
 
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+		if(args.length == 0)
+		{
+			list.qadd("4").qadd("8").qadd("12").qadd("16").qadd("18").qadd("24").qadd("32");
+		}
+	}
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{

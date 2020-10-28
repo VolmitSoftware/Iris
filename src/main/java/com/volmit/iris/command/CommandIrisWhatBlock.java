@@ -1,14 +1,11 @@
 package com.volmit.iris.command;
 
+import com.volmit.iris.util.*;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
 
 public class CommandIrisWhatBlock extends MortarCommand
 {
@@ -19,6 +16,11 @@ public class CommandIrisWhatBlock extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setCategory("Wut");
 		setDescription("WAILA, WAWLA etc");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

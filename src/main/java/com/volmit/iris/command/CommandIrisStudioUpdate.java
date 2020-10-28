@@ -3,6 +3,7 @@ package com.volmit.iris.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisProject;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
@@ -14,6 +15,11 @@ public class CommandIrisStudioUpdate extends MortarCommand
 		requiresPermission(Iris.perm.studio);
 		setDescription("Update your dimension project.");
 		setCategory("Studio");
+	}
+
+	@Override
+	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+
 	}
 
 	@Override

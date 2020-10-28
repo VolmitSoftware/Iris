@@ -55,6 +55,6 @@
     public <methods>;
 }
 
--assumenosideeffects public class * extends com.volmit.iris.util.MortarPlugin {
+-assumenosideeffects public class * extends com.volmit.iris.util.VolmitPlugin {
     public <methods>;
 }

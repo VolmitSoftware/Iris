@@ -25,104 +25,114 @@ public class CommandIrisStudioGoto extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(args.length < 1)
+		try
 		{
-			sender.sendMessage("/iris std goto " + getArgsUsage());
-			return true;
-		}
-
-		if(sender.isPlayer())
-		{
-			Player p = sender.player();
-			World world = p.getWorld();
-
-			if(!IrisWorlds.isIrisWorld(world))
+			if(args.length < 1)
 			{
-				sender.sendMessage("You must be in an iris world.");
+				sender.sendMessage("/iris std goto " + getArgsUsage());
 				return true;
 			}
 
-			IrisTerrainProvider g = IrisWorlds.getProvider(world);
-			int tries = 10000;
-			boolean cave = false;
-			IrisBiome biome2 = null;
-			if(args.length > 1)
+			if(sender.isPlayer())
 			{
-				if(args[1].equalsIgnoreCase("-cave"))
+				Player p = sender.player();
+				World world = p.getWorld();
+
+				if(!IrisWorlds.isIrisWorld(world))
 				{
-					cave = true;
+					sender.sendMessage("You must be in an iris world.");
+					return true;
 				}
 
-				else
+				IrisTerrainProvider g = IrisWorlds.getProvider(world);
+				int tries = 10000;
+				boolean cave = false;
+				IrisBiome biome2 = null;
+				if(args.length > 1)
 				{
-					biome2 = g.loadBiome(args[1]);
-
-					if(biome2 == null)
+					if(args[1].equalsIgnoreCase("-cave"))
 					{
-						sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
-						return true;
-					}
-				}
-			}
-
-			for(String i : args)
-			{
-				if(i.equalsIgnoreCase("-cave"))
-				{
-					cave = true;
-				}
-			}
-
-			IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()) : g.loadBiome(args[0]);
-
-			if(biome == null)
-			{
-				sender.sendMessage(args[0] + " is not a biome. Use the file name (without extension)");
-				return true;
-			}
-
-			while(tries > 0)
-			{
-				tries--;
-
-				int xx = (int) (RNG.r.i(-29999970, 29999970));
-				int zz = (int) (RNG.r.i(-29999970, 29999970));
-				if((cave ? g.sampleCaveBiome(xx, zz) : g.sampleTrueBiome(xx, zz)).getLoadKey().equals(biome.getLoadKey()))
-				{
-					if(biome2 != null)
-					{
-						for(int i = 0; i < 64; i++)
-						{
-							int ax = xx + RNG.r.i(-64, 32);
-							int az = zz + RNG.r.i(-64, 32);
-
-							if((cave ? g.sampleCaveBiome(ax, az) : g.sampleTrueBiome(ax, az)).getLoadKey().equals(biome2.getLoadKey()))
-							{
-								tries--;
-								p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
-								sender.sendMessage("Found border in " + (10000 - tries) + " tries!");
-								return true;
-							}
-						}
+						cave = true;
 					}
 
 					else
 					{
-						p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
-						sender.sendMessage("Found in " + (10000 - tries) + " tries!");
-						return true;
+						biome2 = g.loadBiome(args[1]);
+
+						if(biome2 == null)
+						{
+							sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
+							return true;
+						}
 					}
 				}
+
+				for(String i : args)
+				{
+					if(i.equalsIgnoreCase("-cave"))
+					{
+						cave = true;
+					}
+				}
+
+				IrisBiome biome = args[0].equals("this") ? g.sampleTrueBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()) : g.loadBiome(args[0]);
+
+				if(biome == null)
+				{
+					sender.sendMessage(args[0] + " is not a biome. Use the file name (without extension)");
+					return true;
+				}
+
+				while(tries > 0)
+				{
+					tries--;
+
+					int xx = (int) (RNG.r.i(-29999970, 29999970));
+					int zz = (int) (RNG.r.i(-29999970, 29999970));
+					if((cave ? g.sampleCaveBiome(xx, zz) : g.sampleTrueBiome(xx, zz)).getLoadKey().equals(biome.getLoadKey()))
+					{
+						if(biome2 != null)
+						{
+							for(int i = 0; i < 64; i++)
+							{
+								int ax = xx + RNG.r.i(-64, 32);
+								int az = zz + RNG.r.i(-64, 32);
+
+								if((cave ? g.sampleCaveBiome(ax, az) : g.sampleTrueBiome(ax, az)).getLoadKey().equals(biome2.getLoadKey()))
+								{
+									tries--;
+									p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
+									sender.sendMessage("Found border in " + (10000 - tries) + " tries!");
+									return true;
+								}
+							}
+						}
+
+						else
+						{
+							p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
+							sender.sendMessage("Found in " + (10000 - tries) + " tries!");
+							return true;
+						}
+					}
+				}
+
+				sender.sendMessage("Tried to find " + biome.getName() + " looked in 10,000 places no dice.");
+
+				return true;
 			}
 
-			sender.sendMessage("Tried to find " + biome.getName() + " looked in 10,000 places no dice.");
-
-			return true;
+			else
+			{
+				sender.sendMessage("Players only.");
+			}
 		}
 
-		else
+		catch(Throwable e)
 		{
-			sender.sendMessage("Players only.");
+			Iris.error("Failed goto!");
+			e.printStackTrace();
+			sender.sendMessage("We cant seem to aquire a lock on the biome cache. Please report the error in the console to our github. Thanks!");
 		}
 
 		return true;

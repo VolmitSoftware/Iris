@@ -45,7 +45,18 @@ public class GenLayerUpdate extends BlockPopulator
 	@Override
 	public void populate(World w, Random r, Chunk c)
 	{
-		AtomicSliverMap map = gen.getParallaxChunk(c.getX(), c.getZ());
+		AtomicSliverMap map = null;
+
+		try
+		{
+			map = gen.getParallaxChunk(c.getX(), c.getZ());
+		}
+
+		catch(Throwable e)
+		{
+			map = new AtomicSliverMap();
+		}
+
 		RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
 
 		if(gen.getDimension().isVanillaCaves())

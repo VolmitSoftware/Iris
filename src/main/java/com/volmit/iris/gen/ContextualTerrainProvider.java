@@ -139,6 +139,11 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 
 	public IrisBiome loadBiome(String i)
 	{
+		if(getData() == null)
+		{
+			return Iris.globaldata.getBiomeLoader().load(i);
+		}
+
 		return getData().getBiomeLoader().load(i);
 	}
 

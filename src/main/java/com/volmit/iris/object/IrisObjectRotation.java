@@ -2,11 +2,11 @@ package com.volmit.iris.object;
 
 import java.util.List;
 
+import com.volmit.iris.util.M;
+import org.bukkit.Axis;
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.MultipleFacing;
-import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.data.*;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;
@@ -111,6 +111,56 @@ public class IrisObjectRotation
 		return BlockFace.SOUTH;
 	}
 
+	public BlockFace faceForAxis(Axis axis)
+	{
+		switch(axis)
+		{
+			case X:
+				return BlockFace.EAST;
+			case Y:
+				return BlockFace.UP;
+			case Z:
+				return BlockFace.NORTH;
+		}
+
+		return BlockFace.NORTH;
+	}
+
+	public Axis axisFor(BlockFace f)
+	{
+		switch(f)
+		{
+			case NORTH:
+			case SOUTH:
+				return Axis.Z;
+			case EAST:
+			case WEST:
+				return Axis.X;
+			case UP:
+			case DOWN:
+				return Axis.Y;
+		}
+
+		return Axis.X;
+	}
+
+	public Axis axisFor2D(BlockFace f)
+	{
+		switch(f)
+		{
+			case NORTH:
+			case SOUTH:
+				return Axis.Z;
+			case EAST:
+			case WEST:
+			case UP:
+			case DOWN:
+				return Axis.X;
+		}
+
+		return Axis.X;
+	}
+
 	public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
 	{
 		BlockData d = dd;
@@ -140,6 +190,17 @@ public class IrisObjectRotation
 			{
 				d = null;
 			}
+		}
+
+		else if(d instanceof Orientable)
+		{
+			Orientable g = ((Orientable) d);
+			BlockFace f = faceForAxis(g.getAxis());
+			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+			bv = rotate(bv.clone(), spinx, spiny, spinz);
+			BlockFace t = getFace(bv);
+			Axis a = !((Orientable) d).getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
+			((Orientable) d).setAxis(a);
 		}
 
 		else if(d instanceof Rotatable)

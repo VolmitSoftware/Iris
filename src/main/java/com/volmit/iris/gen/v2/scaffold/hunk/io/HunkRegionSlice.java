@@ -2,17 +2,11 @@ package com.volmit.iris.gen.v2.scaffold.hunk.io;
 
 import java.io.IOException;
 
+import com.volmit.iris.util.*;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
-import com.volmit.iris.util.ByteArrayTag;
-import com.volmit.iris.util.CompoundTag;
-import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.Function3;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.Tag;
 
 public class HunkRegionSlice<T>
 {
@@ -24,6 +18,7 @@ public class HunkRegionSlice<T>
 	private final CompoundTag compound;
 	private final String key;
 	private final KMap<Short, Hunk<T>> loadedChunks;
+	private final KMap<Short, Long> lastUse;
 	private final KList<Short> save;
 	private final int height;
 
@@ -36,6 +31,23 @@ public class HunkRegionSlice<T>
 		this.compound = compound;
 		this.save = new KList<>();
 		this.key = key;
+		this.lastUse = new KMap<>();
+	}
+
+	public void cleanup(long t)
+	{
+		if(loadedChunks.size() != lastUse.size())
+		{
+			Iris.warn("Incorrect chunk use counts in " + key);
+		}
+
+		for(Short i : lastUse.k())
+		{
+			if(M.ms() - lastUse.get(i) > t)
+			{
+				unload((byte) (i & 0xFF), (byte) ((i >> 8) & 0xFF));
+			}
+		}
 	}
 
 	public void clear()
@@ -99,6 +111,7 @@ public class HunkRegionSlice<T>
 
 		save.clear();
 		loadedChunks.clear();
+		lastUse.clear();
 	}
 
 	public synchronized void save(Hunk<T> region, int x, int z)
@@ -138,6 +151,7 @@ public class HunkRegionSlice<T>
 				save.remove(key);
 			}
 
+			lastUse.remove(key);
 			loadedChunks.remove(key);
 		}
 	}
@@ -168,6 +182,7 @@ public class HunkRegionSlice<T>
 		{
 			v = factory.apply(16, height, 16);
 		}
+
 		loadedChunks.put(ikey(x, z), v);
 
 		return v;
@@ -183,6 +198,8 @@ public class HunkRegionSlice<T>
 		{
 			c = load(x, z);
 		}
+
+		lastUse.put(ikey(x,z), M.ms());
 
 		return c;
 	}

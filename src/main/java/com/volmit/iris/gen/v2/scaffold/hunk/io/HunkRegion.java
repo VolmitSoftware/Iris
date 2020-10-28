@@ -15,7 +15,6 @@ import com.volmit.iris.util.Tag;
 
 import lombok.Data;
 
-@Data
 public class HunkRegion
 {
 	private final File folder;
@@ -53,6 +52,10 @@ public class HunkRegion
 		}
 	}
 
+	public CompoundTag getCompound() {
+		return compound;
+	}
+
 	private CompoundTag fix(CompoundTag readTag)
 	{
 		Map<String, Tag> v = readTag.getValue();
@@ -82,4 +85,12 @@ public class HunkRegion
 			Iris.verbose("Saved Region: " + getX() + " " + getZ());
 		}
 	}
+
+	public int getX() {
+		return x;
+	}
+	public int getZ() {
+		return z;
+	}
+
 }

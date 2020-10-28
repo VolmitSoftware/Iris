@@ -40,6 +40,31 @@ public interface ParallaxAccess
         getUpdatesRW(x>>4, z>>4).set(x&15, y, z&15, d);
     }
 
+    default boolean isParallaxGenerated(int x, int z)
+    {
+        return getMetaR(x,z).isParallaxGenerated();
+    }
+
+    default boolean isChunkGenerated(int x, int z) {
+        return getMetaR(x, z).isGenerated();
+    }
+
+    default void setParallaxGenerated(int x, int z) {
+        setParallaxGenerated(x,z,true);
+    }
+
+    default void setChunkGenerated(int x, int z) {
+        setChunkGenerated(x,z,true);
+    }
+
+    default void setParallaxGenerated(int x, int z, boolean v) {
+        getMetaRW(x, z).setParallaxGenerated(v);
+    }
+
+    default void setChunkGenerated(int x, int z, boolean v) {
+        getMetaRW(x, z).setGenerated(v);
+    }
+
     public Hunk<BlockData> getBlocksR(int x, int z);
 
     public Hunk<BlockData> getBlocksRW(int x, int z);
@@ -51,4 +76,16 @@ public interface ParallaxAccess
     public Hunk<Boolean> getUpdatesR(int x, int z);
 
     public Hunk<Boolean> getUpdatesRW(int x, int z);
+
+    public ParallaxChunkMeta getMetaR(int x, int z);
+
+    public ParallaxChunkMeta getMetaRW(int x, int z);
+
+    public void cleanup(long regionIdle, long chunkIdle);
+
+    public void cleanup();
+
+    public void saveAll();
+
+    public void saveAllNOW();
 }

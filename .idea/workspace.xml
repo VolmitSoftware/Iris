@@ -10,6 +10,15 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Enum" />
+        <option value="Class" />
+        <option value="Interface" />
+      </list>
+    </option>
+  </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -30,11 +39,26 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="dart.analysis.tool.window.visible" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/main/java/com/volmit/iris/gen/v2/scaffold/hunk" />
     <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="project.structure.side.proportion" value="0.0" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="show.migrate.to.gradle.popup" value="false" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.io" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.view" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.storage" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.io" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.data" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\cyberpwn\Documents\development\workspace\Iris\src\main\java\com\volmit\iris\gen\v2\scaffold\hunk" />
+    </key>
   </component>
   <component name="RunManager" selected="Maven.Iris Release">
     <configuration default="true" type="MavenRunConfiguration" factoryName="Maven">
@@ -89,21 +113,37 @@
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state x="410" y="171" width="1234" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832427608" />
-    <state width="1865" height="270" key="GridCell.Tab.0.bottom" timestamp="1603832394504">
+    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser" timestamp="1603846309805">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1865" height="270" key="GridCell.Tab.0.bottom/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832394504" />
-    <state width="1865" height="270" key="GridCell.Tab.0.center" timestamp="1603832394504">
+    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603846309805" />
+    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes" timestamp="1603843352310">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1865" height="270" key="GridCell.Tab.0.center/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832394504" />
-    <state width="1865" height="270" key="GridCell.Tab.0.left" timestamp="1603832394504">
+    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603843352310" />
+    <state x="624" y="211" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1603833082664">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1865" height="270" key="GridCell.Tab.0.left/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832394504" />
-    <state width="1865" height="270" key="GridCell.Tab.0.right" timestamp="1603832394504">
+    <state x="624" y="211" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603833082664" />
+    <state width="1921" height="983" key="GridCell.Tab.0.bottom" timestamp="1603837860350">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1865" height="270" key="GridCell.Tab.0.right/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832394504" />
+    <state width="1921" height="983" key="GridCell.Tab.0.bottom/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603837860350" />
+    <state width="1921" height="983" key="GridCell.Tab.0.center" timestamp="1603837860350">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1921" height="983" key="GridCell.Tab.0.center/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603837860350" />
+    <state width="1921" height="983" key="GridCell.Tab.0.left" timestamp="1603837860350">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1921" height="983" key="GridCell.Tab.0.left/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603837860350" />
+    <state width="1921" height="983" key="GridCell.Tab.0.right" timestamp="1603837860350">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1921" height="983" key="GridCell.Tab.0.right/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603837860350" />
+    <state x="598" y="193" width="723" height="664" key="find.popup" timestamp="1603846050804">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state x="598" y="193" width="723" height="664" key="find.popup/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603846050804" />
   </component>
 </project>

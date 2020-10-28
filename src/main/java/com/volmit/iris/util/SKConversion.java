@@ -30,7 +30,7 @@ public class SKConversion
 				{
 					for(int k = clipboard.getMinimumPoint().getBlockZ(); k <= clipboard.getMaximumPoint().getBlockZ(); k++)
 					{
-						o.setUnsigned(i - clipboard.getMinimumPoint().getBlockX(), j - clipboard.getMinimumPoint().getBlockY(), k - clipboard.getMinimumPoint().getBlockZ(), FastBlockData.of(BukkitAdapter.adapt(clipboard.getFullBlock(BlockVector3.at(i, j, k)))));
+						o.setUnsigned(i - clipboard.getMinimumPoint().getBlockX(), j - clipboard.getMinimumPoint().getBlockY(), k - clipboard.getMinimumPoint().getBlockZ(), BukkitAdapter.adapt(clipboard.getFullBlock(BlockVector3.at(i, j, k))));
 					}
 				}
 			}

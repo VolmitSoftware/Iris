@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -33,24 +34,24 @@ public class IrisCompatabilityBlockFilter
 	@Desc("If exact is true, it compares block data for example minecraft:some_log[axis=x]")
 	private boolean exact = false;
 
-	private final transient AtomicCache<FastBlockData> findData = new AtomicCache<>(true);
-	private final transient AtomicCache<FastBlockData> replaceData = new AtomicCache<>(true);
+	private final transient AtomicCache<BlockData> findData = new AtomicCache<>(true);
+	private final transient AtomicCache<BlockData> replaceData = new AtomicCache<>(true);
 
 	public IrisCompatabilityBlockFilter(String when, String supplement)
 	{
 		this(when, supplement, false);
 	}
 
-	public FastBlockData getFind()
+	public BlockData getFind()
 	{
 		return findData.aquire(() -> B.getBlockData(when));
 	}
 
-	public FastBlockData getReplace()
+	public BlockData getReplace()
 	{
 		return replaceData.aquire(() ->
 		{
-			FastBlockData b = B.parseBlockDataOrNull(supplement);
+			BlockData b = B.parseBlockDataOrNull(supplement);
 
 			if(b == null)
 			{

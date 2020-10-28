@@ -11,6 +11,7 @@ import java.util.function.Function;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -348,7 +349,7 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 			return;
 		}
 
-		FastBlockData data = FastBlockData.of(e.getBlockState().getBlockData());
+		BlockData data = e.getBlockState().getBlockData();
 		KList<ItemStack> drops = new KList<>();
 		boolean skipParents = false;
 

@@ -40,6 +40,7 @@ import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.bukkit.block.data.BlockData;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -128,7 +129,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		}
 
 		RNG crand = getMasterRandom().nextParallelRNG(rx).nextParallelRNG(rz);
-		FastBlockData block;
+		BlockData block;
 		int fluidHeight = getDimension().getFluidHeight();
 		double ox = getModifiedX(rx, rz);
 		double oz = getModifiedZ(rx, rz);
@@ -149,10 +150,10 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 			throw new RuntimeException("Null Biome!");
 		}
 
-		KList<FastBlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight(), getData());
-		KList<FastBlockData> cavernLayers = null;
-		KList<FastBlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height, getData()) : new KList<>();
-		FastBlockData biomeFluid = biome.getFluidType().isEmpty() ? null : B.get(biome.getFluidType());
+		KList<BlockData> layers = biome.generateLayers(rx, rz, getMasterRandom(), height, height - getFluidHeight(), getData());
+		KList<BlockData> cavernLayers = null;
+		KList<BlockData> seaLayers = biome.isAquatic() || biome.isShore() ? biome.generateSeaLayers(rx, rz, getMasterRandom(), fluidHeight - height, getData()) : new KList<>();
+		BlockData biomeFluid = biome.getFluidType().isEmpty() ? null : B.get(biome.getFluidType());
 
 		boolean caverning = false;
 		KList<Integer> cavernHeights = new KList<>();
@@ -314,9 +315,9 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					}
 				}
 
-				KList<FastBlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2, getData());
-				KList<FastBlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, getData());
-				FastBlockData blockc = null;
+				KList<BlockData> floor = caveBiome.generateLayers(wx, wz, rockRandom, i.getFloor() - 2, i.getFloor() - 2, getData());
+				KList<BlockData> ceiling = caveBiome.generateLayers(wx + 256, wz + 256, rockRandom, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, (carvable ? getCarvedWaterHeight(rx, rz) : height) - i.getCeiling() - 2, getData());
+				BlockData blockc = null;
 				for(int j = 0; j < floor.size(); j++)
 				{
 					if(j == 0)
@@ -368,7 +369,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		return map;
 	}
 
-	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, FastBlockData block)
+	private void decorateLand(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, BlockData block)
 	{
 		if(!getDimension().isDecorate())
 		{
@@ -384,7 +385,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				continue;
 			}
 
-			FastBlockData d = i.getBlockData(biome, rng.nextParallelRNG(38888 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
+			BlockData d = i.getBlockData(biome, rng.nextParallelRNG(38888 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
 
 			if(d != null)
 			{
@@ -409,12 +410,12 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					}
 				}
 
-				if(d.getBlockData() instanceof Bisected && k < 254)
+				if(d instanceof Bisected && k < 254)
 				{
-					FastBlockData bb = d.clone();
-					Bisected t = ((Bisected) d.getBlockData());
+					BlockData bb = d.clone();
+					Bisected t = ((Bisected) d);
 					t.setHalf(Half.TOP);
-					Bisected b = ((Bisected) bb.getBlockData());
+					Bisected b = ((Bisected) bb);
 					b.setHalf(Half.BOTTOM);
 					sliver.set(k + 1, bb);
 					sliver.set(k + 2, d);
@@ -423,7 +424,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				else
 				{
 					int stack = i.getHeight(rng.nextParallelRNG((int) (39456 + (10000 * i.getChance()) + i.getStackMax() + i.getStackMin() + i.getZoom())), rx, rz, getData());
-					FastBlockData top = null;
+					BlockData top = null;
 
 					if(stack > 1 && i.getTopPalette().hasElements())
 					{
@@ -439,7 +440,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					{
 						for(int l = 0; l < stack; l++)
 						{
-							FastBlockData dd = i.getBlockData100(biome, rng.nextParallelRNG(38888 + l + biome.getRarity() + biome.getName().length() + j++), rx + l, rz - l, getData());
+							BlockData dd = i.getBlockData100(biome, rng.nextParallelRNG(38888 + l + biome.getRarity() + biome.getName().length() + j++), rx + l, rz - l, getData());
 							d = dd != null ? dd : d;
 							sliver.set(k + l + 1, l == stack - 1 && top != null ? top : d);
 						}
@@ -451,7 +452,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 		}
 	}
 
-	private void decorateCave(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, FastBlockData block)
+	private void decorateCave(RNG rng, IrisBiome biome, AtomicSliver sliver, int k, int rx, int rz, BlockData block)
 	{
 		if(!getDimension().isDecorate())
 		{
@@ -462,7 +463,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 
 		for(IrisDecorator i : biome.getDecorators())
 		{
-			FastBlockData d = i.getBlockData(biome, rng.nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz, getData());
+			BlockData d = i.getBlockData(biome, rng.nextParallelRNG(2333877 + biome.getRarity() + biome.getName().length() + +j++), rx, rz, getData());
 
 			if(d != null)
 			{
@@ -479,12 +480,12 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 					}
 				}
 
-				if(d.getBlockData() instanceof Bisected && k < 254)
+				if(d instanceof Bisected && k < 254)
 				{
-					FastBlockData bb = d.clone();
-					Bisected t = ((Bisected) d.getBlockData());
+					BlockData bb = d.clone();
+					Bisected t = ((Bisected) d);
 					t.setHalf(Half.TOP);
-					Bisected b = ((Bisected) bb.getBlockData());
+					Bisected b = ((Bisected) bb);
 					b.setHalf(Half.BOTTOM);
 					sliver.set(k + 1, bb);
 					sliver.set(k + 2, d);
@@ -534,7 +535,7 @@ public abstract class TopographicTerrainProvider extends ParallelTerrainProvider
 				continue;
 			}
 
-			FastBlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
+			BlockData d = i.getBlockData(biome, getMasterRandom().nextParallelRNG(2555 + biome.getRarity() + biome.getName().length() + j++), rx, rz, getData());
 
 			if(d != null)
 			{

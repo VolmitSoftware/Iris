@@ -102,11 +102,9 @@ public class IrisComplex implements DataProvider
 			.cache2D(64);
 		chunkRngStream = rngStream.blockToChunkCoords();
 		rockStream = dimension.getRockPalette().getLayerGenerator(rng.nextRNG(), data).stream()
-			.select(dimension.getRockPalette().getBlockData(data))
-			.convert((v) -> v.getBlockData());
+			.select(dimension.getRockPalette().getBlockData(data));
 		fluidStream = dimension.getFluidPalette().getLayerGenerator(rng.nextRNG(), data).stream()
-			.select(dimension.getFluidPalette().getBlockData(data))
-			.convert((v) -> v.getBlockData());
+			.select(dimension.getFluidPalette().getBlockData(data));
 		regionStream = dimension.getRegionStyle().create(rng.nextRNG()).stream()
 			.zoom(dimension.getRegionZoom())
 			.selectRarity(dimension.getRegions())
@@ -197,7 +195,7 @@ public class IrisComplex implements DataProvider
 
 			if(atDepth + th >= depth)
 			{
-				return i.get(rng, x, y, z, data).getBlockData();
+				return i.get(rng, x, y, z, data);
 			}
 
 			atDepth += th;
@@ -217,7 +215,7 @@ public class IrisComplex implements DataProvider
 				continue;
 			}
 
-			FastBlockData block = i.getBlockData(b, rngc, x, z, data);
+			BlockData block = i.getBlockData(b, rngc, x, z, data);
 
 			if(block != null)
 			{

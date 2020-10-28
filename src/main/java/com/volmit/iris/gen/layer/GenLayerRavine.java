@@ -18,13 +18,14 @@ import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.bukkit.block.data.BlockData;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class GenLayerRavine extends GenLayer
 {
-	private static final FastBlockData CAVE_AIR = B.get("CAVE_AIR");
-	private static final FastBlockData LAVA = B.get("LAVA");
+	private static final BlockData CAVE_AIR = B.get("CAVE_AIR");
+	private static final BlockData LAVA = B.get("LAVA");
 	private CNG cng;
 
 	public GenLayerRavine(TopographicTerrainProvider iris, RNG rng)
@@ -39,9 +40,9 @@ public class GenLayerRavine extends GenLayer
 		return 0;
 	}
 
-	private void set(TerrainChunk pos, int x, int y, int z, FastBlockData b, HeightMap h, AtomicSliverMap map)
+	private void set(TerrainChunk pos, int x, int y, int z, BlockData b, HeightMap h, AtomicSliverMap map)
 	{
-		pos.setBlock(x, y, z, b.getBlockData());
+		pos.setBlock(x, y, z, b);
 		map.getSliver(x, z).set(y, b);
 
 		if(h.getHeight(x, z) > y)
@@ -50,12 +51,12 @@ public class GenLayerRavine extends GenLayer
 		}
 	}
 
-	private FastBlockData get(TerrainChunk pos, int x, int y, int z)
+	private BlockData get(TerrainChunk pos, int x, int y, int z)
 	{
-		return FastBlockData.of(pos.getBlockData(x, y, z));
+		return pos.getBlockData(x, y, z);
 	}
 
-	private FastBlockData getSurfaceBlock(BiomeMap map, int n6, int i, RNG rmg)
+	private BlockData getSurfaceBlock(BiomeMap map, int n6, int i, RNG rmg)
 	{
 		return map.getBiome(n6, i).getSurfaceBlock(n6, i, rmg, iris.getData());
 	}
@@ -163,7 +164,7 @@ public class GenLayerRavine extends GenLayer
 									continue;
 								}
 
-								FastBlockData bb = get(terrain, i, j, n6);
+								BlockData bb = get(terrain, i, j, n6);
 
 								if(B.isWater(bb))
 								{
@@ -200,7 +201,7 @@ public class GenLayerRavine extends GenLayer
 										continue;
 									}
 
-									FastBlockData blockData = get(terrain, n6, j, i);
+									BlockData blockData = get(terrain, n6, j, i);
 
 									if(isSurface(blockData))
 									{
@@ -242,7 +243,7 @@ public class GenLayerRavine extends GenLayer
 		return bb;
 	}
 
-	private boolean isDirt(FastBlockData d)
+	private boolean isDirt(BlockData d)
 	{
 		//@builder
 		Material m = d.getMaterial();
@@ -252,7 +253,7 @@ public class GenLayerRavine extends GenLayer
 		//@done
 	}
 
-	private boolean isSurface(FastBlockData d)
+	private boolean isSurface(BlockData d)
 	{
 		//@builder
 		Material m = d.getMaterial();

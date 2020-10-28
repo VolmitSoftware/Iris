@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -38,11 +39,11 @@ public class IrisMaterialPalette
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
-	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-	public FastBlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata)
+	public BlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata)
 	{
 		if(getBlockData(rdata).isEmpty())
 		{
@@ -86,14 +87,14 @@ public class IrisMaterialPalette
 		return this;
 	}
 
-	public KList<FastBlockData> getBlockData(IrisDataManager rdata)
+	public KList<BlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<FastBlockData> blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 			for(IrisBlockData ix : palette)
 			{
-				FastBlockData bx = ix.getBlockData(rdata);
+				BlockData bx = ix.getBlockData(rdata);
 				if(bx != null)
 				{
 					for(int i = 0; i < ix.getWeight(); i++)

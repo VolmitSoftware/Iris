@@ -18,6 +18,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -55,7 +56,7 @@ public class IrisBlockData extends IrisRegistrant
 	@Desc("Optional properties for this block data such as 'waterlogged': true")
 	private KMap<String, Object> data = new KMap<>();
 
-	private final transient AtomicCache<FastBlockData> blockdata = new AtomicCache<>();
+	private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
 	private final transient AtomicCache<String> realProperties = new AtomicCache<>();
 
 	public IrisBlockData(String b)
@@ -85,11 +86,11 @@ public class IrisBlockData extends IrisRegistrant
 		return computeProperties(getData());
 	}
 
-	public FastBlockData getBlockData(IrisDataManager data)
+	public BlockData getBlockData(IrisDataManager data)
 	{
 		return blockdata.aquire(() ->
 		{
-			FastBlockData b = null;
+			BlockData b = null;
 
 			IrisBlockData customData = data.getBlockLoader().load(getBlock(), false);
 
@@ -101,7 +102,7 @@ public class IrisBlockData extends IrisRegistrant
 				{
 					b = b.clone();
 
-					String st = b.getBlockData().getAsString(true);
+					String st = b.getAsString(true);
 
 					if(st.contains("["))
 					{
@@ -122,7 +123,7 @@ public class IrisBlockData extends IrisRegistrant
 						Iris.warn("Debug block data " + sx + " (CUSTOM)");
 					}
 
-					FastBlockData bx = B.get(sx);
+					BlockData bx = B.get(sx);
 
 					if(bx != null)
 					{

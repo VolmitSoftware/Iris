@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -92,7 +93,7 @@ public class ProvisionBukkit extends ChunkGenerator implements Provisioned
 						{
 							for(int k = 0; k < 16; k++)
 							{
-								FastBlockData b = FastBlockData.of(snapshot.getBlockData(i, (h * 16) + j, k));
+								BlockData b = snapshot.getBlockData(i, (h * 16) + j, k);
 
 								if(!Iris.edit.get(cachedWorld, i + cx, (h * 16) + j, k + cz).equals(b))
 								{

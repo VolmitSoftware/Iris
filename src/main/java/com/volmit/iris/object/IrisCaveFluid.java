@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -37,18 +38,18 @@ public class IrisCaveFluid
 	@Desc("The fluid type that should spawn here")
 	private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 
-	private final transient AtomicCache<FastBlockData> fluidData = new AtomicCache<>();
+	private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 
 	public boolean hasFluid(IrisDataManager rdata)
 	{
 		return !B.isAir(getFluid(rdata));
 	}
 
-	public FastBlockData getFluid(IrisDataManager rdata)
+	public BlockData getFluid(IrisDataManager rdata)
 	{
 		return fluidData.aquire(() ->
 		{
-			FastBlockData b = getFluidType().getBlockData(rdata);
+			BlockData b = getFluidType().getBlockData(rdata);
 
 			if(b != null)
 			{

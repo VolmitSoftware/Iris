@@ -505,7 +505,7 @@ public class IrisDimension extends IrisRegistrant
 		});
 	}
 
-	public FastBlockData resolveBlock(String bd)
+	public BlockData resolveBlock(String bd)
 	{
 		return Iris.compat.getBlock(bd);
 	}

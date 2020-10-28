@@ -17,6 +17,6 @@ public class BlockDataHunkIOAdapter extends PaletteHunkIOAdapter<BlockData> {
 
     @Override
     public BlockData read(DataInputStream din) throws IOException {
-        return B.get(din.readUTF()).getBlockData();
+        return B.get(din.readUTF());
     }
 }

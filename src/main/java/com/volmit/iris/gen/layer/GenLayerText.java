@@ -13,10 +13,11 @@ import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.GenLayer;
 import com.volmit.iris.util.RNG;
+import org.bukkit.block.data.BlockData;
 
 public class GenLayerText extends GenLayer
 {
-	public static final FastBlockData AIR = B.getBlockData("AIR");
+	public static final BlockData AIR = B.getBlockData("AIR");
 
 	private final AtomicCache<IrisObject> debug = new AtomicCache<>();
 
@@ -30,7 +31,7 @@ public class GenLayerText extends GenLayer
 		return debug.aquire(() -> createTextObject("Test", "Impact", 24, B.get("STONE")));
 	}
 
-	public IrisObject createTextObject(String text, String font, int size, FastBlockData b)
+	public IrisObject createTextObject(String text, String font, int size, BlockData b)
 	{
 		Font f = new Font(font, Font.PLAIN, size);
 		int w = ((Graphics2D) new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).getGraphics()).getFontMetrics(f).stringWidth(text);

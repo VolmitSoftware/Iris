@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
@@ -36,12 +37,12 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
-	private static final FastBlockData AIR = B.getBlockData("CAVE_AIR");
-	private static final FastBlockData VAIR = B.getBlockData("VOID_AIR");
-	private static final FastBlockData VAIR_DEBUG = B.getBlockData("COBWEB");
-	private static final FastBlockData[] SNOW_LAYERS = new FastBlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
+	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
+	private static final BlockData VAIR = B.getBlockData("VOID_AIR");
+	private static final BlockData VAIR_DEBUG = B.getBlockData("COBWEB");
+	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
-	private KMap<BlockVector, FastBlockData> blocks;
+	private KMap<BlockVector, BlockData> blocks;
 	private int w;
 	private int d;
 	private int h;
@@ -276,7 +277,7 @@ public class IrisObject extends IrisRegistrant
 			dos.writeShort(i.getBlockX());
 			dos.writeShort(i.getBlockY());
 			dos.writeShort(i.getBlockZ());
-			dos.writeUTF(blocks.get(i).getBlockData().getAsString(true));
+			dos.writeUTF(blocks.get(i).getAsString(true));
 		}
 	}
 
@@ -286,7 +287,7 @@ public class IrisObject extends IrisRegistrant
 		{
 			return;
 		}
-		KMap<BlockVector, FastBlockData> d = blocks.copy();
+		KMap<BlockVector, BlockData> d = blocks.copy();
 		blocks.clear();
 
 		for(BlockVector i : d.k())
@@ -295,7 +296,7 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public void setUnsigned(int x, int y, int z, FastBlockData block)
+	public void setUnsigned(int x, int y, int z, BlockData block)
 	{
 		if(shitty)
 		{
@@ -507,21 +508,21 @@ public class IrisObject extends IrisRegistrant
 			BlockVector i = g.clone();
 			i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
 			i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
-			FastBlockData data = blocks.get(g).clone();
+			BlockData data = blocks.get(g).clone();
 
 			if(stilting && i.getBlockY() < lowest && !B.isAir(data))
 			{
 				lowest = i.getBlockY();
 			}
 
-			if(placer.isPreventingDecay() && (data.getBlockData()) instanceof Leaves && !((Leaves) (data.getBlockData())).isPersistent())
+			if(placer.isPreventingDecay() && (data) instanceof Leaves && !((Leaves) (data)).isPersistent())
 			{
-				((Leaves) data.getBlockData()).setPersistent(true);
+				((Leaves) data).setPersistent(true);
 			}
 
 			for(IrisObjectReplace j : config.getEdit())
 			{
-				for(FastBlockData k : j.getFind(rdata))
+				for(BlockData k : j.getFind(rdata))
 				{
 					if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial()))
 					{
@@ -595,7 +596,7 @@ public class IrisObject extends IrisRegistrant
 					continue;
 				}
 
-				FastBlockData d = blocks.get(i);
+				BlockData d = blocks.get(i);
 
 				if(d == null || B.isAir(d))
 				{
@@ -653,7 +654,7 @@ public class IrisObject extends IrisRegistrant
 			return;
 		}
 
-		KMap<BlockVector, FastBlockData> v = blocks.copy();
+		KMap<BlockVector, BlockData> v = blocks.copy();
 		blocks.clear();
 
 		for(BlockVector i : v.keySet())
@@ -671,7 +672,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : blocks.keySet())
 		{
-			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i).getBlockData(), false);
+			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);
 		}
 	}
 }

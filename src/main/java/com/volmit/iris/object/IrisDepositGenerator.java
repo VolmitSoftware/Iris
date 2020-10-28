@@ -86,7 +86,7 @@ public class IrisDepositGenerator
 	private int varience = 3;
 
 	private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
-	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
 	public IrisObject getClump(RNG rng, IrisDataManager rdata)
 	{
@@ -136,20 +136,20 @@ public class IrisDepositGenerator
 		return o;
 	}
 
-	private FastBlockData nextBlock(RNG rngv, IrisDataManager rdata)
+	private BlockData nextBlock(RNG rngv, IrisDataManager rdata)
 	{
 		return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
 	}
 
-	public KList<FastBlockData> getBlockData(IrisDataManager rdata)
+	public KList<BlockData> getBlockData(IrisDataManager rdata)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<FastBlockData> blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 
 			for(IrisBlockData ix : palette)
 			{
-				FastBlockData bx = ix.getBlockData(rdata);
+				BlockData bx = ix.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -220,8 +220,8 @@ public class IrisDepositGenerator
 
 				if(!allow)
 				{
-					FastBlockData b = FastBlockData.of(data.getBlockData(nx, ny, nz));
-					for(FastBlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
+					BlockData b = data.getBlockData(nx, ny, nz);
+					for(BlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
 					{
 						if(f.getMaterial().equals(b.getMaterial()))
 						{
@@ -243,7 +243,7 @@ public class IrisDepositGenerator
 
 				if(allow)
 				{
-					data.setBlock(nx, ny, nz, clump.getBlocks().get(j).getBlockData());
+					data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
 				}
 			}
 		}

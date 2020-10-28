@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -54,7 +55,7 @@ public class IrisBiomePaletteLayer
 	@Desc("The palette of blocks to be used in this layer")
 	private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("GRASS_BLOCK"));
 
-	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
@@ -63,7 +64,7 @@ public class IrisBiomePaletteLayer
 		return heightGenerator.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData(data).size())));
 	}
 
-	public FastBlockData get(RNG rng, double x, double y, double z, IrisDataManager data)
+	public BlockData get(RNG rng, double x, double y, double z, IrisDataManager data)
 	{
 		if(getBlockData(data).isEmpty())
 		{
@@ -94,14 +95,14 @@ public class IrisBiomePaletteLayer
 		return palette;
 	}
 
-	public KList<FastBlockData> getBlockData(IrisDataManager data)
+	public KList<BlockData> getBlockData(IrisDataManager data)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<FastBlockData> blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 			for(IrisBlockData ix : palette)
 			{
-				FastBlockData bx = ix.getBlockData(data);
+				BlockData bx = ix.getBlockData(data);
 				if(bx != null)
 				{
 					for(int i = 0; i < ix.getWeight(); i++)

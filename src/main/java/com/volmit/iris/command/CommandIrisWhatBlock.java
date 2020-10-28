@@ -42,31 +42,31 @@ public class CommandIrisWhatBlock extends MortarCommand
 				sender.sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
 				sender.sendMessage("Full: " + C.WHITE + bd.getAsString(true));
 
-				if (B.isStorage(FastBlockData.of(bd))) {
+				if (B.isStorage(bd)) {
 					sender.sendMessage(C.YELLOW + "* Storage Block (Loot Capable)");
 				}
 
-				if (B.isLit(FastBlockData.of(bd))) {
+				if (B.isLit(bd)) {
 					sender.sendMessage(C.YELLOW + "* Lit Block (Light Capable)");
 				}
 
-				if (B.isFoliage(FastBlockData.of(bd))) {
+				if (B.isFoliage(bd)) {
 					sender.sendMessage(C.YELLOW + "* Foliage Block");
 				}
 
-				if (B.isDecorant(FastBlockData.of(bd))) {
+				if (B.isDecorant(bd)) {
 					sender.sendMessage(C.YELLOW + "* Decorant Block");
 				}
 
-				if (B.isFluid(FastBlockData.of(bd))) {
+				if (B.isFluid(bd)) {
 					sender.sendMessage(C.YELLOW + "* Fluid Block");
 				}
 
-				if (B.isFoliagePlantable(FastBlockData.of(bd))) {
+				if (B.isFoliagePlantable(bd)) {
 					sender.sendMessage(C.YELLOW + "* Plantable Foliage Block");
 				}
 
-				if (B.isSolid(FastBlockData.of(bd))) {
+				if (B.isSolid(bd)) {
 					sender.sendMessage(C.YELLOW + "* Solid Block");
 				}
 			}

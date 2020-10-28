@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -94,8 +95,8 @@ public class IrisDecorator
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-	private final transient AtomicCache<KList<FastBlockData>> blockData = new AtomicCache<>();
-	private final transient AtomicCache<KList<FastBlockData>> blockDataTops = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> blockDataTops = new AtomicCache<>();
 
 	public int getHeight(RNG rng, double x, double z, IrisDataManager data)
 	{
@@ -131,7 +132,7 @@ public class IrisDecorator
 		return palette;
 	}
 
-	public FastBlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
 	{
 		if(getBlockData(data).isEmpty())
 		{
@@ -155,7 +156,7 @@ public class IrisDecorator
 		return null;
 	}
 
-	public FastBlockData getBlockData100(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
 	{
 		if(getBlockData(data).isEmpty())
 		{
@@ -174,7 +175,7 @@ public class IrisDecorator
 		return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz);
 	}
 
-	public FastBlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
+	public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
 	{
 		if(getBlockDataTops(data).isEmpty())
 		{
@@ -197,14 +198,14 @@ public class IrisDecorator
 		return null;
 	}
 
-	public KList<FastBlockData> getBlockData(IrisDataManager data)
+	public KList<BlockData> getBlockData(IrisDataManager data)
 	{
 		return blockData.aquire(() ->
 		{
-			KList<FastBlockData> blockData = new KList<>();
+			KList<BlockData> blockData = new KList<>();
 			for(IrisBlockData i : palette)
 			{
-				FastBlockData bx = i.getBlockData(data);
+				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
 					blockData.add(bx);
@@ -215,14 +216,14 @@ public class IrisDecorator
 		});
 	}
 
-	public KList<FastBlockData> getBlockDataTops(IrisDataManager data)
+	public KList<BlockData> getBlockDataTops(IrisDataManager data)
 	{
 		return blockDataTops.aquire(() ->
 		{
-			KList<FastBlockData> blockDataTops = new KList<>();
+			KList<BlockData> blockDataTops = new KList<>();
 			for(IrisBlockData i : topPalette)
 			{
-				FastBlockData bx = i.getBlockData(data);
+				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
 					blockDataTops.add(bx);

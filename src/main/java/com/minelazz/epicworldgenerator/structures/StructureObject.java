@@ -54,18 +54,18 @@ public class StructureObject implements Serializable
 
 			if(i.blockData == null)
 			{
-				FastBlockData f = map(i.id, i.data);
-				bdx = f == null ? null : f.getBlockData();
+				BlockData f = map(i.id, i.data);
+				bdx = f == null ? null : f;
 			}
 
 			else
 			{
-				bdx = B.get(i.blockData).getBlockData();
+				bdx = B.get(i.blockData);
 			}
 
 			if(bdx != null)
 			{
-				iob.getBlocks().put(new BlockVector(i.x, -i.y, i.z), FastBlockData.of(bdx));
+				iob.getBlocks().put(new BlockVector(i.x, -i.y, i.z), bdx);
 			}
 		}
 
@@ -73,7 +73,7 @@ public class StructureObject implements Serializable
 	}
 
 	@SuppressWarnings("deprecation")
-	private static final FastBlockData map(int id, int dat)
+	private static final BlockData map(int id, int dat)
 	{
 		for(Material i : EnumSet.allOf(Material.class))
 		{
@@ -84,7 +84,7 @@ public class StructureObject implements Serializable
 
 			if(i.getId() == id)
 			{
-				return FastBlockData.of(Bukkit.getUnsafe().fromLegacy(i, (byte) dat));
+				return Bukkit.getUnsafe().fromLegacy(i, (byte) dat);
 			}
 		}
 

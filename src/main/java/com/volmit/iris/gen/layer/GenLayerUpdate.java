@@ -7,6 +7,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -129,7 +130,7 @@ public class GenLayerUpdate extends BlockPopulator
 	public void update(Chunk c, int x, int y, int z, int rx, int rz, RNG rng)
 	{
 		Block b = c.getBlock(x, y, z);
-		FastBlockData d = FastBlockData.of(b.getBlockData());
+		BlockData d = b.getBlockData();
 
 		if(B.isLit(d))
 		{
@@ -211,7 +212,7 @@ public class GenLayerUpdate extends BlockPopulator
 		scramble(inv, rng);
 	}
 
-	public void updateStorage(Block b, FastBlockData data, int rx, int rz, RNG rng)
+	public void updateStorage(Block b, BlockData data, int rx, int rz, RNG rng)
 	{
 		InventorySlotType slot = null;
 
@@ -285,9 +286,9 @@ public class GenLayerUpdate extends BlockPopulator
 		inventory.setContents(nitems);
 	}
 
-	public void updateLight(Block b, FastBlockData data)
+	public void updateLight(Block b, BlockData data)
 	{
 		b.setType(Material.AIR, false);
-		b.setBlockData(data.getBlockData(), false);
+		b.setBlockData(data, false);
 	}
 }

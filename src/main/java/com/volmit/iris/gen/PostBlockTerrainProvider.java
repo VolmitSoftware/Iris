@@ -1,5 +1,6 @@
 package com.volmit.iris.gen;
 
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
@@ -84,7 +85,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	}
 
 	@Override
-	public FastBlockData getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
+	public BlockData getPostBlock(int x, int y, int z, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		if(y > 255 || y < 0)
 		{
@@ -94,7 +95,7 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 		if(x >> 4 == currentPostX && z >> 4 == currentPostZ)
 		{
 			getPostLock().lock();
-			FastBlockData d = FastBlockData.of(currentData.getBlockData(x & 15, y, z & 15));
+			BlockData d = currentData.getBlockData(x & 15, y, z & 15);
 			getPostLock().unlock();
 			return d;
 		}
@@ -103,22 +104,12 @@ public abstract class PostBlockTerrainProvider extends ParallaxTerrainProvider i
 	}
 
 	@Override
-	public void setPostBlock(int x, int y, int z, FastBlockData d, int currentPostX, int currentPostZ, ChunkData currentData)
+	public void setPostBlock(int x, int y, int z, BlockData d, int currentPostX, int currentPostZ, ChunkData currentData)
 	{
 		if(x >> 4 == currentPostX && z >> 4 == currentPostZ)
 		{
 			getPostLock().lock();
-
-			if(d.hasBlockData())
-			{
-				currentData.setBlock(x & 15, y, z & 15, d.getBlockData());
-			}
-
-			else
-			{
-				currentData.setBlock(x & 15, y, z & 15, d.getType());
-			}
-
+			currentData.setBlock(x & 15, y, z & 15, d);
 			getPostLock().unlock();
 		}
 

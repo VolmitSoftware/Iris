@@ -111,16 +111,16 @@ public class IrisObjectRotation
 		return BlockFace.SOUTH;
 	}
 
-	public FastBlockData rotate(FastBlockData dd, int spinxx, int spinyy, int spinzz)
+	public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
 	{
-		BlockData d = dd.getBlockData();
+		BlockData d = dd;
 		int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
 		int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
 		int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
 
 		if(!canRotate())
 		{
-			return FastBlockData.of(d);
+			return d;
 		}
 
 		if(d instanceof Directional)
@@ -180,7 +180,7 @@ public class IrisObjectRotation
 			}
 		}
 
-		return FastBlockData.of(d);
+		return d;
 	}
 
 	public BlockVector rotate(BlockVector b, int spinx, int spiny, int spinz)

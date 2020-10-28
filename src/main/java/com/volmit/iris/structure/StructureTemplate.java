@@ -10,6 +10,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -69,9 +70,9 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	private Location center;
 	private ChronoLatch u = new ChronoLatch(50);
 	private World world;
-	private static final FastBlockData STONE = B.get("STONE");
-	private static final FastBlockData RED = B.get("RED_STAINED_GLASS");
-	private static final FastBlockData GREEN = B.get("LIME_STAINED_GLASS");
+	private static final BlockData STONE = B.get("STONE");
+	private static final BlockData RED = B.get("RED_STAINED_GLASS");
+	private static final BlockData GREEN = B.get("LIME_STAINED_GLASS");
 	private int task;
 	private ChronoLatch dirtyLatch;
 	private ChronoLatch gLatch;
@@ -445,7 +446,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			Location loc = new Location(world, b.getX(), b.getY(), b.getZ());
 			BlockVector v = loc.clone().subtract(min).subtract(o.getCenter()).toVector().toBlockVector();
 			v = r.getPlacement().getRotation().rotate(v, 0, 0, 0);
-			FastBlockData next = r.getPlacement().getRotation().rotate(FastBlockData.of(b.getBlockData()), 0, 0, 0);
+			BlockData next = r.getPlacement().getRotation().rotate(b.getBlockData(), 0, 0, 0);
 
 			o.getBlocks().put(v, next);
 		}
@@ -788,7 +789,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	}
 
 	@Override
-	public void set(int x, int y, int z, FastBlockData d)
+	public void set(int x, int y, int z, BlockData d)
 	{
 		if(get(x, y, z).equals(d))
 		{
@@ -799,9 +800,9 @@ public class StructureTemplate implements Listener, IObjectPlacer
 	}
 
 	@Override
-	public FastBlockData get(int x, int y, int z)
+	public BlockData get(int x, int y, int z)
 	{
-		return FastBlockData.of(world.getBlockAt(x, y, z).getBlockData());
+		return world.getBlockAt(x, y, z).getBlockData();
 	}
 
 	@Override

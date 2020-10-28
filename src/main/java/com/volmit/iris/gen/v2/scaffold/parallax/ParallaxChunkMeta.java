@@ -1,6 +1,5 @@
 package com.volmit.iris.gen.v2.scaffold.parallax;
 
-import com.sun.tools.javac.code.Attribute;
 import com.volmit.iris.gen.v2.scaffold.hunk.io.HunkIOAdapter;
 import com.volmit.iris.gen.v2.scaffold.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.util.CompoundTag;

@@ -83,18 +83,18 @@ public class IrisTerrainGenerator
 
 					for(int i = 0; i < stack; i++)
 					{
-						h.set(ax, i + floor, az, deco.getBlockData100(b, rng, rx - i, rz + i, data).getBlockData());
+						h.set(ax, i + floor, az, deco.getBlockData100(b, rng, rx - i, rz + i, data));
 					}
 
 					if(deco.getTopPalette().isNotEmpty())
 					{
-						h.set(ax, stack + floor - 1, az, deco.getBlockDataForTop(b, rng, rx - stack, rz + stack, data).getBlockData());
+						h.set(ax, stack + floor - 1, az, deco.getBlockDataForTop(b, rng, rx - stack, rz + stack, data));
 					}
 				}
 
 				else
 				{
-					h.set(ax, floor, az, deco.getBlockData100(b, rng, rx, rz, data).getBlockData());
+					h.set(ax, floor, az, deco.getBlockData100(b, rng, rx, rz, data));
 				}
 			}
 
@@ -110,18 +110,18 @@ public class IrisTerrainGenerator
 
 						for(int i = 0; i < stack; i++)
 						{
-							h.set(ax, -i + ceiling, az, cdeco.getBlockData100(b, rng, rx - i, rz + i, data).getBlockData());
+							h.set(ax, -i + ceiling, az, cdeco.getBlockData100(b, rng, rx - i, rz + i, data));
 						}
 
 						if(cdeco.getTopPalette().isNotEmpty())
 						{
-							h.set(ax, -stack + ceiling - 1, az, cdeco.getBlockDataForTop(b, rng, rx - stack, rz + stack, data).getBlockData());
+							h.set(ax, -stack + ceiling - 1, az, cdeco.getBlockDataForTop(b, rng, rx - stack, rz + stack, data));
 						}
 					}
 
 					else
 					{
-						h.set(ax, ceiling, az, cdeco.getBlockData100(b, rng, rx, rz, data).getBlockData());
+						h.set(ax, ceiling, az, cdeco.getBlockData100(b, rng, rx, rz, data));
 					}
 				}
 			}

@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -38,18 +39,18 @@ public class IrisObjectReplace
 	private boolean exact = false;
 
 	private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
-	private final transient AtomicCache<KList<FastBlockData>> findData = new AtomicCache<>();
-	private final transient AtomicCache<KList<FastBlockData>> replaceData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
 
-	public KList<FastBlockData> getFind(IrisDataManager rdata)
+	public KList<BlockData> getFind(IrisDataManager rdata)
 	{
 		return findData.aquire(() ->
 		{
-			KList<FastBlockData> b = new KList<>();
+			KList<BlockData> b = new KList<>();
 
 			for(IrisBlockData i : find)
 			{
-				FastBlockData bx = i.getBlockData(rdata);
+				BlockData bx = i.getBlockData(rdata);
 
 				if(bx != null)
 				{
@@ -61,7 +62,7 @@ public class IrisObjectReplace
 		});
 	}
 
-	public FastBlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata)
+	public BlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata)
 	{
 		return getReplace().get(seed, x, y, z, rdata);
 	}

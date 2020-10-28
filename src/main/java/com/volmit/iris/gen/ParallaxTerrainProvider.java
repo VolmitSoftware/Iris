@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 
@@ -128,15 +129,15 @@ public abstract class ParallaxTerrainProvider extends TopographicTerrainProvider
 	}
 
 	@Override
-	public void set(int x, int y, int z, FastBlockData d)
+	public void set(int x, int y, int z, BlockData d)
 	{
 		getParallaxSliver(x, z).set(y, d);
 	}
 
 	@Override
-	public FastBlockData get(int x, int y, int z)
+	public BlockData get(int x, int y, int z)
 	{
-		FastBlockData b = sampleSliver(x, z).getBlock()[y];
+		BlockData b = sampleSliver(x, z).getBlock()[y];
 		return b == null ? AIR : b;
 	}
 

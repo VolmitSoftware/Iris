@@ -424,11 +424,6 @@ public class Iris extends MortarPlugin
 
 	public static void verbose(String string)
 	{
-		if(true)
-		{
-			System.out.println(string);
-		}
-		
 		try
 		{
 			if(IrisSettings.get().verbose)

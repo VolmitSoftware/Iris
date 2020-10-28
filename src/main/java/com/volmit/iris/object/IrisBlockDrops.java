@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.gen.atomics.AtomicCache;
@@ -45,17 +46,17 @@ public class IrisBlockDrops
 	@Desc("Removes the default vanilla block drops and only drops the given items & any parent loot tables specified for this block type.")
 	private boolean replaceVanillaDrops = false;
 
-	private final transient AtomicCache<KList<FastBlockData>> data = new AtomicCache<>();
+	private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
 
-	public boolean shouldDropFor(FastBlockData data, IrisDataManager rdata)
+	public boolean shouldDropFor(BlockData data, IrisDataManager rdata)
 	{
-		KList<FastBlockData> list = this.data.aquire(() ->
+		KList<BlockData> list = this.data.aquire(() ->
 		{
-			KList<FastBlockData> b = new KList<>();
+			KList<BlockData> b = new KList<>();
 
 			for(IrisBlockData i : getBlocks())
 			{
-				FastBlockData dd = i.getBlockData(rdata);
+				BlockData dd = i.getBlockData(rdata);
 
 				if(dd != null)
 				{
@@ -66,7 +67,7 @@ public class IrisBlockDrops
 			return b.removeDuplicates();
 		});
 
-		for(FastBlockData i : list)
+		for(BlockData i : list)
 		{
 			if(exactBlocks ? i.equals(data) : i.getMaterial().equals(data.getMaterial()))
 			{

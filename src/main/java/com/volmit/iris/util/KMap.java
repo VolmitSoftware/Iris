@@ -16,7 +16,7 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V>
 		super();
 	}
 
-	public KMap(KMap<K, V> gMap)
+	public KMap(Map<K, V> gMap)
 	{
 		this();
 		put(gMap);

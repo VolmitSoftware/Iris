@@ -117,23 +117,53 @@ public class Iris extends MortarPlugin
 
 	private static boolean doesSupport3DBiomes()
 	{
-		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		try
+		{
+			int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
-		return v >= 15;
+			return v >= 15;
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return false;
 	}
 
 	private static boolean doesSupportCustomModels()
 	{
-		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		try
+		{
+			int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
-		return v >= 14;
+			return v >= 14;
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return false;
 	}
 
 	private static boolean doesSupportAwareness()
 	{
-		int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
+		try
+		{
+			int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
-		return v >= 15;
+			return v >= 15;
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return false;
 	}
 
 	@Override
@@ -281,17 +311,22 @@ public class Iris extends MortarPlugin
 
 	public static void msg(String string)
 	{
-		lock.lock();
-		if(instance == null)
+		try
 		{
-			System.out.println("[Iris]: " + string);
-			lock.unlock();
-			return;
+			if(instance == null)
+			{
+				System.out.println("[Iris]: " + string);
+				return;
+			}
+
+			String msg = C.GRAY + "[" + C.GREEN + "Iris" + C.GRAY + "]: " + string;
+			Bukkit.getConsoleSender().sendMessage(msg);
 		}
 
-		String msg = C.GRAY + "[" + C.GREEN + "Iris" + C.GRAY + "]: " + string;
-		Bukkit.getConsoleSender().sendMessage(msg);
-		lock.unlock();
+		catch(Throwable e)
+		{
+			System.out.println("[Iris]: " + string);
+		}
 	}
 
 	public static File getCached(String name, String url)
@@ -389,7 +424,20 @@ public class Iris extends MortarPlugin
 
 	public static void verbose(String string)
 	{
-		if(IrisSettings.get().verbose)
+		if(true)
+		{
+			System.out.println(string);
+		}
+		
+		try
+		{
+			if(IrisSettings.get().verbose)
+			{
+				msg(C.GRAY + string);
+			}
+		}
+
+		catch(Throwable e)
 		{
 			msg(C.GRAY + string);
 		}

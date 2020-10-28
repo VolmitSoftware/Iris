@@ -1,7 +1,16 @@
 package com.volmit.iris.gen.v2.scaffold.hunk;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.io.HunkIOAdapter;
+import com.volmit.iris.gen.v2.scaffold.hunk.storage.*;
+import com.volmit.iris.gen.v2.scaffold.hunk.view.*;
+import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -10,13 +19,6 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.gen.v2.scaffold.multicore.BurstExecutor;
 import com.volmit.iris.gen.v2.scaffold.multicore.MultiBurst;
-import com.volmit.iris.util.Consumer2;
-import com.volmit.iris.util.Consumer3;
-import com.volmit.iris.util.Consumer4;
-import com.volmit.iris.util.Consumer5;
-import com.volmit.iris.util.Consumer8;
-import com.volmit.iris.util.Function3;
-import com.volmit.iris.util.KList;
 
 public interface Hunk<T>
 {
@@ -176,6 +178,34 @@ public interface Hunk<T>
 		}
 
 		return b;
+	}
+
+	default Hunk<T> readOnly()
+	{
+		return new ReadOnlyHunk<>(this);
+	}
+
+	default int getNonNullEntries()
+	{
+		AtomicInteger count = new AtomicInteger();
+		iterate((x,y,z,v)-> count.getAndAdd(1));
+
+		return count.get();
+	}
+
+	default void write(OutputStream s, HunkIOAdapter<T> h) throws IOException
+	{
+		h.write(this, s);
+	}
+
+	default ByteArrayTag writeByteArrayTag(HunkIOAdapter<T> h, String name) throws IOException
+	{
+		return h.writeByteArrayTag(this, name);
+	}
+
+	default void write(File s, HunkIOAdapter<T> h) throws IOException
+	{
+		h.write(this, s);
 	}
 
 	default boolean isAtomic()

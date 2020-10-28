@@ -96,7 +96,7 @@ public class IrisSettings
 
 	@DontObfuscate
 	@Desc("Allows Iris to use studio commands & design worlds.")
-	public boolean studio = false;
+	public boolean studio = true;
 
 	@DontObfuscate
 	@Desc("Allows iris to launch guis through the server process. Useful for local development.")

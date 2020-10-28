@@ -1,4 +1,6 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.view;
+
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 
 public class InvertedHunkView<T> implements Hunk<T>
 {

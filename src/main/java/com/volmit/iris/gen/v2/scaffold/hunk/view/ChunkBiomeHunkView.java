@@ -1,5 +1,6 @@
-package com.volmit.iris.gen.v2.scaffold.hunk;
+package com.volmit.iris.gen.v2.scaffold.hunk.view;
 
+import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 

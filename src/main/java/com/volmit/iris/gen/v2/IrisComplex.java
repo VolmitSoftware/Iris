@@ -156,8 +156,6 @@ public class IrisComplex implements DataProvider
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))
 			.convertAware2D(this::implode).cache2D(cacheSize);
 		heightStream = baseBiomeStream.convertAware2D((b, x, z) -> getHeight(b, x, z, seed))
-			.add(fluidHeight)
-			.add2D(overlayStream::get)
 				.roundDouble()
 			.cache2D(cacheSize);
 		slopeStream = heightStream.slope();
@@ -335,7 +333,7 @@ public class IrisComplex implements DataProvider
 			h += M.lerp(lo, hi, gen.getHeight(x, z, seed + 239945));
 		}
 
-		return h;
+		return h + fluidHeight + overlayStream.get(x,z);
 	}
 
 	private void registerGenerator(IrisGenerator cachedGenerator)

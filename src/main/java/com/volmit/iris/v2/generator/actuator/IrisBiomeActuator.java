@@ -13,6 +13,22 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
 
     @Override
     public void actuate(int x, int z, Hunk<Biome> output) {
-        getComplex().getMaxHeightStream().fill2DYLocked(output, x, z, getComplex().getTrueBiomeDerivativeStream(), getParallelism());
+        output.compute2D(getParallelism(), (xx, yy, zz, h) -> {
+            int i,zf;
+            Biome v;
+
+            for(int xf = 0; xf < h.getWidth(); xf++)
+            {
+                for(zf = 0; zf < h.getDepth(); zf++)
+                {
+                    v = getComplex().getTrueBiomeDerivativeStream().get(xx+xf+x, zz+zf+z);
+
+                    for(i = 0; i < h.getHeight(); i++)
+                    {
+                        h.set(xx+xf, i, zz+zf, v);
+                    }
+                }
+            }
+        });
     }
 }

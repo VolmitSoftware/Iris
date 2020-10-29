@@ -22,6 +22,11 @@ public interface Engine
 
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
+    public default int getHeight()
+    {
+        return getTarget().getHeight();
+    }
+
     public default IrisDataManager getData()
     {
         return getTarget().getData();

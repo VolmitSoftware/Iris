@@ -1,8 +1,11 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import com.mysql.jdbc.profiler.ProfilerEvent;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.v2.generator.IrisEngineCompound;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import org.bukkit.Location;
@@ -106,7 +109,9 @@ public class EngineCompositeGenerator extends ChunkGenerator {
         ChunkData chunk = createChunkData(world);
         Hunk<BlockData> blocks = Hunk.view(chunk);
         Hunk<Biome> biomes = Hunk.view(biome);
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         compound.generate(x * 16, z * 16, blocks, biomes);
+        System.out.println("Generated " + x + "," + z + " in " + Form.duration(p.getMilliseconds(), 0));
         return chunk;
     }
 

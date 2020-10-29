@@ -85,10 +85,11 @@ public class IrisComplex implements DataProvider
 
 	public IrisComplex(Engine engine)
 	{
-		int cacheSize = 8192;
+		int cacheSize = 1024;
 		BlockData glass = B.getBlockData("GLASS");
 		this.rng = new RNG(engine.getWorld().getSeed());
-		this.data = data;
+		this.data = engine.getData();
+		double height = engine.getHeight();
 		fluidHeight = engine.getDimension().getFluidHeight();
 		generators = new KList<>();
 		RNG rng = new RNG(engine.getWorld().getSeed());
@@ -157,11 +158,10 @@ public class IrisComplex implements DataProvider
 		trueBiomeStream = heightStream
 				.convertAware2D((h, x, z) ->
 					fixBiomeType(h, baseBiomeStream.get(x, z),
-							regionStream.get(x, z), x, z, fluidHeight))
-				.cache2D(cacheSize);
+							regionStream.get(x, z), x, z, fluidHeight));
 		trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative);
 		heightFluidStream = heightStream.max(fluidHeight);
-		maxHeightStream = ProceduralStream.ofDouble((x, z) -> 255D);
+		maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
 		terrainSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
 		terrainCeilingDecoration = trueBiomeStream

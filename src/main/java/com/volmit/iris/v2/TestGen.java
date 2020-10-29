@@ -24,8 +24,7 @@ public class TestGen
 {
 	public static void gen(Player p)
 	{
-		IrisTerrainGenerator tg = new IrisTerrainGenerator(1337, Iris.globaldata.getDimensionLoader().load("overworld"), Iris.globaldata);
 		p.teleport(new Location(new WorldCreator("t/" + UUID.randomUUID().toString())
-				.generator(EngineCompositeGenerator.newStudioWorld("overworld")).createWorld(), 0, 200, 0));
+				.generator(EngineCompositeGenerator.newStudioWorld("flat")).createWorld(), 0, 70, 0));
 	}
 }

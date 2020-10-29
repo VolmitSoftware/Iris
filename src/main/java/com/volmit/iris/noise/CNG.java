@@ -3,9 +3,9 @@ package com.volmit.iris.noise;
 import java.util.List;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.v2.scaffold.stream.ProceduralStream;
-import com.volmit.iris.gen.v2.scaffold.stream.sources.CNGStream;
-import com.volmit.iris.gen.v2.scaffold.stream.arithmetic.FittedStream;
+import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
+import com.volmit.iris.v2.scaffold.stream.sources.CNGStream;
+import com.volmit.iris.v2.scaffold.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;

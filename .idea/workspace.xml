@@ -16,8 +16,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Enum" />
-        <option value="Interface" />
         <option value="Class" />
+        <option value="Interface" />
       </list>
     </option>
   </component>
@@ -60,11 +60,11 @@
       <recent name="com.volmit.iris.gen.v2.scaffold.stream.sources" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.volmit.iris.object" />
       <recent name="com.volmit.iris.gen.v2.generator.actuator" />
       <recent name="com.volmit.iris.gen.v2.scaffold.stream.utility" />
       <recent name="com.volmit.iris.gen.v2.scaffold.stream.arithmetic" />
       <recent name="com.volmit.iris.gen.v2.scaffold.stream.convert" />
-      <recent name="com.volmit.iris.gen.v2.scaffold.stream.api" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\cyberpwn\Documents\development\workspace\Iris\src\main\java\com\volmit\iris\gen\v2\scaffold\hunk" />

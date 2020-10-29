@@ -50,6 +50,10 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The human readable name of this dimension")
 	private String name = "A Dimension";
 
+	@Desc("You can create mutliple dimensions on top of each other taking up less height of the same world. Such as the nether with a floor + ceiling.")
+	@ArrayType(min = 1,type = IrisDimensionIndex.class)
+	private KList<IrisDimensionIndex> dimensionalComposite = new KList<>();
+
 	@DontObfuscate
 	@Desc("Create an inverted dimension in the sky (like the nether)")
 	private IrisDimension sky = null;

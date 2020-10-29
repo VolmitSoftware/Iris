@@ -2,7 +2,7 @@ package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.v2.TestGen;
+import com.volmit.iris.v2.TestGen;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;

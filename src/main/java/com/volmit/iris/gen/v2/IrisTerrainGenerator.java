@@ -1,10 +1,12 @@
 package com.volmit.iris.gen.v2;
 
+import java.util.Random;
 import java.util.function.Predicate;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.gen.v2.scaffold.stream.utility.ProfiledStream;
+import com.volmit.iris.gen.v2.generator.IrisComplex;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -15,9 +17,10 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.RNG;
-import org.bukkit.entity.Player;
+import org.bukkit.generator.BlockPopulator;
+import org.jetbrains.annotations.NotNull;
 
-public class IrisTerrainGenerator
+public class IrisTerrainGenerator extends BlockPopulator
 {
 	private long seed;
 	private IrisDataManager data;
@@ -41,6 +44,38 @@ public class IrisTerrainGenerator
 	public void flash()
 	{
 		complex.flash(seed, dimension, data);
+	}
+
+	public void generateTerrain(int x, int z, Hunk<BlockData> blocks)
+	{
+		fill2D(complex.getHeightFluidStream(), blocks, x, z, complex.getTerrainStream());
+	}
+
+	public void generateBiome(int x, int z, Hunk<Biome> blocks)
+	{
+		fill2DYLock(complex.getMaxHeightStream(), blocks, x, z, complex.getTrueBiomeDerivativeStream());
+	}
+
+	public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
+	{
+		generateTerrain(x, z, blocks);
+		generateBiome(x, z, biomes);
+	}
+
+	public void generateParallax()
+	{
+
+	}
+
+	public void generatePost(int x, int z, Hunk<BlockData> blocks)
+	{
+		generateDecorations(x, z, blocks);
+	}
+
+	@Override
+	public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk)
+	{
+		generatePost(chunk.getX(), chunk.getZ(), Hunk.viewBlocks(chunk));
 	}
 
 	private <V, T> void fill2D(ProceduralStream<T> t, Hunk<V> h, double x, double z, ProceduralStream<V> v)
@@ -127,26 +162,5 @@ public class IrisTerrainGenerator
 				}
 			}
 		});
-	}
-
-	public void generateTerrain(int x, int z, Hunk<BlockData> blocks)
-	{
-		fill2D(complex.getHeightFluidStream(), blocks, x, z, complex.getTerrainStream());
-	}
-
-	public void generateBiome(int x, int z, Hunk<Biome> blocks)
-	{
-		fill2DYLock(complex.getMaxHeightStream(), blocks, x, z, complex.getTrueBiomeDerivativeStream());
-	}
-
-	public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
-	{
-		generateTerrain(x, z, blocks);
-		generateBiome(x, z, biomes);
-		generateDecorations(x, z, blocks);
-	}
-
-	public void printMetrics(Player p) {
-		ProfiledStream.print(Iris::verbose, complex.getTerrainStream());
 	}
 }

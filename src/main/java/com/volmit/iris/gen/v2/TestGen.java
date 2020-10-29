@@ -1,21 +1,25 @@
 package com.volmit.iris.gen.v2;
 
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
 import com.volmit.iris.util.J;
+import com.volmit.iris.util.KList;
 import net.minecraft.server.v1_16_R2.MinecraftServer;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.PrecisionStopwatch;
+import org.jetbrains.annotations.NotNull;
 
 public class TestGen
 {
@@ -27,6 +31,12 @@ public class TestGen
 			public boolean isParallelCapable()
 			{
 				return true;
+			}
+
+			@NotNull
+			@Override
+			public List<BlockPopulator> getDefaultPopulators(@NotNull World world) {
+				return new KList<BlockPopulator>().qadd(tg);
 			}
 
 			@Override
@@ -52,9 +62,5 @@ public class TestGen
 				return c;
 			}
 		}).createWorld(), 0, 200, 0));
-
-		J.s(() -> {
-			tg.printMetrics(p);
-		}, 200);
 	}
 }

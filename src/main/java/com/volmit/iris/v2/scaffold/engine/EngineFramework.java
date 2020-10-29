@@ -7,7 +7,7 @@ import org.bukkit.block.data.BlockData;
 
 public interface EngineFramework
 {
-    public IrisEngine getEngine();
+    public Engine getEngine();
 
     public IrisComplex getComplex();
 

@@ -3,6 +3,9 @@ package com.volmit.iris.gen.v2;
 import java.util.Random;
 import java.util.UUID;
 
+import com.volmit.iris.util.J;
+import net.minecraft.server.v1_16_R2.MinecraftServer;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
@@ -18,10 +21,9 @@ public class TestGen
 {
 	public static void gen(Player p)
 	{
-		p.teleport(new WorldCreator("t/" + UUID.randomUUID().toString()).generator(new ChunkGenerator()
+		IrisTerrainGenerator tg = new IrisTerrainGenerator(1337, Iris.globaldata.getDimensionLoader().load("overworld"), Iris.globaldata);
+		p.teleport(new Location(new WorldCreator("t/" + UUID.randomUUID().toString()).generator(new ChunkGenerator()
 		{
-			IrisTerrainGenerator tg = new IrisTerrainGenerator(1337, Iris.globaldata.getDimensionLoader().load("overworld"), Iris.globaldata);
-
 			public boolean isParallelCapable()
 			{
 				return true;
@@ -49,6 +51,10 @@ public class TestGen
 				Iris.info("Generated " + x + " " + z + " in " + Form.duration(p.getMilliseconds(), 2));
 				return c;
 			}
-		}).createWorld().getSpawnLocation());
+		}).createWorld(), 0, 200, 0));
+
+		J.s(() -> {
+			tg.printMetrics(p);
+		}, 200);
 	}
 }

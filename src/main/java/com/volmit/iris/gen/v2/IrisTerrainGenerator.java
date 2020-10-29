@@ -2,18 +2,20 @@ package com.volmit.iris.gen.v2;
 
 import java.util.function.Predicate;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.gen.v2.scaffold.stream.utility.ProfiledStream;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.gen.v2.scaffold.hunk.Hunk;
-import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
+import com.volmit.iris.gen.v2.scaffold.stream.ProceduralStream;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
+import org.bukkit.entity.Player;
 
 public class IrisTerrainGenerator
 {
@@ -33,7 +35,6 @@ public class IrisTerrainGenerator
 		complex = new IrisComplex();
 		this.data = data;
 		this.dimension = dimension;
-
 		flash();
 	}
 
@@ -130,16 +131,12 @@ public class IrisTerrainGenerator
 
 	public void generateTerrain(int x, int z, Hunk<BlockData> blocks)
 	{
-		PrecisionStopwatch p = PrecisionStopwatch.start();
 		fill2D(complex.getHeightFluidStream(), blocks, x, z, complex.getTerrainStream());
-		p.end();
 	}
 
 	public void generateBiome(int x, int z, Hunk<Biome> blocks)
 	{
-		PrecisionStopwatch p = PrecisionStopwatch.start();
 		fill2DYLock(complex.getMaxHeightStream(), blocks, x, z, complex.getTrueBiomeDerivativeStream());
-		p.end();
 	}
 
 	public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
@@ -147,5 +144,9 @@ public class IrisTerrainGenerator
 		generateTerrain(x, z, blocks);
 		generateBiome(x, z, biomes);
 		generateDecorations(x, z, blocks);
+	}
+
+	public void printMetrics(Player p) {
+		ProfiledStream.print(Iris::verbose, complex.getTerrainStream());
 	}
 }

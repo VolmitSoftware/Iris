@@ -208,7 +208,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	public double getGenLinkMax(String loadKey)
 	{
-		return genCacheMax.aquire(() ->
+		Integer v = genCacheMax.aquire(() ->
 		{
 			KMap<String, Integer> l = new KMap<>();
 
@@ -218,12 +218,14 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			}
 
 			return l;
-		}).compute(loadKey, (k, v) -> v != null ? v : 0);
+		}).get(loadKey);
+
+		return v == null ? 0 : v;
 	}
 
 	public double getGenLinkMin(String loadKey)
 	{
-		return genCacheMin.aquire(() ->
+		Integer v = genCacheMin.aquire(() ->
 		{
 			KMap<String, Integer> l = new KMap<>();
 
@@ -233,7 +235,9 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			}
 
 			return l;
-		}).compute(loadKey, (k, v) -> v != null ? v : 0);
+		}).get(loadKey);
+
+		return v == null ? 0 : v;
 	}
 
 	public IrisBiomeGeneratorLink getGenLink(String loadKey)

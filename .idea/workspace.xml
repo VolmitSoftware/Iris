@@ -46,21 +46,25 @@
     <property name="dart.analysis.tool.window.visible" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/src/main/java/com/volmit/iris/gen/v2/scaffold/hunk" />
     <property name="project.structure.last.edited" value="Modules" />
-    <property name="project.structure.proportion" value="0.0" />
-    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.23643054" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="show.migrate.to.gradle.popup" value="false" />
   </component>
   <component name="RecentsManager">
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
-      <recent name="com.volmit.iris.gen.v2.scaffold.parallax" />
-      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.io" />
-      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.view" />
-      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.storage" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.arithmetic" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.utility" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.convert" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.sources" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
-      <recent name="com.volmit.iris.gen.v2.scaffold.hunk.io" />
-      <recent name="com.volmit.iris.gen.v2.scaffold.data" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.utility" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.arithmetic" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.convert" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream.api" />
+      <recent name="com.volmit.iris.gen.v2.scaffold.stream" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\cyberpwn\Documents\development\workspace\Iris\src\main\java\com\volmit\iris\gen\v2\scaffold\hunk" />
@@ -115,18 +119,18 @@
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state x="312" y="0" key="#Project_Structure/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832300766" />
-    <state x="410" y="171" width="1234" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1603832427608">
+    <state x="410" y="171" width="1234" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1603947263834">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state x="410" y="171" width="1234" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603832427608" />
-    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser" timestamp="1603866145975">
+    <state x="410" y="171" width="1234" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603947263834" />
+    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser" timestamp="1603942211788">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603866145975" />
-    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes" timestamp="1603856300756">
+    <state x="718" y="163" key="#com.intellij.ide.util.MemberChooser/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603942211788" />
+    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes" timestamp="1603943257126">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603856300756" />
+    <state x="675" y="394" key="#com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesDialog.classes/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603943257126" />
     <state x="624" y="211" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1603859361318">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
@@ -139,22 +143,26 @@
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state x="485" y="234" key="#com.intellij.structuralsearch.plugin.ui.StructuralSearchDialog/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603860057506" />
-    <state width="1921" height="983" key="GridCell.Tab.0.bottom" timestamp="1603875073016">
+    <state width="1921" height="983" key="GridCell.Tab.0.bottom" timestamp="1603948481533">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1921" height="983" key="GridCell.Tab.0.bottom/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603875073016" />
-    <state width="1921" height="983" key="GridCell.Tab.0.center" timestamp="1603875073015">
+    <state width="1921" height="983" key="GridCell.Tab.0.bottom/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603948481533" />
+    <state width="1921" height="983" key="GridCell.Tab.0.center" timestamp="1603948481533">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1921" height="983" key="GridCell.Tab.0.center/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603875073015" />
-    <state width="1921" height="983" key="GridCell.Tab.0.left" timestamp="1603875073015">
+    <state width="1921" height="983" key="GridCell.Tab.0.center/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603948481533" />
+    <state width="1921" height="983" key="GridCell.Tab.0.left" timestamp="1603948481532">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1921" height="983" key="GridCell.Tab.0.left/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603875073015" />
-    <state width="1921" height="983" key="GridCell.Tab.0.right" timestamp="1603875073015">
+    <state width="1921" height="983" key="GridCell.Tab.0.left/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603948481532" />
+    <state width="1921" height="983" key="GridCell.Tab.0.right" timestamp="1603948481533">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state width="1921" height="983" key="GridCell.Tab.0.right/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603875073015" />
+    <state width="1921" height="983" key="GridCell.Tab.0.right/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603948481533" />
+    <state x="312" y="0" key="SettingsEditor" timestamp="1603947206451">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state x="312" y="0" key="SettingsEditor/-1920.0.1920.1050/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1603947206451" />
     <state x="598" y="193" width="723" height="664" key="find.popup" timestamp="1603856657478">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>

@@ -3,9 +3,9 @@ package com.volmit.iris.noise;
 import java.util.List;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.v2.scaffold.layer.ProceduralStream;
-import com.volmit.iris.gen.v2.scaffold.stream.CNGStream;
-import com.volmit.iris.gen.v2.scaffold.stream.FittedStream;
+import com.volmit.iris.gen.v2.scaffold.stream.ProceduralStream;
+import com.volmit.iris.gen.v2.scaffold.stream.sources.CNGStream;
+import com.volmit.iris.gen.v2.scaffold.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.IRare;
 import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
@@ -345,8 +345,8 @@ public class CNG
 		double scale = noscale ? 1 : this.bakedScale * this.scale;
 		double f = noscale ? 0 : (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
 		double x = dim.length > 0 ? dim[0] + f : 0D;
-		double y = dim.length > 1 ? dim[1] + f : 0D;
-		double z = dim.length > 2 ? dim[2] + f : 0D;
+		double y = dim.length > 1 ? dim[1] + -f : 0D;
+		double z = dim.length > 2 ? dim[2] + -f : 0D;
 		double n = generator.noise(x * scale, y * scale, z * scale) * opacity;
 		n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
 		double m = 1;

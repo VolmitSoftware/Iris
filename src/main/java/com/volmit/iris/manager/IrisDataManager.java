@@ -42,12 +42,23 @@ public class IrisDataManager
 
 	public IrisDataManager(File dataFolder)
 	{
+		this(dataFolder, false);
+	}
+
+	public IrisDataManager(File dataFolder, boolean v2)
+	{
 		this.dataFolder = dataFolder;
 		this.packs = new File(dataFolder, ProjectManager.WORKSPACE_NAME);
 		boolean pr = false;
 		if(!packs.exists())
 		{
-			if(new File(dataFolder, "iris").exists())
+			if(v2)
+			{
+				pr = true;
+				packs = new File(dataFolder, "iris/pack");
+			}
+
+			else if(new File(dataFolder, "iris").exists())
 			{
 				pr = true;
 				packs = new File(dataFolder, "iris");
@@ -56,6 +67,10 @@ public class IrisDataManager
 
 		hotloaded();
 		prod = pr;
+	}
+
+	public IrisDataManager copy() {
+		return new IrisDataManager(dataFolder);
 	}
 
 	public void hotloaded()

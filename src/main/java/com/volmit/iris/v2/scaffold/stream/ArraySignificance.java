@@ -1,4 +1,4 @@
-package com.volmit.iris.v2.scaffold;
+package com.volmit.iris.v2.scaffold.stream;
 
 import com.volmit.iris.util.KList;
 

@@ -2,7 +2,7 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.v2.DataProvider;
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

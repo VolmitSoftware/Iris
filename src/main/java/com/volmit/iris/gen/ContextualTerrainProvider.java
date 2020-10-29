@@ -31,7 +31,7 @@ import com.volmit.iris.gen.scaffold.Provisioned;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.gen.scaffold.TerrainProvider;
 import com.volmit.iris.gen.scaffold.TerrainTarget;
-import com.volmit.iris.v2.DataProvider;
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.IrisBiome;

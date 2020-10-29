@@ -3,7 +3,6 @@ package com.volmit.iris.v2.scaffold.stream;
 import java.util.List;
 import java.util.function.Function;
 
-import com.volmit.iris.v2.scaffold.Significance;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.stream.arithmetic.*;
 import com.volmit.iris.v2.scaffold.stream.convert.*;

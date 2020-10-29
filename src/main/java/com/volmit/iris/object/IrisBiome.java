@@ -7,7 +7,7 @@ import org.bukkit.block.Biome;
 import com.volmit.iris.Iris;
 import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.v2.DataProvider;
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.util.ArrayType;

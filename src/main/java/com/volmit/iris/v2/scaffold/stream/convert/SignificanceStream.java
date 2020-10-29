@@ -1,7 +1,7 @@
 package com.volmit.iris.v2.scaffold.stream.convert;
 
-import com.volmit.iris.v2.scaffold.ArraySignificance;
-import com.volmit.iris.v2.scaffold.Significance;
+import com.volmit.iris.v2.scaffold.stream.ArraySignificance;
+import com.volmit.iris.v2.scaffold.stream.Significance;
 import com.volmit.iris.v2.scaffold.stream.BasicStream;
 import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
 import com.volmit.iris.util.KList;

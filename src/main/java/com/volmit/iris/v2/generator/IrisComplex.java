@@ -1,6 +1,6 @@
 package com.volmit.iris.v2.generator;
 
-import com.volmit.iris.v2.DataProvider;
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.util.B;
 import org.bukkit.Material;

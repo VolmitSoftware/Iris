@@ -1,4 +1,4 @@
-package com.volmit.iris.v2.compound;
+package com.volmit.iris.v2.generator.compound;
 
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import org.bukkit.World;

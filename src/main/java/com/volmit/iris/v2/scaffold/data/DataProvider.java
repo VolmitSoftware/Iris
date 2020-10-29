@@ -1,4 +1,4 @@
-package com.volmit.iris.v2;
+package com.volmit.iris.v2.scaffold.data;
 
 import com.volmit.iris.manager.IrisDataManager;
 

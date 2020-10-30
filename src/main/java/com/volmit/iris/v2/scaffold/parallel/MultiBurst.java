@@ -13,6 +13,11 @@ public class MultiBurst
 		service = Executors.newWorkStealingPool(tc);
 	}
 
+	public void burst(Runnable... r)
+	{
+		burst(r.length).queue(r).complete();
+	}
+
 	public BurstExecutor burst(int estimate)
 	{
 		return new BurstExecutor(service, estimate);

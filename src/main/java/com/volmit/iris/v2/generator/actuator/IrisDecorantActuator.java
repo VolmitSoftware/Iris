@@ -41,22 +41,20 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
 
         if(shouldRayDecorate())
         {
-            output.iterateSurfaces2D(getParallelism(), PREDICATE_SOLID, (hunkRelativeX, hunkRelativeZ, hunkOffsetX, hunkOffsetZ, top, bottom, lastBottom, h) ->  decorateLayer(x, z, hunkRelativeX, hunkRelativeZ, hunkOffsetX, hunkOffsetZ,top,bottom,lastBottom,h));
+            output.iterateSurfaces2D(0, PREDICATE_SOLID, (hunkRelativeX, hunkRelativeZ, hunkOffsetX, hunkOffsetZ, top, bottom, lastBottom, h) ->  decorateLayer(x, z, hunkRelativeX, hunkRelativeZ, hunkOffsetX, hunkOffsetZ,top,bottom,lastBottom,h));
         }
 
         else
         {
-            output.compute2D(getParallelism(), (xx, yy, zz, h) -> {
-                int he;
-                for(int i = 0; i < h.getWidth(); i++)
+            int he;
+            for(int i = 0; i < output.getWidth(); i++)
+            {
+                for(int j = 0; j < output.getDepth(); j++)
                 {
-                    for(int j = 0; j < h.getDepth(); j++)
-                    {
-                        he = getComplex().getHeightFluidStream().get(x + xx+i, z + zz+j).intValue();
-                        decorateLayer(x, z, i, j, xx, zz, he, 0, getEngine().getHeight(), h);
-                    }
+                    he = getComplex().getHeightFluidStream().get(x + i, z + j).intValue();
+                    decorateLayer(x, z, i, j, 0, 0, he, 0, getEngine().getHeight(), output);
                 }
-            });
+            }
         }
     }
 
@@ -78,6 +76,11 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
         int height = ceiling - floor;
 
         if(height < 2)
+        {
+            return;
+        }
+
+        if(b.isShore() && floor <= getDimension().getFluidHeight())
         {
             return;
         }

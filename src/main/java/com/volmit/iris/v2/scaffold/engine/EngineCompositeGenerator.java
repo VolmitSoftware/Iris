@@ -5,6 +5,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.Form;
+import com.volmit.iris.util.M;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.v2.generator.IrisEngineCompound;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
@@ -41,6 +42,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
 
     public void hotload()
     {
+        Iris.globaldata.dump();
         initialized.lazySet(false);
     }
 
@@ -116,9 +118,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
         ChunkData chunk = createChunkData(world);
         Hunk<BlockData> blocks = Hunk.view(chunk);
         Hunk<Biome> biomes = Hunk.view(biome);
-        PrecisionStopwatch p = PrecisionStopwatch.start();
+        long m = M.ms();
         compound.generate(x * 16, z * 16, blocks, biomes);
-        System.out.println("Generated " + x + "," + z + " in " + Form.duration(p.getMilliseconds(), 0) + " (Terrain: " + Form.duration(compound.getEngine(0).getFramework().getTerrainActuator().getMetrics().getAverage(), 2) + ", Biome: " + Form.duration(compound.getEngine(0).getFramework().getBiomeActuator().getMetrics().getAverage(), 2) + ", Decorant: " + Form.duration(compound.getEngine(0).getFramework().getDecorantActuator().getMetrics().getAverage(), 2) + ")");
+        System.out.println("Generated " + x + "," + z + " in " + Form.duration(M.ms() - m, 0));
         return chunk;
     }
 

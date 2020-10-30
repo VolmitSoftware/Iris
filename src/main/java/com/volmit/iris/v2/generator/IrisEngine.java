@@ -5,6 +5,7 @@ import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineFramework;
 import com.volmit.iris.v2.scaffold.engine.EngineTarget;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
+import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.block.Biome;
@@ -31,8 +32,14 @@ public class IrisEngine implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) {
-        getFramework().getTerrainActuator().actuate(x, z, blocks);
-        getFramework().getDecorantActuator().actuate(x, z, blocks);
-        getFramework().getBiomeActuator().actuate(x, z, biomes);
+        MultiBurst.burst.burst(
+            () -> blocks.compute2D(getParallelism(), (xx,yy,zz, b) -> {
+                getFramework().getTerrainActuator().actuate(x+xx, z+zz, b);
+                getFramework().getDecorantActuator().actuate(x+xx, z+zz, b);
+            }),
+            ()->biomes.compute2D(getParallelism(), (xx,yy,zz,b) -> {
+                getFramework().getBiomeActuator().actuate(x+xx, z+zz, b);
+            })
+        );
     }
 }

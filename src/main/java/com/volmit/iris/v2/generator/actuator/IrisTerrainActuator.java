@@ -22,47 +22,48 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
     }
 
     @Override
-    public void onActuate(int x, int z, Hunk<BlockData> output) {
-        output.compute2D(getParallelism(), (xx, yy, zz, h) -> {
-            int i,zf, depth, atDepth;
-            double he;
-            BlockData block;
-            IrisBiome biome;
+    public void onActuate(int x, int z, Hunk<BlockData> h) {
+        int i,zf, depth, realX, realZ,hf, he;
+        IrisBiome biome;
+        KList<BlockData> blocks;
 
-            for(int xf = 0; xf < h.getWidth(); xf++)
+        for(int xf = 0; xf < h.getWidth(); xf++)
+        {
+            for(zf = 0; zf < h.getDepth(); zf++)
             {
-                for(zf = 0; zf < h.getDepth(); zf++)
+                realX = xf + x;
+                realZ = zf + z;
+                he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
+                hf = (int) Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
+                biome = getComplex().getTrueBiomeStream().get(realX, realZ);
+                blocks = null;
+
+                for(i = hf; i >= 0; i--)
                 {
-                    he = Math.min(h.getHeight(), getComplex().getHeightFluidStream().get(xx+xf+x, zz+zf+z));
-                    biome = getComplex().getTrueBiomeStream().get(xx+xf+x, zz+zf+z);
-                    KList<BlockData> blocks = biome.generateLayers(xx+xf+x, zz+zf+z, rng, (int)he, (int)he, getData());
-
-                    for(i = 0; i < he; i++)
+                    if(i > he  && i <= hf)
                     {
-                        depth = ((int)he) - i;
+                        h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
+                        continue;
+                    }
 
-                        if(i > he  && i <= he)
+                    if(i <= he)
+                    {
+                        depth = he - i;
+                        if(blocks == null)
                         {
-                            h.set(xx+xf, i, zz+zf, getComplex().getFluidStream().get(xx+xf+x, zz+zf+z));
+                            blocks = biome.generateLayers(realX, realZ, rng, (int)he, (int)he, getData());
+                        }
+
+                        if(blocks.hasIndex(depth))
+                        {
+                            h.set(xf, i, zf, blocks.get(depth));
                             continue;
                         }
 
-                        if(depth < -1)
-                        {
-                            h.set(xx+xf, i, zz+zf, AIR);
-                            continue;
-                        }
-
-                        if(blocks.hasIndex(blocks.last() - ((int)he - depth)))
-                        {
-                            h.set(xx+xf, i, zz+zf, blocks.get(blocks.last() - ((int)he - depth)));
-                            continue;
-                        }
-
-                        h.set(xx+xf, i, zz+zf, getComplex().getRockStream().get(xx+xf+x, zz+zf+z));
+                        h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
                     }
                 }
             }
-        });
+        }
     }
 }

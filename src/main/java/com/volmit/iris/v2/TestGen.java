@@ -25,6 +25,6 @@ public class TestGen
 	public static void gen(Player p)
 	{
 		p.teleport(new Location(new WorldCreator("t/" + UUID.randomUUID().toString())
-				.generator(EngineCompositeGenerator.newStudioWorld("test")).createWorld(), 0, 70, 0));
+				.generator(EngineCompositeGenerator.newStudioWorld("overworld")).createWorld(), 0, 70, 0));
 	}
 }

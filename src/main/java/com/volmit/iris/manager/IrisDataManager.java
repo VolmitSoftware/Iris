@@ -184,7 +184,7 @@ public class IrisDataManager
 		}
 	}
 
-	public void preferFolder(String name)
+	public IrisDataManager preferFolder(String name)
 	{
 		biomeLoader.preferFolder(name);
 		blockLoader.preferFolder(name);
@@ -194,6 +194,7 @@ public class IrisDataManager
 		dimensionLoader.preferFolder(name);
 		generatorLoader.preferFolder(name);
 		structureLoader.preferFolder(name);
+		return this;
 	}
 
 	public void clearLists()

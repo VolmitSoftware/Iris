@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class EngineCompositeGenerator extends ChunkGenerator {
+public class EngineCompositeGenerator extends ChunkGenerator implements Hotloadable {
     private EngineCompound compound;
     private final AtomicBoolean initialized;
     private final String dimensionHint;
@@ -37,6 +37,11 @@ public class EngineCompositeGenerator extends ChunkGenerator {
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
+    }
+
+    public void hotload()
+    {
+        initialized.lazySet(false);
     }
 
     private synchronized IrisDimension getDimension(World world) {
@@ -71,14 +76,14 @@ public class EngineCompositeGenerator extends ChunkGenerator {
             throw new RuntimeException("Cannot find iris dimension data for world: " + world.getName() + "! FAILED");
         }
 
-        dim = Iris.globaldata.getDimensionLoader().load(hint);
+        dim = Iris.globaldata.preferFolder(hint).getDimensionLoader().load(hint);
 
         if (dim == null) {
             throw new RuntimeException("Cannot find dimension: " + hint);
         }
 
         if (production) {
-            dim = new IrisDataManager(getDataFolder(world), true).getDimensionLoader().load(dim.getLoadKey());
+            dim = new IrisDataManager(getDataFolder(world), true).preferFolder(dim.getLoadKey()).getDimensionLoader().load(dim.getLoadKey());
 
             if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + hint);
@@ -94,7 +99,9 @@ public class EngineCompositeGenerator extends ChunkGenerator {
         }
 
         IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : Iris.globaldata.copy();
-        compound = new IrisEngineCompound(world, getDimension(world), data, Iris.getThreadCount());
+        IrisDimension dim = getDimension(world);
+        data.preferFolder(dim.getLoadKey());
+        compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
         initialized.set(true);
     }
 
@@ -111,7 +118,7 @@ public class EngineCompositeGenerator extends ChunkGenerator {
         Hunk<Biome> biomes = Hunk.view(biome);
         PrecisionStopwatch p = PrecisionStopwatch.start();
         compound.generate(x * 16, z * 16, blocks, biomes);
-        System.out.println("Generated " + x + "," + z + " in " + Form.duration(p.getMilliseconds(), 0));
+        System.out.println("Generated " + x + "," + z + " in " + Form.duration(p.getMilliseconds(), 0) + " (Terrain: " + Form.duration(compound.getEngine(0).getFramework().getTerrainActuator().getMetrics().getAverage(), 2) + ", Biome: " + Form.duration(compound.getEngine(0).getFramework().getBiomeActuator().getMetrics().getAverage(), 2) + ", Decorant: " + Form.duration(compound.getEngine(0).getFramework().getDecorantActuator().getMetrics().getAverage(), 2) + ")");
         return chunk;
     }
 

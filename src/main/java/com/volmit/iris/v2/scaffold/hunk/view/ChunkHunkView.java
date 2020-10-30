@@ -36,6 +36,11 @@ public class ChunkHunkView implements Hunk<BlockData>
 	@Override
 	public void setRaw(int x, int y, int z, BlockData t)
 	{
+		if(t == null)
+		{
+			return;
+		}
+
 		Iris.edit.set(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
 	}
 

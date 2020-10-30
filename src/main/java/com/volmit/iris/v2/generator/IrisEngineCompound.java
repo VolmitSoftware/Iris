@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineCompound;
@@ -16,6 +17,7 @@ import lombok.Getter;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_16_R2.generator.CraftChunkData;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +37,7 @@ public class IrisEngineCompound implements EngineCompound {
 
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {
+        Iris.info("Initializing Engine Composite for " + world.getName());
         this.world = world;
         engineMetadata = EngineData.load(getEngineMetadataFile());
         saveEngineMetadata();
@@ -66,7 +69,7 @@ public class IrisEngineCompound implements EngineCompound {
             {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
-                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist));
+                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist));
             }
         }
     }
@@ -94,18 +97,19 @@ public class IrisEngineCompound implements EngineCompound {
             {
                 AtomicInteger index = new AtomicInteger(i);
                 Engine engine = engines[i];
+                int doffset = offset;
                 int height = engine.getTarget().getHeight();
-                AtomicReference<Hunk<BlockData>> cblock = new AtomicReference<>(blocks.croppedView(0, offset, 0, 16, offset+height, 16));
-                AtomicReference<Hunk<Biome>> cbiome = new AtomicReference<>(biomes.croppedView(0, offset, 0, 16, offset+height, 16));
+                AtomicReference<Hunk<BlockData>> cblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
+                AtomicReference<Hunk<Biome>> cbiome = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
                 cblock.set(engine.getTarget().isInverted() ? cblock.get().invertY() : cblock.get());
                 cbiome.set(engine.getTarget().isInverted() ? cbiome.get().invertY() : cbiome.get());
                 e.queue(() -> {
-                    generate(x, z, cblock.get(), cbiome.get());
+                    engine.generate(x, z, cblock.get(), cbiome.get());
                     synchronized (insert)
                     {
                         insert[index.get()] = () -> {
-                            blocks.insert(cblock.get());
-                            biomes.insert(cbiome.get());
+                            blocks.insert(0, doffset, 0, cblock.get());
+                            biomes.insert(0, doffset, 0, cbiome.get());
                         };
                     }
                 });

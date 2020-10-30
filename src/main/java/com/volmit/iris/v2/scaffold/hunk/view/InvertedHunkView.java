@@ -14,13 +14,13 @@ public class InvertedHunkView<T> implements Hunk<T>
 	@Override
 	public void setRaw(int x, int y, int z, T t)
 	{
-		src.setRaw(x, getHeight() - y, z, t);
+		src.setRaw(x, (getHeight() -1) - y, z, t);
 	}
 
 	@Override
 	public T getRaw(int x, int y, int z)
 	{
-		return src.getRaw(x, getHeight() - y, z);
+		return src.getRaw(x, y, z);
 	}
 
 	@Override

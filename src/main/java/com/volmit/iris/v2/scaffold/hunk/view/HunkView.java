@@ -1,4 +1,6 @@
-package com.volmit.iris.v2.scaffold.hunk;
+package com.volmit.iris.v2.scaffold.hunk.view;
+
+import com.volmit.iris.v2.scaffold.hunk.Hunk;
 
 public class HunkView<T> implements Hunk<T>
 {

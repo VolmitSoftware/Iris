@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.generator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineFramework;
 import com.volmit.iris.v2.scaffold.engine.EngineTarget;
@@ -23,6 +24,7 @@ public class IrisEngine implements Engine
 
     public IrisEngine(EngineTarget target)
     {
+        Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         this.target = target;
         this.framework = new IrisEngineFramework(this);
     }

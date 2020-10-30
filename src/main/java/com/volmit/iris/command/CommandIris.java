@@ -7,6 +7,7 @@ import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.v2.scaffold.engine.Hotloadable;
 
 public class CommandIris extends MortarCommand
 {
@@ -67,6 +68,13 @@ public class CommandIris extends MortarCommand
 		if(args.length == 1 && args[0].equalsIgnoreCase("test!") && IrisSettings.get().allowExperimentalV2Generator)
 		{
 			TestGen.gen(sender.player());
+			return true;
+		}
+
+		if(args.length == 1 && args[0].equalsIgnoreCase("hl!") && IrisSettings.get().allowExperimentalV2Generator)
+		{
+			((Hotloadable)sender.player().getWorld().getGenerator()).hotload();
+			sender.sendMessage("Done!");
 			return true;
 		}
 

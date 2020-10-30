@@ -36,6 +36,11 @@ public class ChunkBiomeHunkView implements Hunk<Biome>
 	@Override
 	public void setRaw(int x, int y, int z, Biome t)
 	{
+		if(t == null)
+		{
+			return;
+		}
+
 		Iris.edit.setBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
 	}
 

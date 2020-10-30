@@ -34,6 +34,11 @@ public class ChunkDataHunkView implements Hunk<BlockData>
 	@Override
 	public void set(int x1, int y1, int z1, int x2, int y2, int z2, BlockData t)
 	{
+		if(t == null)
+		{
+			return;
+		}
+
 		enforceBounds(x1, y1, z1, x2 - x1, y2 - y1, z2 - z1);
 		chunk.setRegion(x1, y1, z1, x2, y2, z2, t);
 	}
@@ -41,6 +46,11 @@ public class ChunkDataHunkView implements Hunk<BlockData>
 	@Override
 	public void setRaw(int x, int y, int z, BlockData t)
 	{
+		if(t == null)
+		{
+			return;
+		}
+
 		chunk.setBlock(x, y, z, t);
 	}
 

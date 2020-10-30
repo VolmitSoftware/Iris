@@ -8,11 +8,11 @@ import org.bukkit.block.Biome;
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
 {
     public IrisBiomeActuator(Engine engine) {
-        super(engine);
+        super(engine, "Biome");
     }
 
     @Override
-    public void actuate(int x, int z, Hunk<Biome> output) {
+    public void onActuate(int x, int z, Hunk<Biome> output) {
         output.compute2D(getParallelism(), (xx, yy, zz, h) -> {
             int i,zf;
             Biome v;

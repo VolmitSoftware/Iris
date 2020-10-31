@@ -178,4 +178,8 @@ public class RNG extends Random
 	{
 		return si(Short.MIN_VALUE, Short.MAX_VALUE);
 	}
+
+    public boolean chance(double chance) {
+		return chance >= nextDouble();
+    }
 }

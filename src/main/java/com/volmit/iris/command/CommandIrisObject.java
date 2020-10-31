@@ -13,6 +13,9 @@ public class CommandIrisObject extends MortarCommand
 	private CommandIrisObjectWand wand;
 
 	@Command
+	private CommandIrisObjectDust dust;
+
+	@Command
 	private CommandIrisObjectXPY xpy;
 
 	@Command

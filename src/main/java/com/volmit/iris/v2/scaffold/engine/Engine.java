@@ -20,6 +20,21 @@ public interface Engine
 
     public EngineFramework getFramework();
 
+    default void save()
+    {
+        getParallax().saveAll();
+    }
+
+    default void saveNow()
+    {
+        getParallax().saveAllNOW();
+    }
+
+    default String getName()
+    {
+        return getDimension().getName();
+    }
+
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
     public default int getHeight()

@@ -173,4 +173,8 @@ public class ParallaxRegion extends HunkRegion
 		objectSlice.cleanup(c);
 		updateSlice.cleanup(c);
 	}
+
+	public int getChunkCount() {
+		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + updateSlice.getLoadCount();
+	}
 }

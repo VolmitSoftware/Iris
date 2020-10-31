@@ -88,4 +88,8 @@ public interface ParallaxAccess
     public void saveAll();
 
     public void saveAllNOW();
+
+    public int getRegionCount();
+
+    public int getChunkCount();
 }

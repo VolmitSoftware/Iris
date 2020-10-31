@@ -22,8 +22,28 @@ public class ParallaxWorld implements ParallaxAccess
 		this.folder = folder;
 		save = new KList<>();
 		loadedRegions = new KMap<>();
-		cleanup = new ChronoLatch(10000);
+		cleanup = new ChronoLatch(5000);
 		folder.mkdirs();
+	}
+
+	public int getRegionCount()
+	{
+		return loadedRegions.size();
+	}
+
+	public int getChunkCount()
+	{
+		int m = 0;
+
+		synchronized (loadedRegions)
+		{
+			for(ParallaxRegion i : loadedRegions.values())
+			{
+				m+= i.getChunkCount();
+			}
+		}
+
+		return m;
 	}
 
 	public synchronized void close()

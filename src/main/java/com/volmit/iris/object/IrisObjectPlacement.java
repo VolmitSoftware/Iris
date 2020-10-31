@@ -14,6 +14,7 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -145,7 +146,7 @@ public class IrisObjectPlacement
 		return getSurfaceWarp(rng).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
 	}
 
-	public IrisObject getSchematic(ContextualTerrainProvider g, RNG random)
+	public IrisObject getSchematic(DataProvider g, RNG random)
 	{
 		if(place.isEmpty())
 		{

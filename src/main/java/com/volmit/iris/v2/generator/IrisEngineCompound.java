@@ -18,6 +18,8 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R2.generator.CraftChunkData;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.world.WorldSaveEvent;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,6 +73,17 @@ public class IrisEngineCompound implements EngineCompound {
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
                 engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist));
             }
+        }
+
+        Iris.instance.registerListener(this);
+    }
+
+    @EventHandler
+    public void on(WorldSaveEvent e)
+    {
+        if(world != null &&e.getWorld().equals(world))
+        {
+            save();
         }
     }
 

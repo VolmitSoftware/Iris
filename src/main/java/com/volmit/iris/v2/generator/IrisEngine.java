@@ -33,6 +33,7 @@ public class IrisEngine implements Engine
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) {
         MultiBurst.burst.burst(
+            () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
             () -> blocks.compute2D(getParallelism(), (xx,yy,zz, b) -> {
                 getFramework().getTerrainActuator().actuate(x+xx, z+zz, b);
                 getFramework().getDecorantActuator().actuate(x+xx, z+zz, b);
@@ -41,5 +42,9 @@ public class IrisEngine implements Engine
                 getFramework().getBiomeActuator().actuate(x+xx, z+zz, b);
             })
         );
+
+        getFramework().getEngineParallax().insertParallax(x, z, blocks);
+        System.out.println("Regions: " + getParallax().getRegionCount() + ", Chunks: " + getParallax().getChunkCount());
+        getParallax().cleanup();
     }
 }

@@ -320,22 +320,14 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)
+	public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)
 	{
-		if(shitty)
-		{
-			return;
-		}
-		place(x, -1, z, placer, config, rng, rdata);
+		return place(x, -1, z, placer, config, rng, rdata);
 	}
 
-	public void place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisDataManager rdata)
+	public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisDataManager rdata)
 	{
-		if(shitty)
-		{
-			return;
-		}
-		place(x, -1, z, placer, config, rng, null, c, rdata);
+		return place(x, -1, z, placer, config, rng, null, c, rdata);
 	}
 
 	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata)

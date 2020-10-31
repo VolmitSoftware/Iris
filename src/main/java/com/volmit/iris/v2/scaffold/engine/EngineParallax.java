@@ -1,7 +1,11 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import java.lang.reflect.Parameter;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.volmit.iris.util.*;
+import com.volmit.iris.v2.scaffold.parallax.ParallaxChunkMeta;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
@@ -13,12 +17,6 @@ import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.object.IrisTextPlacement;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IObjectPlacer;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.generator.IrisComplex;
 import com.volmit.iris.v2.scaffold.cache.Cache;
 import com.volmit.iris.v2.scaffold.data.DataProvider;
@@ -81,18 +79,26 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
 
     default void insertParallax(int x, int z, Hunk<BlockData> data)
     {
-        data.compute3D(getEngine().getParallelism(), (xx,yy,zz,h)->{
+        ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x>>4, z>>4);
+
+        if(!meta.isObjects()) {
+            return;
+        }
+
+        data.compute2DYRange(getEngine().getParallelism(), meta.getMinObject(), meta.getMaxObject(), (xx,yy,zz,h)->{
             for(int i = x+xx; i < x+xx+ h.getWidth(); i++)
             {
                 for(int j= z+zz; j < z+zz + h.getDepth(); j++)
                 {
-                    for(int k= yy; k < yy+h.getHeight(); k++)
+                    for(int k = yy; k < yy+h.getHeight(); k++)
                     {
                         BlockData d = getParallaxAccess().getBlock(i, k, j);
 
                         if(d != null)
                         {
                             h.set(i - (x-xx), k-yy, j - (z+zz), d);
+                            // DONT TRUST INTELIJ  ^^^^
+                            // ITS A FUCKING LIE
                         }
                     }
                 }
@@ -140,10 +146,33 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
 
     default void place(RNG rng, int x, int z, IrisObjectPlacement objectPlacement)
     {
+        place(rng, x,-1, z, objectPlacement);
+    }
+
+    default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement)
+    {
         for(int i = 0; i < objectPlacement.getDensity(); i++)
         {
-            objectPlacement.getSchematic(getComplex(), rng).place(rng.i(x, x+16), rng.i(z, z+16), this, objectPlacement, rng, getData());
+            IrisObject v = objectPlacement.getSchematic(getComplex(), rng);
+            int xx = rng.i(x, x+16);
+            int zz = rng.i(z, z+16);
+            int id = rng.i(0, Integer.MAX_VALUE);
+            v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
+                getParallaxAccess().setObject(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
+                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(b.getX() >> 4, b.getZ() >> 4);
+                meta.setObjects(true);
+                meta.setMaxObject(Math.max(b.getY(), meta.getMaxObject()));
+                meta.setMinObject(Math.min(b.getY(), Math.max(meta.getMinObject(), 0)));
+            }, null, getData());
         }
+    }
+
+    default void updateParallaxChunkObjectData(int minY, int maxY, int x, int z, IrisObject v)
+    {
+        ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(x >> 4, z >> 4);
+        meta.setObjects(true);
+        meta.setMaxObject(Math.max(maxY, meta.getMaxObject()));
+        meta.setMinObject(Math.min(minY, Math.max(meta.getMinObject(), 0)));
     }
 
     default int computeParallaxSize()

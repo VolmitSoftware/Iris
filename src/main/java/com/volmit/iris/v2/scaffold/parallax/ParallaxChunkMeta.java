@@ -19,18 +19,34 @@ public class ParallaxChunkMeta {
         public void write(ParallaxChunkMeta parallaxChunkMeta, DataOutputStream dos) throws IOException {
             dos.writeBoolean(parallaxChunkMeta.isGenerated());
             dos.writeBoolean(parallaxChunkMeta.isParallaxGenerated());
+            dos.writeBoolean(parallaxChunkMeta.isObjects());
+
+            if(parallaxChunkMeta.isObjects())
+            {
+                dos.writeByte(parallaxChunkMeta.getMinObject() + Byte.MIN_VALUE);
+                dos.writeByte(parallaxChunkMeta.getMaxObject() + Byte.MIN_VALUE);
+            }
         }
 
         @Override
         public ParallaxChunkMeta read(DataInputStream din) throws IOException {
-            return new ParallaxChunkMeta(din.readBoolean(), din.readBoolean());
+            boolean g = din.readBoolean();
+            boolean p = din.readBoolean();
+            boolean o = din.readBoolean();
+            int min = o ? din.readByte() - Byte.MIN_VALUE : -1;
+            int max = o ? din.readByte() - Byte.MIN_VALUE : -1;
+            return new ParallaxChunkMeta(g, p, o, min, max);
         }
     };
+
     private boolean generated;
     private boolean parallaxGenerated;
+    private boolean objects;
+    private int maxObject = -1;
+    private int minObject = -1;
 
     public ParallaxChunkMeta()
     {
-        this(false, false);
+        this(false, false, false, -1, -1);
     }
 }

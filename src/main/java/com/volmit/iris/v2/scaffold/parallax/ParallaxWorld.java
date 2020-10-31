@@ -192,7 +192,7 @@ public class ParallaxWorld implements ParallaxAccess
 
 	public void cleanup()
 	{
-		cleanup(10000, 3000);
+		cleanup(10000, 5000);
 	}
 
 	@Override

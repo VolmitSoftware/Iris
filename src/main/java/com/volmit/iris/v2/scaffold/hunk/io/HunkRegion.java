@@ -43,7 +43,7 @@ public class HunkRegion
 				in.close();
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}
@@ -80,7 +80,6 @@ public class HunkRegion
 			NBTOutputStream out = new NBTOutputStream(fos);
 			out.writeTag(compound);
 			out.close();
-			Iris.verbose("Saved Region: " + getX() + " " + getZ());
 		}
 	}
 

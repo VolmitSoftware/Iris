@@ -24,6 +24,29 @@ public interface EngineCompound extends Listener
 
     public void saveEngineMetadata();
 
+    default Engine getEngineForHeight(int height)
+    {
+        if(getSize() == 1)
+        {
+            return getEngine(0);
+        }
+
+        int buf = 0;
+
+        for(int i = 0; i < getSize(); i++)
+        {
+            Engine e = getEngine(i);
+            buf += e.getHeight();
+
+            if(buf >= height)
+            {
+                return e;
+            }
+        }
+
+        return getEngine(getSize() - 1);
+    }
+
     public default void save()
     {
         saveEngineMetadata();

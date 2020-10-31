@@ -622,7 +622,31 @@ public interface Hunk<T>
 			{
 				rq.add(r);
 			}
-		}), (xx, yy, zz, c) -> insert(xx, yy, zz, c));
+		}), this::insert);
+		e.complete();
+		rq.forEach(Runnable::run);
+		return this;
+	}
+
+	default Hunk<T> compute2DYRange(int parallelism, int ymin, int ymax, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
+	{
+		if(get2DDimension(parallelism) == 1)
+		{
+			v.accept(0, 0, 0, this);
+			return this;
+		}
+
+		BurstExecutor e = MultiBurst.burst.burst(parallelism);
+		KList<Runnable> rq = new KList<Runnable>(parallelism);
+		getSections2DYLimit(parallelism, ymin, ymax, (xx, yy, zz, h, r) -> e.queue(() ->
+		{
+			v.accept(xx, yy, zz, h);
+
+			synchronized(rq)
+			{
+				rq.add(r);
+			}
+		}), this::insert);
 		e.complete();
 		rq.forEach(Runnable::run);
 		return this;
@@ -650,7 +674,7 @@ public interface Hunk<T>
 			{
 				rq.add(r);
 			}
-		}), (xx, yy, zz, c) -> insert(xx, yy, zz, c));
+		}), this::insert);
 		e.complete();
 		rq.forEach(Runnable::run);
 		return this;
@@ -658,7 +682,7 @@ public interface Hunk<T>
 
 	default Hunk<T> getSections2D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v)
 	{
-		return getSections2D(sections, v, (xx, yy, zz, c) -> insert(xx, yy, zz, c));
+		return getSections2D(sections, v, this::insert);
 	}
 
 	default Hunk<T> getSections2D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter)
@@ -685,6 +709,38 @@ public interface Hunk<T>
 			{
 				int jj = j;
 				getSection(i, 0, j, i + w + (i == 0 ? wr : 0), getHeight(), j + d + (j == 0 ? dr : 0), (h, r) -> v.accept(ii, 0, jj, h, r), inserter);
+				i = i == 0 ? i + wr : i;
+				j = j == 0 ? j + dr : j;
+			}
+		}
+
+		return this;
+	}
+
+	default Hunk<T> getSections2DYLimit(int sections, int ymin, int ymax, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter)
+	{
+		int dim = (int) get2DDimension(sections);
+
+		if(sections <= 1)
+		{
+			getSection(0, 0, 0, getWidth(), getHeight(), getDepth(), (hh, r) -> v.accept(0, 0, 0, hh, r), inserter);
+			return this;
+		}
+
+		int w = getWidth() / dim;
+		int wr = getWidth() - (w * dim);
+		int d = getDepth() / dim;
+		int dr = getDepth() - (d * dim);
+		int i, j;
+
+		for(i = 0; i < getWidth(); i += w)
+		{
+			int ii = i;
+
+			for(j = 0; j < getDepth(); j += d)
+			{
+				int jj = j;
+				getSection(i, ymin, j, i + w + (i == 0 ? wr : 0), ymax, j + d + (j == 0 ? dr : 0), (h, r) -> v.accept(ii, ymin, jj, h, r), inserter);
 				i = i == 0 ? i + wr : i;
 				j = j == 0 ? j + dr : j;
 			}

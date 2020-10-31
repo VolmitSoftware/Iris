@@ -176,4 +176,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
     public static EngineCompositeGenerator newProductionWorld() {
         return new EngineCompositeGenerator(null, true);
     }
+
+    public EngineCompound getComposite() {
+        return compound;
+    }
 }

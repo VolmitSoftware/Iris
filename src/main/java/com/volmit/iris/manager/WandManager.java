@@ -174,6 +174,16 @@ public class WandManager implements Listener
 					e.getPlayer().updateInventory();
 				}
 			}
+
+			if(e.getHand().equals(EquipmentSlot.HAND) && isDust(e.getPlayer().getInventory().getItemInMainHand()))
+			{
+				if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
+				{
+					e.setCancelled(true);
+					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
+					DustRevealer.spawn(e.getClickedBlock());
+				}
+			}
 		}
 
 		catch(Throwable ex)
@@ -252,6 +262,35 @@ public class WandManager implements Listener
 	public static ItemStack createWand()
 	{
 		return createWand(null, null);
+	}
+
+	public static ItemStack createDust()
+	{
+		ItemStack is = new ItemStack(Material.GLOWSTONE_DUST);
+		is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+		ItemMeta im = is.getItemMeta();
+		im.setDisplayName(C.BOLD + "" + C.YELLOW + "Dust of Revealing");
+		im.setUnbreakable(true);
+		im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
+		im.setLore(new KList<String>().qadd("Right click on a block to reveal it's placement structure!"));
+		is.setItemMeta(im);
+
+		return is;
+	}
+
+	public boolean isDust(ItemStack is)
+	{
+		if(is == null || is.getType().equals(Material.AIR))
+		{
+			return false;
+		}
+
+		if(is.getType().equals(Material.GLOWSTONE_DUST))
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	public static ItemStack update(boolean left, Location a, ItemStack item)

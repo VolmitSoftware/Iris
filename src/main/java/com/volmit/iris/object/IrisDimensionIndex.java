@@ -1,15 +1,16 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.DontObfuscate;
+import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.RegistryListDimension;
+import com.volmit.iris.util.Required;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @NoArgsConstructor

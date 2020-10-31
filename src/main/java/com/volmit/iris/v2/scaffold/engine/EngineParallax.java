@@ -1,22 +1,31 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BlockVector;
+
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualTerrainProvider;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.*;
-import com.volmit.iris.util.*;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisDepositGenerator;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.object.IrisTextPlacement;
+import com.volmit.iris.util.B;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KSet;
+import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.generator.IrisComplex;
-import com.volmit.iris.v2.generator.IrisEngine;
 import com.volmit.iris.v2.scaffold.cache.Cache;
 import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.parallax.ParallaxAccess;
 import com.volmit.iris.v2.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.util.BlockVector;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 public interface EngineParallax extends DataProvider, IObjectPlacer
 {
@@ -157,7 +166,6 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
             }
         }
 
-        IrisLock t = new IrisLock("t");
         Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
         BurstExecutor e = MultiBurst.burst.burst(objects.size());
         for(String i : objects)

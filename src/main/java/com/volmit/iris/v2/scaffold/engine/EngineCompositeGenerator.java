@@ -1,14 +1,10 @@
 package com.volmit.iris.v2.scaffold.engine;
 
-import com.mysql.jdbc.profiler.ProfilerEvent;
-import com.volmit.iris.Iris;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.v2.generator.IrisEngineCompound;
-import com.volmit.iris.v2.scaffold.hunk.Hunk;
+import java.io.File;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -18,10 +14,13 @@ import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.Form;
+import com.volmit.iris.util.M;
+import com.volmit.iris.v2.generator.IrisEngineCompound;
+import com.volmit.iris.v2.scaffold.hunk.Hunk;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements Hotloadable {
     private EngineCompound compound;

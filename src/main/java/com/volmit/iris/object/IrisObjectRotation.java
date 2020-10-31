@@ -2,11 +2,13 @@ package com.volmit.iris.object;
 
 import java.util.List;
 
-import com.volmit.iris.util.M;
 import org.bukkit.Axis;
-import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.util.Desc;

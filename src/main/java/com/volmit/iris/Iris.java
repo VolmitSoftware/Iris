@@ -39,17 +39,16 @@ import com.volmit.iris.util.C;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.GroupedExecutor;
 import com.volmit.iris.util.IO;
-import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.MetricsLite;
-import com.volmit.iris.util.VolmitPlugin;
 import com.volmit.iris.util.NastyRunnable;
 import com.volmit.iris.util.Permission;
 import com.volmit.iris.util.Queue;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.ShurikenQueue;
+import com.volmit.iris.util.VolmitPlugin;
 
 import io.papermc.lib.PaperLib;
 
@@ -68,7 +67,6 @@ public class Iris extends VolmitPlugin
 	public static MultiverseCoreLink linkMultiverseCore;
 	public static MythicMobsLink linkMythicMobs;
 	public static CitizensLink linkCitizens;
-	private static IrisLock lock = new IrisLock("Iris");
 	private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 	public static boolean customModels = doesSupportCustomModels();
 	public static boolean awareEntities = doesSupportAwareness();
@@ -187,7 +185,6 @@ public class Iris extends VolmitPlugin
 	{
 		instance = this;
 		compat = IrisCompat.configured(getDataFile("compat.json"));
-		lock = new IrisLock("Iris");
 		proj = new ProjectManager();
 		hotloader = new IrisHotloadManager();
 		convert = new ConversionManager();

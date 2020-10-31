@@ -1,12 +1,18 @@
 package com.volmit.iris.v2.scaffold.hunk.io;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicIntegerArray;
 
-import com.volmit.iris.util.*;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.ByteArrayTag;
+import com.volmit.iris.util.CompoundTag;
+import com.volmit.iris.util.Function2;
+import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.Tag;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 
 public class HunkRegionSlice<T>
@@ -18,9 +24,9 @@ public class HunkRegionSlice<T>
 	private final HunkIOAdapter<T> adapter;
 	private final CompoundTag compound;
 	private final String key;
-	private final KMap<Short, Hunk<T>> loadedChunks;
-	private final KMap<Short, Long> lastUse;
-	private final KList<Short> save;
+	private final KMap<Long, Hunk<T>> loadedChunks;
+	private final KMap<Long, Long> lastUse;
+	private final KList<Long> save;
 	private final int height;
 
 	public HunkRegionSlice(int height, Function3<Integer, Integer, Integer, Hunk<T>> factory, HunkIOAdapter<T> adapter, CompoundTag compound, String key)
@@ -42,11 +48,12 @@ public class HunkRegionSlice<T>
 			Iris.warn("Incorrect chunk use counts in " + key);
 		}
 
-		for(Short i : lastUse.k())
+		for(Long i : lastUse.k())
 		{
 			if(M.ms() - lastUse.get(i) > t)
 			{
-				unload((byte) (i & 0xFF), (byte) ((i >> 8) & 0xFF));
+				System.out.println("Trying to unload " + i);
+				unload((int)(i >> 32), (int) i.longValue());
 			}
 		}
 	}
@@ -67,9 +74,9 @@ public class HunkRegionSlice<T>
 
 	public void save()
 	{
-		for(short i : save)
+		for(Long i : save)
 		{
-			save((byte) (i & 0xFF), (byte) ((i >> 8) & 0xFF));
+			save((int)(i >> 32), (int) i.longValue());
 		}
 
 		save.clear();
@@ -105,9 +112,9 @@ public class HunkRegionSlice<T>
 
 	public synchronized void unloadAll()
 	{
-		for(Short i : loadedChunks.k())
+		for(Long i : loadedChunks.k())
 		{
-			unload((byte) (i & 0xFF), (byte) ((i >> 8) & 0xFF));
+			unload((int)(i >> 32), (int) i.longValue());
 		}
 
 		save.clear();
@@ -142,10 +149,11 @@ public class HunkRegionSlice<T>
 
 	public synchronized void unload(int x, int z)
 	{
-		short key = ikey(x, z);
-
+		long key = ikey(x, z);
+		System.out.println(x + "," + z + " = " + key);
 		if(isLoaded(x, z))
 		{
+			System.out.println("HOT IT");
 			if(save.contains(key))
 			{
 				save(x, z);
@@ -154,6 +162,11 @@ public class HunkRegionSlice<T>
 
 			lastUse.remove(key);
 			loadedChunks.remove(key);
+		}
+
+		else
+		{
+			System.out.println("IDK WHERE " + key + " IS");
 		}
 	}
 
@@ -191,7 +204,7 @@ public class HunkRegionSlice<T>
 
 	public Hunk<T> get(int x, int z)
 	{
-		short key = ikey(x, z);
+		long key = ikey(x, z);
 
 		Hunk<T> c = loadedChunks.get(key);
 
@@ -200,7 +213,7 @@ public class HunkRegionSlice<T>
 			c = load(x, z);
 		}
 
-		lastUse.put(ikey(x,z), M.ms());
+		lastUse.put(ikey(x, z), M.ms());
 
 		return c;
 	}
@@ -216,9 +229,9 @@ public class HunkRegionSlice<T>
 		return get(x, z);
 	}
 
-	private short ikey(int x, int z)
+	private long ikey(int x, int z)
 	{
-		return ((short) (((x & 0xFF) << 8) | (z & 0xFF)));
+		return (((long) x) << 32) | (((long) z) & 0xffffffffL);
 	}
 
 	private String key(int x, int z)
@@ -228,10 +241,11 @@ public class HunkRegionSlice<T>
 			throw new IndexOutOfBoundsException("The chunk " + x + " " + z + " is out of bounds max is 31x31");
 		}
 
-		return key + "." + Integer.toString(((short) (((x & 0xFF) << 8) | (z & 0xFF))), 36);
+		return key + "." + Long.toString(ikey(x,z), 36);
 	}
 
-	public int getLoadCount() {
+	public int getLoadCount()
+	{
 		return loadedChunks.size();
 	}
 }

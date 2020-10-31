@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import com.volmit.iris.object.IrisDimension;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -10,6 +11,8 @@ import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 
 public interface EngineCompound extends Listener
 {
+    public IrisDimension getRootDimension();
+
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
     public World getWorld();

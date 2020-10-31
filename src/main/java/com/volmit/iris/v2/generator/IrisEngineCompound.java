@@ -37,8 +37,11 @@ public class IrisEngineCompound implements EngineCompound {
     @Getter
     private final MultiBurst burster;
 
+    private IrisDimension root;
+
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {
+        this.root = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.getName());
         this.world = world;
         engineMetadata = EngineData.load(getEngineMetadataFile());
@@ -89,6 +92,11 @@ public class IrisEngineCompound implements EngineCompound {
 
     private File getEngineMetadataFile() {
         return new File(world.getWorldFolder(), "iris/engine-metadata.json");
+    }
+
+    @Override
+    public IrisDimension getRootDimension() {
+        return root;
     }
 
     @Override

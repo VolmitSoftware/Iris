@@ -8,8 +8,11 @@ import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+
+import java.util.Iterator;
 
 public class IrisEngine implements Engine
 {
@@ -43,8 +46,16 @@ public class IrisEngine implements Engine
             })
         );
 
+        generateStructureReferences();
+        generateStructures();
         getFramework().getEngineParallax().insertParallax(x, z, blocks);
-        System.out.println("Regions: " + getParallax().getRegionCount() + ", Chunks: " + getParallax().getChunkCount());
         getParallax().cleanup();
+    }
+
+    private void generateStructureReferences() {
+
+    }
+
+    private void generateStructures() {
     }
 }

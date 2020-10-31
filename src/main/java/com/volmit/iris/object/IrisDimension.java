@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import net.royawesome.jlibnoise.Noise;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
@@ -61,6 +62,10 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
 	private boolean aggressiveBiomeReshuffle = false;
+
+	@DontObfuscate
+	@Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
+	private IrisShapedGeneratorStyle undercarriage = null;
 
 	@DontObfuscate
 	@Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
@@ -365,6 +370,22 @@ public class IrisDimension extends IrisRegistrant
 	public double getDimensionAngle()
 	{
 		return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
+	}
+
+	public boolean isCarved(int x, int y, int z, RNG rng, int terrainHeight)
+	{
+		if(isCarving() && terrainHeight > getFluidHeight() || y < terrainHeight)
+		{
+			for(IrisCarveLayer j : getCarveLayers())
+			{
+				if(j.isCarved(rng, x, y, z))
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	public double sinRotate()

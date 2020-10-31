@@ -36,7 +36,6 @@ public class IrisShapedGeneratorStyle
 	@Required
 	@MinNumber(-256)
 	@MaxNumber(256)
-
 	@DontObfuscate
 	@Desc("The max block value")
 	private int max = 0;

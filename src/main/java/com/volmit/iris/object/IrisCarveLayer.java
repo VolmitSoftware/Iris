@@ -34,6 +34,12 @@ public class IrisCarveLayer
 	@Desc("The max height")
 	private int maxHeight = 220;
 
+	@MinNumber(0.0)
+	@MaxNumber(1.0)
+	@DontObfuscate
+	@Desc("The full percentage means the 4D opacity of this carver will decay from 100% to 0% at the min & max vertical ranges. Setting the percent to 1.0 will make a very drastic & charp change at the edge of the vertical min & max. Where as 0.15 means only 15% of the vertical range will actually be 100% opacity.")
+	private double fullPercent = 0.5;
+
 	@MaxNumber(512)
 	@MinNumber(-128)
 	@DontObfuscate
@@ -55,7 +61,19 @@ public class IrisCarveLayer
 			return false;
 		}
 
-		double opacity = Math.pow(IrisInterpolation.sinCenter(M.lerpInverse(getMinHeight(), getMaxHeight(), y)), 4);
+		double innerRange = fullPercent * (maxHeight - minHeight);
+		double opacity = 1D;
+
+		if(y <= minHeight+innerRange)
+		{
+			opacity = IrisInterpolation.bezier(M.lerpInverse(getMinHeight(), minHeight+innerRange, y));
+		}
+
+		else if(y >=maxHeight - innerRange)
+		{
+			opacity = IrisInterpolation.bezier(1D - M.lerpInverse(maxHeight-innerRange, getMaxHeight(), y));
+		}
+
 		return cng.aquire(() -> getStyle().create(rng.nextParallelRNG(-2340 * getMaxHeight() * getMinHeight()))).fitDouble(0D, 1D, x, y, z) * opacity > getThreshold();
 	}
 }

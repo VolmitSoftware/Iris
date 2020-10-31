@@ -45,6 +45,11 @@ public class GenLayerUpdate extends BlockPopulator
 	@Override
 	public void populate(World w, Random r, Chunk c)
 	{
+		if(gen == null)
+		{
+			return;
+		}
+
 		AtomicSliverMap map = null;
 
 		try
@@ -57,15 +62,23 @@ public class GenLayerUpdate extends BlockPopulator
 			map = new AtomicSliverMap();
 		}
 
-		RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
-
-		if(gen.getDimension().isVanillaCaves())
+		try
 		{
-			generateDepositsWithVanillaSaftey(w, rx, c);
+			RNG rx = rng.nextParallelRNG(c.getX() + r.nextInt()).nextParallelRNG(c.getZ() + r.nextInt());
+
+			if(gen.getDimension().isVanillaCaves())
+			{
+				generateDepositsWithVanillaSaftey(w, rx, c);
+			}
+
+			updateBlocks(rx, c, map);
+			spawnInitials(c, rx);
 		}
 
-		updateBlocks(rx, c, map);
-		spawnInitials(c, rx);
+		catch(Throwable e)
+		{
+
+		}
 	}
 
 	public void spawnInitials(Chunk c, RNG rx)

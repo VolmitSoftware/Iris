@@ -16,7 +16,7 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.function.Function;
 
-public class IrisCaveModifier extends EngineAssignedBiModifier<BlockData, Biome>
+public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 {
     public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
     public static final BlockData AIR = B.getBlockData("AIR");
@@ -31,16 +31,14 @@ public class IrisCaveModifier extends EngineAssignedBiModifier<BlockData, Biome>
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> a, Hunk<Biome> b) {
-        Hunk.computeDual2D(getParallelism(), a, b, (xx,yy,zz, ha, hb) -> {
-            for(int i = 0; i < ha.getWidth(); i++)
+    public void onModify(int x, int z, Hunk<BlockData> a) {
+        for(int i = 0; i < a.getWidth(); i++)
+        {
+            for(int j = 0; j < a.getDepth(); j++)
             {
-                for(int j = 0; j < ha.getDepth(); i++)
-                {
-
-                }
+                genCaves(x + i, z + j, i, j, a);
             }
-        });
+        };
     }
 
     public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data)

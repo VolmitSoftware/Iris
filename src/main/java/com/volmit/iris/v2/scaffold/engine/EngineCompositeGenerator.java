@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.v2.generator.nms.v1X.DummyWorld;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
@@ -37,6 +40,18 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
+    }
+
+    public EngineCompositeGenerator initDummy(WorldCreator wc)
+    {
+        return initDummy(new DummyWorld(wc.name(), wc.seed()));
+    }
+
+    public EngineCompositeGenerator initDummy(World world)
+    {
+        initialize(world);
+        initialized.lazySet(false);
+        return this;
     }
 
     public void hotload()
@@ -113,14 +128,19 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        TerrainChunk tc = TerrainChunk.create(world, biome);
+        generateChunkRawData(world, ignored, x, z, tc);
+        return tc.getRaw();
+    }
+
+    public void generateChunkRawData(World world, Random ignored, int x, int z, TerrainChunk tc)
+    {
         initialize(world);
-        ChunkData chunk = createChunkData(world);
-        Hunk<BlockData> blocks = Hunk.view(chunk);
-        Hunk<Biome> biomes = Hunk.view(biome);
+        Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
+        Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
         long m = M.ms();
         compound.generate(x * 16, z * 16, blocks, biomes);
         System.out.println("Generated " + x + "," + z + " in " + Form.duration(M.ms() - m, 0));
-        return chunk;
     }
 
     @Override

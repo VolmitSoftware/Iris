@@ -27,4 +27,8 @@ public class MultiBurst
 	{
 		return burst(16);
 	}
+
+	public void lazy(Runnable o) {
+		service.execute(o);
+	}
 }

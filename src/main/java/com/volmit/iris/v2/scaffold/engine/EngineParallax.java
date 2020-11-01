@@ -80,37 +80,41 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
             return;
         }
 
-        data.compute2DYRange(getEngine().getParallelism(), meta.getMinObject(), meta.getMaxObject(), (xx,yy,zz,h)->{
-            for(int i = x+xx; i < x+xx+ h.getWidth(); i++)
+        for(int i = x; i < x+ data.getWidth(); i++)
+        {
+            for(int j= z; j < z + data.getDepth(); j++)
             {
-                for(int j= z+zz; j < z+zz + h.getDepth(); j++)
+                for(int k = 0; k < data.getHeight(); k++)
                 {
-                    for(int k = yy; k < yy+h.getHeight(); k++)
-                    {
-                        BlockData d = getParallaxAccess().getBlock(i, k, j);
+                    BlockData d = getParallaxAccess().getBlock(i, k, j);
 
-                        if(d != null)
-                        {
-                            h.set(i - (x-xx), k-yy, j - (z+zz), d);
-                            // DONT TRUST INTELIJ  ^^^^
-                            // ITS A FUCKING LIE
-                        }
+                    if(d != null)
+                    {
+                        data.set(i - x, k, j - z, d);
                     }
                 }
             }
-        });
+        }
     }
 
     default void generateParallaxArea(int x, int z)
     {
         int s = (int) Math.ceil(getParallaxSize() / 2D);
+        int j;
+        BurstExecutor e = MultiBurst.burst.burst(getParallaxSize() * getParallaxSize());
+
         for(int i = -s; i <= s; i++)
         {
-            for(int j = -s; j <= s; j++)
+            int ii = i;
+
+            for(j = -s; j <= s; j++)
             {
-                generateParallaxLayer((i*16)+x, (j*16)+z);
+                int jj = j;
+                e.queue(() -> generateParallaxLayer((ii*16)+x, (jj*16)+z));
             }
         }
+
+        e.complete();
 
         getParallaxAccess().setChunkGenerated(x>>4, z>>4);
     }

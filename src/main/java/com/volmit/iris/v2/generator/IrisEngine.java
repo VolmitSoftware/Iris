@@ -1,6 +1,8 @@
 package com.volmit.iris.v2.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.M;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineFramework;
 import com.volmit.iris.v2.scaffold.engine.EngineTarget;
@@ -37,17 +39,24 @@ public class IrisEngine implements Engine
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) {
         MultiBurst.burst.burst(
             () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
-            () -> blocks.compute2D(getParallelism(), (xx,yy,zz, b) -> {
-                getFramework().getTerrainActuator().actuate(x+xx, z+zz, b);
-                getFramework().getDecorantActuator().actuate(x+xx, z+zz, b);
-            }),
-            ()->biomes.compute2D(getParallelism(), (xx,yy,zz,b) -> {
-                getFramework().getBiomeActuator().actuate(x+xx, z+zz, b);
+            () -> Hunk.computeDual2D(getParallelism(), blocks, biomes, (xx,yy,zz,ha,hb) -> {
+                getFramework().getTerrainActuator().actuate(x+xx, z+zz, ha);
+                getFramework().getCaveModifier().modify(x, z, ha);
+                getFramework().getDecorantActuator().actuate(x+xx, z+zz, ha);
+                getFramework().getBiomeActuator().actuate(x+xx, z+zz, hb);
             })
         );
 
-        // getFramework().getCaveModifier().modify(x, z, blocks, biomes);
-        getFramework().getEngineParallax().insertParallax(x, z, blocks);
-        getParallax().cleanup();
+        blocks.compute2D(getParallelism(), (xx,yy,zz,ha) -> {
+            getFramework().getEngineParallax().insertParallax(x, z, ha);
+        });
+
+        if(M.r(0.1))
+        {
+            MultiBurst.burst.lazy(() -> {
+                getParallax().cleanup();
+                getData().getObjectLoader().clean();
+            });
+        }
     }
 }

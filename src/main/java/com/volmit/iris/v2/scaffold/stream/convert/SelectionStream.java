@@ -38,12 +38,22 @@ public class SelectionStream<T> extends BasicStream<T>
 	@Override
 	public T get(double x, double z)
 	{
+		if(options.length == 0)
+		{
+			return null;
+		}
+
 		return options[stream.get(x, z)];
 	}
 
 	@Override
 	public T get(double x, double y, double z)
 	{
+		if(options.length == 0)
+		{
+			return null;
+		}
+
 		return options[stream.get(x, y, z)];
 	}
 

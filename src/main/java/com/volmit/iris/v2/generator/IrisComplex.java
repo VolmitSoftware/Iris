@@ -42,6 +42,8 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<RNG> chunkRngStream;
 	private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
 	private ProceduralStream<IrisDecorator> terrainCeilingDecoration;
+	private ProceduralStream<IrisDecorator> terrainCaveSurfaceDecoration;
+	private ProceduralStream<IrisDecorator> terrainCaveCeilingDecoration;
 	private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
 	private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
 	private ProceduralStream<BlockData> rockStream;
@@ -149,9 +151,13 @@ public class IrisComplex implements DataProvider
 		heightFluidStream = heightStream.max(fluidHeight).cache2D(cacheSize);
 		maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
 		terrainSurfaceDecoration = trueBiomeStream
-			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
+				.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
 		terrainCeilingDecoration = trueBiomeStream
-			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
+				.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
+		terrainCaveSurfaceDecoration = caveBiomeStream
+				.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
+		terrainCaveCeilingDecoration = caveBiomeStream
+				.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
 		shoreSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
 		seaSurfaceDecoration = trueBiomeStream

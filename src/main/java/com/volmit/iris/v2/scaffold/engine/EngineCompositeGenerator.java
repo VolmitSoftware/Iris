@@ -6,7 +6,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.volmit.iris.gen.scaffold.TerrainChunk;
-import com.volmit.iris.v2.generator.nms.v1X.DummyWorld;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -40,18 +39,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
-    }
-
-    public EngineCompositeGenerator initDummy(WorldCreator wc)
-    {
-        return initDummy(new DummyWorld(wc.name(), wc.seed()));
-    }
-
-    public EngineCompositeGenerator initDummy(World world)
-    {
-        initialize(world);
-        initialized.lazySet(false);
-        return this;
     }
 
     public void hotload()

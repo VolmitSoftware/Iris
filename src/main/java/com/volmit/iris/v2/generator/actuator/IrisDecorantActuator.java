@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.generator.actuator;
 
+import com.volmit.iris.util.KList;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedActuator;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
@@ -85,34 +86,78 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
             return;
         }
 
-        IrisDecorator deco = getComplex().getTerrainSurfaceDecoration().get(realX, realZ);
-
-        if(deco != null)
+        if(surface)
         {
-            if(deco.isStacking())
-            {
-                int stack = Math.min(g.i(deco.getStackMin(), deco.getStackMax()), height);
+            IrisDecorator deco = getComplex().getTerrainSurfaceDecoration().get(realX, realZ);
 
-                for(int i = 0; i < stack; i++)
+            if(deco != null)
+            {
+                if(deco.isStacking())
                 {
-                    h.set(hunkRelativeX, i + floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX - i, realZ + i, getData()));
+                    int stack = Math.min(g.i(deco.getStackMin(), deco.getStackMax()), height);
+
+                    for(int i = 0; i < stack; i++)
+                    {
+                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX - i, realZ + i, getData()));
+                    }
+
+                    if(deco.getTopPalette().isNotEmpty())
+                    {
+                        h.set(hunkRelativeX, stack + floor - 1, hunkRelativeZ, deco.getBlockDataForTop(b, rng, realX - stack, realZ + stack, getData()));
+                    }
                 }
 
-                if(deco.getTopPalette().isNotEmpty())
+                else
                 {
-                    h.set(hunkRelativeX, stack + floor - 1, hunkRelativeZ, deco.getBlockDataForTop(b, rng, realX - stack, realZ + stack, getData()));
+                    h.set(hunkRelativeX, floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX, realZ, getData()));
                 }
-            }
-
-            else
-            {
-                h.set(hunkRelativeX, floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX, realZ, getData()));
             }
         }
 
-        if(!surface)
+        else
         {
-            IrisDecorator cdeco = getComplex().getTerrainCeilingDecoration().get(realX, realZ);
+            IrisBiome cave = getComplex().getCaveBiomeStream().get(realX, realZ);
+            IrisDecorator deco = getComplex().getTerrainCaveSurfaceDecoration().get(realX, realZ);
+
+            if(deco != null)
+            {
+                if(deco.isStacking())
+                {
+                    int stack = Math.min(g.i(deco.getStackMin(), deco.getStackMax()), height);
+
+                    for(int i = 0; i < stack; i++)
+                    {
+                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX - i, realZ + i, getData()));
+                    }
+
+                    if(deco.getTopPalette().isNotEmpty())
+                    {
+                        h.set(hunkRelativeX, stack + floor - 1, hunkRelativeZ, deco.getBlockDataForTop(b, rng, realX - stack, realZ + stack, getData()));
+                    }
+                }
+
+                else
+                {
+                    h.set(hunkRelativeX, floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX, realZ, getData()));
+                }
+            }
+
+            int maxCeiling = lastBottom - top - 1;
+
+            if(maxCeiling > 0)
+            {
+                KList<BlockData> v = cave.generateLayers(realX, realZ, rng, maxCeiling, top, getData());
+
+                if(!v.isEmpty())
+                {
+                    for(int i = 0; i < v.size(); i++)
+                    {
+                        h.set(hunkRelativeX, top+i, hunkRelativeZ, v.get(i));
+                    }
+                }
+            }
+
+            IrisDecorator cdeco = getComplex().getTerrainCaveCeilingDecoration().get(realX, realZ);
 
             if(cdeco != null)
             {
@@ -134,6 +179,33 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                 else
                 {
                     h.set(hunkRelativeX, ceiling, hunkRelativeZ, cdeco.getBlockData100(b, rng, realX, realZ, getData()));
+                }
+            }
+
+            int maxFloor = Math.min(8, bottom-1);
+
+            KList<BlockData> v = cave.generateLayers(realX, realZ, rng, maxFloor, bottom, getData());
+
+            if(!v.isEmpty())
+            {
+                for(int i = 0; i < v.size(); i++)
+                {
+                    if(bottom-i < 2)
+                    {
+                        break;
+                    }
+
+                    BlockData bk = h.get(hunkRelativeX, bottom-i, hunkRelativeZ);
+
+                    if(PREDICATE_SOLID.test(bk))
+                    {
+                        h.set(hunkRelativeX, bottom-i, hunkRelativeZ, v.get(i));
+                    }
+
+                    else
+                    {
+                        break;
+                    }
                 }
             }
         }

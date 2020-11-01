@@ -41,7 +41,6 @@ public class IrisEngine implements Engine
             () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
             () -> Hunk.computeDual2D(getParallelism(), blocks, biomes, (xx,yy,zz,ha,hb) -> {
                 getFramework().getTerrainActuator().actuate(x+xx, z+zz, ha);
-                getFramework().getCaveModifier().modify(x, z, ha);
                 getFramework().getDecorantActuator().actuate(x+xx, z+zz, ha);
                 getFramework().getBiomeActuator().actuate(x+xx, z+zz, hb);
             })

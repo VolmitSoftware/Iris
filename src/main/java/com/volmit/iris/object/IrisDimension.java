@@ -239,6 +239,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
 	private String focus = "";
 
+	@RegistryListBiome
+	@DontObfuscate
+	@Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
+	private String focusRegion = "";
+
 	@MinNumber(0.0001)
 	@MaxNumber(512)
 	@DontObfuscate

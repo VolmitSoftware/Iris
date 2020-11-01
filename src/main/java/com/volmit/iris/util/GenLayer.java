@@ -13,5 +13,10 @@ public abstract class GenLayer
 		this.rng = rng;
 	}
 
+	public GenLayer()
+	{
+		this(null, null);
+	}
+
 	public abstract double generate(double x, double z);
 }

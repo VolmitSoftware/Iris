@@ -41,6 +41,10 @@ public class IrisGenerator extends IrisRegistrant
 	@Desc("The opacity, essentially a multiplier on the output.")
 	private double opacity = 1;
 
+	@DontObfuscate
+	@Desc("Multiply the compsites instead of adding them")
+	private boolean multiplicitive  = false;
+
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The size of the cell fractures")
@@ -252,15 +256,24 @@ public class IrisGenerator extends IrisRegistrant
 
 		int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
 		double h = 0;
-		double tp = 0;
+		double tp = multiplicitive ? 1 : 0;
 
 		for(IrisNoiseGenerator i : composite)
 		{
-			tp += i.getOpacity();
-			h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+			if(multiplicitive)
+			{
+				tp *= i.getOpacity();
+				h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+			}
+
+			else
+			{
+				tp += i.getOpacity();
+				h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+			}
 		}
 
-		double v = (h / tp) * opacity;
+		double v = multiplicitive ? h * opacity : (h / tp) * opacity;
 
 		if(Double.isNaN(v))
 		{

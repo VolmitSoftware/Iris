@@ -59,6 +59,11 @@ public class GenLayerBiome extends GenLayer
 			return null;
 		}
 
+		if(!iris.getDimension().getFocusRegion().trim().isEmpty())
+		{
+			return iris.loadRegion(iris.getDimension().getFocusRegion());
+		}
+
 		return regionGenerator.fitRarity(iris.getDimension().getAllRegions(iris), bx, bz);
 	}
 

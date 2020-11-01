@@ -84,7 +84,7 @@ public class IrisCarveLayer
 		{
 			opacity = IrisInterpolation.bezier(1D - M.lerpInverse(maxHeight-innerRange, getMaxHeight(), y));
 		}
-		
+
 		return cng.aquire(() -> getStyle().create(rng.nextParallelRNG(-2340 * getMaxHeight() * getMinHeight()))).fitDouble(0D, 1D, x, y, z) * opacity > getThreshold();
 	}
 }

@@ -11,6 +11,7 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

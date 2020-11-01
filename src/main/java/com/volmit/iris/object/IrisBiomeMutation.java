@@ -13,6 +13,7 @@ import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -63,17 +64,17 @@ public class IrisBiomeMutation
 	private final transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
 	private final transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
 
-	public KList<String> getRealSideA(ContextualTerrainProvider xg)
+	public KList<String> getRealSideA(DataProvider xg)
 	{
 		return sideACache.aquire(() -> processList(xg, getSideA()));
 	}
 
-	public KList<String> getRealSideB(ContextualTerrainProvider xg)
+	public KList<String> getRealSideB(DataProvider xg)
 	{
 		return sideBCache.aquire(() -> processList(xg, getSideB()));
 	}
 
-	public KList<String> processList(ContextualTerrainProvider xg, KList<String> s)
+	public KList<String> processList(DataProvider xg, KList<String> s)
 	{
 		KSet<String> r = new KSet<>();
 
@@ -83,14 +84,14 @@ public class IrisBiomeMutation
 
 			if(q.startsWith("^"))
 			{
-				r.addAll(xg.loadRegion(q.substring(1)).getLandBiomes());
+				r.addAll(xg.getData().getRegionLoader().load(q.substring(1)).getLandBiomes());
 				continue;
 			}
 
 			else if(q.startsWith("*"))
 			{
 				String name = q.substring(1);
-				r.addAll(xg.loadBiome(name).getAllChildren(xg, 7));
+				r.addAll(xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7));
 			}
 
 			else if(q.startsWith("!"))
@@ -101,7 +102,7 @@ public class IrisBiomeMutation
 			else if(q.startsWith("!*"))
 			{
 				String name = q.substring(2);
-				r.removeAll(xg.loadBiome(name).getAllChildren(xg, 7));
+				r.removeAll(xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7));
 			}
 
 			else

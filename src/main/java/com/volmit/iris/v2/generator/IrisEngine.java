@@ -46,16 +46,7 @@ public class IrisEngine implements Engine
             })
         );
 
-        generateStructureReferences();
-        generateStructures();
         getFramework().getEngineParallax().insertParallax(x, z, blocks);
         getParallax().cleanup();
-    }
-
-    private void generateStructureReferences() {
-
-    }
-
-    private void generateStructures() {
     }
 }

@@ -631,7 +631,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		});
 	}
 
-	public KList<String> getAllChildren(ContextualTerrainProvider g, int limit)
+	public KList<String> getAllChildren(DataProvider g, int limit)
 	{
 		KSet<String> m = new KSet<>();
 		m.addAll(getChildren());
@@ -641,7 +641,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		{
 			for(String i : getChildren())
 			{
-				IrisBiome b = g != null ? g.loadBiome(i) : Iris.globaldata.getBiomeLoader().load(i);
+				IrisBiome b = g != null ? g.getData().getBiomeLoader().load(i) : Iris.globaldata.getBiomeLoader().load(i);
 				int l = limit;
 				m.addAll(b.getAllChildren(g, l));
 			}

@@ -18,6 +18,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.v2.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
+import org.checkerframework.checker.units.qual.A;
 
 public interface Hunk<T>
 {
@@ -602,6 +603,82 @@ public interface Hunk<T>
 	default Hunk<T> compute2D(Consumer4<Integer, Integer, Integer, Hunk<T>> v)
 	{
 		return compute2D(getIdeal2DParallelism(), v);
+	}
+
+	public static <A, B> void compute2D(int parallelism, Hunk<A> a, Hunk<B> b, Consumer5<Integer, Integer, Integer, Hunk<A>, Hunk<B>> v)
+	{
+		if(a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight() || a.getDepth() != b.getDepth())
+		{
+			throw new RuntimeException("Hunk sizes must match!");
+		}
+
+		if(a.get2DDimension(parallelism) == 1)
+		{
+			v.accept(0, 0, 0, a, b);
+			return;
+		}
+
+		BurstExecutor e = MultiBurst.burst.burst(parallelism);
+		KList<Runnable> rq = new KList<Runnable>(parallelism);
+		getDualSections2D(parallelism, a, b, (xx, yy, zz, ha, hr, r) -> e.queue(() ->
+		{
+			v.accept(xx, yy, zz, ha, hr);
+
+			synchronized(rq)
+			{
+				rq.add(r);
+			}
+		}), (x, y, z, hax, hbx) -> {
+			a.insert(x, y, z, hax);
+			b.insert(x, y, z, hbx);
+		});
+		e.complete();
+		rq.forEach(Runnable::run);
+		return;
+	}
+
+	public static <A, B> void getDualSections2D(int sections, Hunk<A> a, Hunk<B> b, Consumer6<Integer, Integer, Integer, Hunk<A>, Hunk<B>, Runnable> v, Consumer5<Integer, Integer, Integer, Hunk<A>, Hunk<B>> inserterAB)
+	{
+		if(a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight() || a.getDepth() != b.getDepth())
+		{
+			throw new RuntimeException("Hunk sizes must match!");
+		}
+
+		int dim = a.get2DDimension(sections);
+
+		if(sections <= 1)
+		{
+			getDualSection(0, 0, 0, a.getWidth(), a.getHeight(), a.getDepth(), a, b, (ha, hr, r) -> v.accept(0, 0, 0, ha, hr, r), inserterAB);
+			return;
+		}
+
+		int w = a.getWidth() / dim;
+		int wr = a.getWidth() - (w * dim);
+		int d = a.getDepth() / dim;
+		int dr = a.getDepth() - (d * dim);
+		int i, j;
+
+		for(i = 0; i < a.getWidth(); i += w)
+		{
+			int ii = i;
+
+			for(j = 0; j < a.getDepth(); j += d)
+			{
+				int jj = j;
+				getDualSection(i, 0, j, i + w + (i == 0 ? wr : 0), a.getHeight(),
+						j + d + (j == 0 ? dr : 0), a, b,
+						(ha, hr, r) -> v.accept(ii, 0, jj, ha, hr, r), inserterAB);
+				i = i == 0 ? i + wr : i;
+				j = j == 0 ? j + dr : j;
+			}
+		}
+	}
+
+	static <A, B> void getDualSection(int x, int y, int z, int x1, int y1, int z1, Hunk<A> a, Hunk<B> b, Consumer3<Hunk<A>, Hunk<B>, Runnable> v, Consumer5<Integer, Integer, Integer, Hunk<A>, Hunk<B>> inserter)
+	{
+		Hunk<A> copya = a.crop(x, y, z, x1, y1, z1);
+		Hunk<B> copyb = b.crop(x, y, z, x1, y1, z1);
+		v.accept(copya, copyb, () -> inserter.accept(x, y, z, copya, copyb));
 	}
 
 	default Hunk<T> compute2D(int parallelism, Consumer4<Integer, Integer, Integer, Hunk<T>> v)

@@ -9,10 +9,10 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
         super(engine, name);
     }
 
-    public abstract void onModify(Hunk<T> output);
+    public abstract void onModify(int x, int z, Hunk<T> output);
 
     @Override
-    public void modify(Hunk<T> output) {
-        onModify(output);
+    public void modify(int x, int z, Hunk<T> output) {
+        onModify(x, z, output);
     }
 }

@@ -4,6 +4,7 @@ import java.lang.reflect.Parameter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.volmit.iris.object.*;
 import com.volmit.iris.util.*;
 import com.volmit.iris.v2.scaffold.parallax.ParallaxChunkMeta;
 import org.bukkit.block.data.BlockData;
@@ -11,12 +12,6 @@ import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDepositGenerator;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.object.IrisObjectPlacement;
-import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.object.IrisTextPlacement;
 import com.volmit.iris.v2.generator.IrisComplex;
 import com.volmit.iris.v2.scaffold.cache.Cache;
 import com.volmit.iris.v2.scaffold.data.DataProvider;
@@ -129,17 +124,49 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
 
         getParallaxAccess().setParallaxGenerated(x>>4, z>>4);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-        generateParallaxSurface(rng, x, z);
+        IrisRegion region = getComplex().getRegionStream().get(x+8, z+8);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(x+8, z+8);
+        generateParallaxSurface(rng, x, z, biome);
+        generateParallaxMutations(rng, x, z);
     }
 
-    default void generateParallaxSurface(RNG rng, int x, int z) {
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(x + 8, z + 8);
-
+    default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
         {
             if(rng.chance(i.getChance()))
             {
                 place(rng, x, z, i);
+            }
+        }
+    }
+
+    default void generateParallaxMutations(RNG rng, int x, int z) {
+        if(getEngine().getDimension().getMutations().isEmpty())
+        {
+            return;
+        }
+
+        searching: for(IrisBiomeMutation k : getEngine().getDimension().getMutations())
+        {
+            for(int l = 0; l < k.getChecks(); l++)
+            {
+                IrisBiome sa = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sb = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+
+                if(sa.getLoadKey().equals(sb.getLoadKey()))
+                {
+                    continue;
+                }
+
+                if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
+                {
+                    for(IrisObjectPlacement m : k.getObjects())
+                    {
+                        place(rng.nextParallelRNG((34 * ((x * 30) + (z * 30)) * x * z) + x - z + 1569962), x, z, m);
+                    }
+
+                    continue searching;
+                }
             }
         }
     }

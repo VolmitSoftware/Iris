@@ -65,9 +65,9 @@ public class CommandIris extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
-		if(args.length == 1 && args[0].equalsIgnoreCase("test!") && IrisSettings.get().allowExperimentalV2Generator)
+		if(args.length == 2 && args[0].equalsIgnoreCase("test!") && IrisSettings.get().allowExperimentalV2Generator)
 		{
-			TestGen.gen(sender.player());
+			TestGen.gen(sender.player(), args[1]);
 			return true;
 		}
 

@@ -10,9 +10,9 @@ import com.volmit.iris.v2.scaffold.engine.EngineCompositeGenerator;
 
 public class TestGen
 {
-	public static void gen(Player p)
+	public static void gen(Player p, String arg)
 	{
 		p.teleport(new Location(new WorldCreator("t/" + UUID.randomUUID().toString())
-				.generator(EngineCompositeGenerator.newStudioWorld("iris")).createWorld(), 0, 70, 0));
+				.generator(EngineCompositeGenerator.newStudioWorld(arg)).createWorld(), 0, 70, 0));
 	}
 }

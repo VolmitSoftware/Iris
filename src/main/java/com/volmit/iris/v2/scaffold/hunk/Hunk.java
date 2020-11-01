@@ -605,7 +605,7 @@ public interface Hunk<T>
 		return compute2D(getIdeal2DParallelism(), v);
 	}
 
-	public static <A, B> void compute2D(int parallelism, Hunk<A> a, Hunk<B> b, Consumer5<Integer, Integer, Integer, Hunk<A>, Hunk<B>> v)
+	public static <A, B> void computeDual2D(int parallelism, Hunk<A> a, Hunk<B> b, Consumer5<Integer, Integer, Integer, Hunk<A>, Hunk<B>> v)
 	{
 		if(a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight() || a.getDepth() != b.getDepth())
 		{

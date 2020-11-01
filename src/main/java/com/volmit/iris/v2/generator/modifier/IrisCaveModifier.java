@@ -1,6 +1,5 @@
-package com.volmit.iris.v2.generator.actuator;
+package com.volmit.iris.v2.generator.modifier;
 
-import com.volmit.iris.gen.atomics.AtomicSliver;
 import com.volmit.iris.noise.FastNoiseDouble;
 import com.volmit.iris.object.IrisCaveLayer;
 import com.volmit.iris.util.B;
@@ -8,14 +7,16 @@ import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
+import com.volmit.iris.v2.scaffold.engine.EngineAssignedBiModifier;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import org.bukkit.Material;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.util.function.Function;
 
-public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
+public class IrisCaveModifier extends EngineAssignedBiModifier<BlockData, Biome>
 {
     public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
     public static final BlockData AIR = B.getBlockData("AIR");
@@ -30,8 +31,16 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output) {
+    public void onModify(int x, int z, Hunk<BlockData> a, Hunk<Biome> b) {
+        Hunk.computeDual2D(getParallelism(), a, b, (xx,yy,zz, ha, hb) -> {
+            for(int i = 0; i < ha.getWidth(); i++)
+            {
+                for(int j = 0; j < ha.getDepth(); i++)
+                {
 
+                }
+            }
+        });
     }
 
     public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data)

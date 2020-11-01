@@ -1,8 +1,9 @@
 package com.volmit.iris.v2.generator;
 
+import com.volmit.iris.object.*;
+import com.volmit.iris.util.*;
 import com.volmit.iris.v2.scaffold.data.DataProvider;
 import com.volmit.iris.v2.scaffold.engine.Engine;
-import com.volmit.iris.util.B;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -12,16 +13,6 @@ import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
 import com.volmit.iris.v2.scaffold.stream.interpolation.Interpolated;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.noise.CNG;
-import com.volmit.iris.object.DecorationPart;
-import com.volmit.iris.object.InferredType;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDecorator;
-import com.volmit.iris.object.IrisBiomePaletteLayer;
-import com.volmit.iris.object.IrisGenerator;
-import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.RNG;
 
 import lombok.Data;
 
@@ -56,6 +47,7 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
 	private ProceduralStream<BlockData> glassStream;
+	private ProceduralStream<KList<CaveResult>> caveStream;
 
 	public ProceduralStream<IrisBiome> getBiomeStream(InferredType type)
 	{
@@ -164,6 +156,7 @@ public class IrisComplex implements DataProvider
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
 		seaSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
+		caveStream = ProceduralStream.of((x, z) -> engine.getFramework().getCaveModifier().genCaves(x, z, x.intValue() & 15, z.intValue() & 15, null), Interpolated.CAVE_RESULTS);
 		//@done
 	}
 

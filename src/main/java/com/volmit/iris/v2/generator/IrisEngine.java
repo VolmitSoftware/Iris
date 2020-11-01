@@ -46,6 +46,7 @@ public class IrisEngine implements Engine
             })
         );
 
+        // getFramework().getCaveModifier().modify(x, z, blocks, biomes);
         getFramework().getEngineParallax().insertParallax(x, z, blocks);
         getParallax().cleanup();
     }

@@ -13,4 +13,9 @@ public class CaveResult
 		this.floor = floor;
 		this.ceiling = ceiling;
 	}
+
+	public boolean isWithin(int v)
+	{
+		return v > floor || v < ceiling;
+	}
 }

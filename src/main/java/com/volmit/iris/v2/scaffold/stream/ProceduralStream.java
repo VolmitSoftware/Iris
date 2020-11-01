@@ -8,10 +8,7 @@ import com.volmit.iris.v2.scaffold.stream.arithmetic.*;
 import com.volmit.iris.v2.scaffold.stream.convert.*;
 import com.volmit.iris.v2.scaffold.stream.interpolation.Interpolated;
 import com.volmit.iris.v2.scaffold.stream.sources.FunctionStream;
-import com.volmit.iris.v2.scaffold.stream.utility.CachedStream2D;
-import com.volmit.iris.v2.scaffold.stream.utility.ProfiledStream;
-import com.volmit.iris.v2.scaffold.stream.utility.SemaphoreStream;
-import com.volmit.iris.v2.scaffold.stream.utility.SynchronizedStream;
+import com.volmit.iris.v2.scaffold.stream.utility.*;
 import com.volmit.iris.util.Function2;
 import com.volmit.iris.util.Function3;
 import com.volmit.iris.util.Function4;
@@ -53,6 +50,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 	default ProceduralStream<T> profile(int memory)
 	{
 		return new ProfiledStream<>(this, memory);
+	}
+
+	default ProceduralStream<T> onNull(T v)
+	{
+		return new NullSafeStream<>(this, v);
 	}
 
 	default ProceduralStream<T> add(Function3<Double, Double, Double, Double> a)

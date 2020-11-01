@@ -109,8 +109,16 @@ public class IrisComplex implements DataProvider
 			-> engine.getDimension().getCaveBiomeStyle().create(rng.nextRNG()).stream()
 				.zoom(r.getCaveBiomeZoom())
 				.selectRarity(r.getCaveBiomes())
-				.convertCached((s) -> data.getBiomeLoader().load(s)
-						.setInferredType(InferredType.CAVE))
+				.onNull("")
+				.convertCached((s) -> {
+					if(s.isEmpty())
+					{
+						return new IrisBiome();
+					}
+
+					return data.getBiomeLoader().load(s)
+							.setInferredType(InferredType.CAVE);
+				})
 			).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
 		landBiomeStream = regionStream.convert((r)
 			-> engine.getDimension().getLandBiomeStyle().create(rng.nextRNG()).stream()

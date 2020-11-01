@@ -113,21 +113,18 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
 
                     for(CaveResult cl : caves)
                     {
-                        if(cl.getFloor() < 0 || cl.getFloor() > 255 || cl.getCeiling() > 255 || cl.getCeiling() < 0)
+                        if(cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0)
                         {
                             continue;
                         }
 
-                        KList<BlockData> floor = cave.generateLayers(realX, realZ, rng, cl.getFloor() - 2, cl.getFloor() - 2, getData());
-                        KList<BlockData> ceiling = cave.generateLayers(realX + 656, realZ - 656, rng, (ch) - cl.getCeiling() - 2, (ch) - cl.getCeiling() - 2, getData());
-                        BlockData blockc = null;
+                        KList<BlockData> floor = cave.generateLayers(realX, realZ, rng, cl.getFloor(), cl.getFloor(), getData());
+                        KList<BlockData> ceiling = cave.generateLayers(realX + 656, realZ - 656, rng,
+                                (he) - cl.getCeiling(),
+                                (he) - cl.getCeiling(), getData());
+
                         for(int j = 0; j < floor.size(); j++)
                         {
-                            if(j == 0)
-                            {
-                                blockc = floor.get(j);
-                            }
-
                             h.set(xf, cl.getFloor() - j, zf, floor.get(j));
                         }
 

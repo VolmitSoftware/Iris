@@ -32,6 +32,10 @@ public class IrisDecorator
 	private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
 
 	@DontObfuscate
+	@Desc("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
+	private boolean forcePlace = false;
+
+	@DontObfuscate
 	@Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
 	private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 

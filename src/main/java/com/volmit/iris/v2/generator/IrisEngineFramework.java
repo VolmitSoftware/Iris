@@ -7,14 +7,9 @@ import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.v2.generator.actuator.IrisBiomeActuator;
-import com.volmit.iris.v2.generator.actuator.IrisDecorantActuator;
-import com.volmit.iris.v2.generator.actuator.IrisTerrainActuator;
+import com.volmit.iris.v2.generator.actuator.*;
 import com.volmit.iris.v2.generator.modifier.IrisCaveModifier;
-import com.volmit.iris.v2.scaffold.engine.Engine;
-import com.volmit.iris.v2.scaffold.engine.EngineActuator;
-import com.volmit.iris.v2.scaffold.engine.EngineFramework;
-import com.volmit.iris.v2.scaffold.engine.EngineParallax;
+import com.volmit.iris.v2.scaffold.engine.*;
 import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -40,6 +35,12 @@ public class IrisEngineFramework implements EngineFramework {
     private final EngineActuator<BlockData> decorantActuator;
 
     @Getter
+    private final EngineModifier<BlockData> depositModifier;
+
+    @Getter
+    private final EngineModifier<BlockData> ravineModifier;
+
+    @Getter
     private final EngineActuator<Biome> biomeActuator;
 
     public IrisEngineFramework(Engine engine)
@@ -51,5 +52,7 @@ public class IrisEngineFramework implements EngineFramework {
         this.terrainActuator = new IrisTerrainActuator(getEngine());
         this.decorantActuator = new IrisDecorantActuator(getEngine());
         this.biomeActuator = new IrisBiomeActuator(getEngine());
+        this.depositModifier = new IrisDepositModifier(getEngine());
+        this.ravineModifier = new IrisRavineModifier(getEngine());
     }
 }

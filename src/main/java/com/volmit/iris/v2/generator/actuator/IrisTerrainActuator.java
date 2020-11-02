@@ -1,10 +1,12 @@
 package com.volmit.iris.v2.generator.actuator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedActuator;
@@ -28,17 +30,14 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
 
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h) {
-        int i,zf, depth, realX, realZ,hf, he, b, ch;
+        int i, zf, depth, realX, realZ, hf, he, b;
         IrisBiome biome;
-        boolean firstCarve;
         KList<BlockData> blocks;
-        KList<CaveResult> caves;
 
         for(int xf = 0; xf < h.getWidth(); xf++)
         {
             for(zf = 0; zf < h.getDepth(); zf++)
             {
-                firstCarve = true;
                 realX = xf + x;
                 realZ = zf + z;
                 b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, realX, realZ)) : 0;
@@ -46,7 +45,6 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                 hf = (int) Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
                 biome = getComplex().getTrueBiomeStream().get(realX, realZ);
                 blocks = null;
-                ch = he;
 
                 if(hf < b)
                 {
@@ -63,17 +61,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
 
                     if(getDimension().isCarved(realX, i, realZ, rng, he))
                     {
-                        if(firstCarve)
-                        {
-                            ch = i - 1;
-                        }
-
                         continue;
-                    }
-
-                    else
-                    {
-                        firstCarve = false;
                     }
 
                     if(i > he  && i <= hf)
@@ -97,41 +85,6 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                         }
 
                         h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
-                    }
-                }
-
-                caves = getDimension().isCaves() ? getFramework().getCaveModifier().genCaves(realX, realZ, realX & 15, realZ & 15, h) : null;
-
-                if(caves != null && caves.isNotEmpty())
-                {
-                    IrisBiome cave = getComplex().getCaveBiomeStream().get(realX, realZ);
-
-                    if(cave == null)
-                    {
-                        continue;
-                    }
-
-                    for(CaveResult cl : caves)
-                    {
-                        if(cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0)
-                        {
-                            continue;
-                        }
-
-                        KList<BlockData> floor = cave.generateLayers(realX, realZ, rng, cl.getFloor(), cl.getFloor(), getData());
-                        KList<BlockData> ceiling = cave.generateLayers(realX + 656, realZ - 656, rng,
-                                (he) - cl.getCeiling(),
-                                (he) - cl.getCeiling(), getData());
-
-                        for(int j = 0; j < floor.size(); j++)
-                        {
-                            h.set(xf, cl.getFloor() - j, zf, floor.get(j));
-                        }
-
-                        for(int j = ceiling.size() - 1; j > 0; j--)
-                        {
-                            h.set(xf, cl.getCeiling() + j, zf, ceiling.get(j));
-                        }
                     }
                 }
             }

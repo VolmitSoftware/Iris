@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.generator.actuator;
 
+import com.volmit.iris.util.B;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedActuator;
@@ -95,13 +96,27 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                 if(deco.isStacking())
                 {
                     int stack = Math.min(g.i(deco.getStackMin(), deco.getStackMax()), height);
+                    boolean fail = false;
 
                     for(int i = 0; i < stack; i++)
                     {
-                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX - i, realZ + i, getData()));
+                        BlockData v = deco.getBlockData100(b, rng, realX - i, realZ + i, getData());
+                        if(i == 0 && (deco.isForcePlace() || canGoOn(h.get(hunkRelativeX, i+floor-1, hunkRelativeZ), v)))
+                        {
+                            h.set(hunkRelativeX, i+floor, hunkRelativeZ, v);
+                            continue;
+                        }
+
+                        else if(i == 0)
+                        {
+                            fail = true;
+                            break;
+                        }
+
+                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, v);
                     }
 
-                    if(deco.getTopPalette().isNotEmpty())
+                    if(!fail && deco.getTopPalette().isNotEmpty())
                     {
                         h.set(hunkRelativeX, stack + floor - 1, hunkRelativeZ, deco.getBlockDataForTop(b, rng, realX - stack, realZ + stack, getData()));
                     }
@@ -109,7 +124,11 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
 
                 else
                 {
-                    h.set(hunkRelativeX, floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX, realZ, getData()));
+                    BlockData v = deco.getBlockData100(b, rng, realX, realZ, getData());
+                    if(deco.isForcePlace() || canGoOn(h.get(hunkRelativeX, floor-1, hunkRelativeZ), v))
+                    {
+                        h.set(hunkRelativeX, floor, hunkRelativeZ, v);
+                    }
                 }
             }
         }
@@ -124,10 +143,24 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                 if(deco.isStacking())
                 {
                     int stack = Math.min(g.i(deco.getStackMin(), deco.getStackMax()), height);
+                    boolean fail = false;
 
                     for(int i = 0; i < stack; i++)
                     {
-                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX - i, realZ + i, getData()));
+                        BlockData v = deco.getBlockData100(b, rng, realX - i, realZ + i, getData());
+                        if(i == 0 && (deco.isForcePlace() || canGoOn(h.get(hunkRelativeX, i+floor-1, hunkRelativeZ), v)))
+                        {
+                            h.set(hunkRelativeX, i+floor, hunkRelativeZ, v);
+                            continue;
+                        }
+
+                        else if(i == 0)
+                        {
+                            fail = true;
+                            break;
+                        }
+
+                        h.set(hunkRelativeX, i + floor, hunkRelativeZ, v);
                     }
 
                     if(deco.getTopPalette().isNotEmpty())
@@ -138,7 +171,11 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
 
                 else
                 {
-                    h.set(hunkRelativeX, floor, hunkRelativeZ, deco.getBlockData100(b, rng, realX, realZ, getData()));
+                    BlockData v = deco.getBlockData100(b, rng, realX, realZ, getData());
+                    if(deco.isForcePlace() || canGoOn(h.get(hunkRelativeX, floor-1, hunkRelativeZ), v))
+                    {
+                        h.set(hunkRelativeX, floor, hunkRelativeZ, v);
+                    }
                 }
             }
 
@@ -209,5 +246,10 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                 }
             }
         }
+    }
+
+    private boolean canGoOn(BlockData decorant, BlockData atop)
+    {
+        return B.canPlaceOnto(decorant.getMaterial(), atop.getMaterial());
     }
 }

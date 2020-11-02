@@ -6,9 +6,10 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.volmit.iris.gen.scaffold.TerrainChunk;
+import com.volmit.iris.util.KList;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
@@ -29,6 +30,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
     private final AtomicBoolean initialized;
     private final String dimensionHint;
     private final boolean production;
+    private final KList<BlockPopulator> populators;
 
     public EngineCompositeGenerator() {
         this(null, true);
@@ -39,6 +41,18 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
+        populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
+            @Override
+            public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
+                if(compound != null)
+                {
+                    for(BlockPopulator i : compound.getPopulators())
+                    {
+                        i.populate(world, random, chunk);
+                    }
+                }
+            }
+        });
     }
 
     public void hotload()
@@ -106,6 +120,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
         data.preferFolder(dim.getLoadKey());
         compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
         initialized.set(true);
+        populators.clear();
+        populators.addAll(compound.getPopulators());
     }
 
     private File getDataFolder(World world) {
@@ -138,7 +154,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements Hotloada
     @NotNull
     @Override
     public List<BlockPopulator> getDefaultPopulators(@NotNull World world) {
-        return super.getDefaultPopulators(world);
+        return populators;
     }
 
     @Nullable

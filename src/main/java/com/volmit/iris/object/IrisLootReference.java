@@ -9,6 +9,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RegistryListLoot;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,7 +40,7 @@ public class IrisLootReference
 
 	private final transient AtomicCache<KList<IrisLootTable>> tt = new AtomicCache<>();
 
-	public KList<IrisLootTable> getLootTables(DimensionalTerrainProvider g)
+	public KList<IrisLootTable> getLootTables(DataProvider g)
 	{
 		return tt.aquire(() ->
 		{

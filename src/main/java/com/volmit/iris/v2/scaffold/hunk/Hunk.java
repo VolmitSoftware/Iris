@@ -68,6 +68,11 @@ public interface Hunk<T>
 		return newCombinedArrayHunk(hunks);
 	}
 
+	default Hunk<T> listen(Consumer4<Integer, Integer, Integer, T> l)
+	{
+		return new ListeningHunk<>(this, l);
+	}
+
 	public static <T> Hunk<T> newArrayHunk(int w, int h, int d)
 	{
 		return new ArrayHunk<>(w, h, d);

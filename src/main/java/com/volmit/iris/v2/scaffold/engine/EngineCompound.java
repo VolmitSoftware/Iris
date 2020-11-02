@@ -1,6 +1,7 @@
 package com.volmit.iris.v2.scaffold.engine;
 
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.KList;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -8,6 +9,7 @@ import org.bukkit.event.Listener;
 
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
+import org.bukkit.generator.BlockPopulator;
 
 public interface EngineCompound extends Listener
 {
@@ -26,6 +28,8 @@ public interface EngineCompound extends Listener
     public EngineData getEngineMetadata();
 
     public void saveEngineMetadata();
+
+    public KList<BlockPopulator> getPopulators();
 
     default Engine getEngineForHeight(int height)
     {

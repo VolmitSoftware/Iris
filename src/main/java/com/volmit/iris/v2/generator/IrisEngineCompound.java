@@ -20,6 +20,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R2.generator.CraftChunkData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.world.WorldSaveEvent;
+import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,15 +38,20 @@ public class IrisEngineCompound implements EngineCompound {
     @Getter
     private final MultiBurst burster;
 
-    private IrisDimension root;
+    @Getter
+    private final KList<BlockPopulator> populators;
+
+    @Getter
+    private final IrisDimension rootDimension;
 
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {
-        this.root = rootDimension;
+        this.rootDimension = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.getName());
         this.world = world;
         engineMetadata = EngineData.load(getEngineMetadataFile());
         saveEngineMetadata();
+        populators = new KList<>();
 
         if(rootDimension.getDimensionalComposite().isEmpty())
         {
@@ -70,11 +76,23 @@ public class IrisEngineCompound implements EngineCompound {
                 totalWeight += i.getWeight();
             }
 
+            int buf = 0;
+
             for(int i = 0; i < engines.length; i++)
             {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
                 engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist));
+                engines[i].setMinHeight(buf);
+                buf += engines[i].getHeight();
+            }
+        }
+
+        for(Engine i : engines)
+        {
+            if(i instanceof BlockPopulator)
+            {
+                populators.add((BlockPopulator) i);
             }
         }
 
@@ -92,11 +110,6 @@ public class IrisEngineCompound implements EngineCompound {
 
     private File getEngineMetadataFile() {
         return new File(world.getWorldFolder(), "iris/engine-metadata.json");
-    }
-
-    @Override
-    public IrisDimension getRootDimension() {
-        return root;
     }
 
     @Override

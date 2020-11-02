@@ -19,6 +19,10 @@ public interface Engine
 
     public EngineFramework getFramework();
 
+    public void setMinHeight(int min);
+
+    public int getMinHeight();
+
     default void save()
     {
         getParallax().saveAll();

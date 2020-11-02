@@ -39,6 +39,10 @@ public class IrisSettings
 	public boolean maxPregenGuiFPS = false;
 
 	@DontObfuscate
+	@Desc("Renders what the terrain looks like in the pregen map for iris worlds only.")
+	public boolean pregenRenderTerrain = true;
+
+	@DontObfuscate
 	@Desc("Adds sound to commands.")
 	public boolean commandSounds = true;
 

@@ -55,7 +55,7 @@ public class IrisEngine extends BlockPopulator implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> biomes) {
-        Hunk<BlockData> blocks = vblocks.listen(this::catchBlockUpdates);
+        Hunk<BlockData> blocks = vblocks.listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
         getFramework().getEngineParallax().generateParallaxArea(x, z);
         getFramework().getBiomeActuator().actuate(x, z, biomes);
         getFramework().getTerrainActuator().actuate(x, z, blocks);

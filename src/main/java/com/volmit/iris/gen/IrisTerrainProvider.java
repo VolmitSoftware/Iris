@@ -280,6 +280,11 @@ public class IrisTerrainProvider extends PostBlockTerrainProvider implements Iri
 
 	public Color render(double x, double z)
 	{
+		if(!IrisSettings.get().pregenRenderTerrain)
+		{
+			return Color.blue;
+		}
+
 		int ix = (int) x;
 		int iz = (int) z;
 		double height = getTerrainHeight(ix, iz);

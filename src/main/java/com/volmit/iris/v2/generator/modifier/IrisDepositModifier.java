@@ -1,4 +1,4 @@
-package com.volmit.iris.v2.generator.actuator;
+package com.volmit.iris.v2.generator.modifier;
 
 import com.volmit.iris.gen.TopographicTerrainProvider;
 import com.volmit.iris.gen.scaffold.TerrainChunk;

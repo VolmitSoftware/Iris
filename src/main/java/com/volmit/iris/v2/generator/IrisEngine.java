@@ -37,26 +37,14 @@ public class IrisEngine implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) {
-        MultiBurst.burst.burst(
-            () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
-            () -> Hunk.computeDual2D(getParallelism(), blocks, biomes, (xx,yy,zz,ha,hb) -> {
-                getFramework().getTerrainActuator().actuate(x+xx, z+zz, ha);
-                getFramework().getBiomeActuator().actuate(x+xx, z+zz, hb);
-            })
-        );
+        getFramework().getEngineParallax().generateParallaxArea(x, z);
+        getFramework().getBiomeActuator().actuate(x, z, biomes);
+        getFramework().getTerrainActuator().actuate(x, z, blocks);
+        getFramework().getCaveModifier().modify(x, z, blocks);
         getFramework().getRavineModifier().modify(x, z, blocks);
         getFramework().getDepositModifier().modify(x, z, blocks);
-        blocks.compute2D(getParallelism(), (xx,yy,zz,ha) -> {
-            getFramework().getDecorantActuator().actuate(x+xx, z+zz, ha);
-            getFramework().getEngineParallax().insertParallax(x, z, ha);
-        });
-
-        if(M.r(0.1))
-        {
-            MultiBurst.burst.lazy(() -> {
-                getParallax().cleanup();
-                getData().getObjectLoader().clean();
-            });
-        }
+        getFramework().getDecorantActuator().actuate(x, z, blocks);
+        getFramework().getEngineParallax().insertParallax(x, z, blocks);
+        getFramework().recycle();
     }
 }

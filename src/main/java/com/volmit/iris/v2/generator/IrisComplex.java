@@ -49,7 +49,6 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
 	private ProceduralStream<BlockData> glassStream;
-	private ProceduralStream<KList<CaveResult>> caveStream;
 
 	public ProceduralStream<IrisBiome> getBiomeStream(InferredType type)
 	{
@@ -170,7 +169,6 @@ public class IrisComplex implements DataProvider
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
 		seaSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
-		caveStream = ProceduralStream.of((x, z) -> engine.getFramework().getCaveModifier().genCaves(x, z, x.intValue() & 15, z.intValue() & 15, null), Interpolated.CAVE_RESULTS);
 		//@done
 	}
 

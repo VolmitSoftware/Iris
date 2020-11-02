@@ -1,8 +1,8 @@
 package com.volmit.iris.v2.scaffold.engine;
 
-import com.volmit.iris.v2.generator.IrisEngine;
-import com.volmit.iris.v2.generator.actuator.IrisRavineModifier;
+import com.volmit.iris.util.M;
 import com.volmit.iris.v2.generator.modifier.IrisCaveModifier;
+import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -22,13 +22,24 @@ public interface EngineFramework extends DataProvider
         return getComplex().getData();
     }
 
+    default void recycle()
+    {
+        if(M.r(0.1))
+        {
+            MultiBurst.burst.lazy(() -> {
+                getEngine().getParallax().cleanup();
+                getData().getObjectLoader().clean();
+            });
+        }
+    }
+
     public EngineActuator<BlockData> getTerrainActuator();
 
     public EngineActuator<BlockData> getDecorantActuator();
 
     public EngineActuator<Biome> getBiomeActuator();
 
-    public IrisCaveModifier getCaveModifier();
+    public EngineModifier<BlockData> getCaveModifier();
 
     public EngineModifier<BlockData> getRavineModifier();
 

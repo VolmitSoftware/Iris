@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.generator;
 
+import com.sun.org.apache.xpath.internal.operations.Mult;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.*;
@@ -54,15 +55,16 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> biomes) {
-        Hunk<BlockData> blocks = vblocks.listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
+        Hunk<Biome> biomes = vbiomes.synchronize();
+        Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
         getFramework().getEngineParallax().generateParallaxArea(x, z);
         getFramework().getBiomeActuator().actuate(x, z, biomes);
         getFramework().getTerrainActuator().actuate(x, z, blocks);
         getFramework().getCaveModifier().modify(x, z, blocks);
         getFramework().getRavineModifier().modify(x, z, blocks);
-        getFramework().getDepositModifier().modify(x, z, blocks);
         getFramework().getDecorantActuator().actuate(x, z, blocks);
+        getFramework().getDepositModifier().modify(x, z, blocks);
         getFramework().getEngineParallax().insertParallax(x, z, blocks);
         getFramework().recycle();
     }

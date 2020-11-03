@@ -26,7 +26,6 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
         generateDeposits(rng, output, Math.floorDiv(x, 16), Math.floorDiv(z, 16));
     }
 

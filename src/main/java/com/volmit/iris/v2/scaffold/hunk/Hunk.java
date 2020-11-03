@@ -4,21 +4,35 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.volmit.iris.v2.scaffold.hunk.io.HunkIOAdapter;
-import com.volmit.iris.v2.scaffold.hunk.storage.*;
 import com.volmit.iris.v2.scaffold.hunk.view.*;
-import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+import com.volmit.iris.util.ByteArrayTag;
+import com.volmit.iris.util.Consumer2;
+import com.volmit.iris.util.Consumer3;
+import com.volmit.iris.util.Consumer4;
+import com.volmit.iris.util.Consumer5;
+import com.volmit.iris.util.Consumer6;
+import com.volmit.iris.util.Consumer8;
+import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.v2.scaffold.hunk.io.HunkIOAdapter;
+import com.volmit.iris.v2.scaffold.hunk.storage.ArrayHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.AtomicDoubleHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.AtomicHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.AtomicIntegerHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.AtomicLongHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.MappedHunk;
+import com.volmit.iris.v2.scaffold.hunk.storage.SynchronizedArrayHunk;
 import com.volmit.iris.v2.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
-import org.checkerframework.checker.units.qual.A;
 
 public interface Hunk<T>
 {
@@ -71,6 +85,11 @@ public interface Hunk<T>
 	default Hunk<T> listen(Consumer4<Integer, Integer, Integer, T> l)
 	{
 		return new ListeningHunk<>(this, l);
+	}
+
+	default Hunk<T> synchronize()
+	{
+		return new SynchronizedHunkView<>(this);
 	}
 
 	public static <T> Hunk<T> newArrayHunk(int w, int h, int d)
@@ -193,7 +212,7 @@ public interface Hunk<T>
 	default int getNonNullEntries()
 	{
 		AtomicInteger count = new AtomicInteger();
-		iterate((x,y,z,v)-> count.getAndAdd(1));
+		iterate((x, y, z, v) -> count.getAndAdd(1));
 
 		return count.get();
 	}
@@ -562,6 +581,22 @@ public interface Hunk<T>
 		return iterate(getIdeal3DParallelism(), c);
 	}
 
+	default Hunk<T> iterateSync(Consumer3<Integer, Integer, Integer> c)
+	{
+		for(int i = 0; i < getWidth(); i++)
+		{
+			for(int j = 0; j < getHeight(); j++)
+			{
+				for(int k = 0; k < getDepth(); k++)
+				{
+					c.accept(i, j, k);
+				}
+			}
+		}
+
+		return this;
+	}
+
 	default Hunk<T> iterate(int parallelism, Consumer3<Integer, Integer, Integer> c)
 	{
 		compute3D(parallelism, (x, y, z, h) ->
@@ -633,7 +668,8 @@ public interface Hunk<T>
 			{
 				rq.add(r);
 			}
-		}), (x, y, z, hax, hbx) -> {
+		}), (x, y, z, hax, hbx) ->
+		{
 			a.insert(x, y, z, hax);
 			b.insert(x, y, z, hbx);
 		});
@@ -670,9 +706,7 @@ public interface Hunk<T>
 			for(j = 0; j < a.getDepth(); j += d)
 			{
 				int jj = j;
-				getDualSection(i, 0, j, i + w + (i == 0 ? wr : 0), a.getHeight(),
-						j + d + (j == 0 ? dr : 0), a, b,
-						(ha, hr, r) -> v.accept(ii, 0, jj, ha, hr, r), inserterAB);
+				getDualSection(i, 0, j, i + w + (i == 0 ? wr : 0), a.getHeight(), j + d + (j == 0 ? dr : 0), a, b, (ha, hr, r) -> v.accept(ii, 0, jj, ha, hr, r), inserterAB);
 				i = i == 0 ? i + wr : i;
 				j = j == 0 ? j + dr : j;
 			}
@@ -695,18 +729,35 @@ public interface Hunk<T>
 		}
 
 		BurstExecutor e = MultiBurst.burst.burst(parallelism);
-		KList<Runnable> rq = new KList<Runnable>(parallelism);
-		getSections2D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
-		{
-			v.accept(xx, yy, zz, h);
 
-			synchronized(rq)
+		if(isAtomic())
+		{
+			getSectionsAtomic2D(parallelism, (xx, yy, zz, h) -> e.queue(() ->
 			{
-				rq.add(r);
-			}
-		}), this::insert);
-		e.complete();
-		rq.forEach(Runnable::run);
+				v.accept(xx, yy, zz, h);
+			}));
+
+			e.complete();
+		}
+
+		else
+		{
+			KList<Runnable> rq = new KList<Runnable>(parallelism);
+
+			getSections2D(parallelism, (xx, yy, zz, h, r) -> e.queue(() ->
+			{
+				v.accept(xx, yy, zz, h);
+
+				synchronized(rq)
+				{
+					rq.add(r);
+				}
+			}), this::insert);
+
+			e.complete();
+			rq.forEach(Runnable::run);
+		}
+
 		return this;
 	}
 
@@ -767,6 +818,39 @@ public interface Hunk<T>
 		return getSections2D(sections, v, this::insert);
 	}
 
+	default Hunk<T> getSectionsAtomic2D(int sections, Consumer4<Integer, Integer, Integer, Hunk<T>> v)
+	{
+		int dim = (int) get2DDimension(sections);
+
+		if(sections <= 1)
+		{
+			getAtomicSection(0, 0, 0, getWidth(), getHeight(), getDepth(), (hh) -> v.accept(0, 0, 0, hh));
+			return this;
+		}
+
+		int w = getWidth() / dim;
+		int wr = getWidth() - (w * dim);
+		int d = getDepth() / dim;
+		int dr = getDepth() - (d * dim);
+		int i, j;
+
+		for(i = 0; i < getWidth(); i += w)
+		{
+			int ii = i;
+
+			for(j = 0; j < getDepth(); j += d)
+			{
+				int jj = j;
+				getAtomicSection(i, 0, j, i + w + (i == 0 ? wr : 0), getHeight(), j + d + (j == 0 ? dr : 0), (h) -> v.accept(ii, 0, jj, h));
+				i = i == 0 ? i + wr : i;
+				j = j == 0 ? j + dr : j;
+			}
+		}
+		;
+
+		return this;
+	}
+
 	default Hunk<T> getSections2D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter)
 	{
 		int dim = (int) get2DDimension(sections);
@@ -795,6 +879,7 @@ public interface Hunk<T>
 				j = j == 0 ? j + dr : j;
 			}
 		}
+		;
 
 		return this;
 	}
@@ -885,6 +970,13 @@ public interface Hunk<T>
 	{
 		Hunk<T> copy = crop(x, y, z, x1, y1, z1);
 		v.accept(copy, () -> inserter.accept(x, y, z, copy));
+		return this;
+	}
+
+	default Hunk<T> getAtomicSection(int x, int y, int z, int x1, int y1, int z1, Consumer<Hunk<T>> v)
+	{
+		Hunk<T> copy = croppedView(x, y, z, x1, y1, z1);
+		v.accept(copy);
 		return this;
 	}
 

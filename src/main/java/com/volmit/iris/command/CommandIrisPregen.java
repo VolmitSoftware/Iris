@@ -14,7 +14,7 @@ public class CommandIrisPregen extends MortarCommand
 	public CommandIrisPregen()
 	{
 		super("pregen");
-		setDescription("Pregen this world");
+		setDescription("Pregen this world with optional parameters: '1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Pregen");
 	}
@@ -28,8 +28,10 @@ public class CommandIrisPregen extends MortarCommand
 		list.add("1000");
 		list.add("10k");
 		list.add("25k");
-		list.add("chunksAcross=20");
-		list.add("regionsAcross=8");
+		list.add("10c");
+		list.add("25c");
+		list.add("5r");
+		list.add("10r");
 	}
 
 	@Override
@@ -41,7 +43,7 @@ public class CommandIrisPregen extends MortarCommand
 			return true;
 		}
 
-		if(args[0].equalsIgnoreCase("stop"))
+		if(args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("x"))
 		{
 			if(PregenJob.task == -1)
 			{
@@ -77,15 +79,22 @@ public class CommandIrisPregen extends MortarCommand
 			}
 
 			return true;
-		}
+		} else
 
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
-			new PregenJob(world, getVal(args[0]), sender, () ->
-			{
-			});
+			try {
+				new PregenJob(world, getVal(args[0]), sender, () ->
+				{
+				});
+			} catch (NumberFormatException e){
+				sender.sendMessage("Invalid argument in command");
+				return true;
+			} catch (NullPointerException e){
+				sender.sendMessage("No radius specified");
+			}
 
 			return true;
 		}
@@ -98,25 +107,23 @@ public class CommandIrisPregen extends MortarCommand
 	}
 
 	private int getVal(String arg) {
+
+		if(arg.toLowerCase().endsWith("c") || arg.toLowerCase().endsWith("chunks"))
+		{
+			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qc\\E", "").replaceAll("\\Qchunks\\E", "")) * 16;
+		}
+
+		if(arg.toLowerCase().endsWith("r") || arg.toLowerCase().endsWith("regions"))
+		{
+			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qr\\E", "").replaceAll("\\Qregions\\E", "")) * 512;
+		}
+
 		if(arg.toLowerCase().endsWith("k"))
 		{
 			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qk\\E", "")) * 1000;
 		}
 
-		if(arg.toLowerCase().contains("chunksAcross="))
-		{
-			return Integer.valueOf(arg.toLowerCase().replaceAll("\\QchunksAcross=\\E", "")) * 16;
-		}
-
-		if(arg.toLowerCase().endsWith("regionsAcross="))
-		{
-			return Integer.valueOf(arg.toLowerCase().replaceAll("\\QregionsAcross=\\E", "")) * 16;
-		}
-
-		else
-		{
-			return Integer.valueOf(arg.toLowerCase());
-		}
+		return Integer.valueOf(arg.toLowerCase());
 	}
 
 	@Override

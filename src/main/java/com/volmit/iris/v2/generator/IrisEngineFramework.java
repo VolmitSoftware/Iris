@@ -3,6 +3,7 @@ package com.volmit.iris.v2.generator;
 import com.volmit.iris.v2.generator.actuator.*;
 import com.volmit.iris.v2.generator.modifier.IrisCaveModifier;
 import com.volmit.iris.v2.generator.modifier.IrisDepositModifier;
+import com.volmit.iris.v2.generator.modifier.IrisPostModifier;
 import com.volmit.iris.v2.generator.modifier.IrisRavineModifier;
 import com.volmit.iris.v2.scaffold.engine.*;
 import lombok.Getter;
@@ -39,6 +40,9 @@ public class IrisEngineFramework implements EngineFramework {
     @Getter
     private final EngineModifier<BlockData> ravineModifier;
 
+    @Getter
+    private final EngineModifier<BlockData> postModifier;
+
     public IrisEngineFramework(Engine engine)
     {
         this.engine = engine;
@@ -50,5 +54,6 @@ public class IrisEngineFramework implements EngineFramework {
         this.depositModifier = new IrisDepositModifier(getEngine());
         this.ravineModifier = new IrisRavineModifier(getEngine());
         this.caveModifier = new IrisCaveModifier(engine);
+        this.postModifier = new IrisPostModifier(engine);
     }
 }

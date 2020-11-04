@@ -55,21 +55,60 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
+    public double modifyX(double x) {
+        return x / getDimension().getTerrainZoom();
+    }
+
+    @Override
+    public double modifyZ(double z) {
+        return z / getDimension().getTerrainZoom();
+    }
+
+    @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         Hunk<Biome> biomes = vbiomes.synchronize();
         Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
-        getFramework().getEngineParallax().generateParallaxArea(x, z);
-        getFramework().getBiomeActuator().actuate(x, z, biomes);
-        getFramework().getTerrainActuator().actuate(x, z, blocks);
-        getFramework().getCaveModifier().modify(x, z, blocks);
-        getFramework().getRavineModifier().modify(x, z, blocks);
-        getFramework().getDecorantActuator().actuate(x, z, blocks);
-        getFramework().getDepositModifier().modify(x, z, blocks);
-        getFramework().getEngineParallax().insertParallax(x, z, blocks);
+
+        // Block 1 (does the following in parallel)
+        // - Initialize Parallax Plane
+        // - Generate Terrain & Carving
+        // - Fill baseline biomes
+        MultiBurst.burst.burst(
+            () ->  getFramework().getEngineParallax().generateParallaxArea(x, z),
+            () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
+            () ->  getFramework().getTerrainActuator().actuate(x, z, blocks)
+        );
+
+        // Block 2 (does the following in parallel AFTER BLOCK 1)
+        // - Generate caves (modifying existing terrain)
+        // - Generate ravines (modifying existing terrain)
+        MultiBurst.burst.burst(
+            () -> getFramework().getCaveModifier().modify(x, z, blocks),
+            () -> getFramework().getRavineModifier().modify(x, z, blocks)
+        );
+
+        // Block 3 (does the following in parallel AFTER BLOCK 2)
+        // - Decorate surfaces,shores,caves,ravines,carvings & sea surfaces
+        // - Add ores & other deposits
+        // - Post block modifications (remove holes / decorate walls etc)
+        // - Insert cross section of parallax (objects) into chunk
+        MultiBurst.burst.burst(
+            () -> getFramework().getDecorantActuator().actuate(x, z, blocks),
+            () -> getFramework().getDepositModifier().modify(x, z, blocks),
+            () -> getFramework().getPostModifier().modify(x, z, blocks),
+            () -> getFramework().getEngineParallax().insertParallax(x, z, blocks)
+        );
+
+        // Clean up any unused objects / parallax regions (async)
         getFramework().recycle();
     }
 
     private void catchBlockUpdates(int x, int y, int z, BlockData data) {
+        if(data == null)
+        {
+            return;
+        }
+
         if(B.isUpdatable(data))
         {
             getParallax().updateBlock(x,y,z);
@@ -79,8 +118,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Override
     public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c)
     {
-        RNG rx = new RNG(Cache.key(c.getX(), c.getZ()));
-        getParallax().getUpdatesR(c.getX(), c.getZ()).iterate(0, (x,y,z) -> update(x, getMinHeight() + y, z, c, rx));
+
     }
 
     private void update(int x, int y, int z, Chunk c, RNG rf)

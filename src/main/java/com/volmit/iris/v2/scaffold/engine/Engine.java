@@ -1,7 +1,9 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.manager.IrisDataManager;
@@ -26,6 +28,16 @@ public interface Engine
     public double modifyX(double x);
 
     public double modifyZ(double z);
+
+    default void updateBlock(Block block)
+    {
+        //TODO: UPDATE IT
+    }
+
+    default void updateChunk(Chunk chunk)
+    {
+        //TODO: UPDATE IT
+    }
 
     default void save()
     {

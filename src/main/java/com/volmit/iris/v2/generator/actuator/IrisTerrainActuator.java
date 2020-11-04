@@ -4,13 +4,13 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.noise.CNG;
 import com.volmit.iris.object.*;
-import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedActuator;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
+import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
@@ -19,6 +19,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
+    @Getter
     private final RNG rng;
     private final boolean hasUnder;
 
@@ -38,8 +39,8 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
         {
             for(zf = 0; zf < h.getDepth(); zf++)
             {
-                realX = xf + x;
-                realZ = zf + z;
+                realX = (int) modX(xf + x);
+                realZ = (int) modZ(zf + z);
                 b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, realX, realZ)) : 0;
                 he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
                 hf = (int) Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));

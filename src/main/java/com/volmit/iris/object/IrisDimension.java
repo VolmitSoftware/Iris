@@ -254,7 +254,7 @@ public class IrisDimension extends IrisRegistrant
 	@MaxNumber(512)
 	@DontObfuscate
 	@Desc("Zoom in or out the terrain. This stretches the terrain. Due to performance improvements, Higher than 2.0 may cause weird rounding artifacts. Lower = more terrain changes per block. Its a true zoom-out.")
-	private double terrainZoom = 2D;
+	private double terrainZoom = 1D;
 
 	@MinNumber(0)
 	@MaxNumber(360)

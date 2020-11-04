@@ -451,6 +451,11 @@ public class IrisObject extends IrisRegistrant
 			y = yv;
 		}
 
+		if(y <= 0)
+		{
+			// TODO: return -1;
+		}
+
 		if(yv >= 0 && config.isBottom())
 		{
 			y += Math.floorDiv(h, 2);

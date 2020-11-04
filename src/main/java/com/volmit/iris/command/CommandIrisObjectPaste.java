@@ -48,6 +48,11 @@ public class CommandIrisObjectPaste extends MortarCommand
 			return true;
 		}
 
+		if(!args.isEmpty()){
+			sender.sendMessage("Please specify the name of of the object want to paste")
+			return true;
+		}
+
 		Player p = sender.player();
 		File file = Iris.globaldata.getObjectLoader().findFile(args[0]);
 		boolean intoWand = false;

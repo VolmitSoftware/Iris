@@ -48,8 +48,8 @@ public class CommandIrisObjectPaste extends MortarCommand
 			return true;
 		}
 
-		if(!args.isEmpty()){
-			sender.sendMessage("Please specify the name of of the object want to paste")
+		if(args.length == 0){
+			sender.sendMessage("Please specify the name of of the object want to paste");
 			return true;
 		}
 

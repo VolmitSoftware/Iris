@@ -81,6 +81,11 @@ public abstract class ContextualTerrainProvider implements TerrainProvider, List
 	private final TerrainTarget target;
 	private KSet<String> warnings;
 
+	public ContextualTerrainProvider()
+	{
+		this(null);
+	}
+
 	public ContextualTerrainProvider(TerrainTarget target)
 	{
 		metrics = new IrisMetrics(256);

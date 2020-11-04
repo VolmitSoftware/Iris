@@ -23,6 +23,10 @@ public interface Engine
 
     public int getMinHeight();
 
+    public double modifyX(double x);
+
+    public double modifyZ(double z);
+
     default void save()
     {
         getParallax().saveAll();

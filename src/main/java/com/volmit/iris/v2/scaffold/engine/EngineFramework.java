@@ -44,4 +44,6 @@ public interface EngineFramework extends DataProvider
     public EngineModifier<BlockData> getRavineModifier();
 
     public EngineModifier<BlockData> getDepositModifier();
+
+    public EngineModifier<BlockData> getPostModifier();
 }

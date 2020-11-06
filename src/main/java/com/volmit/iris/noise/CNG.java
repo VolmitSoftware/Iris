@@ -2,6 +2,7 @@ package com.volmit.iris.noise;
 
 import java.util.List;
 
+import com.oracle.webservices.internal.api.databinding.DatabindingMode;
 import com.volmit.iris.Iris;
 import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
 import com.volmit.iris.v2.scaffold.stream.sources.CNGStream;
@@ -11,7 +12,9 @@ import com.volmit.iris.util.IrisInterpolation;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.NoiseInjector;
 import com.volmit.iris.util.RNG;
+import lombok.Data;
 
+@Data
 public class CNG
 {
 	public static long hits = 0;
@@ -29,6 +32,7 @@ public class CNG
 	private double scale;
 	private double bakedScale;
 	private double fscale;
+	private boolean trueFracturing = false;
 	private KList<CNG> children;
 	private CNG fracture;
 	private NoiseGenerator generator;
@@ -340,14 +344,45 @@ public class CNG
 		return IrisInterpolation.lerp(min, max, noise);
 	}
 
-	public double noise(double... dim)
+	private double getNoise(double... dim)
 	{
+		if(isTrueFracturing())
+		{
+			if(dim.length == 2)
+			{
+				double scale = noscale ? 1 : this.bakedScale * this.scale;
+				double f1 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[0], dim[1]) - 0.5) * fscale : 0D);
+				double f2 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[1], dim[0]) - 0.5) * fscale : 0D);
+				double x = dim[0] + f1;
+				double y = dim[1] + -f1;
+				double z = 0D;
+				return generator.noise(x * scale, y * scale, z * scale) * opacity;
+			}
+
+			else if(dim.length == 3)
+			{
+				double scale = noscale ? 1 : this.bakedScale * this.scale;
+				double f1 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[0], dim[2], dim[1]) - 0.5) * fscale : 0D);
+				double f2 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[1], dim[0], dim[2]) - 0.5) * fscale : 0D);
+				double f3 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[2], dim[1], dim[0]) - 0.5) * fscale : 0D);
+				double x = dim[0] + f1;
+				double y = dim[1] + f3;
+				double z = dim[2] + f2;
+				return generator.noise(x * scale, y * scale, z * scale) * opacity;
+			}
+		}
+
 		double scale = noscale ? 1 : this.bakedScale * this.scale;
 		double f = noscale ? 0 : (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
 		double x = dim.length > 0 ? dim[0] + f : 0D;
 		double y = dim.length > 1 ? dim[1] + -f : 0D;
 		double z = dim.length > 2 ? dim[2] + -f : 0D;
-		double n = generator.noise(x * scale, y * scale, z * scale) * opacity;
+		return generator.noise(x * scale, y * scale, z * scale) * opacity;
+	}
+
+	public double noise(double... dim)
+	{
+		double n = getNoise(dim);
 		n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
 		double m = 1;
 		hits += oct;

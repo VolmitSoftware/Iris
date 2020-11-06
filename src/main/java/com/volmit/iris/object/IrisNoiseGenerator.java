@@ -123,8 +123,8 @@ public class IrisNoiseGenerator
 		{
 			if(i.isEnabled())
 			{
-				x += i.getNoise(superSeed + seed + g, xv, zv);
-				z -= i.getNoise(superSeed + seed + g, zv, xv);
+				x += i.getNoise(superSeed + seed + g, xv, zv) - (opacity / 2D);
+				z -= i.getNoise(superSeed + seed + g, zv, xv) - (opacity / 2D);
 			}
 			g += 819;
 		}

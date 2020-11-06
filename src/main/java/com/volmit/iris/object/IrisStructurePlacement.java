@@ -15,6 +15,7 @@ import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.RegistryListStructure;
 import com.volmit.iris.util.Required;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -168,22 +169,22 @@ public class IrisStructurePlacement
 		});
 	}
 
-	public IrisObject load(ContextualTerrainProvider g, String s)
+	public IrisObject load(DataProvider g, String s)
 	{
 		return g.getData().getObjectLoader().load(s);
 	}
 
-	public int gridSize(ContextualTerrainProvider g)
+	public int gridSize(DataProvider g)
 	{
 		return getStructure(g).getGridSize();
 	}
 
-	public int gridHeight(ContextualTerrainProvider g)
+	public int gridHeight(DataProvider g)
 	{
 		return getStructure(g).getGridHeight();
 	}
 
-	public IrisStructure getStructure(ContextualTerrainProvider g)
+	public IrisStructure getStructure(DataProvider g)
 	{
 		return structure.aquire(() -> (g == null ? Iris.globaldata : g.getData()).getStructureLoader().load(getTileset()));
 	}
@@ -208,6 +209,17 @@ public class IrisStructurePlacement
 		return chanceCell.aquire(() ->
 		{
 			CellGenerator chanceCell = new CellGenerator(g.getMasterRandom().nextParallelRNG(-72346).nextParallelRNG((height + 10000) * rarity));
+			chanceCell.setCellScale(1D);
+			chanceCell.setShuffle(getShuffle());
+			return chanceCell;
+		});
+	}
+
+	public CellGenerator getChanceGenerator(RNG g)
+	{
+		return chanceCell.aquire(() ->
+		{
+			CellGenerator chanceCell = new CellGenerator(g.nextParallelRNG(-72346).nextParallelRNG((height + 10000) * rarity));
 			chanceCell.setCellScale(1D);
 			chanceCell.setShuffle(getShuffle());
 			return chanceCell;

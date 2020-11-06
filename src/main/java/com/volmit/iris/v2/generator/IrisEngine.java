@@ -69,29 +69,15 @@ public class IrisEngine extends BlockPopulator implements Engine
         Hunk<Biome> biomes = vbiomes.synchronize();
         Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
 
-        // Block 1 (does the following in parallel)
-        // - Initialize Parallax Plane
-        // - Generate Terrain & Carving
-        // - Fill baseline biomes
         MultiBurst.burst.burst(
-            () ->  getFramework().getEngineParallax().generateParallaxArea(x, z),
+            () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
             () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
-            () ->  getFramework().getTerrainActuator().actuate(x, z, blocks)
+            () -> getFramework().getTerrainActuator().actuate(x, z, blocks)
         );
-
-        // Block 2 (does the following in parallel AFTER BLOCK 1)
-        // - Generate caves (modifying existing terrain)
-        // - Generate ravines (modifying existing terrain)
         MultiBurst.burst.burst(
             () -> getFramework().getCaveModifier().modify(x, z, blocks),
             () -> getFramework().getRavineModifier().modify(x, z, blocks)
         );
-
-        // Block 3 (does the following in parallel AFTER BLOCK 2)
-        // - Decorate surfaces,shores,caves,ravines,carvings & sea surfaces
-        // - Add ores & other deposits
-        // - Post block modifications (remove holes / decorate walls etc)
-        // - Insert cross section of parallax (objects) into chunk
         MultiBurst.burst.burst(
             () -> getFramework().getDecorantActuator().actuate(x, z, blocks),
             () -> getFramework().getDepositModifier().modify(x, z, blocks),
@@ -99,7 +85,6 @@ public class IrisEngine extends BlockPopulator implements Engine
             () -> getFramework().getEngineParallax().insertParallax(x, z, blocks)
         );
 
-        // Clean up any unused objects / parallax regions (async)
         getFramework().recycle();
     }
 

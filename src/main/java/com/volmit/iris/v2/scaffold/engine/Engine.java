@@ -1,5 +1,6 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import com.volmit.iris.v2.scaffold.data.DataProvider;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -11,7 +12,7 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.parallax.ParallaxAccess;
 
-public interface Engine
+public interface Engine extends DataProvider
 {
     public void setParallelism(int parallelism);
 

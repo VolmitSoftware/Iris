@@ -253,7 +253,7 @@ public class PostMasterPatcher extends IrisPostBlockFilter
 		{
 			IrisBiome cave = gen.sampleTrueBiome(x, 1, z);
 
-			if(cave.getInferredType().equals(InferredType.CAVE))
+			if(cave != null && cave.getInferredType().equals(InferredType.CAVE))
 			{
 				for(CaveResult i : gen.getCaves(x, z))
 				{

@@ -9,7 +9,7 @@ import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.parallax.ParallaxChunkMeta;
 
-public interface EngineStructure extends EngineComponent
+public interface EngineStructureManager extends EngineComponent
 {
     default void placeStructure(IrisStructurePlacement structure, RNG rngno, int cx, int cz)
     {

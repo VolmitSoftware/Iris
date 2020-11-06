@@ -195,6 +195,12 @@
 		</dependency>
 		<!-- Hooks -->
 		<dependency>
+			<groupId>com.bergerkiller.bukkit</groupId>
+			<artifactId>BKCommonLib</artifactId>
+			<version>1.16.4-v2</version>
+			<classifier>v1</classifier>
+		</dependency>
+		<dependency>
 			<groupId>com.sk89q.worldedit</groupId>
 			<artifactId>worldedit-bukkit</artifactId>
 			<version>7.2.0-SNAPSHOT</version>

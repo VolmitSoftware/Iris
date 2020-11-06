@@ -17,6 +17,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.yaml:snakeyaml:1.26" level="project" />
     <orderEntry type="library" name="Maven: io.papermc:paperlib:1.0.5" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bukkit.craftbukkit:cb-1.16.2:1.16.2" level="project" />
+    <orderEntry type="library" name="Maven: com.bergerkiller.bukkit:BKCommonLib:v1:1.16.4-v2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.sk89q.worldedit:worldedit-core:7.2.0-SNAPSHOT" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.sk89q.worldedit.worldedit-libs:core:7.2.0-SNAPSHOT" level="project" />

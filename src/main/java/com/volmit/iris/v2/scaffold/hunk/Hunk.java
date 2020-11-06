@@ -597,6 +597,22 @@ public interface Hunk<T>
 		return this;
 	}
 
+	default Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c)
+	{
+		for(int i = 0; i < getWidth(); i++)
+		{
+			for(int j = 0; j < getHeight(); j++)
+			{
+				for(int k = 0; k < getDepth(); k++)
+				{
+					c.accept(i, j, k, get(i,j,k));
+				}
+			}
+		}
+
+		return this;
+	}
+
 	default Hunk<T> iterate(int parallelism, Consumer3<Integer, Integer, Integer> c)
 	{
 		compute3D(parallelism, (x, y, z, h) ->

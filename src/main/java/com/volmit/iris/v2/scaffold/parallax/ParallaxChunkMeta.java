@@ -17,6 +17,7 @@ public class ParallaxChunkMeta {
     public static final Function<CompoundTag, HunkIOAdapter<ParallaxChunkMeta>> adapter = (c) -> new PaletteHunkIOAdapter<ParallaxChunkMeta>() {
         @Override
         public void write(ParallaxChunkMeta parallaxChunkMeta, DataOutputStream dos) throws IOException {
+            dos.writeBoolean(parallaxChunkMeta.isUpdates());
             dos.writeBoolean(parallaxChunkMeta.isGenerated());
             dos.writeBoolean(parallaxChunkMeta.isParallaxGenerated());
             dos.writeBoolean(parallaxChunkMeta.isObjects());
@@ -30,15 +31,17 @@ public class ParallaxChunkMeta {
 
         @Override
         public ParallaxChunkMeta read(DataInputStream din) throws IOException {
+            boolean bb = din.readBoolean();
             boolean g = din.readBoolean();
             boolean p = din.readBoolean();
             boolean o = din.readBoolean();
             int min = o ? din.readByte() - Byte.MIN_VALUE : -1;
             int max = o ? din.readByte() - Byte.MIN_VALUE : -1;
-            return new ParallaxChunkMeta(g, p, o, min, max);
+            return new ParallaxChunkMeta(bb, g, p, o, min, max);
         }
     };
 
+    private boolean updates;
     private boolean generated;
     private boolean parallaxGenerated;
     private boolean objects;
@@ -47,6 +50,6 @@ public class ParallaxChunkMeta {
 
     public ParallaxChunkMeta()
     {
-        this(false, false, false, -1, -1);
+        this(false, false, false, false, -1, -1);
     }
 }

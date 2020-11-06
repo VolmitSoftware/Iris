@@ -1,6 +1,8 @@
 package com.volmit.iris.manager;
 
 import com.volmit.iris.util.J;
+import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
+import net.minecraft.server.v1_16_R2.BlockSign;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -9,9 +11,20 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 public class BlockSignal {
+    public static void of(Block block, int ticks)
+    {
+        new BlockSignal(block, ticks);
+    }
+
+    public static void of(Block block)
+    {
+        of(block, 100);
+    }
+
     public BlockSignal(Block block, int ticks)
     {
         Location tg = block.getLocation().clone().add(0.5, 0, 0.5).clone();
@@ -28,8 +41,13 @@ public class BlockSignal {
         J.s(() -> {
             e.remove();
             BlockData type = block.getBlockData();
-            block.setType(Material.AIR, false);
-            block.setBlockData(type, false);
+
+            MultiBurst.burst.lazy(() -> {
+                for(Player i : block.getWorld().getPlayers())
+                {
+                    i.sendBlockChange(block.getLocation(), block.getBlockData());
+                }
+            });
         }, ticks);
     }
 }

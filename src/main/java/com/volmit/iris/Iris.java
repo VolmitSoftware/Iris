@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
+import com.volmit.iris.link.BKLink;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -64,6 +65,7 @@ public class Iris extends VolmitPlugin
 	public static StructureManager struct;
 	public static EditManager edit;
 	public static IrisBoardManager board;
+	public static BKLink linkBK;
 	public static MultiverseCoreLink linkMultiverseCore;
 	public static MythicMobsLink linkMythicMobs;
 	public static CitizensLink linkCitizens;
@@ -193,6 +195,7 @@ public class Iris extends VolmitPlugin
 		struct = new StructureManager();
 		board = new IrisBoardManager();
 		linkMultiverseCore = new MultiverseCoreLink();
+		linkBK = new BKLink();
 		linkMythicMobs = new MythicMobsLink();
 		edit = new EditManager();
 		J.a(() -> IO.delete(getTemp()));

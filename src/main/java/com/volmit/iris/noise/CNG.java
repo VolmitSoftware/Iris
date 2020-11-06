@@ -2,7 +2,6 @@ package com.volmit.iris.noise;
 
 import java.util.List;
 
-import com.oracle.webservices.internal.api.databinding.DatabindingMode;
 import com.volmit.iris.Iris;
 import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
 import com.volmit.iris.v2.scaffold.stream.sources.CNGStream;

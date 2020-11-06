@@ -1,25 +1,26 @@
 package com.volmit.iris.v2.generator;
 
-import com.sun.org.apache.xpath.internal.operations.Mult;
 import com.volmit.iris.Iris;
+import com.volmit.iris.link.BKLink;
+import com.volmit.iris.manager.BlockSignal;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.*;
 import com.volmit.iris.v2.scaffold.cache.Cache;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineFramework;
 import com.volmit.iris.v2.scaffold.engine.EngineTarget;
+import com.volmit.iris.v2.scaffold.engine.EngineWorldManager;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
-import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -38,6 +39,9 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Getter
     private final EngineFramework framework;
 
+    @Getter
+    private final EngineWorldManager worldManager;
+
     @Setter
     @Getter
     private volatile int parallelism;
@@ -51,7 +55,15 @@ public class IrisEngine extends BlockPopulator implements Engine
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         this.target = target;
         this.framework = new IrisEngineFramework(this);
+        worldManager = new IrisWorldManager(this);
         minHeight = 0;
+    }
+
+    @Override
+    public void close()
+    {
+        getWorldManager().close();
+        getFramework().close();
     }
 
     @Override
@@ -97,13 +109,30 @@ public class IrisEngine extends BlockPopulator implements Engine
         if(B.isUpdatable(data))
         {
             getParallax().updateBlock(x,y,z);
+            getParallax().getMetaRW(x>>4, z>>4).setUpdates(true);
         }
     }
 
     @Override
     public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c)
     {
+        getWorldManager().spawnInitialEntities(c);
+        updateChunk(c);
+    }
 
+    public void updateChunk(Chunk c)
+    {
+        if(getParallax().getMetaR(c.getX(), c.getZ()).isUpdates())
+        {
+            Hunk<Boolean> b = getParallax().getUpdatesR(c.getX(), c.getZ());
+
+            b.iterateSync((x,y,z,v) -> {
+                if(v != null && v)
+                {
+                    update(x,y,z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                }
+            });
+        }
     }
 
     private void update(int x, int y, int z, Chunk c, RNG rf)
@@ -114,8 +143,6 @@ public class IrisEngine extends BlockPopulator implements Engine
         if(B.isStorage(data))
         {
             RNG rx = rf.nextParallelRNG(x).nextParallelRNG(z).nextParallelRNG(y);
-            block.setType(Material.AIR, false);
-            block.setBlockData(data, true);
             InventorySlotType slot = null;
 
             if(B.isStorageChest(data))
@@ -143,8 +170,7 @@ public class IrisEngine extends BlockPopulator implements Engine
 
         else if(B.isLit(data))
         {
-            block.setType(Material.AIR, false);
-            block.setBlockData(data, true);
+            Iris.linkBK.updateBlock(block);
         }
     }
 

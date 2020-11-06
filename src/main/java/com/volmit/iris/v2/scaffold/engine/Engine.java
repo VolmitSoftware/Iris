@@ -14,6 +14,10 @@ import com.volmit.iris.v2.scaffold.parallax.ParallaxAccess;
 
 public interface Engine extends DataProvider
 {
+    public void close();
+
+    public EngineWorldManager getWorldManager();
+
     public void setParallelism(int parallelism);
 
     public int getParallelism();

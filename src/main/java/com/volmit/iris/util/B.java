@@ -353,6 +353,11 @@ public class B
 		//@done
 	}
 
+	public static boolean isTrulyLit(BlockData mat)
+	{
+		return isLit(mat) || mat.getMaterial().equals(Material.LAVA);
+	}
+
 	public static boolean isLit(BlockData mat)
 	{
 		// @builder

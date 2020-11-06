@@ -1,17 +1,16 @@
 package com.volmit.iris.v2.generator;
 
 import com.volmit.iris.v2.scaffold.engine.Engine;
-import com.volmit.iris.v2.scaffold.engine.EngineFramework;
-import com.volmit.iris.v2.scaffold.engine.EngineParallax;
-import com.volmit.iris.v2.scaffold.engine.EngineStructure;
+import com.volmit.iris.v2.scaffold.engine.EngineParallaxManager;
+import com.volmit.iris.v2.scaffold.engine.EngineStructureManager;
 import lombok.Getter;
 
-public class IrisEngineParallax implements EngineParallax {
+public class IrisEngineParallax implements EngineParallaxManager {
     @Getter
     private final Engine engine;
 
     @Getter
-    private final EngineStructure structureManager;
+    private final EngineStructureManager structureManager;
 
     @Getter
     private final int parallaxSize;

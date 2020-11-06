@@ -1,10 +1,13 @@
 package com.volmit.iris.v2.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.RollingSequence;
 import com.volmit.iris.v2.generator.IrisComplex;
 import com.volmit.iris.v2.scaffold.parallax.ParallaxAccess;
+import org.bukkit.Bukkit;
+import org.bukkit.event.Listener;
 
 public interface EngineComponent {
     public Engine getEngine();
@@ -12,6 +15,22 @@ public interface EngineComponent {
     public RollingSequence getMetrics();
 
     public String getName();
+
+    default void close()
+    {
+        try
+        {
+            if(this instanceof Listener)
+            {
+                Iris.instance.unregisterListener((Listener) this);
+            }
+        }
+
+        catch(Throwable ignored)
+        {
+
+        }
+    }
 
     default double modX(double x)
     {

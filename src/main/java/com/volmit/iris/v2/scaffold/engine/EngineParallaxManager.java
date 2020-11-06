@@ -1,10 +1,7 @@
 package com.volmit.iris.v2.scaffold.engine;
 
-import java.lang.reflect.Parameter;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.volmit.iris.gen.ParallaxTerrainProvider;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.*;
 import com.volmit.iris.v2.generator.actuator.IrisTerrainActuator;
@@ -23,7 +20,7 @@ import com.volmit.iris.v2.scaffold.parallax.ParallaxAccess;
 import com.volmit.iris.v2.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 
-public interface EngineParallax extends DataProvider, IObjectPlacer
+public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 {
     public static final BlockData AIR = B.get("AIR");
 
@@ -31,7 +28,7 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
 
     public int getParallaxSize();
 
-    public EngineStructure getStructureManager();
+    public EngineStructureManager getStructureManager();
 
     default EngineFramework getFramework()
     {
@@ -437,5 +434,10 @@ public interface EngineParallax extends DataProvider, IObjectPlacer
     @Override
     default boolean isDebugSmartBore() {
         return getEngine().getDimension().isDebugSmartBore();
+    }
+
+    default void close()
+    {
+
     }
 }

@@ -20,7 +20,7 @@ public class IrisEngineFramework implements EngineFramework {
     private final IrisComplex complex;
 
     @Getter
-    final EngineParallax engineParallax;
+    final EngineParallaxManager engineParallax;
 
     @Getter
     private final EngineActuator<BlockData> terrainActuator;
@@ -55,5 +55,18 @@ public class IrisEngineFramework implements EngineFramework {
         this.ravineModifier = new IrisRavineModifier(getEngine());
         this.caveModifier = new IrisCaveModifier(engine);
         this.postModifier = new IrisPostModifier(engine);
+    }
+
+    @Override
+    public void close()
+    {
+        getEngineParallax().close();
+        getTerrainActuator().close();
+        getDecorantActuator().close();
+        getBiomeActuator().close();
+        getDepositModifier().close();
+        getRavineModifier().close();
+        getCaveModifier().close();
+        getPostModifier().close();
     }
 }

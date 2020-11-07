@@ -1,9 +1,6 @@
 package com.volmit.iris.v2.generator.modifier;
 
-import com.volmit.iris.gen.atomics.AtomicSliverMap;
-import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.noise.CNG;
-import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.NoiseStyle;
 import com.volmit.iris.util.*;
 import com.volmit.iris.v2.scaffold.engine.Engine;

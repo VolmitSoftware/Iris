@@ -4,13 +4,10 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.v2.generator.IrisEngine;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedComponent;
 import com.volmit.iris.v2.scaffold.engine.EngineDecorator;
-import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import lombok.Getter;
-import org.bukkit.block.data.BlockData;
 
 public abstract class IrisEngineDecorator extends EngineAssignedComponent implements EngineDecorator {
 

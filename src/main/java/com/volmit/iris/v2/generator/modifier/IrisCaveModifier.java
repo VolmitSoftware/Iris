@@ -1,6 +1,5 @@
 package com.volmit.iris.v2.generator.modifier;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.noise.FastNoiseDouble;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisCaveLayer;
@@ -9,11 +8,9 @@ import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
-import com.volmit.iris.v2.scaffold.engine.EngineAssignedBiModifier;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
 import org.bukkit.Material;
-import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.util.function.Function;

@@ -1,19 +1,14 @@
 package com.volmit.iris.v2.generator.modifier;
 
-import com.volmit.iris.gen.TopographicTerrainProvider;
-import com.volmit.iris.gen.scaffold.TerrainChunk;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.B;
 import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.v2.scaffold.hunk.Hunk;
-import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 

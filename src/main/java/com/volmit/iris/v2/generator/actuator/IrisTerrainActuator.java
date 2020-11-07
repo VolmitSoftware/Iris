@@ -1,11 +1,7 @@
 package com.volmit.iris.v2.generator.actuator;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.gen.scaffold.TerrainChunk;
-import com.volmit.iris.noise.CNG;
-import com.volmit.iris.object.*;
+import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.KList;
-import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.v2.scaffold.engine.Engine;
 import com.volmit.iris.v2.scaffold.engine.EngineAssignedActuator;

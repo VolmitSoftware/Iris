@@ -1,8 +1,6 @@
 package com.volmit.iris.v2.generator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.link.BKLink;
-import com.volmit.iris.manager.BlockSignal;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.*;
 import com.volmit.iris.v2.scaffold.cache.Cache;
@@ -15,12 +13,10 @@ import com.volmit.iris.v2.scaffold.parallel.MultiBurst;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Chunk;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -28,7 +24,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Random;
 
 public class IrisEngine extends BlockPopulator implements Engine

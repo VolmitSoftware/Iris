@@ -193,6 +193,12 @@
 			<version>1.16.2</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.bukkit.craftbukkit</groupId>
+			<artifactId>cb-1.16.4</artifactId>
+			<version>1.16.4</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Hooks -->
 		<dependency>
 			<groupId>com.bergerkiller.bukkit</groupId>

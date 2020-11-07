@@ -1,18 +1,19 @@
 package com.volmit.iris.gen.nms;
 
-import org.bukkit.Bukkit;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.gen.nms.v16_2.NMSBinding16_2;
+import com.volmit.iris.gen.nms.v16_3.NMSBinding16_3;
 import com.volmit.iris.gen.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.KMap;
+import org.bukkit.Bukkit;
 
 public class INMS
 {
 	//@builder
 	private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
-			.qput("v1_16_R2", NMSBinding16_2.class);
+			.qput("v1_16_R2", NMSBinding16_2.class)
+			.qput("v1_16_R3", NMSBinding16_3.class);
 	//@done
 	private static final INMSBinding binding = bind();
 

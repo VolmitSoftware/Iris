@@ -11,6 +11,6 @@ public class NMSBinding1X implements INMSBinding
 	@Override
 	public INMSCreator getCreator()
 	{
-		return creator.aquire(() -> new NMSCreator1X());
+		return creator.aquire(NMSCreator1X::new);
 	}
 }

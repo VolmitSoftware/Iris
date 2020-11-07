@@ -150,25 +150,8 @@
 	</profiles>
 	<repositories>
 		<repository>
-			<id>spigot-repo</id>
-			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-		</repository>
-		<repository>
-			<id>papermc</id>
-			<url>https://papermc.io/repo/repository/maven-public/</url>
-		</repository>
-		<repository>
-			<id>bcn</id>
-			<url>http://bytecode.ninja/repository/bcn/</url>
-		</repository>
-		<repository>
-			<id>nexus</id>
-			<name>Lumine Releases</name>
-			<url>https://mvn.lumine.io/repository/maven-public/</url>
-		</repository>
-		<repository>
-			<id>WorldEdit</id>
-			<url>https://maven.enginehub.org/repo/</url>
+			<id>volmit</id>
+			<url>http://repo.volmit.com/repository/volmit/</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -189,13 +172,13 @@
 		<!-- NMS -->
 		<dependency>
 			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.16.2</artifactId>
-			<version>1.16.2</version>
+			<artifactId>1.16.3</artifactId>
+			<version>1.16.3</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.bukkit.craftbukkit</groupId>
-			<artifactId>cb-1.16.4</artifactId>
+			<artifactId>1.16.4</artifactId>
 			<version>1.16.4</version>
 			<scope>provided</scope>
 		</dependency>
@@ -204,7 +187,7 @@
 			<groupId>com.bergerkiller.bukkit</groupId>
 			<artifactId>BKCommonLib</artifactId>
 			<version>1.16.4-v2</version>
-			<classifier>v1</classifier>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.sk89q.worldedit</groupId>

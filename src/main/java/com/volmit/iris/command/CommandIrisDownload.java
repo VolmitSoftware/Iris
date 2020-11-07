@@ -1,10 +1,7 @@
 package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.manager.ProjectManager;
 import com.volmit.iris.util.*;
-
-import java.util.Map;
 
 public class CommandIrisDownload extends MortarCommand
 {

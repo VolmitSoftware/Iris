@@ -2,11 +2,12 @@ package com.volmit.iris.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.v2.TestGen;
+import com.volmit.iris.inject.SIGNAL;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.v2.TestGen;
 import com.volmit.iris.v2.scaffold.engine.Hotloadable;
 
 public class CommandIris extends MortarCommand
@@ -65,6 +66,13 @@ public class CommandIris extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		if(args.length == 1 && args[0].equalsIgnoreCase("tick!"))
+		{
+			SIGNAL.NO_ENTITY_TICKING = !SIGNAL.NO_ENTITY_TICKING;
+			sender.sendMessage("TICKING: " + SIGNAL.NO_ENTITY_TICKING);
+			return true;
+		}
+
 		if(args.length == 2 && args[0].equalsIgnoreCase("test!") && IrisSettings.get().allowExperimentalV2Generator)
 		{
 			TestGen.gen(sender.player(), args[1]);

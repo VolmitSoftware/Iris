@@ -1,12 +1,21 @@
 package com.volmit.iris;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URL;
-
+import com.volmit.iris.command.CommandIris;
+import com.volmit.iris.command.PermissionIris;
+import com.volmit.iris.gen.IrisTerrainProvider;
+import com.volmit.iris.gen.nms.INMS;
+import com.volmit.iris.gen.provisions.ProvisionBukkit;
+import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
+import com.volmit.iris.gen.scaffold.IrisWorlds;
+import com.volmit.iris.gen.scaffold.TerrainTarget;
 import com.volmit.iris.link.BKLink;
+import com.volmit.iris.link.CitizensLink;
+import com.volmit.iris.link.MultiverseCoreLink;
+import com.volmit.iris.link.MythicMobsLink;
+import com.volmit.iris.manager.*;
+import com.volmit.iris.object.IrisCompat;
+import com.volmit.iris.util.*;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -16,42 +25,11 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
-import com.volmit.iris.command.CommandIris;
-import com.volmit.iris.command.PermissionIris;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.INMS;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
-import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
-import com.volmit.iris.gen.scaffold.IrisWorlds;
-import com.volmit.iris.gen.scaffold.TerrainTarget;
-import com.volmit.iris.link.CitizensLink;
-import com.volmit.iris.link.MultiverseCoreLink;
-import com.volmit.iris.link.MythicMobsLink;
-import com.volmit.iris.manager.ConversionManager;
-import com.volmit.iris.manager.EditManager;
-import com.volmit.iris.manager.IrisBoardManager;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.manager.IrisHotloadManager;
-import com.volmit.iris.manager.ProjectManager;
-import com.volmit.iris.manager.StructureManager;
-import com.volmit.iris.manager.WandManager;
-import com.volmit.iris.object.IrisCompat;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.GroupedExecutor;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.MetricsLite;
-import com.volmit.iris.util.NastyRunnable;
-import com.volmit.iris.util.Permission;
-import com.volmit.iris.util.Queue;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.ShurikenQueue;
-import com.volmit.iris.util.VolmitPlugin;
-
-import io.papermc.lib.PaperLib;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
 
 public class Iris extends VolmitPlugin
 {

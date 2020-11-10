@@ -1,12 +1,14 @@
 package com.volmit.iris.scaffold.parallax;
 
-import java.io.File;
-import java.io.IOException;
-
-import com.volmit.iris.util.*;
+import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import org.bukkit.block.data.BlockData;
 
-import com.volmit.iris.scaffold.hunk.Hunk;
+import java.io.File;
+import java.io.IOException;
 
 public class ParallaxWorld implements ParallaxAccess
 {
@@ -192,7 +194,7 @@ public class ParallaxWorld implements ParallaxAccess
 
 	public void cleanup()
 	{
-		cleanup(10000, 5000);
+		cleanup(10000, 1000);
 	}
 
 	@Override

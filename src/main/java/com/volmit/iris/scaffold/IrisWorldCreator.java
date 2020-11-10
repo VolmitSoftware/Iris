@@ -21,7 +21,7 @@ public class IrisWorldCreator
 
     public IrisWorldCreator dimension(String loadKey)
     {
-        this.dimensionName = dimensionName;
+        this.dimensionName = loadKey;
         return this;
     }
 

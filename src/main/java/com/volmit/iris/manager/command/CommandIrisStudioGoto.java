@@ -2,12 +2,10 @@ package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -53,79 +51,49 @@ public class CommandIrisStudioGoto extends MortarCommand
 				}
 
 				IrisAccess g = IrisWorlds.access(world);
-				int tries = 10000;
-				boolean cave = false;
-				IrisBiome biome2 = null;
-				if(args.length > 1)
+				IrisBiome b = Iris.globaldata.getBiomeLoader().load(args[0], false);
+				IrisRegion r = Iris.globaldata.getRegionLoader().load(args[0], false);
+
+				if(b != null)
 				{
-					if(args[1].equalsIgnoreCase("-cave"))
-					{
-						cave = true;
-					}
+					J.a(() -> {
+						Location l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-					else
-					{
-						biome2 = g.getData().getBiomeLoader().load(args[1]);
-
-						if(biome2 == null)
+						if(l == null)
 						{
-							sender.sendMessage(args[1] + " is not a biome. Use the file name (without extension)");
-							return true;
-						}
-					}
-				}
-
-				for(String i : args)
-				{
-					if(i.equalsIgnoreCase("-cave"))
-					{
-						cave = true;
-					}
-				}
-
-				IrisBiome biome = args[0].equals("this") ? g.getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockZ()) : g.getData().getBiomeLoader().load(args[0]);
-
-				if(biome == null)
-				{
-					sender.sendMessage(args[0] + " is not a biome. Use the file name (without extension)");
-					return true;
-				}
-
-				while(tries > 0)
-				{
-					tries--;
-
-					int xx = (int) (RNG.r.i(-29999970, 29999970));
-					int zz = (int) (RNG.r.i(-29999970, 29999970));
-					if((cave ? g.getCaveBiome(xx, zz) : g.getBiome(xx, zz)).getLoadKey().equals(biome.getLoadKey()))
-					{
-						if(biome2 != null)
-						{
-							for(int i = 0; i < 64; i++)
-							{
-								int ax = xx + RNG.r.i(-64, 32);
-								int az = zz + RNG.r.i(-64, 32);
-
-								if((cave ? g.getBiome(ax, az) : g.getBiome(ax, az)).getLoadKey().equals(biome2.getLoadKey()))
-								{
-									tries--;
-									p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
-									sender.sendMessage("Found border in " + (10000 - tries) + " tries!");
-									return true;
-								}
-							}
+							sender.sendMessage("Couldn't find " + b.getName() + ".");
 						}
 
 						else
 						{
-							p.teleport(new Location(world, xx, world.getHighestBlockYAt(xx, zz), zz));
-							sender.sendMessage("Found in " + (10000 - tries) + " tries!");
-							return true;
+							sender.sendMessage("Found " + b.getName() + "!");
+							J.s(() -> sender.player().teleport(l));
 						}
-					}
+					});
 				}
 
-				sender.sendMessage("Tried to find " + biome.getName() + " looked in 10,000 places no dice.");
+				else if(r != null)
+				{
+					J.a(() -> {
+						Location l = g.lookForRegion(r, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+
+						if(l == null)
+						{
+							sender.sendMessage("Couldn't find " + r.getName() + ".");
+						}
+
+						else
+						{
+							sender.sendMessage("Found " + r.getName() + "!");
+							J.s(() -> sender.player().teleport(l));
+						}
+					});
+				}
+
+				else
+				{
+					sender.sendMessage(args[0] + " is not a biome or region in this dimension.");
+				}
 
 				return true;
 			}
@@ -149,6 +117,6 @@ public class CommandIrisStudioGoto extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[biome] [otherbiome] [-cave]";
+		return "[biome/region]";
 	}
 }

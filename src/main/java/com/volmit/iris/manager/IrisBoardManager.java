@@ -89,7 +89,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		int y = player.getLocation().getBlockY();
 		int z = player.getLocation().getBlockZ();
 
-		Engine engine = g.getCompound().getEngine(y);
+		Engine engine = g.getCompound().getEngineForHeight(y);
 
 		int parallaxChunks=0;
 		int parallaxRegions=0;
@@ -102,8 +102,8 @@ public class IrisBoardManager implements BoardProvider, Listener
 			parallaxChunks += g.getCompound().getEngine(i).getParallax().getChunkCount();
 			loadedObjects+= g.getCompound().getData().getObjectLoader().getSize();
 			memoryGuess += g.getCompound().getData().getObjectLoader().getTotalStorage() * 225;
-			memoryGuess+= parallaxChunks += 3500;
-			memoryGuess += parallaxRegions += 1700000;
+			memoryGuess+= parallaxChunks * 3500;
+			memoryGuess += parallaxRegions * 1700000;
 		}
 
 		tp.put(0); // TODO: CHUNK SPEED
@@ -117,7 +117,7 @@ public class IrisBoardManager implements BoardProvider, Listener
 		if(engine != null)
 		{
 			v.add("&7&m------------------");
-			v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " (" + engine.getMinHeight() + " - " + engine.getMaxHeight() + ")");
+			v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
 			v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
 			v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
 			v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));

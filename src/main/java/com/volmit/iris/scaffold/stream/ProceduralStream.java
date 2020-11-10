@@ -1,19 +1,15 @@
 package com.volmit.iris.scaffold.stream;
 
-import java.util.List;
-import java.util.function.Function;
-
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.stream.arithmetic.*;
 import com.volmit.iris.scaffold.stream.convert.*;
 import com.volmit.iris.scaffold.stream.interpolation.Interpolated;
 import com.volmit.iris.scaffold.stream.sources.FunctionStream;
 import com.volmit.iris.scaffold.stream.utility.*;
-import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.Function3;
-import com.volmit.iris.util.Function4;
-import com.volmit.iris.util.IRare;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.*;
+
+import java.util.List;
+import java.util.function.Function;
 
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 {
@@ -338,7 +334,17 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 	default <V> ProceduralStream<V> selectRarity(List<V> types)
 	{
 		KList<V> rarityTypes = new KList<>();
-		types.forEach((i) -> rarityTypes.addMultiple(i, IRare.get(i)));
+		int totalRarity = 0;
+		for(V i : types)
+		{
+			totalRarity += IRare.get(i);
+		}
+
+		for(V i : types)
+		{
+			rarityTypes.addMultiple(i, Math.max(1, (IRare.get(i) / totalRarity)));
+		}
+
 		return new SelectionStream<V>(this, rarityTypes);
 	}
 

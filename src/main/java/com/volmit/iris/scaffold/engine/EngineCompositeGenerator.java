@@ -10,6 +10,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Form;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -69,23 +70,26 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         if (hint == null) {
             File iris = new File(world.getWorldFolder(), "iris");
 
-            searching:
-            for (File i : iris.listFiles()) {
-                // Look for v1 location
-                if (i.isDirectory() && i.getName().equals("dimensions")) {
-                    for (File j : i.listFiles()) {
-                        if (j.isFile() && j.getName().endsWith(".json")) {
-                            hint = j.getName().replaceAll("\\Q.json\\E", "");
-                            break searching;
+            if(iris.exists() && iris.isDirectory())
+            {
+                searching:
+                for (File i : iris.listFiles()) {
+                    // Look for v1 location
+                    if (i.isDirectory() && i.getName().equals("dimensions")) {
+                        for (File j : i.listFiles()) {
+                            if (j.isFile() && j.getName().endsWith(".json")) {
+                                hint = j.getName().replaceAll("\\Q.json\\E", "");
+                                break searching;
+                            }
                         }
                     }
-                }
 
-                // Look for v2 location
-                else if (i.isFile() && i.getName().equals("engine-metadata.json")) {
-                    EngineData metadata = EngineData.load(i);
-                    hint = metadata.getDimension();
-                    break;
+                    // Look for v2 location
+                    else if (i.isFile() && i.getName().equals("engine-metadata.json")) {
+                        EngineData metadata = EngineData.load(i);
+                        hint = metadata.getDimension();
+                        break;
+                    }
                 }
             }
         }
@@ -272,6 +276,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public void close() {
         getComposite().close();
+        Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
     }
 
     @Override

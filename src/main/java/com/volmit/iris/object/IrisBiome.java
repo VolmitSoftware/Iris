@@ -1,36 +1,21 @@
 package com.volmit.iris.object;
 
-import java.awt.Color;
-
-import org.bukkit.block.Biome;
-
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.ContextualTerrainProvider;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
-import com.volmit.iris.scaffold.data.DataProvider;
-import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.DependsOn;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.IRare;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.scaffold.data.DataProvider;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+
+import java.awt.*;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -46,11 +31,6 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
 	private String name = "A Biome";
-
-	@DontObfuscate
-	@Desc("Place text on terrain. Iris will render text into block schematics and randomly place them in this biome.")
-	@ArrayType(min = 1, type = IrisTextPlacement.class)
-	private KList<IrisTextPlacement> text = new KList<>();
 
 	@DontObfuscate
 	@Desc("The type of fluid if this biome is underwater. To 'defer' this value to whatever the parent dimension fluid type is, use an emtpy string.")
@@ -329,7 +309,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		});
 	}
 
-	public double getHeight(ContextualTerrainProvider xg, double x, double z, long seed)
+	public double getHeight(IrisAccess xg, double x, double z, long seed)
 	{
 		double height = 0;
 

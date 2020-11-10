@@ -1,28 +1,14 @@
 package com.volmit.iris.object;
 
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
-import org.bukkit.util.BlockVector;
-
-import com.volmit.iris.generator.legacy.TopographicTerrainProvider;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BlockVector;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -159,93 +145,5 @@ public class IrisDepositGenerator
 
 			return blockData;
 		});
-	}
-
-	public void generate(ChunkData data, RNG rng, TopographicTerrainProvider g, int cx, int cz, boolean safe)
-	{
-		generate(data, rng, g, cx, cz, safe, null);
-	}
-
-	public void generate(ChunkData data, RNG rng, TopographicTerrainProvider g, int cx, int cz, boolean safe, HeightMap he)
-	{
-		for(int l = 0; l < rng.i(getMinPerChunk(), getMaxPerChunk()); l++)
-		{
-			IrisObject clump = getClump(rng, g.getData());
-
-			int af = (int) Math.ceil(clump.getW() / 2D);
-			int bf = (int) Math.floor(16D - (clump.getW() / 2D));
-
-			if(af > bf || af < 0 || bf > 15 || af > 15 || bf < 0)
-			{
-				af = 6;
-				bf = 9;
-			}
-
-			int x = rng.i(af, bf);
-			int z = rng.i(af, bf);
-			int height = (he != null ? he.getHeight((cx << 4) + x, (cz << 4) + z) : (int) (Math.round(g.getCarvedWaterHeight((cx << 4) + x, (cz << 4) + z)))) - 7;
-
-			if(height <= 0)
-			{
-				return;
-			}
-
-			int i = Math.max(0, minHeight);
-			int a = Math.min(height, Math.min(256, maxHeight));
-
-			if(i >= a)
-			{
-				return;
-			}
-
-			int h = rng.i(i, a);
-
-			if(h > maxHeight || h < minHeight || h > height - 2)
-			{
-				return;
-			}
-
-			for(BlockVector j : clump.getBlocks().keySet())
-			{
-				int nx = j.getBlockX() + x;
-				int ny = j.getBlockY() + h;
-				int nz = j.getBlockZ() + z;
-
-				if(ny > height - 2 || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
-				{
-					continue;
-				}
-
-				boolean allow = !safe;
-
-				if(!allow)
-				{
-					BlockData b = data.getBlockData(nx, ny, nz);
-					for(BlockData f : g.getDimension().getRockPalette().getBlockData(g.getData()))
-					{
-						if(f.getMaterial().equals(b.getMaterial()))
-						{
-							allow = true;
-							break;
-						}
-					}
-				}
-
-				if(!safe && allow)
-				{
-					BlockData b = data.getBlockData(nx, ny, nz);
-
-					if(b.getMaterial().equals(Material.ICE) || b.getMaterial().equals(Material.PACKED_ICE) || b.getMaterial().equals(B.mat("BLUE_ICE").getMaterial()) || b.getMaterial().equals(B.mat("FROSTED_ICE").getMaterial()) || b.getMaterial().equals(Material.SAND) || b.getMaterial().equals(Material.RED_SAND) || !B.isSolid(b.getMaterial()))
-					{
-						allow = false;
-					}
-				}
-
-				if(allow)
-				{
-					data.setBlock(nx, ny, nz, clump.getBlocks().get(j));
-				}
-			}
-		}
 	}
 }

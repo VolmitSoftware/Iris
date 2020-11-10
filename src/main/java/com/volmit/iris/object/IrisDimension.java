@@ -1,37 +1,18 @@
 package com.volmit.iris.object;
 
-import org.bukkit.Material;
-import org.bukkit.World.Environment;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.util.BlockVector;
-
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.ContextualTerrainProvider;
-import com.volmit.iris.generator.legacy.ParallelTerrainProvider;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IrisLock;
-import com.volmit.iris.util.IrisPostBlockFilter;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.O;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.RegistryListRegion;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.scaffold.engine.GeneratorAccess;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Material;
+import org.bukkit.World.Environment;
+import org.bukkit.block.data.BlockData;
 
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -69,11 +50,6 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
 	private String resourcePack = "";
-
-	@DontObfuscate
-	@Desc("Place text on terrain")
-	@ArrayType(min = 1, type = IrisTextPlacement.class)
-	private KList<IrisTextPlacement> text = new KList<>();
 
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this dimension")
@@ -348,7 +324,6 @@ public class IrisDimension extends IrisRegistrant
 
 	private transient boolean skyDimension = false;
 	private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
-	private final transient AtomicCache<KList<IrisPostBlockFilter>> cacheFilters = new AtomicCache<>();
 	private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
@@ -402,19 +377,19 @@ public class IrisDimension extends IrisRegistrant
 		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
-	public KList<IrisRegion> getAllRegions(ContextualTerrainProvider g)
+	public KList<IrisRegion> getAllRegions(GeneratorAccess g)
 	{
 		KList<IrisRegion> r = new KList<>();
 
 		for(String i : getRegions())
 		{
-			r.add(g != null ? g.loadRegion(i) : Iris.globaldata.getRegionLoader().load(i));
+			r.add(g != null ? g.getData().getRegionLoader().load(i) : Iris.globaldata.getRegionLoader().load(i));
 		}
 
 		return r;
 	}
 
-	public KList<IrisBiome> getAllBiomes(ContextualTerrainProvider g)
+	public KList<IrisBiome> getAllBiomes(GeneratorAccess g)
 	{
 		KList<IrisBiome> r = new KList<>();
 
@@ -424,114 +399,6 @@ public class IrisDimension extends IrisRegistrant
 		}
 
 		return r;
-	}
-
-	public ChunkPosition getParallaxSize(ParallelTerrainProvider g)
-	{
-		return parallaxSize.aquire(() ->
-		{
-			Iris.verbose("Calculating the Parallax Size in Parallel");
-			O<Integer> xg = new O<>();
-			O<Integer> zg = new O<>();
-			xg.set(0);
-			zg.set(0);
-
-			KSet<String> objects = new KSet<>();
-			KList<IrisRegion> r = getAllRegions(g);
-			KList<IrisBiome> b = getAllBiomes(g);
-
-			for(IrisBiome i : b)
-			{
-				for(IrisObjectPlacement j : i.getObjects())
-				{
-					objects.addAll(j.getPlace());
-				}
-			}
-
-			IrisLock t = new IrisLock("t");
-			Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
-
-			for(String i : objects)
-			{
-				g.getAccelerant().queue("tx-psize", () ->
-				{
-					try
-					{
-						BlockVector bv = IrisObject.sampleSize(g.getData().getObjectLoader().findFile(i));
-						t.lock();
-						xg.set(bv.getBlockX() > xg.get() ? bv.getBlockX() : xg.get());
-						zg.set(bv.getBlockZ() > zg.get() ? bv.getBlockZ() : zg.get());
-						t.unlock();
-					}
-
-					catch(Throwable e)
-					{
-
-					}
-				});
-			}
-
-			g.getAccelerant().waitFor("tx-psize");
-			int x = xg.get();
-			int z = zg.get();
-
-			for(IrisDepositGenerator i : getDeposits())
-			{
-				int max = i.getMaxDimension();
-				x = max > x ? max : x;
-				z = max > z ? max : z;
-			}
-
-			for(IrisTextPlacement i : getText())
-			{
-				int max = i.maxDimension();
-				x = max > x ? max : x;
-				z = max > z ? max : z;
-			}
-
-			for(IrisRegion v : r)
-			{
-				for(IrisDepositGenerator i : v.getDeposits())
-				{
-					int max = i.getMaxDimension();
-					x = max > x ? max : x;
-					z = max > z ? max : z;
-				}
-
-				for(IrisTextPlacement i : v.getText())
-				{
-					int max = i.maxDimension();
-					x = max > x ? max : x;
-					z = max > z ? max : z;
-				}
-			}
-
-			for(IrisBiome v : b)
-			{
-				for(IrisDepositGenerator i : v.getDeposits())
-				{
-					int max = i.getMaxDimension();
-					x = max > x ? max : x;
-					z = max > z ? max : z;
-				}
-
-				for(IrisTextPlacement i : v.getText())
-				{
-					int max = i.maxDimension();
-					x = max > x ? max : x;
-					z = max > z ? max : z;
-				}
-			}
-
-			x = (Math.max(x, 16) + 16) >> 4;
-			z = (Math.max(z, 16) + 16) >> 4;
-			x = x % 2 == 0 ? x + 1 : x;
-			z = z % 2 == 0 ? z + 1 : z;
-			x = Math.max(x, z);
-			z = x;
-			Iris.verbose("Done! Parallax Size: " + x + ", " + z);
-			return new ChunkPosition(x, z);
-		});
 	}
 
 	public BlockData resolveBlock(String bd)

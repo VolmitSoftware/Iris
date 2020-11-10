@@ -2,7 +2,6 @@ package com.volmit.iris.generator.legacy.nms;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.generator.legacy.nms.v16_2.NMSBinding16_2;
 import com.volmit.iris.generator.legacy.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.KMap;
 import org.bukkit.Bukkit;
@@ -11,7 +10,7 @@ public class INMS
 {
 	//@builder
 	private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
-			.qput("v1_16_R2", NMSBinding16_2.class);
+			;//.qput("v1_16_R2", NMSBinding16_2.class);
 	//@done
 	private static final INMSBinding binding = bind();
 

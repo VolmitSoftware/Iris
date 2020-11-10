@@ -288,4 +288,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineCompound getCompound() {
         return getComposite();
     }
+
+    @Override
+    public boolean isFailing() {
+        return getComposite().isFailing();
+    }
+
+    @Override
+    public boolean isStudio() {
+        return !production;
+    }
 }

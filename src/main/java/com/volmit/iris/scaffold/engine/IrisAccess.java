@@ -2,8 +2,9 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.scaffold.data.DataProvider;
 
-public interface IrisAccess extends Hotloadable {
+public interface IrisAccess extends Hotloadable, DataProvider {
 
     public int getGenerated();
 

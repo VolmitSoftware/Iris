@@ -1,24 +1,20 @@
 package com.volmit.iris;
 
+import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
 import com.volmit.iris.manager.command.PermissionIris;
-import com.volmit.iris.generator.legacy.IrisTerrainProvider;
-import com.volmit.iris.generator.legacy.nms.INMS;
-import com.volmit.iris.generator.legacy.provisions.ProvisionBukkit;
-import com.volmit.iris.generator.legacy.scaffold.IrisGenConfiguration;
-import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.generator.legacy.scaffold.TerrainTarget;
 import com.volmit.iris.manager.link.BKLink;
 import com.volmit.iris.manager.link.CitizensLink;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
-import com.volmit.iris.manager.*;
 import com.volmit.iris.object.IrisCompat;
+import com.volmit.iris.scaffold.IrisWorldCreator;
+import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.HandlerList;
@@ -80,16 +76,6 @@ public class Iris extends VolmitPlugin
 		}
 
 		return tc;
-	}
-
-	public ProvisionBukkit createProvisionBukkit(IrisGenConfiguration config)
-	{
-		return new ProvisionBukkit(createIrisProvider(config));
-	}
-
-	public IrisTerrainProvider createIrisProvider(IrisGenConfiguration config)
-	{
-		return new IrisTerrainProvider(config);
 	}
 
 	private static boolean doesSupport3DBiomes()
@@ -272,9 +258,10 @@ public class Iris extends VolmitPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		// @NoArgsConstructor
-		return createProvisionBukkit(IrisGenConfiguration.builder().threads(getThreadCount()).target(TerrainTarget.builder().environment(Environment.NORMAL).folder(new File(worldName)).name(worldName).seed(worldName.hashCode()).build()).build());
-		//@done
+		return new IrisWorldCreator()
+				.productionMode()
+				.name(worldName)
+				.create().generator();
 	}
 
 	public static void msg(String string)

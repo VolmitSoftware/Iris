@@ -1,7 +1,7 @@
 package com.volmit.iris.manager.gui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.IrisTerrainProvider;
+import com.volmit.iris.scaffold.engine.GeneratorAccess;
 import com.volmit.iris.util.*;
 
 import javax.imageio.ImageIO;
@@ -318,11 +318,11 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		}
 	}
 
-	public static void launch(IrisTerrainProvider g)
+	public static void launch(GeneratorAccess g)
 	{
 		J.a(() ->
 		{
-			createAndShowGUI(g.createRenderer(), g.getCacheID());
+			// createAndShowGUI(g.createRenderer(), g.getCacheID());
 		});
 	}
 

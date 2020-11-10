@@ -87,4 +87,6 @@ public interface EngineCompound extends Listener
             getEngine(i).close();
         }
     }
+
+    public boolean isFailing();
 }

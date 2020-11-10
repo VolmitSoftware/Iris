@@ -33,13 +33,16 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Getter
     private volatile int parallelism;
 
+    @Getter
+    private final int index;
+
     @Setter
     @Getter
     private volatile int minHeight;
     private boolean failing;
     private boolean closed;
 
-    public IrisEngine(EngineTarget target, EngineCompound compound)
+    public IrisEngine(EngineTarget target, EngineCompound compound, int index)
     {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         this.target = target;
@@ -49,6 +52,7 @@ public class IrisEngine extends BlockPopulator implements Engine
         minHeight = 0;
         failing = false;
         closed = false;
+        this.index = index;
     }
 
     @Override

@@ -4,9 +4,10 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
 
-public interface GeneratorAccess
+public interface GeneratorAccess extends DataProvider
 {
     public IrisRegion getRegion(int x, int z);
 

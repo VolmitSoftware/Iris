@@ -1,24 +1,23 @@
 package com.volmit.iris.scaffold.engine;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.volmit.iris.object.*;
-import com.volmit.iris.util.*;
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.generator.actuator.IrisTerrainActuator;
 import com.volmit.iris.generator.modifier.IrisCaveModifier;
-import com.volmit.iris.scaffold.parallax.ParallaxChunkMeta;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.util.BlockVector;
-
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.generator.IrisComplex;
+import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
+import com.volmit.iris.scaffold.parallax.ParallaxChunkMeta;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BlockVector;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 {
@@ -291,25 +290,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             z = Math.max(max, z);
         }
 
-        for(IrisTextPlacement i : getEngine().getDimension().getText())
-        {
-            int max = i.maxDimension();
-            x = Math.max(max, x);
-            z = Math.max(max, z);
-        }
-
         for(IrisRegion v : r)
         {
             for(IrisDepositGenerator i : v.getDeposits())
             {
                 int max = i.getMaxDimension();
-                x = Math.max(max, x);
-                z = Math.max(max, z);
-            }
-
-            for(IrisTextPlacement i : v.getText())
-            {
-                int max = i.maxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
             }
@@ -320,13 +305,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             for(IrisDepositGenerator i : v.getDeposits())
             {
                 int max = i.getMaxDimension();
-                x = Math.max(max, x);
-                z = Math.max(max, z);
-            }
-
-            for(IrisTextPlacement i : v.getText())
-            {
-                int max = i.maxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
             }

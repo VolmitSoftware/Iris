@@ -1,28 +1,19 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.engine.GeneratorAccess;
+import com.volmit.iris.util.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-
-import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.IrisTerrainProvider;
-import com.volmit.iris.generator.legacy.atomics.AtomicCache;
-import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.DependsOn;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.Required;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -222,7 +213,7 @@ public class IrisEffect
 		});
 	}
 
-	public void apply(Player p, IrisTerrainProvider g)
+	public void apply(Player p,  GeneratorAccess g)
 	{
 		if(!canTick())
 		{
@@ -244,7 +235,7 @@ public class IrisEffect
 		{
 			Location part = p.getLocation().clone().add(p.getLocation().getDirection().clone().multiply(RNG.r.i(particleDistance) + particleAway)).clone().add(p.getLocation().getDirection().clone().rotateAroundY(Math.toRadians(90)).multiply(RNG.r.d(-particleDistanceWidth, particleDistanceWidth)));
 
-			part.setY(Math.round(g.getCarvedHeight(part.getBlockX(), part.getBlockZ(), true)) + 1);
+			part.setY(Math.round(g.getHeight(part.getBlockX(), part.getBlockZ())) + 1);
 			part.add(RNG.r.d(), 0, RNG.r.d());
 			if(extra != 0)
 			{

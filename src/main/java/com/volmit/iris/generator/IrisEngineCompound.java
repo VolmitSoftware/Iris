@@ -54,7 +54,7 @@ public class IrisEngineCompound implements EngineCompound {
         if(rootDimension.getDimensionalComposite().isEmpty())
         {
             burster = null;
-            engines = new Engine[]{new IrisEngine(new EngineTarget(world, rootDimension, data, 256, maximumThreads), this)};
+            engines = new Engine[]{new IrisEngine(new EngineTarget(world, rootDimension, data, 256, maximumThreads), this, 0)};
         }
 
         else
@@ -80,7 +80,7 @@ public class IrisEngineCompound implements EngineCompound {
             {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
-                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this);
+                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);
                 buf += engines[i].getHeight();
             }
@@ -177,5 +177,11 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public IrisDataManager getData(int height) {
         return getEngineForHeight(height).getData();
+    }
+
+    //TODO: FAIL
+    @Override
+    public boolean isFailing() {
+        return false;
     }
 }

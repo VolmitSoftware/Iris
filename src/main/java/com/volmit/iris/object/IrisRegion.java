@@ -59,11 +59,6 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("The rarity of the region")
 	private int rarity = 1;
 
-	@DontObfuscate
-	@Desc("Place text on terrain")
-	@ArrayType(min = 1, type = IrisTextPlacement.class)
-	private KList<IrisTextPlacement> text = new KList<>();
-
 	@ArrayType(min = 1, type = IrisBlockDrops.class)
 	@DontObfuscate
 	@Desc("Define custom block drops for this region")

@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.gen.ParallaxTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.ParallaxTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -11,7 +11,6 @@ import com.volmit.iris.util.MinNumber;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.Required;
 
-import com.volmit.iris.v2.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

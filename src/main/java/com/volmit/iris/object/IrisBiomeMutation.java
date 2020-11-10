@@ -1,7 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.gen.ContextualTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -13,7 +12,7 @@ import com.volmit.iris.util.RegistryListBiome;
 import com.volmit.iris.util.RegistryListObject;
 import com.volmit.iris.util.Required;
 
-import com.volmit.iris.v2.scaffold.data.DataProvider;
+import com.volmit.iris.scaffold.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

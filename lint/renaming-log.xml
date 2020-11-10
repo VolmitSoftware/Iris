@@ -73,7 +73,7 @@
    <field old="IS_JDK14 Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="inheritableThreadLocal Ljava/lang/InheritableThreadLocal;" new="H"/>
   </class>
-  <class old="com.volmit.iris.gen.TerrainChunkGenerator" new="com.volmit.iris.gen.TerrainChunkGenerator">
+  <class old="com.volmit.iris.generator.TerrainChunkGenerator" new="com.volmit.iris.generator.TerrainChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="43" e="43"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -275,7 +275,7 @@
    <field old="ticks I" new="j"/>
    <field old="world Lorg/bukkit/World;" new="A"/>
   </class>
-  <class old="com.volmit.iris.gui.NoiseView$HandScrollListener" new="com.volmit.iris.gui.NoiseView$HandScrollListener">
+  <class old="com.volmit.iris.manager.gui.NoiseView$HandScrollListener" new="com.volmit.iris.manager.gui.NoiseView$HandScrollListener">
    <method old="mouseDragged(Ljava/awt/event/MouseEvent;)V" new="mouseDragged" s="307" e="315"/>
    <method old="mousePressed(Ljava/awt/event/MouseEvent;)V" new="mousePressed" s="319" e="320"/>
    <field old="pp Ljava/awt/Point;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -580,14 +580,14 @@
    <method old="sinCenter(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="35" e="35"/>
    <method old="trilerp(DDDDDDDDDDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="224" e="226"/>
   </class>
-  <class old="com.volmit.iris.noise.WhiteNoise" new="com.volmit.iris.noise.WhiteNoise">
+  <class old="com.volmit.iris.generator.noise.WhiteNoise" new="com.volmit.iris.generator.noise.WhiteNoise">
    <method old="f(D)D" new="hashCode" s="14" e="14"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="20" e="20"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="32" e="32"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectExpand" new="com.volmit.iris.command.CommandIrisObjectExpand">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectExpand" new="com.volmit.iris.manager.command.CommandIrisObjectExpand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -672,7 +672,7 @@
    <field old="name Ljava/lang/String;" new="H"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudio" new="com.volmit.iris.command.CommandIrisStudio">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudio" new="com.volmit.iris.manager.command.CommandIrisStudio">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="52" e="52"/>
@@ -697,7 +697,7 @@
    <field old="update Lcom/volmit/iris/command/CommandIrisStudioUpdate;" new="M"/>
    <field old="verify Lcom/volmit/iris/command/CommandIrisStudioVerify;" new="g"/>
   </class>
-  <class old="com.volmit.iris.noise.BaseNoiseGenerator" new="com.volmit.iris.noise.BaseNoiseGenerator">
+  <class old="com.volmit.iris.generator.noise.BaseNoiseGenerator" new="com.volmit.iris.generator.noise.BaseNoiseGenerator">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="fade(D)D" new="hashCode" s="27" e="27"/>
    <method old="floor(D)I" new="ALLATORIxDEMOxanyValidIdentifierName" s="22" e="22"/>
@@ -776,12 +776,12 @@
    <field old="maxLevel I" new="H"/>
    <field old="minLevel I" new="M"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicObjectMap" new="com.volmit.iris.gen.atomics.AtomicObjectMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicObjectMap" new="com.volmit.iris.generator.legacy.atomics.AtomicObjectMap">
    <method old="get(II)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName" s="13" e="13"/>
    <method old="set(IILjava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="18"/>
    <field old="data Ljava/util/concurrent/atomic/AtomicReferenceArray;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectXPY" new="com.volmit.iris.command.CommandIrisObjectXPY">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectXPY" new="com.volmit.iris.manager.command.CommandIrisObjectXPY">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="77" e="77"/>
@@ -798,7 +798,7 @@
    <method old="setCategory(Ljava/lang/String;)V" new="hashCode"/>
    <method old="setDescription(Ljava/lang/String;)V" new="getMaxHeight"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.GenLayerText" new="com.volmit.iris.gen.layer.GenLayerText">
+  <class old="com.volmit.iris.generator.legacy.layer.GenLayerText" new="com.volmit.iris.generator.legacy.layer.GenLayerText">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="createTextObject(Ljava/lang/String;Ljava/lang/String;ILorg/bukkit/block/data/BlockData;)Lcom/volmit/iris/object/IrisObject;" new="ALLATORIxDEMOxanyValidIdentifierName" s="39" e="60"/>
    <method old="generate(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="66" e="66"/>
@@ -893,7 +893,7 @@
    <field old="val$names Ljava/util/Set;" new="M"/>
    <field old="val$out Ljava/util/zip/ZipOutputStream;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectShift" new="com.volmit.iris.command.CommandIrisObjectShift">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectShift" new="com.volmit.iris.manager.command.CommandIrisObjectShift">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="61" e="61"/>
@@ -940,7 +940,7 @@
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicMulticache" new="com.volmit.iris.gen.atomics.AtomicMulticache">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicMulticache" new="com.volmit.iris.generator.legacy.atomics.AtomicMulticache">
    <method old="drop()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="114" e="118"/>
    <method old="getBiome(IILjava/util/function/Supplier;)Lcom/volmit/iris/util/BiomeResult;" new="hashCode" s="71" e="80"/>
    <method old="getHeight(IILjava/util/function/Supplier;)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="43" e="52"/>
@@ -957,10 +957,10 @@
    <field old="x Ljava/util/concurrent/atomic/AtomicInteger;" new="D"/>
    <field old="z Ljava/util/concurrent/atomic/AtomicInteger;" new="j"/>
   </class>
-  <class old="com.volmit.iris.gen.post.Post" new="com.volmit.iris.gen.post.Post">
+  <class old="com.volmit.iris.generator.legacy.post.Post" new="com.volmit.iris.generator.legacy.post.Post">
    <method old="value()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.parallax.ParallaxRegion" new="com.volmit.iris.gen.parallax.ParallaxRegion">
+  <class old="com.volmit.iris.generator.parallax.ParallaxRegion" new="com.volmit.iris.generator.parallax.ParallaxRegion">
    <method old="get(III)Lorg/bukkit/block/data/BlockData;" new="ALLATORIxDEMOxanyValidIdentifierName" s="108" e="108"/>
    <method old="getChunk(IIZ)Lcom/volmit/iris/gen/parallax/ParallaxChunk;" new="ALLATORIxDEMOxanyValidIdentifierName" s="113" e="126"/>
    <method old="isOlderThan(J)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="98" e="98"/>
@@ -1291,7 +1291,7 @@
    <field old="UPPER_CAMEL_CASE Lcom/google/gson/FieldNamingPolicy;" new="D"/>
    <field old="UPPER_CAMEL_CASE_WITH_SPACES Lcom/google/gson/FieldNamingPolicy;" new="j"/>
   </class>
-  <class old="com.volmit.iris.gen.parallax.ParallaxSection" new="com.volmit.iris.gen.parallax.ParallaxSection">
+  <class old="com.volmit.iris.generator.parallax.ParallaxSection" new="com.volmit.iris.generator.parallax.ParallaxSection">
    <method old="clearUpdates()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="46" e="47"/>
    <method old="dontUpdate(III)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="56" e="57"/>
    <method old="getBlock(III)Lorg/bukkit/block/data/BlockData;" new="ALLATORIxDEMOxanyValidIdentifierName" s="76" e="76"/>
@@ -1438,7 +1438,7 @@
   <class old="com.volmit.iris.util.Command" new="com.volmit.iris.util.Command">
    <method old="value()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostWallPatcher" new="com.volmit.iris.gen.post.PostWallPatcher">
+  <class old="com.volmit.iris.generator.legacy.post.PostWallPatcher" new="com.volmit.iris.generator.legacy.post.PostWallPatcher">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -1833,7 +1833,7 @@
    <method old="p(Ljava/lang/String;Ljava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="71" e="72"/>
    <field old="nodes Ljava/util/concurrent/ConcurrentSkipListMap;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicDoubleMap" new="com.volmit.iris.gen.atomics.AtomicDoubleMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicDoubleMap" new="com.volmit.iris.generator.legacy.atomics.AtomicDoubleMap">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="get(II)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="13" e="13"/>
    <method old="getInt(II)I" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="17"/>
@@ -1843,14 +1843,14 @@
   <class old="com.volmit.iris.util.CuboidException" new="com.volmit.iris.util.CuboidException">
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.CubicNoise" new="com.volmit.iris.noise.CubicNoise">
+  <class old="com.volmit.iris.generator.noise.CubicNoise" new="com.volmit.iris.generator.noise.CubicNoise">
    <method old="f(D)D" new="hashCode" s="11" e="11"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="16" e="16"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostNibSmoother" new="com.volmit.iris.gen.post.PostNibSmoother">
+  <class old="com.volmit.iris.generator.legacy.post.PostNibSmoother" new="com.volmit.iris.generator.legacy.post.PostNibSmoother">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -2005,7 +2005,7 @@
    <field old="y F" new="H"/>
    <field old="z F" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.parallax.ParallaxSection$1" new="com.volmit.iris.gen.parallax.ParallaxSection$1">
+  <class old="com.volmit.iris.generator.parallax.ParallaxSection$1" new="com.volmit.iris.generator.parallax.ParallaxSection$1">
    <method old="get(III)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="optimize()V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="read(Ljava/io/DataInputStream;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -2172,7 +2172,7 @@
    <field old="y I" new="H"/>
    <field old="z I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureClose" new="com.volmit.iris.command.CommandIrisStructureClose">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureClose" new="com.volmit.iris.manager.command.CommandIrisStructureClose">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="47" e="47"/>
@@ -2476,7 +2476,7 @@
    <method old="close()V" new="close" s="43" e="43"/>
    <method old="read([CII)I" new="read" s="40" e="40"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisWhatBlock" new="com.volmit.iris.command.CommandIrisWhatBlock">
+  <class old="com.volmit.iris.manager.command.CommandIrisWhatBlock" new="com.volmit.iris.manager.command.CommandIrisWhatBlock">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="45" e="45"/>
@@ -2493,7 +2493,7 @@
    <method old="setCategory(Ljava/lang/String;)V" new="hashCode"/>
    <method old="setDescription(Ljava/lang/String;)V" new="getMaxHeight"/>
   </class>
-  <class old="com.volmit.iris.noise.FractalCubicNoise" new="com.volmit.iris.noise.FractalCubicNoise">
+  <class old="com.volmit.iris.generator.noise.FractalCubicNoise" new="com.volmit.iris.generator.noise.FractalCubicNoise">
    <method old="f(D)D" new="hashCode" s="14" e="14"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="19" e="19"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="24" e="24"/>
@@ -2529,7 +2529,7 @@
    <field old="yAxis Lcom/volmit/iris/object/IrisAxisRotationClamp;" new="H"/>
    <field old="zAxis Lcom/volmit/iris/object/IrisAxisRotationClamp;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioList" new="com.volmit.iris.command.CommandIrisStudioList">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioList" new="com.volmit.iris.manager.command.CommandIrisStudioList">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="52" e="52"/>
@@ -2561,7 +2561,7 @@
    <field old="jar Ljava/io/File;" new="H"/>
    <field old="superPackage Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisLoot" new="com.volmit.iris.command.CommandIrisLoot">
+  <class old="com.volmit.iris.manager.command.CommandIrisLoot" new="com.volmit.iris.manager.command.CommandIrisLoot">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="94" e="94"/>
@@ -2668,7 +2668,7 @@
    <field old="tables Lcom/volmit/iris/util/KList;" new="M"/>
    <field old="tt Lcom/volmit/iris/gen/atomics/AtomicCache;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisWhatHand" new="com.volmit.iris.command.CommandIrisWhatHand">
+  <class old="com.volmit.iris.manager.command.CommandIrisWhatHand" new="com.volmit.iris.manager.command.CommandIrisWhatHand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="41" e="41"/>
@@ -2685,7 +2685,7 @@
    <method old="setCategory(Ljava/lang/String;)V" new="hashCode"/>
    <method old="setDescription(Ljava/lang/String;)V" new="getMaxHeight"/>
   </class>
-  <class old="com.volmit.iris.noise.SimplexNoise" new="com.volmit.iris.noise.SimplexNoise">
+  <class old="com.volmit.iris.generator.noise.SimplexNoise" new="com.volmit.iris.generator.noise.SimplexNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="34"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="39" e="52"/>
@@ -2797,7 +2797,7 @@
    <method old="transform(Ljava/util/zip/ZipEntry;Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="encoding Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicSliverMap" new="com.volmit.iris.gen.atomics.AtomicSliverMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicSliverMap" new="com.volmit.iris.generator.legacy.atomics.AtomicSliverMap">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="22" e="22"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals" s="22" e="22"/>
    <method old="getSliver(II)Lcom/volmit/iris/gen/atomics/AtomicSliver;" new="ALLATORIxDEMOxanyValidIdentifierName" s="166" e="166"/>
@@ -2827,16 +2827,16 @@
   <class old="com.volmit.iris.util.CustomOutputStream" new="com.volmit.iris.util.CustomOutputStream">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gui.NoiseView$1" new="com.volmit.iris.gui.NoiseView$1">
+  <class old="com.volmit.iris.manager.gui.NoiseView$1" new="com.volmit.iris.manager.gui.NoiseView$1">
    <method old="mouseDragged(Ljava/awt/event/MouseEvent;)V" new="mouseDragged" s="90" e="96"/>
    <method old="mouseMoved(Ljava/awt/event/MouseEvent;)V" new="mouseMoved" s="80" e="86"/>
    <field old="this$0 Lcom/volmit/iris/gui/NoiseView;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gui.NoiseView$2" new="com.volmit.iris.gui.NoiseView$2">
+  <class old="com.volmit.iris.manager.gui.NoiseView$2" new="com.volmit.iris.manager.gui.NoiseView$2">
    <method old="actionPerformed(Ljava/awt/event/ActionEvent;)V" new="actionPerformed" s="273" e="281"/>
    <field old="val$nv Lcom/volmit/iris/gui/NoiseView;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gui.NoiseView$3" new="com.volmit.iris.gui.NoiseView$3">
+  <class old="com.volmit.iris.manager.gui.NoiseView$3" new="com.volmit.iris.manager.gui.NoiseView$3">
    <method old="run()V" new="run" s="297" e="298"/>
    <field old="val$g Lcom/volmit/iris/gen/IrisChunkGenerator;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
@@ -2928,7 +2928,7 @@
    <field old="table [Lcom/google/gson/internal/LinkedHashTreeMap$Node;" new="I"/>
    <field old="threshold I" new="g"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureVariants" new="com.volmit.iris.command.CommandIrisStructureVariants">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureVariants" new="com.volmit.iris.manager.command.CommandIrisStructureVariants">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="46" e="46"/>
@@ -3128,7 +3128,7 @@
    <method old="makeAccessible(Ljava/lang/reflect/AccessibleObject;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="instance Lcom/google/gson/internal/reflect/ReflectionAccessor;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.ParallelChunkGenerator" new="com.volmit.iris.gen.ParallelChunkGenerator">
+  <class old="com.volmit.iris.generator.ParallelChunkGenerator" new="com.volmit.iris.generator.ParallelChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="18" e="18"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -3273,7 +3273,7 @@
    <field old="ticks I" new="j"/>
    <field old="world Lorg/bukkit/World;" new="A"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisGoto" new="com.volmit.iris.command.CommandIrisGoto">
+  <class old="com.volmit.iris.manager.command.CommandIrisGoto" new="com.volmit.iris.manager.command.CommandIrisGoto">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="133" e="133"/>
@@ -3435,7 +3435,7 @@
    <method old="write(Ljava/io/Writer;II)Ljava/io/Writer;" new="ALLATORIxDEMOxanyValidIdentifierName" s="1214" e="1249"/>
    <field old="myArrayList Ljava/util/ArrayList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioUpdate" new="com.volmit.iris.command.CommandIrisStudioUpdate">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioUpdate" new="com.volmit.iris.manager.command.CommandIrisStudioUpdate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="29" e="29"/>
@@ -3502,7 +3502,7 @@
    <field old="modified Z" new="H"/>
    <field old="serialVersionUID J" new="M"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicRegionData" new="com.volmit.iris.gen.atomics.AtomicRegionData">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicRegionData" new="com.volmit.iris.generator.legacy.atomics.AtomicRegionData">
    <method old="contains(II)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="77" e="77"/>
    <method old="delete(II)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="82" e="83"/>
    <method old="get(II)Lcom/volmit/iris/gen/atomics/AtomicSliverMap;" new="ALLATORIxDEMOxanyValidIdentifierName" s="110" e="148"/>
@@ -3624,7 +3624,7 @@
    <field old="useCache Lcom/volmit/iris/util/KMap;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="useFlip Lcom/volmit/iris/util/ChronoLatch;" new="H"/>
   </class>
-  <class old="com.volmit.iris.gen.DimensionChunkGenerator" new="com.volmit.iris.gen.DimensionChunkGenerator">
+  <class old="com.volmit.iris.generator.DimensionChunkGenerator" new="com.volmit.iris.generator.DimensionChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="23" e="23"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -4052,7 +4052,7 @@
    <method old="isUnderwater(II)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="set(IIILorg/bukkit/block/data/BlockData;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.PermissionIris" new="com.volmit.iris.command.PermissionIris">
+  <class old="com.volmit.iris.manager.command.PermissionIris" new="com.volmit.iris.manager.command.PermissionIris">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getChildren()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getDescription()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName" s="20" e="20"/>
@@ -4113,7 +4113,7 @@
    <field old="NULL_MDCA_URL Ljava/lang/String;" new="M"/>
    <field old="mdcAdapter Lorg/slf4j/spi/MDCAdapter;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisPregen" new="com.volmit.iris.command.CommandIrisPregen">
+  <class old="com.volmit.iris.manager.command.CommandIrisPregen" new="com.volmit.iris.manager.command.CommandIrisPregen">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -4334,7 +4334,7 @@
    <field old="command Lcom/volmit/iris/util/ICommand;" new="M"/>
    <field old="tag Ljava/lang/String;" new="H"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.GenLayerUpdate" new="com.volmit.iris.gen.layer.GenLayerUpdate">
+  <class old="com.volmit.iris.generator.legacy.layer.GenLayerUpdate" new="com.volmit.iris.generator.legacy.layer.GenLayerUpdate">
    <method old="addItems(ZLorg/bukkit/inventory/Inventory;Lcom/volmit/iris/util/RNG;Lcom/volmit/iris/util/KList;Lcom/volmit/iris/object/InventorySlotType;IIII)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="135" e="158"/>
    <method old="getLootTables(Lcom/volmit/iris/util/RNG;Lorg/bukkit/block/Block;)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName" s="95" e="130"/>
    <method old="injectTables(Lcom/volmit/iris/util/KList;Lcom/volmit/iris/object/IrisLootReference;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="85" e="91"/>
@@ -4534,7 +4534,7 @@
    <field old="ZIP64_MAGIC_SHORT I" new="H"/>
    <field old="ZIP64_MIN_VERSION I" new="M"/>
   </class>
-  <class old="com.volmit.iris.gen.ContextualChunkGenerator" new="com.volmit.iris.gen.ContextualChunkGenerator">
+  <class old="com.volmit.iris.generator.ContextualChunkGenerator" new="com.volmit.iris.generator.ContextualChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="47" e="47"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn" s="264" e="264"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -4707,13 +4707,13 @@
    <field old="interval J" new="H"/>
    <field old="since J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.CellularNoise" new="com.volmit.iris.noise.CellularNoise">
+  <class old="com.volmit.iris.generator.noise.CellularNoise" new="com.volmit.iris.generator.noise.CellularNoise">
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="15" e="15"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="20" e="20"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="25" e="25"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.NoiseGenerator" new="com.volmit.iris.noise.NoiseGenerator">
+  <class old="com.volmit.iris.generator.noise.NoiseGenerator" new="com.volmit.iris.generator.noise.NoiseGenerator">
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -4943,11 +4943,11 @@
   <class old="com.volmit.iris.util.IRare" new="com.volmit.iris.util.IRare">
    <method old="getRarity()I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$Float2" new="com.volmit.iris.noise.FastNoise$Float2">
+  <class old="com.volmit.iris.generator.noise.FastNoise$Float2" new="com.volmit.iris.generator.noise.FastNoise$Float2">
    <field old="x F" new="H"/>
    <field old="y F" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$Float3" new="com.volmit.iris.noise.FastNoise$Float3">
+  <class old="com.volmit.iris.generator.noise.FastNoise$Float3" new="com.volmit.iris.generator.noise.FastNoise$Float3">
    <field old="x F" new="M"/>
    <field old="y F" new="H"/>
    <field old="z F" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -4983,7 +4983,7 @@
    <field old="threads I" new="M"/>
    <field old="workload I" new="H"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.GenLayerCarve" new="com.volmit.iris.gen.layer.GenLayerCarve">
+  <class old="com.volmit.iris.generator.legacy.layer.GenLayerCarve" new="com.volmit.iris.generator.legacy.layer.GenLayerCarve">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="generate(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="43" e="43"/>
    <method old="isCarved(III)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="22" e="37"/>
@@ -6064,7 +6064,7 @@
   </class>
   <class old="com.volmit.iris.util.RegistryListBiome" new="com.volmit.iris.util.RegistryListBiome">
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioClose" new="com.volmit.iris.command.CommandIrisStudioClose">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioClose" new="com.volmit.iris.manager.command.CommandIrisStudioClose">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="70" e="70"/>
@@ -6437,7 +6437,7 @@
    <field old="prefix Ljava/lang/String;" new="H"/>
    <field old="suffix Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostWaterlogger" new="com.volmit.iris.gen.post.PostWaterlogger">
+  <class old="com.volmit.iris.generator.legacy.post.PostWaterlogger" new="com.volmit.iris.generator.legacy.post.PostWaterlogger">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -6842,7 +6842,7 @@
    <field old="BYTE_1_SHIFT I" new="H"/>
    <field old="value I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.ParallaxChunkGenerator" new="com.volmit.iris.gen.ParallaxChunkGenerator">
+  <class old="com.volmit.iris.generator.ParallaxChunkGenerator" new="com.volmit.iris.generator.ParallaxChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="38" e="38"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -7593,7 +7593,7 @@
    <field old="y F" new="M"/>
    <field old="z F" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.PolygonGenerator" new="com.volmit.iris.noise.PolygonGenerator">
+  <class old="com.volmit.iris.generator.noise.PolygonGenerator" new="com.volmit.iris.generator.noise.PolygonGenerator">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getClosestNeighbor([D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="131" e="143"/>
    <method old="getIndex([D)I" new="ALLATORIxDEMOxanyValidIdentifierName" s="148" e="169"/>
@@ -7614,7 +7614,7 @@
    <field old="DOWN Lcom/volmit/iris/util/ScoreDirection;" new="H"/>
    <field old="UP Lcom/volmit/iris/util/ScoreDirection;" new="M"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureSave" new="com.volmit.iris.command.CommandIrisStructureSave">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureSave" new="com.volmit.iris.manager.command.CommandIrisStructureSave">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="47" e="47"/>
@@ -7646,7 +7646,7 @@
    <field old="NUMBER Lcom/google/gson/stream/JsonToken;" new="j"/>
    <field old="STRING Lcom/google/gson/stream/JsonToken;" new="D"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$NoiseType" new="com.volmit.iris.noise.FastNoise$NoiseType">
+  <class old="com.volmit.iris.generator.noise.FastNoise$NoiseType" new="com.volmit.iris.generator.noise.FastNoise$NoiseType">
    <method old="valueOf(Ljava/lang/String;)Lcom/volmit/iris/noise/FastNoise$NoiseType;" new="valueOf" s="35" e="35"/>
    <method old="values()[Lcom/volmit/iris/noise/FastNoise$NoiseType;" new="values" s="35" e="35"/>
    <field old="$VALUES [Lcom/volmit/iris/noise/FastNoise$NoiseType;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -7933,7 +7933,7 @@
    <field old="val$path Ljava/lang/String;" new="H"/>
    <field old="val$zip Ljava/io/File;" new="M"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisMap" new="com.volmit.iris.command.CommandIrisMap">
+  <class old="com.volmit.iris.manager.command.CommandIrisMap" new="com.volmit.iris.manager.command.CommandIrisMap">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="27" e="27"/>
@@ -7980,7 +7980,7 @@
   <class old="com.volmit.iris.util.NoiseProvider" new="com.volmit.iris.util.NoiseProvider">
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise" new="com.volmit.iris.noise.FastNoise">
+  <class old="com.volmit.iris.generator.noise.FastNoise" new="com.volmit.iris.generator.noise.FastNoise">
    <method old="CalculateFractalBounding()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="286" e="294"/>
    <method old="CubicLerp(FFFFF)F" new="ALLATORIxDEMOxanyValidIdentifierName" s="280" e="281"/>
    <method old="DGetWhiteNoise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="672" e="675"/>
@@ -8501,7 +8501,7 @@
    <method old="getPermissions(Ljava/io/File;)Lorg/zeroturnaround/zip/ZTFilePermissions;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="setPermissions(Ljava/io/File;Lorg/zeroturnaround/zip/ZTFilePermissions;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.MasterLock" new="com.volmit.iris.gen.atomics.MasterLock">
+  <class old="com.volmit.iris.generator.legacy.atomics.MasterLock" new="com.volmit.iris.generator.legacy.atomics.MasterLock">
    <method old="clear()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="19" e="20"/>
    <method old="lock(Ljava/lang/String;)V" new="hashCode" s="24" e="33"/>
    <method old="unlock(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="37" e="46"/>
@@ -8532,7 +8532,7 @@
    <method old="v()Lcom/volmit/iris/util/KList;" new="hashCode"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioOpen" new="com.volmit.iris.command.CommandIrisStudioOpen">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioOpen" new="com.volmit.iris.manager.command.CommandIrisStudioOpen">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="32" e="32"/>
@@ -8699,7 +8699,7 @@
    <field old="constantToName Ljava/util/Map;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="nameToConstant Ljava/util/Map;" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.PolygonGenerator$EnumPolygonGenerator" new="com.volmit.iris.noise.PolygonGenerator$EnumPolygonGenerator">
+  <class old="com.volmit.iris.generator.noise.PolygonGenerator$EnumPolygonGenerator" new="com.volmit.iris.generator.noise.PolygonGenerator$EnumPolygonGenerator">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getChoice([D)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName" s="216" e="216"/>
    <method old="getClosestNeighbor([D)D" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -8859,7 +8859,7 @@
    <field old="TYPE_SHORT I" new="e"/>
    <field old="TYPE_STRING I" new="g"/>
   </class>
-  <class old="com.volmit.iris.gen.parallax.ParallaxWorld" new="com.volmit.iris.gen.parallax.ParallaxWorld">
+  <class old="com.volmit.iris.generator.parallax.ParallaxWorld" new="com.volmit.iris.generator.parallax.ParallaxWorld">
    <method old="clean(J)V" new="hashCode" s="41" e="61"/>
    <method old="getBlock(III)Lorg/bukkit/block/data/BlockData;" new="ALLATORIxDEMOxanyValidIdentifierName" s="72" e="77"/>
    <method old="getRegion(II)Lcom/volmit/iris/gen/parallax/ParallaxRegion;" new="ALLATORIxDEMOxanyValidIdentifierName" s="97" e="100"/>
@@ -9128,7 +9128,7 @@
    <field old="UPPER_CAMEL_CASE Lcom/google/gson/FieldNamingPolicy;" new="D"/>
    <field old="UPPER_CAMEL_CASE_WITH_SPACES Lcom/google/gson/FieldNamingPolicy;" new="j"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioCreate" new="com.volmit.iris.command.CommandIrisStudioCreate">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioCreate" new="com.volmit.iris.manager.command.CommandIrisStudioCreate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="37" e="37"/>
@@ -9462,7 +9462,7 @@
    <field old="ceiling I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="floor I" new="H"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectSave" new="com.volmit.iris.command.CommandIrisObjectSave">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectSave" new="com.volmit.iris.manager.command.CommandIrisObjectSave">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="85" e="85"/>
@@ -9515,7 +9515,7 @@
    <method old="tick(Lorg/bukkit/entity/Player;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="49" e="60"/>
    <method old="update(ZLorg/bukkit/Location;Lorg/bukkit/inventory/ItemStack;)Lorg/bukkit/inventory/ItemStack;" new="ALLATORIxDEMOxanyValidIdentifierName" s="250" e="263"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioVerify" new="com.volmit.iris.command.CommandIrisStudioVerify">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioVerify" new="com.volmit.iris.manager.command.CommandIrisStudioVerify">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="46" e="46"/>
@@ -9540,7 +9540,7 @@
    <field old="val$allocateInstance Ljava/lang/reflect/Method;" new="H"/>
    <field old="val$unsafe Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FractalRigidMultiSimplexNoise" new="com.volmit.iris.noise.FractalRigidMultiSimplexNoise">
+  <class old="com.volmit.iris.generator.noise.FractalRigidMultiSimplexNoise" new="com.volmit.iris.generator.noise.FractalRigidMultiSimplexNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
@@ -9580,7 +9580,7 @@
   <class old="com.volmit.iris.util.Function3" new="com.volmit.iris.util.Function3">
    <method old="apply(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIris" new="com.volmit.iris.command.CommandIris">
+  <class old="com.volmit.iris.manager.command.CommandIris" new="com.volmit.iris.manager.command.CommandIris">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="45" e="45"/>
@@ -9669,7 +9669,7 @@
   <class old="com.google.gson.JsonSerializer" new="com.google.gson.JsonSerializer">
    <method old="serialize(Ljava/lang/Object;Ljava/lang/reflect/Type;Lcom/google/gson/JsonSerializationContext;)Lcom/google/gson/JsonElement;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.BiomeDataProvider" new="com.volmit.iris.gen.layer.BiomeDataProvider">
+  <class old="com.volmit.iris.generator.legacy.layer.BiomeDataProvider" new="com.volmit.iris.generator.legacy.layer.BiomeDataProvider">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="12" e="12"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals" s="12" e="12"/>
    <method old="generateData(Lcom/volmit/iris/gen/ContextualChunkGenerator;DDIILcom/volmit/iris/object/IrisRegion;)Lcom/volmit/iris/util/BiomeResult;" new="ALLATORIxDEMOxanyValidIdentifierName" s="33" e="33"/>
@@ -9722,7 +9722,7 @@
    <field old="refereceList Ljava/util/List;" new="D"/>
    <field old="serialVersionUID J" new="I"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.GenLayerCave" new="com.volmit.iris.gen.layer.GenLayerCave">
+  <class old="com.volmit.iris.generator.legacy.layer.GenLayerCave" new="com.volmit.iris.generator.legacy.layer.GenLayerCave">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="can(Lorg/bukkit/Material;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="191" e="191"/>
    <method old="canAir(Lorg/bukkit/Material;)Z" new="run" s="181" e="181"/>
@@ -9851,7 +9851,7 @@
    <method old="getMarker(Ljava/lang/String;)Lorg/slf4j/Marker;" new="hashCode" s="63" e="72"/>
    <field old="markerMap Ljava/util/Map;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$1" new="com.volmit.iris.noise.FastNoise$1">
+  <class old="com.volmit.iris.generator.noise.FastNoise$1" new="com.volmit.iris.generator.noise.FastNoise$1">
    <field old="$SwitchMap$com$volmit$iris$noise$FastNoise$CellularDistanceFunction [I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="$SwitchMap$com$volmit$iris$noise$FastNoise$CellularReturnType [I" new="g"/>
    <field old="$SwitchMap$com$volmit$iris$noise$FastNoise$FractalType [I" new="j"/>
@@ -9866,7 +9866,7 @@
    <method old="getLocalFileDataLength()Lorg/zeroturnaround/zip/extra/ZipShort;" new="hashCode"/>
    <method old="parseFromLocalFileData([BII)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructure" new="com.volmit.iris.command.CommandIrisStructure">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructure" new="com.volmit.iris.manager.command.CommandIrisStructure">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="50" e="50"/>
@@ -10004,7 +10004,7 @@
    <method old="getType()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="op(Lorg/bukkit/util/Vector;)Lorg/bukkit/util/Vector;" new="ALLATORIxDEMOxanyValidIdentifierName" s="436" e="436"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectContract" new="com.volmit.iris.command.CommandIrisObjectContract">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectContract" new="com.volmit.iris.manager.command.CommandIrisObjectContract">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -10090,7 +10090,7 @@
    <field old="wallGenerator Lcom/volmit/iris/gen/atomics/AtomicCache;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="wallStyle Lcom/volmit/iris/object/IrisGeneratorStyle;" new="C"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostFloatingNibDeleter" new="com.volmit.iris.gen.post.PostFloatingNibDeleter">
+  <class old="com.volmit.iris.generator.legacy.post.PostFloatingNibDeleter" new="com.volmit.iris.generator.legacy.post.PostFloatingNibDeleter">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -10123,7 +10123,7 @@
    <field old="AIR Lorg/bukkit/block/data/BlockData;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="gen Lcom/volmit/iris/gen/PostBlockChunkGenerator;" new="g"/>
   </class>
-  <class old="com.volmit.iris.noise.FlatNoise" new="com.volmit.iris.noise.FlatNoise">
+  <class old="com.volmit.iris.generator.noise.FlatNoise" new="com.volmit.iris.generator.noise.FlatNoise">
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="13" e="13"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="19" e="19"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="25" e="25"/>
@@ -10243,7 +10243,7 @@
    <field old="underwater Z" new="D"/>
    <field old="waterloggable Z" new="j"/>
   </class>
-  <class old="com.volmit.iris.noise.CellGenerator" new="com.volmit.iris.noise.CellGenerator">
+  <class old="com.volmit.iris.generator.noise.CellGenerator" new="com.volmit.iris.generator.noise.CellGenerator">
    <method old="getCellScale()D" new="hashCode" s="14" e="14"/>
    <method old="getDistance(DD)F" new="ALLATORIxDEMOxanyValidIdentifierName" s="41" e="41"/>
    <method old="getDistance(DDD)F" new="ALLATORIxDEMOxanyValidIdentifierName" s="46" e="46"/>
@@ -10401,7 +10401,7 @@
    <method old="toString()Ljava/lang/String;" new="toString" s="66" e="71"/>
    <field old="value Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicSliver" new="com.volmit.iris.gen.atomics.AtomicSliver">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicSliver" new="com.volmit.iris.generator.legacy.atomics.AtomicSliver">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="24" e="24"/>
    <method old="dontUpdate(I)V" new="run" s="67" e="68"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals" s="24" e="24"/>
@@ -10651,7 +10651,7 @@
   <class old="org.slf4j.helpers.NOPLoggerFactory" new="org.slf4j.helpers.NOPLoggerFactory">
    <method old="getLogger(Ljava/lang/String;)Lorg/slf4j/Logger;" new="ALLATORIxDEMOxanyValidIdentifierName" s="46" e="46"/>
   </class>
-  <class old="com.volmit.iris.noise.CNG" new="com.volmit.iris.noise.CNG">
+  <class old="com.volmit.iris.generator.noise.CNG" new="com.volmit.iris.generator.noise.CNG">
    <method old="bake()Lcom/volmit/iris/noise/CNG;" new="ALLATORIxDEMOxanyValidIdentifierName" s="151" e="153"/>
    <method old="child(Lcom/volmit/iris/noise/CNG;)Lcom/volmit/iris/noise/CNG;" new="ALLATORIxDEMOxanyValidIdentifierName" s="158" e="164"/>
    <method old="down(D)Lcom/volmit/iris/noise/CNG;" new="hashCode" s="205" e="206"/>
@@ -10773,7 +10773,7 @@
    <field old="type Ljava/lang/String;" new="H"/>
    <field old="unbreakable Z" new="A"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisMetrics" new="com.volmit.iris.command.CommandIrisMetrics">
+  <class old="com.volmit.iris.manager.command.CommandIrisMetrics" new="com.volmit.iris.manager.command.CommandIrisMetrics">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="54" e="54"/>
@@ -11003,7 +11003,7 @@
    <field old="serializeSpecialFloatingPointValues Z" new="j"/>
    <field old="timeStyle I" new="A"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureMore" new="com.volmit.iris.command.CommandIrisStructureMore">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureMore" new="com.volmit.iris.manager.command.CommandIrisStructureMore">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="47" e="47"/>
@@ -11070,7 +11070,7 @@
    <field old="z1 I" new="g"/>
    <field old="z2 I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicIntMap" new="com.volmit.iris.gen.atomics.AtomicIntMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicIntMap" new="com.volmit.iris.generator.legacy.atomics.AtomicIntMap">
    <method old="get(II)I" new="ALLATORIxDEMOxanyValidIdentifierName" s="13" e="13"/>
    <method old="set(III)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="18"/>
    <field old="data Ljava/util/concurrent/atomic/AtomicIntegerArray;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -11103,7 +11103,7 @@
    <field old="k Ljava/lang/Object;" new="H"/>
    <field old="v Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicWorldData" new="com.volmit.iris.gen.atomics.AtomicWorldData">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicWorldData" new="com.volmit.iris.generator.legacy.atomics.AtomicWorldData">
    <method old="clean(I)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="269" e="337"/>
    <method old="createSection(II)Lcom/volmit/iris/gen/atomics/AtomicRegionData;" new="ALLATORIxDEMOxanyValidIdentifierName" s="241" e="249"/>
    <method old="deleteSection(II)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="86" e="88"/>
@@ -11280,7 +11280,7 @@
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="410" e="410"/>
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/math/BigDecimal;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="424" e="425"/>
   </class>
-  <class old="com.volmit.iris.noise.PerlinNoise" new="com.volmit.iris.noise.PerlinNoise">
+  <class old="com.volmit.iris.generator.noise.PerlinNoise" new="com.volmit.iris.generator.noise.PerlinNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="34"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="39" e="52"/>
@@ -11338,7 +11338,7 @@
    <method old="process(Ljava/io/InputStream;Ljava/util/zip/ZipEntry;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="450" e="451"/>
    <field old="file Ljava/io/File;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$CellularDistanceFunction" new="com.volmit.iris.noise.FastNoise$CellularDistanceFunction">
+  <class old="com.volmit.iris.generator.noise.FastNoise$CellularDistanceFunction" new="com.volmit.iris.generator.noise.FastNoise$CellularDistanceFunction">
    <method old="valueOf(Ljava/lang/String;)Lcom/volmit/iris/noise/FastNoise$CellularDistanceFunction;" new="valueOf" s="63" e="63"/>
    <method old="values()[Lcom/volmit/iris/noise/FastNoise$CellularDistanceFunction;" new="values" s="63" e="63"/>
    <field old="$VALUES [Lcom/volmit/iris/noise/FastNoise$CellularDistanceFunction;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -11591,7 +11591,7 @@
    <field old="loadFile Ljava/io/File;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="loadKey Ljava/lang/String;" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$FractalType" new="com.volmit.iris.noise.FastNoise$FractalType">
+  <class old="com.volmit.iris.generator.noise.FastNoise$FractalType" new="com.volmit.iris.generator.noise.FastNoise$FractalType">
    <method old="valueOf(Ljava/lang/String;)Lcom/volmit/iris/noise/FastNoise$FractalType;" new="valueOf" s="56" e="56"/>
    <method old="values()[Lcom/volmit/iris/noise/FastNoise$FractalType;" new="values" s="56" e="56"/>
    <field old="$VALUES [Lcom/volmit/iris/noise/FastNoise$FractalType;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -11602,7 +11602,7 @@
   <class old="com.google.gson.internal.bind.TimeTypeAdapter$1" new="com.google.gson.internal.bind.TimeTypeAdapter$1">
    <method old="create(Lcom/google/gson/Gson;Lcom/google/gson/reflect/TypeToken;)Lcom/google/gson/TypeAdapter;" new="ALLATORIxDEMOxanyValidIdentifierName" s="44" e="44"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisHotload" new="com.volmit.iris.command.CommandIrisHotload">
+  <class old="com.volmit.iris.manager.command.CommandIrisHotload" new="com.volmit.iris.manager.command.CommandIrisHotload">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="45" e="45"/>
@@ -11792,7 +11792,7 @@
   </class>
   <class old="com.volmit.iris.util.RegistryListLoot" new="com.volmit.iris.util.RegistryListLoot">
   </class>
-  <class old="com.volmit.iris.gen.parallax.ParallaxChunk" new="com.volmit.iris.gen.parallax.ParallaxChunk">
+  <class old="com.volmit.iris.generator.parallax.ParallaxChunk" new="com.volmit.iris.generator.parallax.ParallaxChunk">
    <method old="export(Lorg/bukkit/generator/ChunkGenerator$ChunkData;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="57" e="80"/>
    <method old="get(III)Lorg/bukkit/block/data/BlockData;" new="ALLATORIxDEMOxanyValidIdentifierName" s="135" e="135"/>
    <method old="getSection(IZ)Lcom/volmit/iris/gen/parallax/ParallaxSection;" new="ALLATORIxDEMOxanyValidIdentifierName" s="145" e="155"/>
@@ -11873,7 +11873,7 @@
    <method old="getValue()Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="name Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectXAY" new="com.volmit.iris.command.CommandIrisObjectXAY">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectXAY" new="com.volmit.iris.manager.command.CommandIrisObjectXAY">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="89" e="89"/>
@@ -12060,7 +12060,7 @@
    <field old="soundDistance I" new="E"/>
    <field old="volume D" new="G"/>
   </class>
-  <class old="com.volmit.iris.noise.NoiseType" new="com.volmit.iris.noise.NoiseType">
+  <class old="com.volmit.iris.generator.noise.NoiseType" new="com.volmit.iris.generator.noise.NoiseType">
    <method old="create(J)Lcom/volmit/iris/noise/NoiseGenerator;" new="getTypeAndData" s="26" e="26"/>
    <method old="lambda$static$0(J)Lcom/volmit/iris/noise/NoiseGenerator;" new="ALLATORIxDEMOxanyValidIdentifierName" s="4" e="4"/>
    <method old="lambda$static$1(J)Lcom/volmit/iris/noise/NoiseGenerator;" new="hashCode" s="5" e="5"/>
@@ -12176,14 +12176,14 @@
    <method old="toString()Ljava/lang/String;" new="toString" s="66" e="71"/>
    <field old="value I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.GlobNoise" new="com.volmit.iris.noise.GlobNoise">
+  <class old="com.volmit.iris.generator.noise.GlobNoise" new="com.volmit.iris.generator.noise.GlobNoise">
    <method old="f(D)D" new="hashCode" s="15" e="15"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="20" e="20"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="25" e="25"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="30" e="30"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.OctaveNoise" new="com.volmit.iris.noise.OctaveNoise">
+  <class old="com.volmit.iris.generator.noise.OctaveNoise" new="com.volmit.iris.generator.noise.OctaveNoise">
    <method old="setOctaves(I)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
   <class old="com.volmit.iris.util.ByteTag" new="com.volmit.iris.util.ByteTag">
@@ -12193,7 +12193,7 @@
    <method old="toString()Ljava/lang/String;" new="toString" s="66" e="71"/>
    <field old="value B" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.IrisChunkGenerator" new="com.volmit.iris.gen.IrisChunkGenerator">
+  <class old="com.volmit.iris.generator.IrisChunkGenerator" new="com.volmit.iris.generator.IrisChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="33" e="33"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -12446,7 +12446,7 @@
    <method old="setHeight(III)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="18"/>
    <field old="height [B" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisWorld" new="com.volmit.iris.command.CommandIrisWorld">
+  <class old="com.volmit.iris.manager.command.CommandIrisWorld" new="com.volmit.iris.manager.command.CommandIrisWorld">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="52" e="52"/>
@@ -12817,7 +12817,7 @@
    <field old="val$name Ljava/lang/String;" new="M"/>
    <field old="val$priority I" new="H"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectPaste" new="com.volmit.iris.command.CommandIrisObjectPaste">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectPaste" new="com.volmit.iris.manager.command.CommandIrisObjectPaste">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="83" e="83"/>
@@ -12834,7 +12834,7 @@
    <method old="setCategory(Ljava/lang/String;)V" new="hashCode"/>
    <method old="setDescription(Ljava/lang/String;)V" new="getMaxHeight"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisTC" new="com.volmit.iris.command.CommandIrisTC">
+  <class old="com.volmit.iris.manager.command.CommandIrisTC" new="com.volmit.iris.manager.command.CommandIrisTC">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="53" e="53"/>
@@ -12851,7 +12851,7 @@
    <method old="setCategory(Ljava/lang/String;)V" new="hashCode"/>
    <method old="setDescription(Ljava/lang/String;)V" new="getMaxHeight"/>
   </class>
-  <class old="com.volmit.iris.command.PermissionIrisStudio" new="com.volmit.iris.command.PermissionIrisStudio">
+  <class old="com.volmit.iris.manager.command.PermissionIrisStudio" new="com.volmit.iris.manager.command.PermissionIrisStudio">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getChildren()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getDescription()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName" s="16" e="16"/>
@@ -13083,7 +13083,7 @@
    <field old="b Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="serialVersionUID J" new="M"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureOpen" new="com.volmit.iris.command.CommandIrisStructureOpen">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureOpen" new="com.volmit.iris.manager.command.CommandIrisStructureOpen">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="49" e="49"/>
@@ -13103,7 +13103,7 @@
   <class old="com.volmit.iris.util.Cuboid$1" new="com.volmit.iris.util.Cuboid$1">
    <field old="$SwitchMap$com$volmit$iris$util$Cuboid$CuboidDirection [I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObject" new="com.volmit.iris.command.CommandIrisObject">
+  <class old="com.volmit.iris.manager.command.CommandIrisObject" new="com.volmit.iris.manager.command.CommandIrisObject">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="59" e="59"/>
@@ -13328,7 +13328,7 @@
    <field old="appendable Ljava/lang/Appendable;" new="H"/>
    <field old="currentWrite Lcom/google/gson/internal/Streams$AppendableWriter$CurrentWrite;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gui.NoiseView" new="com.volmit.iris.gui.NoiseView">
+  <class old="com.volmit.iris.manager.gui.NoiseView" new="com.volmit.iris.manager.gui.NoiseView">
    <method old="access$000(Lcom/volmit/iris/gen/IrisChunkGenerator;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="40" e="40"/>
    <method old="createAndShowGUI(Lcom/volmit/iris/gen/IrisChunkGenerator;)V" new="run" s="258" e="292"/>
    <method old="lambda$paint$0(II)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="189" e="208"/>
@@ -13369,7 +13369,7 @@
    <method old="getTypeCode(Ljava/lang/Class;)I" new="ALLATORIxDEMOxanyValidIdentifierName" s="91" e="116"/>
    <method old="getTypeName(Ljava/lang/Class;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName" s="54" e="79"/>
   </class>
-  <class old="com.volmit.iris.gen.PostBlockChunkGenerator" new="com.volmit.iris.gen.PostBlockChunkGenerator">
+  <class old="com.volmit.iris.generator.PostBlockChunkGenerator" new="com.volmit.iris.generator.PostBlockChunkGenerator">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="19" e="19"/>
    <method old="canSpawn(Lorg/bukkit/World;II)Z" new="canSpawn"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName" s="196" e="196"/>
@@ -13630,7 +13630,7 @@
    <field old="max D" new="H"/>
    <field old="min D" new="M"/>
   </class>
-  <class old="com.volmit.iris.noise.CellHeightNoise" new="com.volmit.iris.noise.CellHeightNoise">
+  <class old="com.volmit.iris.generator.noise.CellHeightNoise" new="com.volmit.iris.generator.noise.CellHeightNoise">
    <method old="filter(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
@@ -13662,7 +13662,7 @@
    <field old="CLEAR Lcom/volmit/iris/object/LootMode;" new="M"/>
    <field old="REPLACE Lcom/volmit/iris/object/LootMode;" new="H"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisRetry" new="com.volmit.iris.command.CommandIrisRetry">
+  <class old="com.volmit.iris.manager.command.CommandIrisRetry" new="com.volmit.iris.manager.command.CommandIrisRetry">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="53" e="53"/>
@@ -13782,7 +13782,7 @@
    <field old="randomPop Z" new="H"/>
    <field old="reversePop Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.FractalFBMSimplexNoise" new="com.volmit.iris.noise.FractalFBMSimplexNoise">
+  <class old="com.volmit.iris.generator.noise.FractalFBMSimplexNoise" new="com.volmit.iris.generator.noise.FractalFBMSimplexNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
@@ -13829,7 +13829,7 @@
    <field old="total Lcom/volmit/iris/util/RollingSequence;" new="g"/>
    <field old="update Lcom/volmit/iris/util/RollingSequence;" new="j"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostPotholeFiller" new="com.volmit.iris.gen.post.PostPotholeFiller">
+  <class old="com.volmit.iris.generator.legacy.post.PostPotholeFiller" new="com.volmit.iris.generator.legacy.post.PostPotholeFiller">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -13864,7 +13864,7 @@
   <class old="com.volmit.iris.object.StructureTileFace$1" new="com.volmit.iris.object.StructureTileFace$1">
    <field old="$SwitchMap$com$volmit$iris$object$StructureTileFace [I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureCreate" new="com.volmit.iris.command.CommandIrisStructureCreate">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureCreate" new="com.volmit.iris.manager.command.CommandIrisStructureCreate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="50" e="50"/>
@@ -13899,7 +13899,7 @@
   </class>
   <class old="com.volmit.iris.util.Permission" new="com.volmit.iris.util.Permission">
   </class>
-  <class old="com.volmit.iris.noise.FractalBillowPerlinNoise" new="com.volmit.iris.noise.FractalBillowPerlinNoise">
+  <class old="com.volmit.iris.generator.noise.FractalBillowPerlinNoise" new="com.volmit.iris.generator.noise.FractalBillowPerlinNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
@@ -13907,7 +13907,7 @@
    <method old="setOctaves(I)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="36" e="37"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStudioPackage" new="com.volmit.iris.command.CommandIrisStudioPackage">
+  <class old="com.volmit.iris.manager.command.CommandIrisStudioPackage" new="com.volmit.iris.manager.command.CommandIrisStudioPackage">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="49" e="49"/>
@@ -13948,7 +13948,7 @@
   <class old="com.google.gson.internal.bind.SqlDateTypeAdapter$1" new="com.google.gson.internal.bind.SqlDateTypeAdapter$1">
    <method old="create(Lcom/google/gson/Gson;Lcom/google/gson/reflect/TypeToken;)Lcom/google/gson/TypeAdapter;" new="ALLATORIxDEMOxanyValidIdentifierName" s="42" e="42"/>
   </class>
-  <class old="com.volmit.iris.noise.CNGFactory" new="com.volmit.iris.noise.CNGFactory">
+  <class old="com.volmit.iris.generator.noise.CNGFactory" new="com.volmit.iris.generator.noise.CNGFactory">
    <method old="create(Lcom/volmit/iris/util/RNG;)Lcom/volmit/iris/noise/CNG;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
   <class old="com.volmit.iris.object.IrisGenerator" new="com.volmit.iris.object.IrisGenerator">
@@ -14123,7 +14123,7 @@
   <class old="javax.vecmath.VecMathI18N" new="javax.vecmath.VecMathI18N">
    <method old="getString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName" s="42" e="48"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicRegionMap" new="com.volmit.iris.gen.atomics.AtomicRegionMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicRegionMap" new="com.volmit.iris.generator.legacy.atomics.AtomicRegionMap">
    <method old="get(II)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="set(IILjava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
@@ -14207,7 +14207,7 @@
    <field old="name Ljava/lang/String;" new="H"/>
    <field old="serialVersionUID J" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.RarityCellGenerator" new="com.volmit.iris.noise.RarityCellGenerator">
+  <class old="com.volmit.iris.generator.noise.RarityCellGenerator" new="com.volmit.iris.generator.noise.RarityCellGenerator">
    <method old="get(DDLcom/volmit/iris/util/KList;)Lcom/volmit/iris/util/IRare;" new="ALLATORIxDEMOxanyValidIdentifierName" s="16" e="65"/>
    <method old="getCellScale()D" new="hashCode"/>
    <method old="getDistance(DD)F" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -14276,7 +14276,7 @@
    <field old="mode I" new="D"/>
    <field old="uid I" new="j"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$Interp" new="com.volmit.iris.noise.FastNoise$Interp">
+  <class old="com.volmit.iris.generator.noise.FastNoise$Interp" new="com.volmit.iris.generator.noise.FastNoise$Interp">
    <method old="valueOf(Ljava/lang/String;)Lcom/volmit/iris/noise/FastNoise$Interp;" new="valueOf" s="49" e="49"/>
    <method old="values()[Lcom/volmit/iris/noise/FastNoise$Interp;" new="values" s="49" e="49"/>
    <field old="$VALUES [Lcom/volmit/iris/noise/FastNoise$Interp;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -14284,7 +14284,7 @@
    <field old="Linear Lcom/volmit/iris/noise/FastNoise$Interp;" new="g"/>
    <field old="Quintic Lcom/volmit/iris/noise/FastNoise$Interp;" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.FractalBillowSimplexNoise" new="com.volmit.iris.noise.FractalBillowSimplexNoise">
+  <class old="com.volmit.iris.generator.noise.FractalBillowSimplexNoise" new="com.volmit.iris.generator.noise.FractalBillowSimplexNoise">
    <method old="f(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
@@ -14304,7 +14304,7 @@
    <method old="compare(Ljava/lang/Object;Ljava/lang/Object;)I" new="compare" s="76" e="76"/>
    <field old="this$0 Lcom/volmit/iris/util/KMap;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.layer.GenLayerBiome" new="com.volmit.iris.gen.layer.GenLayerBiome">
+  <class old="com.volmit.iris.generator.legacy.layer.GenLayerBiome" new="com.volmit.iris.generator.legacy.layer.GenLayerBiome">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals" s="21" e="21"/>
@@ -14454,7 +14454,7 @@
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Number;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="189" e="190"/>
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="173" e="173"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicCache" new="com.volmit.iris.gen.atomics.AtomicCache">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicCache" new="com.volmit.iris.generator.legacy.atomics.AtomicCache">
    <method old="aquire(Ljava/util/function/Supplier;)Ljava/lang/Object;" new="hashCode" s="48" e="87"/>
    <method old="aquireNull(Ljava/util/function/Supplier;)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName" s="92" e="117"/>
    <method old="reset()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="36" e="44"/>
@@ -14551,7 +14551,7 @@
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="254" e="254"/>
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/util/concurrent/atomic/AtomicBoolean;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="259" e="260"/>
   </class>
-  <class old="com.volmit.iris.noise.FastNoise$CellularReturnType" new="com.volmit.iris.noise.FastNoise$CellularReturnType">
+  <class old="com.volmit.iris.generator.noise.FastNoise$CellularReturnType" new="com.volmit.iris.generator.noise.FastNoise$CellularReturnType">
    <method old="valueOf(Ljava/lang/String;)Lcom/volmit/iris/noise/FastNoise$CellularReturnType;" new="valueOf" s="70" e="70"/>
    <method old="values()[Lcom/volmit/iris/noise/FastNoise$CellularReturnType;" new="values" s="70" e="70"/>
    <field old="$VALUES [Lcom/volmit/iris/noise/FastNoise$CellularReturnType;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -14610,7 +14610,7 @@
   <class old="com.volmit.iris.util.inventory.WindowDecorator" new="com.volmit.iris.util.inventory.WindowDecorator">
    <method old="onDecorateBackground(Lcom/volmit/iris/util/inventory/Window;II)Lcom/volmit/iris/util/inventory/Element;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisStructureExpand" new="com.volmit.iris.command.CommandIrisStructureExpand">
+  <class old="com.volmit.iris.manager.command.CommandIrisStructureExpand" new="com.volmit.iris.manager.command.CommandIrisStructureExpand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="47" e="47"/>
@@ -14804,7 +14804,7 @@
    <field old="lock Ljava/util/concurrent/locks/ReentrantLock;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="tx Lcom/volmit/iris/util/TaskExecutor;" new="H"/>
   </class>
-  <class old="com.volmit.iris.noise.BasePerlinNoiseGenerator" new="com.volmit.iris.noise.BasePerlinNoiseGenerator">
+  <class old="com.volmit.iris.generator.noise.BasePerlinNoiseGenerator" new="com.volmit.iris.generator.noise.BasePerlinNoiseGenerator">
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="fade(D)D" new="hashCode"/>
    <method old="floor(D)I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
@@ -14969,11 +14969,11 @@
    <method old="AllatoriDecryptString(Ljava/lang/String;)Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.gen.atomics.AtomicBiomeMap" new="com.volmit.iris.gen.atomics.AtomicBiomeMap">
+  <class old="com.volmit.iris.generator.legacy.atomics.AtomicBiomeMap" new="com.volmit.iris.generator.legacy.atomics.AtomicBiomeMap">
    <method old="get(II)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="set(IILjava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisCreate" new="com.volmit.iris.command.CommandIrisCreate">
+  <class old="com.volmit.iris.manager.command.CommandIrisCreate" new="com.volmit.iris.manager.command.CommandIrisCreate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="197" e="197"/>
@@ -15031,7 +15031,7 @@
    <field old="spot Lcom/volmit/iris/gen/atomics/AtomicCache;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="type Lcom/volmit/iris/object/InferredType;" new="I"/>
   </class>
-  <class old="com.volmit.iris.noise.NoiseFactory" new="com.volmit.iris.noise.NoiseFactory">
+  <class old="com.volmit.iris.generator.noise.NoiseFactory" new="com.volmit.iris.generator.noise.NoiseFactory">
    <method old="create(J)Lcom/volmit/iris/noise/NoiseGenerator;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
   <class old="com.volmit.iris.util.MortarPermission" new="com.volmit.iris.util.MortarPermission">
@@ -15194,7 +15194,7 @@
    <method old="onDecorateBackground(Lcom/volmit/iris/util/inventory/Window;II)Lcom/volmit/iris/util/inventory/Element;" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="17"/>
    <field old="element Lcom/volmit/iris/util/inventory/Element;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisWhat" new="com.volmit.iris.command.CommandIrisWhat">
+  <class old="com.volmit.iris.manager.command.CommandIrisWhat" new="com.volmit.iris.manager.command.CommandIrisWhat">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="61" e="61"/>
@@ -15301,7 +15301,7 @@
    <method old="v()Lcom/volmit/iris/util/KList;" new="hashCode" s="325" e="325"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectP1" new="com.volmit.iris.command.CommandIrisObjectP1">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectP1" new="com.volmit.iris.manager.command.CommandIrisObjectP1">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="64" e="64"/>
@@ -15385,7 +15385,7 @@
    <field old="name Ljava/lang/String;" new="H"/>
    <field old="serialVersionUID J" new="M"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectP2" new="com.volmit.iris.command.CommandIrisObjectP2">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectP2" new="com.volmit.iris.manager.command.CommandIrisObjectP2">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="64" e="64"/>
@@ -15437,7 +15437,7 @@
    <field old="y I" new="M"/>
    <field old="z I" new="H"/>
   </class>
-  <class old="com.volmit.iris.gen.post.PostSlabber" new="com.volmit.iris.gen.post.PostSlabber">
+  <class old="com.volmit.iris.generator.legacy.post.PostSlabber" new="com.volmit.iris.generator.legacy.post.PostSlabber">
    <method old="canEqual(Ljava/lang/Object;)Z" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="caveFloors(II)Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="equals(Ljava/lang/Object;)Z" new="equals"/>
@@ -15473,14 +15473,14 @@
    <field old="gen Lcom/volmit/iris/gen/PostBlockChunkGenerator;" new="g"/>
    <field old="rng Lcom/volmit/iris/util/RNG;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.noise.VascularNoise" new="com.volmit.iris.noise.VascularNoise">
+  <class old="com.volmit.iris.generator.noise.VascularNoise" new="com.volmit.iris.generator.noise.VascularNoise">
    <method old="filter(D)D" new="hashCode" s="16" e="16"/>
    <method old="noise(D)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="21" e="21"/>
    <method old="noise(DD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="26" e="26"/>
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="31" e="31"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.command.CommandIrisObjectWand" new="com.volmit.iris.command.CommandIrisObjectWand">
+  <class old="com.volmit.iris.manager.command.CommandIrisObjectWand" new="com.volmit.iris.manager.command.CommandIrisObjectWand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="38" e="38"/>
@@ -15521,7 +15521,7 @@
    <annotation oldClassName="com.google.gson.annotations.JsonAdapter" oldMethodName="value" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
    <annotation oldClassName="com.google.gson.annotations.Expose" oldMethodName="serialize" newMethodName="hashCode"/>
    <annotation oldClassName="com.volmit.iris.util.ArrayType" oldMethodName="min" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
-   <annotation oldClassName="com.volmit.iris.gen.post.Post" oldMethodName="value" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
+   <annotation oldClassName="com.volmit.iris.generator.legacy.post.Post" oldMethodName="value" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
    <annotation oldClassName="com.volmit.iris.util.MinNumber" oldMethodName="value" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
    <annotation oldClassName="com.google.gson.annotations.JsonAdapter" oldMethodName="nullSafe" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>
    <annotation oldClassName="com.google.gson.annotations.SerializedName" oldMethodName="value" newMethodName="ALLATORIxDEMOxanyValidIdentifierName"/>

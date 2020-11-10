@@ -1,9 +1,9 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.v2.scaffold.stream.ProceduralStream;
-import com.volmit.iris.noise.CNG;
-import com.volmit.iris.noise.CNGFactory;
-import com.volmit.iris.noise.NoiseType;
+import com.volmit.iris.scaffold.stream.ProceduralStream;
+import com.volmit.iris.generator.noise.CNG;
+import com.volmit.iris.generator.noise.CNGFactory;
+import com.volmit.iris.generator.noise.NoiseType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.RNG;

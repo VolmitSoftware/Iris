@@ -2,7 +2,7 @@ package com.volmit.iris.object;
 
 import java.util.Objects;
 
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

@@ -26,7 +26,7 @@ open        "C:\Users\cyberpwn\Documents\development\workspace\Iris\lint\in.jar"
 trimExclude *.Iris and
             * extends com.volmit.iris.util.MortarCommand and
             *.* @com.volmit.iris.util.Command * and
-            @com.volmit.iris.gen.post.Post *.* and
+            @com.volmit.iris.generator.legacy.post.Post *.* and
             @org.bukkit.event.EventHandler *.* and
             *.* @org.bukkit.event.EventHandler * and
             *.* @org.bukkit.event.EventHandler *(*) and
@@ -57,8 +57,8 @@ exclude     @com.volmit.iris.util.DontObfuscate *.* and
             *.* extends com.volmit.iris.util.IrisPostBlockFilter *(*) and
             *.PostBlockChunkGenerator * and
             *.PostBlockChunkGenerator *(*) and
-            com.volmit.iris.gen.post.^* and
-            com.volmit.iris.gen.post.;
+            com.volmit.iris.generator.legacy.post.^* and
+            com.volmit.iris.generator.legacy.post.;
 
 obfuscate   changeLogFileIn=""
             changeLogFileOut="ChangeLog.txt"

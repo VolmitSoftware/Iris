@@ -5,8 +5,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.gen.TopographicTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.TopographicTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;

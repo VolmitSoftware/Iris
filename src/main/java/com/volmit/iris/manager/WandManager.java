@@ -3,6 +3,7 @@ package com.volmit.iris.manager;
 import java.awt.Color;
 import java.util.Iterator;
 
+import com.volmit.iris.manager.edit.DustRevealer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;

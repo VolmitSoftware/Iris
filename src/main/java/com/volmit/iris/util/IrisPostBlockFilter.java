@@ -7,7 +7,7 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.gen.PostBlockTerrainProvider;
+import com.volmit.iris.generator.legacy.PostBlockTerrainProvider;
 
 import lombok.Data;
 

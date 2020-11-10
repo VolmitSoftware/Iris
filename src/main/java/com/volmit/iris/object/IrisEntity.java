@@ -1,17 +1,17 @@
 package com.volmit.iris.object;
 
-import java.util.Collection;
-import java.util.Random;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attributable;
-import org.bukkit.entity.Ageable;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
-import org.bukkit.entity.Panda;
+import org.bukkit.entity.*;
 import org.bukkit.entity.Panda.Gene;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -19,22 +19,8 @@ import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ParallaxTerrainProvider;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListMythical;
-import com.volmit.iris.util.Required;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import java.util.Collection;
+import java.util.Random;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -149,12 +135,12 @@ public class IrisEntity extends IrisRegistrant
 	@Desc("The this entity is ageable, set it's baby status")
 	private boolean baby = false;
 
-	public Entity spawn(ParallaxTerrainProvider gen, Location at)
+	public Entity spawn(IrisAccess gen, Location at)
 	{
 		return spawn(gen, at, new RNG(at.hashCode()));
 	}
 
-	public Entity spawn(ParallaxTerrainProvider gen, Location at, RNG rng)
+	public Entity spawn(IrisAccess gen, Location at, RNG rng)
 	{
 		Entity e = doSpawn(at);
 		e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);
@@ -202,7 +188,7 @@ public class IrisEntity extends IrisRegistrant
 						for(String fi : getLoot().getTables())
 						{
 							IrisLootTable i = gen.getData().getLootLoader().load(fi);
-							items.addAll(i.getLoot(gen.isDev(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), 8, 4));
+							items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), 8, 4));
 						}
 
 						return items;
@@ -216,7 +202,7 @@ public class IrisEntity extends IrisRegistrant
 							inventory.addItem(i);
 						}
 
-						gen.getGlUpdate().scramble(inventory, rng);
+						gen.getCompound().getEngine(at.getBlockY()).scramble(inventory, rng);
 					}
 				});
 			}
@@ -237,32 +223,32 @@ public class IrisEntity extends IrisRegistrant
 
 			if(getHelmet() != null && rng.i(1, getHelmet().getRarity()) == 1)
 			{
-				l.getEquipment().setHelmet(getHelmet().get(gen.isDev(), rng));
+				l.getEquipment().setHelmet(getHelmet().get(gen.isStudio(), rng));
 			}
 
 			if(getChestplate() != null && rng.i(1, getChestplate().getRarity()) == 1)
 			{
-				l.getEquipment().setChestplate(getChestplate().get(gen.isDev(), rng));
+				l.getEquipment().setChestplate(getChestplate().get(gen.isStudio(), rng));
 			}
 
 			if(getLeggings() != null && rng.i(1, getLeggings().getRarity()) == 1)
 			{
-				l.getEquipment().setLeggings(getLeggings().get(gen.isDev(), rng));
+				l.getEquipment().setLeggings(getLeggings().get(gen.isStudio(), rng));
 			}
 
 			if(getBoots() != null && rng.i(1, getBoots().getRarity()) == 1)
 			{
-				l.getEquipment().setBoots(getBoots().get(gen.isDev(), rng));
+				l.getEquipment().setBoots(getBoots().get(gen.isStudio(), rng));
 			}
 
 			if(getMainHand() != null && rng.i(1, getMainHand().getRarity()) == 1)
 			{
-				l.getEquipment().setItemInMainHand(getMainHand().get(gen.isDev(), rng));
+				l.getEquipment().setItemInMainHand(getMainHand().get(gen.isStudio(), rng));
 			}
 
 			if(getOffHand() != null && rng.i(1, getOffHand().getRarity()) == 1)
 			{
-				l.getEquipment().setItemInOffHand(getOffHand().get(gen.isDev(), rng));
+				l.getEquipment().setItemInOffHand(getOffHand().get(gen.isStudio(), rng));
 			}
 		}
 

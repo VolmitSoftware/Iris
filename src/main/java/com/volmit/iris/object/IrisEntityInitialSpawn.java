@@ -1,22 +1,15 @@
 package com.volmit.iris.object;
 
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-
-import com.volmit.iris.gen.ParallaxTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListEntity;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -50,7 +43,7 @@ public class IrisEntityInitialSpawn
 	private final transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-	public void spawn(ParallaxTerrainProvider gen, Chunk c, RNG rng)
+	public void spawn(IrisAccess gen, Chunk c, RNG rng)
 	{
 		int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
 
@@ -60,25 +53,25 @@ public class IrisEntityInitialSpawn
 			{
 				int x = (c.getX() * 16) + rng.i(15);
 				int z = (c.getZ() * 16) + rng.i(15);
-				int h = gen.getCarvedHeight(x, z, false);
+				int h = gen.getHeight(x, 0, z);
 				spawn100(gen, new Location(c.getWorld(), x, h, z));
 			}
 		}
 	}
 
-	public IrisEntity getRealEntity(ParallaxTerrainProvider g)
+	public IrisEntity getRealEntity(IrisAccess g)
 	{
 		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
 	}
 
-	public Entity spawn(ParallaxTerrainProvider g, Location at)
+	public Entity spawn(IrisAccess g, Location at)
 	{
 		if(getRealEntity(g) == null)
 		{
 			return null;
 		}
 
-		if(rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)).i(1, getRarity()) == 1)
+		if(rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)).i(1, getRarity()) == 1)
 		{
 			return spawn100(g, at);
 		}
@@ -86,8 +79,8 @@ public class IrisEntityInitialSpawn
 		return null;
 	}
 
-	private Entity spawn100(ParallaxTerrainProvider g, Location at)
+	private Entity spawn100(IrisAccess g, Location at)
 	{
-		return getRealEntity(g).spawn(g, at.clone().add(0, 1, 0), rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)));
+		return getRealEntity(g).spawn(g, at.clone().add(0, 1, 0), rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)));
 	}
 }

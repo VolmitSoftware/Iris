@@ -1,23 +1,16 @@
 package com.volmit.iris.object;
 
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.event.entity.EntitySpawnEvent;
-
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListEntity;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.EntitySpawnEvent;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -54,7 +47,7 @@ public class IrisEntitySpawnOverride
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
 
-	public Entity on(IrisTerrainProvider g, Location at, EntityType t, EntitySpawnEvent ee)
+	public Entity on(IrisAccess g, Location at, EntityType t, EntitySpawnEvent ee)
 	{
 		if(!trigger.equals(EntityType.UNKNOWN))
 		{
@@ -75,23 +68,23 @@ public class IrisEntitySpawnOverride
 		return e;
 	}
 
-	public IrisEntity getRealEntity(IrisTerrainProvider g)
-	{
-		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
-	}
-
-	public Entity spawn(IrisTerrainProvider g, Location at)
+	public Entity spawn(IrisAccess g, Location at)
 	{
 		if(getRealEntity(g) == null)
 		{
 			return null;
 		}
 
-		if(rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)).i(1, getRarity()) == 1)
+		if(rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)).i(1, getRarity()) == 1)
 		{
-			return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getTarget().getSeed() + 4)));
+			return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)));
 		}
 
 		return null;
+	}
+
+	public IrisEntity getRealEntity(IrisAccess g)
+	{
+		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
 	}
 }

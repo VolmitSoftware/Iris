@@ -1,59 +1,31 @@
 package com.volmit.iris.manager;
 
-import java.awt.Desktop;
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
-
+import com.google.gson.Gson;
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.object.*;
+import com.volmit.iris.scaffold.IrisWorldCreator;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.*;
+import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
-import org.bukkit.WorldType;
 import org.zeroturnaround.zip.ZipUtil;
 
-import com.google.gson.Gson;
-import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.INMS;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
-import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
-import com.volmit.iris.gen.scaffold.TerrainTarget;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisBiomeMutation;
-import com.volmit.iris.object.IrisBlockData;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisEntity;
-import com.volmit.iris.object.IrisGenerator;
-import com.volmit.iris.object.IrisLootTable;
-import com.volmit.iris.object.IrisObjectPlacement;
-import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.object.IrisStructure;
-import com.volmit.iris.object.IrisStructureTile;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.JSONArray;
-import com.volmit.iris.util.JSONObject;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.O;
-import com.volmit.iris.util.PrecisionStopwatch;
-
-import lombok.Data;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
 
 @Data
 public class IrisProject
 {
 	private File path;
 	private String name;
-	private IrisTerrainProvider activeProvider;
+	private IrisAccess activeProvider;
 
 	public IrisProject(File path)
 	{
@@ -128,22 +100,13 @@ public class IrisProject
 
 		Iris.globaldata.dump();
 		String wfp = "iris/" + UUID.randomUUID();
-		//@builder
-		ProvisionBukkit gen = Iris.instance
-				.createProvisionBukkit(IrisGenConfiguration.builder()
-						.threads(Iris.getThreadCount())
-						.dimension(getName())
-						.target(TerrainTarget.builder()
-								.environment(d.getEnvironment())
-								.folder(new File(wfp))
-								.name(wfp)
-								.seed(1337)
-								.build())
-						.build());
-		//@done
 
-		IrisTerrainProvider gx = (IrisTerrainProvider) gen.getProvider();
-		gx.setDev(true);
+		WorldCreator c = new IrisWorldCreator().dimension(getName())
+				.seed(1337)
+				.name(wfp)
+				.studioMode()
+				.create();
+		IrisAccess gx = ((IrisAccess)c.generator());
 		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
 		O<Boolean> done = new O<Boolean>();
 		done.set(false);
@@ -154,14 +117,14 @@ public class IrisProject
 			double last = 0;
 			int req = 740;
 			double lpc = 0;
-			boolean c = false;
+			boolean fc = false;
 
 			while(!done.get())
 			{
 				boolean derp = false;
 
 				double v = (double) gx.getGenerated() / (double) req;
-				c = lpc != v;
+				fc = lpc != v;
 				lpc = v;
 
 				if(last > v || v > 1)
@@ -175,7 +138,7 @@ public class IrisProject
 					last = v;
 				}
 
-				if(c)
+				if(fc)
 				{
 					sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
 				}
@@ -191,14 +154,7 @@ public class IrisProject
 		});
 
 		//@builder
-		World world = INMS.get().createWorld(new WorldCreator(wfp)
-				.seed(1337)
-				.generator(gen)
-				.generateStructures(d.isVanillaStructures())
-				.type(WorldType.NORMAL)
-				.environment(d.getEnvironment()), false);
-		//@done
-		gx.getTarget().setRealWorld(world);
+		World world = INMS.get().createWorld(c, false);
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);
@@ -225,9 +181,9 @@ public class IrisProject
 	public void close()
 	{
 		activeProvider.close();
-		File folder = activeProvider.getTarget().getFolder();
-		Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getName());
-		Bukkit.unloadWorld(activeProvider.getTarget().getName(), false);
+		File folder = activeProvider.getTarget().getWorld().getWorldFolder();
+		Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().getName());
+		Bukkit.unloadWorld(activeProvider.getTarget().getWorld().getName(), false);
 		flush();
 		J.attemptAsync(() -> IO.delete(folder));
 		activeProvider = null;

@@ -1,16 +1,15 @@
 package com.volmit.iris.object;
 
-import net.royawesome.jlibnoise.Noise;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualTerrainProvider;
-import com.volmit.iris.gen.ParallelTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.noise.CNG;
+import com.volmit.iris.generator.legacy.ContextualTerrainProvider;
+import com.volmit.iris.generator.legacy.ParallelTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.ChunkPosition;
 import com.volmit.iris.util.Desc;

@@ -3,8 +3,8 @@ package com.volmit.iris.object;
 import java.util.List;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.noise.CellGenerator;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.generator.noise.CellGenerator;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

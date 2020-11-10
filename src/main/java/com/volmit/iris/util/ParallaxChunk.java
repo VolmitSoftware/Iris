@@ -9,7 +9,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.atomics.AtomicSliver;
+import com.volmit.iris.generator.legacy.atomics.AtomicSliver;
 
 public class ParallaxChunk implements Writable
 {

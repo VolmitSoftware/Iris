@@ -2,7 +2,7 @@ package com.volmit.iris.manager;
 
 import org.bukkit.entity.Player;
 
-import com.volmit.iris.structure.StructureTemplate;
+import com.volmit.iris.manager.structure.StructureTemplate;
 import com.volmit.iris.util.KList;
 
 public class StructureManager

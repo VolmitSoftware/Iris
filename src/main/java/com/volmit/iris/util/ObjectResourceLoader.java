@@ -1,9 +1,9 @@
 package com.volmit.iris.util;
 
-import java.io.File;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
+
+import java.io.File;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {
@@ -13,6 +13,11 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 	public ObjectResourceLoader(File root, String folderName, String resourceTypeName)
 	{
 		super(root, folderName, resourceTypeName, IrisObject.class);
+	}
+
+	public int getSize()
+	{
+		return loadCache.size();
 	}
 
 	public int getTotalStorage()

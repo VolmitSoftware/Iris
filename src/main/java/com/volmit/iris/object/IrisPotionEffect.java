@@ -5,7 +5,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.MaxNumber;

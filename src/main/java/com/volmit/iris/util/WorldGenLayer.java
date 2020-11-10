@@ -3,7 +3,7 @@ package com.volmit.iris.util;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import com.volmit.iris.gen.TopographicTerrainProvider;
+import com.volmit.iris.generator.legacy.TopographicTerrainProvider;
 
 public abstract class WorldGenLayer
 {

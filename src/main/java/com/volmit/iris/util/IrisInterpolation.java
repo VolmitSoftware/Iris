@@ -1,6 +1,6 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.noise.CNG;
+import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.NoiseStyle;
 

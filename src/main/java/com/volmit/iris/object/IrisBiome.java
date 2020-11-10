@@ -5,11 +5,11 @@ import java.awt.Color;
 import org.bukkit.block.Biome;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.ContextualTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
-import com.volmit.iris.v2.scaffold.data.DataProvider;
+import com.volmit.iris.generator.legacy.ContextualTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.noise.CNG;
+import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.DependsOn;

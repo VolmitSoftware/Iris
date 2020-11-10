@@ -1,6 +1,6 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.gen.TopographicTerrainProvider;
+import com.volmit.iris.generator.legacy.TopographicTerrainProvider;
 
 public abstract class GenLayer
 {

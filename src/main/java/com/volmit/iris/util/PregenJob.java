@@ -1,11 +1,9 @@
 package com.volmit.iris.util;
 
-import java.awt.Color;
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.gui.PregenGui;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -13,13 +11,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.scaffold.IrisWorlds;
-import com.volmit.iris.gui.PregenGui;
-
-import io.papermc.lib.PaperLib;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PregenJob implements Listener
 {
@@ -48,7 +44,6 @@ public class PregenJob implements Listener
 	private Spiraler chunkSpiraler;
 	private boolean first;
 	private static Consumer2<ChunkPosition, Color> consumer;
-	private IrisTerrainProvider tp;
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
@@ -84,7 +79,6 @@ public class PregenJob implements Listener
 		this.chunkZ = 0;
 		completed = false;
 		first = true;
-		tp = IrisWorlds.getProvider(world);
 
 		chunkSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
 		{
@@ -387,7 +381,7 @@ public class PregenJob implements Listener
 
 							if(consumer != null)
 							{
-								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), tp != null ? tp.render(chunk.getX() * 16, chunk.getZ() * 16) : Color.blue);
+								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.blue);
 							}
 						});
 					}
@@ -412,7 +406,7 @@ public class PregenJob implements Listener
 
 				if(consumer != null)
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), tp != null ? tp.render(chunkX * 16, chunkZ * 16) : Color.blue);
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.blue);
 				}
 			}
 		}
@@ -486,7 +480,7 @@ public class PregenJob implements Listener
 		{
 			if(e.getWorld().equals(world) && isChunkWithin(e.getChunk().getX(), e.getChunk().getZ()) && consumer != null)
 			{
-				consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), tp != null ? tp.render(e.getChunk().getX() * 16, e.getChunk().getZ() * 16) : Color.blue.darker());
+				consumer.accept(new ChunkPosition(e.getChunk().getX(), e.getChunk().getZ()), Color.blue.darker());
 			}
 		}
 

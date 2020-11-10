@@ -8,8 +8,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.IrisTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.DependsOn;
 import com.volmit.iris.util.Desc;

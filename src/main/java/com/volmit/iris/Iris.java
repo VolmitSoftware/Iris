@@ -1,17 +1,17 @@
 package com.volmit.iris;
 
-import com.volmit.iris.command.CommandIris;
-import com.volmit.iris.command.PermissionIris;
-import com.volmit.iris.gen.IrisTerrainProvider;
-import com.volmit.iris.gen.nms.INMS;
-import com.volmit.iris.gen.provisions.ProvisionBukkit;
-import com.volmit.iris.gen.scaffold.IrisGenConfiguration;
-import com.volmit.iris.gen.scaffold.IrisWorlds;
-import com.volmit.iris.gen.scaffold.TerrainTarget;
-import com.volmit.iris.link.BKLink;
-import com.volmit.iris.link.CitizensLink;
-import com.volmit.iris.link.MultiverseCoreLink;
-import com.volmit.iris.link.MythicMobsLink;
+import com.volmit.iris.manager.command.CommandIris;
+import com.volmit.iris.manager.command.PermissionIris;
+import com.volmit.iris.generator.legacy.IrisTerrainProvider;
+import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.generator.legacy.provisions.ProvisionBukkit;
+import com.volmit.iris.generator.legacy.scaffold.IrisGenConfiguration;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.generator.legacy.scaffold.TerrainTarget;
+import com.volmit.iris.manager.link.BKLink;
+import com.volmit.iris.manager.link.CitizensLink;
+import com.volmit.iris.manager.link.MultiverseCoreLink;
+import com.volmit.iris.manager.link.MythicMobsLink;
 import com.volmit.iris.manager.*;
 import com.volmit.iris.object.IrisCompat;
 import com.volmit.iris.util.*;
@@ -241,7 +241,7 @@ public class Iris extends VolmitPlugin
 			{
 				if(IrisWorlds.isIrisWorld(i))
 				{
-					IrisWorlds.getProvider(i).close();
+					IrisWorlds.access(i).close();
 				}
 			}
 

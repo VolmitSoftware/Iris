@@ -4,8 +4,8 @@ import java.awt.Canvas;
 import java.awt.Font;
 import java.awt.FontMetrics;
 
-import com.volmit.iris.gen.ParallaxTerrainProvider;
-import com.volmit.iris.gen.atomics.AtomicCache;
+import com.volmit.iris.generator.legacy.ParallaxTerrainProvider;
+import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

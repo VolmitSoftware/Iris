@@ -18,7 +18,7 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         AtomicInteger nonNull = new AtomicInteger(0);
         DataPalette<T> palette = new DataPalette<T>();
 
-        t.iterate(0, (x,y,z,w) -> {
+        t.iterateSync((x,y,z,w) -> {
             if(w != null)
             {
                 palette.getIndex(w);
@@ -29,7 +29,7 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         palette.write(this, dos);
         dos.writeInt(nonNull.get() + Integer.MIN_VALUE);
         AtomicBoolean failure = new AtomicBoolean(false);
-        t.iterate(0, (x,y,z,w) -> {
+        t.iterateSync((x,y,z,w) -> {
             if(w != null)
             {
                 try

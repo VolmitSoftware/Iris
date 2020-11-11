@@ -170,6 +170,33 @@ public class Iris extends VolmitPlugin
 		super.onEnable();
 	}
 
+	public void onDisable()
+	{
+		if(IrisSettings.get().isStudio())
+		{
+			proj.close();
+
+			for(World i : Bukkit.getWorlds())
+			{
+				if(IrisWorlds.isIrisWorld(i))
+				{
+					IrisWorlds.access(i).close();
+				}
+			}
+
+			for(GroupedExecutor i : executors)
+			{
+				i.close();
+			}
+		}
+
+		executors.clear();
+		board.disable();
+		Bukkit.getScheduler().cancelTasks(this);
+		HandlerList.unregisterAll((Plugin) this);
+		super.onDisable();
+	}
+
 	public static void sq(Runnable r)
 	{
 		synchronized(syncJobs)
@@ -206,42 +233,15 @@ public class Iris extends VolmitPlugin
 
 	private void bstats()
 	{
-		J.s(() ->
+		if(IrisSettings.get().isMetrics())
 		{
-			new MetricsLite(Iris.instance, 8757);
-		});
+			J.s(() ->new MetricsLite(Iris.instance, 8757));
+		}
 	}
 
 	public static File getTemp()
 	{
 		return instance.getDataFolder("cache", "temp");
-	}
-
-	public void onDisable()
-	{
-		if(IrisSettings.get().isStudio())
-		{
-			proj.close();
-
-			for(World i : Bukkit.getWorlds())
-			{
-				if(IrisWorlds.isIrisWorld(i))
-				{
-					IrisWorlds.access(i).close();
-				}
-			}
-
-			for(GroupedExecutor i : executors)
-			{
-				i.close();
-			}
-		}
-
-		executors.clear();
-		board.disable();
-		Bukkit.getScheduler().cancelTasks(this);
-		HandlerList.unregisterAll((Plugin) this);
-		super.onDisable();
 	}
 
 	@Override
@@ -410,6 +410,11 @@ public class Iris extends VolmitPlugin
 
 	public void splash()
 	{
+		if(!IrisSettings.get().isSplash())
+		{
+			return;
+		}
+
 		// @NoArgsConstructor
 		String padd = Form.repeat(" ", 8);
 		String padd2 = Form.repeat(" ", 4);

@@ -20,7 +20,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
         {
             for(zf = 0; zf < h.getDepth(); zf++)
             {
-                v = getComplex().getTrueBiomeDerivativeStream().get(modX(xf+x), modZ(zf+z));
+                v = getComplex().getTrueBiomeStream().get(modX(xf+x), modZ(zf+z)).getDerivative();
 
                 for(i = 0; i < h.getHeight(); i++)
                 {

@@ -2,8 +2,6 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.generator.actuator.IrisTerrainActuator;
-import com.volmit.iris.generator.modifier.IrisCaveModifier;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
@@ -332,44 +330,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
     default int trueHeight(int x, int z)
     {
-        int rx = (int) Math.round(getEngine().modifyX(x));
-        int rz = (int) Math.round(getEngine().modifyZ(z));
-        int height = (int) Math.round(getComplex().getHeightStream().get(rx, rz));
-        int m = height;
-
-        if(getEngine().getDimension().isCarving())
-        {
-            if(getEngine().getDimension().isCarved(rx, m, rz, ((IrisTerrainActuator)getFramework().getTerrainActuator()).getRng(), height))
-            {
-                m--;
-
-                while(getEngine().getDimension().isCarved(rx, m, rz, ((IrisTerrainActuator)getFramework().getTerrainActuator()).getRng(), height))
-                {
-                    m--;
-                }
-            }
-        }
-
-        if(getEngine().getDimension().isCaves())
-        {
-            KList<CaveResult> caves = ((IrisCaveModifier)getFramework().getCaveModifier()).genCaves(rx, rz, 0, 0, null);
-            boolean again = true;
-
-            while(again)
-            {
-                again = false;
-                for(CaveResult i : caves)
-                {
-                    if(i.getCeiling() > m && i.getFloor() < m)
-                    {
-                        m = i.getFloor();
-                        again = true;
-                    }
-                }
-            }
-        }
-
-        return m;
+        return getComplex().getTrueHeightStream().get(x, z);
     }
 
     @Override

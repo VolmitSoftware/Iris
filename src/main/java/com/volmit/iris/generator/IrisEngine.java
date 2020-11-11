@@ -80,7 +80,7 @@ public class IrisEngine extends BlockPopulator implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
-        Hunk<Biome> biomes = vbiomes.synchronize();
+        Hunk<Biome> biomes = vbiomes;
         Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
 
         MultiBurst.burst.burst(

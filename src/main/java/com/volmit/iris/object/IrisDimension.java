@@ -401,16 +401,6 @@ public class IrisDimension extends IrisRegistrant
 		return r;
 	}
 
-	public BlockData resolveBlock(String bd)
-	{
-		return Iris.compat.getBlock(bd);
-	}
-
-	public Material resolveItem(String bd)
-	{
-		return Iris.compat.getItem(bd);
-	}
-
 	public IrisGeneratorStyle getBiomeStyle(InferredType type)
 	{
 		switch(type)

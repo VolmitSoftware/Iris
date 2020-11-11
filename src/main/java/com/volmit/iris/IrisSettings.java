@@ -1,17 +1,11 @@
 package com.volmit.iris;
 
+import com.google.gson.Gson;
+import com.volmit.iris.util.*;
+import lombok.Data;
+
 import java.io.File;
 import java.io.IOException;
-
-import com.google.gson.Gson;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.JSONException;
-import com.volmit.iris.util.JSONObject;
-
-import lombok.Data;
 
 @Data
 public class IrisSettings
@@ -113,6 +107,10 @@ public class IrisSettings
 	@DontObfuscate
 	@Desc("Collects anonymous metrics for bstats")
 	public boolean metrics = true;
+
+	@DontObfuscate
+	@Desc("Splash the screen")
+	public boolean splash = true;
 
 	@DontObfuscate
 	@Desc("Skips preparing spawn by using nms to hijack the world init phase")

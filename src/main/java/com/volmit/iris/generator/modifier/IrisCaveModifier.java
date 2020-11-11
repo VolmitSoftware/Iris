@@ -17,8 +17,8 @@ import java.util.function.Function;
 
 public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 {
-    public static final BlockData CAVE_AIR = B.getBlockData("CAVE_AIR");
-    public static final BlockData AIR = B.getBlockData("AIR");
+    public static final BlockData CAVE_AIR = B.get("CAVE_AIR");
+    public static final BlockData AIR = B.get("AIR");
     private static final KList<CaveResult> EMPTY = new KList<>();
     private final FastNoiseDouble gg;
     private final RNG rng;
@@ -237,7 +237,11 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 
     public boolean canAir(Material m, BlockData caveFluid)
     {
-        return (B.isSolid(m) || (B.isDecorant(m.createBlockData())) || m.equals(Material.AIR) || m.equals(caveFluid.getMaterial()) || m.equals(B.mat("CAVE_AIR").getMaterial())) && !m.equals(Material.BEDROCK);
+        return (B.isSolid(m) ||
+                (B.isDecorant(m.createBlockData())) || m.equals(Material.AIR)
+                || m.equals(caveFluid.getMaterial()) ||
+                m.equals(B.getMaterial("CAVE_AIR")))
+                && !m.equals(Material.BEDROCK);
     }
 
     public boolean canWater(Material m)

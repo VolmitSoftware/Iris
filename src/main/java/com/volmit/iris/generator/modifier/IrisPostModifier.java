@@ -14,8 +14,8 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
 public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
-    private static final BlockData AIR = B.getBlockData("CAVE_AIR");
-    private static final BlockData WATER = B.getBlockData("WATER");
+    private static final BlockData AIR = B.get("CAVE_AIR");
+    private static final BlockData WATER = B.get("WATER");
     private final RNG rng;
 
     public IrisPostModifier(Engine engine) {

@@ -1,14 +1,17 @@
 package com.volmit.iris.scaffold.parallax;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
 import com.volmit.iris.scaffold.hunk.io.HunkRegion;
 import com.volmit.iris.scaffold.hunk.io.HunkRegionSlice;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.ByteArrayTag;
+import com.volmit.iris.util.CompoundTag;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.Tag;
 import org.bukkit.block.data.BlockData;
+
+import java.io.File;
+import java.io.IOException;
 
 public class ParallaxRegion extends HunkRegion
 {

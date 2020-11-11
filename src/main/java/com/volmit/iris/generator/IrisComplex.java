@@ -1,20 +1,20 @@
 package com.volmit.iris.generator;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.actuator.IrisTerrainActuator;
+import com.volmit.iris.generator.modifier.IrisCaveModifier;
+import com.volmit.iris.generator.noise.CNG;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
-import com.volmit.iris.util.*;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.engine.Engine;
+import com.volmit.iris.scaffold.stream.ProceduralStream;
+import com.volmit.iris.scaffold.stream.interpolation.Interpolated;
+import com.volmit.iris.util.*;
+import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-
-import com.volmit.iris.Iris;
-import com.volmit.iris.scaffold.stream.ProceduralStream;
-import com.volmit.iris.scaffold.stream.interpolation.Interpolated;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.generator.noise.CNG;
-
-import lombok.Data;
 
 @Data
 public class IrisComplex implements DataProvider
@@ -37,6 +37,7 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<Double> maxHeightStream;
 	private ProceduralStream<Double> overlayStream;
 	private ProceduralStream<Double> heightFluidStream;
+	private ProceduralStream<Integer> trueHeightStream;
 	private ProceduralStream<Double> slopeStream;
 	private ProceduralStream<RNG> rngStream;
 	private ProceduralStream<RNG> chunkRngStream;
@@ -77,8 +78,8 @@ public class IrisComplex implements DataProvider
 
 	public IrisComplex(Engine engine)
 	{
-		int cacheSize = 1024;
-		BlockData glass = B.getBlockData("GLASS");
+		int cacheSize = 8192;
+		BlockData glass = B.get("GLASS");
 		this.rng = new RNG(engine.getWorld().getSeed());
 		this.data = engine.getData();
 		double height = engine.getHeight();
@@ -169,6 +170,46 @@ public class IrisComplex implements DataProvider
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
 		seaSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
+		trueHeightStream = ProceduralStream.of((x, z) -> {
+			int rx = (int) Math.round(engine.modifyX(x));
+			int rz = (int) Math.round(engine.modifyZ(z));
+			int heightf = (int) Math.round(getHeightStream().get(rx, rz));
+			int m = heightf;
+
+			if(engine.getDimension().isCarving())
+			{
+				if(engine.getDimension().isCarved(rx, m, rz, ((IrisTerrainActuator)engine.getFramework().getTerrainActuator()).getRng(), heightf))
+				{
+					m--;
+
+					while(engine.getDimension().isCarved(rx, m, rz, ((IrisTerrainActuator)engine.getFramework().getTerrainActuator()).getRng(), heightf))
+					{
+						m--;
+					}
+				}
+			}
+
+			if(engine.getDimension().isCaves())
+			{
+				KList<CaveResult> caves = ((IrisCaveModifier)engine.getFramework().getCaveModifier()).genCaves(rx, rz, 0, 0, null);
+				boolean again = true;
+
+				while(again)
+				{
+					again = false;
+					for(CaveResult i : caves)
+					{
+						if(i.getCeiling() > m && i.getFloor() < m)
+						{
+							m = i.getFloor();
+							again = true;
+						}
+					}
+				}
+			}
+
+			return m;
+		}, Interpolated.INT).cache2D(cacheSize);
 		//@done
 	}
 

@@ -1,30 +1,25 @@
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Leaves;
-
-import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisDimension;
 
 public class B
 {
-	private static final BlockData AIR = Material.AIR.createBlockData();
-	private static final KMap<String, BlockData> bdc = new KMap<>();
-	private static final KList<String> nulls = new KList<>();
-	private static final KList<String> canPlaceOn = new KList<>();
-	private static final KList<BlockData> decorant = new KList<>();
-	private static final IrisDimension defaultCompat = new IrisDimension();
-	private static final KMap<Material, Boolean> solid = new KMap<>();
-	private static final KMap<String, BlockData> types = new KMap<>();
-	private static final KMap<String, Material> typesb = new KMap<>();
-	private static IrisLock lock = new IrisLock("Typelock");
-
-	public static BlockData get(String bd)
-	{
-		return getBlockData(bd);
-	}
+	private static final Material AIR_MATERIAL = Material.AIR;
+	private static final BlockData AIR = AIR_MATERIAL.createBlockData();
+	private static final KSet<String> nullBlockDataCache = new KSet<>();
+	private static final KSet<String> nullMaterialCache = new KSet<>();
+	private static final KMap<Material, Boolean> solidCache = new KMap<>();
+	private static final KMap<Material, Boolean> updatableCache = new KMap<>();
+	private static final KMap<Material, Boolean> foliageCache = new KMap<>();
+	private static final KMap<Material, Boolean> litCache = new KMap<>();
+	private static final KMap<Material, Boolean> decorantCache = new KMap<>();
+	private static final KMap<Material, Boolean> storageCache = new KMap<>();
+	private static final KMap<Material, Boolean> storageChestCache = new KMap<>();
+	private static final KMap<String, BlockData> blockDataCache = new KMap<>();
+	private static final KMap<String, Material> materialCache = new KMap<>();
 
 	public static boolean isWater(BlockData b)
 	{
@@ -36,87 +31,44 @@ public class B
 		return AIR;
 	}
 
-	public static KMap<String, BlockData> getBdc()
-	{
-		return bdc;
-	}
-
-	public static KList<String> getNulls()
-	{
-		return nulls;
-	}
-
-	public static KList<String> getCanplaceon()
-	{
-		return canPlaceOn;
-	}
-
-	public static KList<BlockData> getDecorant()
-	{
-		return decorant;
-	}
-
-	public static IrisDimension getDefaultcompat()
-	{
-		return defaultCompat;
-	}
-
-	public static KMap<Material, Boolean> getSolid()
-	{
-		return solid;
-	}
-
-	public static KMap<String, BlockData> getTypes()
-	{
-		return types;
-	}
-
-	public static KMap<String, Material> getTypesb()
-	{
-		return typesb;
-	}
-
-	public static IrisLock getLock()
-	{
-		return lock;
-	}
-
 	public static Material getMaterial(String bdx)
 	{
-		String bd = bdx.trim().toUpperCase();
-
-		return typesb.compute(bd, (k, v) ->
+		Material mat = getMaterialOrNull(bdx);
+		
+		if(mat != null)
 		{
-			if(v != null)
-			{
-				return v;
-			}
-
-			try
-			{
-				return Material.valueOf(k);
-			}
-
-			catch(Throwable e)
-			{
-
-			}
-
-			return defaultCompat.resolveItem(bdx);
-		});
+			return mat;
+		}
+		
+		return AIR_MATERIAL;
 	}
 
-	public static Material getMaterialOrNull(String bdx)
+	public static Material getMaterialOrNull(String bdxx)
 	{
-		String bd = bdx.trim().toUpperCase();
+		String bx = bdxx.trim().toUpperCase();
 
+		if(nullMaterialCache.contains(bx))
+		{
+			return null;
+		}
+		
+		Material mat = materialCache.get(bx);
+		
+		if(mat != null)
+		{
+			return mat;
+		}
+		
 		try
 		{
-			return Material.valueOf(bd);
+			Material mm =  Material.valueOf(bx);
+			materialCache.put(bx, mm);
+			return mm;
 		}
 
 		catch(Throwable e)
 		{
+			nullMaterialCache.add(bx);
 			return null;
 		}
 	}
@@ -128,18 +80,441 @@ public class B
 
 	public static boolean isSolid(Material mat)
 	{
-		return mat.isSolid();
+		Boolean solid = solidCache.get(mat);
+		
+		if(solid != null)
+		{
+			return solid;
+		}
+		
+		solid = mat.isSolid();
+		solidCache.put(mat, solid);
+		
+		return solid;
 	}
 
-	public static BlockData mat(String bd)
+	public static BlockData getOrNull(String bdxf)
 	{
-		return getBlockData(bd);
+		try
+		{
+			String bd = bdxf.trim();
+
+			BlockData bdx = parseBlockData(bd);
+
+			if(bdx == null)
+			{
+				Iris.warn("Unknown Block Data '" + bd + "'");
+				return AIR;
+			}
+
+			return bdx;
+		}
+
+		catch(Throwable e)
+		{
+			Iris.warn("Unknown Block Data '" + bdxf + "'");
+		}
+
+		return null;
 	}
 
-	public static BlockData getBlockData(String bd)
+	public static BlockData get(String bdxf)
 	{
-		return getBlockData(bd, defaultCompat);
+		BlockData bd = getOrNull(bdxf);
+
+		if(bd != null)
+		{
+			return bd;
+		}
+
+		return AIR;
 	}
+
+	private static BlockData parseBlockDataOrNull(String ix)
+	{
+		if(nullBlockDataCache.contains(ix))
+		{
+			return null;
+		}
+		
+		try
+		{
+			BlockData bb = blockDataCache.get(ix);
+			
+			if(bb != null)
+			{
+				return bb;
+			}
+			
+			BlockData bx = Bukkit.createBlockData(ix);
+			blockDataCache.put(ix, bx);
+			return bx;
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		String i = ix.toUpperCase().trim();
+		i = i.equals("WOOL") ? "WHITE_WOOL" : i;
+		i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
+
+		try
+		{
+			BlockData bd =  Material.valueOf(i).createBlockData();
+			blockDataCache.put(ix, bd);
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		nullBlockDataCache.add(ix);
+		return null;
+	}
+
+	private static BlockData parseBlockData(String ix)
+	{
+		BlockData bd = parseBlockDataOrNull(ix);
+
+		if(bd != null)
+		{
+			return bd;
+		}
+
+		return AIR;
+	}
+
+	public static boolean isStorage(BlockData mat)
+	{
+		Material mm = mat.getMaterial();
+		Boolean f = storageCache.get(mm);
+
+		if(f != null)
+		{
+			return f;
+		}
+
+		f = mm.equals(B.getMaterial("CHEST"))
+				|| mm.equals(B.getMaterial("TRAPPED_CHEST")) 
+				|| mm.equals(B.getMaterial("SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("WHITE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("ORANGE_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("MAGENTA_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIGHT_BLUE_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("YELLOW_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIME_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("PINK_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("GRAY_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIGHT_GRAY_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("CYAN_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("PURPLE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BLUE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BROWN_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("GREEN_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("RED_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BLACK_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("BARREL")) 
+				|| mm.equals(B.getMaterial("DISPENSER")) 
+				|| mm.equals(B.getMaterial("DROPPER")) 
+				|| mm.equals(B.getMaterial("HOPPER"))
+				|| mm.equals(B.getMaterial("FURNACE"))
+				|| mm.equals(B.getMaterial("BLAST_FURNACE"))
+				|| mm.equals(B.getMaterial("SMOKER"));
+		storageCache.put(mm, f);
+		return f;
+	}
+
+	public static boolean isStorageChest(BlockData mat)
+	{
+		if(!isStorage(mat))
+		{
+			return false;
+		}
+
+		Material mm = mat.getMaterial();
+		Boolean f = storageChestCache.get(mm);
+
+		if(f != null)
+		{
+			return f;
+		}
+
+		f = mm.equals(B.getMaterial("CHEST"))
+				|| mm.equals(B.getMaterial("TRAPPED_CHEST")) 
+				|| mm.equals(B.getMaterial("SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("WHITE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("ORANGE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("MAGENTA_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIGHT_BLUE_SHULKER_BOX"))
+				|| mm.equals(B.getMaterial("YELLOW_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIME_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("PINK_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("GRAY_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("LIGHT_GRAY_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("CYAN_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("PURPLE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BLUE_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BROWN_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("GREEN_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("RED_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BLACK_SHULKER_BOX")) 
+				|| mm.equals(B.getMaterial("BARREL")) 
+				|| mm.equals(B.getMaterial("DISPENSER")) 
+				|| mm.equals(B.getMaterial("DROPPER")) 
+				|| mm.equals(B.getMaterial("HOPPER"));
+		storageChestCache.put(mm, f);
+		return f;
+	}
+
+	public static boolean isLit(BlockData mat)
+	{
+		Material mm = mat.getMaterial();
+		Boolean f = litCache.get(mm);
+		
+		if(f != null)
+		{
+			return f;
+		}
+		
+		f = mm.equals(B.getMaterial("GLOWSTONE")) 
+				|| mm.equals(B.getMaterial("END_ROD")) 
+				|| mm.equals(B.getMaterial("SOUL_SAND")) 
+				|| mm.equals(B.getMaterial("TORCH")) 
+				|| mm.equals(Material.REDSTONE_TORCH)
+				|| mm.equals(B.getMaterial("SOUL_TORCH")) 
+				|| mm.equals(Material.REDSTONE_WALL_TORCH)
+				|| mm.equals(Material.WALL_TORCH)
+				|| mm.equals(B.getMaterial("SOUL_WALL_TORCH")) 
+				|| mm.equals(B.getMaterial("LANTERN")) 
+				|| mm.equals(Material.JACK_O_LANTERN)
+				|| mm.equals(Material.REDSTONE_LAMP)
+				|| mm.equals(Material.MAGMA_BLOCK)
+				|| mm.equals(B.getMaterial("SHROOMLIGHT")) 
+				|| mm.equals(B.getMaterial("SEA_LANTERN")) 
+				|| mm.equals(B.getMaterial("SOUL_LANTERN")) 
+				|| mm.equals(Material.FIRE)
+				|| mm.equals(B.getMaterial("SOUL_FIRE")) 
+				|| mm.equals(B.getMaterial("SEA_PICKLE")) 
+				|| mm.equals(Material.BREWING_STAND)
+				|| mm.equals(Material.REDSTONE_ORE);
+		litCache.put(mm, f);
+		return f;
+	}
+
+	public static boolean isUpdatable(BlockData mat)
+	{
+		Boolean u = updatableCache.get(mat.getMaterial());
+		
+		if(u != null)
+		{
+			return u;
+		}
+		
+		u = isLit(mat) || isStorage(mat);
+		updatableCache.put(mat.getMaterial(), u);
+		return u;
+	}
+
+	public static boolean isFoliage(BlockData d)
+	{
+		Boolean f = foliageCache.get(d.getMaterial());
+		if(f != null)
+		{
+			return f;
+		}
+		
+		if(isFluid(d) || isAir(d) || isSolid(d))
+		{
+			foliageCache.put(d.getMaterial(), false);
+			return false;
+		}
+
+		Material mat = d.getMaterial();
+		f = mat.equals(Material.POPPY)
+				|| mat.equals(Material.DANDELION)
+				|| mat.equals(B.getMaterial("CORNFLOWER"))
+				|| mat.equals(B.getMaterial("SWEET_BERRY_BUSH"))
+				|| mat.equals(B.getMaterial("CRIMSON_ROOTS"))
+				|| mat.equals(B.getMaterial("WARPED_ROOTS"))
+				|| mat.equals(B.getMaterial("NETHER_SPROUTS"))
+				|| mat.equals(B.getMaterial("ALLIUM"))
+				|| mat.equals(B.getMaterial("AZURE_BLUET"))
+				|| mat.equals(B.getMaterial("BLUE_ORCHID"))
+				|| mat.equals(B.getMaterial("POPPY"))
+				|| mat.equals(B.getMaterial("DANDELION"))
+				|| mat.equals(B.getMaterial("OXEYE_DAISY"))
+				|| mat.equals(B.getMaterial("LILY_OF_THE_VALLEY"))
+				|| mat.equals(B.getMaterial("WITHER_ROSE"))
+				|| mat.equals(Material.DARK_OAK_SAPLING)
+				|| mat.equals(Material.ACACIA_SAPLING)
+				|| mat.equals(Material.JUNGLE_SAPLING)
+				|| mat.equals(Material.BIRCH_SAPLING)
+				|| mat.equals(Material.SPRUCE_SAPLING)
+				|| mat.equals(Material.OAK_SAPLING)
+				|| mat.equals(Material.ORANGE_TULIP)
+				|| mat.equals(Material.PINK_TULIP)
+				|| mat.equals(Material.RED_TULIP)
+				|| mat.equals(Material.WHITE_TULIP)
+				|| mat.equals(Material.FERN)
+				|| mat.equals(Material.LARGE_FERN)
+				|| mat.equals(Material.GRASS)
+				|| mat.equals(Material.TALL_GRASS);
+		foliageCache.put(d.getMaterial(), f);
+		return f;
+	}
+
+	public static boolean canPlaceOnto(Material mat, Material onto)
+	{
+		String key = mat.name() + "" + onto.name();
+
+		if(isFoliage(B.get(mat.name())))
+		{
+			if(!isFoliagePlantable(B.get(onto.name())))
+			{
+				return false;
+			}
+		}
+
+		if(onto.equals(Material.AIR) || onto.equals(B.getMaterial("CAVE_AIR")))
+		{
+			return false;
+		}
+
+		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
+		{
+			return false;
+		}
+
+		if(onto.equals(Material.GRASS_PATH))
+		{
+			if(!mat.isSolid())
+			{
+				return false;
+			}
+		}
+
+		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES)
+				|| onto.equals(Material.DARK_OAK_LEAVES)
+				|| onto.equals(Material.JUNGLE_LEAVES)
+				|| onto.equals(Material.OAK_LEAVES)
+				|| onto.equals(Material.SPRUCE_LEAVES))
+		{
+			if(!mat.isSolid())
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	public static boolean isDecorant(BlockData m)
+	{
+		Material mm = m.getMaterial();
+		Boolean f = decorantCache.get(mm);
+		
+		f = mm.equals(Material.GRASS)
+				|| mm.equals(Material.TALL_GRASS)
+				|| mm.equals(B.getMaterial("CORNFLOWER"))
+				|| mm.equals(Material.SUNFLOWER)
+				|| mm.equals(Material.CHORUS_FLOWER)
+				|| mm.equals(Material.POPPY)
+				|| mm.equals(Material.DANDELION)
+				|| mm.equals(Material.OXEYE_DAISY)
+				|| mm.equals(Material.ORANGE_TULIP)
+				|| mm.equals(Material.PINK_TULIP)
+				|| mm.equals(Material.RED_TULIP)
+				|| mm.equals(Material.WHITE_TULIP)
+				|| mm.equals(Material.LILAC)
+				|| mm.equals(Material.DEAD_BUSH)
+				|| mm.equals(B.getMaterial("SWEET_BERRY_BUSH"))
+				|| mm.equals(Material.ROSE_BUSH)
+				|| mm.equals(B.getMaterial("WITHER_ROSE"))
+				|| mm.equals(Material.ALLIUM)
+				|| mm.equals(Material.BLUE_ORCHID)
+				|| mm.equals(B.getMaterial("LILY_OF_THE_VALLEY"))
+				|| mm.equals(B.getMaterial("CRIMSON_FUNGUS"))
+				|| mm.equals(B.getMaterial("WARPED_FUNGUS"))
+				|| mm.equals(Material.RED_MUSHROOM)
+				|| mm.equals(Material.BROWN_MUSHROOM)
+				|| mm.equals(B.getMaterial("CRIMSON_ROOTS"))
+				|| mm.equals(B.getMaterial("AZURE_BLUET"))
+				|| mm.equals(B.getMaterial("WEEPING_VINES"))
+				|| mm.equals(B.getMaterial("WEEPING_VINES_PLANT"))
+				|| mm.equals(B.getMaterial("WARPED_ROOTS"))
+				|| mm.equals(B.getMaterial("NETHER_SPROUTS"))
+				|| mm.equals(B.getMaterial("TWISTING_VINES"))
+				|| mm.equals(B.getMaterial("TWISTING_VINES_PLANT"))
+				|| mm.equals(Material.SUGAR_CANE)
+				|| mm.equals(Material.WHEAT)
+				|| mm.equals(Material.POTATOES)
+				|| mm.equals(Material.CARROTS)
+				|| mm.equals(Material.BEETROOTS)
+				|| mm.equals(Material.NETHER_WART)
+				|| mm.equals(B.getMaterial("SEA_PICKLE"))
+				|| mm.equals(B.getMaterial("SEAGRASS"))
+				|| mm.equals(B.getMaterial("ACACIA_BUTTON"))
+				|| mm.equals(B.getMaterial("BIRCH_BUTTON"))
+				|| mm.equals(B.getMaterial("CRIMSON_BUTTON"))
+				|| mm.equals(B.getMaterial("DARK_OAK_BUTTON"))
+				|| mm.equals(B.getMaterial("JUNGLE_BUTTON"))
+				|| mm.equals(B.getMaterial("OAK_BUTTON"))
+				|| mm.equals(B.getMaterial("POLISHED_BLACKSTONE_BUTTON"))
+				|| mm.equals(B.getMaterial("SPRUCE_BUTTON"))
+				|| mm.equals(B.getMaterial("STONE_BUTTON"))
+				|| mm.equals(B.getMaterial("WARPED_BUTTON"))
+				|| mm.equals(Material.TORCH)
+				|| mm.equals(B.getMaterial("SOUL_TORCH"));
+		decorantCache.put(mm, f);
+		return f;
+	}
+
+	public static KList<BlockData> get(KList<String> find)
+	{
+		KList<BlockData> b = new KList<>();
+
+		for(String i : find)
+		{
+			BlockData bd = get(i);
+
+			if(bd != null)
+			{
+				b.add(bd);
+			}
+		}
+
+		return b;
+	}
+
+	public static boolean isFoliagePlantable(BlockData d)
+	{
+		return d.getMaterial().equals(Material.GRASS_BLOCK) || d.getMaterial().equals(Material.DIRT) || d.getMaterial().equals(Material.COARSE_DIRT) || d.getMaterial().equals(Material.PODZOL);
+	}
+
+	public static boolean isFluid(BlockData d)
+	{
+		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.LAVA);
+	}
+
+	public static boolean isAirOrFluid(BlockData d)
+	{
+		return isAir(d) || isFluid(d);
+	}
+
+	public static boolean isAir(BlockData d)
+	{
+		if(d == null)
+		{
+			return true;
+		}
+
+		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR) || d.getMaterial().equals(Material.VOID_AIR);
+	}
+
+
 
 	public static String[] getBlockTypes()
 	{
@@ -179,433 +554,5 @@ public class B
 		}
 
 		return bt.toArray(new String[bt.size()]);
-	}
-
-	public static BlockData getBlockData(String bdxf, IrisDimension resolver)
-	{
-		try
-		{
-			String bd = bdxf.trim();
-			BlockData fff = bdc.get(bd);
-			if(fff != null)
-			{
-				return fff.clone();
-			}
-
-			BlockData bdx = parseBlockData(bd);
-
-			if(bdx == null)
-			{
-				bdx = resolver.resolveBlock(bd);
-			}
-
-			if(bdx == null)
-			{
-				Iris.warn("Unknown Block Data '" + bd + "'");
-				nulls.add(bd);
-				return AIR;
-			}
-
-			if(resolver.isPreventLeafDecay() && bdx instanceof Leaves)
-			{
-				((Leaves) bdx).setPersistent(true);
-			}
-
-			bdc.put(bd, bdx);
-
-			return bdx;
-		}
-
-		catch(Throwable e)
-		{
-			Iris.warn("Unknown Block Data '" + bdxf + "'");
-		}
-
-		return AIR;
-	}
-
-	public static BlockData parseBlockDataOrNull(String ix)
-	{
-		try
-		{
-			BlockData bx = Bukkit.createBlockData(ix);
-
-			if(bx != null)
-			{
-				return bx;
-			}
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		String i = ix.toUpperCase().trim();
-		i = i.equals("WOOL") ? "WHITE_WOOL" : i;
-		i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
-
-		try
-		{
-			return Material.valueOf(i).createBlockData();
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		return null;
-	}
-
-	public static BlockData parseBlockData(String ix)
-	{
-		try
-		{
-			BlockData bx = Bukkit.createBlockData(ix);
-
-			if(bx != null)
-			{
-				return bx;
-			}
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		String i = ix.toUpperCase().trim();
-		i = i.equals("WOOL") ? "WHITE_WOOL" : i;
-		i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
-
-		try
-		{
-			return Material.valueOf(i).createBlockData();
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-
-		return AIR;
-	}
-
-	public static boolean isStorage(BlockData mat)
-	{
-		// @builder
-		return mat.getMaterial().equals(B.mat("CHEST").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("TRAPPED_CHEST").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("WHITE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("ORANGE_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("MAGENTA_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIGHT_BLUE_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("YELLOW_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIME_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("PINK_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("GRAY_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIGHT_GRAY_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("CYAN_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("PURPLE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BLUE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BROWN_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("GREEN_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("RED_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BLACK_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("BARREL").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("DISPENSER").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("DROPPER").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("HOPPER").getMaterial())
-				|| mat.getMaterial().equals(B.mat("FURNACE").getMaterial())
-				|| mat.getMaterial().equals(B.mat("BLAST_FURNACE").getMaterial())
-				|| mat.getMaterial().equals(B.mat("SMOKER").getMaterial());
-		//@done
-	}
-
-	public static boolean isStorageChest(BlockData mat)
-	{
-		// @builder
-		return mat.getMaterial().equals(B.mat("CHEST").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("TRAPPED_CHEST").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("WHITE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("ORANGE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("MAGENTA_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIGHT_BLUE_SHULKER_BOX").getMaterial())
-				|| mat.getMaterial().equals(B.mat("YELLOW_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIME_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("PINK_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("GRAY_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LIGHT_GRAY_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("CYAN_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("PURPLE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BLUE_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BROWN_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("GREEN_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("RED_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BLACK_SHULKER_BOX").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("BARREL").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("DISPENSER").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("DROPPER").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("HOPPER").getMaterial());
-		//@done
-	}
-
-	public static boolean isTrulyLit(BlockData mat)
-	{
-		return isLit(mat) || mat.getMaterial().equals(Material.LAVA);
-	}
-
-	public static boolean isLit(BlockData mat)
-	{
-		// @builder
-		return mat.getMaterial().equals(B.mat("GLOWSTONE").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("END_ROD").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SOUL_SAND").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("TORCH").getMaterial()) 
-				|| mat.getMaterial().equals(Material.REDSTONE_TORCH)
-				|| mat.getMaterial().equals(B.mat("SOUL_TORCH").getMaterial()) 
-				|| mat.getMaterial().equals(Material.REDSTONE_WALL_TORCH)
-				|| mat.getMaterial().equals(Material.WALL_TORCH)
-				|| mat.getMaterial().equals(B.mat("SOUL_WALL_TORCH").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LANTERN").getMaterial()) 
-				|| mat.getMaterial().equals(Material.JACK_O_LANTERN)
-				|| mat.getMaterial().equals(Material.REDSTONE_LAMP)
-				|| mat.getMaterial().equals(Material.MAGMA_BLOCK)
-				|| mat.getMaterial().equals(B.mat("SHROOMLIGHT").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SEA_LANTERN").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SOUL_LANTERN").getMaterial()) 
-				|| mat.getMaterial().equals(Material.FIRE)
-				|| mat.getMaterial().equals(B.mat("SOUL_FIRE").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("SEA_PICKLE").getMaterial()) 
-				|| mat.getMaterial().equals(Material.BREWING_STAND)
-				|| mat.getMaterial().equals(Material.REDSTONE_ORE);
-		//@done
-	}
-
-	public static boolean isUpdatable(BlockData mat)
-	{
-		return isLit(mat) || isStorage(mat);
-	}
-
-	public static boolean isFoliage(BlockData d)
-	{
-		if(isFluid(d) || isAir(d) || isSolid(d))
-		{
-			return false;
-		}
-
-		BlockData mat = d;
-		// @builder
-		return mat.getMaterial().equals(Material.POPPY)
-				|| mat.getMaterial().equals(Material.DANDELION)
-				|| mat.getMaterial().equals(B.mat("CORNFLOWER").getMaterial())
-				|| mat.getMaterial().equals(B.mat("SWEET_BERRY_BUSH").getMaterial())
-				|| mat.getMaterial().equals(B.mat("CRIMSON_ROOTS").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("WARPED_ROOTS").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("NETHER_SPROUTS").getMaterial())
-				|| mat.getMaterial().equals(B.mat("ALLIUM").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("AZURE_BLUET").getMaterial())
-				|| mat.getMaterial().equals(B.mat("BLUE_ORCHID").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("POPPY").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("DANDELION").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("OXEYE_DAISY").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("LILY_OF_THE_VALLEY").getMaterial()) 
-				|| mat.getMaterial().equals(B.mat("WITHER_ROSE").getMaterial()) 
-				|| mat.getMaterial().equals(Material.DARK_OAK_SAPLING)
-				|| mat.getMaterial().equals(Material.ACACIA_SAPLING)
-				|| mat.getMaterial().equals(Material.JUNGLE_SAPLING)
-				|| mat.getMaterial().equals(Material.BIRCH_SAPLING)
-				|| mat.getMaterial().equals(Material.SPRUCE_SAPLING)
-				|| mat.getMaterial().equals(Material.OAK_SAPLING)
-				|| mat.getMaterial().equals(Material.ORANGE_TULIP)
-				|| mat.getMaterial().equals(Material.PINK_TULIP)
-				|| mat.getMaterial().equals(Material.RED_TULIP)
-				|| mat.getMaterial().equals(Material.WHITE_TULIP)
-				|| mat.getMaterial().equals(Material.FERN)
-				|| mat.getMaterial().equals(Material.LARGE_FERN)
-				|| mat.getMaterial().equals(Material.GRASS)
-				|| mat.getMaterial().equals(Material.TALL_GRASS);
-		//@done
-	}
-
-	public static boolean canPlaceOnto(Material mat, Material onto)
-	{
-		String key = mat.name() + "" + onto.name();
-
-		if(canPlaceOn.contains(key))
-		{
-			return false;
-		}
-
-		if(isFoliage(B.get(mat.name())))
-		{
-			if(!isFoliagePlantable(B.get(onto.name())))
-			{
-				lock.lock();
-				canPlaceOn.add(key);
-				lock.unlock();
-				return false;
-			}
-		}
-
-		if(onto.equals(Material.AIR) || onto.equals(B.mat("CAVE_AIR").getMaterial()))
-		{
-			lock.lock();
-			canPlaceOn.add(key);
-			lock.unlock();
-			return false;
-		}
-
-		if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH))
-		{
-			lock.lock();
-			canPlaceOn.add(key);
-			lock.unlock();
-			return false;
-		}
-
-		if(onto.equals(Material.GRASS_PATH))
-		{
-			if(!mat.isSolid())
-			{
-				lock.lock();
-				canPlaceOn.add(key);
-				lock.unlock();
-				return false;
-			}
-		}
-
-		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES)
-				|| onto.equals(Material.DARK_OAK_LEAVES)
-				|| onto.equals(Material.JUNGLE_LEAVES)
-				|| onto.equals(Material.OAK_LEAVES)
-				|| onto.equals(Material.SPRUCE_LEAVES))
-		{
-			if(!mat.isSolid())
-			{
-				lock.lock();
-				canPlaceOn.add(key);
-				lock.unlock();
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	public static boolean isDecorant(BlockData m)
-	{
-		if(decorant.contains(m))
-		{
-			return true;
-		}
-
-		// @builder
-		boolean str = m.getMaterial().equals(Material.GRASS)
-				|| m.getMaterial().equals(Material.TALL_GRASS)
-				|| m.equals(B.mat("CORNFLOWER"))
-				|| m.getMaterial().equals(Material.SUNFLOWER)
-				|| m.getMaterial().equals(Material.CHORUS_FLOWER)
-				|| m.getMaterial().equals(Material.POPPY)
-				|| m.getMaterial().equals(Material.DANDELION)
-				|| m.getMaterial().equals(Material.OXEYE_DAISY)
-				|| m.getMaterial().equals(Material.ORANGE_TULIP)
-				|| m.getMaterial().equals(Material.PINK_TULIP)
-				|| m.getMaterial().equals(Material.RED_TULIP)
-				|| m.getMaterial().equals(Material.WHITE_TULIP)
-				|| m.getMaterial().equals(Material.LILAC)
-				|| m.getMaterial().equals(Material.DEAD_BUSH)
-				|| m.equals(B.mat("SWEET_BERRY_BUSH"))
-				|| m.getMaterial().equals(Material.ROSE_BUSH)
-				|| m.equals(B.mat("WITHER_ROSE"))
-				|| m.getMaterial().equals(Material.ALLIUM)
-				|| m.getMaterial().equals(Material.BLUE_ORCHID)
-				|| m.equals(B.mat("LILY_OF_THE_VALLEY"))
-				|| m.equals(B.mat("CRIMSON_FUNGUS"))
-				|| m.equals(B.mat("WARPED_FUNGUS"))
-				|| m.getMaterial().equals(Material.RED_MUSHROOM)
-				|| m.getMaterial().equals(Material.BROWN_MUSHROOM)
-				|| m.equals(B.mat("CRIMSON_ROOTS"))
-				|| m.equals(B.mat("AZURE_BLUET"))
-				|| m.equals(B.mat("WEEPING_VINES"))
-				|| m.equals(B.mat("WEEPING_VINES_PLANT"))
-				|| m.equals(B.mat("WARPED_ROOTS"))
-				|| m.equals(B.mat("NETHER_SPROUTS"))
-				|| m.equals(B.mat("TWISTING_VINES"))
-				|| m.equals(B.mat("TWISTING_VINES_PLANT"))
-				|| m.getMaterial().equals(Material.SUGAR_CANE)
-				|| m.getMaterial().equals(Material.WHEAT)
-				|| m.getMaterial().equals(Material.POTATOES)
-				|| m.getMaterial().equals(Material.CARROTS)
-				|| m.getMaterial().equals(Material.BEETROOTS)
-				|| m.getMaterial().equals(Material.NETHER_WART)
-				|| m.equals(B.mat("SEA_PICKLE"))
-				|| m.equals(B.mat("SEAGRASS"))
-				|| m.equals(B.mat("ACACIA_BUTTON"))
-				|| m.equals(B.mat("BIRCH_BUTTON"))
-				|| m.equals(B.mat("CRIMSON_BUTTON"))
-				|| m.equals(B.mat("DARK_OAK_BUTTON"))
-				|| m.equals(B.mat("JUNGLE_BUTTON"))
-				|| m.equals(B.mat("OAK_BUTTON"))
-				|| m.equals(B.mat("POLISHED_BLACKSTONE_BUTTON"))
-				|| m.equals(B.mat("SPRUCE_BUTTON"))
-				|| m.equals(B.mat("STONE_BUTTON"))
-				|| m.equals(B.mat("WARPED_BUTTON"))
-				|| m.getMaterial().equals(Material.TORCH)
-				|| m.equals(B.mat("SOUL_TORCH"));
-		//@done
-
-		if(str)
-		{
-			decorant.add(m);
-			return true;
-		}
-
-		return false;
-	}
-
-	public static KList<BlockData> getBlockData(KList<String> find)
-	{
-		KList<BlockData> b = new KList<>();
-
-		for(String i : find)
-		{
-			BlockData bd = getBlockData(i);
-
-			if(bd != null)
-			{
-				b.add(bd);
-			}
-		}
-
-		return b;
-	}
-
-	public static boolean isFoliagePlantable(BlockData d)
-	{
-		return d.getMaterial().equals(Material.GRASS_BLOCK) || d.getMaterial().equals(Material.DIRT) || d.getMaterial().equals(Material.COARSE_DIRT) || d.getMaterial().equals(Material.PODZOL);
-	}
-
-	public static boolean isFluid(BlockData d)
-	{
-		return d.getMaterial().equals(Material.WATER) || d.getMaterial().equals(Material.LAVA);
-	}
-
-	public static boolean isAirOrFluid(BlockData d)
-	{
-		return isAir(d) || isFluid(d);
-	}
-
-	public static boolean isAir(BlockData d)
-	{
-		if(d == null)
-		{
-			return true;
-		}
-
-		return d.getMaterial().equals(Material.AIR) || d.getMaterial().equals(Material.CAVE_AIR) || d.getMaterial().equals(Material.VOID_AIR);
 	}
 }

@@ -37,10 +37,10 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
-	private static final BlockData AIR = B.getBlockData("CAVE_AIR");
-	private static final BlockData VAIR = B.getBlockData("VOID_AIR");
-	private static final BlockData VAIR_DEBUG = B.getBlockData("COBWEB");
-	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.getBlockData("minecraft:snow[layers=1]"), B.getBlockData("minecraft:snow[layers=2]"), B.getBlockData("minecraft:snow[layers=3]"), B.getBlockData("minecraft:snow[layers=4]"), B.getBlockData("minecraft:snow[layers=5]"), B.getBlockData("minecraft:snow[layers=6]"), B.getBlockData("minecraft:snow[layers=7]"), B.getBlockData("minecraft:snow[layers=8]")};
+	private static final BlockData AIR = B.get("CAVE_AIR");
+	private static final BlockData VAIR = B.get("VOID_AIR");
+	private static final BlockData VAIR_DEBUG = B.get("COBWEB");
+	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
 	private KMap<BlockVector, BlockData> blocks;
 	private int w;
@@ -234,7 +234,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(int i = 0; i < s; i++)
 		{
-			blocks.put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), B.getBlockData(din.readUTF()));
+			blocks.put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
 		}
 	}
 

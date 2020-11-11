@@ -44,14 +44,14 @@ public class IrisCompatabilityBlockFilter
 
 	public BlockData getFind()
 	{
-		return findData.aquire(() -> B.getBlockData(when));
+		return findData.aquire(() -> B.get(when));
 	}
 
 	public BlockData getReplace()
 	{
 		return replaceData.aquire(() ->
 		{
-			BlockData b = B.parseBlockDataOrNull(supplement);
+			BlockData b = B.getOrNull(supplement);
 
 			if(b == null)
 			{

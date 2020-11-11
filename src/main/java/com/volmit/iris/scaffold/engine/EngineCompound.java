@@ -89,4 +89,6 @@ public interface EngineCompound extends Listener
     }
 
     public boolean isFailing();
+
+    public int getThreadCount();
 }

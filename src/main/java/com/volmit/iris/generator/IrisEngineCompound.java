@@ -42,6 +42,9 @@ public class IrisEngineCompound implements EngineCompound {
     @Getter
     private final IrisDimension rootDimension;
 
+    @Getter
+    private int threadCount;
+
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {
         this.rootDimension = rootDimension;

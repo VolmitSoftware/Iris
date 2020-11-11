@@ -30,8 +30,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     public int getHeight(int x, int y, int z);
 
-    public IrisBiome getAbsoluteBiome(int x, int y, int z);
-
     public int getThreadCount();
 
     public void changeThreadCount(int m);

@@ -7,7 +7,6 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.Form;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
 import org.bukkit.Bukkit;
@@ -137,18 +136,17 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         TerrainChunk tc = TerrainChunk.create(world, biome);
-        generateChunkRawData(world, ignored, x, z, tc);
+        generateChunkRawData(world, x, z, tc);
         return tc.getRaw();
     }
 
-    public void generateChunkRawData(World world, Random ignored, int x, int z, TerrainChunk tc)
+    public void generateChunkRawData(World world, int x, int z, TerrainChunk tc)
     {
         initialize(world);
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
         long m = M.ms();
         compound.generate(x * 16, z * 16, blocks, biomes);
-        System.out.println("Generated " + x + "," + z + " in " + Form.duration(M.ms() - m, 0));
         generated++;
     }
 
@@ -252,15 +250,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public IrisBiome getAbsoluteBiome(int x, int y, int z) {
-        // TODO: REMOVE GET BIOME OR THIS ONE
-        return getEngineAccess(y).getBiome(x, y-getComposite().getEngineForHeight(y).getMinHeight(), z);
-    }
-
-    @Override
     public int getThreadCount() {
-        // TODO: NOT CORRECT
-        return Iris.getThreadCount();
+        return getComposite().getThreadCount();
     }
 
     @Override

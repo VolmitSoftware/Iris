@@ -1,6 +1,7 @@
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisObject;
 
 import java.io.File;
@@ -10,9 +11,9 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 	private ChronoLatch useFlip = new ChronoLatch(2863);
 	private KMap<String, Long> useCache = new KMap<>();
 
-	public ObjectResourceLoader(File root, String folderName, String resourceTypeName)
+	public ObjectResourceLoader(File root, IrisDataManager idm, String folderName, String resourceTypeName)
 	{
-		super(root, folderName, resourceTypeName, IrisObject.class);
+		super(root, idm, folderName, resourceTypeName, IrisObject.class);
 	}
 
 	public int getSize()
@@ -92,6 +93,8 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			loadCache.put(key, t);
 			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
+			t.setLoader(manager);
+			t.setLoadFile(j);
 			lock.unlock();
 			return t;
 		}
@@ -102,64 +105,6 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
 			return null;
 		}
-	}
-
-	public String[] getPreferredKeys()
-	{
-		if(preferredFolder == null || preferredFolder.isEmpty())
-		{
-			return getPossibleKeys();
-		}
-
-		if(possibleKeys != null)
-		{
-			return possibleKeys;
-		}
-
-		Iris.info("Building " + resourceTypeName + " Preference Lists");
-		KSet<String> m = new KSet<>();
-
-		for(File i : getFolders())
-		{
-			for(File j : i.listFiles())
-			{
-				if(!j.getPath().contains(preferredFolder))
-				{
-					continue;
-				}
-
-				if(j.isFile() && j.getName().endsWith(".iob"))
-				{
-					m.add(j.getName().replaceAll("\\Q.iob\\E", ""));
-				}
-
-				else if(j.isDirectory())
-				{
-					for(File k : j.listFiles())
-					{
-						if(k.isFile() && k.getName().endsWith(".iob"))
-						{
-							m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.iob\\E", ""));
-						}
-
-						else if(k.isDirectory())
-						{
-							for(File l : k.listFiles())
-							{
-								if(l.isFile() && l.getName().endsWith(".iob"))
-								{
-									m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.iob\\E", ""));
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		KList<String> v = new KList<>(m);
-		possibleKeys = v.toArray(new String[v.size()]);
-		return possibleKeys;
 	}
 
 	public String[] getPossibleKeys()

@@ -80,26 +80,33 @@ public class IrisEngine extends BlockPopulator implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
-        Hunk<Biome> biomes = vbiomes;
-        Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
+        try
+        {
+            Hunk<Biome> biomes = vbiomes;
+            Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
 
-        MultiBurst.burst.burst(
-            () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
-            () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
-            () -> getFramework().getTerrainActuator().actuate(x, z, blocks)
-        );
-        MultiBurst.burst.burst(
-            () -> getFramework().getCaveModifier().modify(x, z, blocks),
-            () -> getFramework().getRavineModifier().modify(x, z, blocks)
-        );
-        MultiBurst.burst.burst(
-            () -> getFramework().getDecorantActuator().actuate(x, z, blocks),
-            () -> getFramework().getDepositModifier().modify(x, z, blocks),
-            () -> getFramework().getPostModifier().modify(x, z, blocks),
-            () -> getFramework().getEngineParallax().insertParallax(x, z, blocks)
-        );
+            MultiBurst.burst.burst(
+                    () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
+                    () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
+                    () -> getFramework().getTerrainActuator().actuate(x, z, blocks)
+            );
+            MultiBurst.burst.burst(
+                    () -> getFramework().getCaveModifier().modify(x, z, blocks),
+                    () -> getFramework().getRavineModifier().modify(x, z, blocks)
+            );
+            MultiBurst.burst.burst(
+                    () -> getFramework().getDecorantActuator().actuate(x, z, blocks),
+                    () -> getFramework().getDepositModifier().modify(x, z, blocks),
+                    () -> getFramework().getPostModifier().modify(x, z, blocks),
+                    () -> getFramework().getEngineParallax().insertParallax(x, z, blocks)
+            );
 
-        getFramework().recycle();
+            getFramework().recycle();
+        }
+        catch(Throwable e)
+        {
+            fail("Failed to generate " + x + ", " + z, e);
+        }
     }
 
     @Override

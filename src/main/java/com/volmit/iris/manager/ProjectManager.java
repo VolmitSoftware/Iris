@@ -1,28 +1,19 @@
 package com.volmit.iris.manager;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.util.UUID;
-
-import org.zeroturnaround.zip.ZipUtil;
-import org.zeroturnaround.zip.commons.FileUtils;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.JSONArray;
-import com.volmit.iris.util.JSONException;
-import com.volmit.iris.util.JSONObject;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.MortarSender;
-
+import com.volmit.iris.util.*;
 import lombok.Data;
+import org.zeroturnaround.zip.ZipUtil;
+import org.zeroturnaround.zip.commons.FileUtils;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.util.UUID;
 
 @Data
 public class ProjectManager
@@ -64,7 +55,8 @@ public class ProjectManager
 	{
 		sender.sendMessage("Looking for Package: " + type);
 		File iris = new File(folder, "iris");
-		IrisDimension dim = Iris.globaldata.getDimensionLoader().load(type);
+		File irispack = new File(folder, "iris/pack");
+		IrisDimension dim = IrisDataManager.loadAnyDimension(type);
 
 		if(dim == null)
 		{
@@ -73,7 +65,7 @@ public class ProjectManager
 				if(i.isFile() && i.getName().equals(type + ".iris"))
 				{
 					sender.sendMessage("Found " + type + ".iris in " + ProjectManager.WORKSPACE_NAME + " folder");
-					ZipUtil.unpack(i, iris);
+					ZipUtil.unpack(i, irispack);
 					break;
 				}
 			}
@@ -86,7 +78,7 @@ public class ProjectManager
 
 			try
 			{
-				FileUtils.copyDirectory(f, iris);
+				FileUtils.copyDirectory(f, irispack);
 			}
 
 			catch(IOException e)
@@ -95,12 +87,10 @@ public class ProjectManager
 			}
 		}
 
-		File dimf = new File(iris, "dimensions/" + type + ".json");
+		File dimf = new File(irispack, "dimensions/" + type + ".json");
 
 		if(!dimf.exists() || !dimf.isFile())
 		{
-			Iris.globaldata.dump();
-			Iris.globaldata.preferFolder(null);
 			Iris.proj.downloadSearch(sender, type, false);
 			File downloaded = Iris.proj.getWorkspaceFolder(type);
 
@@ -110,7 +100,7 @@ public class ProjectManager
 				{
 					try
 					{
-						FileUtils.copyFile(i, new File(iris, i.getName()));
+						FileUtils.copyFile(i, new File(irispack, i.getName()));
 					}
 
 					catch(IOException e)
@@ -123,7 +113,7 @@ public class ProjectManager
 				{
 					try
 					{
-						FileUtils.copyDirectory(i, new File(iris, i.getName()));
+						FileUtils.copyDirectory(i, new File(irispack, i.getName()));
 					}
 
 					catch(IOException e)
@@ -142,7 +132,7 @@ public class ProjectManager
 			return null;
 		}
 
-		IrisDataManager dm = new IrisDataManager(folder);
+		IrisDataManager dm = new IrisDataManager(irispack);
 		dim = dm.getDimensionLoader().load(type);
 
 		if(dim == null)
@@ -236,10 +226,7 @@ public class ProjectManager
 			IO.delete(packEntry);
 		}
 
-		Iris.globaldata.dump();
-		Iris.globaldata.preferFolder(null);
-
-		if(Iris.globaldata.getDimensionLoader().load(key) != null)
+		if(IrisDataManager.loadAnyDimension(key) != null)
 		{
 			sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
 			return;
@@ -263,8 +250,6 @@ public class ProjectManager
 		}
 
 		sender.sendMessage("Successfully Aquired " + d.getName());
-		Iris.globaldata.dump();
-		Iris.globaldata.preferFolder(null);
 	}
 
 	public KMap<String, String> getListing(boolean cached)

@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.scaffold.engine.GeneratorAccess;
@@ -383,7 +382,7 @@ public class IrisDimension extends IrisRegistrant
 
 		for(String i : getRegions())
 		{
-			r.add(g != null ? g.getData().getRegionLoader().load(i) : Iris.globaldata.getRegionLoader().load(i));
+			r.add(g.getData().getRegionLoader().load(i));
 		}
 
 		return r;

@@ -1,5 +1,6 @@
 package com.volmit.iris.manager.command;
 
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.KList;
 import org.bukkit.entity.Player;
 
@@ -47,7 +48,7 @@ public class CommandIrisStructureOpen extends MortarCommand
 
 		Player p = sender.player();
 
-		IrisStructure structure = Iris.globaldata.getStructureLoader().load(args[0]);
+		IrisStructure structure = IrisDataManager.loadAnyStructure(args[0]);
 
 		if(structure == null)
 		{

@@ -58,7 +58,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void hotload()
     {
-        Iris.globaldata.dump();
+        getData().dump();
         initialized.lazySet(false);
     }
 
@@ -78,7 +78,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         for (File j : i.listFiles()) {
                             if (j.isFile() && j.getName().endsWith(".json")) {
                                 hint = j.getName().replaceAll("\\Q.json\\E", "");
-                                break searching;
+                                Iris.error("Found v1 install. Please create a new world, this will cause chunks to change in your existing iris worlds!");
+                                throw new RuntimeException();
                             }
                         }
                     }
@@ -97,14 +98,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             throw new RuntimeException("Cannot find iris dimension data for world: " + world.getName() + "! FAILED");
         }
 
-        dim = Iris.globaldata.preferFolder(hint).getDimensionLoader().load(hint);
+        dim = IrisDataManager.loadAnyDimension(hint);
 
         if (dim == null) {
             throw new RuntimeException("Cannot find dimension: " + hint);
         }
 
         if (production) {
-            dim = new IrisDataManager(getDataFolder(world), true).preferFolder(dim.getLoadKey()).getDimensionLoader().load(dim.getLoadKey());
+            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(dim.getLoadKey());
 
             if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + hint);
@@ -119,9 +120,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             return;
         }
 
-        IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : Iris.globaldata.copy();
         IrisDimension dim = getDimension(world);
-        data.preferFolder(dim.getLoadKey());
+        IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
         compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
         initialized.set(true);
         populators.clear();

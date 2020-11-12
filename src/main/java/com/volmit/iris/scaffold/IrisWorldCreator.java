@@ -1,6 +1,6 @@
 package com.volmit.iris.scaffold;
 
-import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import org.bukkit.World;
@@ -71,7 +71,7 @@ public class IrisWorldCreator
             return World.Environment.NORMAL;
         }
 
-        IrisDimension dim = Iris.globaldata.getDimensionLoader().load(dimensionName);
+        IrisDimension dim = IrisDataManager.loadAnyDimension(dimensionName);
 
         if(dim != null)
         {

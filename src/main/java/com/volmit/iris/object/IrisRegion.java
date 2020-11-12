@@ -1,22 +1,9 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
-import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.IRare;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.scaffold.data.DataProvider;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -400,7 +387,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 					continue;
 				}
 
-				IrisBiome biome = (g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i);
+				IrisBiome biome = g.getData().getBiomeLoader().load(i);
 
 				names.remove(i);
 				if(biome == null)
@@ -460,7 +447,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getCaveBiomes())
 			{
-				realCaveBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realCaveBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realCaveBiomes;
@@ -475,7 +462,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getLakeBiomes())
 			{
-				realLakeBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realLakeBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realLakeBiomes;
@@ -490,7 +477,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getRiverBiomes())
 			{
-				realRiverBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realRiverBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realRiverBiomes;
@@ -505,7 +492,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getShoreBiomes())
 			{
-				realShoreBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realShoreBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realShoreBiomes;
@@ -520,7 +507,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getSeaBiomes())
 			{
-				realSeaBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realSeaBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realSeaBiomes;
@@ -535,7 +522,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			for(String i : getLandBiomes())
 			{
-				realLandBiomes.add((g == null ? Iris.globaldata : g.getData()).getBiomeLoader().load(i));
+				realLandBiomes.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realLandBiomes;

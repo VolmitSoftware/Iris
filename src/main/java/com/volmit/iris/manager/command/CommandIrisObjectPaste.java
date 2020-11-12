@@ -1,22 +1,22 @@
 package com.volmit.iris.manager.command;
 
-import java.io.File;
-import java.util.Set;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.ProjectManager;
+import com.volmit.iris.manager.WandManager;
+import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.manager.ProjectManager;
-import com.volmit.iris.manager.WandManager;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import java.io.File;
+import java.util.Set;
 
 public class CommandIrisObjectPaste extends MortarCommand
 {
@@ -54,7 +54,16 @@ public class CommandIrisObjectPaste extends MortarCommand
 		}
 
 		Player p = sender.player();
-		File file = Iris.globaldata.getObjectLoader().findFile(args[0]);
+		IrisObject obj = IrisDataManager.loadAnyObject(args[0]);
+
+		if(obj == null)
+		{
+
+			sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
+			return true;
+		}
+
+		File file = obj.getLoadFile();
 		boolean intoWand = false;
 
 		for(String i : args)
@@ -68,11 +77,12 @@ public class CommandIrisObjectPaste extends MortarCommand
 		if(file == null || !file.exists())
 		{
 			sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
+			return true;
 		}
 
 		ItemStack wand = sender.player().getInventory().getItemInMainHand();
 
-		IrisObject o = Iris.globaldata.getObjectLoader().load(args[0]);
+		IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 		if(o == null)
 		{
 			sender.sendMessage("Error, cant find");

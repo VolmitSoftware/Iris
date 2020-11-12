@@ -1,62 +1,23 @@
 package com.volmit.iris.manager.structure;
 
-import java.io.File;
-import java.util.Iterator;
-
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import com.google.gson.Gson;
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.noise.CNG;
+import com.volmit.iris.object.*;
+import com.volmit.iris.util.*;
+import lombok.Data;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.block.BlockCookEvent;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFertilizeEvent;
-import org.bukkit.event.block.BlockFormEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockGrowEvent;
-import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.event.block.BlockPhysicsEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.util.BlockVector;
 
-import com.google.gson.Gson;
-import com.volmit.iris.Iris;
-import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.object.IrisStructure;
-import com.volmit.iris.object.IrisStructureTile;
-import com.volmit.iris.object.NoiseStyle;
-import com.volmit.iris.object.StructureTileCondition;
-import com.volmit.iris.object.TileResult;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.Cuboid;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.IObjectPlacer;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.JSONObject;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.MaterialBlock;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.UIElement;
-import com.volmit.iris.util.UIStaticDecorator;
-import com.volmit.iris.util.UIWindow;
-import com.volmit.iris.util.Window;
-import com.volmit.iris.util.WindowResolution;
-
-import lombok.Data;
+import java.io.File;
+import java.util.Iterator;
 
 @Data
 public class StructureTemplate implements Listener, IObjectPlacer
@@ -184,8 +145,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 					for(String k : j.getObjects())
 					{
 						int v = hijacked.getForceObjects().size() + 1;
-						Iris.globaldata.dump();
-						IrisObject o = Iris.globaldata.getObjectLoader().load(k).copy();
+						IrisObject o = input.getLoader().getObjectLoader().load(k).copy();
 						String b = o.getLoadKey();
 						o.setLoadKey(realType + "-" + v);
 
@@ -574,7 +534,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 			return;
 		}
 
-		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng, Iris.globaldata);
+		r.getTile().getForceObjects().get(getVariant(c, r.getTile())).place(bottomCenter.getBlockX(), bottomCenter.getBlockY(), bottomCenter.getBlockZ(), this, r.getPlacement(), rng, r.getStructure().getLoader());
 		if(!quiet)
 		{
 			center.getWorld().playSound(center, Sound.ENTITY_SHULKER_BULLET_HIT, 1f, 1.6f);

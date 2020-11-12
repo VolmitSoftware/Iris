@@ -137,7 +137,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     public default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc)
     {
-        ChronoLatch cl = new ChronoLatch(250, false);
+        ChronoLatch cl = new ChronoLatch(3000, false);
         long s = M.ms();
         int cpus = 2+(Runtime.getRuntime().availableProcessors()/2);
         KList<Engine> engines = new KList<>();

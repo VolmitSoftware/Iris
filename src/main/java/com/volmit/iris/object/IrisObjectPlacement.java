@@ -1,19 +1,9 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.RegistryListObject;
-import com.volmit.iris.util.Required;
 import com.volmit.iris.scaffold.data.DataProvider;
-
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -152,7 +142,7 @@ public class IrisObjectPlacement
 			return null;
 		}
 
-		return (g == null ? Iris.globaldata : g.getData()).getObjectLoader().load(place.get(random.nextInt(place.size())));
+		return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
 	}
 
 	public int getTriesForChunk(RNG random)

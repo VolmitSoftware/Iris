@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
@@ -604,7 +603,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 			for(String i : getChildren())
 			{
-				realChildren.add(g != null ? g.getData().getBiomeLoader().load(i) : Iris.globaldata.getBiomeLoader().load(i));
+				realChildren.add(g.getData().getBiomeLoader().load(i));
 			}
 
 			return realChildren;
@@ -621,7 +620,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		{
 			for(String i : getChildren())
 			{
-				IrisBiome b = g != null ? g.getData().getBiomeLoader().load(i) : Iris.globaldata.getBiomeLoader().load(i);
+				IrisBiome b = g.getData().getBiomeLoader().load(i);
 				int l = limit;
 				m.addAll(b.getAllChildren(g, l));
 			}

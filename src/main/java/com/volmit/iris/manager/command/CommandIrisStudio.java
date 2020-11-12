@@ -31,9 +31,6 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioMap map;
 
 	@Command
-	private CommandIrisStudioList list;
-
-	@Command
 	private CommandIrisStudioGoto got0;
 
 	@Command

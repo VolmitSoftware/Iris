@@ -1,17 +1,8 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.scaffold.data.DataProvider;
-import com.volmit.iris.util.DependsOn;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.IrisInterpolation;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RegistryListGenerator;
-import com.volmit.iris.util.Required;
-
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -52,7 +43,7 @@ public class IrisBiomeGeneratorLink
 	{
 		return gen.aquire(() ->
 		{
-			IrisGenerator gen = g != null ? g.getData().getGeneratorLoader().load(getGenerator()) : Iris.globaldata.getGeneratorLoader().load(getGenerator());
+			IrisGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
 
 			if(gen == null)
 			{

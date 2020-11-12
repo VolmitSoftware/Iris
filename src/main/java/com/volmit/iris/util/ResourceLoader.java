@@ -1,12 +1,12 @@
 package com.volmit.iris.util;
 
-import java.io.File;
-
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisRegistrant;
-
 import lombok.Data;
+
+import java.io.File;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant>
@@ -20,13 +20,13 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected Class<? extends T> objectClass;
 	protected String cname;
 	protected IrisLock lock;
-	protected String preferredFolder = null;
 	protected String[] possibleKeys = null;
-	protected String[] preferredKeys = null;
+	protected IrisDataManager manager;
 
-	public ResourceLoader(File root, String folderName, String resourceTypeName, Class<? extends T> objectClass)
+	public ResourceLoader(File root, IrisDataManager manager, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
 		lock = new IrisLock("Res");
+		this.manager = manager;
 		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
 		cname = objectClass.getCanonicalName();
@@ -34,53 +34,6 @@ public class ResourceLoader<T extends IrisRegistrant>
 		this.root = root;
 		this.folderName = folderName;
 		loadCache = new KMap<>();
-	}
-
-	public String[] getPreferredKeys()
-	{
-		if(preferredFolder == null || preferredFolder.isEmpty())
-		{
-			return getPossibleKeys();
-		}
-
-		if(preferredKeys != null)
-		{
-			return preferredKeys;
-		}
-
-		Iris.info("Building " + resourceTypeName + " Preference Lists");
-		KSet<String> m = new KSet<>();
-
-		for(File i : getFolders())
-		{
-			for(File j : i.listFiles())
-			{
-				if(!j.getPath().contains(preferredFolder))
-				{
-					continue;
-				}
-
-				if(j.isFile() && j.getName().endsWith(".json"))
-				{
-					m.add(j.getName().replaceAll("\\Q.json\\E", ""));
-				}
-
-				else if(j.isDirectory())
-				{
-					for(File k : j.listFiles())
-					{
-						if(k.isFile() && k.getName().endsWith(".json"))
-						{
-							m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.json\\E", ""));
-						}
-					}
-				}
-			}
-		}
-
-		KList<String> v = new KList<>(m);
-		preferredKeys = v.toArray(new String[v.size()]);
-		return preferredKeys;
 	}
 
 	public String[] getPossibleKeys()
@@ -134,6 +87,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
 			t.setLoadKey(name);
 			t.setLoadFile(j);
+			t.setLoader(manager);
 			lock.unlock();
 			return t;
 		}
@@ -205,26 +159,10 @@ public class ResourceLoader<T extends IrisRegistrant>
 			{
 				if(i.isDirectory())
 				{
-					for(File j : i.listFiles())
+					if(i.getName().equals(folderName))
 					{
-						if(j.isDirectory() && j.getName().equals(folderName))
-						{
-							folderCache.add(j);
-							break;
-						}
-					}
-				}
-			}
-
-			if(preferredFolder != null)
-			{
-				for(File i : folderCache.copy())
-				{
-					if(i.getParentFile().getName().equals(preferredFolder) || i.getParentFile().getParentFile().getName().equals(preferredFolder))
-					{
-						folderCache.remove(i);
-						folderCache.add(0, i);
-						Iris.verbose("Prefering " + i.getPath() + " in the folder cache because we prefer " + preferredFolder);
+						folderCache.add(i);
+						break;
 					}
 				}
 			}
@@ -288,12 +226,6 @@ public class ResourceLoader<T extends IrisRegistrant>
 	public boolean isLoaded(String next)
 	{
 		return loadCache.containsKey(next);
-	}
-
-	public void preferFolder(String name)
-	{
-		clearList();
-		preferredFolder = name;
 	}
 
 	public void clearList()

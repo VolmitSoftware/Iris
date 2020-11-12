@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
 import com.volmit.iris.generator.noise.CellGenerator;
 import com.volmit.iris.scaffold.data.DataProvider;
@@ -84,7 +83,7 @@ public class IrisStructurePlacement
 
 	public IrisStructure getStructure(DataProvider g)
 	{
-		return structure.aquire(() -> (g == null ? Iris.globaldata : g.getData()).getStructureLoader().load(getTileset()));
+		return structure.aquire(() -> g.getData().getStructureLoader().load(getTileset()));
 	}
 
 	public CellGenerator getChanceGenerator(RNG g)

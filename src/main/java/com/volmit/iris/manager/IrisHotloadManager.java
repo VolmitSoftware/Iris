@@ -1,16 +1,15 @@
 package com.volmit.iris.manager;
 
-import java.io.File;
-
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.legacy.scaffold.IrisContext;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.FolderWatcher;
 import com.volmit.iris.util.J;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.io.File;
 
 public class IrisHotloadManager
 {
@@ -160,7 +159,6 @@ public class IrisHotloadManager
 					}
 
 					Bukkit.getConsoleSender().sendMessage(Iris.instance.getTag("Studio") + m);
-					Iris.globaldata.hotloaded();
 					ch.onHotloaded();
 					busy = false;
 				});

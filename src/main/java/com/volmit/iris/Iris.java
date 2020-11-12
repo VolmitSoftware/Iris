@@ -31,7 +31,6 @@ public class Iris extends VolmitPlugin
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
-	public static IrisDataManager globaldata;
 	public static ProjectManager proj;
 	public static ConversionManager convert;
 	public static IrisHotloadManager hotloader;
@@ -154,7 +153,6 @@ public class Iris extends VolmitPlugin
 		proj = new ProjectManager();
 		hotloader = new IrisHotloadManager();
 		convert = new ConversionManager();
-		globaldata = new IrisDataManager(getDataFolder());
 		wand = new WandManager();
 		struct = new StructureManager();
 		board = new IrisBoardManager();
@@ -194,6 +192,7 @@ public class Iris extends VolmitPlugin
 		board.disable();
 		Bukkit.getScheduler().cancelTasks(this);
 		HandlerList.unregisterAll((Plugin) this);
+		IrisDataManager.managers.clear();
 		super.onDisable();
 	}
 

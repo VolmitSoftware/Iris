@@ -1,36 +1,14 @@
 package com.volmit.iris.manager;
 
-import java.awt.GraphicsEnvironment;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.List;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.JSONArray;
-import com.volmit.iris.util.JSONObject;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RegistryListBiome;
-import com.volmit.iris.util.RegistryListBlockType;
-import com.volmit.iris.util.RegistryListDimension;
-import com.volmit.iris.util.RegistryListEntity;
-import com.volmit.iris.util.RegistryListFont;
-import com.volmit.iris.util.RegistryListGenerator;
-import com.volmit.iris.util.RegistryListItemType;
-import com.volmit.iris.util.RegistryListLoot;
-import com.volmit.iris.util.RegistryListMythical;
-import com.volmit.iris.util.RegistryListObject;
-import com.volmit.iris.util.RegistryListRegion;
-import com.volmit.iris.util.RegistryListStructure;
-import com.volmit.iris.util.Required;
+import java.awt.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.List;
 
 public class SchemaBuilder
 {
@@ -198,7 +176,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getBiomeLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getBiomeLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -233,7 +211,7 @@ public class SchemaBuilder
 					JSONObject j = new JSONObject();
 					JSONArray ja = new JSONArray();
 
-					for(String i : data.getBlockLoader().getPreferredKeys())
+					for(String i : data.getBlockLoader().getPossibleKeys())
 					{
 						ja.put(i);
 					}
@@ -277,7 +255,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getEntityLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getEntityLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -311,7 +289,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getLootLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getLootLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -327,7 +305,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getDimensionLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getDimensionLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -344,7 +322,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getGeneratorLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getGeneratorLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -361,7 +339,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getObjectLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getObjectLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -378,7 +356,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getRegionLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getRegionLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -395,7 +373,7 @@ public class SchemaBuilder
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getStructureLoader().getPreferredKeys()));
+					j.put("enum", new JSONArray(data.getStructureLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -560,7 +538,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getBiomeLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getBiomeLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -605,7 +583,7 @@ public class SchemaBuilder
 							JSONObject j = new JSONObject();
 							JSONArray ja = new JSONArray();
 
-							for(String i : data.getBlockLoader().getPreferredKeys())
+							for(String i : data.getBlockLoader().getPossibleKeys())
 							{
 								ja.put(i);
 							}
@@ -651,7 +629,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getEntityLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getEntityLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -687,7 +665,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getLootLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getLootLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -705,7 +683,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getDimensionLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getDimensionLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -723,7 +701,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getGeneratorLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getGeneratorLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -741,7 +719,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getObjectLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getObjectLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -759,7 +737,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getRegionLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getRegionLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -777,7 +755,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getStructureLoader().getPreferredKeys()));
+							j.put("enum", new JSONArray(data.getStructureLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 

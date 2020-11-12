@@ -1,6 +1,7 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -24,7 +25,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 		if(args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld()))
 		{
-			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getBiomeLoader().getPreferredKeys());
+			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getBiomeLoader().getPossibleKeys());
 		}
 	}
 
@@ -51,8 +52,8 @@ public class CommandIrisStudioGoto extends MortarCommand
 				}
 
 				IrisAccess g = IrisWorlds.access(world);
-				IrisBiome b = Iris.globaldata.getBiomeLoader().load(args[0], false);
-				IrisRegion r = Iris.globaldata.getRegionLoader().load(args[0], false);
+				IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
+				IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
 
 				if(b != null)
 				{
@@ -75,7 +76,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 				else if(r != null)
 				{
 					J.a(() -> {
-						Location l = g.lookForRegion(r, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+						Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
 						if(l == null)
 						{

@@ -51,6 +51,8 @@ public class IrisEngineCompound implements EngineCompound {
         Iris.info("Initializing Engine Composite for " + world.getName());
         this.world = world;
         engineMetadata = EngineData.load(getEngineMetadataFile());
+        engineMetadata.setDimension(rootDimension.getLoadKey());
+        engineMetadata.setLastVersion(Iris.instance.getDescription().getVersion());
         saveEngineMetadata();
         populators = new KList<>();
 
@@ -83,7 +85,7 @@ public class IrisEngineCompound implements EngineCompound {
             {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
-                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy().preferFolder(rootDimension.getLoadKey()), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
+                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);
                 buf += engines[i].getHeight();
             }

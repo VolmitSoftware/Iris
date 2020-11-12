@@ -1,35 +1,20 @@
 package com.volmit.iris.manager;
 
-import java.io.File;
-
-import org.bukkit.World.Environment;
-import org.bukkit.block.Biome;
-
-import com.google.gson.Gson;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDecorator;
-import com.volmit.iris.object.IrisBlockData;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisEntity;
-import com.volmit.iris.object.IrisGenerator;
-import com.volmit.iris.object.IrisLootTable;
-import com.volmit.iris.object.IrisNoiseGenerator;
-import com.volmit.iris.object.IrisObjectPlacement;
-import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.object.IrisStructure;
-import com.volmit.iris.util.IO;
-import com.volmit.iris.util.JSONObject;
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.*;
+import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.ObjectResourceLoader;
+import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.ResourceLoader;
-
 import lombok.Data;
+
+import java.io.File;
+import java.util.function.Function;
 
 @Data
 public class IrisDataManager
 {
-	private File dataFolder;
-	private File packs;
-	private boolean prod;
+	public static final KMap<Integer, IrisDataManager> managers = new KMap<>();
 	private ResourceLoader<IrisBiome> biomeLoader;
 	private ResourceLoader<IrisLootTable> lootLoader;
 	private ResourceLoader<IrisRegion> regionLoader;
@@ -39,34 +24,64 @@ public class IrisDataManager
 	private ResourceLoader<IrisEntity> entityLoader;
 	private ResourceLoader<IrisBlockData> blockLoader;
 	private ObjectResourceLoader objectLoader;
+	private boolean closed;
+	private final File dataFolder;
+	private final int id;
 
 	public IrisDataManager(File dataFolder)
 	{
 		this(dataFolder, false);
 	}
 
-	public IrisDataManager(File dataFolder, boolean v2)
+	public IrisDataManager(File dataFolder, boolean oneshot)
 	{
 		this.dataFolder = dataFolder;
-		this.packs = new File(dataFolder, ProjectManager.WORKSPACE_NAME);
-		boolean pr = false;
-		if(!packs.exists())
-		{
-			if(v2)
-			{
-				pr = true;
-				packs = new File(dataFolder, "iris/pack");
-			}
-
-			else if(new File(dataFolder, "iris").exists())
-			{
-				pr = true;
-				packs = new File(dataFolder, "iris");
-			}
-		}
-
+		this.id = RNG.r.imax();
+		closed = false;
 		hotloaded();
-		prod = pr;
+
+		if(!oneshot)
+		{
+			managers.put(id, this);
+		}
+	}
+
+	public void close()
+	{
+		closed = true;
+		managers.remove(id);
+		dump();
+		this.lootLoader =  null;
+		this.entityLoader =  null;
+		this.regionLoader =  null;
+		this.biomeLoader =  null;
+		this.dimensionLoader =  null;
+		this.structureLoader =  null;
+		this.generatorLoader =  null;
+		this.blockLoader =  null;
+		this.objectLoader = null;
+	}
+
+	public static void dumpManagers()
+	{
+		for(IrisDataManager i : managers.v())
+		{
+			Iris.warn(i.getId() + " @ " + i.getDataFolder().getAbsolutePath());
+			printData(i.lootLoader);
+			printData(i.entityLoader);
+			printData(i.regionLoader);
+			printData(i.biomeLoader);
+			printData(i.dimensionLoader);
+			printData(i.structureLoader);
+			printData(i.generatorLoader);
+			printData(i.blockLoader);
+			printData(i.objectLoader);
+		}
+	}
+
+	private static void printData(ResourceLoader<?> rl)
+	{
+		Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().size() + " Folders=" + rl.getFolders().size());
 	}
 
 	public IrisDataManager copy() {
@@ -75,34 +90,34 @@ public class IrisDataManager
 
 	public void hotloaded()
 	{
-		if(prod)
+		if(closed)
 		{
 			return;
 		}
 
-		File packs = this.packs.getName().equals(ProjectManager.WORKSPACE_NAME) ? this.packs : dataFolder;
+		File packs = dataFolder;
 		packs.mkdirs();
-		this.lootLoader = new ResourceLoader<>(packs, "loot", "Loot", IrisLootTable.class);
-		this.entityLoader = new ResourceLoader<>(packs, "entities", "Entity", IrisEntity.class);
-		this.regionLoader = new ResourceLoader<>(packs, "regions", "Region", IrisRegion.class);
-		this.biomeLoader = new ResourceLoader<>(packs, "biomes", "Biome", IrisBiome.class);
-		this.dimensionLoader = new ResourceLoader<>(packs, "dimensions", "Dimension", IrisDimension.class);
-		this.structureLoader = new ResourceLoader<>(packs, "structures", "Structure", IrisStructure.class);
-		this.generatorLoader = new ResourceLoader<>(packs, "generators", "Generator", IrisGenerator.class);
-		this.blockLoader = new ResourceLoader<>(packs, "blocks", "Block", IrisBlockData.class);
-		this.objectLoader = new ObjectResourceLoader(packs, "objects", "Object");
-
-		if(packs.getName().equals(ProjectManager.WORKSPACE_NAME))
-		{
-			writeExamples();
-		}
+		this.lootLoader = new ResourceLoader<>(packs, this, "loot", "Loot", IrisLootTable.class);
+		this.entityLoader = new ResourceLoader<>(packs,this,  "entities", "Entity", IrisEntity.class);
+		this.regionLoader = new ResourceLoader<>(packs, this, "regions", "Region", IrisRegion.class);
+		this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
+		this.dimensionLoader = new ResourceLoader<>(packs, this, "dimensions", "Dimension", IrisDimension.class);
+		this.structureLoader = new ResourceLoader<>(packs, this, "structures", "Structure", IrisStructure.class);
+		this.generatorLoader = new ResourceLoader<>(packs, this, "generators", "Generator", IrisGenerator.class);
+		this.blockLoader = new ResourceLoader<>(packs,this,  "blocks", "Block", IrisBlockData.class);
+		this.objectLoader = new ObjectResourceLoader(packs, this, "objects", "Object");
 	}
 
 	public void dump()
 	{
+		if(closed)
+		{
+			return;
+		}
 		biomeLoader.clearCache();
 		blockLoader.clearCache();
 		lootLoader.clearCache();
+		objectLoader.clearCache();
 		regionLoader.clearCache();
 		dimensionLoader.clearCache();
 		entityLoader.clearCache();
@@ -110,95 +125,13 @@ public class IrisDataManager
 		structureLoader.clearCache();
 	}
 
-	private void writeExamples()
-	{
-		File examples = new File(dataFolder, "example");
-		examples.mkdirs();
-		String biomes = "";
-		String envs = "";
-
-		for(Biome i : Biome.values())
-		{
-			biomes += i.name() + "\n";
-		}
-
-		for(Environment i : Environment.values())
-		{
-			envs += i.name() + "\n";
-		}
-
-		try
-		{
-			new File(examples, "example-pack/regions").mkdirs();
-			new File(examples, "example-pack/biomes").mkdirs();
-			new File(examples, "example-pack/dimensions").mkdirs();
-			new File(examples, "example-pack/generators").mkdirs();
-			IO.writeAll(new File(examples, "biome-list.txt"), biomes);
-			IO.writeAll(new File(examples, "environment-list.txt"), envs);
-
-			IrisGenerator gen = new IrisGenerator();
-			IrisNoiseGenerator n = new IrisNoiseGenerator();
-			n.setSeed(1000);
-			IrisNoiseGenerator nf = new IrisNoiseGenerator();
-			nf.setOctaves(3);
-			nf.setOpacity(16);
-			nf.setZoom(24);
-			nf.setSeed(44);
-			n.getFracture().add(nf);
-			IrisNoiseGenerator nf2 = new IrisNoiseGenerator();
-			nf2.setOctaves(8);
-			nf2.setOpacity(24);
-			nf2.setZoom(64);
-			nf2.setSeed(55);
-			n.getFracture().add(nf2);
-			gen.getComposite().add(n);
-
-			IrisDimension dim = new IrisDimension();
-
-			IrisRegion region = new IrisRegion();
-			region.getLandBiomes().add("plains");
-			region.getLandBiomes().add("desert");
-			region.getLandBiomes().add("forest");
-			region.getLandBiomes().add("mountains");
-			region.getSeaBiomes().add("ocean");
-			region.getShoreBiomes().add("beach");
-
-			IrisObjectPlacement o = new IrisObjectPlacement();
-			o.getPlace().add("schematic1");
-			o.getPlace().add("schematic2");
-
-			IrisBiome biome = new IrisBiome();
-			biome.getChildren().add("another_biome");
-			biome.getDecorators().add(new IrisDecorator());
-			biome.getObjects().add(o);
-
-			IO.writeAll(new File(examples, "example-pack/biomes/example-biome.json"), new JSONObject(new Gson().toJson(biome)).toString(4));
-			IO.writeAll(new File(examples, "example-pack/regions/example-region.json"), new JSONObject(new Gson().toJson(region)).toString(4));
-			IO.writeAll(new File(examples, "example-pack/dimensions/example-dimension.json"), new JSONObject(new Gson().toJson(dim)).toString(4));
-			IO.writeAll(new File(examples, "example-pack/generators/example-generator.json"), new JSONObject(new Gson().toJson(gen)).toString(4));
-		}
-
-		catch(Throwable e)
-		{
-
-		}
-	}
-
-	public IrisDataManager preferFolder(String name)
-	{
-		biomeLoader.preferFolder(name);
-		blockLoader.preferFolder(name);
-		lootLoader.preferFolder(name);
-		regionLoader.preferFolder(name);
-		entityLoader.preferFolder(name);
-		dimensionLoader.preferFolder(name);
-		generatorLoader.preferFolder(name);
-		structureLoader.preferFolder(name);
-		return this;
-	}
-
 	public void clearLists()
 	{
+		if(closed)
+		{
+			return;
+		}
+
 		lootLoader.clearList();
 		blockLoader.clearList();
 		entityLoader.clearList();
@@ -207,5 +140,77 @@ public class IrisDataManager
 		dimensionLoader.clearList();
 		generatorLoader.clearList();
 		structureLoader.clearList();
+		objectLoader.clearList();
+	}
+
+	public static IrisObject loadAnyObject(String key)
+	{
+		return loadAny(key, (dm) -> dm.getObjectLoader().load(key, false));
+	}
+
+	public static IrisBiome loadAnyBiome(String key)
+	{
+		return loadAny(key, (dm) -> dm.getBiomeLoader().load(key, false));
+	}
+
+	public static IrisStructure loadAnyStructure(String key)
+	{
+		return loadAny(key, (dm) -> dm.getStructureLoader().load(key, false));
+	}
+
+	public static IrisEntity loadAnyEntity(String key)
+	{
+		return loadAny(key, (dm) -> dm.getEntityLoader().load(key, false));
+	}
+
+	public static IrisLootTable loadAnyLootTable(String key)
+	{
+		return loadAny(key, (dm) -> dm.getLootLoader().load(key, false));
+	}
+
+	public static IrisBlockData loadAnyBlock(String key)
+	{
+		return loadAny(key, (dm) -> dm.getBlockLoader().load(key, false));
+	}
+
+	public static IrisRegion loadAnyRegion(String key)
+	{
+		return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
+	}
+
+	public static IrisDimension loadAnyDimension(String key)
+	{
+		return loadAny(key, (dm) -> dm.getDimensionLoader().load(key, false));
+	}
+
+	public static IrisGenerator loadAnyGenerator(String key)
+	{
+		return loadAny(key, (dm) -> dm.getGeneratorLoader().load(key, false));
+	}
+
+	public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisDataManager, T> v) {
+		try
+		{
+			for(File i : Iris.instance.getDataFolder("packs").listFiles())
+			{
+				if(i.isDirectory())
+				{
+					IrisDataManager dm = new IrisDataManager(i, true);
+					T t = v.apply(dm);
+
+					if(t != null)
+					{
+						return t;
+					}
+				}
+			}
+		}
+
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 }

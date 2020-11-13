@@ -39,6 +39,14 @@ public class MultiBurst
 		burst(r.length).queue(r).complete();
 	}
 
+	public void sync(Runnable... r)
+	{
+		for(Runnable i : r)
+		{
+			i.run();
+		}
+	}
+
 	public BurstExecutor burst(int estimate)
 	{
 		return new BurstExecutor(service, estimate);

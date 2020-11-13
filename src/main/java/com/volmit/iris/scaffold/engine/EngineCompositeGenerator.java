@@ -6,17 +6,18 @@ import com.volmit.iris.generator.legacy.scaffold.TerrainChunk;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.M;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
+import com.volmit.iris.util.RNG;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -260,13 +261,132 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public void regenerate(int x, int z) {
-        // TODO: DO IT
+    public void clearRegeneratedLists(int x, int z) {
+        if (true)
+        {
+            return;
+        }
+
+        for(int i = 0; i < getComposite().getSize(); i++)
+        {
+            getComposite().getEngine(i).getParallax().delete(x, z);
+        }
     }
+
+    @Override
+    public void regenerate(int x, int z) {
+        if (true)
+        {
+            return;
+        }
+
+        Chunk chunk = getComposite().getWorld().getChunkAt(x, z);
+        generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
+            @Override
+            public void setRaw(ChunkData data) {
+
+            }
+
+            @Override
+            public Biome getBiome(int x, int z) {
+                return Biome.THE_VOID;
+            }
+
+            @Override
+            public Biome getBiome(int x, int y, int z) {
+                return Biome.THE_VOID;
+            }
+
+            @Override
+            public void setBiome(int x, int z, Biome bio) {
+
+            }
+
+            @Override
+            public void setBiome(int x, int y, int z, Biome bio) {
+
+            }
+
+            @Override
+            public int getMaxHeight() {
+                return 256;
+            }
+
+            @Override
+            public void setBlock(int x, int y, int z, BlockData blockData) {
+                Iris.edit.set(compound.getWorld(), x, y, z, blockData);
+            }
+
+            @Override
+            public BlockData getBlockData(int x, int y, int z) {
+                return Iris.edit.get(compound.getWorld(), x, y, z);
+            }
+
+            @Override
+            public ChunkData getRaw() {
+                return null;
+            }
+
+            @Override
+            public void inject(BiomeGrid biome) {
+
+            }
+
+            @Override
+            public void setBlock(int i, int i1, int i2, @NotNull Material material) {
+                setBlock(i, i1, i2, material.createBlockData());
+            }
+
+            @Override
+            public void setBlock(int i, int i1, int i2, @NotNull MaterialData materialData) {
+                setBlock(i, i1, i2, materialData.getItemType());
+            }
+
+            @Override
+            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull Material material) {
+
+            }
+
+            @Override
+            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull MaterialData materialData) {
+
+            }
+
+            @Override
+            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull BlockData blockData) {
+
+            }
+
+            @NotNull
+            @Override
+            public Material getType(int i, int i1, int i2) {
+                return getBlockData(i, i1, i2).getMaterial();
+            }
+
+            @NotNull
+            @Override
+            public MaterialData getTypeAndData(int i, int i1, int i2) {
+                return null;
+            }
+
+            @Override
+            public byte getData(int i, int i1, int i2) {
+                return 0;
+            }
+        });
+
+        Iris.edit.flushNow();
+
+        for (BlockPopulator i : populators) {
+            i.populate(compound.getWorld(), new RNG(Cache.key(x, z)), chunk);
+        }
+    }
+
 
     @Override
     public void close() {
         getComposite().close();
+        IrisWorlds.evacuate(getComposite().getWorld());
         Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
     }
 

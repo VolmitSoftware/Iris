@@ -1,10 +1,8 @@
 package com.volmit.iris.scaffold.hunk.storage;
 
-import com.volmit.iris.util.Consumer4;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.BlockPosition;
+import com.volmit.iris.util.Consumer4;
 import com.volmit.iris.util.KMap;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,7 +12,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = false)
 public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 {
-	private final KMap<BlockPosition, T> data;
+	private final KMap<Integer, T> data;
 
 	public MappedHunk(int w, int h, int d)
 	{
@@ -25,15 +23,31 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 	@Override
 	public void setRaw(int x, int y, int z, T t)
 	{
-		data.put(new BlockPosition(x, y, z), t);
+		if(t == null)
+		{
+			data.remove(index(x,y,z));
+			return;
+		}
+
+		data.put(index(x, y, z), t);
+	}
+
+	private Integer index(int x, int y, int z)
+	{
+		return (z * getWidth() * getHeight()) + (y * getWidth()) + x;
 	}
 
 	@Override
-	public Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c)
+	public synchronized Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c)
 	{
-		for(Map.Entry<BlockPosition, T> g : data.entrySet())
+		int idx, z;
+
+		for(Map.Entry<Integer, T> g : data.entrySet())
 		{
-			c.accept( g.getKey().getX(),  g.getKey().getY(), g.getKey().getZ(), g.getValue());
+			idx = g.getKey();
+			z = idx / (getWidth() * getHeight());
+			idx -= (z * getWidth() * getHeight());
+			c.accept(idx % getWidth(), idx / getWidth(), z, g.getValue());
 		}
 
 		return this;
@@ -42,6 +56,6 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 	@Override
 	public T getRaw(int x, int y, int z)
 	{
-		return data.get(new BlockPosition(x, y, z));
+		return data.get(index(x, y, z));
 	}
 }

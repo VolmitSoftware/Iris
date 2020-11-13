@@ -1,38 +1,23 @@
 package com.volmit.iris.scaffold.hunk;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
+import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
+import com.volmit.iris.scaffold.hunk.storage.*;
 import com.volmit.iris.scaffold.hunk.view.*;
+import com.volmit.iris.scaffold.parallel.BurstExecutor;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import com.volmit.iris.util.ByteArrayTag;
-import com.volmit.iris.util.Consumer2;
-import com.volmit.iris.util.Consumer3;
-import com.volmit.iris.util.Consumer4;
-import com.volmit.iris.util.Consumer5;
-import com.volmit.iris.util.Consumer6;
-import com.volmit.iris.util.Consumer8;
-import com.volmit.iris.util.Function3;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
-import com.volmit.iris.scaffold.hunk.storage.ArrayHunk;
-import com.volmit.iris.scaffold.hunk.storage.AtomicDoubleHunk;
-import com.volmit.iris.scaffold.hunk.storage.AtomicHunk;
-import com.volmit.iris.scaffold.hunk.storage.AtomicIntegerHunk;
-import com.volmit.iris.scaffold.hunk.storage.AtomicLongHunk;
-import com.volmit.iris.scaffold.hunk.storage.MappedHunk;
-import com.volmit.iris.scaffold.hunk.storage.SynchronizedArrayHunk;
-import com.volmit.iris.scaffold.parallel.BurstExecutor;
-import com.volmit.iris.scaffold.parallel.MultiBurst;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public interface Hunk<T>
 {
@@ -117,6 +102,11 @@ public interface Hunk<T>
 	public static <T> Hunk<T> newMappedHunk(int w, int h, int d)
 	{
 		return new MappedHunk<>(w, h, d);
+	}
+
+	public static <T> Hunk<T> newMappedHunkSynced(int w, int h, int d)
+	{
+		return new MappedHunk<T>(w, h, d).synchronize();
 	}
 
 	@SafeVarargs

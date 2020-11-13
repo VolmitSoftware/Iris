@@ -79,6 +79,14 @@ public class EditManager implements Listener
 		}
 	}
 
+	public void flushNow()
+	{
+		for(World i : editors.k())
+		{
+			editors.remove(i).close();
+		}
+	}
+
 	public BlockEditor open(World world)
 	{
 		if(editors.containsKey(world))

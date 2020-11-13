@@ -1,8 +1,12 @@
 package com.volmit.iris.scaffold;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.MortarSender;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 public class IrisWorlds
 {
@@ -37,4 +41,22 @@ public class IrisWorlds
 
 		return null;
 	}
+
+    public static boolean evacuate(World world) {
+		for(World i : Bukkit.getWorlds())
+		{
+			if(!i.getName().equals(world.getName()))
+			{
+				for(Player j : world.getPlayers())
+				{
+					new MortarSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world due to a close request.");
+					j.teleport(i.getSpawnLocation());
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+    }
 }

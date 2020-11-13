@@ -1,14 +1,16 @@
 package com.volmit.iris.scaffold.engine;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.B;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -138,11 +140,31 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             Hunk<Boolean> b = getParallax().getUpdatesR(c.getX(), c.getZ());
 
             b.iterateSync((x,y,z,v) -> {
+
                 if(v != null && v)
                 {
+                    int vx = x & 15;
+                    int vz = z & 15;
                     update(x,y,z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+
+                    if(vx > 0 && vx < 15 && vz > 0 && vz < 15)
+                    {
+                        updateLighting(x,y,z,c);
+                    }
                 }
             });
+        }
+    }
+
+    public default void updateLighting(int x, int y, int z, Chunk c)
+    {
+        Block block = c.getBlock(x,y,z);
+        BlockData data = block.getBlockData();
+
+        if(B.isLit(data))
+        {
+            block.setType(Material.AIR, false);
+            block.setBlockData(data, true);
         }
     }
 
@@ -178,11 +200,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
                 }
             }
-        }
-
-        else if(B.isLit(data))
-        {
-            Iris.linkBK.updateBlock(block);
         }
     }
 

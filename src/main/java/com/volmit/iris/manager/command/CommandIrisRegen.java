@@ -46,10 +46,10 @@ public class CommandIrisRegen extends MortarCommand
 				return true;
 			}
 
-			//TODO: IrisWorlds.access(world).clearRegeneratedLists();
 			if(args.length == 0)
 			{
 				sender.sendMessage("Regenerating your chunk");
+				IrisWorlds.access(world).clearRegeneratedLists(p.getLocation().getChunk().getX(), p.getLocation().getChunk().getZ());
 				IrisWorlds.access(world).regenerate(p.getLocation().getChunk().getX(), p.getLocation().getChunk().getZ());
 				return true;
 			}
@@ -58,6 +58,7 @@ public class CommandIrisRegen extends MortarCommand
 			{
 				int m = Integer.valueOf(args[0]);
 				sender.sendMessage("Regenerating " + (m * m) + " Chunks Surrounding you");
+				new Spiraler(m, m, (a, b) -> IrisWorlds.access(world).clearRegeneratedLists(a + p.getLocation().getChunk().getX(), b + p.getLocation().getChunk().getZ())).drain();
 				new Spiraler(m, m, (a, b) -> IrisWorlds.access(world).regenerate(a + p.getLocation().getChunk().getX(), b + p.getLocation().getChunk().getZ())).drain();
 			}
 			catch(Throwable e)

@@ -206,4 +206,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         triesc.accept(tries.get());
         return location.get();
     }
+
+    public void clearRegeneratedLists(int x, int z);
 }

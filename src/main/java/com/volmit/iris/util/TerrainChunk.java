@@ -1,4 +1,4 @@
-package com.volmit.iris.generator.legacy.scaffold;
+package com.volmit.iris.util;
 
 import org.bukkit.World;
 import org.bukkit.block.Biome;

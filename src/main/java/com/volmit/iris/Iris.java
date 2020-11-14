@@ -33,7 +33,6 @@ public class Iris extends VolmitPlugin
 	public static Iris instance;
 	public static ProjectManager proj;
 	public static ConversionManager convert;
-	public static IrisHotloadManager hotloader;
 	public static WandManager wand;
 	public static StructureManager struct;
 	public static EditManager edit;
@@ -151,7 +150,6 @@ public class Iris extends VolmitPlugin
 		instance = this;
 		compat = IrisCompat.configured(getDataFile("compat.json"));
 		proj = new ProjectManager();
-		hotloader = new IrisHotloadManager();
 		convert = new ConversionManager();
 		wand = new WandManager();
 		struct = new StructureManager();

@@ -1,9 +1,7 @@
-package com.volmit.iris.generator.legacy.scaffold;
+package com.volmit.iris.util;
 
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
-
-import com.volmit.iris.util.IrisMathHelper;
 
 public class IrisBiomeStorage
 {

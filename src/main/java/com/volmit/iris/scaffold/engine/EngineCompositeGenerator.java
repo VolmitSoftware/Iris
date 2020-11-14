@@ -2,7 +2,7 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisEngineCompound;
-import com.volmit.iris.generator.legacy.scaffold.TerrainChunk;
+import com.volmit.iris.util.TerrainChunk;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;

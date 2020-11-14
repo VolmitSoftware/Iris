@@ -1,6 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

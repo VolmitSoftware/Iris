@@ -3,7 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.Material;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;

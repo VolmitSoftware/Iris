@@ -3,7 +3,7 @@ package com.volmit.iris.object;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
-import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;

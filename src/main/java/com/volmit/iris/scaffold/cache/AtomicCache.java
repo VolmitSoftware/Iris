@@ -1,9 +1,9 @@
-package com.volmit.iris.generator.legacy.atomics;
-
-import java.util.function.Supplier;
+package com.volmit.iris.scaffold.cache;
 
 import com.volmit.iris.util.IrisLock;
 import com.volmit.iris.util.M;
+
+import java.util.function.Supplier;
 
 public class AtomicCache<T>
 {

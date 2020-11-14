@@ -14454,7 +14454,7 @@
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Number;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="189" e="190"/>
    <method old="write(Lcom/google/gson/stream/JsonWriter;Ljava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="173" e="173"/>
   </class>
-  <class old="com.volmit.iris.generator.legacy.atomics.AtomicCache" new="com.volmit.iris.generator.legacy.atomics.AtomicCache">
+  <class old="com.volmit.iris.scaffold.cache.AtomicCache" new="com.volmit.iris.scaffold.cache.AtomicCache">
    <method old="aquire(Ljava/util/function/Supplier;)Ljava/lang/Object;" new="hashCode" s="48" e="87"/>
    <method old="aquireNull(Ljava/util/function/Supplier;)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName" s="92" e="117"/>
    <method old="reset()V" new="ALLATORIxDEMOxanyValidIdentifierName" s="36" e="44"/>

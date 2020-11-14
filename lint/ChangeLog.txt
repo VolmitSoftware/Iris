@@ -3114,7 +3114,7 @@ Class: public abstract com.volmit.iris.generator.ContextualChunkGenerator	NameNo
 		private com.volmit.iris.generator.legacy.atomics.AtomicMulticache cache	=>	b
 		private com.volmit.iris.IrisDataManager data	=>	a
 		protected boolean dev	NameNotChanged
-		private com.volmit.iris.generator.legacy.atomics.AtomicCache dimCache	=>	f
+		private com.volmit.iris.scaffold.cache.AtomicCache dimCache	=>	f
 		protected boolean failing	NameNotChanged
 		private boolean fastPregen	=>	c
 		protected int generated	NameNotChanged
@@ -3151,7 +3151,7 @@ Class: public abstract com.volmit.iris.generator.ContextualChunkGenerator	NameNo
 		public com.volmit.iris.generator.legacy.atomics.AtomicMulticache getCache() 	SignatureNotChanged
 		public com.volmit.iris.IrisDataManager getData() 	SignatureNotChanged
 		public java.util.List getDefaultPopulators(org.bukkit.World) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getDimCache() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getDimCache() 	SignatureNotChanged
 		public org.bukkit.Location getFixedSpawnLocation(org.bukkit.World, java.util.Random) 	SignatureNotChanged
 		public int getGenerated() 	SignatureNotChanged
 		public long getHlast() 	SignatureNotChanged
@@ -4516,9 +4516,9 @@ Class: public abstract com.volmit.iris.generator.TerrainChunkGenerator	NameNotCh
 		823	=>	271
 		825	=>	42
 
-Class: public com.volmit.iris.generator.legacy.atomics.AtomicCache	NameNotChanged
+Class: public com.volmit.iris.scaffold.cache.AtomicCache	NameNotChanged
 	Source: "AtomicCache.java"
-	FieldsOf: com.volmit.iris.generator.legacy.atomics.AtomicCache
+	FieldsOf: com.volmit.iris.scaffold.cache.AtomicCache
 		private volatile transient long a	=>	g
 		private static int b	=>	c
 		private final com.volmit.iris.util.IrisLock check	=>	f
@@ -4527,7 +4527,7 @@ Class: public com.volmit.iris.generator.legacy.atomics.AtomicCache	NameNotChange
 		private final com.volmit.iris.util.IrisLock time	=>	e
 		private volatile transient int validations	=>	b
 		private final com.volmit.iris.util.IrisLock write	=>	h
-	MethodsOf: com.volmit.iris.generator.legacy.atomics.AtomicCache
+	MethodsOf: com.volmit.iris.scaffold.cache.AtomicCache
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		public void <init>(boolean) 	SignatureNotChanged
@@ -4537,7 +4537,7 @@ Class: public com.volmit.iris.generator.legacy.atomics.AtomicCache	NameNotChange
 		public java.lang.Object aquireNull(java.util.function.Supplier) 	SignatureNotChanged
 		public static int b()	=>	a()
 		public void reset() 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.generator.legacy.atomics.AtomicCache
+	LineNumbersOf: com.volmit.iris.scaffold.cache.AtomicCache
 		20	=>	34
 		21	=>	9
 		24	=>	8
@@ -5542,7 +5542,7 @@ Class: public com.volmit.iris.generator.legacy.layer.GenLayerText	NameNotChanged
 	Source: "GenLayerText.java"
 	FieldsOf: com.volmit.iris.generator.legacy.layer.GenLayerText
 		public static final org.bukkit.block.data.BlockData AIR	NameNotChanged
-		private com.volmit.iris.generator.legacy.atomics.AtomicCache debug	=>	a
+		private com.volmit.iris.scaffold.cache.AtomicCache debug	=>	a
 	MethodsOf: com.volmit.iris.generator.legacy.layer.GenLayerText
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>(com.volmit.iris.generator.DimensionChunkGenerator, com.volmit.iris.util.RNG) 	SignatureNotChanged
@@ -8191,17 +8191,17 @@ Class: public com.volmit.iris.object.IrisAxisRotationClamp	NameNotChanged
 Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 	Source: "IrisBiome.java"
 	FieldsOf: com.volmit.iris.object.IrisBiome
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache biomeGenerator	=>	f
+		private transient com.volmit.iris.scaffold.cache.AtomicCache biomeGenerator	=>	f
 		private com.volmit.iris.util.KList biomeScatter	NameNotChanged
 		private com.volmit.iris.util.KList biomeSkyScatter	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle biomeStyle	NameNotChanged
 		private double biomeZoom	NameNotChanged
 		private com.volmit.iris.util.KList blockDrops	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cacheColor	=>	e
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cacheColor	=>	e
 		private double childShrinkFactor	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle childStyle	NameNotChanged
 		private com.volmit.iris.util.KList children	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache childrenCell	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache childrenCell	=>	d
 		private java.lang.String debugColor	NameNotChanged
 		private com.volmit.iris.util.KList decorators	NameNotChanged
 		private com.volmit.iris.util.KList deposits	NameNotChanged
@@ -8209,17 +8209,17 @@ Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 		private com.volmit.iris.util.KList effects	NameNotChanged
 		private com.volmit.iris.util.KList generators	NameNotChanged
 		private transient com.volmit.iris.object.InferredType inferredType	=>	i
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache layerHeightGenerators	=>	j
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache layerSeaHeightGenerators	=>	k
+		private transient com.volmit.iris.scaffold.cache.AtomicCache layerHeightGenerators	=>	j
+		private transient com.volmit.iris.scaffold.cache.AtomicCache layerSeaHeightGenerators	=>	k
 		private com.volmit.iris.util.KList layers	NameNotChanged
 		private boolean lockLayers	NameNotChanged
 		private int lockLayersMax	NameNotChanged
 		private com.volmit.iris.object.IrisLootReference loot	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache maxHeight	=>	g
+		private transient com.volmit.iris.scaffold.cache.AtomicCache maxHeight	=>	g
 		private java.lang.String name	NameNotChanged
 		private com.volmit.iris.util.KList objects	NameNotChanged
 		private int rarity	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache realChildren	=>	h
+		private transient com.volmit.iris.scaffold.cache.AtomicCache realChildren	=>	h
 		private com.volmit.iris.util.KList seaLayers	NameNotChanged
 		private com.volmit.iris.object.IrisBiomePaletteLayer slab	NameNotChanged
 		private com.volmit.iris.util.KList structures	NameNotChanged
@@ -8235,19 +8235,19 @@ Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 		public com.volmit.iris.util.KList generateLockedLayers(double, double, com.volmit.iris.util.RNG, int, int) 	SignatureNotChanged
 		public com.volmit.iris.util.KList generateSeaLayers(double, double, com.volmit.iris.util.RNG, int) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getAllChildren(com.volmit.iris.generator.ContextualChunkGenerator, int) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getBiomeGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getBiomeGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getBiomeGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBiomeScatter() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBiomeSkyScatter() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getBiomeStyle() 	SignatureNotChanged
 		public double getBiomeZoom() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlockDrops() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCacheColor() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCacheColor() 	SignatureNotChanged
 		public java.awt.Color getCachedColor() 	SignatureNotChanged
 		public double getChildShrinkFactor() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getChildStyle() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getChildren() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getChildrenCell() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getChildrenCell() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getChildrenGenerator(com.volmit.iris.util.RNG, int, double) 	SignatureNotChanged
 		public java.lang.String getDebugColor() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getDecorators() 	SignatureNotChanged
@@ -8257,9 +8257,9 @@ Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 		public com.volmit.iris.util.KList getGenerators() 	SignatureNotChanged
 		public org.bukkit.block.Biome getGroundBiome(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
 		public com.volmit.iris.object.InferredType getInferredType() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLayerHeightGenerators() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLayerHeightGenerators() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getLayerHeightGenerators(com.volmit.iris.util.RNG) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLayerSeaHeightGenerators() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLayerSeaHeightGenerators() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getLayerSeaHeightGenerators(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getLayers() 	SignatureNotChanged
 		public int getLockLayersMax() 	SignatureNotChanged
@@ -8268,7 +8268,7 @@ Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 		public java.lang.String getName() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getObjects() 	SignatureNotChanged
 		public int getRarity() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRealChildren() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRealChildren() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealChildren(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getSeaLayers() 	SignatureNotChanged
 		public org.bukkit.block.Biome getSkyBiome(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
@@ -8454,18 +8454,18 @@ Class: public com.volmit.iris.object.IrisBiome	NameNotChanged
 Class: public com.volmit.iris.object.IrisBiomeDecorator	NameNotChanged
 	Source: "IrisBiomeDecorator.java"
 	FieldsOf: com.volmit.iris.object.IrisBiomeDecorator
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache blockData	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache blockData	=>	b
 		private double chance	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache heightGenerator	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache heightGenerator	=>	a
 		private com.volmit.iris.object.IrisGeneratorStyle heightVariance	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache layerGenerator	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache layerGenerator	=>	c
 		private com.volmit.iris.util.KList palette	NameNotChanged
 		private com.volmit.iris.object.DecorationPart partOf	NameNotChanged
 		private int stackMax	NameNotChanged
 		private int stackMin	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle style	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle variance	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache varianceGenerator	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache varianceGenerator	=>	d
 		private double varianceZoom	NameNotChanged
 		private double verticalZoom	NameNotChanged
 		private double zoom	NameNotChanged
@@ -8479,17 +8479,17 @@ Class: public com.volmit.iris.object.IrisBiomeDecorator	NameNotChanged
 		public double getChance() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public int getHeight(com.volmit.iris.util.RNG, double, double) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getHeightGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getHeightGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getHeightGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getHeightVariance() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLayerGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLayerGenerator() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getPalette() 	SignatureNotChanged
 		public com.volmit.iris.object.DecorationPart getPartOf() 	SignatureNotChanged
 		public int getStackMax() 	SignatureNotChanged
 		public int getStackMin() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getStyle() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getVariance() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getVarianceGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getVarianceGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getVarianceGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public double getVarianceZoom() 	SignatureNotChanged
 		public double getVerticalZoom() 	SignatureNotChanged
@@ -8557,7 +8557,7 @@ Class: public com.volmit.iris.object.IrisBiomeDecorator	NameNotChanged
 Class: public com.volmit.iris.object.IrisBiomeGeneratorLink	NameNotChanged
 	Source: "IrisBiomeGeneratorLink.java"
 	FieldsOf: com.volmit.iris.object.IrisBiomeGeneratorLink
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache gen	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache gen	=>	a
 		private java.lang.String generator	NameNotChanged
 		private int max	NameNotChanged
 		private int min	NameNotChanged
@@ -8567,7 +8567,7 @@ Class: public com.volmit.iris.object.IrisBiomeGeneratorLink	NameNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGenerator getCachedGenerator(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getGen() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getGen() 	SignatureNotChanged
 		public java.lang.String getGenerator() 	SignatureNotChanged
 		public int getMax() 	SignatureNotChanged
 		public int getMin() 	SignatureNotChanged
@@ -8601,9 +8601,9 @@ Class: public com.volmit.iris.object.IrisBiomeMutation	NameNotChanged
 		private com.volmit.iris.util.KList objects	NameNotChanged
 		private int radius	NameNotChanged
 		private com.volmit.iris.util.KList sideA	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache sideACache	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache sideACache	=>	a
 		private com.volmit.iris.util.KList sideB	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache sideBCache	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache sideBCache	=>	b
 	MethodsOf: com.volmit.iris.object.IrisBiomeMutation
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
@@ -8615,9 +8615,9 @@ Class: public com.volmit.iris.object.IrisBiomeMutation	NameNotChanged
 		public com.volmit.iris.util.KList getRealSideA(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealSideB(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getSideA() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getSideACache() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getSideACache() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getSideB() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getSideBCache() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getSideBCache() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
 		private synthetic com.volmit.iris.util.KList lambda$getRealSideA$0(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		private synthetic com.volmit.iris.util.KList lambda$getRealSideB$1(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
@@ -8662,9 +8662,9 @@ Class: public com.volmit.iris.object.IrisBiomeMutation	NameNotChanged
 Class: public com.volmit.iris.object.IrisBiomePaletteLayer	NameNotChanged
 	Source: "IrisBiomePaletteLayer.java"
 	FieldsOf: com.volmit.iris.object.IrisBiomePaletteLayer
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache blockData	=>	a
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache heightGenerator	=>	c
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache layerGenerator	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache blockData	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache heightGenerator	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache layerGenerator	=>	b
 		private int maxHeight	NameNotChanged
 		private int minHeight	NameNotChanged
 		private com.volmit.iris.util.KList palette	NameNotChanged
@@ -8677,9 +8677,9 @@ Class: public com.volmit.iris.object.IrisBiomePaletteLayer	NameNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public org.bukkit.block.data.BlockData get(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlockData() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getHeightGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getHeightGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getHeightGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLayerGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLayerGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getLayerGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public int getMaxHeight() 	SignatureNotChanged
 		public int getMinHeight() 	SignatureNotChanged
@@ -8732,7 +8732,7 @@ Class: public com.volmit.iris.object.IrisBlockDrops	NameNotChanged
 	Source: "IrisBlockDrops.java"
 	FieldsOf: com.volmit.iris.object.IrisBlockDrops
 		private com.volmit.iris.util.KList blocks	=>	b
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache data	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache data	=>	a
 		private com.volmit.iris.util.KList drops	NameNotChanged
 		private boolean exactBlocks	NameNotChanged
 		private boolean replaceVanillaDrops	NameNotChanged
@@ -8744,7 +8744,7 @@ Class: public com.volmit.iris.object.IrisBlockDrops	NameNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public void fillDrops(boolean, com.volmit.iris.util.KList) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlocks() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getData() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getDrops() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
 		public boolean isExactBlocks() 	SignatureNotChanged
@@ -8826,8 +8826,8 @@ Class: public com.volmit.iris.object.IrisCompatabilityFilter	NameNotChanged
 	Source: "IrisCompatabilityFilter.java"
 	FieldsOf: com.volmit.iris.object.IrisCompatabilityFilter
 		private boolean exact	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache findData	=>	a
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache replaceData	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache findData	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache replaceData	=>	b
 		private java.lang.String supplement	NameNotChanged
 		private java.lang.String when	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisCompatabilityFilter
@@ -8837,9 +8837,9 @@ Class: public com.volmit.iris.object.IrisCompatabilityFilter	NameNotChanged
 		public void <init>(java.lang.String, java.lang.String, boolean) 	SignatureNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getFindData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getFindData() 	SignatureNotChanged
 		public org.bukkit.block.data.BlockData getReplace() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getReplaceData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getReplaceData() 	SignatureNotChanged
 		public java.lang.String getSupplement() 	SignatureNotChanged
 		public java.lang.String getWhen() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
@@ -8873,14 +8873,14 @@ Class: public com.volmit.iris.object.IrisCompatabilityFilter	NameNotChanged
 Class: public com.volmit.iris.object.IrisDepositGenerator	NameNotChanged
 	Source: "IrisDepositGenerator.java"
 	FieldsOf: com.volmit.iris.object.IrisDepositGenerator
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache blockData	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache blockData	=>	b
 		private int maxHeight	NameNotChanged
 		private int maxPerChunk	NameNotChanged
 		private int maxSize	NameNotChanged
 		private int minHeight	NameNotChanged
 		private int minPerChunk	NameNotChanged
 		private int minSize	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache objects	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache objects	=>	a
 		private com.volmit.iris.util.KList palette	NameNotChanged
 		private int varience	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisDepositGenerator
@@ -8899,7 +8899,7 @@ Class: public com.volmit.iris.object.IrisDepositGenerator	NameNotChanged
 		public int getMinHeight() 	SignatureNotChanged
 		public int getMinPerChunk() 	SignatureNotChanged
 		public int getMinSize() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getObjects() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getObjects() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getPalette() 	SignatureNotChanged
 		public int getVarience() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
@@ -8997,7 +8997,7 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		public static final org.bukkit.block.data.BlockData WATER	NameNotChanged
 		private double biomeZoom	NameNotChanged
 		private com.volmit.iris.util.KList blockDrops	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cacheFilters	=>	k
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cacheFilters	=>	k
 		private boolean carving	NameNotChanged
 		private double carvingEnvelope	NameNotChanged
 		private int carvingMax	NameNotChanged
@@ -9011,17 +9011,17 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		private com.volmit.iris.util.KList compatability	NameNotChanged
 		private double continentZoom	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle continentalStyle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache coordFracture	=>	m
+		private transient com.volmit.iris.scaffold.cache.AtomicCache coordFracture	=>	m
 		private double coordFractureDistance	NameNotChanged
 		private double coordFractureZoom	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cosr	=>	e
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cosr	=>	e
 		private boolean decorate	NameNotChanged
 		private com.volmit.iris.util.KList deposits	NameNotChanged
 		private double dimensionAngleDeg	NameNotChanged
 		private org.bukkit.World$Environment environment	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache fluidData	=>	n
+		private transient com.volmit.iris.scaffold.cache.AtomicCache fluidData	=>	n
 		private int fluidHeight	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache fluidLayerGenerator	=>	j
+		private transient com.volmit.iris.scaffold.cache.AtomicCache fluidLayerGenerator	=>	j
 		private com.volmit.iris.util.KList fluidPalette	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle fluidStyle	NameNotChanged
 		private java.lang.String focus	NameNotChanged
@@ -9034,24 +9034,24 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		private int lootTries	NameNotChanged
 		private com.volmit.iris.util.KList mutations	NameNotChanged
 		private java.lang.String name	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache parallaxSize	=>	h
+		private transient com.volmit.iris.scaffold.cache.AtomicCache parallaxSize	=>	h
 		private boolean placeObjects	NameNotChanged
 		private boolean postProcessing	NameNotChanged
 		private com.volmit.iris.util.KList postProcessors	NameNotChanged
 		private boolean preventLeafDecay	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache rad	=>	i
+		private transient com.volmit.iris.scaffold.cache.AtomicCache rad	=>	i
 		private com.volmit.iris.object.IrisGeneratorStyle regionStyle	NameNotChanged
 		private double regionZoom	NameNotChanged
 		private com.volmit.iris.util.KList regions	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache rockData	=>	d
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache rockLayerGenerator	=>	g
+		private transient com.volmit.iris.scaffold.cache.AtomicCache rockData	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache rockLayerGenerator	=>	g
 		private com.volmit.iris.util.KList rockPalette	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle rockStyle	NameNotChanged
 		private double rockZoom	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle seaBiomeStyle	NameNotChanged
 		private double seaZoom	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle shoreBiomeStyle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache sinr	=>	l
+		private transient com.volmit.iris.scaffold.cache.AtomicCache sinr	=>	l
 		private com.volmit.iris.object.IrisGeneratorStyle skylandBiomeStyle	NameNotChanged
 		private double terrainZoom	NameNotChanged
 		private com.volmit.iris.util.KList text	NameNotChanged
@@ -9070,7 +9070,7 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getBiomeStyle(com.volmit.iris.object.InferredType) 	SignatureNotChanged
 		public double getBiomeZoom() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlockDrops() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCacheFilters() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCacheFilters() 	SignatureNotChanged
 		public double getCarvingEnvelope() 	SignatureNotChanged
 		public int getCarvingMax() 	SignatureNotChanged
 		public int getCarvingMin() 	SignatureNotChanged
@@ -9082,11 +9082,11 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		public com.volmit.iris.util.KList getCompatability() 	SignatureNotChanged
 		public double getContinentZoom() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getContinentalStyle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCoordFracture() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCoordFracture() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getCoordFracture(com.volmit.iris.util.RNG, int) 	SignatureNotChanged
 		public double getCoordFractureDistance() 	SignatureNotChanged
 		public double getCoordFractureZoom() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCosr() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCosr() 	SignatureNotChanged
 		public static com.volmit.iris.util.KList getDefaultCompatability() 	SignatureNotChanged
 		private com.volmit.iris.util.KList getDefaultPostProcessors()	=>	d()
 		public com.volmit.iris.util.KList getDeposits() 	SignatureNotChanged
@@ -9097,7 +9097,7 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		public com.volmit.iris.util.KList getFluidData() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getFluidGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public int getFluidHeight() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getFluidLayerGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getFluidLayerGenerator() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getFluidPalette() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getFluidStyle() 	SignatureNotChanged
 		public java.lang.String getFocus() 	SignatureNotChanged
@@ -9110,25 +9110,25 @@ Class: public com.volmit.iris.object.IrisDimension	NameNotChanged
 		public int getLootTries() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getMutations() 	SignatureNotChanged
 		public java.lang.String getName() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getParallaxSize() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getParallaxSize() 	SignatureNotChanged
 		public com.volmit.iris.util.ChunkPosition getParallaxSize(com.volmit.iris.generator.ParallelChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getPostBlockProcessors(com.volmit.iris.generator.PostBlockChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getPostProcessors() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRad() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRad() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getRegionStyle() 	SignatureNotChanged
 		public double getRegionZoom() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRegions() 	SignatureNotChanged
 		public org.bukkit.block.data.BlockData getRock(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRockData() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getRockGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRockLayerGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRockLayerGenerator() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRockPalette() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getRockStyle() 	SignatureNotChanged
 		public double getRockZoom() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getSeaBiomeStyle() 	SignatureNotChanged
 		public double getSeaZoom() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getShoreBiomeStyle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getSinr() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getSinr() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getSkylandBiomeStyle() 	SignatureNotChanged
 		public double getTerrainZoom() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getText() 	SignatureNotChanged
@@ -9500,7 +9500,7 @@ Class: public com.volmit.iris.object.IrisEffect	NameNotChanged
 		private int chance	NameNotChanged
 		private double extra	NameNotChanged
 		private int interval	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache latch	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache latch	=>	b
 		private double maxPitch	NameNotChanged
 		private double minPitch	NameNotChanged
 		private double particleAltX	NameNotChanged
@@ -9516,7 +9516,7 @@ Class: public com.volmit.iris.object.IrisEffect	NameNotChanged
 		private int potionStrength	NameNotChanged
 		private int potionTicksMax	NameNotChanged
 		private int potionTicksMin	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache pt	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache pt	=>	a
 		private boolean randomAltX	NameNotChanged
 		private boolean randomAltY	NameNotChanged
 		private boolean randomAltZ	NameNotChanged
@@ -9534,7 +9534,7 @@ Class: public com.volmit.iris.object.IrisEffect	NameNotChanged
 		public int getChance() 	SignatureNotChanged
 		public double getExtra() 	SignatureNotChanged
 		public int getInterval() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLatch() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLatch() 	SignatureNotChanged
 		public double getMaxPitch() 	SignatureNotChanged
 		public double getMinPitch() 	SignatureNotChanged
 		public double getParticleAltX() 	SignatureNotChanged
@@ -9550,7 +9550,7 @@ Class: public com.volmit.iris.object.IrisEffect	NameNotChanged
 		public int getPotionStrength() 	SignatureNotChanged
 		public int getPotionTicksMax() 	SignatureNotChanged
 		public int getPotionTicksMin() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getPt() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getPt() 	SignatureNotChanged
 		public org.bukkit.potion.PotionEffectType getRealType() 	SignatureNotChanged
 		public org.bukkit.Sound getSound() 	SignatureNotChanged
 		public int getSoundDistance() 	SignatureNotChanged
@@ -9716,7 +9716,7 @@ Class: public com.volmit.iris.object.IrisGenerator	NameNotChanged
 		private double cellFractureHeight	NameNotChanged
 		private double cellFractureShuffle	NameNotChanged
 		private double cellFractureZoom	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cellGen	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cellGen	=>	d
 		private double cellPercentSize	NameNotChanged
 		private com.volmit.iris.object.IrisNoiseGenerator cliffHeightGenerator	NameNotChanged
 		private double cliffHeightMax	NameNotChanged
@@ -9738,7 +9738,7 @@ Class: public com.volmit.iris.object.IrisGenerator	NameNotChanged
 		public double getCellFractureHeight() 	SignatureNotChanged
 		public double getCellFractureShuffle() 	SignatureNotChanged
 		public double getCellFractureZoom() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCellGen() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCellGen() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CellGenerator getCellGenerator(long) 	SignatureNotChanged
 		public double getCellPercentSize() 	SignatureNotChanged
 		public double getCliffHeight(double, double, double) 	SignatureNotChanged
@@ -9824,7 +9824,7 @@ Class: public com.volmit.iris.object.IrisGenerator	NameNotChanged
 Class: public com.volmit.iris.object.IrisGeneratorStyle	NameNotChanged
 	Source: "IrisGeneratorStyle.java"
 	FieldsOf: com.volmit.iris.object.IrisGeneratorStyle
-		private final transient com.volmit.iris.generator.legacy.atomics.AtomicCache cng	=>	a
+		private final transient com.volmit.iris.scaffold.cache.AtomicCache cng	=>	a
 		private double exponent	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle fracture	NameNotChanged
 		private double multiplier	NameNotChanged
@@ -9837,7 +9837,7 @@ Class: public com.volmit.iris.object.IrisGeneratorStyle	NameNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG create(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCng() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCng() 	SignatureNotChanged
 		public double getExponent() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getFracture() 	SignatureNotChanged
 		public double getMultiplier() 	SignatureNotChanged
@@ -9901,7 +9901,7 @@ Class: public com.volmit.iris.object.IrisLoot	NameNotChanged
 	Source: "IrisLoot.java"
 	FieldsOf: com.volmit.iris.object.IrisLoot
 		private com.volmit.iris.util.KList attributes	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache chance	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache chance	=>	a
 		private java.lang.Integer customModel	NameNotChanged
 		private java.lang.String displayName	NameNotChanged
 		private com.volmit.iris.util.KList enchantments	NameNotChanged
@@ -9923,7 +9923,7 @@ Class: public com.volmit.iris.object.IrisLoot	NameNotChanged
 		public org.bukkit.inventory.ItemStack get(boolean, com.volmit.iris.object.IrisLootTable, com.volmit.iris.util.RNG, int, int, int) 	SignatureNotChanged
 		public org.bukkit.inventory.ItemStack get(boolean, com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getAttributes() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getChance() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getChance() 	SignatureNotChanged
 		public java.lang.Integer getCustomModel() 	SignatureNotChanged
 		public java.lang.String getDisplayName() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getEnchantments() 	SignatureNotChanged
@@ -10058,7 +10058,7 @@ Class: public com.volmit.iris.object.IrisLootReference	NameNotChanged
 		private com.volmit.iris.object.LootMode mode	NameNotChanged
 		private double multiplier	NameNotChanged
 		private com.volmit.iris.util.KList tables	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache tt	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache tt	=>	a
 	MethodsOf: com.volmit.iris.object.IrisLootReference
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
@@ -10068,7 +10068,7 @@ Class: public com.volmit.iris.object.IrisLootReference	NameNotChanged
 		public com.volmit.iris.object.LootMode getMode() 	SignatureNotChanged
 		public double getMultiplier() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getTables() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getTt() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getTt() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
 		private synthetic com.volmit.iris.util.KList lambda$getLootTables$0(com.volmit.iris.generator.DimensionChunkGenerator) 	SignatureNotChanged
 		public java.lang.String toString() 	SignatureNotChanged
@@ -10137,9 +10137,9 @@ Class: public com.volmit.iris.object.IrisLootTable	NameNotChanged
 Class: public com.volmit.iris.object.IrisMaterialPalette	NameNotChanged
 	Source: "IrisMaterialPalette.java"
 	FieldsOf: com.volmit.iris.object.IrisMaterialPalette
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache blockData	=>	c
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache heightGenerator	=>	a
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache layerGenerator	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache blockData	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache heightGenerator	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache layerGenerator	=>	b
 		private com.volmit.iris.util.KList palette	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle style	NameNotChanged
 		private double zoom	NameNotChanged
@@ -10150,8 +10150,8 @@ Class: public com.volmit.iris.object.IrisMaterialPalette	NameNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public org.bukkit.block.data.BlockData get(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlockData() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getHeightGenerator() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getLayerGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getHeightGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getLayerGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getLayerGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getPalette() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getStyle() 	SignatureNotChanged
@@ -10195,7 +10195,7 @@ Class: public com.volmit.iris.object.IrisNoiseGenerator	NameNotChanged
 		private boolean enabled	NameNotChanged
 		private double exponent	NameNotChanged
 		private com.volmit.iris.util.KList fracture	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache generator	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache generator	=>	a
 		private boolean negative	NameNotChanged
 		private int octaves	NameNotChanged
 		private double offsetX	NameNotChanged
@@ -10215,7 +10215,7 @@ Class: public com.volmit.iris.object.IrisNoiseGenerator	NameNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public double getExponent() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getFracture() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getGenerator() 	SignatureNotChanged
 		protected com.volmit.iris.generator.noise.CNG getGenerator(long) 	SignatureNotChanged
 		public double getNoise(long, double, double) 	SignatureNotChanged
 		public int getOctaves() 	SignatureNotChanged
@@ -10708,21 +10708,21 @@ Class: public com.volmit.iris.object.IrisObjectReplace	NameNotChanged
 	FieldsOf: com.volmit.iris.object.IrisObjectReplace
 		private boolean exact	NameNotChanged
 		private com.volmit.iris.util.KList find	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache findData	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache findData	=>	a
 		private com.volmit.iris.util.KList replace	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache replaceData	=>	c
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache replaceGen	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache replaceData	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache replaceGen	=>	b
 	MethodsOf: com.volmit.iris.object.IrisObjectReplace
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getFind() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getFindData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getFindData() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getReplace() 	SignatureNotChanged
 		public org.bukkit.block.data.BlockData getReplace(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getReplaceData() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getReplaceGen() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getReplaceData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getReplaceGen() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
 		public boolean isExact() 	SignatureNotChanged
 		private synthetic com.volmit.iris.util.KList lambda$getFind$0() 	SignatureNotChanged
@@ -10975,8 +10975,8 @@ Class: public com.volmit.iris.object.IrisRegion	NameNotChanged
 		private static synthetic int[] $SWITCH_TABLE$com$volmit$iris$object$InferredType	=>	l
 		private double biomeImplosionRatio	NameNotChanged
 		private com.volmit.iris.util.KList blockDrops	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cacheRidge	=>	i
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache cacheSpot	=>	h
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cacheRidge	=>	i
+		private transient com.volmit.iris.scaffold.cache.AtomicCache cacheSpot	=>	h
 		private double caveBiomeZoom	NameNotChanged
 		private com.volmit.iris.util.KList caveBiomes	NameNotChanged
 		private com.volmit.iris.util.KList deposits	=>	f
@@ -10986,16 +10986,16 @@ Class: public com.volmit.iris.object.IrisRegion	NameNotChanged
 		private com.volmit.iris.object.IrisLootReference loot	NameNotChanged
 		private java.lang.String name	NameNotChanged
 		private int rarity	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache realCaveBiomes	=>	j
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache realLandBiomes	=>	e
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache realSeaBiomes	=>	d
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache realShoreBiomes	=>	k
+		private transient com.volmit.iris.scaffold.cache.AtomicCache realCaveBiomes	=>	j
+		private transient com.volmit.iris.scaffold.cache.AtomicCache realLandBiomes	=>	e
+		private transient com.volmit.iris.scaffold.cache.AtomicCache realSeaBiomes	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache realShoreBiomes	=>	k
 		private com.volmit.iris.util.KList ridgeBiomes	NameNotChanged
 		private double seaBiomeZoom	NameNotChanged
 		private com.volmit.iris.util.KList seaBiomes	NameNotChanged
 		private double shoreBiomeZoom	NameNotChanged
 		private com.volmit.iris.util.KList shoreBiomes	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache shoreHeightGenerator	=>	g
+		private transient com.volmit.iris.scaffold.cache.AtomicCache shoreHeightGenerator	=>	g
 		private double shoreHeightMax	NameNotChanged
 		private double shoreHeightMin	NameNotChanged
 		private double shoreHeightZoom	NameNotChanged
@@ -11015,8 +11015,8 @@ Class: public com.volmit.iris.object.IrisRegion	NameNotChanged
 		public double getBiomeZoom(com.volmit.iris.object.InferredType) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBiomes(com.volmit.iris.generator.ContextualChunkGenerator, com.volmit.iris.object.InferredType) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getBlockDrops() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCacheRidge() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getCacheSpot() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCacheRidge() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getCacheSpot() 	SignatureNotChanged
 		public double getCaveBiomeZoom() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getCaveBiomes() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getDeposits() 	SignatureNotChanged
@@ -11026,13 +11026,13 @@ Class: public com.volmit.iris.object.IrisRegion	NameNotChanged
 		public com.volmit.iris.object.IrisLootReference getLoot() 	SignatureNotChanged
 		public java.lang.String getName() 	SignatureNotChanged
 		public int getRarity() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRealCaveBiomes() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRealCaveBiomes() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealCaveBiomes(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRealLandBiomes() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRealLandBiomes() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealLandBiomes(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRealSeaBiomes() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRealSeaBiomes() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealSeaBiomes(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRealShoreBiomes() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRealShoreBiomes() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRealShoreBiomes(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRidgeBiomeKeys() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getRidgeBiomes() 	SignatureNotChanged
@@ -11173,10 +11173,10 @@ Class: public com.volmit.iris.object.IrisRegionRidge	NameNotChanged
 		private double chanceScale	NameNotChanged
 		private double chanceShuffle	NameNotChanged
 		private double noiseMultiplier	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache ridge	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache ridge	=>	b
 		private double scale	NameNotChanged
 		private double shuffle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache spot	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache spot	=>	a
 		private double thickness	NameNotChanged
 		private com.volmit.iris.object.InferredType type	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisRegionRidge
@@ -11191,11 +11191,11 @@ Class: public com.volmit.iris.object.IrisRegionRidge	NameNotChanged
 		public double getChanceScale() 	SignatureNotChanged
 		public double getChanceShuffle() 	SignatureNotChanged
 		public double getNoiseMultiplier() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getRidge() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getRidge() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CellGenerator getRidgeGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public double getScale() 	SignatureNotChanged
 		public double getShuffle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getSpot() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getSpot() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CellGenerator getSpotGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public double getThickness() 	SignatureNotChanged
 		public com.volmit.iris.object.InferredType getType() 	SignatureNotChanged
@@ -11258,7 +11258,7 @@ Class: public com.volmit.iris.object.IrisRegionSpot	NameNotChanged
 		private double rarity	NameNotChanged
 		private double scale	NameNotChanged
 		private double shuffle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache spot	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache spot	=>	a
 		private com.volmit.iris.object.InferredType type	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisRegionSpot
 		static void <clinit>() 	SignatureNotChanged
@@ -11272,7 +11272,7 @@ Class: public com.volmit.iris.object.IrisRegionSpot	NameNotChanged
 		public double getRarity() 	SignatureNotChanged
 		public double getScale() 	SignatureNotChanged
 		public double getShuffle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getSpot() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getSpot() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CellGenerator getSpotGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.object.InferredType getType() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
@@ -11376,7 +11376,7 @@ Class: public com.volmit.iris.object.IrisStructure	NameNotChanged
 		private com.volmit.iris.util.KList tiles	NameNotChanged
 		private boolean underwater	NameNotChanged
 		private double wallChance	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache wallGenerator	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache wallGenerator	=>	d
 		private com.volmit.iris.object.IrisGeneratorStyle wallStyle	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisStructure
 		static void <clinit>() 	SignatureNotChanged
@@ -11393,7 +11393,7 @@ Class: public com.volmit.iris.object.IrisStructure	NameNotChanged
 		public com.volmit.iris.object.TileResult getTile(com.volmit.iris.util.RNG, double, double, double) 	SignatureNotChanged
 		public com.volmit.iris.util.KList getTiles() 	SignatureNotChanged
 		public double getWallChance() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getWallGenerator() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getWallGenerator() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CNG getWallGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getWallStyle() 	SignatureNotChanged
 		public int hashCode() 	SignatureNotChanged
@@ -11481,13 +11481,13 @@ Class: public com.volmit.iris.object.IrisStructure	NameNotChanged
 Class: public com.volmit.iris.object.IrisStructurePlacement	NameNotChanged
 	Source: "IrisStructurePlacement.java"
 	FieldsOf: com.volmit.iris.object.IrisStructurePlacement
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache chanceCell	=>	a
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache config	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache chanceCell	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache config	=>	b
 		private int height	NameNotChanged
 		private int rarity	NameNotChanged
 		private double ratio	NameNotChanged
 		private double shuffle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache structure	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache structure	=>	c
 		private java.lang.String tileset	NameNotChanged
 		private double zoom	NameNotChanged
 	MethodsOf: com.volmit.iris.object.IrisStructurePlacement
@@ -11496,14 +11496,14 @@ Class: public com.volmit.iris.object.IrisStructurePlacement	NameNotChanged
 		private static java.lang.Throwable a(java.lang.Throwable) 	SignatureNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getChanceCell() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getChanceCell() 	SignatureNotChanged
 		public com.volmit.iris.generator.noise.CellGenerator getChanceGenerator(com.volmit.iris.util.RNG) 	SignatureNotChanged
 		private com.volmit.iris.object.IrisObjectPlacement getConfig()	=>	a()
 		public int getHeight() 	SignatureNotChanged
 		public int getRarity() 	SignatureNotChanged
 		public double getRatio() 	SignatureNotChanged
 		public double getShuffle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getStructure() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getStructure() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisStructure getStructure(com.volmit.iris.generator.ContextualChunkGenerator) 	SignatureNotChanged
 		public java.lang.String getTileset() 	SignatureNotChanged
 		public double getZoom() 	SignatureNotChanged
@@ -11603,8 +11603,8 @@ Class: public com.volmit.iris.object.IrisStructureTile	NameNotChanged
 		private com.volmit.iris.object.StructureTileCondition floor	NameNotChanged
 		private transient com.volmit.iris.util.KMap forceObjects	=>	a
 		private com.volmit.iris.object.IrisLootReference loot	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache maxFaces	=>	b
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache minFaces	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache maxFaces	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache minFaces	=>	c
 		private com.volmit.iris.object.StructureTileCondition north	NameNotChanged
 		private com.volmit.iris.util.KList objects	NameNotChanged
 		private com.volmit.iris.object.ObjectPlaceMode placeMode	NameNotChanged
@@ -11712,7 +11712,7 @@ Class: public com.volmit.iris.object.IrisTextPlacement	NameNotChanged
 	FieldsOf: com.volmit.iris.object.IrisTextPlacement
 		private double chance	NameNotChanged
 		private com.volmit.iris.object.IrisObjectLimit clamp	NameNotChanged
-		private com.volmit.iris.generator.legacy.atomics.AtomicCache config	=>	a
+		private com.volmit.iris.scaffold.cache.AtomicCache config	=>	a
 		private int density	NameNotChanged
 		private com.volmit.iris.object.ObjectPlaceMode mode	NameNotChanged
 		private boolean onwater	NameNotChanged
@@ -11789,12 +11789,12 @@ Class: public com.volmit.iris.object.IrisTextRenderer	NameNotChanged
 	FieldsOf: com.volmit.iris.object.IrisTextRenderer
 		private com.volmit.iris.object.IrisMaterialPalette blockPalette	NameNotChanged
 		private java.lang.String font	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache fontData	=>	c
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache fontMetrics	=>	a
+		private transient com.volmit.iris.scaffold.cache.AtomicCache fontData	=>	c
+		private transient com.volmit.iris.scaffold.cache.AtomicCache fontMetrics	=>	a
 		private com.volmit.iris.object.FontStyle fontStyle	NameNotChanged
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache fontStyleData	=>	e
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache maxLength	=>	b
-		private transient com.volmit.iris.generator.legacy.atomics.AtomicCache objects	=>	d
+		private transient com.volmit.iris.scaffold.cache.AtomicCache fontStyleData	=>	e
+		private transient com.volmit.iris.scaffold.cache.AtomicCache maxLength	=>	b
+		private transient com.volmit.iris.scaffold.cache.AtomicCache objects	=>	d
 		private int size	NameNotChanged
 		private com.volmit.iris.object.IrisGeneratorStyle surfaceField	NameNotChanged
 		private com.volmit.iris.util.KList text	NameNotChanged
@@ -11808,10 +11808,10 @@ Class: public com.volmit.iris.object.IrisTextRenderer	NameNotChanged
 		public java.awt.Font getFontData() 	SignatureNotChanged
 		public java.awt.FontMetrics getFontMetrics() 	SignatureNotChanged
 		public com.volmit.iris.object.FontStyle getFontStyle() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getFontStyleData() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getFontStyleData() 	SignatureNotChanged
 		public double getLength(java.lang.String) 	SignatureNotChanged
 		public double getMaxLength() 	SignatureNotChanged
-		public com.volmit.iris.generator.legacy.atomics.AtomicCache getObjects() 	SignatureNotChanged
+		public com.volmit.iris.scaffold.cache.AtomicCache getObjects() 	SignatureNotChanged
 		public com.volmit.iris.util.KList getObjects(com.volmit.iris.generator.ParallaxChunkGenerator, com.volmit.iris.util.RNG) 	SignatureNotChanged
 		public int getSize() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisGeneratorStyle getSurfaceField() 	SignatureNotChanged
@@ -20098,7 +20098,7 @@ ForwardClass: com.volmit.iris.Iris Package: com.volmit.iris	Data: 12115 a2114 b2
 ForwardClass: com.volmit.iris.activation.IrisActivation2 Package: com.volmit.iris.activation	Data: 24327 a4327 b4327 c4328 E
 ForwardClass: com.volmit.iris.manager.command.PermissionIris Package: com.volmit.iris.manager.command	Data: 53961 a3961 b3961 r
 ForwardClass: com.volmit.iris.generator.ContextualChunkGenerator Package: com.volmit.iris.generator	Data: M4571 a4571 b4571 w
-ForwardClass: com.volmit.iris.generator.legacy.atomics.AtomicCache Package: com.volmit.iris.generator.legacy.atomics	Data: 23941 a3940 b3940 c3941 Q
+ForwardClass: com.volmit.iris.scaffold.cache.AtomicCache Package: com.volmit.iris.generator.legacy.atomics	Data: 23941 a3940 b3940 c3941 Q
 ForwardClass: com.volmit.iris.generator.legacy.layer.GenLayerUpdate Package: com.volmit.iris.generator.legacy.layer	Data: 14058 a4058 b4058 c4059 B
 ForwardClass: com.volmit.iris.generator.legacy.post.PostWallPatcher Package: com.volmit.iris.generator.legacy.post	Data: 54102 a4102 b4102 s
 ForwardClass: com.volmit.iris.manager.gui.IrisVision Package: com.volmit.iris.manager.gui	Data: 33118 a3118 b3118 f
@@ -20171,7 +20171,7 @@ MemberClass: com.volmit.iris.generator.ParallaxChunkGenerator	Data: 4192
 MemberClass: com.volmit.iris.generator.ParallelChunkGenerator	Data: 4184
 MemberClass: com.volmit.iris.generator.PostBlockChunkGenerator	Data: 4284
 MemberClass: com.volmit.iris.generator.TerrainChunkGenerator	Data: 4096 d
-MemberClass: com.volmit.iris.generator.legacy.atomics.AtomicCache	Data: 3804
+MemberClass: com.volmit.iris.scaffold.cache.AtomicCache	Data: 3804
 MemberClass: com.volmit.iris.generator.legacy.atomics.AtomicMulticache	Data: 4359
 MemberClass: com.volmit.iris.generator.legacy.atomics.AtomicRegionData	Data: 4326
 MemberClass: com.volmit.iris.generator.legacy.atomics.AtomicSliver	Data: 3965 y

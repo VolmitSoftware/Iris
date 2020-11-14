@@ -1,6 +1,6 @@
 package com.volmit.iris.nms.v1X;
 
-import com.volmit.iris.generator.legacy.atomics.AtomicCache;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.nms.INMSBinding;
 import com.volmit.iris.nms.INMSCreator;
 

@@ -1,28 +1,33 @@
 package com.minelazz.epicworldgenerator.structures;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.EnumSet;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.util.B;
+import com.volmit.iris.util.DontObfuscate;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.util.B;
+import java.io.*;
+import java.util.EnumSet;
 
+@DontObfuscate
 public class StructureObject implements Serializable
 {
+	@DontObfuscate
 	public static final String MESSAGE0 = "This was created from .ewg serialization files";
+
+	@DontObfuscate
 	public static final String MESSAGE1 = "This is not copied code, it is intended to ";
+
+	@DontObfuscate
 	public static final String MESSAGE2 = "be used so that people can convert EWG files";
+
+	@DontObfuscate
 	public static final String MESSAGE3 = "into .IOB files (iris objects)";
 
+	@DontObfuscate
 	public static IrisObject convert(File so) throws IOException, ClassNotFoundException
 	{
 		FileInputStream fin = new FileInputStream(so);
@@ -72,6 +77,7 @@ public class StructureObject implements Serializable
 		return iob;
 	}
 
+	@DontObfuscate
 	@SuppressWarnings("deprecation")
 	private static final BlockData map(int id, int dat)
 	{
@@ -93,23 +99,45 @@ public class StructureObject implements Serializable
 		return null;
 	}
 
+	@DontObfuscate
 	private static final long serialVersionUID = -905274143366977303L;
 
+	@DontObfuscate
 	public SOBlock[] blocks;
+	@DontObfuscate
 	public String name;
 
+	@DontObfuscate
 	public final class SOBlock implements Serializable
 	{
+		@DontObfuscate
 		private static final long serialVersionUID = 2610063934261982315L;
+
+		@DontObfuscate
 		public final int x;
+
+		@DontObfuscate
 		public final int y;
+
+		@DontObfuscate
 		public final int z;
+
+		@DontObfuscate
 		public final int id;
+
+		@DontObfuscate
 		public final int data;
+
+		@DontObfuscate
 		public String meta;
+
+		@DontObfuscate
 		public String blockData;
+
+		@DontObfuscate
 		final StructureObject ref;
 
+		@DontObfuscate
 		public SOBlock(StructureObject structureObject, int x, int y, int z, String string)
 		{
 			this.ref = structureObject;

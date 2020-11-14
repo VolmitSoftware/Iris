@@ -3,7 +3,7 @@ package com.volmit.iris.manager;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.engine.IrisAccess;

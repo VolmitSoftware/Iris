@@ -57,18 +57,15 @@ public class IrisComplex implements DataProvider
 		{
 			case CAVE:
 				return caveBiomeStream;
-			case DEFER:
-				break;
-			case LAKE:
-				break;
 			case LAND:
 				return landBiomeStream;
-			case RIVER:
-				break;
 			case SEA:
 				return seaBiomeStream;
 			case SHORE:
 				return shoreBiomeStream;
+			case DEFER:
+			case LAKE:
+			case RIVER:
 			default:
 				break;
 		}

@@ -1,9 +1,9 @@
-package com.volmit.iris.generator.legacy.nms.v1X;
+package com.volmit.iris.nms.v1X;
 
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
-import com.volmit.iris.generator.legacy.nms.INMSCreator;
+import com.volmit.iris.nms.INMSCreator;
 
 class NMSCreator1X implements INMSCreator
 {

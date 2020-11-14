@@ -1,4 +1,4 @@
-package com.volmit.iris.generator.legacy.nms;
+package com.volmit.iris.nms;
 
 import org.bukkit.World;
 import org.bukkit.WorldCreator;

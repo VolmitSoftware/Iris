@@ -1,8 +1,8 @@
-package com.volmit.iris.generator.legacy.nms;
+package com.volmit.iris.nms;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.generator.legacy.nms.v1X.NMSBinding1X;
+import com.volmit.iris.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.KMap;
 import org.bukkit.Bukkit;
 

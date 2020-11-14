@@ -1,7 +1,7 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.engine.IrisAccess;

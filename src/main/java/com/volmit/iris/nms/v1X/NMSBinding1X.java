@@ -1,8 +1,8 @@
-package com.volmit.iris.generator.legacy.nms.v1X;
+package com.volmit.iris.nms.v1X;
 
 import com.volmit.iris.generator.legacy.atomics.AtomicCache;
-import com.volmit.iris.generator.legacy.nms.INMSBinding;
-import com.volmit.iris.generator.legacy.nms.INMSCreator;
+import com.volmit.iris.nms.INMSBinding;
+import com.volmit.iris.nms.INMSCreator;
 
 public class NMSBinding1X implements INMSBinding
 {

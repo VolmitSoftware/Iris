@@ -15,7 +15,6 @@ public class IrisEngineFramework implements EngineFramework {
     @Getter
     private final Engine engine;
 
-
     @Getter
     private final IrisComplex complex;
 

@@ -1,6 +1,6 @@
 package com.volmit.iris;
 
-import com.volmit.iris.generator.legacy.nms.INMS;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
 import com.volmit.iris.manager.command.PermissionIris;

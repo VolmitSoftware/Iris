@@ -93,6 +93,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
 	private Biome derivative = Biome.THE_VOID;
 
+	@Required
+	@DontObfuscate
+	@Desc("Override the derivative when vanilla places structures to this derivative. This is useful for example if you have an ocean biome, but you have set the derivative to desert to get a brown-ish color. To prevent desert structures from spawning on top of your ocean, you can set your vanillaDerivative to ocean, to allow for vanilla structures. Not defining this value will simply select the derivative.")
+	private Biome vanillaDerivative = null;
+
 	@ArrayType(min = 1, type = Biome.class)
 	@DontObfuscate
 	@Desc("You can instead specify multiple biome derivatives to randomly scatter colors in this biome")
@@ -184,6 +189,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
 	private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
+
+	public Biome getVanillaDerivative()
+	{
+		return vanillaDerivative == null ? derivative : vanillaDerivative;
+	}
 
 	public double getGenLinkMax(String loadKey)
 	{

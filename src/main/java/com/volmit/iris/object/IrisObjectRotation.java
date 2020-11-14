@@ -1,24 +1,19 @@
 package com.volmit.iris.object;
 
-import java.util.List;
-
-import org.bukkit.Axis;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.MultipleFacing;
-import org.bukkit.block.data.Orientable;
-import org.bukkit.block.data.Rotatable;
-import org.bukkit.util.BlockVector;
-
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Axis;
+import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.*;
+import org.bukkit.util.BlockVector;
+
+import java.util.List;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -143,7 +138,7 @@ public class IrisObjectRotation
 				return Axis.Y;
 		}
 
-		return Axis.X;
+		return Axis.Y;
 	}
 
 	public Axis axisFor2D(BlockFace f)
@@ -160,7 +155,7 @@ public class IrisObjectRotation
 				return Axis.X;
 		}
 
-		return Axis.X;
+		return Axis.Z;
 	}
 
 	public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
@@ -192,17 +187,6 @@ public class IrisObjectRotation
 			{
 				d = null;
 			}
-		}
-
-		else if(d instanceof Orientable)
-		{
-			Orientable g = ((Orientable) d);
-			BlockFace f = faceForAxis(g.getAxis());
-			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
-			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			BlockFace t = getFace(bv);
-			Axis a = !((Orientable) d).getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
-			((Orientable) d).setAxis(a);
 		}
 
 		else if(d instanceof Rotatable)
@@ -241,6 +225,18 @@ public class IrisObjectRotation
 			{
 				g.setFace(i, true);
 			}
+		}
+
+		else if(d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable)
+		{
+			//TODO: Fucks up logs
+			Orientable g = ((Orientable) d);
+			BlockFace f = faceForAxis(g.getAxis());
+			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+			bv = rotate(bv.clone(), spinx, spiny, spinz);
+			BlockFace t = getFace(bv);
+			Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
+			((Orientable) d).setAxis(a);
 		}
 
 		return d;

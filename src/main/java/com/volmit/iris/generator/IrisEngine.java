@@ -97,10 +97,10 @@ public class IrisEngine extends BlockPopulator implements Engine
             MultiBurst.burst.burst(
                     () -> getFramework().getDecorantActuator().actuate(x, z, blocks),
                     () -> getFramework().getDepositModifier().modify(x, z, blocks),
-                    () -> getFramework().getPostModifier().modify(x, z, blocks),
-                    () -> getFramework().getEngineParallax().insertParallax(x, z, blocks)
+                    () -> getFramework().getPostModifier().modify(x, z, blocks)
             );
 
+            getFramework().getEngineParallax().insertParallax(x, z, blocks);
             getFramework().recycle();
         }
         catch(Throwable e)

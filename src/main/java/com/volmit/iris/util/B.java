@@ -396,7 +396,8 @@ public class B
 			}
 		}
 
-		if(onto.equals(Material.ACACIA_LEAVES) || onto.equals(Material.BIRCH_LEAVES)
+		if(onto.equals(Material.ACACIA_LEAVES)
+				|| onto.equals(Material.BIRCH_LEAVES)
 				|| onto.equals(Material.DARK_OAK_LEAVES)
 				|| onto.equals(Material.JUNGLE_LEAVES)
 				|| onto.equals(Material.OAK_LEAVES)
@@ -491,7 +492,10 @@ public class B
 
 	public static boolean isFoliagePlantable(BlockData d)
 	{
-		return d.getMaterial().equals(Material.GRASS_BLOCK) || d.getMaterial().equals(Material.DIRT) || d.getMaterial().equals(Material.COARSE_DIRT) || d.getMaterial().equals(Material.PODZOL);
+		return d.getMaterial().equals(Material.GRASS_BLOCK)
+				|| d.getMaterial().equals(Material.DIRT)
+				|| d.getMaterial().equals(Material.COARSE_DIRT)
+				|| d.getMaterial().equals(Material.PODZOL);
 	}
 
 	public static boolean isFluid(BlockData d)

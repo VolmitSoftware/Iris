@@ -1,7 +1,13 @@
 package com.volmit.iris.scaffold.cache;
 
+import org.bukkit.Chunk;
+
 public interface Cache<V>
 {
+    static long key(Chunk chunk) {
+        return key(chunk.getX(), chunk.getZ());
+    }
+
     public int getId();
 
     public V get(int x, int z);

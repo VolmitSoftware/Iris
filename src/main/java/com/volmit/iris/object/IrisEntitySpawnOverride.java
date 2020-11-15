@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.scaffold.cache.AtomicCache;
-import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -47,7 +47,7 @@ public class IrisEntitySpawnOverride
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
 
-	public Entity on(IrisAccess g, Location at, EntityType t, EntitySpawnEvent ee)
+	public Entity on(Engine g, Location at, EntityType t, EntitySpawnEvent ee)
 	{
 		if(!trigger.equals(EntityType.UNKNOWN))
 		{
@@ -68,7 +68,7 @@ public class IrisEntitySpawnOverride
 		return e;
 	}
 
-	public Entity spawn(IrisAccess g, Location at)
+	public Entity spawn(Engine g, Location at)
 	{
 		if(getRealEntity(g) == null)
 		{
@@ -83,7 +83,7 @@ public class IrisEntitySpawnOverride
 		return null;
 	}
 
-	public IrisEntity getRealEntity(IrisAccess g)
+	public IrisEntity getRealEntity(Engine g)
 	{
 		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
 	}

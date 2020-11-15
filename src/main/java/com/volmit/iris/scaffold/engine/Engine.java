@@ -6,6 +6,7 @@ import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
@@ -319,5 +320,17 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     public default int getMaxHeight()
     {
         return getHeight() + getMinHeight();
+    }
+
+    public EngineCompound getCompound();
+
+    public default boolean isStudio()
+    {
+        return getCompound().isStudio();
+    }
+
+    public default void clean()
+    {
+        MultiBurst.burst.lazy(() -> getParallax().cleanup());
     }
 }

@@ -1,10 +1,12 @@
 package com.volmit.iris.manager.gui;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.util.*;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -12,18 +14,6 @@ import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
-
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-
-import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.PregenJob;
 
 public class PregenGui extends JPanel implements KeyListener
 {
@@ -97,7 +87,7 @@ public class PregenGui extends JPanel implements KeyListener
 			g.drawString("Press P to Pause", 20, hh += h);
 		}
 
-		J.sleep((long) (IrisSettings.get().isMaxPregenGuiFPS() ? 4 : 250));
+		J.sleep((long) (IrisSettings.get().isMaximumPregenGuiFPS() ? 4 : 250));
 		repaint();
 	}
 

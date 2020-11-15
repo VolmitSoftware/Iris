@@ -4,10 +4,12 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisEntity;
 import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -64,7 +66,8 @@ public class CommandIrisStudioSummon extends MortarCommand
 					return true;
 				}
 
-				e.spawn(g, sender.player().getLocation().clone().add(0, 3, 0));
+				Location vl = sender.player().getLocation().clone().add(0, 3, 0);
+				e.spawn((Engine) g.getEngineAccess(vl.getBlockY()), vl);
 			}
 		}
 

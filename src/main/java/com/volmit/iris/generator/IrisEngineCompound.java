@@ -4,7 +4,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;
-import com.volmit.iris.util.KList;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineCompound;
 import com.volmit.iris.scaffold.engine.EngineData;
@@ -12,7 +11,9 @@ import com.volmit.iris.scaffold.engine.EngineTarget;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.KList;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -44,6 +45,10 @@ public class IrisEngineCompound implements EngineCompound {
 
     @Getter
     private int threadCount;
+
+    @Getter
+    @Setter
+    private boolean studio;
 
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {

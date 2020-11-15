@@ -2,16 +2,13 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisEngineCompound;
-import com.volmit.iris.util.TerrainChunk;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -33,6 +30,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private final boolean production;
     private final KList<BlockPopulator> populators;
     private int generated = 0;
+    private int art;
+    private ReactiveFolder hotloader = null;
 
     public EngineCompositeGenerator() {
         this(null, true);
@@ -43,6 +42,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
+        art = J.ar(this::tick, 20);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
@@ -61,6 +61,30 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     {
         getData().dump();
         initialized.lazySet(false);
+    }
+
+    public void tick()
+    {
+        if(isClosed())
+        {
+            return;
+        }
+
+        if(!initialized.get())
+        {
+            return;
+        }
+
+        try
+        {
+            hotloader.check();
+            getComposite().clean();
+        }
+
+        catch(Throwable e)
+        {
+
+        }
     }
 
     private synchronized IrisDimension getDimension(World world) {
@@ -124,9 +148,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         IrisDimension dim = getDimension(world);
         IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
         compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
+        compound.setStudio(!production);
         initialized.set(true);
         populators.clear();
         populators.addAll(compound.getPopulators());
+        hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
     }
 
     private File getDataFolder(World world) {
@@ -385,6 +411,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void close() {
+        J.car(art);
         getComposite().close();
         IrisWorlds.evacuate(getComposite().getWorld());
         Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());

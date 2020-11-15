@@ -64,7 +64,7 @@ public class Iris extends VolmitPlugin
 
 	public static int getThreadCount()
 	{
-		int tc = IrisSettings.get().forceThreadCount;
+		int tc = IrisSettings.get().getForceThreadCount();
 
 		if(tc <= 0)
 		{
@@ -407,7 +407,7 @@ public class Iris extends VolmitPlugin
 
 	public void splash()
 	{
-		if(!IrisSettings.get().isSplash())
+		if(!IrisSettings.get().isSplashLogoStartup())
 		{
 			return;
 		}

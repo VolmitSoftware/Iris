@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.scaffold.cache.AtomicCache;
-import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,7 +43,7 @@ public class IrisEntityInitialSpawn
 	private final transient AtomicCache<RNG> rng = new AtomicCache<>();
 	private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-	public void spawn(IrisAccess gen, Chunk c, RNG rng)
+	public void spawn(Engine gen, Chunk c, RNG rng)
 	{
 		int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
 
@@ -53,18 +53,18 @@ public class IrisEntityInitialSpawn
 			{
 				int x = (c.getX() * 16) + rng.i(15);
 				int z = (c.getZ() * 16) + rng.i(15);
-				int h = gen.getHeight(x, 0, z);
+				int h = gen.getHeight(x, z) + gen.getMinHeight();
 				spawn100(gen, new Location(c.getWorld(), x, h, z));
 			}
 		}
 	}
 
-	public IrisEntity getRealEntity(IrisAccess g)
+	public IrisEntity getRealEntity(Engine g)
 	{
 		return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
 	}
 
-	public Entity spawn(IrisAccess g, Location at)
+	public Entity spawn(Engine g, Location at)
 	{
 		if(getRealEntity(g) == null)
 		{
@@ -79,7 +79,7 @@ public class IrisEntityInitialSpawn
 		return null;
 	}
 
-	private Entity spawn100(IrisAccess g, Location at)
+	private Entity spawn100(Engine g, Location at)
 	{
 		return getRealEntity(g).spawn(g, at.clone().add(0, 1, 0), rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)));
 	}

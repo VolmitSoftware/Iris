@@ -1,6 +1,5 @@
 package com.volmit.iris.scaffold.hunk.io;
 
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.data.IOAdapter;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.ByteArrayTag;
@@ -21,7 +20,7 @@ public interface HunkIOAdapter<T> extends IOAdapter<T>
     {
         f.getParentFile().mkdirs();
         FileOutputStream fos = new FileOutputStream(f);
-        GZIPOutputStream gzo = new CustomOutputStream(fos, IrisSettings.get().parallaxCompressionLevel);
+        GZIPOutputStream gzo = new CustomOutputStream(fos, 6);
         write(t, gzo);
     }
 

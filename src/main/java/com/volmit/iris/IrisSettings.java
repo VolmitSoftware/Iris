@@ -13,108 +13,64 @@ public class IrisSettings
 	public static transient IrisSettings settings;
 
 	@DontObfuscate
-	@Desc("Iris generator threads (must be 2 or higher). Threads in iris are not a perfect scale for performance as a lot of data has to be shared. 16 Threads is a good rule of thumb. Use 8 threads on a quad core processor.")
+	public int configurationVersion = 2;
+
+	@DontObfuscate
+	public int streamingCacheSize = 8192;
+
+	@DontObfuscate
 	public int forceThreadCount = -1;
 
 	@DontObfuscate
-	@Desc("The default world type incase iris doesnt have a dimension to use.")
 	public String defaultWorldType = "overworld";
 
 	@DontObfuscate
-	@Desc("Iris uses a lot of caching to speed up chunk generation. Setting this higher uses more memory, but may improve performance. Anything past 8,000 should be avoided because there is little benefit past this value.")
-	public int atomicCacheSize = 3000;
+	public int maxAsyncChunkPregenThreads = 32;
 
 	@DontObfuscate
-	@Desc("Max pregen async chunk threads.")
-	public int maxAsyncChunkPregenThreads = 300;
+	public boolean maximumPregenGuiFPS = false;
 
 	@DontObfuscate
-	@Desc("More cpu for pregen gui but looks nice.")
-	public boolean maxPregenGuiFPS = false;
-
-	@DontObfuscate
-	@Desc("Renders what the terrain looks like in the pregen map for iris worlds only.")
-	public boolean pregenRenderTerrain = true;
-
-	@DontObfuscate
-	@Desc("Adds sound to commands.")
 	public boolean commandSounds = true;
 
 	@DontObfuscate
-	@Desc("Compress parallax data in memory to reduce memory usage in exchange for more cpu usage.")
-	public boolean parallaxCompression = true;
-
-	@DontObfuscate
-	@Desc("Uses a lot of cpu and slows down hotloading")
-	public boolean regenerateLoadedChunksOnHotload = false;
-
-	@DontObfuscate
-	@Desc("Useful information when creating iris worlds. Shows object loads & more.")
 	public boolean verbose = false;
 
 	@DontObfuscate
-	@Desc("Experiments...")
-	public boolean allowExperimentalV2Generator = false;
-
-	@DontObfuscate
-	@Desc("If true, will not use world edit even if its on the server")
 	public boolean ignoreWorldEdit = false;
 
 	@DontObfuscate
-	@Desc("System Effects")
-	public boolean systemEffects = true;
-
-	@DontObfuscate
-	@Desc("Disable all nms")
 	public boolean disableNMS = false;
 
 	@DontObfuscate
-	@Desc("System Spawn Overrides")
+	public boolean systemEffects = true;
+
+	@DontObfuscate
 	public boolean systemEntitySpawnOverrides = true;
 
 	@DontObfuscate
-	@Desc("System Spawn Initials")
 	public boolean systemEntityInitialSpawns = true;
 
 	@DontObfuscate
-	@Desc("Compression level (0-9) lower is faster, but is not as good compression. Best results around 3-5")
-	public int parallaxCompressionLevel = 2;
-
-	@DontObfuscate
-	@Desc("If A is a child of B, and B is a child of A, how deep should iris follow the children in biomes. Lower is faster gen.")
 	public int maxBiomeChildDepth = 5;
 
 	@DontObfuscate
-	@Desc("The size of each tile pregen will generate (in chunks)")
-	public int pregenTileSize = 32;
-
-	@DontObfuscate
-	@Desc("When enabled, The cache is shared for all chunks and cleared periodically instead of per chunk. This uses more memory but provides a ~15% speedup.")
 	public boolean sharedCaching = true;
 
 	@DontObfuscate
-	@Desc("Allows Iris to use studio commands & design worlds.")
 	public boolean studio = true;
 
 	@DontObfuscate
-	@Desc("Allows iris to launch guis through the server process. Useful for local development.")
 	public boolean useServerLaunchedGuis = true;
 
 	@DontObfuscate
-	@Desc("When using studio open or create, open the codeworkspace automatically.")
 	public boolean openVSCode = true;
 
 	@DontObfuscate
-	@Desc("Collects anonymous metrics for bstats")
 	public boolean metrics = true;
 
 	@DontObfuscate
-	@Desc("Splash the screen")
-	public boolean splash = true;
-
-	@DontObfuscate
-	@Desc("Skips preparing spawn by using nms to hijack the world init phase")
-	public boolean skipPrepareSpawnNMS = true;
+	public boolean splashLogoStartup = true;
 
 	public static IrisSettings get()
 	{
@@ -161,7 +117,17 @@ public class IrisSettings
 							{
 								u = true;
 								j.put(i, def.get(i));
-								Iris.verbose("Adding new config key: " + i);
+								Iris.warn("Adding new config key: " + i);
+							}
+						}
+
+						for(String i : j.keySet())
+						{
+							if(!def.has(i))
+							{
+								u = true;
+								j.remove(i);
+								Iris.warn("Removing unused config key: " + i);
 							}
 						}
 

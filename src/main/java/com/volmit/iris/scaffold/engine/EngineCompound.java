@@ -91,4 +91,16 @@ public interface EngineCompound extends Listener
     public boolean isFailing();
 
     public int getThreadCount();
+
+    public boolean isStudio();
+
+    public void setStudio(boolean std);
+
+    public default void clean()
+    {
+        for(int i = 0; i < getSize(); i++)
+        {
+            getEngine(i).clean();
+        }
+    }
 }

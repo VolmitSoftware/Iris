@@ -1,6 +1,7 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.actuator.IrisTerrainActuator;
 import com.volmit.iris.generator.modifier.IrisCaveModifier;
 import com.volmit.iris.generator.noise.CNG;
@@ -74,7 +75,7 @@ public class IrisComplex implements DataProvider
 
 	public IrisComplex(Engine engine)
 	{
-		int cacheSize = 8192;
+		int cacheSize = IrisSettings.get().getStreamingCacheSize();
 		this.rng = new RNG(engine.getWorld().getSeed());
 		this.data = engine.getData();
 		double height = engine.getHeight();

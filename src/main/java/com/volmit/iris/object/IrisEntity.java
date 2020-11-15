@@ -1,7 +1,7 @@
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -135,12 +135,12 @@ public class IrisEntity extends IrisRegistrant
 	@Desc("The this entity is ageable, set it's baby status")
 	private boolean baby = false;
 
-	public Entity spawn(IrisAccess gen, Location at)
+	public Entity spawn(Engine gen, Location at)
 	{
 		return spawn(gen, at, new RNG(at.hashCode()));
 	}
 
-	public Entity spawn(IrisAccess gen, Location at, RNG rng)
+	public Entity spawn(Engine gen, Location at, RNG rng)
 	{
 		Entity e = doSpawn(at);
 		e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);

@@ -49,7 +49,7 @@ public class IrisWorlds
 			{
 				for(Player j : world.getPlayers())
 				{
-					new MortarSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world due to a close request.");
+					new MortarSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
 					j.teleport(i.getSpawnLocation());
 				}
 

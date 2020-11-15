@@ -49,7 +49,6 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
-	private ProceduralStream<BlockData> glassStream;
 
 	public ProceduralStream<IrisBiome> getBiomeStream(InferredType type)
 	{
@@ -76,14 +75,12 @@ public class IrisComplex implements DataProvider
 	public IrisComplex(Engine engine)
 	{
 		int cacheSize = 8192;
-		BlockData glass = B.get("GLASS");
 		this.rng = new RNG(engine.getWorld().getSeed());
 		this.data = engine.getData();
 		double height = engine.getHeight();
 		fluidHeight = engine.getDimension().getFluidHeight();
 		generators = new KList<>();
 		RNG rng = new RNG(engine.getWorld().getSeed());
-		glassStream = ProceduralStream.of((x,y,z) -> glass, Interpolated.BLOCK_DATA);
 		//@builder
 		engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
 			.getAllBiomes(this).forEach((b) -> b
@@ -145,9 +142,11 @@ public class IrisComplex implements DataProvider
 		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))
 			.convertAware2D(this::implode).cache2D(cacheSize);
-		heightStream = baseBiomeStream.convertAware2D((b, x, z) -> getHeight(b, x, z, engine.getWorld().getSeed()))
-				.roundDouble().cache2D(cacheSize);
-		slopeStream = heightStream.slope().cache2D(cacheSize);
+		heightStream = ProceduralStream.of((x, z) -> {
+			IrisBiome b = baseBiomeStream.get(x, z);
+			return getHeight(b, x, z, engine.getWorld().getSeed());
+		}, Interpolated.DOUBLE).cache2D(cacheSize);
+		slopeStream = heightStream.slope(4).interpolate().bilinear(4, 4).cache2D(cacheSize);
 		trueBiomeStream = heightStream
 				.convertAware2D((h, x, z) ->
 					fixBiomeType(h, baseBiomeStream.get(x, z),

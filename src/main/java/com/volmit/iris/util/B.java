@@ -378,7 +378,7 @@ public class B
 			}
 		}
 
-		if(onto.equals(Material.AIR) || onto.equals(B.getMaterial("CAVE_AIR")))
+		if(onto.equals(Material.AIR) || onto.equals(B.getMaterial("CAVE_AIR")) || onto.equals(B.getMaterial("VOID_AIR")))
 		{
 			return false;
 		}
@@ -416,7 +416,12 @@ public class B
 	{
 		Material mm = m.getMaterial();
 		Boolean f = decorantCache.get(mm);
-		
+
+		if(f != null)
+		{
+			return f;
+		}
+
 		f = mm.equals(Material.GRASS)
 				|| mm.equals(Material.TALL_GRASS)
 				|| mm.equals(B.getMaterial("CORNFLOWER"))

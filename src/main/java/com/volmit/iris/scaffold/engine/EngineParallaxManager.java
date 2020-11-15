@@ -134,6 +134,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         generateStructures(rng, x>>4, z>>4, region, biome);
     }
 
+    default KList<PlacedObject> generateParallaxLayerObjects(int x, int z)
+    {
+        KList<PlacedObject> placedObjects = new KList<>();
+        RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+        IrisRegion region = getComplex().getRegionStream().get(x+8, z+8);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(x+8, z+8);
+        generateParallaxSurface(rng, x, z, biome, placedObjects);
+        generateParallaxMutations(rng, x, z, placedObjects);
+        generateStructures(rng, x>>4, z>>4, region, biome, placedObjects);
+
+        return placedObjects;
+    }
+
     default void generateStructures(RNG rng, int x, int z, IrisRegion region, IrisBiome biome)
     {
         int g = 30265;
@@ -158,12 +171,46 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         }
     }
 
+    default void generateStructures(RNG rng, int x, int z, IrisRegion region, IrisBiome biome, KList<PlacedObject> objects)
+    {
+        int g = 30265;
+        for(IrisStructurePlacement k : region.getStructures())
+        {
+            if(k == null)
+            {
+                continue;
+            }
+
+            getStructureManager().placeStructure(k, rng.nextParallelRNG(2228 * 2 * g++), x, z, objects);
+        }
+
+        for(IrisStructurePlacement k : biome.getStructures())
+        {
+            if(k == null)
+            {
+                continue;
+            }
+
+            getStructureManager().placeStructure(k, rng.nextParallelRNG(-22228 * 4 * g++), x, z, objects);
+        }
+    }
+
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
         {
             if(rng.chance(i.getChance()))
             {
                 place(rng, x, z, i);
+            }
+        }
+    }
+
+    default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, KList<PlacedObject> objects) {
+        for (IrisObjectPlacement i : biome.getSurfaceObjects())
+        {
+            if(rng.chance(i.getChance()))
+            {
+                place(rng, x, z, i, objects);
             }
         }
     }
@@ -199,9 +246,57 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         }
     }
 
+    default void generateParallaxMutations(RNG rng, int x, int z, KList<PlacedObject> o) {
+        if(getEngine().getDimension().getMutations().isEmpty())
+        {
+            return;
+        }
+
+        searching: for(IrisBiomeMutation k : getEngine().getDimension().getMutations())
+        {
+            for(int l = 0; l < k.getChecks(); l++)
+            {
+                IrisBiome sa = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sb = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+
+                if(sa.getLoadKey().equals(sb.getLoadKey()))
+                {
+                    continue;
+                }
+
+                if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
+                {
+                    for(IrisObjectPlacement m : k.getObjects())
+                    {
+                        place(rng.nextParallelRNG((34 * ((x * 30) + (z * 30)) * x * z) + x - z + 1569962), x, z, m, o);
+                    }
+
+                    continue searching;
+                }
+            }
+        }
+    }
+
     default void place(RNG rng, int x, int z, IrisObjectPlacement objectPlacement)
     {
         place(rng, x,-1, z, objectPlacement);
+    }
+
+    default void place(RNG rng, int x, int z, IrisObjectPlacement objectPlacement, KList<PlacedObject> objects)
+    {
+        place(rng, x,-1, z, objectPlacement, objects);
+    }
+
+    default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement, KList<PlacedObject> objects)
+    {
+        for(int i = 0; i < objectPlacement.getDensity(); i++)
+        {
+            IrisObject v = objectPlacement.getSchematic(getComplex(), rng);
+            int xx = rng.i(x, x+16);
+            int zz = rng.i(z, z+16);
+            int id = rng.i(0, Integer.MAX_VALUE);
+            objects.add(new PlacedObject(objectPlacement, v, id, xx, zz));
+        }
     }
 
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement)

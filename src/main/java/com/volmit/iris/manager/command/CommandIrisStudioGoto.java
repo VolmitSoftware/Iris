@@ -3,6 +3,7 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
@@ -16,7 +17,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 	public CommandIrisStudioGoto()
 	{
 		super("goto", "find", "g", "tp");
-		setDescription("Find any biome or a biome border");
+		setDescription("Find any region, biome or placed object");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");
 	}
@@ -26,6 +27,8 @@ public class CommandIrisStudioGoto extends MortarCommand
 		if(args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld()))
 		{
 			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getBiomeLoader().getPossibleKeys());
+			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getRegionLoader().getPossibleKeys());
+			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getObjectLoader().getPossibleKeys());
 		}
 	}
 
@@ -54,6 +57,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 				IrisAccess g = IrisWorlds.access(world);
 				IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
 				IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
+				IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 
 				if(b != null)
 				{
@@ -91,9 +95,27 @@ public class CommandIrisStudioGoto extends MortarCommand
 					});
 				}
 
+				else if(o != null)
+				{
+					J.a(() -> {
+						Location l = g.lookForObject(o, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + o.getLoadKey() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Objects"));
+
+						if(l == null)
+						{
+							sender.sendMessage("Couldn't find " + o.getLoadKey() + ".");
+						}
+
+						else
+						{
+							sender.sendMessage("Found " + o.getLoadKey() + "!");
+							J.s(() -> sender.player().teleport(l));
+						}
+					});
+				}
+
 				else
 				{
-					sender.sendMessage(args[0] + " is not a biome or region in this dimension.");
+					sender.sendMessage(args[0] + " is not a biome,region or object in this dimension.");
 				}
 
 				return true;

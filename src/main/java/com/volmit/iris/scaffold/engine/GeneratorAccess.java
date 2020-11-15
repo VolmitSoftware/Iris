@@ -48,7 +48,7 @@ public interface GeneratorAccess extends DataProvider
         {
             if(i.getPlace().contains(object))
             {
-                return new PlacedObject(i, getData().getObjectLoader().load(object), id);
+                return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
         }
 
@@ -58,10 +58,10 @@ public interface GeneratorAccess extends DataProvider
         {
             if(i.getPlace().contains(object))
             {
-                return new PlacedObject(i, getData().getObjectLoader().load(object), id);
+                return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
         }
 
-        return new PlacedObject(null, getData().getObjectLoader().load(object), id);
+        return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
     }
 }

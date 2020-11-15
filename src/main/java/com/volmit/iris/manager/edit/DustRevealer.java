@@ -1,9 +1,6 @@
 package com.volmit.iris.manager.edit;
 
-import com.volmit.iris.util.BlockPosition;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
 import lombok.Data;
@@ -18,7 +15,7 @@ public class DustRevealer {
     private final String key;
     private final KList<BlockPosition> hits;
 
-    public static void spawn(Block block)
+    public static void spawn(Block block, MortarSender sender)
     {
         World world = block.getWorld();
 
@@ -28,6 +25,7 @@ public class DustRevealer {
 
             if(a.getObject(block.getX(), block.getY(), block.getZ()) != null)
             {
+                sender.sendMessage("Found object " + a.getObject(block.getX(), block.getY(), block.getZ()));
                 J.a(() -> {
                     new DustRevealer(a, world, new BlockPosition(block.getX(), block.getY(), block.getZ()), a.getObject(block.getX(), block.getY(), block.getZ()), new KList<>());
                 });

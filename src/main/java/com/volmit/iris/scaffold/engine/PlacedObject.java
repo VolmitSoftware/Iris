@@ -15,4 +15,6 @@ public class PlacedObject {
     @Nullable
     private IrisObject object;
     private int id;
+    private int xx;
+    private int zz;
 }

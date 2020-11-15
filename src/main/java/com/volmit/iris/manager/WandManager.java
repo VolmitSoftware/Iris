@@ -1,14 +1,10 @@
 package com.volmit.iris.manager;
 
-import java.awt.Color;
-import java.util.Iterator;
-
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.edit.DustRevealer;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.util.*;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -23,12 +19,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.Cuboid;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.M;
+import java.awt.Color;
+import java.util.Iterator;
 
 public class WandManager implements Listener
 {
@@ -182,7 +174,8 @@ public class WandManager implements Listener
 				{
 					e.setCancelled(true);
 					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
-					DustRevealer.spawn(e.getClickedBlock());
+					DustRevealer.spawn(e.getClickedBlock(), new MortarSender(e.getPlayer(), Iris.instance.getTag()));
+
 				}
 			}
 		}

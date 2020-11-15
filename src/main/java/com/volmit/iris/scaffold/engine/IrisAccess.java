@@ -314,7 +314,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         for(int i = 0; i < getCompound().getSize(); i++)
         {
             Engine e = getCompound().getEngine(i);
-            if(e.getDimension().getAllRegions(e).contains(reg))
+            if(e.getDimension().getRegions().contains(reg.getLoadKey()))
             {
                 engines.add(e);
             }

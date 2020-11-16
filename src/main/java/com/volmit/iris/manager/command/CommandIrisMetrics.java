@@ -36,7 +36,16 @@ public class CommandIrisMetrics extends MortarCommand
 			}
 
 			IrisAccess g = IrisWorlds.access(world);
-			// TODO: METRICS
+
+			try
+			{
+				g.printMetrics(sender);
+			}
+
+			catch(Throwable e)
+			{
+				sender.sendMessage("You must be in an iris world.");
+			}
 
 			return true;
 		}

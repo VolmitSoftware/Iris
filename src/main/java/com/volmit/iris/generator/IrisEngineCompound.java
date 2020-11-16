@@ -11,12 +11,13 @@ import com.volmit.iris.scaffold.engine.EngineTarget;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IrisEngineCompound implements EngineCompound {
     @Getter
     private final World world;
+
+    private final AtomicRollingSequence wallClock;
 
     @Getter
     private final EngineData engineMetadata;
@@ -52,6 +55,7 @@ public class IrisEngineCompound implements EngineCompound {
 
     public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
     {
+        wallClock = new AtomicRollingSequence(32);
         this.rootDimension = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.getName());
         this.world = world;
@@ -116,6 +120,75 @@ public class IrisEngineCompound implements EngineCompound {
         }
     }
 
+    public void printMetrics(CommandSender sender)
+    {
+        KMap<String, Double> totals = new KMap<>();
+        KMap<String, Double> weights = new KMap<>();
+        double masterWallClock = wallClock.getAverage();
+
+        for(int i = 0; i < getSize(); i++)
+        {
+            Engine e = getEngine(i);
+            KMap<String, Double> timings = e.getMetrics().pull();
+            double totalWeight = 0;
+            double wallClock = e.getMetrics().getTotal().getAverage();
+
+            for(double j : timings.values())
+            {
+                totalWeight += j;
+            }
+
+            for(String j : timings.k())
+            {
+                weights.put(e.getName() + "[" + e.getIndex() + "]." + j, (wallClock / totalWeight) * timings.get(j));
+            }
+
+            totals.put(e.getName() + "[" + e.getIndex() + "]", wallClock);
+        }
+
+        double mtotals = 0;
+
+        for(double i : totals.values())
+        {
+            mtotals+=i;
+        }
+
+        for(String i : totals.k())
+        {
+            totals.put(i, (masterWallClock / mtotals) * totals.get(i));
+        }
+
+        double v = 0;
+
+        for(double i : weights.values())
+        {
+            v+=i;
+        }
+
+        for(String i : weights.k())
+        {
+            weights.put(i, weights.get(i) / v);
+        }
+
+        sender.sendMessage("Total: " + C.BOLD + C.WHITE + Form.duration(masterWallClock, 0));
+
+        for(String i : totals.k())
+        {
+            sender.sendMessage("  Engine " + C.UNDERLINE + C.GREEN + i + C.RESET + ": " + C.BOLD + C.WHITE +  Form.duration(totals.get(i), 0));
+        }
+
+        sender.sendMessage("Details: ");
+
+        for(String i : weights.sortKNumber().reverse())
+        {
+            String befb = C.UNDERLINE +""+ C.GREEN + "" + i.split("\\Q[\\E")[0] + C.RESET + C.GRAY + "[";
+            String num = C.GOLD + i.split("\\Q[\\E")[1].split("]")[0] + C.RESET + C.GRAY +  "].";
+            String afb = C.ITALIC +""+ C.AQUA + i.split("\\Q]\\E")[1].substring(1) + C.RESET + C.GRAY;
+
+            sender.sendMessage("  " + befb + num + afb + ": " + C.BOLD + C.WHITE +  Form.pc(weights.get(i), 0));
+        }
+    }
+
     private File getEngineMetadataFile() {
         return new File(world.getWorldFolder(), "iris/engine-metadata.json");
     }
@@ -123,6 +196,7 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
     {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         if(engines.length == 1 && !getEngine(0).getTarget().isInverted())
         {
             engines[0].generate(x, z, blocks, biomes);
@@ -166,8 +240,9 @@ public class IrisEngineCompound implements EngineCompound {
                 insert[i].run();
             }
         }
-    }
 
+        wallClock.put(p.getMilliseconds());
+    }
 
     @Override
     public int getSize() {
@@ -193,5 +268,13 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public boolean isFailing() {
         return false;
+    }
+
+    @Override
+    public void hotload() {
+        for(int i = 0; i < getSize(); i++)
+        {
+            getEngine(i).hotload();
+        }
     }
 }

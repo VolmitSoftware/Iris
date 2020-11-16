@@ -1,13 +1,14 @@
 package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.gui.Renderer;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
 
-public interface GeneratorAccess extends DataProvider
+public interface GeneratorAccess extends DataProvider, Renderer
 {
     public IrisRegion getRegion(int x, int z);
 
@@ -64,4 +65,6 @@ public interface GeneratorAccess extends DataProvider
 
         return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
     }
+
+    public int getCacheID();
 }

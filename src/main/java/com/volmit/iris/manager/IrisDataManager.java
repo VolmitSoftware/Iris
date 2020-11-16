@@ -2,7 +2,6 @@ package com.volmit.iris.manager;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.*;
-import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.ObjectResourceLoader;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.util.ResourceLoader;
@@ -14,7 +13,6 @@ import java.util.function.Function;
 @Data
 public class IrisDataManager
 {
-	public static final KMap<Integer, IrisDataManager> managers = new KMap<>();
 	private ResourceLoader<IrisBiome> biomeLoader;
 	private ResourceLoader<IrisLootTable> lootLoader;
 	private ResourceLoader<IrisRegion> regionLoader;
@@ -39,17 +37,11 @@ public class IrisDataManager
 		this.id = RNG.r.imax();
 		closed = false;
 		hotloaded();
-
-		if(!oneshot)
-		{
-			managers.put(id, this);
-		}
 	}
 
 	public void close()
 	{
 		closed = true;
-		managers.remove(id);
 		dump();
 		this.lootLoader =  null;
 		this.entityLoader =  null;
@@ -60,23 +52,6 @@ public class IrisDataManager
 		this.generatorLoader =  null;
 		this.blockLoader =  null;
 		this.objectLoader = null;
-	}
-
-	public static void dumpManagers()
-	{
-		for(IrisDataManager i : managers.v())
-		{
-			Iris.warn(i.getId() + " @ " + i.getDataFolder().getAbsolutePath());
-			printData(i.lootLoader);
-			printData(i.entityLoader);
-			printData(i.regionLoader);
-			printData(i.biomeLoader);
-			printData(i.dimensionLoader);
-			printData(i.structureLoader);
-			printData(i.generatorLoader);
-			printData(i.blockLoader);
-			printData(i.objectLoader);
-		}
 	}
 
 	private static void printData(ResourceLoader<?> rl)

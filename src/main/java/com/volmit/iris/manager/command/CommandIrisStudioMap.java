@@ -2,6 +2,7 @@ package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.gui.IrisVision;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
@@ -38,8 +39,8 @@ public class CommandIrisStudioMap extends MortarCommand
 		}
 
 		IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
-		// IrisVision.launch(g);
-		sender.sendMessage("NYI: Opening Map!");
+		IrisVision.launch(g, 0);
+		sender.sendMessage("Opening Map!");
 		return true;
 	}
 

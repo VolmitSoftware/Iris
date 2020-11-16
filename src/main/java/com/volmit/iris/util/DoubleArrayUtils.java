@@ -1,6 +1,10 @@
 package com.volmit.iris.util;
 
 
+import com.google.common.util.concurrent.AtomicDoubleArray;
+
+import java.util.Arrays;
+
 public class DoubleArrayUtils
 {
 	public static void shiftRight(double[] values, double push)
@@ -21,9 +25,15 @@ public class DoubleArrayUtils
 
 	public static void fill(double[] values, double value)
 	{
-		for(int i = 0; i < values.length; i++)
+		Arrays.fill(values, value);
+	}
+
+	public static void fill(AtomicDoubleArray values, double value)
+	{
+		for(int i = 0; i < values.length(); i++)
 		{
-			values[i] = value;
+			values.set(i, value);
 		}
 	}
+
 }

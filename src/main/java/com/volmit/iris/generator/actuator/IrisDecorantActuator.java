@@ -1,6 +1,7 @@
 package com.volmit.iris.generator.actuator;
 
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.generator.decorator.IrisCeilingDecorator;
 import com.volmit.iris.generator.decorator.IrisSeaSurfaceDecorator;
@@ -47,6 +48,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
             return;
         }
 
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         boolean solid;
         int emptyFor = 0;
         int lastSolid = 0;
@@ -108,6 +110,8 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                 }
             }
         }
+
+        getEngine().getMetrics().getDecoration().put(p.getMilliseconds());
     }
 
     private boolean shouldRayDecorate()

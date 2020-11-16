@@ -1,11 +1,8 @@
 package com.volmit.iris.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedHashSet;
-import java.util.List;
+import com.google.common.util.concurrent.AtomicDoubleArray;
+
+import java.util.*;
 import java.util.function.Function;
 
 public class KList<T> extends ArrayList<T> implements List<T>
@@ -589,6 +586,17 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		for(Object i : values)
 		{
 			add((T) i);
+		}
+
+		return this;
+	}
+
+	@SuppressWarnings("unchecked")
+	public KList<T> forceAdd(AtomicDoubleArray values)
+	{
+		for(int i = 0; i < values.length(); i++)
+		{
+			add((T) ((Object)values.get(i)));
 		}
 
 		return this;

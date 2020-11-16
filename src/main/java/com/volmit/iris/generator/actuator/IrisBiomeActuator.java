@@ -3,6 +3,7 @@ package com.volmit.iris.generator.actuator;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedActuator;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.util.PrecisionStopwatch;
 import org.bukkit.block.Biome;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
@@ -13,6 +14,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
 
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         int i,zf;
         Biome v;
 
@@ -28,5 +30,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
                 }
             }
         }
+        getEngine().getMetrics().getBiome().put(p.getMilliseconds());
     }
 }

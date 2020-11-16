@@ -4,11 +4,12 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDepositGenerator;
 import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
-import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.RNG;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.util.HeightMap;
+import com.volmit.iris.util.PrecisionStopwatch;
+import com.volmit.iris.util.RNG;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
@@ -21,7 +22,9 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         generateDeposits(rng, output, Math.floorDiv(x, 16), Math.floorDiv(z, 16));
+        getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
     public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z)

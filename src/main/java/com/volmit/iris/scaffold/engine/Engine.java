@@ -1,15 +1,14 @@
 package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.gui.Renderer;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -20,9 +19,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import java.awt.*;
 import java.util.Arrays;
 
-public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater {
+public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     public void close();
 
     public boolean isClosed();
@@ -48,6 +48,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     public double modifyZ(double z);
 
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
+
+    public EngineMetrics getMetrics();
 
     default void save()
     {
@@ -87,6 +89,21 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     public default ParallaxAccess getParallax()
     {
         return getTarget().getParallaxWorld();
+    }
+
+    public default Color draw(double x, double z)
+    {
+        IrisRegion region = getRegion((int)x, (int)z);
+        IrisBiome biome = getSurfaceBiome((int)x, (int)z);
+        int height = getHeight((int) x, (int) z);
+        double heightFactor = M.lerpInverse(0, getHeight(), height);
+        IrisColor irc = region.getColor();
+        IrisColor ibc = biome.getColor();
+        Color rc = irc != null ? irc.getColor() : Color.GREEN.darker();
+        Color bc = ibc != null ? ibc.getColor() : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
+        Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float)heightFactor));
+
+        return f;
     }
 
     @Override
@@ -136,6 +153,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @Override
     public default void updateChunk(Chunk c)
     {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         if(getParallax().getMetaR(c.getX(), c.getZ()).isUpdates())
         {
             Hunk<Boolean> b = getParallax().getUpdatesR(c.getX(), c.getZ());
@@ -155,6 +173,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                 }
             });
         }
+
+        getMetrics().getUpdates().put(p.getMilliseconds());
     }
 
     public default void updateLighting(int x, int y, int z, Chunk c)

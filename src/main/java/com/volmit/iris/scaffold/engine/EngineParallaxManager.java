@@ -73,9 +73,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
     default void insertParallax(int x, int z, Hunk<BlockData> data)
     {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x>>4, z>>4);
 
         if(!meta.isObjects()) {
+            getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
             return;
         }
 
@@ -94,10 +96,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
                 }
             }
         }
+
+        getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
     }
 
     default void generateParallaxArea(int x, int z)
     {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         int s = (int) Math.ceil(getParallaxSize() / 2D);
         int j;
         BurstExecutor e = MultiBurst.burst.burst(getParallaxSize() * getParallaxSize());
@@ -114,8 +119,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         }
 
         e.complete();
-
         getParallaxAccess().setChunkGenerated(x>>4, z>>4);
+        p.end();
+        getEngine().getMetrics().getParallax().put(p.getMilliseconds());
     }
 
     default void generateParallaxLayer(int x, int z)

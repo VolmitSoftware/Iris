@@ -2,23 +2,25 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.KList;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.Listener;
-
-import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.scaffold.parallel.MultiBurst;
 import org.bukkit.generator.BlockPopulator;
 
-public interface EngineCompound extends Listener
+public interface EngineCompound extends Listener, Hotloadable
 {
     public IrisDimension getRootDimension();
 
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
     public World getWorld();
+
+    public void printMetrics(CommandSender sender);
 
     public int getSize();
 

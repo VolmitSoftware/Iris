@@ -23,7 +23,9 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         generateRavines(rng, Math.floorDiv(x, 16), Math.floorDiv(z, 16), output);
+        getEngine().getMetrics().getRavine().put(p.getMilliseconds());
     }
 
     private void set(Hunk<BlockData> pos, int x, int y, int z, BlockData b)

@@ -3,6 +3,7 @@ package com.volmit.iris.generator.modifier;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
@@ -25,6 +26,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         for(int i = 0; i < output.getWidth(); i++)
         {
             for(int j = 0; j < output.getDepth(); j++)
@@ -32,6 +34,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                 post(i, j, output, i+x, j+z);
             }
         }
+        getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {

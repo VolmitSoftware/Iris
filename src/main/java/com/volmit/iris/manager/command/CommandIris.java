@@ -36,15 +36,6 @@ public class CommandIris extends MortarCommand
 	private CommandIrisMetrics metrics;
 
 	@Command
-	private CommandIrisCTC ctc;
-
-	@Command
-	private CommandIrisLMM lmm;
-
-	@Command
-	private CommandIrisIDM idm;
-
-	@Command
 	private CommandIrisPregen pregen;
 
 	@Command

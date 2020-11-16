@@ -85,8 +85,8 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private int rarity = 1;
 
 	@DontObfuscate
-	@Desc("A debug color for visualizing this biome with a color. I.e. #F13AF5")
-	private String debugColor = "";
+	@Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
+	private IrisColor color = null;
 
 	@Required
 	@DontObfuscate
@@ -292,29 +292,6 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			}
 
 			return o;
-		});
-	}
-
-	public Color getCachedColor()
-	{
-		return cacheColor.aquire(() ->
-		{
-			if(getDebugColor() == null || getDebugColor().isEmpty())
-			{
-				return null;
-			}
-
-			try
-			{
-				return Color.decode(getDebugColor());
-			}
-
-			catch(Throwable e)
-			{
-
-			}
-
-			return null;
 		});
 	}
 

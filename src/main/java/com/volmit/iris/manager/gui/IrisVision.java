@@ -1,7 +1,7 @@
 package com.volmit.iris.manager.gui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.scaffold.engine.GeneratorAccess;
+import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
 
 import javax.imageio.ImageIO;
@@ -35,7 +35,6 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	private double oz = 0;
 	private double oxp = 0;
 	private double ozp = 0;
-	private short lid = -1;
 	double tfps = 240D;
 	private RollingSequence rs = new RollingSequence(512);
 	private O<Integer> m = new O<>();
@@ -131,7 +130,6 @@ public class IrisVision extends JPanel implements MouseWheelListener
 					working.add(key);
 					double mk = mscale;
 					double mkd = scale;
-					short l = lid;
 					e.submit(() ->
 					{
 						PrecisionStopwatch ps = PrecisionStopwatch.start();
@@ -139,7 +137,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 						rs.put(ps.getMilliseconds());
 						working.remove(key);
 
-						if(mk == mscale && mkd == scale && lid == l)
+						if(mk == mscale && mkd == scale)
 						{
 							positions.put(key, b);
 						}
@@ -162,7 +160,6 @@ public class IrisVision extends JPanel implements MouseWheelListener
 			workingfast.add(key);
 			double mk = mscale;
 			double mkd = scale;
-			short l = lid;
 			eh.submit(() ->
 			{
 				PrecisionStopwatch ps = PrecisionStopwatch.start();
@@ -170,7 +167,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 				rs.put(ps.getMilliseconds());
 				workingfast.remove(key);
 
-				if(mk == mscale && mkd == scale && lid == l)
+				if(mk == mscale && mkd == scale)
 				{
 					fastpositions.put(key, b);
 				}
@@ -200,17 +197,6 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		if(oz > ozp)
 		{
 			ozp += Math.abs(ozp - oz) * 0.36;
-		}
-
-		// TODO: DETECT HOTLOADS
-		if(false)
-		{
-			working.clear();
-			workingfast.clear();
-			positions.clear();
-			fastpositions.clear();
-			//TODO: lid = Iris.proj.getActiveProject().getActiveProvider().getCacheID();
-			Iris.info("Hotloading Vision");
 		}
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -293,14 +279,13 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		});
 	}
 
-	private static void createAndShowGUI(Renderer r, short s)
+	private static void createAndShowGUI(Renderer r, int s)
 	{
 		JFrame frame = new JFrame("Vision");
 		IrisVision nv = new IrisVision();
 		nv.renderer = new IrisRenderer(r);
 		frame.add(nv);
 		frame.setSize(1440, 820);
-		nv.lid = s;
 		frame.setVisible(true);
 		File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 
@@ -318,11 +303,10 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		}
 	}
 
-	public static void launch(GeneratorAccess g)
-	{
+	public static void launch(IrisAccess g, int i) {
 		J.a(() ->
 		{
-			//createAndShowGUI(g.createRenderer(), g.getCacheID());
+			createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i);
 		});
 	}
 
@@ -334,7 +318,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 			return;
 		}
 
-		Iris.info("BPP: " + (mscale) + " BW: " + (w * mscale));
+		Iris.info("Blocks/Pixel: " + (mscale) + ", Blocks Wide: " + (w * mscale));
 		positions.clear();
 		fastpositions.clear();
 		mscale = mscale + ((0.044 * mscale) * notches);

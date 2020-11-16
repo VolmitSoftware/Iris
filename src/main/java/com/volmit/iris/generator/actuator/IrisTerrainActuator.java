@@ -2,6 +2,7 @@ package com.volmit.iris.generator.actuator;
 
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedActuator;
@@ -27,6 +28,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
 
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         int i, zf, depth, realX, realZ, hf, he, b;
         IrisBiome biome;
         KList<BlockData> blocks;
@@ -86,5 +88,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                 }
             }
         }
+
+        getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }
 }

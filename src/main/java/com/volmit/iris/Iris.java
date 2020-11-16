@@ -190,7 +190,6 @@ public class Iris extends VolmitPlugin
 		board.disable();
 		Bukkit.getScheduler().cancelTasks(this);
 		HandlerList.unregisterAll((Plugin) this);
-		IrisDataManager.managers.clear();
 		super.onDisable();
 	}
 

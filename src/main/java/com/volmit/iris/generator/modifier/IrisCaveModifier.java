@@ -3,10 +3,7 @@ package com.volmit.iris.generator.modifier;
 import com.volmit.iris.generator.noise.FastNoiseDouble;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisCaveLayer;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.CaveResult;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.scaffold.hunk.Hunk;
@@ -31,6 +28,12 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> a) {
+        if(!getDimension().isCaves())
+        {
+            return;
+        }
+
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         for(int i = 0; i < a.getWidth(); i++)
         {
             for(int j = 0; j < a.getDepth(); j++)
@@ -71,6 +74,8 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                 }
             }
         };
+
+        getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 
     public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data)

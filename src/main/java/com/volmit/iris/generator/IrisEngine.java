@@ -4,6 +4,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.PrecisionStopwatch;
+import com.volmit.iris.util.RNG;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Chunk;
@@ -36,15 +38,20 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Getter
     private final int index;
 
+    @Getter
+    private final EngineMetrics metrics;
+
     @Setter
     @Getter
     private volatile int minHeight;
     private boolean failing;
     private boolean closed;
+    private int cacheId;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index)
     {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
+        metrics = new EngineMetrics(32);
         this.target = target;
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
@@ -53,6 +60,7 @@ public class IrisEngine extends BlockPopulator implements Engine
         failing = false;
         closed = false;
         this.index = index;
+        cacheId = RNG.r.nextInt();
     }
 
     @Override
@@ -82,6 +90,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try
         {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<Biome> biomes = vbiomes;
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
 
@@ -102,6 +111,7 @@ public class IrisEngine extends BlockPopulator implements Engine
 
             getFramework().getEngineParallax().insertParallax(x, z, blocks);
             getFramework().recycle();
+            getMetrics().getTotal().put(p.getMilliseconds());
         }
         catch(Throwable e)
         {
@@ -126,5 +136,15 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Override
     public boolean hasFailed() {
         return failing;
+    }
+
+    @Override
+    public int getCacheID() {
+        return cacheId;
+    }
+
+    @Override
+    public void hotload() {
+        cacheId = RNG.r.nextInt();
     }
 }

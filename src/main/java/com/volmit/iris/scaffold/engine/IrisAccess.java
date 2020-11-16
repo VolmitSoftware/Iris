@@ -5,6 +5,7 @@ import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,6 +15,8 @@ import java.util.function.Consumer;
 public interface IrisAccess extends Hotloadable, DataProvider {
 
     public int getGenerated();
+
+    public void printMetrics(CommandSender sender);
 
     public IrisBiome getBiome(int x, int y, int z);
 

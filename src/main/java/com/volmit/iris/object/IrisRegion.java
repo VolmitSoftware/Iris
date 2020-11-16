@@ -18,7 +18,6 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisRegion extends IrisRegistrant implements IRare
 {
-
 	@MinNumber(2)
 	@Required
 	@DontObfuscate
@@ -210,6 +209,10 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("Generate rivers in this region")
 	private double riverThickness = 0.1;
+
+	@DontObfuscate
+	@Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
+	private IrisColor color = null;
 
 	private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
 	private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();

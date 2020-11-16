@@ -12,6 +12,7 @@ import com.volmit.iris.util.*;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.command.CommandSender;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.material.MaterialData;
@@ -248,6 +249,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public int getGenerated() {
         return generated;
+    }
+
+    @Override
+    public void printMetrics(CommandSender sender) {
+        getComposite().printMetrics(sender);
     }
 
     @Override

@@ -19,6 +19,15 @@ public class IrisSettings
 	public int streamingCacheSize = 8192;
 
 	@DontObfuscate
+	public int parallaxRegionEvictionMS = 15000;
+
+	@DontObfuscate
+	public int parallaxChunkEvictionMS = 5000;
+
+	@DontObfuscate
+	public boolean forceSingleThreadedPerChunk = false;
+
+	@DontObfuscate
 	public int forceThreadCount = -1;
 
 	@DontObfuscate
@@ -46,6 +55,12 @@ public class IrisSettings
 	public boolean systemEffects = true;
 
 	@DontObfuscate
+	public boolean saveAllDuringPregen = true;
+
+	@DontObfuscate
+	public boolean localPregenGui = true;
+
+	@DontObfuscate
 	public boolean systemEntitySpawnOverrides = true;
 
 	@DontObfuscate
@@ -67,7 +82,7 @@ public class IrisSettings
 	public boolean openVSCode = true;
 
 	@DontObfuscate
-	public boolean metrics = true;
+	public boolean pluginMetrics = true;
 
 	@DontObfuscate
 	public boolean splashLogoStartup = true;

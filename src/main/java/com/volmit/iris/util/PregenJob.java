@@ -100,7 +100,12 @@ public class PregenJob implements Listener
 		{
 			stop();
 		}
-		PregenGui.launch(this);
+
+		if(IrisSettings.get().isLocalPregenGui())
+		{
+			PregenGui.launch(this);
+		}
+
 		fastFowardTicksIfPossible();
 		task = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
 	}
@@ -497,8 +502,11 @@ public class PregenJob implements Listener
 			world.unloadChunkRequest(i.getX(), i.getZ());
 		}
 
-		world.save();
-		Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
+		if(IrisSettings.get().isSaveAllDuringPregen())
+		{
+			world.save();
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
+		}
 	}
 
 	public int max()

@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
@@ -194,7 +195,7 @@ public class ParallaxWorld implements ParallaxAccess
 
 	public void cleanup()
 	{
-		cleanup(15000, 5000);
+		cleanup(IrisSettings.get().getParallaxRegionEvictionMS(), IrisSettings.get().getParallaxChunkEvictionMS());
 	}
 
 	@Override

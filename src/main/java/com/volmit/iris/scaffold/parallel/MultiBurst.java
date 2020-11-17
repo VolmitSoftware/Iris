@@ -1,6 +1,7 @@
 package com.volmit.iris.scaffold.parallel;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,7 +10,8 @@ import java.util.concurrent.ThreadFactory;
 public class MultiBurst
 {
 	public static MultiBurst burst = new MultiBurst(Runtime.getRuntime().availableProcessors());
-	private ExecutorService service;
+	private final ExecutorService service;
+	private ExecutorService syncService;
 	private int tid;
 
 	public MultiBurst(int tc)
@@ -49,6 +51,15 @@ public class MultiBurst
 
 	public BurstExecutor burst(int estimate)
 	{
+		if(IrisSettings.get().isForceSingleThreadedPerChunk()) {
+			if(syncService == null)
+			{
+				syncService = Executors.newSingleThreadExecutor();
+			}
+
+			return new BurstExecutor(syncService, estimate);
+		}
+
 		return new BurstExecutor(service, estimate);
 	}
 
@@ -58,6 +69,18 @@ public class MultiBurst
 	}
 
 	public void lazy(Runnable o) {
-		service.execute(o);
+		if(IrisSettings.get().isForceSingleThreadedPerChunk()) {
+			if(syncService == null)
+			{
+				syncService = Executors.newSingleThreadExecutor();
+			}
+
+			syncService.execute(o);
+		}
+
+		else
+		{
+			service.execute(o);
+		}
 	}
 }

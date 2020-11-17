@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.Callable;
 
 public class Iris extends VolmitPlugin
 {
@@ -242,9 +243,25 @@ public class Iris extends VolmitPlugin
 
 	private void bstats()
 	{
-		if(IrisSettings.get().isMetrics())
+		if(IrisSettings.get().isPluginMetrics())
 		{
-			J.s(() ->new MetricsLite(Iris.instance, 8757));
+			J.s(() -> {
+				Metrics m = new Metrics(Iris.instance, 8757);
+
+				m.addCustomChart(new Metrics.SingleLineChart("custom_dimensions", new Callable<Integer>() {
+					@Override
+					public Integer call() throws Exception {
+						return ProjectManager.countUniqueDimensions();
+					}
+				}));
+
+				m.addCustomChart(new Metrics.SimplePie("using_custom_dimensions", new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						return ProjectManager.countUniqueDimensions() > 0 ? "Active Projects" : "No Projects";
+					}
+				}));
+			});
 		}
 	}
 

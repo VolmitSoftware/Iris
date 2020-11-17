@@ -5,6 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.Data;
 import org.zeroturnaround.zip.ZipUtil;
@@ -22,6 +23,7 @@ public class ProjectManager
 	public static final String WORKSPACE_NAME = "packs";
 	private KMap<String, String> cacheListing = null;
 	private IrisProject activeProject;
+	private static final AtomicCache<Integer> counter = new AtomicCache<>();
 
 	public ProjectManager()
 	{
@@ -49,6 +51,41 @@ public class ProjectManager
 				}
 			});
 		}
+	}
+
+	public static int countUniqueDimensions() {
+		int vv = counter.aquire(() -> {
+			int v = 0;
+
+			try
+			{
+				for(File i : Iris.instance.getDataFolder(WORKSPACE_NAME).listFiles())
+				{
+					try
+					{
+						if(i.isDirectory() && i.list().length > 0 && !Iris.proj.getListing(true).keySet().contains(i.getName()))
+						{
+							v++;
+						}
+					}
+
+					catch(Throwable ignored)
+					{
+
+					}
+				}
+			}
+
+			catch(Throwable ignored)
+			{
+
+			}
+
+			return v;
+		});
+
+		Iris.warn("I COUNT " + vv);
+		return vv;
 	}
 
 	public IrisDimension installIntoWorld(MortarSender sender, String type, File folder)

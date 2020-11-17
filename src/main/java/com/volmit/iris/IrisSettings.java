@@ -109,49 +109,73 @@ public class IrisSettings
 
 					J.a(() ->
 					{
-						JSONObject j = new JSONObject(ss);
-						boolean u = false;
-						for(String i : def.keySet())
+						try
 						{
-							if(!j.has(i))
+							JSONObject j = new JSONObject(ss);
+							boolean u = false;
+							for(String i : def.keySet())
 							{
-								u = true;
-								j.put(i, def.get(i));
-								Iris.warn("Adding new config key: " + i);
+								if(!j.has(i))
+								{
+									u = true;
+									j.put(i, def.get(i));
+									Iris.warn("Adding new config key: " + i);
+								}
+							}
+
+							for(String i : new KSet<>(j.keySet()))
+							{
+								if(!def.has(i))
+								{
+									u = true;
+									j.remove(i);
+									Iris.warn("Removing unused config key: " + i);
+								}
+							}
+
+							if(u)
+							{
+								try
+								{
+									IO.writeAll(s, j.toString(4));
+									Iris.info("Updated Configuration Files");
+								}
+
+								catch(Throwable e)
+								{
+									e.printStackTrace();
+								}
 							}
 						}
 
-						for(String i : j.keySet())
+						catch(Throwable ee)
 						{
-							if(!def.has(i))
-							{
-								u = true;
-								j.remove(i);
-								Iris.warn("Removing unused config key: " + i);
-							}
-						}
+							Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
+							Iris.warn("Attempting to fix configuration while retaining valid in-memory settings...");
 
-						if(u)
-						{
-							try
-							{
-								IO.writeAll(s, j.toString(4));
-								Iris.info("Updated Configuration Files");
-							}
-
-							catch(Throwable ignored)
-							{
-
+							try {
+								IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+								Iris.info("Configuration Fixed!");
+							} catch (IOException e) {
+								e.printStackTrace();
+								Iris.error("ERROR! CONFIGURATION IMPOSSIBLE TO READ! Using an unmodifiable configuration from memory. Please delete the settings.json at some point to try to restore configurability!");
 							}
 						}
 					});
 				}
 
-				catch(JSONException | IOException e)
+				catch(Throwable ee)
 				{
-					e.printStackTrace();
-					// noinspection ResultOfMethodCallIgnored
-					s.delete();
+					Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
+					Iris.warn("Attempting to fix configuration while retaining valid in-memory settings...");
+
+					try {
+						IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+						Iris.info("Configuration Fixed!");
+					} catch (IOException e) {
+						e.printStackTrace();
+						Iris.error("ERROR! CONFIGURATION IMPOSSIBLE TO READ! Using an unmodifiable configuration from memory. Please delete the settings.json at some point to try to restore configurability!");
+					}
 				}
 			}
 

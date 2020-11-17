@@ -1,6 +1,5 @@
 package com.volmit.iris;
 
-import com.volmit.iris.nms.INMS;
 import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
 import com.volmit.iris.manager.command.PermissionIris;
@@ -8,6 +7,7 @@ import com.volmit.iris.manager.link.BKLink;
 import com.volmit.iris.manager.link.CitizensLink;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
 import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -47,6 +47,7 @@ public class Iris extends VolmitPlugin
 	public static boolean biome3d = doesSupport3DBiomes();
 	public static boolean lowMemoryMode = false;
 	public static IrisCompat compat;
+	public static FileWatcher configWatcher;
 
 	@Permission
 	public static PermissionIris perm;
@@ -158,12 +159,24 @@ public class Iris extends VolmitPlugin
 		linkBK = new BKLink();
 		linkMythicMobs = new MythicMobsLink();
 		edit = new EditManager();
+		configWatcher = new FileWatcher(getDataFile("settings.json"));
 		J.a(() -> IO.delete(getTemp()));
 		J.a(this::bstats);
 		J.s(this::splash, 20);
 		J.sr(this::tickQueue, 0);
+		J.ar(this::checkConfigHotload, 50);
 		PaperLib.suggestPaper(this);
 		super.onEnable();
+	}
+
+	private void checkConfigHotload() {
+		if(configWatcher.checkModified())
+		{
+			IrisSettings.invalidate();
+			IrisSettings.get();
+			configWatcher.checkModified();
+			Iris.info("Hotloaded settings.json");
+		}
 	}
 
 	public void onDisable()

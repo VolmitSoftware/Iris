@@ -10,6 +10,7 @@ import com.volmit.iris.scaffold.parallax.ParallaxAccess;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -342,6 +343,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getHeight() + getMinHeight();
     }
 
+    public EngineEffects getEffects();
+
     public EngineCompound getCompound();
 
     public default boolean isStudio()
@@ -352,5 +355,20 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     public default void clean()
     {
         MultiBurst.burst.lazy(() -> getParallax().cleanup());
+    }
+
+    default IrisBiome getBiome(Location l)
+    {
+        return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
+
+    default IrisRegion getRegion(Location l)
+    {
+        return getRegion(l.getBlockX(), l.getBlockZ());
+    }
+
+    default boolean contains(Location l)
+    {
+        return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
     }
 }

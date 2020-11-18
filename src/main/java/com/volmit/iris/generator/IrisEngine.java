@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.J;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
 import lombok.Getter;
@@ -29,6 +30,9 @@ public class IrisEngine extends BlockPopulator implements Engine
     private final EngineFramework framework;
 
     @Getter
+    private final EngineEffects effects;
+
+    @Getter
     private final EngineWorldManager worldManager;
 
     @Setter
@@ -47,6 +51,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     private boolean failing;
     private boolean closed;
     private int cacheId;
+    private int art;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index)
     {
@@ -61,11 +66,14 @@ public class IrisEngine extends BlockPopulator implements Engine
         closed = false;
         this.index = index;
         cacheId = RNG.r.nextInt();
+        effects = new IrisEngineEffects(this);
+        art = J.ar(effects::tickRandomPlayer, 0);
     }
 
     @Override
     public void close()
     {
+        J.car(art);
         closed = true;
         getWorldManager().close();
         getFramework().close();

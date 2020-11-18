@@ -121,22 +121,44 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (hint == null) {
-            throw new RuntimeException("Cannot find iris dimension data for world: " + world.getName() + "! FAILED");
+            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming overworld!");
+            hint = "overworld";
         }
 
         dim = IrisDataManager.loadAnyDimension(hint);
 
         if (dim == null) {
-            throw new RuntimeException("Cannot find dimension: " + hint);
+            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), hint, false);
+            dim = IrisDataManager.loadAnyDimension(hint);
+
+            if(dim == null)
+            {
+                throw new RuntimeException("Cannot find dimension: " + hint);
+            }
+
+            else
+            {
+                Iris.info("Download pack: " + hint);
+            }
         }
 
         if (production) {
-            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(dim.getLoadKey());
+            IrisDimension od = dim;
+            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
-                throw new RuntimeException("Cannot find dimension: " + hint);
+                Iris.info("Installing Iris pack " + od.getName() + " into world " + world.getName() + "...");
+                Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.getWorldFolder());
+                dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+
+                if(dim == null)
+                {
+                    throw new RuntimeException("Cannot find dimension: " + hint);
+                }
             }
         }
+
+        Iris.info(world.getName() + " is configured to generate " + dim.getName() + "!");
 
         return dim;
     }
@@ -419,8 +441,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public void close() {
         J.car(art);
         getComposite().close();
-        IrisWorlds.evacuate(getComposite().getWorld());
-        Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
+
+        if(isStudio())
+        {
+            IrisWorlds.evacuate(getComposite().getWorld());
+            Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
+        }
     }
 
     @Override

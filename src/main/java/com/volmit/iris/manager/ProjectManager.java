@@ -84,7 +84,6 @@ public class ProjectManager
 			return v;
 		});
 
-		Iris.warn("I COUNT " + vv);
 		return vv;
 	}
 

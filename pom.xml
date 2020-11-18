@@ -2,9 +2,9 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>bytecode.ninja</groupId>
+	<groupId>com.volmit</groupId>
 	<artifactId>Iris</artifactId>
-	<version>1.0.35</version>
+	<version>1.1</version>
 	<name>Iris</name>
 	<properties>
 		<skip.copy>false</skip.copy>
@@ -13,7 +13,6 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<development.location.dan>${user.home}\Documents\development\server\plugins\${project.name}.jar</development.location.dan>
-		<development.location.brian>D:\Dan\MinecraftDevelopment\server\plugins\${project.name}.jar</development.location.brian>
 		<lint.in>${project.basedir}\lint\in.jar</lint.in>
 	</properties>
 	<build>

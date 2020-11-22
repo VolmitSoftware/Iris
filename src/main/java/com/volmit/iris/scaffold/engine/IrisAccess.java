@@ -16,6 +16,8 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     public int getGenerated();
 
+    public double getGeneratedPerSecond();
+
     public void printMetrics(CommandSender sender);
 
     public IrisBiome getBiome(int x, int y, int z);

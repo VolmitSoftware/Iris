@@ -7,6 +7,7 @@ import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 
 public class IrisSurfaceDecorator extends IrisEngineDecorator
@@ -36,7 +37,24 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
                     return;
                 }
 
+                if(bd instanceof Bisected)
+                {
+                    bd = bd.clone();
+                    ((Bisected)bd).setHalf(Bisected.Half.TOP);
+                    try
+                    {
+                        data.set(x, height+2, z, bd);
+                    }
+
+                    catch(Throwable e)
+                    {
+
+                    }
+                    ((Bisected)bd).setHalf(Bisected.Half.BOTTOM);
+                }
+
                 data.set(x, height+1, z, bd);
+
             }
 
             else {

@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
@@ -320,11 +321,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
 	}
 
-	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata)
+	public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata, IrisComplex complex)
 	{
 		if(isLockLayers())
 		{
-			return generateLockedLayers(wx, wz, random, maxDepth, height, rdata);
+			return generateLockedLayers(wx, wz, random, maxDepth, height, rdata, complex);
 		}
 
 		KList<BlockData> data = new KList<>();
@@ -337,9 +338,19 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
-			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+			double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
-			if(d < 0)
+			IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
+
+			if(!sc.isDefault())
+			{
+				if(!sc.isValid(complex.getSlopeStream().get(wx, wz)))
+				{
+					d = 0;
+				}
+			}
+
+			if(d <= 0)
 			{
 				continue;
 			}
@@ -371,7 +382,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		return data;
 	}
 
-	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata)
+	public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata, IrisComplex complex)
 	{
 		KList<BlockData> data = new KList<>();
 		KList<BlockData> real = new KList<>();
@@ -384,9 +395,20 @@ public class IrisBiome extends IrisRegistrant implements IRare
 		for(int i = 0; i < layers.size(); i++)
 		{
 			CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
-			int d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+			double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
-			if(d < 0)
+
+			IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
+
+			if(!sc.isDefault())
+			{
+				if(!sc.isValid(complex.getSlopeStream().get(wx, wz)))
+				{
+					d = 0;
+				}
+			}
+
+			if(d <= 0)
 			{
 				continue;
 			}

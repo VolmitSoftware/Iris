@@ -56,10 +56,10 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                             continue;
                         }
 
-                        KList<BlockData> floor = cave.generateLayers(x + i, z + j, rng, cl.getFloor(), cl.getFloor(), getData());
+                        KList<BlockData> floor = cave.generateLayers(x + i, z + j, rng, cl.getFloor(), cl.getFloor(), getData(), getComplex());
                         KList<BlockData> ceiling = cave.generateLayers(x + i + 656, z + j - 656, rng,
                                 he - cl.getCeiling(),
-                                he - cl.getCeiling(), getData());
+                                he - cl.getCeiling(), getData(), getComplex());
 
                         for(int g = 0; g < floor.size(); g++)
                         {

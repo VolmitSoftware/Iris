@@ -154,54 +154,59 @@ public final class NMSChunkGenerator_16_2 extends ChunkGenerator {
 
         int k = i << 4;
         int l = j << 4;
-        Iterator<?> iterator = StructureGenerator.t.iterator();
 
-        while(iterator.hasNext())
+        if(gen.shouldGenerateStructures())
         {
-            StructureGenerator<?> structuregenerator = (StructureGenerator<?>) iterator.next();
+            Iterator<?> iterator = StructureGenerator.t.iterator();
 
-            structuremanager.a(SectionPosition.a(chunkcoordintpair, 0), structuregenerator).forEach((structurestart) ->
+            while(iterator.hasNext())
             {
-                Iterator<?> iterator1 = structurestart.d().iterator();
+                StructureGenerator<?> structuregenerator = (StructureGenerator<?>) iterator.next();
 
-                while(iterator1.hasNext())
+                structuremanager.a(SectionPosition.a(chunkcoordintpair, 0), structuregenerator).forEach((structurestart) ->
                 {
-                    StructurePiece structurepiece = (StructurePiece) iterator1.next();
+                    Iterator<?> iterator1 = structurestart.d().iterator();
 
-                    if(structurepiece.a(chunkcoordintpair, 12))
+                    while(iterator1.hasNext())
                     {
-                        if(structurepiece instanceof WorldGenFeaturePillagerOutpostPoolPiece)
+                        StructurePiece structurepiece = (StructurePiece) iterator1.next();
+
+                        if(structurepiece.a(chunkcoordintpair, 12))
                         {
-                            WorldGenFeaturePillagerOutpostPoolPiece worldgenfeaturepillageroutpostpoolpiece = (WorldGenFeaturePillagerOutpostPoolPiece) structurepiece;
-                            WorldGenFeatureDefinedStructurePoolTemplate.Matching worldgenfeaturedefinedstructurepooltemplate_matching = worldgenfeaturepillageroutpostpoolpiece.b().e();
-
-                            if(worldgenfeaturedefinedstructurepooltemplate_matching == WorldGenFeatureDefinedStructurePoolTemplate.Matching.RIGID)
+                            if(structurepiece instanceof WorldGenFeaturePillagerOutpostPoolPiece)
                             {
-                                objectlist.add(worldgenfeaturepillageroutpostpoolpiece);
-                            }
+                                WorldGenFeaturePillagerOutpostPoolPiece worldgenfeaturepillageroutpostpoolpiece = (WorldGenFeaturePillagerOutpostPoolPiece) structurepiece;
+                                WorldGenFeatureDefinedStructurePoolTemplate.Matching worldgenfeaturedefinedstructurepooltemplate_matching = worldgenfeaturepillageroutpostpoolpiece.b().e();
 
-                            Iterator<?> iterator2 = worldgenfeaturepillageroutpostpoolpiece.e().iterator();
-
-                            while(iterator2.hasNext())
-                            {
-                                WorldGenFeatureDefinedStructureJigsawJunction worldgenfeaturedefinedstructurejigsawjunction = (WorldGenFeatureDefinedStructureJigsawJunction) iterator2.next();
-                                int i1 = worldgenfeaturedefinedstructurejigsawjunction.a();
-                                int j1 = worldgenfeaturedefinedstructurejigsawjunction.c();
-
-                                if(i1 > k - 12 && j1 > l - 12 && i1 < k + 15 + 12 && j1 < l + 15 + 12)
+                                if(worldgenfeaturedefinedstructurepooltemplate_matching == WorldGenFeatureDefinedStructurePoolTemplate.Matching.RIGID)
                                 {
-                                    objectlist1.add(worldgenfeaturedefinedstructurejigsawjunction);
+                                    objectlist.add(worldgenfeaturepillageroutpostpoolpiece);
+                                }
+
+                                Iterator<?> iterator2 = worldgenfeaturepillageroutpostpoolpiece.e().iterator();
+
+                                while(iterator2.hasNext())
+                                {
+                                    WorldGenFeatureDefinedStructureJigsawJunction worldgenfeaturedefinedstructurejigsawjunction = (WorldGenFeatureDefinedStructureJigsawJunction) iterator2.next();
+                                    int i1 = worldgenfeaturedefinedstructurejigsawjunction.a();
+                                    int j1 = worldgenfeaturedefinedstructurejigsawjunction.c();
+
+                                    if(i1 > k - 12 && j1 > l - 12 && i1 < k + 15 + 12 && j1 < l + 15 + 12)
+                                    {
+                                        objectlist1.add(worldgenfeaturedefinedstructurejigsawjunction);
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            objectlist.add(structurepiece);
+                            else
+                            {
+                                objectlist.add(structurepiece);
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
+
         ProtoChunk protochunk = (ProtoChunk) ichunkaccess;
         HeightMap heightmap = protochunk.a(HeightMap.Type.OCEAN_FLOOR_WG);
         HeightMap heightmap1 = protochunk.a(HeightMap.Type.WORLD_SURFACE_WG);
@@ -391,21 +396,26 @@ public final class NMSChunkGenerator_16_2 extends ChunkGenerator {
 
     public void addDecorations(RegionLimitedWorldAccess regionlimitedworldaccess, StructureManager structuremanager)
     {
+
+
         int i = regionlimitedworldaccess.a();
         int j = regionlimitedworldaccess.b();
         int k = i * 16;
         int l = j * 16;
-        BlockPosition blockposition = new BlockPosition(k, 0, l);
-        BiomeBase biomebase = getStructureBiome(k, l);
-        SeededRandom seededrandom = new SeededRandom();
-        long i1 = seededrandom.a(regionlimitedworldaccess.getSeed(), k, l);
-        try
+        if(gen.shouldGenerateStructures())
         {
-            a(biomebase, structuremanager, this, regionlimitedworldaccess, i1, seededrandom, blockposition);
-        }
-        catch(Exception exception)
-        {
+            BlockPosition blockposition = new BlockPosition(k, 0, l);
+            BiomeBase biomebase = getStructureBiome(k, l);
+            SeededRandom seededrandom = new SeededRandom();
+            long i1 = seededrandom.a(regionlimitedworldaccess.getSeed(), k, l);
+            try
+            {
+                a(biomebase, structuremanager, this, regionlimitedworldaccess, i1, seededrandom, blockposition);
+            }
+            catch(Exception exception)
+            {
 
+            }
         }
 
         Runnable r = posts.remove(Cache.key(i, j));

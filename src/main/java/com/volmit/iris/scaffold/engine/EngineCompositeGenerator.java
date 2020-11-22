@@ -9,6 +9,7 @@ import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.*;
+import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -30,7 +31,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private final String dimensionHint;
     private final boolean production;
     private final KList<BlockPopulator> populators;
+    private long mst = 0;
     private int generated = 0;
+    private int lgenerated = 0;
+    @Getter
+    private double generatedPerSecond = 0;
     private int art;
     private ReactiveFolder hotloader = null;
 
@@ -40,6 +45,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public EngineCompositeGenerator(String hint, boolean production) {
         super();
+        mst = M.ms();
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
@@ -85,6 +91,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         catch(Throwable e)
         {
 
+        }
+
+        if(M.ms() - mst > 1000)
+        {
+            generatedPerSecond = (double)(generated - lgenerated) / ((double)(M.ms() - mst) / 1000D);
+            mst = M.ms();
+            lgenerated = generated;
         }
     }
 

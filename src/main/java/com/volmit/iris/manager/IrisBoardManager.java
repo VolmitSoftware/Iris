@@ -108,11 +108,11 @@ public class IrisBoardManager implements BoardProvider, Listener
 
 		tp.put(0); // TODO: CHUNK SPEED
 
+
+
 		v.add("&7&m------------------");
-		v.add(C.GREEN + "PLX Regions" + C.GRAY + ": " + Form.f(parallaxRegions));
-		v.add(C.GREEN + "PLX Chunks" + C.GRAY + ":  " + Form.f(parallaxChunks));
-		v.add(C.GREEN + "CHE Objects" + C.GRAY + ": " + Form.f(loadedObjects));
-		v.add(C.GREEN + "Memory Use" + C.GRAY + ":  " + Form.memSize(memoryGuess, 0));
+		v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(g.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / g.getGeneratedPerSecond(), 0));
+		v.add(C.GREEN + "Memory Use" + C.GRAY + ":  ~" + Form.memSize(memoryGuess, 0));
 
 		if(engine != null)
 		{

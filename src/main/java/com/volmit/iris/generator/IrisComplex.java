@@ -138,7 +138,7 @@ public class IrisComplex implements DataProvider
 				.convertCached((s) -> data.getBiomeLoader().load(s)
 						.setInferredType(InferredType.SHORE))
 			).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
-		bridgeStream = engine.getDimension().getContinentalStyle().create(rng.nextRNG()).stream()
+		bridgeStream = engine.getDimension().getContinentalStyle().create(rng.nextRNG()).bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
 			.convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
 		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))

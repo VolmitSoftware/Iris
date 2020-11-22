@@ -41,6 +41,11 @@ public interface Hunk<T>
 		return new BiomeGridHunkView(biome);
 	}
 
+	public static <T> Hunk<T> fringe(Hunk<T> i, Hunk<T> o)
+	{
+		return new FringedHunkView<>(i, o);
+	}
+
 	public static Hunk<BlockData> view(ChunkData src)
 	{
 		return new ChunkDataHunkView(src);
@@ -1309,6 +1314,11 @@ public interface Hunk<T>
 		insert(offX, offY, offZ, hunk, false);
 	}
 
+	default void insertSoftly(int offX, int offY, int offZ, Hunk<T> hunk, Predicate<T> shouldOverwrite)
+	{
+		insertSoftly(offX, offY, offZ, hunk, false, shouldOverwrite);
+	}
+
 	/**
 	 * Insert a hunk into this one
 	 * 
@@ -1348,7 +1358,7 @@ public interface Hunk<T>
 	/**
 	 * Insert a hunk into this one with an offset and possibly inverting the y of
 	 * the inserted hunk
-	 * 
+	 *
 	 * @param offX
 	 *            the offset from zero for x
 	 * @param offY
@@ -1371,6 +1381,40 @@ public interface Hunk<T>
 				for(int k = offZ; k < offZ + hunk.getDepth(); k++)
 				{
 					setRaw(i, j, k, hunk.getRaw(i - offX, j - offY, k - offZ));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Insert a hunk into this one with an offset and possibly inverting the y of. Will never insert a node if its already used
+	 * the inserted hunk
+	 *
+	 * @param offX
+	 *            the offset from zero for x
+	 * @param offY
+	 *            the offset from zero for y
+	 * @param offZ
+	 *            the offset from zero for z
+	 * @param hunk
+	 *            the hunk to insert
+	 * @param invertY
+	 *            should the inserted hunk be inverted
+	 */
+	default void insertSoftly(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY, Predicate<T> shouldOverwrite)
+	{
+		enforceBounds(offX, offY, offZ, hunk.getWidth(), hunk.getHeight(), hunk.getDepth());
+
+		for(int i = offX; i < offX + hunk.getWidth(); i++)
+		{
+			for(int j = offY; j < offY + hunk.getHeight(); j++)
+			{
+				for(int k = offZ; k < offZ + hunk.getDepth(); k++)
+				{
+					if(shouldOverwrite.test(getRaw(i, j, k)))
+					{
+						setRaw(i, j, k, hunk.getRaw(i - offX, j - offY, k - offZ));
+					}
 				}
 			}
 		}

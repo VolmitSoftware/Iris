@@ -163,6 +163,81 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
+    private synchronized IrisDimension getDimension(String world) {
+        String hint = dimensionHint;
+        IrisDimension dim = null;
+
+        if (hint == null) {
+            File iris = new File(world +"/iris");
+
+            if(iris.exists() && iris.isDirectory())
+            {
+                searching:
+                for (File i : iris.listFiles()) {
+                    // Look for v1 location
+                    if (i.isDirectory() && i.getName().equals("dimensions")) {
+                        for (File j : i.listFiles()) {
+                            if (j.isFile() && j.getName().endsWith(".json")) {
+                                hint = j.getName().replaceAll("\\Q.json\\E", "");
+                                Iris.error("Found v1 install. Please create a new world, this will cause chunks to change in your existing iris worlds!");
+                                throw new RuntimeException();
+                            }
+                        }
+                    }
+
+                    // Look for v2 location
+                    else if (i.isFile() && i.getName().equals("engine-metadata.json")) {
+                        EngineData metadata = EngineData.load(i);
+                        hint = metadata.getDimension();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (hint == null) {
+            Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming overworld!");
+            hint = "overworld";
+        }
+
+        dim = IrisDataManager.loadAnyDimension(hint);
+
+        if (dim == null) {
+            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), hint, false);
+            dim = IrisDataManager.loadAnyDimension(hint);
+
+            if(dim == null)
+            {
+                throw new RuntimeException("Cannot find dimension: " + hint);
+            }
+
+            else
+            {
+                Iris.info("Download pack: " + hint);
+            }
+        }
+
+        if (production) {
+            IrisDimension od = dim;
+            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+
+            if (dim == null) {
+                Iris.info("Installing Iris pack " + od.getName() + " into world " + world + "...");
+                Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), new File(world));
+                dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+
+                if(dim == null)
+                {
+                    throw new RuntimeException("Cannot find dimension: " + hint);
+                }
+            }
+        }
+
+        Iris.info(world + " is configured to generate " + dim.getName() + "!");
+
+        return dim;
+    }
+
     private synchronized void initialize(World world) {
         if (initialized.get()) {
             return;
@@ -182,22 +257,28 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return new File(world.getWorldFolder(), "iris/pack");
     }
 
+    private File getDataFolder(String world) {
+        return new File(world + "/iris/pack");
+    }
+
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         TerrainChunk tc = TerrainChunk.create(world, biome);
-        generateChunkRawData(world, x, z, tc);
+        generateChunkRawData(world, x, z, tc).run();
         return tc.getRaw();
     }
 
-    public void generateChunkRawData(World world, int x, int z, TerrainChunk tc)
+    public Runnable generateChunkRawData(World world, int x, int z, TerrainChunk tc)
     {
         initialize(world);
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
-        long m = M.ms();
-        compound.generate(x * 16, z * 16, blocks, biomes);
+        Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
+        compound.generate(x * 16, z * 16, blocks, post, biomes);
         generated++;
+
+        return () -> blocks.insertSoftly(0,0,0,post, (b) -> b == null || B.isAir(b));
     }
 
     @Override
@@ -451,7 +532,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public boolean isClosed() {
-        return getComposite().getEngine(0).isClosed();
+        try
+        {
+            return getComposite().getEngine(0).isClosed();
+        }
+        catch(Throwable e)
+        {
+            return false;
+        }
     }
 
     @Override
@@ -472,5 +560,37 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public boolean isStudio() {
         return !production;
+    }
+
+    public boolean isVanillaCaves() {
+        return false;
+    }
+
+    public KList<IrisBiome> getAllBiomes(String worldName) {
+        if(getComposite() != null)
+        {
+            return getComposite().getAllBiomes();
+        }
+
+        else
+        {
+            KMap<String, IrisBiome> v = new KMap<>();
+            IrisDimension dim = getDimension(worldName);
+            dim.getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i));
+
+            try
+            {
+                dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
+            }
+
+            catch(Throwable e)
+            {
+
+            }
+
+            Iris.info("Injecting " + v.size() + " biomes into the NMS World Chunk Provider (Iris)");
+
+            return v.v();
+        }
     }
 }

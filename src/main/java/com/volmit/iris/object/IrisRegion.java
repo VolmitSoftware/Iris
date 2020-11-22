@@ -1,7 +1,8 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
@@ -530,5 +531,44 @@ public class IrisRegion extends IrisRegistrant implements IRare
 
 			return realLandBiomes;
 		});
+	}
+
+	public KList<IrisBiome> getAllAnyBiomes() {
+		KMap<String, IrisBiome> b = new KMap<>();
+		KSet<String> names = new KSet<>();
+		names.addAll(landBiomes);
+		names.addAll(caveBiomes);
+		names.addAll(seaBiomes);
+		names.addAll(shoreBiomes);
+		names.addAll(riverBiomes);
+		names.addAll(lakeBiomes);
+		spotBiomes.forEach((i) -> names.add(i.getBiome()));
+		ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
+
+		while(!names.isEmpty())
+		{
+			for(String i : new KList<>(names))
+			{
+				if(b.containsKey(i))
+				{
+					names.remove(i);
+					continue;
+				}
+
+				IrisBiome biome = IrisDataManager.loadAnyBiome(i);
+
+				names.remove(i);
+				if(biome == null)
+				{
+					continue;
+				}
+
+				names.add(biome.getCarvingBiome());
+				b.put(biome.getLoadKey(), biome);
+				names.addAll(biome.getChildren());
+			}
+		}
+
+		return b.v();
 	}
 }

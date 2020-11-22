@@ -2,10 +2,13 @@ package com.volmit.iris.nms;
 
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.Biome;
 
 public interface INMSBinding
 {
 	public INMSCreator getCreator();
+
+	public Object getBiomeBase(World world, Biome biome);
 
 	default World createWorld(WorldCreator creator)
 	{

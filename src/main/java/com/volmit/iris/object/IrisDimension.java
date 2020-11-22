@@ -1,8 +1,9 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.scaffold.engine.GeneratorAccess;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.scaffold.cache.AtomicCache;
+import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -376,7 +377,7 @@ public class IrisDimension extends IrisRegistrant
 		return cosr.aquire(() -> Math.cos(getDimensionAngle()));
 	}
 
-	public KList<IrisRegion> getAllRegions(GeneratorAccess g)
+	public KList<IrisRegion> getAllRegions(DataProvider g)
 	{
 		KList<IrisRegion> r = new KList<>();
 
@@ -388,13 +389,48 @@ public class IrisDimension extends IrisRegistrant
 		return r;
 	}
 
-	public KList<IrisBiome> getAllBiomes(GeneratorAccess g)
+
+	public KList<IrisRegion> getAllAnyRegions()
+	{
+		KList<IrisRegion> r = new KList<>();
+
+		for(String i : getRegions())
+		{
+			r.add(IrisDataManager.loadAnyRegion(i));
+		}
+
+		return r;
+	}
+
+	public KList<IrisBiome> getAllBiomes(DataProvider g)
 	{
 		KList<IrisBiome> r = new KList<>();
 
 		for(IrisRegion i : getAllRegions(g))
 		{
+			if(i == null)
+			{
+				continue;
+			}
+
 			r.addAll(i.getAllBiomes(g));
+		}
+
+		return r;
+	}
+
+	public KList<IrisBiome> getAllAnyBiomes()
+	{
+		KList<IrisBiome> r = new KList<>();
+
+		for(IrisRegion i : getAllAnyRegions())
+		{
+			if(i == null)
+			{
+				continue;
+			}
+
+			r.addAll(i.getAllAnyBiomes());
 		}
 
 		return r;

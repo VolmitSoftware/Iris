@@ -32,6 +32,8 @@ public class IrisEngineCompound implements EngineCompound {
 
     private final AtomicRollingSequence wallClock;
 
+    private Engine defaultEngine;
+
     @Getter
     private final EngineData engineMetadata;
 
@@ -69,6 +71,7 @@ public class IrisEngineCompound implements EngineCompound {
         {
             burster = null;
             engines = new Engine[]{new IrisEngine(new EngineTarget(world, rootDimension, data, 256, maximumThreads), this, 0)};
+            defaultEngine = engines[0];
         }
 
         else
@@ -97,6 +100,16 @@ public class IrisEngineCompound implements EngineCompound {
                 engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);
                 buf += engines[i].getHeight();
+
+                if(index.isPrimary())
+                {
+                    defaultEngine = engines[i];
+                }
+            }
+
+            if(defaultEngine == null)
+            {
+                defaultEngine = engines[0];
             }
         }
 
@@ -194,12 +207,12 @@ public class IrisEngineCompound implements EngineCompound {
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes)
+    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes)
     {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         if(engines.length == 1 && !getEngine(0).getTarget().isInverted())
         {
-            engines[0].generate(x, z, blocks, biomes);
+            engines[0].generate(x, z, blocks, postblocks, biomes);
         }
 
         else
@@ -216,15 +229,18 @@ public class IrisEngineCompound implements EngineCompound {
                 int doffset = offset;
                 int height = engine.getTarget().getHeight();
                 AtomicReference<Hunk<BlockData>> cblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
+                AtomicReference<Hunk<BlockData>> cpblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
                 AtomicReference<Hunk<Biome>> cbiome = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
                 cblock.set(engine.getTarget().isInverted() ? cblock.get().invertY() : cblock.get());
+                cpblock.set(engine.getTarget().isInverted() ? cpblock.get().invertY() : cpblock.get());
                 cbiome.set(engine.getTarget().isInverted() ? cbiome.get().invertY() : cbiome.get());
                 e.queue(() -> {
-                    engine.generate(x, z, cblock.get(), cbiome.get());
+                    engine.generate(x, z, cblock.get(), cpblock.get(), cbiome.get());
                     synchronized (insert)
                     {
                         insert[index.get()] = () -> {
                             blocks.insert(0, doffset, 0, cblock.get());
+                            postblocks.insert(0, doffset, 0, cpblock.get());
                             biomes.insert(0, doffset, 0, cbiome.get());
                         };
                     }
@@ -268,6 +284,11 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public boolean isFailing() {
         return false;
+    }
+
+    @Override
+    public Engine getDefaultEngine() {
+        return defaultEngine;
     }
 
     @Override

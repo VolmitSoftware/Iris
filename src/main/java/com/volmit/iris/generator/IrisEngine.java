@@ -95,12 +95,14 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<BlockData> postblocks, Hunk<Biome> vbiomes) {
         try
         {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<Biome> biomes = vbiomes;
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
+            Hunk<BlockData> pblocks = postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
+            Hunk<BlockData> fringe = Hunk.fringe(blocks, pblocks);
 
             MultiBurst.burst.burst(
                     () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
@@ -114,10 +116,10 @@ public class IrisEngine extends BlockPopulator implements Engine
             MultiBurst.burst.burst(
                     () -> getFramework().getDepositModifier().modify(x, z, blocks),
                     () -> getFramework().getPostModifier().modify(x, z, blocks),
-                    () -> getFramework().getDecorantActuator().actuate(x, z, blocks)
+                    () ->  getFramework().getDecorantActuator().actuate(x, z, fringe)
             );
 
-            getFramework().getEngineParallax().insertParallax(x, z, blocks);
+            getFramework().getEngineParallax().insertParallax(x, z, fringe);
             getFramework().recycle();
             getMetrics().getTotal().put(p.getMilliseconds());
         }

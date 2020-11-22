@@ -30,6 +30,10 @@ public class IrisDimensionIndex
 	private boolean inverted = false;
 
 	@DontObfuscate
+	@Desc("Only one dimension layer should be set to primary. The primary dimension layer is where players spawn, and the biomes that the vanilla structure system uses to figure out what structures to place.")
+	private boolean primary = false;
+
+	@DontObfuscate
 	@Required
 	@RegistryListDimension
 	@MinNumber(1)

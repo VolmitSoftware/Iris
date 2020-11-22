@@ -7,8 +7,8 @@ import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.craftbukkit.v1_16_R2.util.CraftNamespacedKey;
 
-public class WorldChunkManagerIris16_2 extends WorldChunkManager {
-    public static final Codec<WorldChunkManagerIris16_2> e = RecordCodecBuilder.create((var0) -> {
+public class NMSWorldChunkManager16_2 extends WorldChunkManager {
+    public static final Codec<NMSWorldChunkManager16_2> e = RecordCodecBuilder.create((var0) -> {
         return var0.group(Codec.LONG.fieldOf("seed").stable().forGetter((var0x) -> {
             return var0x.h;
         }), Codec.BOOL.optionalFieldOf("legacy_biome_init_layer", false, Lifecycle.stable()).forGetter((var0x) -> {
@@ -17,7 +17,7 @@ public class WorldChunkManagerIris16_2 extends WorldChunkManager {
             return var0x.j;
         }), RegistryLookupCodec.a(IRegistry.ay).forGetter((var0x) -> {
             return var0x.k;
-        })).apply(var0, var0.stable((a,b,c,d) -> new WorldChunkManagerIris16_2(null, "", a, b, c, d)));
+        })).apply(var0, var0.stable((a,b,c,d) -> new NMSWorldChunkManager16_2(null, "", a, b, c, d)));
     });
     private final long h;
     private final boolean i;
@@ -25,7 +25,7 @@ public class WorldChunkManagerIris16_2 extends WorldChunkManager {
     private final EngineCompositeGenerator compound;
     private final IRegistry<BiomeBase> k;
 
-    public WorldChunkManagerIris16_2(EngineCompositeGenerator compound, String wn, long var0, boolean var2, boolean var3, IRegistry<BiomeBase> var4) {
+    public NMSWorldChunkManager16_2(EngineCompositeGenerator compound, String wn, long var0, boolean var2, boolean var3, IRegistry<BiomeBase> var4) {
         super(compound.getAllBiomes(wn).convert((v)->  v.getDerivative().getKey().getKey()).stream().map((var1) -> {
             return () -> {
                 return (BiomeBase)var4.d(ResourceKey.a(IRegistry.ay, new MinecraftKey(var1)));

@@ -320,7 +320,15 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public boolean shouldGenerateStructures() {
-        return false;
+        try
+        {
+            return getComposite().getDefaultEngine().getDimension().isVanillaStructures();
+        }
+
+        catch(Throwable e)
+        {
+            return false;
+        }
     }
 
     public static EngineCompositeGenerator newStudioWorld(String dimension) {

@@ -3,33 +3,30 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.volmit.iris.nms.v16_3;
+package com.volmit.iris.nms.v16_2;
 
 import com.mojang.serialization.Codec;
 import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.O;
-import com.volmit.iris.util.TerrainChunk;
-import com.volmit.iris.util.V;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
-import net.minecraft.server.v1_16_R3.*;
+import com.volmit.iris.util.*;
+import net.minecraft.server.v1_16_R2.BlockPosition;
+import net.minecraft.server.v1_16_R2.HeightMap;
+import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock;
-import org.bukkit.craftbukkit.v1_16_R3.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_16_R3.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_16_R2.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_16_R2.util.CraftMagicNumbers;
 import org.bukkit.material.MaterialData;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-public final class ChunkGeneratorAbstract_16_3_PAPER extends ChunkGenerator {
+public final class NMSChunkGenerator_16_2 extends ChunkGenerator {
     private static final IBlockData k;
     private final O<WorldServer> ws;
     protected final IBlockData f;
@@ -47,11 +44,11 @@ public final class ChunkGeneratorAbstract_16_3_PAPER extends ChunkGenerator {
         k = Blocks.AIR.getBlockData();
     }
 
-    public ChunkGeneratorAbstract_16_3_PAPER(O<WorldServer> ws, WorldCreator wc, WorldChunkManager worldchunkmanager, long i, Supplier<GeneratorSettingBase> supplier) {
+    public NMSChunkGenerator_16_2(O<WorldServer> ws, WorldCreator wc, WorldChunkManager worldchunkmanager, long i, Supplier<GeneratorSettingBase> supplier) {
         this(ws, wc, worldchunkmanager, worldchunkmanager, i, supplier);
     }
 
-    private ChunkGeneratorAbstract_16_3_PAPER(O<WorldServer> ws, WorldCreator wc, WorldChunkManager worldchunkmanager, WorldChunkManager worldchunkmanager1, long i, Supplier<GeneratorSettingBase> supplier) {
+    private NMSChunkGenerator_16_2(O<WorldServer> ws, WorldCreator wc, WorldChunkManager worldchunkmanager, WorldChunkManager worldchunkmanager1, long i, Supplier<GeneratorSettingBase> supplier) {
         super(worldchunkmanager, worldchunkmanager1, ((GeneratorSettingBase)supplier.get()).a(), i);
         this.wc = wc;
         this.ws = ws;
@@ -149,8 +146,8 @@ public final class ChunkGeneratorAbstract_16_3_PAPER extends ChunkGenerator {
     @Override
     public void buildNoise(GeneratorAccess generatoraccess, StructureManager structuremanager, IChunkAccess ichunkaccess)
     {
-        ObjectList<StructurePiece> objectlist = new ObjectArrayList<StructurePiece>(10);
-        ObjectList<WorldGenFeatureDefinedStructureJigsawJunction> objectlist1 = new ObjectArrayList<WorldGenFeatureDefinedStructureJigsawJunction>(32);
+        KList<StructurePiece> objectlist = new KList<StructurePiece>(10);
+        KList<WorldGenFeatureDefinedStructureJigsawJunction> objectlist1 = new KList<>(32);
         ChunkCoordIntPair chunkcoordintpair = ichunkaccess.getPos();
         int i = chunkcoordintpair.x;
         int j = chunkcoordintpair.z;

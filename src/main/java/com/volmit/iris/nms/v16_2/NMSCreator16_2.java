@@ -15,7 +15,6 @@ import net.minecraft.server.v1_16_R2.IRegistryCustom.Dimension;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 import org.bukkit.event.Event;
@@ -33,11 +32,6 @@ class NMSCreator16_2 implements INMSCreator
     @SuppressWarnings({"unchecked", "rawtypes", "resource"})
     public World createWorld(WorldCreator creator, boolean loadSpawn)
     {
-        if(!creator.environment().equals(Environment.NORMAL))
-        {
-            return creator.createWorld();
-        }
-
         EngineCompositeGenerator pro = (EngineCompositeGenerator) creator.generator();
         CraftServer server = ((CraftServer) Bukkit.getServer());
         Map<String, World> worlds = new V(server).get("worlds");
@@ -125,7 +119,7 @@ class NMSCreator16_2 implements INMSCreator
         long ll = creator.seed();
         dimensionmanager = (DimensionManager) getConsoleDimension(console).a().d(DimensionManager.OVERWORLD);
         O<WorldServer> ws = new O<WorldServer>();
-        chunkgenerator = new ChunkGeneratorAbstract_16_2_PAPER(ws, creator, (WorldChunkManager) new WorldChunkManagerIris16_2(((EngineCompositeGenerator)creator.generator()), creator.name(), ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));
+        chunkgenerator = new NMSChunkGenerator_16_2(ws, creator, (WorldChunkManager) new NMSWorldChunkManager16_2(((EngineCompositeGenerator)creator.generator()), creator.name(), ll, false, false, (IRegistry<BiomeBase>) getConsoleDimension(console).b(IRegistry.ay)), ll, () -> (GeneratorSettingBase) getConsoleDimension(console).b(IRegistry.ar).d(GeneratorSettingBase.c));
         final ResourceKey<net.minecraft.server.v1_16_R2.World> worldKey = (ResourceKey<net.minecraft.server.v1_16_R2.World>) ResourceKey.a(IRegistry.L, new MinecraftKey(name.toLowerCase(Locale.ENGLISH)));
         //@builder
         final WorldServer internal = new WorldServer((MinecraftServer) console,

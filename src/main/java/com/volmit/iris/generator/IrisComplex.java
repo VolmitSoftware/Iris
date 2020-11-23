@@ -147,7 +147,7 @@ public class IrisComplex implements DataProvider
 			IrisBiome b = baseBiomeStream.get(x, z);
 			return getHeight(b, x, z, engine.getWorld().getSeed());
 		}, Interpolated.DOUBLE).cache2D(cacheSize);
-		slopeStream = heightStream.slope(4).interpolate().bilinear(4, 4).cache2D(cacheSize);
+		slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
 		trueBiomeStream = heightStream
 				.convertAware2D((h, x, z) ->
 					fixBiomeType(h, baseBiomeStream.get(x, z),

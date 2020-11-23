@@ -69,12 +69,10 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void hotload()
     {
-        if(hotloadcd.flip())
+        if(isStudio())
         {
             Iris.proj.updateWorkspace();
             getData().dump();
-            initialized.lazySet(false);
-            hotloader.checkIgnore();
             J.s(() -> {
                 try
                 {
@@ -90,6 +88,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
                 }
             });
+            initialized.lazySet(false);
         }
     }
 
@@ -314,7 +313,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         compound.generate(x * 16, z * 16, blocks, post, biomes);
         generated++;
 
-        return () -> blocks.insertSoftly(0,0,0,post, (b) -> b == null || B.isAir(b));
+        return () -> blocks.insertSoftly(0,0,0,post, (b) -> b == null || B.isAirOrFluid(b));
     }
 
     @Override

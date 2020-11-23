@@ -23,8 +23,10 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
             return;
         }
 
-        BlockData bd;
+        BlockData bd, bdx;
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
+        bdx = data.get(x, height, z);
+        boolean underwater = height < getDimension().getFluidHeight();
 
         if(decorator != null)
         {
@@ -32,9 +34,12 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
             {
                 bd = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
 
-                if(!canGoOn(bd, data.get(x, height, z)))
+                if(!underwater)
                 {
-                    return;
+                    if(!canGoOn(bd, bdx))
+                    {
+                        return;
+                    }
                 }
 
                 if(bd instanceof Bisected)
@@ -50,6 +55,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
                     {
 
                     }
+                    bd = bd.clone();
                     ((Bisected)bd).setHalf(Bisected.Half.BOTTOM);
                 }
 
@@ -79,7 +85,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
                         return;
                     }
 
-                    if(i == 0 && !canGoOn(bd, data.get(x, height, z)))
+                    if(i == 0 && !underwater && !canGoOn(bd, bdx))
                     {
                         return;
                     }

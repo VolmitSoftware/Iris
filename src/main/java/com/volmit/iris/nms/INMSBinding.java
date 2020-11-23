@@ -9,6 +9,7 @@ public interface INMSBinding
 	public INMSCreator getCreator();
 
 	public Object getBiomeBase(World world, Biome biome);
+	public Object getBiomeBase(Object registry, Biome biome);
 
 	default World createWorld(WorldCreator creator)
 	{

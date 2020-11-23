@@ -15,6 +15,11 @@ public interface EngineDecorator extends EngineComponent {
 
     default boolean canGoOn(BlockData decorant, BlockData atop)
     {
+        if(atop == null || B.isAir(atop))
+        {
+            return false;
+        }
+
         return B.canPlaceOnto(decorant.getMaterial(), atop.getMaterial());
     }
 }

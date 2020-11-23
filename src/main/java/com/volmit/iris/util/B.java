@@ -318,6 +318,11 @@ public class B
 		return u;
 	}
 
+	public static boolean isFoliage(Material d)
+	{
+		return isFoliage(d.createBlockData());
+	}
+
 	public static boolean isFoliage(BlockData d)
 	{
 		Boolean f = foliageCache.get(d.getMaterial());
@@ -370,9 +375,9 @@ public class B
 	{
 		String key = mat.name() + "" + onto.name();
 
-		if(isFoliage(B.get(mat.name())))
+		if(isFoliage(mat))
 		{
-			if(!isFoliagePlantable(B.get(onto.name())))
+			if(!isFoliagePlantable(onto))
 			{
 				return false;
 			}
@@ -501,6 +506,14 @@ public class B
 				|| d.getMaterial().equals(Material.DIRT)
 				|| d.getMaterial().equals(Material.COARSE_DIRT)
 				|| d.getMaterial().equals(Material.PODZOL);
+	}
+
+	public static boolean isFoliagePlantable(Material d)
+	{
+		return d.equals(Material.GRASS_BLOCK)
+				|| d.equals(Material.DIRT)
+				|| d.equals(Material.COARSE_DIRT)
+				|| d.equals(Material.PODZOL);
 	}
 
 	public static boolean isFluid(BlockData d)

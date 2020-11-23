@@ -20,4 +20,9 @@ public class NMSBinding1X implements INMSBinding
 	{
 		return null;
 	}
+
+	@Override
+	public Object getBiomeBase(Object registry, Biome biome) {
+		return null;
+	}
 }

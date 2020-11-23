@@ -23,11 +23,49 @@ public class ReactiveFolder
 
     public void check()
     {
+        boolean modified = false;
+
         if(fw.checkModified())
         {
-            fw.checkModified();
-            hotload.accept(fw.getCreated(), fw.getChanged(), fw.getDeleted());
-            fw.checkModified();
+            for(File i : fw.getCreated())
+            {
+                if(i.getName().endsWith(".iob") || i.getName().endsWith(".json"))
+                {
+                    modified = true;
+                    break;
+                }
+            }
+
+            if(!modified)
+            {
+                for(File i : fw.getChanged())
+                {
+                    if(i.getName().endsWith(".iob") || i.getName().endsWith(".json"))
+                    {
+                        modified = true;
+                        break;
+                    }
+                }
+            }
+
+            if(!modified)
+            {
+                for(File i : fw.getDeleted())
+                {
+                    if(i.getName().endsWith(".iob") || i.getName().endsWith(".json"))
+                    {
+                        modified = true;
+                        break;
+                    }
+                }
+            }
         }
+
+        if(modified)
+        {
+            hotload.accept(fw.getCreated(), fw.getChanged(), fw.getDeleted());
+        }
+
+        fw.checkModified();
     }
 }

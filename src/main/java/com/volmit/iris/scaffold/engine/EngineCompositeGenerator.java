@@ -52,7 +52,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         this.production = production;
         this.dimensionHint = hint;
         initialized = new AtomicBoolean(false);
-        art = J.ar(this::tick, 20);
+        art = J.ar(this::tick, 100);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
@@ -106,7 +106,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         try
         {
-            hotloader.check();
+            J.a(() -> hotloader.check());
             getComposite().clean();
         }
 

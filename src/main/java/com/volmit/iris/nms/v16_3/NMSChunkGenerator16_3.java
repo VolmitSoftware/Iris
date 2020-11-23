@@ -215,13 +215,13 @@ public final class NMSChunkGenerator16_3 extends ChunkGenerator {
             @Override
             public void setBiome(int x, int y, int z, Biome bio)
             {
-                protochunk.getBiomeIndex().setBiome(x, y, z, CraftBlock.biomeToBiomeBase(ws.get().r().b(IRegistry.ay), bio));
+                protochunk.getBiomeIndex().setBiome(x, y, z, (BiomeBase) INMS.get().getBiomeBase(ws.get().r().b(IRegistry.ay), bio));
             }
 
             @Override
             public void setBiome(int x, int z, Biome bio)
             {
-                protochunk.getBiomeIndex().setBiome(x, 0, z, CraftBlock.biomeToBiomeBase(ws.get().r().b(IRegistry.ay), bio));
+                protochunk.getBiomeIndex().setBiome(x, 0, z, (BiomeBase) INMS.get().getBiomeBase(ws.get().r().b(IRegistry.ay), bio));
             }
 
             @Override

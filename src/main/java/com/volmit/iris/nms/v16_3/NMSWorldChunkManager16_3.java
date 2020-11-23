@@ -3,9 +3,10 @@ package com.volmit.iris.nms.v16_3;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import net.minecraft.server.v1_16_R3.*;
-import org.bukkit.craftbukkit.v1_16_R3.util.CraftNamespacedKey;
+import org.bukkit.block.Biome;
 
 public class NMSWorldChunkManager16_3 extends WorldChunkManager {
     public static final Codec<NMSWorldChunkManager16_3> e = RecordCodecBuilder.create((var0) -> {
@@ -45,12 +46,12 @@ public class NMSWorldChunkManager16_3 extends WorldChunkManager {
     public BiomeBase getBiome(int var0, int var1, int var2) {
         try
         {
-            return k.get(CraftNamespacedKey.toMinecraft(compound.getComposite().getDefaultEngine().getSurfaceBiome(var0, var2).getVanillaDerivative().getKey()));
+            return (BiomeBase) INMS.get().getBiomeBase(k, compound.getComposite().getDefaultEngine().getSurfaceBiome(var0, var2).getVanillaDerivative());
         }
 
         catch(Throwable e)
         {
-            return k.get(Biomes.THE_VOID.a());
+            return (BiomeBase) INMS.get().getBiomeBase(k, Biome.THE_VOID);
         }
     }
 }

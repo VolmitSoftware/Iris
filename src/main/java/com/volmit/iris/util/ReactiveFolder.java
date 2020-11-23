@@ -16,11 +16,18 @@ public class ReactiveFolder
         fw.checkModified();
     }
 
+    public void checkIgnore()
+    {
+        fw = new FolderWatcher(folder);
+    }
+
     public void check()
     {
         if(fw.checkModified())
         {
+            fw.checkModified();
             hotload.accept(fw.getCreated(), fw.getChanged(), fw.getDeleted());
+            fw.checkModified();
         }
     }
 }

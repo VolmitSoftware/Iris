@@ -397,7 +397,6 @@ public class IrisBiome extends IrisRegistrant implements IRare
 			CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
 			double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
-
 			IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
 
 			if(!sc.isDefault())

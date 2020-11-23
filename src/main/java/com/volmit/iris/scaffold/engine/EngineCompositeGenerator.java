@@ -14,6 +14,7 @@ import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.material.MaterialData;
@@ -34,6 +35,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private long mst = 0;
     private int generated = 0;
     private int lgenerated = 0;
+    private ChronoLatch hotloadcd;
     @Getter
     private double generatedPerSecond = 0;
     private int art;
@@ -45,6 +47,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public EngineCompositeGenerator(String hint, boolean production) {
         super();
+        hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
         this.dimensionHint = hint;
@@ -66,8 +69,28 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void hotload()
     {
-        getData().dump();
-        initialized.lazySet(false);
+        if(hotloadcd.flip())
+        {
+            Iris.proj.updateWorkspace();
+            getData().dump();
+            initialized.lazySet(false);
+            hotloader.checkIgnore();
+            J.s(() -> {
+                try
+                {
+                    for(Player i : getTarget().getWorld().getPlayers())
+                    {
+                        new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
+                        i.playSound(i.getLocation(), Sound.ITEM_BOTTLE_FILL, 1f, 1.25f);
+                    }
+                }
+
+                catch(Throwable e)
+                {
+
+                }
+            });
+        }
     }
 
     public void tick()

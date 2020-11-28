@@ -58,11 +58,12 @@ public class IrisProject
 			try
 			{
 				File f = d.getLoader().getDataFolder();
-
+				boolean foundWork = false;
 				for(File i : f.listFiles())
 				{
 					if(i.getName().endsWith(".code-workspace"))
 					{
+						foundWork = true;
 						sender.sendMessage("Updating Workspace...");
 						J.a(() ->
 						{
@@ -77,6 +78,25 @@ public class IrisProject
 
 						break;
 					}
+				}
+
+				if(!foundWork)
+				{
+					File ff = new File(d.getLoader().getDataFolder(), d.getLoadKey() + ".code-workspace");
+					Iris.warn("Project missing code-workspace: " + ff.getAbsolutePath() + " Re-creating code workspace.");
+
+					try
+					{
+						IO.writeAll(ff, createCodeWorkspaceConfig());
+					}
+
+					catch(IOException e1)
+					{
+						e1.printStackTrace();
+					}
+					sender.sendMessage("Updating Workspace...");
+					updateWorkspace();
+					sender.sendMessage("Workspace Updated");
 				}
 			}
 

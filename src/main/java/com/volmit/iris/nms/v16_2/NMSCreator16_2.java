@@ -221,7 +221,7 @@ class NMSCreator16_2 implements INMSCreator
 
                     catch(Throwable e)
                     {
-                        e.printStackTrace();
+
                     }
                 }
 
@@ -234,7 +234,7 @@ class NMSCreator16_2 implements INMSCreator
 
                     catch(Throwable e)
                     {
-                        e.printStackTrace();
+
                     }
                 }
             }

@@ -1,17 +1,13 @@
 package com.volmit.iris.generator.noise;
 
-import java.util.List;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
-import com.volmit.iris.scaffold.stream.sources.CNGStream;
 import com.volmit.iris.scaffold.stream.arithmetic.FittedStream;
-import com.volmit.iris.util.IRare;
-import com.volmit.iris.util.IrisInterpolation;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.NoiseInjector;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.scaffold.stream.sources.CNGStream;
+import com.volmit.iris.util.*;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CNG
@@ -161,12 +157,6 @@ public class CNG
 
 		children.add(c);
 		return this;
-	}
-
-	@Deprecated
-	public RNG nextRNG()
-	{
-		return getRNG().nextRNG();
 	}
 
 	public RNG getRNG()

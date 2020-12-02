@@ -92,16 +92,16 @@ public class IrisComplex implements DataProvider
 		rngStream = ProceduralStream.of((x, z) -> new RNG(((x.longValue()) << 32) | (z.longValue() & 0xffffffffL))
 				.nextParallelRNG(engine.getWorld().getSeed()), Interpolated.RNG);
 		chunkRngStream = rngStream.blockToChunkCoords();
-		rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextRNG(), data).stream()
+		rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
 			.select(engine.getDimension().getRockPalette().getBlockData(data));
-		fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextRNG(), data).stream()
+		fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
 			.select(engine.getDimension().getFluidPalette().getBlockData(data));
-		regionStream = engine.getDimension().getRegionStyle().create(rng.nextRNG()).stream()
+		regionStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883)).stream()
 			.zoom(engine.getDimension().getRegionZoom())
 			.selectRarity(engine.getDimension().getRegions())
 			.convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
 		caveBiomeStream = regionStream.convert((r)
-			-> engine.getDimension().getCaveBiomeStyle().create(rng.nextRNG()).stream()
+			-> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(1221)).stream()
 				.zoom(r.getCaveBiomeZoom())
 				.selectRarity(r.getCaveBiomes())
 				.onNull("")
@@ -116,7 +116,7 @@ public class IrisComplex implements DataProvider
 				})
 			).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
 		landBiomeStream = regionStream.convert((r)
-			-> engine.getDimension().getLandBiomeStyle().create(rng.nextRNG()).stream()
+			-> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(234234234)).stream()
 				.zoom(r.getLandBiomeZoom())
 				.selectRarity(r.getLandBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s)
@@ -124,7 +124,7 @@ public class IrisComplex implements DataProvider
 			).convertAware2D(ProceduralStream::get)
 				.cache2D(cacheSize);
 		seaBiomeStream = regionStream.convert((r)
-			-> engine.getDimension().getSeaBiomeStyle().create(rng.nextRNG()).stream()
+			-> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(11232323)).stream()
 				.zoom(r.getSeaBiomeZoom())
 				.selectRarity(r.getSeaBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s)
@@ -132,13 +132,13 @@ public class IrisComplex implements DataProvider
 			).convertAware2D(ProceduralStream::get)
 				.cache2D(cacheSize);
 		shoreBiomeStream = regionStream.convert((r)
-			-> engine.getDimension().getShoreBiomeStyle().create(rng.nextRNG()).stream()
+			-> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(7787845)).stream()
 				.zoom(r.getShoreBiomeZoom())
 				.selectRarity(r.getShoreBiomes())
 				.convertCached((s) -> data.getBiomeLoader().load(s)
 						.setInferredType(InferredType.SHORE))
 			).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
-		bridgeStream = engine.getDimension().getContinentalStyle().create(rng.nextRNG()).bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+		bridgeStream = engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565)).bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
 			.convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
 		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))

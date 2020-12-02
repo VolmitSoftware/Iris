@@ -44,11 +44,6 @@ public class RNG extends Random
 		return new RNG(sx + signature);
 	}
 
-	public RNG nextRNG()
-	{
-		return new RNG(nextLong());
-	}
-
 	public String s(int length)
 	{
 		StringBuilder sb = new StringBuilder();

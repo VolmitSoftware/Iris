@@ -1,6 +1,7 @@
 package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
@@ -156,8 +157,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (hint == null) {
-            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming overworld!");
-            hint = "overworld";
+            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming " + IrisSettings.get().getDefaultWorldType() + "!");
+            hint = IrisSettings.get().getDefaultWorldType();
         }
 
         dim = IrisDataManager.loadAnyDimension(hint);
@@ -231,8 +232,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (hint == null) {
-            Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming overworld!");
-            hint = "overworld";
+            Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming " + IrisSettings.get().getDefaultWorldType() + "!");
+            hint = IrisSettings.get().getDefaultWorldType();
         }
 
         dim = IrisDataManager.loadAnyDimension(hint);

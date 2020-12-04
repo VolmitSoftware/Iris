@@ -10,6 +10,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.engine.IrisAccessProvider;
 import com.volmit.iris.util.*;
 import net.minecraft.server.v1_16_R3.BlockPosition;
 import net.minecraft.server.v1_16_R3.HeightMap;
@@ -26,7 +28,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-public final class NMSChunkGenerator16_3 extends ChunkGenerator {
+public final class NMSChunkGenerator16_3 extends ChunkGenerator implements IrisAccessProvider {
     private static final IBlockData k;
     private final O<WorldServer> ws;
     protected final IBlockData f;
@@ -594,5 +596,10 @@ public final class NMSChunkGenerator16_3 extends ChunkGenerator {
             }
             ++i1;
         }
+    }
+
+    @Override
+    public IrisAccess getAccess() {
+        return gen;
     }
 }

@@ -23,9 +23,16 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
 
     public World getWorld();
 
+    public int getCurrentlyGeneratingEngines();
+
     public void printMetrics(CommandSender sender);
 
     public int getSize();
+
+    public default int getHeight()
+    {
+        return 256;
+    }
 
     public Engine getEngine(int index);
 

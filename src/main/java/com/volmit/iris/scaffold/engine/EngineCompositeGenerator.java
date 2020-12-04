@@ -10,6 +10,7 @@ import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.*;
+import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -36,6 +37,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private long mst = 0;
     private int generated = 0;
     private int lgenerated = 0;
+    private final KMap<Long, PregeneratedData> chunkCache;
     private ChronoLatch hotloadcd;
     @Getter
     private double generatedPerSecond = 0;
@@ -48,6 +50,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public EngineCompositeGenerator(String hint, boolean production) {
         super();
+        chunkCache = new KMap<>();
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
@@ -305,16 +308,70 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return tc.getRaw();
     }
 
+    public Chunk generatePaper(World world, int x, int z)
+    {
+        precache(world, x, z);
+        Chunk c = PaperLib.getChunkAtAsync(world, x, z, true).join();
+        chunkCache.remove(Cache.key(x, z));
+        return c;
+    }
+
+    public void precache(World world, int x, int z)
+    {
+        synchronized (this)
+        {
+            initialize(world);
+        }
+
+        synchronized (chunkCache)
+        {
+            if(chunkCache.containsKey(Cache.key(x, z)))
+            {
+                return;
+            }
+        }
+
+        PregeneratedData data = new PregeneratedData(getComposite().getHeight()-1);
+        compound.generate(x * 16, z * 16, data.getBlocks(), data.getPost(), data.getBiomes());
+        synchronized (chunkCache)
+        {
+            chunkCache.put(Cache.key(x, z), data);
+        }
+    }
+
+    @Override
+    public int getPrecacheSize() {
+        return chunkCache.size();
+    }
+
+    public int getCachedChunks()
+    {
+        return chunkCache.size();
+    }
+
     public Runnable generateChunkRawData(World world, int x, int z, TerrainChunk tc)
     {
         initialize(world);
+
+        synchronized (chunkCache)
+        {
+            long g = Cache.key(x, z);
+            if(chunkCache.containsKey(g))
+            {
+                generated++;
+                return chunkCache.remove(g).inject(tc);
+            }
+        }
+
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
-        Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
+        AtomicBoolean postMod = new AtomicBoolean(false);
+        Hunk<BlockData> trk = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
+        Hunk<BlockData> post = trk.trackWrite(postMod);
         compound.generate(x * 16, z * 16, blocks, post, biomes);
         generated++;
 
-        return () -> blocks.insertSoftly(0,0,0,post, (b) -> b == null || B.isAirOrFluid(b));
+        return postMod.get() ? () -> blocks.insertSoftly(0,0,0, post, (b) -> b == null || B.isAirOrFluid(b)) : () -> {};
     }
 
     @Override
@@ -454,12 +511,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void regenerate(int x, int z) {
-        if (true)
-        {
-            return;
-        }
-
-        Chunk chunk = getComposite().getWorld().getChunkAt(x, z);
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
             @Override
             public void setRaw(ChunkData data) {
@@ -557,6 +608,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         Iris.edit.flushNow();
 
         for (BlockPopulator i : populators) {
+            Chunk chunk = getComposite().getWorld().getChunkAt(x, z);
             i.populate(compound.getWorld(), new RNG(Cache.key(x, z)), chunk);
         }
     }

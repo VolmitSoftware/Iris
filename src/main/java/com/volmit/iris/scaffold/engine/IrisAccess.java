@@ -4,7 +4,9 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -388,4 +390,10 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     }
 
     public void clearRegeneratedLists(int x, int z);
+
+    void precache(World world, int x, int z);
+
+    int getPrecacheSize();
+
+    Chunk generatePaper(World world, int cx, int cz);
 }

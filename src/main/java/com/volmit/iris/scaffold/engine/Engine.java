@@ -26,6 +26,8 @@ import java.util.Arrays;
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     public void close();
 
+    public int getCurrentlyGenerating();
+
     public boolean isClosed();
 
     public EngineWorldManager getWorldManager();
@@ -145,8 +147,11 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
         if(B.isUpdatable(data))
         {
-            getParallax().updateBlock(x,y,z);
-            getParallax().getMetaRW(x>>4, z>>4).setUpdates(true);
+            synchronized (getParallax())
+            {
+                getParallax().updateBlock(x,y,z);
+                getParallax().getMetaRW(x>>4, z>>4).setUpdates(true);
+            }
         }
     }
 

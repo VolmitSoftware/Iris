@@ -1,13 +1,11 @@
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.generator.IrisComplex;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.M;
-import com.volmit.iris.scaffold.parallel.MultiBurst;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.scaffold.data.DataProvider;
 
 public interface EngineFramework extends DataProvider
 {
@@ -25,10 +23,12 @@ public interface EngineFramework extends DataProvider
     {
         if(M.r(0.1))
         {
-            MultiBurst.burst.lazy(() -> {
+            synchronized (getEngine().getParallax())
+            {
                 getEngine().getParallax().cleanup();
-                getData().getObjectLoader().clean();
-            });
+            }
+
+            getData().getObjectLoader().clean();
         }
     }
 

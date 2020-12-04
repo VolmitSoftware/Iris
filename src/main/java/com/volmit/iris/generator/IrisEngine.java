@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
+import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -17,6 +18,7 @@ import org.bukkit.generator.BlockPopulator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 public class IrisEngine extends BlockPopulator implements Engine
 {
@@ -48,15 +50,20 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Setter
     @Getter
     private volatile int minHeight;
+    private int permits;
     private boolean failing;
+    private ChronoLatch cl = new ChronoLatch(10000);
     private boolean closed;
     private int cacheId;
+    private Semaphore s;
     private int art;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index)
     {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
+        permits = 1000;
+        this.s = new Semaphore(permits);
         this.target = target;
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
@@ -80,6 +87,11 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
+    public int getCurrentlyGenerating() {
+        return permits - s.availablePermits();
+    }
+
+    @Override
     public boolean isClosed() {
         return closed;
     }
@@ -98,31 +110,38 @@ public class IrisEngine extends BlockPopulator implements Engine
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<BlockData> postblocks, Hunk<Biome> vbiomes) {
         try
         {
+            s.acquire(1);
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<Biome> biomes = vbiomes;
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> pblocks = postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> fringe = Hunk.fringe(blocks, pblocks);
-
-            MultiBurst.burst.burst(
-                    () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
-                    () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
-                    () -> getFramework().getTerrainActuator().actuate(x, z, blocks)
-            );
-            MultiBurst.burst.burst(
-                    () -> getFramework().getCaveModifier().modify(x, z, blocks),
-                    () -> getFramework().getRavineModifier().modify(x, z, blocks)
-            );
-            MultiBurst.burst.burst(
-                    () -> getFramework().getDepositModifier().modify(x, z, blocks),
-                    () -> getFramework().getPostModifier().modify(x, z, blocks),
-                    () ->  getFramework().getDecorantActuator().actuate(x, z, fringe)
-            );
-
+            getFramework().getEngineParallax().generateParallaxArea(x, z);
+            getFramework().getBiomeActuator().actuate(x, z, biomes);
+            getFramework().getTerrainActuator().actuate(x, z, blocks);
+            getFramework().getCaveModifier().modify(x, z, blocks);
+            getFramework().getRavineModifier().modify(x, z, blocks);
+            getFramework().getDepositModifier().modify(x, z, blocks);
+            getFramework().getPostModifier().modify(x, z, blocks);
+            getFramework().getDecorantActuator().actuate(x, z, fringe);
             getFramework().getEngineParallax().insertParallax(x, z, fringe);
-            getFramework().recycle();
             getMetrics().getTotal().put(p.getMilliseconds());
+            s.release(1);
+
+            if(cl.flip())
+            {
+                MultiBurst.burst.lazy(() -> {
+                    try {
+                        s.acquire(permits);
+                        getFramework().recycle();
+                        s.release(permits);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
         }
+
         catch(Throwable e)
         {
             fail("Failed to generate " + x + ", " + z, e);

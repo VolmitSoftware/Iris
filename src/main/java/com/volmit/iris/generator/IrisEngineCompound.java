@@ -261,6 +261,17 @@ public class IrisEngineCompound implements EngineCompound {
     }
 
     @Override
+    public int getCurrentlyGeneratingEngines() {
+        int v = 0;
+        for(Engine i : engines)
+        {
+            v+= i.getCurrentlyGenerating();
+        }
+
+        return v;
+    }
+
+    @Override
     public int getSize() {
         return engines.length;
     }

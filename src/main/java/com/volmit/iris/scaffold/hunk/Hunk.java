@@ -15,6 +15,7 @@ import org.bukkit.generator.ChunkGenerator.ChunkData;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -80,6 +81,11 @@ public interface Hunk<T>
 	default Hunk<T> synchronize()
 	{
 		return new SynchronizedHunkView<>(this);
+	}
+
+	default Hunk<T> trackWrite(AtomicBoolean b)
+	{
+		return new WriteTrackHunk<T>(this, b);
 	}
 
 	public static <T> Hunk<T> newArrayHunk(int w, int h, int d)
@@ -1129,7 +1135,7 @@ public interface Hunk<T>
 	 */
 	default T getClosest(int x, int y, int z)
 	{
-		return getRaw(x >= getWidth() ? getWidth() - 1 : x, y >= getHeight() ? getHeight() - 1 : y, z >= getDepth() ? getDepth() - 1 : z);
+		return getRaw(x >= getWidth() ? getWidth() - 1 : x < 0 ? 0 : x, y >= getHeight() ? getHeight() - 1 : y < 0 ? 0 : y, z >= getDepth() ? getDepth() - 1 : z < 0 ? 0 : z);
 	}
 
 	default void fill(T t)

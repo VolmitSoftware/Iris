@@ -49,6 +49,9 @@ public class IrisSettings
 	public boolean ignoreWorldEdit = false;
 
 	@DontObfuscate
+	public boolean useGleamPregenerator = false;
+
+	@DontObfuscate
 	public boolean disableNMS = false;
 
 	@DontObfuscate

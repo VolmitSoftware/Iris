@@ -3,6 +3,9 @@ package com.volmit.iris.util;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.gui.PregenGui;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -34,6 +37,7 @@ public class PregenJob implements Listener
 	private ChronoLatch clx;
 	private ChronoLatch clf;
 	private MortarSender sender;
+	private MultiBurst burst;
 	private int mcaWidth;
 	private int mcaX;
 	private int mcaZ;
@@ -42,25 +46,30 @@ public class PregenJob implements Listener
 	private Runnable onDone;
 	private Spiraler spiraler;
 	private Spiraler chunkSpiraler;
+	private Spiraler preSpiraler;
 	private boolean first;
 	private static Consumer2<ChunkPosition, Color> consumer;
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = 32;
+	private int cubeSize = IrisSettings.get().isUseGleamPregenerator() ? 32 : 32;
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
 	private boolean paused = false;
 	private long pausedAt = 0;
 	private double pms = 0;
+	private boolean gleaming = false;
 	int xc = 0;
+	private IrisAccess access = null;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
+		gleaming = IrisSettings.get().isUseGleamPregenerator();
 		g.set(0);
+		burst = new MultiBurst(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		instance = this;
-		working = new Semaphore(tc());
+		working = new Semaphore(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		this.s = PrecisionStopwatch.start();
 		Iris.instance.registerListener(this);
 		this.world = world;
@@ -84,6 +93,11 @@ public class PregenJob implements Listener
 		{
 			chunkX = (mcaX * cubeSize) + x;
 			chunkZ = (mcaZ * cubeSize) + z;
+		});
+
+		preSpiraler = new Spiraler(cubeSize, cubeSize, (x, z) ->
+		{
+
 		});
 
 		spiraler = new Spiraler(mcaWidth, mcaWidth, (x, z) ->
@@ -113,6 +127,17 @@ public class PregenJob implements Listener
 	public int tc()
 	{
 		return IrisSettings.get().maxAsyncChunkPregenThreads;
+	}
+
+	private IrisAccess access() {
+		if(access != null)
+		{
+			return access;
+		}
+
+		access = IrisWorlds.access(world);
+
+		return access;
 	}
 
 	public static void stop()
@@ -183,10 +208,7 @@ public class PregenJob implements Listener
 
 		if(PaperLib.isPaper())
 		{
-			for(int i = 0; i < 16; i++)
-			{
-				tickPaper(skip);
-			}
+			tickPaper(skip);
 		}
 
 		else
@@ -225,12 +247,12 @@ public class PregenJob implements Listener
 
 	public void tickPaper(boolean skip)
 	{
-		if(working.getQueueLength() >= tc() / 2)
+		if(working.getQueueLength() >= tc())
 		{
 			return;
 		}
 
-		for(int i = 0; i < 128; i++)
+		for(int i = 0; i < 64; i++)
 		{
 			tick(skip);
 		}
@@ -326,7 +348,7 @@ public class PregenJob implements Listener
 
 				if(isChunkWithin(chunkX, chunkZ) && consumer != null)
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLUE.darker().darker());
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.BLACK.brighter());
 				}
 			}
 			chunkSpiraler.retarget(cubeSize, cubeSize);
@@ -361,48 +383,78 @@ public class PregenJob implements Listener
 		{
 			if(PaperLib.isPaper())
 			{
-				if(consumer != null)
-				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.magenta.darker().darker().darker());
-				}
 				int cx = chunkX;
 				int cz = chunkZ;
-				J.a(() ->
+
+				if(gleaming)
 				{
-					try
+					if(consumer != null)
 					{
-						working.acquire();
+						consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.cyan.darker().darker().darker());
+					}
 
-						if(consumer != null)
-						{
-							consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
-						}
-
-						PaperLib.getChunkAtAsyncUrgently(world, cx, cz, true).thenAccept(chunk ->
-						{
+					J.a(() -> {
+						try {
+							working.acquire();
+							if(consumer != null)
+							{
+								consumer.accept(new ChunkPosition(cx, cz), Color.cyan);
+							}
+							Chunk chunk = access().generatePaper(world, cx, cz);
 							working.release();
 							genned++;
 							nogen = M.ms();
 
 							if(consumer != null)
 							{
-								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.blue);
+								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.yellow);
 							}
-						});
-					}
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					});
+				}
 
-					catch(InterruptedException e)
+				else
+				{if(consumer != null)
+				{
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.magenta.darker().darker().darker());
+				}
+					J.a(() ->
 					{
-						e.printStackTrace();
-					}
-				});
+						try
+						{
+							working.acquire();
+
+							if(consumer != null)
+							{
+								consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
+							}
+
+							Chunk chunk =  PaperLib.getChunkAtAsync(world, cx, cz, true).join();
+							working.release();
+							genned++;
+							nogen = M.ms();
+
+							if(consumer != null)
+							{
+								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.green);
+							}
+						}
+
+						catch(InterruptedException e)
+						{
+							e.printStackTrace();
+						}
+					});
+				}
 			}
 
 			else
 			{
 				if(consumer != null)
 				{
-					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.blue.darker().darker());
+					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.black.brighter());
 				}
 
 				world.loadChunk(chunkX, chunkZ);
@@ -533,8 +585,27 @@ public class PregenJob implements Listener
 	{
 		long eta = (long) ((total - genned) * 1000D / cps);
 
-		return new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0), "Generated: " + Form.f(genned) + " Chunks", "Remaining: " + Form.f(total - genned) + " Chunks", "Elapsed:   " + Form.duration((long) (paused ? pms : s.getMilliseconds()), 2), "Estimate:  " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))), "ChunksMS:  " + Form.duration(1000D / cps, 2), "Chunks/s:  " + Form.f(cps, 1),
-		};
+		KList<String> vv = new KList<String>( new String[] {"Progress:  " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0),
+				  "Generated:   " + Form.f(genned) + " Chunks",
+				  "Remaining:   " + Form.f(total - genned) + " Chunks",
+				  "Elapsed:     " + Form.duration((long) (paused ? pms : s.getMilliseconds()), 2),
+				  "Estimate:    " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))),
+				  "ChunksMS:    " + Form.duration(1000D / cps, 2),
+				  "Chunks/zs:    " + Form.f(cps, 1),
+		});
+
+		try
+		{
+			vv.add("Parallelism: " + access().getCompound().getCurrentlyGeneratingEngines());
+			vv.add("Precache   : " + access().getPrecacheSize());
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return vv.toArray(new String[vv.size()]);
 	}
 
 	public static void pauseResume()

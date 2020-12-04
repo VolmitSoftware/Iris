@@ -40,20 +40,28 @@ public class AtomicAverage {
 	 */
 	public void put(double i) {
 
-		dirty = true;
-		
-		if(brandNew)
+		try
 		{
-			DoubleArrayUtils.fill(values, i);
-			lastSum = size() * i;
-			brandNew = false;
-			return;
+			dirty = true;
+
+			if(brandNew)
+			{
+				DoubleArrayUtils.fill(values, i);
+				lastSum = size() * i;
+				brandNew = false;
+				return;
+			}
+
+			double current = values.get(cursor);
+			lastSum = (lastSum - current) + i;
+			values.set(cursor, i);
+			cursor = cursor + 1 < size() ? cursor + 1 : 0;
 		}
-		
-		double current = values.get(cursor);
-		lastSum = (lastSum - current) + i;
-		values.set(cursor, i);
-		cursor = cursor + 1 < size() ? cursor + 1 : 0;
+
+		catch(Throwable e)
+		{
+
+		}
 	}
 
 	/**

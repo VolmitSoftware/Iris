@@ -2,6 +2,7 @@ package com.volmit.iris.scaffold;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.scaffold.engine.IrisAccessProvider;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.MortarSender;
 import org.bukkit.Bukkit;
@@ -24,7 +25,7 @@ public class IrisWorlds
 			return true;
 		}
 
-		return world.getGenerator() instanceof IrisAccess;
+		return world.getGenerator() instanceof IrisAccess || world.getGenerator() instanceof IrisAccessProvider;
 	}
 
 	public static IrisAccess access(World world)
@@ -36,7 +37,7 @@ public class IrisWorlds
 				return provisioned.get(world.getUID().toString());
 			}
 
-			return ((IrisAccess) world.getGenerator());
+			return world.getGenerator() instanceof IrisAccessProvider ? (((IrisAccessProvider)world.getGenerator()).getAccess()) : ((IrisAccess) world.getGenerator());
 		}
 
 		return null;

@@ -29,9 +29,9 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int i, zf, depth, realX, realZ, hf, he, b;
+        int i, zf, depth, realX, realZ, hf, he, b, fdepth;
         IrisBiome biome;
-        KList<BlockData> blocks;
+        KList<BlockData> blocks, fblocks;
 
         for(int xf = 0; xf < h.getWidth(); xf++)
         {
@@ -44,6 +44,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                 hf = (int) Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
                 biome = getComplex().getTrueBiomeStream().get(realX, realZ);
                 blocks = null;
+                fblocks = null;
 
                 if(hf < b)
                 {
@@ -69,6 +70,19 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
 
                     if(i > he  && i <= hf)
                     {
+                        fdepth = hf - i;
+
+                        if(fblocks == null)
+                        {
+                            fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
+                        }
+
+                        if(fblocks.hasIndex(fdepth))
+                        {
+                            h.set(xf, i, zf, fblocks.get(fdepth));
+                            continue;
+                        }
+
                         h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
                         continue;
                     }

@@ -1,13 +1,13 @@
 package com.volmit.iris.generator.modifier;
 
-import com.volmit.iris.object.*;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.scaffold.engine.Engine;
+import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
+import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
-import com.volmit.iris.scaffold.engine.Engine;
-import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
-import com.volmit.iris.scaffold.hunk.Hunk;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
@@ -205,22 +205,25 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
         if(b instanceof Waterlogged)
         {
-            Waterlogged ww = (Waterlogged) b;
+            Waterlogged ww = (Waterlogged) b.clone();
             boolean w = false;
-            if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData))
-            {
-                w = true;
-            }
 
-            else if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
-            {
-                w = true;
+            if (h <= getDimension().getFluidHeight()+1) {
+                if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData))
+                {
+                    w = true;
+                }
+
+                else if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData)))
+                {
+                    w = true;
+                }
             }
 
             if(w != ww.isWaterlogged())
             {
                 ww.setWaterlogged(w);
-                setPostBlock(x, h, z, b, currentPostX, currentPostZ, currentData);
+                setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
             }
         }
 

@@ -4,15 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.DependsOn;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.util.*;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -127,7 +119,11 @@ public class IrisDecorator
 
 	public CNG getVarianceGenerator(RNG rng, IrisDataManager data)
 	{
-		return varianceGenerator.aquire(() -> variance.create(rng.nextParallelRNG((int) (getBlockData(data).size()))).scale(1D / varianceZoom));
+		return varianceGenerator.aquire(() ->
+				variance.create(
+						rng.nextParallelRNG((int) (getBlockData(data).size())))
+
+						.scale(1D / varianceZoom));
 	}
 
 	public KList<IrisBlockData> add(String b)
@@ -168,15 +164,21 @@ public class IrisDecorator
 			return null;
 		}
 
-		double xx = x / getZoom();
-		double zz = z / getZoom();
+		double xx = x;
+		double zz = z;
+
+		if(!getVarianceGenerator(rng, data).isStatic())
+		{
+			xx = x / getZoom();
+			zz = z / getZoom();
+		}
 
 		if(getBlockData(data).size() == 1)
 		{
 			return getBlockData(data).get(0);
 		}
 
-		return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz);
+		return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz).clone();
 	}
 
 	public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)

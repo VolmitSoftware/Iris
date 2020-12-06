@@ -11,6 +11,11 @@ public class WhiteNoise implements NoiseGenerator
 		n = new FastNoise(new RNG(seed).imax());
 	}
 
+	public boolean isStatic()
+	{
+		return true;
+	}
+
 	private double f(double m)
 	{
 		return (m % 8192) * 1024;

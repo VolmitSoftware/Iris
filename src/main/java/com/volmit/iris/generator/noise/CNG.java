@@ -1,6 +1,5 @@
 package com.volmit.iris.generator.noise;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import com.volmit.iris.scaffold.stream.arithmetic.FittedStream;
 import com.volmit.iris.scaffold.stream.sources.CNGStream;
@@ -289,8 +288,6 @@ public class CNG
 
 		catch(Throwable e)
 		{
-			Iris.error("Failed to sample noise into array " + v.size() + " nodes");
-			Iris.error("Noise Source: " + generator.getClass().getSimpleName());
 
 		}
 
@@ -405,5 +402,9 @@ public class CNG
 	public double getScale()
 	{
 		return scale;
+	}
+
+	public boolean isStatic() {
+		return generator != null && generator.isStatic();
 	}
 }

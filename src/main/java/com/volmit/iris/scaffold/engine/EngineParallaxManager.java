@@ -409,13 +409,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             }
         }
 
+        x = Math.max(z, x);
         x = (Math.max(x, 16) + 16) >> 4;
-        z = (Math.max(z, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
-        z = z % 2 == 0 ? z + 1 : z;
-        x = Math.max(x, z);
-        z = x;
-        Iris.verbose(getEngine().getDimension().getName() + " Parallax Size: " + x + ", " + z);
         return x;
     }
 

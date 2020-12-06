@@ -498,11 +498,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void clearRegeneratedLists(int x, int z) {
-        if (true)
-        {
-            return;
-        }
-
         for(int i = 0; i < getComposite().getSize(); i++)
         {
             getComposite().getEngine(i).getParallax().delete(x, z);
@@ -511,6 +506,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void regenerate(int x, int z) {
+        clearRegeneratedLists(x, z);
+        int xx = x*16;
+        int zz = z*16;
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
             @Override
             public void setRaw(ChunkData data) {
@@ -544,12 +542,15 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBlock(int x, int y, int z, BlockData blockData) {
-                Iris.edit.set(compound.getWorld(), x, y, z, blockData);
+                if(!getBlockData(x,y,z).matches(blockData))
+                {
+                    Iris.edit.set(compound.getWorld(), x+xx, y, z+zz, blockData);
+                }
             }
 
             @Override
             public BlockData getBlockData(int x, int y, int z) {
-                return Iris.edit.get(compound.getWorld(), x, y, z);
+                return Iris.edit.get(compound.getWorld(), x+xx, y, z+zz);
             }
 
             @Override
@@ -607,10 +608,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         Iris.edit.flushNow();
 
-        for (BlockPopulator i : populators) {
-            Chunk chunk = getComposite().getWorld().getChunkAt(x, z);
-            i.populate(compound.getWorld(), new RNG(Cache.key(x, z)), chunk);
-        }
     }
 
 

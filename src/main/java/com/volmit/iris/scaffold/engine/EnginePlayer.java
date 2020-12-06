@@ -56,11 +56,19 @@ public class EnginePlayer {
     }
 
     public void sample() {
-        if(ticksSinceLastSample() > 55 && player.getLocation().distanceSquared(lastLocation) > 9 * 9)
+        try
         {
-            lastLocation = player.getLocation().clone();
-            lastSample = M.ms();
-            sampleBiomeRegion();
+            if(ticksSinceLastSample() > 55 && player.getLocation().distanceSquared(lastLocation) > 9 * 9)
+            {
+                lastLocation = player.getLocation().clone();
+                lastSample = M.ms();
+                sampleBiomeRegion();
+            }
+        }
+
+        catch(Throwable ew)
+        {
+
         }
     }
 

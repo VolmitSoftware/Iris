@@ -38,12 +38,17 @@ public class ParallaxWorld implements ParallaxAccess
 	{
 		int m = 0;
 
-		synchronized (loadedRegions)
+		try
 		{
 			for(ParallaxRegion i : loadedRegions.values())
 			{
 				m+= i.getChunkCount();
 			}
+		}
+
+		catch(Throwable e)
+		{
+
 		}
 
 		return m;
@@ -201,19 +206,16 @@ public class ParallaxWorld implements ParallaxAccess
 	@Override
 	public void cleanup(long r, long c) {
 		J.a(() -> {
-			synchronized (loadedRegions)
+			for(ParallaxRegion i : loadedRegions.v())
 			{
-				for(ParallaxRegion i : loadedRegions.v())
+				if(i.hasBeenIdleLongerThan(r))
 				{
-					if(i.hasBeenIdleLongerThan(r))
-					{
-						unload(i.getX(), i.getZ());
-					}
+					unload(i.getX(), i.getZ());
+				}
 
-					else
-					{
-						i.cleanup(c);
-					}
+				else
+				{
+					i.cleanup(c);
 				}
 			}
 		});
@@ -226,16 +228,13 @@ public class ParallaxWorld implements ParallaxAccess
 
 	@Override
 	public synchronized void saveAllNOW() {
-		synchronized (loadedRegions)
+		for(ParallaxRegion i : loadedRegions.v())
 		{
-			for(ParallaxRegion i : loadedRegions.v())
+			synchronized (save)
 			{
-				synchronized (save)
+				if(save.contains(key(i.getX(), i.getZ())))
 				{
-					if(save.contains(key(i.getX(), i.getZ())))
-					{
-						save(i.getX(), i.getZ());
-					}
+					save(i.getX(), i.getZ());
 				}
 			}
 		}

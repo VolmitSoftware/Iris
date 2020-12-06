@@ -52,7 +52,7 @@ public class PregenJob implements Listener
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = IrisSettings.get().isUseGleamPregenerator() ? 32 : 32;
+	private int cubeSize = IrisSettings.get().isUseGleamPregenerator() ? 11 : 32;
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
@@ -591,7 +591,7 @@ public class PregenJob implements Listener
 				  "Elapsed:     " + Form.duration((long) (paused ? pms : s.getMilliseconds()), 2),
 				  "Estimate:    " + ((genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta, 2))),
 				  "ChunksMS:    " + Form.duration(1000D / cps, 2),
-				  "Chunks/zs:    " + Form.f(cps, 1),
+				  "Chunks/s:    " + Form.f(cps, 1),
 		});
 
 		try

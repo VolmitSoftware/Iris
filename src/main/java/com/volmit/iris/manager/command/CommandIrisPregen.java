@@ -79,7 +79,18 @@ public class CommandIrisPregen extends MortarCommand
 			}
 
 			return true;
-		} else
+		} 
+		else if(args[0].equalsIgnoreCase("resume"))
+		{
+			if(PregenJob.isPaused()){
+				sender.sendMessage("Pregen Resumed");
+			}
+			else
+			{
+				sender.sendMessage("No paused pregens. Use /ir pregen pause to pause.");
+			}
+		}
+		else
 
 		if(sender.isPlayer())
 		{
@@ -102,7 +113,6 @@ public class CommandIrisPregen extends MortarCommand
 		{
 			sender.sendMessage("Players only.");
 		}
-
 		return true;
 	}
 

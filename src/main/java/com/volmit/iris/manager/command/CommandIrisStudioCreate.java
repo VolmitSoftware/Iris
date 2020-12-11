@@ -11,7 +11,7 @@ public class CommandIrisStudioCreate extends MortarCommand
 {
 	public CommandIrisStudioCreate()
 	{
-		super("create", "new");
+		super("create", "new", "+");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Create a new project & open it.");
 		setCategory("Studio");

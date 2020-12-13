@@ -54,7 +54,7 @@ public class ParallaxWorld implements ParallaxAccess
 		return m;
 	}
 
-	public synchronized void close()
+	public void close()
 	{
 		for(ParallaxRegion i : loadedRegions.v())
 		{
@@ -65,7 +65,7 @@ public class ParallaxWorld implements ParallaxAccess
 		loadedRegions.clear();
 	}
 
-	public synchronized void save(ParallaxRegion region)
+	public void save(ParallaxRegion region)
 	{
 		try
 		{
@@ -83,7 +83,7 @@ public class ParallaxWorld implements ParallaxAccess
 		return loadedRegions.containsKey(key(x, z));
 	}
 
-	public synchronized void save(int x, int z)
+	public void save(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -91,7 +91,7 @@ public class ParallaxWorld implements ParallaxAccess
 		}
 	}
 
-	public synchronized void unload(int x, int z)
+	public void unload(int x, int z)
 	{
 		long key = key(x, z);
 
@@ -107,7 +107,7 @@ public class ParallaxWorld implements ParallaxAccess
 		}
 	}
 
-	public synchronized ParallaxRegion load(int x, int z)
+	public ParallaxRegion load(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -157,7 +157,7 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public synchronized Hunk<BlockData> getBlocksRW(int x, int z)
+	public Hunk<BlockData> getBlocksRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getBlockSlice().getRW(x & 31, z & 31);
 	}
@@ -169,7 +169,7 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public synchronized Hunk<String> getObjectsRW(int x, int z)
+	public Hunk<String> getObjectsRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getObjectSlice().getRW(x & 31, z & 31);
 	}
@@ -181,7 +181,7 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public synchronized Hunk<Boolean> getUpdatesRW(int x, int z)
+	public Hunk<Boolean> getUpdatesRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getUpdateSlice().getRW(x & 31, z & 31);
 	}
@@ -227,15 +227,12 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public synchronized void saveAllNOW() {
+	public void saveAllNOW() {
 		for(ParallaxRegion i : loadedRegions.v())
 		{
-			synchronized (save)
+			if(save.contains(key(i.getX(), i.getZ())))
 			{
-				if(save.contains(key(i.getX(), i.getZ())))
-				{
-					save(i.getX(), i.getZ());
-				}
+				save(i.getX(), i.getZ());
 			}
 		}
 	}

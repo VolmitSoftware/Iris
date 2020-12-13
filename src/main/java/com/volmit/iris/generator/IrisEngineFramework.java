@@ -1,14 +1,21 @@
 package com.volmit.iris.generator;
 
-import com.volmit.iris.generator.actuator.*;
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.generator.actuator.IrisBiomeActuator;
+import com.volmit.iris.generator.actuator.IrisDecorantActuator;
+import com.volmit.iris.generator.actuator.IrisTerrainActuator;
 import com.volmit.iris.generator.modifier.IrisCaveModifier;
 import com.volmit.iris.generator.modifier.IrisDepositModifier;
 import com.volmit.iris.generator.modifier.IrisPostModifier;
 import com.volmit.iris.generator.modifier.IrisRavineModifier;
 import com.volmit.iris.scaffold.engine.*;
+import com.volmit.iris.util.ChronoLatch;
 import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IrisEngineFramework implements EngineFramework {
 
@@ -42,6 +49,9 @@ public class IrisEngineFramework implements EngineFramework {
     @Getter
     private final EngineModifier<BlockData> postModifier;
 
+    private final AtomicBoolean cleaning;
+    private final ChronoLatch cleanLatch;
+
     public IrisEngineFramework(Engine engine)
     {
         this.engine = engine;
@@ -54,6 +64,39 @@ public class IrisEngineFramework implements EngineFramework {
         this.ravineModifier = new IrisRavineModifier(getEngine());
         this.caveModifier = new IrisCaveModifier(engine);
         this.postModifier = new IrisPostModifier(engine);
+        cleaning = new AtomicBoolean(false);
+        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().parallaxChunkEvictionMS, IrisSettings.get().parallaxRegionEvictionMS)));
+    }
+
+    @Override
+    public synchronized void recycle() {
+        if(!cleanLatch.flip())
+        {
+            return;
+        }
+
+        if (cleaning.get())
+        {
+            cleanLatch.flipDown();
+            return;
+        }
+
+        cleaning.set(true);
+
+        try
+        {
+            getEngine().getParallax().cleanup();
+            getData().getObjectLoader().clean();
+            Iris.verbose("Ran Cleanup");
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("Cleanup failed!");
+            e.printStackTrace();
+        }
+
+        cleaning.lazySet(false);
     }
 
     @Override

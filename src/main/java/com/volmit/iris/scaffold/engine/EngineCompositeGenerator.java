@@ -656,15 +656,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public boolean isVanillaCaves() {
-        try
-        {
-            return getComposite().getDefaultEngine().getDimension().isVanillaStructures();
-        }
-
-        catch(Throwable e)
-        {
-            return false;
-        }
+        return false;
     }
 
     public KList<IrisBiome> getAllBiomes(String worldName) {

@@ -13,7 +13,7 @@ public class CommandIrisStructureMove extends MortarCommand
 {
 	public CommandIrisStructureMove()
 	{
-		super("move", "++");
+		super("move", "here");
 		requiresPermission(Iris.perm);
 		setCategory("Structure");
 		setDescription("Load more of the structure");

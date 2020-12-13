@@ -13,7 +13,7 @@ public class CommandIrisStructureExpand extends MortarCommand
 {
 	public CommandIrisStructureExpand()
 	{
-		super("expand", "+++");
+		super("expand", "++");
 		requiresPermission(Iris.perm);
 		setCategory("Structure");
 		setDescription("Expand out more of the structure");

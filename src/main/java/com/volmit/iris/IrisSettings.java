@@ -34,7 +34,7 @@ public class IrisSettings
 	public String defaultWorldType = "overworld";
 
 	@DontObfuscate
-	public int maxAsyncChunkPregenThreads = 32;
+	public int maxAsyncChunkPregenThreads = 128;
 
 	@DontObfuscate
 	public boolean maximumPregenGuiFPS = false;
@@ -49,7 +49,7 @@ public class IrisSettings
 	public boolean ignoreWorldEdit = false;
 
 	@DontObfuscate
-	public boolean useGleamPregenerator = false;
+	public boolean useGleamPregenerator = true;
 
 	@DontObfuscate
 	public boolean disableNMS = false;

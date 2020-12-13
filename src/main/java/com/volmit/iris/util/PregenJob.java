@@ -52,7 +52,7 @@ public class PregenJob implements Listener
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = IrisSettings.get().isUseGleamPregenerator() ? 11 : 32;
+	private int cubeSize = (IrisSettings.get().isUseGleamPregenerator() && PaperLib.isPaper()) ? 11 : 32;
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
@@ -65,7 +65,7 @@ public class PregenJob implements Listener
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
-		gleaming = IrisSettings.get().isUseGleamPregenerator();
+		gleaming = (IrisSettings.get().isUseGleamPregenerator() && PaperLib.isPaper());
 		g.set(0);
 		burst = new MultiBurst(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		instance = this;
@@ -431,7 +431,7 @@ public class PregenJob implements Listener
 								consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
 							}
 
-							Chunk chunk =  PaperLib.getChunkAtAsync(world, cx, cz, true).join();
+							Chunk chunk =  PaperLib.getChunkAtAsync(world, cx, cz, true, true).join();
 							working.release();
 							genned++;
 							nogen = M.ms();

@@ -66,14 +66,18 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
             int x = din.readShort() - Short.MIN_VALUE;
             int y = din.readShort() - Short.MIN_VALUE;
             int z = din.readShort() - Short.MIN_VALUE;
-            T v = palette.getPalette().get(din.readShort() - Short.MIN_VALUE);
+            int vf = din.readShort() - Short.MIN_VALUE;
 
-            if(v == null)
+            T v = null;
+            if( palette.getPalette().hasIndex(vf))
             {
-                throw new IOException("NULL VALUE AT " + x + " " + y + " " + z);
+                v = palette.getPalette().get(vf);
             }
 
-            t.setRaw(x,y,z, v);
+            if(v != null)
+            {
+                t.setRaw(x,y,z, v);
+            }
         }
 
         in.close();

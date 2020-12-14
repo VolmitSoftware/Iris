@@ -614,12 +614,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public void close() {
         J.car(art);
-        getComposite().close();
+        if (getComposite() != null) {
+            getComposite().close();
 
-        if(isStudio())
-        {
-            IrisWorlds.evacuate(getComposite().getWorld());
-            Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
+
+            if (isStudio()) {
+                IrisWorlds.evacuate(getComposite().getWorld());
+                Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
+            }
         }
     }
 

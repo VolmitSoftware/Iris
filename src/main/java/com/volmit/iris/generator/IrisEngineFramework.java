@@ -87,7 +87,6 @@ public class IrisEngineFramework implements EngineFramework {
         {
             getEngine().getParallax().cleanup();
             getData().getObjectLoader().clean();
-            Iris.verbose("Ran Cleanup");
         }
 
         catch(Throwable e)

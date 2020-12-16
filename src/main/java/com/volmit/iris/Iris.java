@@ -150,6 +150,10 @@ public class Iris extends VolmitPlugin
 	public void onEnable()
 	{
 		instance = this;
+		if (!new File("compat.json").exists()) {
+			msg("Creating Compat file.")
+			new File("compat.json").createNewFile();
+		}
 		compat = IrisCompat.configured(getDataFile("compat.json"));
 		proj = new ProjectManager();
 		convert = new ConversionManager();

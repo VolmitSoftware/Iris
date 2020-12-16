@@ -70,6 +70,14 @@ public class IrisWorldCreator
         {
             return World.Environment.NORMAL;
         }
+        else if(dimensionName == "NETHER")
+        {
+            return World.Environment.NETHER;
+        }
+        else if(dimensionName == "END")
+        {
+            return World.Environment.THE_END;
+        }
 
         IrisDimension dim = IrisDataManager.loadAnyDimension(dimensionName);
 

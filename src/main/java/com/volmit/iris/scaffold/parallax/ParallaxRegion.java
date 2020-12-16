@@ -90,7 +90,7 @@ public class ParallaxRegion extends HunkRegion
 		return getMetaHunkR();
 	}
 
-	public synchronized Hunk<ParallaxChunkMeta> loadMetaHunk()
+	public Hunk<ParallaxChunkMeta> loadMetaHunk()
 	{
 		lastUse = M.ms();
 		if(meta == null)
@@ -115,7 +115,7 @@ public class ParallaxRegion extends HunkRegion
 		return meta;
 	}
 
-	public synchronized void unloadMetaHunk()
+	public void unloadMetaHunk()
 	{
 		if(dirtyMeta)
 		{
@@ -126,7 +126,7 @@ public class ParallaxRegion extends HunkRegion
 		meta = null;
 	}
 
-	public synchronized void saveMetaHunk()
+	public void saveMetaHunk()
 	{
 		if(meta != null && dirtyMeta)
 		{

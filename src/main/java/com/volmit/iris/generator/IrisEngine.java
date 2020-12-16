@@ -1,10 +1,10 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
-import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -52,7 +52,6 @@ public class IrisEngine extends BlockPopulator implements Engine
     private volatile int minHeight;
     private int permits;
     private boolean failing;
-    private ChronoLatch cl = new ChronoLatch(10000);
     private boolean closed;
     private int cacheId;
     private Semaphore s;
@@ -62,7 +61,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
-        permits = 1000;
+        permits = 10000;
         this.s = new Semaphore(permits);
         this.target = target;
         this.framework = new IrisEngineFramework(this);
@@ -110,36 +109,49 @@ public class IrisEngine extends BlockPopulator implements Engine
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<BlockData> postblocks, Hunk<Biome> vbiomes) {
         try
         {
+            boolean multicore = !IrisSettings.get().isUseGleamPregenerator(); //TODO: LATER
             s.acquire(1);
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<Biome> biomes = vbiomes;
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> pblocks = postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> fringe = Hunk.fringe(blocks, pblocks);
-            getFramework().getEngineParallax().generateParallaxArea(x, z);
-            getFramework().getBiomeActuator().actuate(x, z, biomes);
-            getFramework().getTerrainActuator().actuate(x, z, blocks);
-            getFramework().getCaveModifier().modify(x, z, blocks);
-            getFramework().getRavineModifier().modify(x, z, blocks);
+
+            if(multicore)
+            {
+                MultiBurst.burst.burst(
+                        () -> getFramework().getEngineParallax().generateParallaxArea(x, z),
+                        () -> getFramework().getBiomeActuator().actuate(x, z, biomes),
+                        () -> getFramework().getTerrainActuator().actuate(x, z, blocks)
+                );
+
+
+
+                MultiBurst.burst.burst(
+                        () -> getFramework().getCaveModifier().modify(x, z, blocks),
+                        () ->  getFramework().getRavineModifier().modify(x, z, blocks),
+                        () -> getFramework().getPostModifier().modify(x, z, blocks),
+                        () ->  getFramework().getDecorantActuator().actuate(x, z, fringe),
+                        () -> getFramework().getEngineParallax().insertParallax(x, z, fringe)
+                );
+            }
+
+            else
+            {
+                getFramework().getEngineParallax().generateParallaxArea(x, z);
+                getFramework().getBiomeActuator().actuate(x, z, biomes);
+                getFramework().getTerrainActuator().actuate(x, z, blocks);
+                getFramework().getCaveModifier().modify(x, z, blocks);
+                getFramework().getRavineModifier().modify(x, z, blocks);
+                getFramework().getPostModifier().modify(x, z, blocks);
+                getFramework().getDecorantActuator().actuate(x, z, fringe);
+                getFramework().getEngineParallax().insertParallax(x, z, fringe);
+            }
+
             getFramework().getDepositModifier().modify(x, z, blocks);
-            getFramework().getPostModifier().modify(x, z, blocks);
-            getFramework().getDecorantActuator().actuate(x, z, fringe);
-            getFramework().getEngineParallax().insertParallax(x, z, fringe);
             getMetrics().getTotal().put(p.getMilliseconds());
             s.release(1);
-
-            if(cl.flip())
-            {
-                MultiBurst.burst.lazy(() -> {
-                    try {
-                        s.acquire(permits);
-                        getFramework().recycle();
-                        s.release(permits);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
+            getFramework().recycle();
         }
 
         catch(Throwable e)

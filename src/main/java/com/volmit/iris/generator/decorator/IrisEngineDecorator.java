@@ -3,6 +3,8 @@ package com.volmit.iris.generator.decorator;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
+import com.volmit.iris.scaffold.cache.Cache;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedComponent;
@@ -25,15 +27,19 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
 
     protected IrisDecorator getDecorator(IrisBiome biome, double realX, double realZ)
     {
+        KList<IrisDecorator> v = new KList<>();
+        RNG rng = new RNG(Cache.key((int)realX, (int)realZ));
+
         for(IrisDecorator i : biome.getDecorators())
         {
-            if(i.getPartOf().equals(part))
+            if(i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null)
             {
-                if(i.getBlockData(biome, rng, realX, realZ, getData()) != null)
-                {
-                    return i;
-                }
+                v.add(i);
             }
+        }
+
+        if(v.isNotEmpty()) {
+            return v.get(rng.nextInt(v.size()));
         }
 
         return null;

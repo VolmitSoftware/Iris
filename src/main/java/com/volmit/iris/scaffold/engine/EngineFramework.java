@@ -3,7 +3,6 @@ package com.volmit.iris.scaffold.engine;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.data.DataProvider;
-import com.volmit.iris.util.M;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -21,15 +20,8 @@ public interface EngineFramework extends DataProvider
 
     default void recycle()
     {
-        if(M.r(0.1))
-        {
-            synchronized (getEngine().getParallax())
-            {
-                getEngine().getParallax().cleanup();
-            }
-
-            getData().getObjectLoader().clean();
-        }
+        getEngine().getParallax().cleanup();
+        getData().getObjectLoader().clean();
     }
 
     public EngineActuator<BlockData> getTerrainActuator();

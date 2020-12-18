@@ -53,12 +53,18 @@ public class IrisProject
 		}
 
 		IrisDimension d = IrisDataManager.loadAnyDimension(getName());
+		if(d == null)
+		{
+			sender.sendMessage("Can't find dimension: " + getName());
+			return;
+		}
+
 		J.attemptAsync(() ->
 		{
 			try
 			{
 				if (d.getLoader() == null){
-					sender.sendMessage("That pack does not exist");
+					sender.sendMessage("Could not get dimension loader");
 					return;
 				}
 				File f = d.getLoader().getDataFolder();
@@ -109,11 +115,6 @@ public class IrisProject
 				e.printStackTrace();
 			}
 		});
-		if(d == null)
-		{
-			sender.sendMessage("Can't find dimension: " + getName());
-			return;
-		}
 
 		String wfp = "iris/" + UUID.randomUUID();
 

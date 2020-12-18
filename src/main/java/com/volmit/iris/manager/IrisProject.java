@@ -57,6 +57,10 @@ public class IrisProject
 		{
 			try
 			{
+				if (d.getLoader() == null){
+					sender.sendMessage("That pack does not exist");
+					return;
+				}
 				File f = d.getLoader().getDataFolder();
 				boolean foundWork = false;
 				for(File i : f.listFiles())

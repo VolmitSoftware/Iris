@@ -151,8 +151,12 @@ public class Iris extends VolmitPlugin
 	{
 		instance = this;
 		if (!new File("compat.json").exists()) {
-			msg("Creating Compat file.")
-			new File("compat.json").createNewFile();
+			msg("Creating Compat file.");
+			try {
+				new File("compat.json").createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		compat = IrisCompat.configured(getDataFile("compat.json"));
 		proj = new ProjectManager();

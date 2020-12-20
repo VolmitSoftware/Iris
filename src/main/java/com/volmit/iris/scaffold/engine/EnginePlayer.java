@@ -36,15 +36,22 @@ public class EnginePlayer {
             {
                 for(IrisEffect j : region.getEffects())
                 {
-                    j.apply(player, getEngine());
+                    try {
+                        j.apply(player, getEngine());
+                    } catch (NullPointerException e) {
+                        player.sendMessage("Unable to play Engine");
+                        e.printStackTrace();
+                    }
                 }
             }
 
             if(biome != null)
             {
-                for(IrisEffect j : biome.getEffects())
-                {
+                try {
                     j.apply(player, getEngine());
+                } catch (NullPointerException e) {
+                    player.sendMessage("Unable to play Engine");
+                    e.printStackTrace();
                 }
             }
         });

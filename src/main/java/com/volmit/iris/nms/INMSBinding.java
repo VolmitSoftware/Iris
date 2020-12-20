@@ -11,6 +11,8 @@ public interface INMSBinding
 	public Object getBiomeBase(World world, Biome biome);
 	public Object getBiomeBase(Object registry, Biome biome);
 
+	public boolean isBukkit();
+
 	default World createWorld(WorldCreator creator)
 	{
 		return getCreator().createWorld(creator);
@@ -18,6 +20,17 @@ public interface INMSBinding
 
 	default World createWorld(WorldCreator creator, boolean loadSpawn)
 	{
+		if(!isBukkit())
+		{
+			if(creator.environment().equals(World.Environment.NORMAL))
+			{
+				return getCreator().createWorld(creator, loadSpawn);
+			}
+
+			return creator.createWorld();
+		}
+
 		return getCreator().createWorld(creator, loadSpawn);
+
 	}
 }

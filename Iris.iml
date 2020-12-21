@@ -8,16 +8,4 @@
       <src_folder value="file://$MODULE_DIR$/src/test/java" expected_position="4" />
     </src_description>
   </component>
-  <component name="NewModuleRootManager">
-    <output url="file://$MODULE_DIR$/target/classes" />
-    <exclude-output />
-    <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/main/resources" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="false" />
-    </content>
-    <orderEntry type="jdk" jdkName="JavaSE-1.8" jdkType="JavaSDK" />
-    <orderEntry type="library" name="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER" level="application" />
-    <orderEntry type="sourceFolder" forTests="false" />
-  </component>
 </module>

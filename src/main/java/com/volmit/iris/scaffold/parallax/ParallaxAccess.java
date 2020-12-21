@@ -52,6 +52,25 @@ public interface ParallaxAccess {
         getMetaRW(x, z).setParallaxGenerated(v);
     }
 
+    default void maxMin(int x, int z, int value) {
+        ParallaxChunkMeta meat = getMetaRW(x, z);
+
+        if(value > meat.getMaxObject())
+        {
+            meat.setMaxObject(value);
+        }
+
+        if(meat.getMinObject() <=-1)
+        {
+            meat.setMinObject(value);
+        }
+
+        if(value < meat.getMinObject())
+        {
+            meat.setMinObject(value);
+        }
+    }
+
     default void setChunkGenerated(int x, int z, boolean v) {
         getMetaRW(x, z).setGenerated(v);
     }

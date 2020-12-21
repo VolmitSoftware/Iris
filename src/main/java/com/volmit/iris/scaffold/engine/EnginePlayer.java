@@ -38,20 +38,21 @@ public class EnginePlayer {
                 {
                     try {
                         j.apply(player, getEngine());
-                    } catch (NullPointerException e) {
-                        player.sendMessage("Unable to play Engine");
-                        e.printStackTrace();
+                    } catch (Throwable e) {
+
                     }
                 }
             }
 
             if(biome != null)
             {
-                try {
-                    j.apply(player, getEngine());
-                } catch (NullPointerException e) {
-                    player.sendMessage("Unable to play Engine");
-                    e.printStackTrace();
+                for(IrisEffect j : biome.getEffects())
+                {
+                    try {
+                        j.apply(player, getEngine());
+                    } catch (Throwable e) {
+
+                    }
                 }
             }
         });

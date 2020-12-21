@@ -283,6 +283,7 @@ public class IrisProject
 		schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json"));
 		schemas.put(getSchemaEntry(IrisGenerator.class,dm, "/generators/*.json"));
 		schemas.put(getSchemaEntry(IrisStructure.class, dm, "/structures/*.json"));
+		schemas.put(getSchemaEntry(IrisStructurePiece.class, dm, "/structure-pieces/*.json"));
 		schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json"));
 		schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json"));
 		settings.put("json.schemas", schemas);
@@ -323,6 +324,7 @@ public class IrisProject
 			blocks.add(dm.getBlockLoader().load(i));
 		}
 
+		//TODO: EXPORT STRUCTURE PIECES FROM STRUCTURES
 		dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
 		dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
 		regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));

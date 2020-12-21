@@ -1,6 +1,7 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;
@@ -221,6 +222,7 @@ public class IrisEngineCompound implements EngineCompound {
             int offset = 0;
             BurstExecutor e = burster.burst();
             Runnable[] insert = new Runnable[engines.length];
+            boolean structures = getDefaultEngine().getDimension().isVanillaStructures() && !IrisSettings.get().isDisableNMS();
 
             for(i = 0; i < engines.length; i++)
             {
@@ -229,10 +231,15 @@ public class IrisEngineCompound implements EngineCompound {
                 int doffset = offset;
                 int height = engine.getTarget().getHeight();
                 AtomicReference<Hunk<BlockData>> cblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
-                AtomicReference<Hunk<BlockData>> cpblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
+                AtomicReference<Hunk<BlockData>> cpblock = new AtomicReference<>(structures ? Hunk.newArrayHunk(16, height, 16) : null);
                 AtomicReference<Hunk<Biome>> cbiome = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
                 cblock.set(engine.getTarget().isInverted() ? cblock.get().invertY() : cblock.get());
-                cpblock.set(engine.getTarget().isInverted() ? cpblock.get().invertY() : cpblock.get());
+
+                if(structures)
+                {
+                    cpblock.set(engine.getTarget().isInverted() ? cpblock.get().invertY() : cpblock.get());
+                }
+
                 cbiome.set(engine.getTarget().isInverted() ? cbiome.get().invertY() : cbiome.get());
                 e.queue(() -> {
                     engine.generate(x, z, cblock.get(), cpblock.get(), cbiome.get());
@@ -240,7 +247,12 @@ public class IrisEngineCompound implements EngineCompound {
                     {
                         insert[index.get()] = () -> {
                             blocks.insert(0, doffset, 0, cblock.get());
-                            postblocks.insert(0, doffset, 0, cpblock.get());
+
+                            if(structures)
+                            {
+                                postblocks.insert(0, doffset, 0, cpblock.get());
+                            }
+
                             biomes.insert(0, doffset, 0, cbiome.get());
                         };
                     }

@@ -15,6 +15,7 @@ import com.volmit.iris.util.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public interface EngineParallaxManager extends DataProvider, IObjectPlacer
@@ -73,55 +74,78 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
     default void insertParallax(int x, int z, Hunk<BlockData> data)
     {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x>>4, z>>4);
-
-        if(!meta.isObjects()) {
-            getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
-            return;
-        }
-
-        for(int i = x; i < x+ data.getWidth(); i++)
+        try
         {
-            for(int j= z; j < z + data.getDepth(); j++)
-            {
-                for(int k = 0; k < data.getHeight(); k++)
-                {
-                    BlockData d = getParallaxAccess().getBlock(i, k, j);
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x>>4, z>>4);
 
-                    if(d != null)
+            if(!meta.isParallaxGenerated())
+            {
+                Iris.warn("Chunk " + (x >> 4) + " " + (z >> 4) + " has no parallax data!");
+                return;
+            }
+
+            if(!meta.isObjects()) {
+                getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
+                return;
+            }
+
+            int min = Math.max(meta.getMinObject(), 0);
+            int max = meta.getMaxObject();
+            max = max < 0 ? 255 : max;
+
+            for(int i = x; i < x+ data.getWidth(); i++)
+            {
+                for(int j= z; j < z + data.getDepth(); j++)
+                {
+                    for(int k = min; k < max; k++)
                     {
-                        data.set(i - x, k, j - z, d);
+                        BlockData d = getParallaxAccess().getBlock(i, k, j);
+
+                        if(d != null)
+                        {
+                            data.set(i - x, k, j - z, d);
+                        }
                     }
                 }
             }
+
+            getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
         }
 
-        getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
+        catch(Throwable e)
+        {
+            Iris.error("Failed to insert parallax at chunk " + (x>>4) + " " + (z>>4));
+            e.printStackTrace();
+        }
     }
 
     default void generateParallaxArea(int x, int z)
     {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        int s = (int) Math.ceil(getParallaxSize() / 2D);
-        int j;
-        BurstExecutor e = MultiBurst.burst.burst(getParallaxSize() * getParallaxSize());
-
-        for(int i = -s; i <= s; i++)
+        try
         {
-            int ii = i;
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            int s = (int) Math.ceil(getParallaxSize() / 2D);
+            int i,j;
 
-            for(j = -s; j <= s; j++)
+            for(i = -s; i <= s; i++)
             {
-                int jj = j;
-                e.queue(() -> generateParallaxLayer((ii*16)+x, (jj*16)+z));
+                for(j = -s; j <= s; j++)
+                {
+                    generateParallaxLayer((i*16)+x, (j*16)+z);
+                }
             }
+
+            getParallaxAccess().setChunkGenerated(x>>4, z>>4);
+            p.end();
+            getEngine().getMetrics().getParallax().put(p.getMilliseconds());
         }
 
-        e.complete();
-        getParallaxAccess().setChunkGenerated(x>>4, z>>4);
-        p.end();
-        getEngine().getMetrics().getParallax().put(p.getMilliseconds());
+        catch(Throwable e)
+        {
+            Iris.error("Failed to generate parallax in " + x + " " + z);
+            e.printStackTrace();
+        }
     }
 
     default void generateParallaxLayer(int x, int z)
@@ -313,12 +337,31 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             int xx = rng.i(x, x+16);
             int zz = rng.i(z, z+16);
             int id = rng.i(0, Integer.MAX_VALUE);
+            int maxf = 10000;
+            AtomicBoolean pl = new AtomicBoolean(false);
+            AtomicInteger max = new AtomicInteger(-1);
+            AtomicInteger min = new AtomicInteger(maxf);
             v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
-                getParallaxAccess().setObject(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
-                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(b.getX() >> 4, b.getZ() >> 4);
+                int xf = b.getX();
+                int yf = b.getY();
+                int zf = b.getZ();
+                getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
+                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
                 meta.setObjects(true);
-                meta.setMaxObject(Math.max(b.getY(), meta.getMaxObject()));
-                meta.setMinObject(Math.min(b.getY(), Math.max(meta.getMinObject(), 0)));
+                if(meta.getMinObject() == -1)
+                {
+                    meta.setMinObject(yf);
+                }
+
+                if(meta.getMinObject() > yf)
+                {
+                    meta.setMinObject(yf);
+                }
+
+                if(meta.getMaxObject() < yf)
+                {
+                    meta.setMaxObject(yf);
+                }
             }, null, getData());
         }
     }

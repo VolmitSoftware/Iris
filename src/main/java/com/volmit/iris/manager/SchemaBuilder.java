@@ -382,6 +382,22 @@ public class SchemaBuilder
 				description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
 			}
 
+			else if(k.isAnnotationPresent(RegistryListStructurePiece.class))
+			{
+				String key = "enum-reg-structure-piece";
+
+				if(!definitions.containsKey(key))
+				{
+					JSONObject j = new JSONObject();
+					j.put("enum", new JSONArray(data.getStructurePieceLoader().getPossibleKeys()));
+					definitions.put(key, j);
+				}
+
+				fancyType = "Iris Structure Piece";
+				prop.put("$ref", "#/definitions/" + key);
+				description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Piece (use ctrl+space for auto complete!)");
+			}
+
 			else if(k.getType().equals(Enchantment.class))
 			{
 				String key = "enum-enchantment";
@@ -763,6 +779,24 @@ public class SchemaBuilder
 						items.put("$ref", "#/definitions/" + key);
 						prop.put("items", items);
 						description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
+					}
+
+					else if(k.isAnnotationPresent(RegistryListStructurePiece.class))
+					{
+						fancyType = "List of Iris Structure Pieces";
+						String key = "enum-reg-structure-piece";
+
+						if(!definitions.containsKey(key))
+						{
+							JSONObject j = new JSONObject();
+							j.put("enum", new JSONArray(data.getStructurePieceLoader().getPossibleKeys()));
+							definitions.put(key, j);
+						}
+
+						JSONObject items = new JSONObject();
+						items.put("$ref", "#/definitions/" + key);
+						prop.put("items", items);
+						description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Piece (use ctrl+space for auto complete!)");
 					}
 
 					else if(t.type().equals(Enchantment.class))

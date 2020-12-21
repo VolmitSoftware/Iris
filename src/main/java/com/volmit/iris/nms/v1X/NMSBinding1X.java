@@ -25,4 +25,9 @@ public class NMSBinding1X implements INMSBinding
 	public Object getBiomeBase(Object registry, Biome biome) {
 		return null;
 	}
+
+	@Override
+	public boolean isBukkit() {
+		return true;
+	}
 }

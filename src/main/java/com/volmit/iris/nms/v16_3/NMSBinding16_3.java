@@ -39,4 +39,9 @@ public class NMSBinding16_3 implements INMSBinding
 		baseBiomeCache.put(biome, v);
 		return v;
 	}
+
+	@Override
+	public boolean isBukkit() {
+		return false;
+	}
 }

@@ -1,15 +1,11 @@
 package com.volmit.iris.object;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.function.Consumer;
-
+import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.util.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -17,20 +13,8 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.BlockPosition;
-import com.volmit.iris.util.CarveResult;
-import com.volmit.iris.util.ChunkPosition;
-import com.volmit.iris.util.IObjectPlacer;
-import com.volmit.iris.util.IrisLock;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.RNG;
-
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.experimental.Accessors;
+import java.io.*;
+import java.util.function.Consumer;
 
 @Accessors(chain = true)
 @Data
@@ -670,6 +654,32 @@ public class IrisObject extends IrisRegistrant
 		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);
+		}
+	}
+
+	public void placeCenterY(Location at)
+	{
+		if(shitty)
+		{
+			return;
+		}
+
+		for(BlockVector i : blocks.keySet())
+		{
+			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(blocks.get(i), false);
+		}
+	}
+
+	public void unplaceCenterY(Location at)
+	{
+		if(shitty)
+		{
+			return;
+		}
+
+		for(BlockVector i : blocks.keySet())
+		{
+			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(Material.AIR.createBlockData(), false);
 		}
 	}
 }

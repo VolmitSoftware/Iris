@@ -28,6 +28,10 @@ public class IrisStructurePieceConnector
 	private boolean rotateConnector = false;
 
 	@DontObfuscate
+	@Desc("If set to true, this connector is allowed to place pieces inside of it's own piece. For example if you are adding a light post, or house on top of a path piece, you would set this to true to allow the piece to collide with the path bounding box.")
+	private boolean innerConnector = false;
+
+	@DontObfuscate
 	@Desc("The relative position this connector is located at for connecting to other pieces")
 	@Required
 	private IrisPosition position = new IrisPosition(0,0,0);

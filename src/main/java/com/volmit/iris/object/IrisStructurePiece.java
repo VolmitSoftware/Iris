@@ -22,6 +22,10 @@ public class IrisStructurePiece extends IrisRegistrant
 	@Desc("The object this piece represents")
 	private String object = "";
 
+	@DontObfuscate
+	@Desc("Options for placement")
+	private IrisObjectPlacementOptions placementOptions = new IrisObjectPlacementOptions();
+
 	@Required
 	@DontObfuscate
 	@ArrayType(type = IrisStructurePieceConnector.class, min = 1)

@@ -15,6 +15,9 @@ public class CommandIris extends MortarCommand
 	private CommandIrisStudio studio;
 
 	@Command
+	private CommandIrisJigsaw jigsaw;
+
+	@Command
 	private CommandIrisStructure structure;
 
 	@Command

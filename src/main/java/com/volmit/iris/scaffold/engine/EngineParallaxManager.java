@@ -81,7 +81,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
     {
         if(tries <= 0)
         {
-            Iris.error("Parallax In " + x + " " + z + " placed nothing even though there is data there? (Tried 5 times, FAILED!!!)");
+            return;
         }
 
         try
@@ -109,7 +109,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             {
                 for(int j= z; j < z + data.getDepth(); j++)
                 {
-                    for(int k = min; k <= max; k++)
+                    for(int k = 0; k < getEngine().getHeight(); k++)
                     {
                         BlockData d = getParallaxAccess().getBlock(i, k, j);
 
@@ -124,20 +124,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
             if(!placed)
             {
-                Iris.warn("Parallax In " + x + " " + z + " had issues placing Retrying: " + tries);
+                J.sleep(150);
 
                 if(tries < 4)
                 {
-                    Iris.warn("Parallax Regenerating the entire parallax Layer at " + x + " " + z + " since it's not recovering data...");
                     generateParallaxLayer(x, z, true);
                 }
 
                 insertParallax(x, z, data, tries-1);
-            }
-
-            else if(tries < 5)
-            {
-                Iris.info("Parallax Fixed in " + x + " " + z);
             }
 
             getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());

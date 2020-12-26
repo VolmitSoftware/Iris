@@ -20,6 +20,7 @@ public class IrisDataManager
 	private ResourceLoader<IrisGenerator> generatorLoader;
 	private ResourceLoader<IrisStructure> structureLoader;
 	private ResourceLoader<IrisStructurePiece> structurePieceLoader;
+	private ResourceLoader<IrisStructurePool> structurePoolLoader;
 	private ResourceLoader<IrisEntity> entityLoader;
 	private ResourceLoader<IrisBlockData> blockLoader;
 	private ObjectResourceLoader objectLoader;
@@ -50,6 +51,7 @@ public class IrisDataManager
 		this.biomeLoader =  null;
 		this.dimensionLoader =  null;
 		this.structureLoader =  null;
+		this.structurePoolLoader =  null;
 		this.structurePieceLoader =  null;
 		this.generatorLoader =  null;
 		this.blockLoader =  null;
@@ -80,7 +82,8 @@ public class IrisDataManager
 		this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, this, "dimensions", "Dimension", IrisDimension.class);
 		this.structureLoader = new ResourceLoader<>(packs, this, "structures", "Structure", IrisStructure.class);
-		this.structurePieceLoader = new ResourceLoader<>(packs, this, "structure-pieces", "Structure Piece", IrisStructurePiece.class);
+		this.structurePoolLoader = new ResourceLoader<>(packs, this, "jigsaw-pools", "Jigsaw Pool", IrisStructurePool.class);
+		this.structurePieceLoader = new ResourceLoader<>(packs, this, "jigsaw-pieces", "Jigsaw Piece", IrisStructurePiece.class);
 		this.generatorLoader = new ResourceLoader<>(packs, this, "generators", "Generator", IrisGenerator.class);
 		this.blockLoader = new ResourceLoader<>(packs,this,  "blocks", "Block", IrisBlockData.class);
 		this.objectLoader = new ObjectResourceLoader(packs, this, "objects", "Object");
@@ -97,6 +100,7 @@ public class IrisDataManager
 		lootLoader.clearCache();
 		objectLoader.clearCache();
 		structurePieceLoader.clearCache();
+		structurePoolLoader.clearCache();
 		regionLoader.clearCache();
 		dimensionLoader.clearCache();
 		entityLoader.clearCache();
@@ -119,6 +123,7 @@ public class IrisDataManager
 		dimensionLoader.clearList();
 		generatorLoader.clearList();
 		structureLoader.clearList();
+		structurePoolLoader.clearList();
 		structurePieceLoader.clearList();
 		objectLoader.clearList();
 	}
@@ -141,6 +146,11 @@ public class IrisDataManager
 	public static IrisStructurePiece loadAnyStructurePiece(String key)
 	{
 		return loadAny(key, (dm) -> dm.getStructurePieceLoader().load(key, false));
+	}
+
+	public static IrisStructurePool loadAnyStructurePool(String key)
+	{
+		return loadAny(key, (dm) -> dm.getStructurePoolLoader().load(key, false));
 	}
 
 	public static IrisEntity loadAnyEntity(String key)

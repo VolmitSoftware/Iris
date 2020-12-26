@@ -74,6 +74,16 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
     default void insertParallax(int x, int z, Hunk<BlockData> data)
     {
+        insertParallax(x, z, data, 5);
+    }
+
+    default void insertParallax(int x, int z, Hunk<BlockData> data, int tries)
+    {
+        if(tries <= 0)
+        {
+            Iris.error("Parallax In " + x + " " + z + " placed nothing even though there is data there? (Tried 5 times, FAILED!!!)");
+        }
+
         try
         {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -93,21 +103,41 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             int min = Math.max(meta.getMinObject(), 0);
             int max = meta.getMaxObject();
             max = max < 0 ? 255 : max;
+            boolean placed = false;
 
             for(int i = x; i < x+ data.getWidth(); i++)
             {
                 for(int j= z; j < z + data.getDepth(); j++)
                 {
-                    for(int k = min; k < max; k++)
+                    for(int k = min; k <= max; k++)
                     {
                         BlockData d = getParallaxAccess().getBlock(i, k, j);
 
                         if(d != null)
                         {
                             data.set(i - x, k, j - z, d);
+                            placed = true;
                         }
                     }
                 }
+            }
+
+            if(!placed)
+            {
+                Iris.warn("Parallax In " + x + " " + z + " had issues placing Retrying: " + tries);
+
+                if(tries < 4)
+                {
+                    Iris.warn("Parallax Regenerating the entire parallax Layer at " + x + " " + z + " since it's not recovering data...");
+                    generateParallaxLayer(x, z, true);
+                }
+
+                insertParallax(x, z, data, tries-1);
+            }
+
+            else if(tries < 5)
+            {
+                Iris.info("Parallax Fixed in " + x + " " + z);
             }
 
             getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
@@ -148,9 +178,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         }
     }
 
-    default void generateParallaxLayer(int x, int z)
+
+
+    default void generateParallaxLayer(int x, int z, boolean force)
     {
-        if(getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4))
+        if(!force && getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4))
         {
             return;
         }
@@ -162,6 +194,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         generateParallaxSurface(rng, x, z, biome);
         generateParallaxMutations(rng, x, z);
         generateStructures(rng, x>>4, z>>4, region, biome);
+    }
+    default void generateParallaxLayer(int x, int z)
+    {
+       generateParallaxLayer(x, z, false);
     }
 
     default KList<PlacedObject> generateParallaxLayerObjects(int x, int z)
@@ -238,6 +274,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, KList<PlacedObject> objects) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
         {
+            Iris.info("Found Placement: " + i.getPlace());
             if(rng.chance(i.getChance()))
             {
                 place(rng, x, z, i, objects);
@@ -348,20 +385,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
                 getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
                 ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
                 meta.setObjects(true);
-                if(meta.getMinObject() == -1)
-                {
-                    meta.setMinObject(yf);
-                }
+                meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
+                meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
 
-                if(meta.getMinObject() > yf)
-                {
-                    meta.setMinObject(yf);
-                }
-
-                if(meta.getMaxObject() < yf)
-                {
-                    meta.setMaxObject(yf);
-                }
             }, null, getData());
         }
     }

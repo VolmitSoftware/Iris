@@ -393,9 +393,25 @@ public class SchemaBuilder
 					definitions.put(key, j);
 				}
 
-				fancyType = "Iris Structure Piece";
+				fancyType = "Iris Jigsaw Piece";
 				prop.put("$ref", "#/definitions/" + key);
-				description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Piece (use ctrl+space for auto complete!)");
+				description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
+			}
+
+			else if(k.isAnnotationPresent(RegistryListStructurePool.class))
+			{
+				String key = "enum-reg-structure-pool";
+
+				if(!definitions.containsKey(key))
+				{
+					JSONObject j = new JSONObject();
+					j.put("enum", new JSONArray(data.getStructurePoolLoader().getPossibleKeys()));
+					definitions.put(key, j);
+				}
+
+				fancyType = "Iris Jigsaw Pool";
+				prop.put("$ref", "#/definitions/" + key);
+				description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
 			}
 
 			else if(k.getType().equals(Enchantment.class))
@@ -783,7 +799,7 @@ public class SchemaBuilder
 
 					else if(k.isAnnotationPresent(RegistryListStructurePiece.class))
 					{
-						fancyType = "List of Iris Structure Pieces";
+						fancyType = "List of Iris Jigsaw Pieces";
 						String key = "enum-reg-structure-piece";
 
 						if(!definitions.containsKey(key))
@@ -796,7 +812,25 @@ public class SchemaBuilder
 						JSONObject items = new JSONObject();
 						items.put("$ref", "#/definitions/" + key);
 						prop.put("items", items);
-						description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Piece (use ctrl+space for auto complete!)");
+						description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
+					}
+
+					else if(k.isAnnotationPresent(RegistryListStructurePool.class))
+					{
+						fancyType = "List of Iris Jigsaw Pools";
+						String key = "enum-reg-structure-pool";
+
+						if(!definitions.containsKey(key))
+						{
+							JSONObject j = new JSONObject();
+							j.put("enum", new JSONArray(data.getStructurePoolLoader().getPossibleKeys()));
+							definitions.put(key, j);
+						}
+
+						JSONObject items = new JSONObject();
+						items.put("$ref", "#/definitions/" + key);
+						prop.put("items", items);
+						description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Pool (use ctrl+space for auto complete!)");
 					}
 
 					else if(t.type().equals(Enchantment.class))

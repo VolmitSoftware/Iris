@@ -1,8 +1,6 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -30,6 +28,12 @@ public class IrisStructurePieceConnector
 	@DontObfuscate
 	@Desc("If set to true, this connector is allowed to place pieces inside of it's own piece. For example if you are adding a light post, or house on top of a path piece, you would set this to true to allow the piece to collide with the path bounding box.")
 	private boolean innerConnector = false;
+
+	@RegistryListStructurePool
+	@Desc("Pick piece pools to place onto this connector")
+	@ArrayType(type = String.class, min = 1)
+	@Required
+	private KList<String> pools = new KList<>();
 
 	@DontObfuscate
 	@Desc("The relative position this connector is located at for connecting to other pieces")

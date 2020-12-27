@@ -283,8 +283,8 @@ public class IrisProject
 		schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json"));
 		schemas.put(getSchemaEntry(IrisGenerator.class,dm, "/generators/*.json"));
 		schemas.put(getSchemaEntry(IrisStructure.class, dm, "/structures/*.json"));
-		schemas.put(getSchemaEntry(IrisStructurePiece.class, dm, "/jigsaw-pieces/*.json"));
-		schemas.put(getSchemaEntry(IrisStructurePool.class, dm, "/jigsaw-pools/*.json"));
+		schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json"));
+		schemas.put(getSchemaEntry(IrisJigsawPool.class, dm, "/jigsaw-pools/*.json"));
 		schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json"));
 		schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json"));
 		settings.put("json.schemas", schemas);

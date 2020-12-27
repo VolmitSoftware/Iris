@@ -24,7 +24,7 @@ public class JigsawEditor implements Listener {
     private final Player player;
     private final IrisObject object;
     private final File targetSaveLocation;
-    private final IrisStructurePiece piece;
+    private final IrisJigsawPiece piece;
     private final Location origin;
     private final Cuboid cuboid;
     private final int ticker;
@@ -32,7 +32,7 @@ public class JigsawEditor implements Listener {
     private final KMap<IrisPosition, Runnable> falling = new KMap<>();
     private final ChronoLatch cl = new ChronoLatch(100);
 
-    public JigsawEditor(Player player, IrisStructurePiece piece, IrisObject object, File saveLocation)
+    public JigsawEditor(Player player, IrisJigsawPiece piece, IrisObject object, File saveLocation)
     {
         if(editors.containsKey(player))
         {
@@ -45,7 +45,7 @@ public class JigsawEditor implements Listener {
         origin = player.getLocation().clone().add(0, 7, 0);
         target = origin;
         this.targetSaveLocation = saveLocation;
-        this.piece = piece == null ? new IrisStructurePiece() : piece;
+        this.piece = piece == null ? new IrisJigsawPiece() : piece;
         this.piece.setObject(object.getLoadKey());
         cuboid = new Cuboid(origin.clone(), origin.clone().add(object.getW()-1, object.getH()-1, object.getD()-1));
         ticker = J.sr(this::onTick, 0);
@@ -93,8 +93,8 @@ public class JigsawEditor implements Listener {
             {
                 Vector v = e.getClickedBlock().getLocation().clone().subtract(origin.clone()).toVector();
                 IrisPosition pos = new IrisPosition(v.getBlockX(), v.getBlockY(), v.getBlockZ());
-                IrisStructurePieceConnector connector = null;
-                for(IrisStructurePieceConnector i : piece.getConnectors())
+                IrisJigsawPieceConnector connector = null;
+                for(IrisJigsawPieceConnector i : piece.getConnectors())
                 {
                     if(i.getPosition().equals(pos))
                     {
@@ -105,7 +105,7 @@ public class JigsawEditor implements Listener {
 
                 if(!player.isSneaking() && connector == null)
                 {
-                    connector = new IrisStructurePieceConnector();
+                    connector = new IrisJigsawPieceConnector();
                     connector.setDirection(IrisDirection.getDirection(e.getBlockFace()));
                     connector.setPosition(pos);
                     piece.getConnectors().add(connector);
@@ -149,7 +149,7 @@ public class JigsawEditor implements Listener {
 
             f: for(IrisPosition i : falling.k())
             {
-                for(IrisStructurePieceConnector j : piece.getConnectors())
+                for(IrisJigsawPieceConnector j : piece.getConnectors())
                 {
                     if(j.getPosition().equals(i))
                     {
@@ -160,7 +160,7 @@ public class JigsawEditor implements Listener {
                 falling.remove(i).run();
             }
 
-            for(IrisStructurePieceConnector i : piece.getConnectors())
+            for(IrisJigsawPieceConnector i : piece.getConnectors())
             {
                 IrisPosition pos = i.getPosition();
                 Location at = origin.clone().add(new Vector(pos.getX()+1, pos.getY()+1, pos.getZ()+1));

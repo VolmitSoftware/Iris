@@ -4,7 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.edit.JigsawEditor;
-import com.volmit.iris.object.IrisStructurePiece;
+import com.volmit.iris.object.IrisJigsawPiece;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
@@ -42,7 +42,7 @@ public class CommandIrisJigsawEdit extends MortarCommand
 		}
 
 
-		IrisStructurePiece piece = IrisDataManager.loadAnyStructurePiece(args[0]);
+		IrisJigsawPiece piece = IrisDataManager.loadAnyStructurePiece(args[0]);
 
 		if(piece != null)
 		{

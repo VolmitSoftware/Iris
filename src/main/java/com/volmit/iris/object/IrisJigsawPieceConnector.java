@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisStructurePieceConnector
+public class IrisJigsawPieceConnector
 {
 	@Required
 	@DontObfuscate

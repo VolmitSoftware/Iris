@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisStructurePiece extends IrisRegistrant
+public class IrisJigsawPiece extends IrisRegistrant
 {
 	@RegistryListObject
 	@Required
@@ -28,7 +28,7 @@ public class IrisStructurePiece extends IrisRegistrant
 
 	@Required
 	@DontObfuscate
-	@ArrayType(type = IrisStructurePieceConnector.class, min = 1)
+	@ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
 	@Desc("The connectors this object contains")
-	private KList<IrisStructurePieceConnector> connectors = new KList<>();
+	private KList<IrisJigsawPieceConnector> connectors = new KList<>();
 }

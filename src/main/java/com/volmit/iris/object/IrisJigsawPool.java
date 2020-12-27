@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a structure piece pool")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisStructurePool extends IrisRegistrant
+public class IrisJigsawPool extends IrisRegistrant
 {
 	@RegistryListStructurePiece
 	@Required

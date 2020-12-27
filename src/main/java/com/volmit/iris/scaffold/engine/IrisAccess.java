@@ -3,6 +3,7 @@ package com.volmit.iris.scaffold.engine;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.data.DataProvider;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -15,6 +16,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public interface IrisAccess extends Hotloadable, DataProvider {
+
+    public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst);
+
+    public void directWriteChunk(World w, int x, int z, DirectWorldWriter writer);
 
     public int getGenerated();
 

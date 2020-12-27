@@ -30,4 +30,9 @@ public class NMSBinding1X implements INMSBinding
 	public boolean isBukkit() {
 		return true;
 	}
+
+	@Override
+	public int getBiomeId(Biome biome) {
+		return biome.ordinal();
+	}
 }

@@ -151,15 +151,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             PrecisionStopwatch p = PrecisionStopwatch.start();
             int s = (int) Math.ceil(getParallaxSize() / 2D);
             int i,j;
+            BurstExecutor b = MultiBurst.burst.burst((s * 2) * (s * 2));
 
             for(i = -s; i <= s; i++)
             {
+                int ii = i;
                 for(j = -s; j <= s; j++)
                 {
-                    generateParallaxLayer((i*16)+x, (j*16)+z);
+                    int jj = j;
+                    b.queue(() -> generateParallaxLayer((ii*16)+x, (jj*16)+z));
                 }
             }
 
+            b.complete();
             getParallaxAccess().setChunkGenerated(x>>4, z>>4);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());

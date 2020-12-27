@@ -52,6 +52,9 @@ public class IrisSettings
 	public boolean useGleamPregenerator = false;
 
 	@DontObfuscate
+	public boolean useExperimentalGleamMCADirectWriteMode = false;
+
+	@DontObfuscate
 	public boolean disableNMS = false;
 
 	@DontObfuscate

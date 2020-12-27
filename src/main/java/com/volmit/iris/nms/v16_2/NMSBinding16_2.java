@@ -6,6 +6,7 @@ import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.KMap;
 import net.minecraft.server.v1_16_R2.BiomeBase;
 import net.minecraft.server.v1_16_R2.IRegistry;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_16_R2.CraftWorld;
@@ -39,6 +40,20 @@ public class NMSBinding16_2 implements INMSBinding
 		v = CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
 		baseBiomeCache.put(biome, v);
 		return v;
+	}
+
+	@Override
+	public int getBiomeId(Biome biome) {
+		for(World i : Bukkit.getWorlds())
+		{
+			if(i.getEnvironment().equals(World.Environment.NORMAL))
+			{
+				IRegistry<BiomeBase> registry = ((CraftWorld)i).getHandle().r().b(IRegistry.ay);
+				return registry.a((BiomeBase) getBiomeBase(registry, biome));
+			}
+		}
+
+		return biome.ordinal();
 	}
 
 	@Override

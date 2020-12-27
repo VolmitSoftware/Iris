@@ -4,6 +4,8 @@ import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.scaffold.parallel.BurstExecutor;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.CaveResult;
 import com.volmit.iris.util.PrecisionStopwatch;
@@ -27,13 +29,18 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        for(int i = 0; i < output.getWidth(); i++)
+        BurstExecutor b = MultiBurst.burst.burst(output.getWidth() * output.getDepth());
+        int i, j;
+        for(i = 0; i < output.getWidth(); i++)
         {
-            for(int j = 0; j < output.getDepth(); j++)
+            int ii = i;
+            for(j = 0; j < output.getDepth(); j++)
             {
-                post(i, j, output, i+x, j+z);
+                int jj = j;
+                b.queue(() -> post(ii, jj, output, ii+x, jj+z));
             }
         }
+        b.complete();
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 

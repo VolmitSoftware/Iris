@@ -9,6 +9,8 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.scaffold.parallel.BurstExecutor;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
 import lombok.Getter;
@@ -306,6 +308,129 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         TerrainChunk tc = TerrainChunk.create(world, biome);
         generateChunkRawData(world, x, z, tc).run();
         return tc.getRaw();
+    }
+
+    public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst)
+    {
+        if(writer.getMCAFile(x, z).exists())
+        {
+            return;
+        }
+
+        BurstExecutor e = burst.burst(1024);
+        int mcaox = x << 5;
+        int mcaoz = z << 5;
+
+        for(int i = 0; i < 32; i++)
+        {
+            int ii = i;
+            for(int j = 0; j < 32; j++)
+            {
+                int jj = j;
+                e.queue(() -> directWriteChunk(w, ii + mcaox, jj + mcaoz, writer));
+            }
+        }
+
+        e.complete();
+    }
+
+    public void directWriteChunk(World w, int x, int z, DirectWorldWriter writer)
+    {
+        int ox = x << 4;
+        int oz = z << 4;
+        generateChunkRawData(w, x, z, new TerrainChunk() {
+            @Override
+            public void setRaw(ChunkData data) {
+
+            }
+
+            @Override
+            public Biome getBiome(int x, int z) {
+                return Biome.THE_VOID;
+            }
+
+            @Override
+            public Biome getBiome(int x, int y, int z) {
+                return Biome.THE_VOID;
+            }
+
+            @Override
+            public void setBiome(int x, int z, Biome bio) {
+                writer.setBiome(ox + x, 0, oz + z, bio);
+            }
+
+            @Override
+            public void setBiome(int x, int y, int z, Biome bio) {
+                writer.setBiome(ox + x, y, oz + z, bio);
+            }
+
+            @Override
+            public int getMaxHeight() {
+                return w.getMaxHeight();
+            }
+
+            @Override
+            public void setBlock(int x, int y, int z, BlockData blockData) {
+                writer.setBlockData(x+ox, y, z+oz, blockData);
+            }
+
+            @Override
+            public BlockData getBlockData(int x, int y, int z) {
+                return writer.getBlockData(x + ox, y, z + oz);
+            }
+
+            @Override
+            public ChunkData getRaw() {
+                return null;
+            }
+
+            @Override
+            public void inject(BiomeGrid biome) {
+
+            }
+
+            @Override
+            public void setBlock(int x, int y, int z, @NotNull Material material) {
+
+            }
+
+            @Override
+            public void setBlock(int x, int y, int z, @NotNull MaterialData material) {
+
+            }
+
+            @Override
+            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
+
+            }
+
+            @Override
+            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
+
+            }
+
+            @Override
+            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
+
+            }
+
+            @NotNull
+            @Override
+            public Material getType(int x, int y, int z) {
+                return null;
+            }
+
+            @NotNull
+            @Override
+            public MaterialData getTypeAndData(int x, int y, int z) {
+                return null;
+            }
+
+            @Override
+            public byte getData(int x, int y, int z) {
+                return 0;
+            }
+        }).run();
     }
 
     public Chunk generatePaper(World world, int x, int z)

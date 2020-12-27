@@ -33,4 +33,6 @@ public interface INMSBinding
 		return getCreator().createWorld(creator, loadSpawn);
 
 	}
+
+    int getBiomeId(Biome biome);
 }

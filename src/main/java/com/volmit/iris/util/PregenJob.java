@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.gui.PregenGui;
 import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.DirectWorldWriter;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import io.papermc.lib.PaperLib;
@@ -60,12 +61,14 @@ public class PregenJob implements Listener
 	private long pausedAt = 0;
 	private double pms = 0;
 	private boolean gleaming = false;
+	private final DirectWorldWriter writer;
 	int xc = 0;
 	private IrisAccess access = null;
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
-		gleaming = (IrisSettings.get().isUseGleamPregenerator() && PaperLib.isPaper());
+		writer = new DirectWorldWriter(world.getWorldFolder());
+		gleaming = (IrisSettings.get().isUseGleamPregenerator());
 		g.set(0);
 		burst = new MultiBurst(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		instance = this;
@@ -393,26 +396,48 @@ public class PregenJob implements Listener
 						consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.cyan.darker().darker().darker());
 					}
 
-					J.a(() -> {
+					Runnable g = () -> {
 						try {
 							working.acquire();
 							if(consumer != null)
 							{
 								consumer.accept(new ChunkPosition(cx, cz), Color.cyan);
 							}
-							Chunk chunk = access().generatePaper(world, cx, cz);
+							int xx = cx;
+							int zz = cz;
+
+							if(IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode())
+							{
+								access().directWriteChunk(world, cx, cz, writer);
+							}
+
+							else
+							{
+								access().generatePaper(world, cx, cz);
+							}
+
 							working.release();
 							genned++;
 							nogen = M.ms();
 
 							if(consumer != null)
 							{
-								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.yellow);
+								if(IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode())
+								{
+									consumer.accept(new ChunkPosition(xx, zz), Color.blue);
+
+								}
+
+								else {
+									consumer.accept(new ChunkPosition(xx, zz), Color.yellow);
+								}
 							}
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
-					});
+					};
+
+					J.a(g);
 				}
 
 				else
@@ -559,6 +584,8 @@ public class PregenJob implements Listener
 			world.save();
 			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
 		}
+
+		writer.flush();
 	}
 
 	public int max()

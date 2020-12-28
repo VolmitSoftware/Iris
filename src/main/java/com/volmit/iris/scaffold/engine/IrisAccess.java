@@ -401,4 +401,16 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     int getPrecacheSize();
 
     Chunk generatePaper(World world, int cx, int cz);
+
+    default int getParallaxChunkCount()
+    {
+        int v= 0;
+
+        for(int i = 0; i < getCompound().getSize(); i++)
+        {
+            v += getCompound().getEngine(i).getParallax().getChunkCount();
+        }
+
+        return v;
+    }
 }

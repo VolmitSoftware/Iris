@@ -24,7 +24,7 @@ public class MultiBurst
 				tid++;
 				Thread t = new Thread(r);
 				t.setName("Iris Generator " + tid);
-				t.setPriority(Thread.MAX_PRIORITY);
+				t.setPriority(6);
 				t.setUncaughtExceptionHandler((et, e) ->
 				{
 					Iris.info("Exception encountered in " + et.getName());

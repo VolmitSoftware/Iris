@@ -1,9 +1,11 @@
 package com.volmit.iris.scaffold.parallax;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.J;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
@@ -23,7 +25,7 @@ public class ParallaxWorld implements ParallaxAccess
 		this.folder = folder;
 		save = new KList<>();
 		loadedRegions = new KMap<>();
-		cleanup = new ChronoLatch(1000);
+		cleanup = new ChronoLatch(5000);
 		folder.mkdirs();
 	}
 
@@ -101,12 +103,12 @@ public class ParallaxWorld implements ParallaxAccess
 				save.remove(key);
 			}
 
-			v += loadedRegions.remove(key).unload();
-		}
+			ParallaxRegion lr = loadedRegions.remove(key);
 
-		else
-		{
-			Iris.warn("Cant unload region " + x + " " + z + " because it's not loaded.");
+			if(lr != null)
+			{
+				v += lr.unload();
+			}
 		}
 
 		return v;
@@ -210,28 +212,31 @@ public class ParallaxWorld implements ParallaxAccess
 
 	@Override
 	public void cleanup(long r, long c) {
-
 		J.a(() -> {
-			int rr = 0;
-			int cc = 0;
-
-			for(ParallaxRegion i : loadedRegions.v())
+			try
 			{
-				if(i.hasBeenIdleLongerThan(r))
-				{
-					rr++;
-					unload(i.getX(), i.getZ());
-				}
+				int rr = 0;
+				int cc = 0;
 
-				else
+				for(ParallaxRegion i : loadedRegions.v())
 				{
-					cc+= i.cleanup(c);
+					if(i.hasBeenIdleLongerThan(r))
+					{
+						rr++;
+						unload(i.getX(), i.getZ());
+					}
+
+					else
+					{
+						cc+= i.cleanup(c);
+					}
 				}
 			}
 
-			Iris.info("Unloaded " + rr + " Regions and " + cc + " Chunks");
-			Iris.info("P: c" + Form.f(getChunkCount()) + " / r" + getRegionCount());
-
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
 		});
 	}
 

@@ -18,7 +18,10 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PregenJob implements Listener
@@ -53,7 +56,7 @@ public class PregenJob implements Listener
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = 9;
+	private int cubeSize = 32;
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);
@@ -64,6 +67,25 @@ public class PregenJob implements Listener
 	private final DirectWorldWriter writer;
 	int xc = 0;
 	private IrisAccess access = null;
+	private static int tid = 0;
+	private static final ExecutorService e = Executors.newCachedThreadPool(new ThreadFactory()
+	{
+		@Override
+		public Thread newThread(Runnable r)
+		{
+			tid++;
+			Thread t = new Thread(r);
+			t.setName("Iris Pregen Worker " + tid);
+			t.setPriority(3);
+			t.setUncaughtExceptionHandler((et, e) ->
+			{
+				Iris.info("Exception encountered in " + et.getName());
+				e.printStackTrace();
+			});
+
+			return t;
+		}
+	});
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
@@ -439,7 +461,7 @@ public class PregenJob implements Listener
 						}
 					};
 
-					J.a(g);
+					e.execute(g);
 				}
 
 				else
@@ -447,7 +469,7 @@ public class PregenJob implements Listener
 				{
 					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.magenta.darker().darker().darker());
 				}
-					J.a(() ->
+					e.execute(() ->
 					{
 						try
 						{
@@ -626,7 +648,7 @@ public class PregenJob implements Listener
 		try
 		{
 			vv.add("Parallelism: " + access().getCompound().getCurrentlyGeneratingEngines());
-			vv.add("Precache   : " + access().getPrecacheSize());
+			vv.add("Plax Cache : " + Form.f(access().getParallaxChunkCount()));
 		}
 
 		catch(Throwable e)

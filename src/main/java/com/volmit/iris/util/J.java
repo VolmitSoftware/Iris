@@ -19,7 +19,7 @@ public class J
 			tid++;
 			Thread t = new Thread(r);
 			t.setName("Iris Actuator " + tid);
-			t.setPriority(Thread.MIN_PRIORITY);
+			t.setPriority(8);
 			t.setUncaughtExceptionHandler((et, e) ->
 			{
 				Iris.info("Exception encountered in " + et.getName());

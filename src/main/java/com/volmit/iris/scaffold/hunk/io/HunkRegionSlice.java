@@ -2,6 +2,8 @@ package com.volmit.iris.scaffold.hunk.io;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.scaffold.parallel.BurstExecutor;
+import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import org.bukkit.block.data.BlockData;
 
@@ -78,12 +80,19 @@ public class HunkRegionSlice<T>
 
 	public void save()
 	{
+		BurstExecutor e = MultiBurst.burst.burst(save.size());
 		for(ChunkPosition i : save.copy())
 		{
-			save(i.getX(), i.getZ());
+			if(i == null)
+			{
+				continue;
+			}
+
+			e.queue(() -> save(i.getX(), i.getZ()));
+			save.remove(i);
 		}
 
-		save.clear();
+		e.complete();
 	}
 
 	public boolean contains(int x, int z)

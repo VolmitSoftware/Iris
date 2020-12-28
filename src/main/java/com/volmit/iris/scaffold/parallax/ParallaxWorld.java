@@ -89,10 +89,10 @@ public class ParallaxWorld implements ParallaxAccess
 		}
 	}
 
-	public void unload(int x, int z)
+	public int unload(int x, int z)
 	{
 		long key = key(x, z);
-
+		int v = 0;
 		if(isLoaded(x, z))
 		{
 			if(save.contains(key))
@@ -101,8 +101,15 @@ public class ParallaxWorld implements ParallaxAccess
 				save.remove(key);
 			}
 
-			loadedRegions.remove(key).unload();
+			v += loadedRegions.remove(key).unload();
 		}
+
+		else
+		{
+			Iris.warn("Cant unload region " + x + " " + z + " because it's not loaded.");
+		}
+
+		return v;
 	}
 
 	public ParallaxRegion load(int x, int z)
@@ -203,21 +210,28 @@ public class ParallaxWorld implements ParallaxAccess
 
 	@Override
 	public void cleanup(long r, long c) {
-		Iris.info("P: c" + Form.f(getChunkCount()) + " / r" + getRegionCount());
 
 		J.a(() -> {
+			int rr = 0;
+			int cc = 0;
+
 			for(ParallaxRegion i : loadedRegions.v())
 			{
 				if(i.hasBeenIdleLongerThan(r))
 				{
+					rr++;
 					unload(i.getX(), i.getZ());
 				}
 
 				else
 				{
-					i.cleanup(c);
+					cc+= i.cleanup(c);
 				}
 			}
+
+			Iris.info("Unloaded " + rr + " Regions and " + cc + " Chunks");
+			Iris.info("P: c" + Form.f(getChunkCount()) + " / r" + getRegionCount());
+
 		});
 	}
 

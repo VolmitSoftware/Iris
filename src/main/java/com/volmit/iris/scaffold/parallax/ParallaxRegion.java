@@ -147,12 +147,12 @@ public class ParallaxRegion extends HunkRegion
 		super.save();
 	}
 
-	public void unload()
+	public int unload()
 	{
-		blockSlice.unloadAll();
-		objectSlice.unloadAll();
-		updateSlice.unloadAll();
 		unloadMetaHunk();
+		return blockSlice.unloadAll()+
+		objectSlice.unloadAll()+
+		updateSlice.unloadAll();
 	}
 
 	public HunkRegionSlice<BlockData> getBlockSlice() {
@@ -170,9 +170,9 @@ public class ParallaxRegion extends HunkRegion
 		return updateSlice;
 	}
 
-	public void cleanup(long c) {
-		blockSlice.cleanup(c);
-		objectSlice.cleanup(c);
+	public int cleanup(long c) {
+		return blockSlice.cleanup(c) +
+		objectSlice.cleanup(c) +
 		updateSlice.cleanup(c);
 	}
 

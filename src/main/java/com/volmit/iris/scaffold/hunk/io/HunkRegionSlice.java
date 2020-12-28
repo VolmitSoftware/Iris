@@ -33,8 +33,9 @@ public class HunkRegionSlice<T>
 		this.lastUse = new KMap<>();
 	}
 
-	public void cleanup(long t)
+	public int cleanup(long t)
 	{
+		int v = 0;
 		if(loadedChunks.size() != lastUse.size())
 		{
 			Iris.warn("Incorrect chunk use counts in " + key);
@@ -50,11 +51,15 @@ public class HunkRegionSlice<T>
 
 		for(ChunkPosition i : lastUse.k())
 		{
-			if(M.ms() - lastUse.get(i) > t)
+			Long l = lastUse.get(i);
+			if(l == null || M.ms() - l > t)
 			{
+				v++;
 				unload(i.getX(), i.getZ());
 			}
 		}
+
+		return v;
 	}
 
 	public void clear()
@@ -109,16 +114,19 @@ public class HunkRegionSlice<T>
 		compound.getValue().put(key(x, z), hunk.writeByteArrayTag(adapter, key(x, z)));
 	}
 
-	public synchronized void unloadAll()
+	public synchronized int unloadAll()
 	{
+		int v = 0;
 		for(ChunkPosition i : loadedChunks.k())
 		{
 			unload(i.getX(), i.getZ());
+			v++;
 		}
 
 		save.clear();
 		loadedChunks.clear();
 		lastUse.clear();
+		return v;
 	}
 
 	public synchronized void save(Hunk<T> region, int x, int z)

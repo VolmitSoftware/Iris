@@ -1,17 +1,12 @@
 package com.volmit.iris.util;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
+import com.volmit.iris.Iris;
+import org.bukkit.Bukkit;
+
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import org.bukkit.Bukkit;
-
-import com.volmit.iris.Iris;
 
 public class J
 {
@@ -56,7 +51,18 @@ public class J
 
 	public static void a(Runnable a)
 	{
-		e.submit(a);
+		e.submit(() -> {
+			try
+			{
+				a.run();
+			}
+
+			catch(Throwable e)
+			{
+				System.out.println("Failed to run async task");
+				e.printStackTrace();
+			}
+		});
 	}
 
 	public static <T> Future<T> a(Callable<T> a)

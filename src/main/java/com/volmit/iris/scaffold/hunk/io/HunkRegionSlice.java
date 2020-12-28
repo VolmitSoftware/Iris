@@ -78,7 +78,7 @@ public class HunkRegionSlice<T>
 
 	public void save()
 	{
-		for(ChunkPosition i : save)
+		for(ChunkPosition i : save.copy())
 		{
 			save(i.getX(), i.getZ());
 		}

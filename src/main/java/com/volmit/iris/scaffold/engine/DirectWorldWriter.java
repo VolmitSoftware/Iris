@@ -7,13 +7,10 @@ import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.M;
-import io.timeandspace.smoothie.OptimizationObjective;
 import io.timeandspace.smoothie.SmoothieMap;
-import net.querz.mca.Chunk;
-import net.querz.mca.MCAFile;
-import net.querz.mca.MCAUtil;
-import net.querz.mca.Section;
+import net.querz.mca.*;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.StringTag;
 import org.bukkit.NamespacedKey;
@@ -28,14 +25,14 @@ public class DirectWorldWriter {
     private final File worldFolder;
     private final Map<Long, MCAFile> writeBuffer;
     private final Map<Long, Long> lastUse;
-    private static final Map<String, CompoundTag> blockDataCache = SmoothieMap.<String, CompoundTag>newBuilder().build();;
+    private static final Map<String, CompoundTag> blockDataCache = new KMap<>();
     private static final Map<Biome, Integer> biomeIds = computeBiomeIDs();
 
     public DirectWorldWriter(File worldFolder)
     {
         this.worldFolder = worldFolder;
         lastUse = SmoothieMap.<Long, Long>newBuilder().build();
-        writeBuffer = SmoothieMap.<Long, MCAFile>newBuilder().build();
+        writeBuffer = new KMap<>();
         new File(worldFolder, "region").mkdirs();
     }
 
@@ -74,10 +71,7 @@ public class DirectWorldWriter {
 
                     lastUse.remove(i);
                     MCAUtil.write(writeBuffer.get(i), f, true);
-                    synchronized (writeBuffer)
-                    {
-                        writeBuffer.remove(i);
-                    }
+                    writeBuffer.remove(i);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -246,6 +240,15 @@ public class DirectWorldWriter {
         {
             try {
                 mca = MCAUtil.read(f);
+                try
+                {
+                    mca.cleanupPalettesAndBlockStates();
+                }
+
+                catch(Throwable ee)
+                {
+
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 Iris.warn("Failed to read RandomAccessFile " + f.getAbsolutePath() + ", assuming empty region!");
@@ -262,10 +265,7 @@ public class DirectWorldWriter {
     }
 
     private static Map<Biome, Integer> computeBiomeIDs() {
-        Map<Biome, Integer> biomeIds = SmoothieMap.<Biome, Integer>newBuilder()
-                .expectedSize(Biome.values().length)
-                .optimizeFor(OptimizationObjective.FOOTPRINT)
-                .build();
+        Map<Biome, Integer> biomeIds = new KMap<>();
 
         for(Biome i : Biome.values())
         {

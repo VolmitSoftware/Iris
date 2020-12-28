@@ -56,7 +56,6 @@ public class ParallaxRegion extends HunkRegion
 
 	public ParallaxChunkMeta getMetaR(int x, int z)
 	{
-		lastUse = M.ms();
 		return getMetaHunkR().getOr(x, 0, z, new ParallaxChunkMeta());
 	}
 

@@ -118,9 +118,19 @@ public class Section {
 	 * @return The block state data of this block.
 	 */
 	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-		int index = getBlockIndex(blockX, blockY, blockZ);
-		int paletteIndex = getPaletteIndex(index);
-		return palette.get(paletteIndex);
+		try
+		{
+			int index = getBlockIndex(blockX, blockY, blockZ);
+			int paletteIndex = getPaletteIndex(index);
+			return palette.get(paletteIndex);
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		return null;
 	}
 
 	/**

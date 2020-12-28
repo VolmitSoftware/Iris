@@ -176,8 +176,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         }
     }
 
-
-
     default void generateParallaxLayer(int x, int z, boolean force)
     {
         if(!force && getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4))
@@ -426,6 +424,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
                 try
                 {
                     BlockVector bv = IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
+                    warn(i, bv);
+
                     synchronized (xg)
                     {
                         xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
@@ -480,6 +480,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
         return x;
+    }
+
+    default void warn(String ob, BlockVector bv)
+    {
+        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128)
+        {
+            Iris.warn("Object " + ob + " has a large size (" + bv.toString() + ") and may increase memory usage!");
+        }
     }
 
     @Override

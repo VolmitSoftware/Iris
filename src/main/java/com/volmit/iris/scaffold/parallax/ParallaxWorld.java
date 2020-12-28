@@ -1,11 +1,9 @@
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.*;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
@@ -25,7 +23,7 @@ public class ParallaxWorld implements ParallaxAccess
 		this.folder = folder;
 		save = new KList<>();
 		loadedRegions = new KMap<>();
-		cleanup = new ChronoLatch(5000);
+		cleanup = new ChronoLatch(1000);
 		folder.mkdirs();
 	}
 
@@ -205,6 +203,8 @@ public class ParallaxWorld implements ParallaxAccess
 
 	@Override
 	public void cleanup(long r, long c) {
+		Iris.info("P: c" + Form.f(getChunkCount()) + " / r" + getRegionCount());
+
 		J.a(() -> {
 			for(ParallaxRegion i : loadedRegions.v())
 			{

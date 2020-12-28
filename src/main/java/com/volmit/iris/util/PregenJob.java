@@ -209,8 +209,6 @@ public class PregenJob implements Listener
 			tick(skip);
 		}
 
-		Iris.warn("Size: " + writer.size());
-
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 
 		if(PaperLib.isPaper())

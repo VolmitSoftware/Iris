@@ -5,7 +5,11 @@ import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.B;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
+import io.timeandspace.smoothie.OptimizationObjective;
+import io.timeandspace.smoothie.SmoothieMap;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
 import net.querz.mca.MCAUtil;
@@ -18,19 +22,20 @@ import org.bukkit.block.data.BlockData;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 public class DirectWorldWriter {
     private final File worldFolder;
-    private final KMap<Long, MCAFile> writeBuffer;
-    private final KMap<Long, Long> lastUse;
-    private static final KMap<String, CompoundTag> blockDataCache = new KMap<>();
-    private static final KMap<Biome, Integer> biomeIds = computeBiomeIDs();
+    private final Map<Long, MCAFile> writeBuffer;
+    private final Map<Long, Long> lastUse;
+    private static final Map<String, CompoundTag> blockDataCache = SmoothieMap.<String, CompoundTag>newBuilder().build();;
+    private static final Map<Biome, Integer> biomeIds = computeBiomeIDs();
 
     public DirectWorldWriter(File worldFolder)
     {
         this.worldFolder = worldFolder;
-        lastUse = new KMap<>();
-        writeBuffer = new KMap<>();
+        lastUse = SmoothieMap.<Long, Long>newBuilder().build();
+        writeBuffer = SmoothieMap.<Long, MCAFile>newBuilder().build();
         new File(worldFolder, "region").mkdirs();
     }
 
@@ -38,9 +43,9 @@ public class DirectWorldWriter {
     {
         BurstExecutor ex2 = MultiBurst.burst.burst(writeBuffer.size());
 
-        for(Long i : writeBuffer.k())
+        for(Long i : new KList<>(writeBuffer.keySet()))
         {
-            if(M.ms() - lastUse.get(i) < 15000)
+            if(M.ms() - lastUse.get(i) < 5000)
             {
                 continue;
             }
@@ -69,7 +74,10 @@ public class DirectWorldWriter {
 
                     lastUse.remove(i);
                     MCAUtil.write(writeBuffer.get(i), f, true);
-                    writeBuffer.remove(i);
+                    synchronized (writeBuffer)
+                    {
+                        writeBuffer.remove(i);
+                    }
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -253,8 +261,11 @@ public class DirectWorldWriter {
         return writeBuffer.size();
     }
 
-    private static KMap<Biome, Integer> computeBiomeIDs() {
-        KMap<Biome, Integer> biomeIds = new KMap<>();
+    private static Map<Biome, Integer> computeBiomeIDs() {
+        Map<Biome, Integer> biomeIds = SmoothieMap.<Biome, Integer>newBuilder()
+                .expectedSize(Biome.values().length)
+                .optimizeFor(OptimizationObjective.FOOTPRINT)
+                .build();
 
         for(Biome i : Biome.values())
         {

@@ -53,7 +53,7 @@ public class PregenJob implements Listener
 	private double cps = 0;
 	private int lg = 0;
 	private long lt = M.ms();
-	private int cubeSize = 32;
+	private int cubeSize = 9;
 	private long nogen = M.ms();
 	private KList<ChunkPosition> requeueMCA = new KList<ChunkPosition>();
 	private RollingSequence acps = new RollingSequence(PaperLib.isPaper() ? 8 : 32);

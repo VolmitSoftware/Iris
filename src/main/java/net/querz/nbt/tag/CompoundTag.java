@@ -1,6 +1,7 @@
 package net.querz.nbt.tag;
 
-import com.volmit.iris.util.KMap;
+import io.timeandspace.smoothie.OptimizationObjective;
+import io.timeandspace.smoothie.SmoothieMap;
 import net.querz.io.MaxDepthIO;
 
 import java.util.*;
@@ -20,7 +21,8 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 	}
 
 	private static Map<String, Tag<?>> createEmptyValue() {
-		return new KMap<>();
+		return SmoothieMap.<String, Tag<?>>newBuilder()
+				.optimizeFor(OptimizationObjective.FOOTPRINT).build();
 	}
 
 	public int size() {

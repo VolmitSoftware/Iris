@@ -1,13 +1,9 @@
 package net.querz.nbt.tag;
 
+import com.volmit.iris.util.KList;
 import net.querz.io.MaxDepthIO;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -52,10 +48,10 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	 *
 	 * @param <T> Type of the list elements
 	 * @param initialCapacity The initial capacity of the returned List
-	 * @return An instance of {@link java.util.List} with an initial capacity of 3
+	 * @return An instance of {@link List} with an initial capacity of 3
 	 * */
 	private static <T> List<T> createEmptyValue(int initialCapacity) {
-		return new ArrayList<>(initialCapacity);
+		return new KList<>(initialCapacity);
 	}
 
 	/**

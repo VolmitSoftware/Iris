@@ -63,6 +63,11 @@ public class MCAFile {
 		}
 	}
 
+	public Chunk[] getChunks()
+	{
+		return chunks;
+	}
+
 	/**
 	 * Calls {@link MCAFile#serialize(RandomAccessFile, boolean)} without updating any timestamps.
 	 * @see MCAFile#serialize(RandomAccessFile, boolean)

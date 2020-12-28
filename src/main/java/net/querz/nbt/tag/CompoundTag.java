@@ -1,13 +1,9 @@
 package net.querz.nbt.tag;
 
+import com.volmit.iris.util.KMap;
 import net.querz.io.MaxDepthIO;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Map.Entry<String, Tag<?>>>, Comparable<CompoundTag>, MaxDepthIO {
@@ -24,7 +20,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 	}
 
 	private static Map<String, Tag<?>> createEmptyValue() {
-		return new HashMap<>(8);
+		return new KMap<>();
 	}
 
 	public int size() {

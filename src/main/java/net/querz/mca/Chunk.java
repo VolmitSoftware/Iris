@@ -30,7 +30,7 @@ public class Chunk {
 	private int[] biomes;
 	private CompoundTag heightMaps;
 	private CompoundTag carvingMasks;
-	private Section[] sections = new Section[16]; //always initialized with size = 16 for fast access
+	private final Section[] sections = new Section[16];
 	private ListTag<CompoundTag> entities;
 	private ListTag<CompoundTag> tileEntities;
 	private ListTag<CompoundTag> tileTicks;

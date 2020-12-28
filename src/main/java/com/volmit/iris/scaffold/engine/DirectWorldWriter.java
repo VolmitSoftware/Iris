@@ -5,9 +5,7 @@ import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
-import com.volmit.iris.util.B;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.*;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
 import net.querz.mca.MCAUtil;
@@ -24,41 +22,64 @@ import java.io.IOException;
 public class DirectWorldWriter {
     private final File worldFolder;
     private final KMap<Long, MCAFile> writeBuffer;
+    private final KMap<Long, Long> lastUse;
+    private static final KMap<String, CompoundTag> blockDataCache = new KMap<>();
+    private static final KMap<Biome, Integer> biomeIds = computeBiomeIDs();
 
     public DirectWorldWriter(File worldFolder)
     {
         this.worldFolder = worldFolder;
+        lastUse = new KMap<>();
         writeBuffer = new KMap<>();
         new File(worldFolder, "region").mkdirs();
     }
 
     public void flush()
     {
-        BurstExecutor ex = MultiBurst.burst.burst(writeBuffer.size());
-        writeBuffer.v().forEach((i) -> ex.queue(i::cleanupPalettesAndBlockStates));
-        ex.complete();
         BurstExecutor ex2 = MultiBurst.burst.burst(writeBuffer.size());
 
         for(Long i : writeBuffer.k())
         {
-            int x = Cache.keyX(i);
-            int z = Cache.keyZ(i);
-            try {
-                File f = getMCAFile(x, z);
-
-                if(!f.exists())
-                {
-                    f.getParentFile().mkdirs();
-                    f.createNewFile();
-                }
-
-                MCAUtil.write(writeBuffer.get(i), f, true);
-            } catch (Throwable e) {
-                e.printStackTrace();
+            if(M.ms() - lastUse.get(i) < 15000)
+            {
+                continue;
             }
-        }
 
-        writeBuffer.clear();
+            ex2.queue(() -> {
+                int x = Cache.keyX(i);
+                int z = Cache.keyZ(i);
+                try {
+                    File f = getMCAFile(x, z);
+
+                    if(!f.exists())
+                    {
+                        f.getParentFile().mkdirs();
+                        f.createNewFile();
+                    }
+
+                    try
+                    {
+                        writeBuffer.get(i).cleanupPalettesAndBlockStates();
+                    }
+
+                    catch(Throwable e)
+                    {
+
+                    }
+
+                    lastUse.remove(i);
+                    MCAUtil.write(writeBuffer.get(i), f, true);
+                    writeBuffer.remove(i);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+
+    public void optimizeChunk(int x, int z)
+    {
+        getChunk(x, z).cleanupPalettesAndBlockStates();
     }
 
     public File getMCAFile(int x, int z)
@@ -66,8 +87,12 @@ public class DirectWorldWriter {
         return new File(worldFolder, "region/r." + x + "." + z + ".mca");
     }
 
-    public BlockData getBlockData(CompoundTag tag)
-    {
+    public BlockData getBlockData(CompoundTag tag) {
+        if (tag == null)
+        {
+            return B.getAir();
+        }
+
         String p = tag.getString("Name");
 
         if(tag.containsKey("Properties"))
@@ -84,16 +109,29 @@ public class DirectWorldWriter {
             p += m.toString(",") + "]";
         }
 
-        return B.get(p);
+        BlockData b = B.getOrNull(p);
+
+        if(b == null)
+        {
+            return B.getAir();
+        }
+
+        return b;
     }
 
     public CompoundTag getCompound(BlockData blockData)
     {
+        String data = blockData.getAsString(true);
+
+        if(blockDataCache.containsKey(data))
+        {
+            return blockDataCache.get(data).clone();
+        }
+
         CompoundTag s = new CompoundTag();
         NamespacedKey key = blockData.getMaterial().getKey();
         s.putString("Name", key.getNamespace() + ":" + key.getKey());
 
-        String data = blockData.getAsString(true);
 
         if(data.contains("["))
         {
@@ -120,6 +158,7 @@ public class DirectWorldWriter {
             s.put("Properties", props);
         }
 
+        blockDataCache.put(data, s.clone());
         return s;
     }
 
@@ -151,7 +190,7 @@ public class DirectWorldWriter {
 
     public void setBiome(int x, int y, int z, Biome biome)
     {
-        getChunk(x>>4, z>>4).setBiomeAt(x&15, y, z &15, INMS.get().getBiomeId(biome));
+        getChunk(x>>4, z>>4).setBiomeAt(x&15, y, z &15, biomeIds.get(biome));
     }
 
     public Section getChunkSection(int x, int y, int z)
@@ -176,6 +215,7 @@ public class DirectWorldWriter {
         if(c == null)
         {
             c = Chunk.newChunk();
+            lastUse.put(Cache.key(x >> 5, z >> 5), M.ms());
             mca.setChunk(x&31, z&31, c);
         }
 
@@ -204,7 +244,23 @@ public class DirectWorldWriter {
             }
         }
 
+        lastUse.put(key, M.ms());
         writeBuffer.put(key, mca);
         return mca;
+    }
+
+    public int size() {
+        return writeBuffer.size();
+    }
+
+    private static KMap<Biome, Integer> computeBiomeIDs() {
+        KMap<Biome, Integer> biomeIds = new KMap<>();
+
+        for(Biome i : Biome.values())
+        {
+            biomeIds.put(i, INMS.get().getBiomeId(i));
+        }
+
+        return biomeIds;
     }
 }

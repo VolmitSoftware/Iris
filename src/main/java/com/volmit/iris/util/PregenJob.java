@@ -147,6 +147,7 @@ public class PregenJob implements Listener
 	{
 		try
 		{
+			instance.writer.flush();
 			Bukkit.getScheduler().cancelTask(task);
 
 			if(consumer != null)
@@ -172,6 +173,7 @@ public class PregenJob implements Listener
 		instance.pms = instance.s.getMilliseconds();
 		instance.paused = true;
 		instance.pausedAt = M.ms();
+		instance.writer.flush();
 	}
 
 	public static void resume()
@@ -206,6 +208,8 @@ public class PregenJob implements Listener
 		{
 			tick(skip);
 		}
+
+		Iris.warn("Size: " + writer.size());
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
 

@@ -338,6 +338,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     {
         int ox = x << 4;
         int oz = z << 4;
+        net.querz.mca.Chunk cc = writer.getChunk(x, z);
         generateChunkRawData(w, x, z, new TerrainChunk() {
             @Override
             public void setRaw(ChunkData data) {
@@ -356,12 +357,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBiome(int x, int z, Biome bio) {
-                writer.setBiome(ox + x, 0, oz + z, bio);
+                setBiome(ox + x, 0, oz + z, bio);
             }
 
             @Override
             public void setBiome(int x, int y, int z, Biome bio) {
-                writer.setBiome(ox + x, y, oz + z, bio);
+                writer.setBiome((ox + x), y, oz + z, bio);
             }
 
             @Override
@@ -371,12 +372,22 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBlock(int x, int y, int z, BlockData blockData) {
-                writer.setBlockData(x+ox, y, z+oz, blockData);
+                cc.setBlockStateAt((x+ox)&15, y, (z+oz)&15, writer.getCompound(blockData), false);
             }
 
             @Override
             public BlockData getBlockData(int x, int y, int z) {
-                return writer.getBlockData(x + ox, y, z + oz);
+                if(y > getMaxHeight())
+                {
+                    y = getMaxHeight();
+                }
+
+                if(y < 0)
+                {
+                    y = 0;
+                }
+
+                return writer.getBlockData(cc.getBlockStateAt((x+ox)&15, y, (z+oz)&15));
             }
 
             @Override
@@ -431,6 +442,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 return 0;
             }
         }).run();
+        writer.optimizeChunk(x, z);
     }
 
     public Chunk generatePaper(World world, int x, int z)

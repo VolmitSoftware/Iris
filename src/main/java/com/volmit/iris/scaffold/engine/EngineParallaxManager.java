@@ -202,6 +202,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
         IrisRegion region = getComplex().getRegionStream().get(x+8, z+8);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(x+8, z+8);
+        // generateParallaxJigsaw(rng, x, z, biome, placedObjects);
         generateParallaxSurface(rng, x, z, biome, placedObjects);
         generateParallaxMutations(rng, x, z, placedObjects);
         generateStructures(rng, x>>4, z>>4, region, biome, placedObjects);
@@ -270,7 +271,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, KList<PlacedObject> objects) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
         {
-            Iris.info("Found Placement: " + i.getPlace());
             if(rng.chance(i.getChance()))
             {
                 place(rng, x, z, i, objects);

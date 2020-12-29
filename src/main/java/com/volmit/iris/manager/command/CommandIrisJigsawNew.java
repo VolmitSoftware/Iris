@@ -48,7 +48,7 @@ public class CommandIrisJigsawNew extends MortarCommand
 		}
 
 		IrisObject object = IrisDataManager.loadAnyObject(args[2]);
-		File dest = Iris.instance.getDataFile("packs", args[1], "structure-pieces", args[0] + ".json");
+		File dest = Iris.instance.getDataFile("packs", args[1], "jigsaw-pieces", args[0] + ".json");
 		new JigsawEditor(sender.player(), null, object, dest);
 		sender.sendMessage("* Right Click blocks to make them connectors");
 		sender.sendMessage("* Right Click connectors to orient them");

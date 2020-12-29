@@ -382,14 +382,14 @@ public class SchemaBuilder
 				description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
 			}
 
-			else if(k.isAnnotationPresent(RegistryListStructurePiece.class))
+			else if(k.isAnnotationPresent(RegistryListJigsawPiece.class))
 			{
 				String key = "enum-reg-structure-piece";
 
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getStructurePieceLoader().getPossibleKeys()));
+					j.put("enum", new JSONArray(data.getJigsawPieceLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -398,14 +398,30 @@ public class SchemaBuilder
 				description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
 			}
 
-			else if(k.isAnnotationPresent(RegistryListStructurePool.class))
+			else if(k.isAnnotationPresent(RegistryListJigsaw.class))
+			{
+				String key = "enum-reg-jigsaw";
+
+				if(!definitions.containsKey(key))
+				{
+					JSONObject j = new JSONObject();
+					j.put("enum", new JSONArray(data.getJigsawStructureLoader().getPossibleKeys()));
+					definitions.put(key, j);
+				}
+
+				fancyType = "Iris Jigsaw";
+				prop.put("$ref", "#/definitions/" + key);
+				description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw (use ctrl+space for auto complete!)");
+			}
+
+			else if(k.isAnnotationPresent(RegistryListJigsawPool.class))
 			{
 				String key = "enum-reg-structure-pool";
 
 				if(!definitions.containsKey(key))
 				{
 					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getStructurePoolLoader().getPossibleKeys()));
+					j.put("enum", new JSONArray(data.getJigsawPoolLoader().getPossibleKeys()));
 					definitions.put(key, j);
 				}
 
@@ -797,7 +813,7 @@ public class SchemaBuilder
 						description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
 					}
 
-					else if(k.isAnnotationPresent(RegistryListStructurePiece.class))
+					else if(k.isAnnotationPresent(RegistryListJigsawPiece.class))
 					{
 						fancyType = "List of Iris Jigsaw Pieces";
 						String key = "enum-reg-structure-piece";
@@ -805,7 +821,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getStructurePieceLoader().getPossibleKeys()));
+							j.put("enum", new JSONArray(data.getJigsawPieceLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -815,7 +831,7 @@ public class SchemaBuilder
 						description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
 					}
 
-					else if(k.isAnnotationPresent(RegistryListStructurePool.class))
+					else if(k.isAnnotationPresent(RegistryListJigsawPool.class))
 					{
 						fancyType = "List of Iris Jigsaw Pools";
 						String key = "enum-reg-structure-pool";
@@ -823,7 +839,7 @@ public class SchemaBuilder
 						if(!definitions.containsKey(key))
 						{
 							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getStructurePoolLoader().getPossibleKeys()));
+							j.put("enum", new JSONArray(data.getJigsawPoolLoader().getPossibleKeys()));
 							definitions.put(key, j);
 						}
 
@@ -831,6 +847,24 @@ public class SchemaBuilder
 						items.put("$ref", "#/definitions/" + key);
 						prop.put("items", items);
 						description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Pool (use ctrl+space for auto complete!)");
+					}
+
+					else if(k.isAnnotationPresent(RegistryListJigsaw.class))
+					{
+						fancyType = "List of Iris Jigsaw Structures";
+						String key = "enum-reg-jigsaw";
+
+						if(!definitions.containsKey(key))
+						{
+							JSONObject j = new JSONObject();
+							j.put("enum", new JSONArray(data.getJigsawStructureLoader().getPossibleKeys()));
+							definitions.put(key, j);
+						}
+
+						JSONObject items = new JSONObject();
+						items.put("$ref", "#/definitions/" + key);
+						prop.put("items", items);
+						description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw (use ctrl+space for auto complete!)");
 					}
 
 					else if(t.type().equals(Enchantment.class))

@@ -42,7 +42,7 @@ public class DirectWorldWriter {
 
         for(Long i : new KList<>(writeBuffer.keySet()))
         {
-            if(M.ms() - lastUse.get(i) < 5000)
+            if(M.ms() - lastUse.get(i) < 10000)
             {
                 continue;
             }
@@ -239,6 +239,7 @@ public class DirectWorldWriter {
         if(f.exists())
         {
             try {
+                Iris.warn("HAD TO LOAD MCA REGION FILE " + x + " " + z + " which is EXPENSIVE!");
                 mca = MCAUtil.read(f);
                 try
                 {

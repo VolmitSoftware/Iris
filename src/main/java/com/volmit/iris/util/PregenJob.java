@@ -89,12 +89,12 @@ public class PregenJob implements Listener
 
 	public PregenJob(World world, int size, MortarSender sender, Runnable onDone)
 	{
-		writer = new DirectWorldWriter(world.getWorldFolder());
 		gleaming = (IrisSettings.get().isUseGleamPregenerator());
 		g.set(0);
 		burst = new MultiBurst(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		instance = this;
 		working = new Semaphore(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
+		writer =IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode() ? new DirectWorldWriter(world.getWorldFolder()) : null;
 		this.s = PrecisionStopwatch.start();
 		Iris.instance.registerListener(this);
 		this.world = world;
@@ -130,6 +130,10 @@ public class PregenJob implements Listener
 			mcaX = x;
 			mcaZ = z;
 			chunkSpiraler.retarget(cubeSize, cubeSize);
+			if(writer != null)
+			{
+				writer.flush();
+			}
 			ticks++;
 		});
 
@@ -169,7 +173,11 @@ public class PregenJob implements Listener
 	{
 		try
 		{
-			instance.writer.flush();
+			if(instance.writer != null)
+			{
+				instance.writer.flush();
+			}
+
 			Bukkit.getScheduler().cancelTask(task);
 
 			if(consumer != null)
@@ -195,7 +203,11 @@ public class PregenJob implements Listener
 		instance.pms = instance.s.getMilliseconds();
 		instance.paused = true;
 		instance.pausedAt = M.ms();
-		instance.writer.flush();
+
+		if(instance.writer != null)
+		{
+			instance.writer.flush();
+		}
 	}
 
 	public static void resume()
@@ -461,7 +473,15 @@ public class PregenJob implements Listener
 						}
 					};
 
-					e.execute(g);
+					if(IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode())
+					{
+						e.execute(g);
+					}
+
+					else
+					{
+						J.a(g);
+					}
 				}
 
 				else
@@ -469,33 +489,42 @@ public class PregenJob implements Listener
 				{
 					consumer.accept(new ChunkPosition(chunkX, chunkZ), Color.magenta.darker().darker().darker());
 				}
-					e.execute(() ->
+Runnable rr = () ->
+{
+	try
+	{
+		working.acquire();
+
+		if(consumer != null)
+		{
+			consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
+		}
+
+		Chunk chunk =  PaperLib.getChunkAtAsync(world, cx, cz, true, true).join();
+		working.release();
+		genned++;
+		nogen = M.ms();
+
+		if(consumer != null)
+		{
+			consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.green);
+		}
+	}
+
+	catch(InterruptedException e)
+	{
+		e.printStackTrace();
+	}
+};
+					if(IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode())
 					{
-						try
-						{
-							working.acquire();
+						e.execute(rr);
+					}
 
-							if(consumer != null)
-							{
-								consumer.accept(new ChunkPosition(cx, cz), Color.magenta);
-							}
-
-							Chunk chunk =  PaperLib.getChunkAtAsync(world, cx, cz, true, true).join();
-							working.release();
-							genned++;
-							nogen = M.ms();
-
-							if(consumer != null)
-							{
-								consumer.accept(new ChunkPosition(chunk.getX(), chunk.getZ()), Color.green);
-							}
-						}
-
-						catch(InterruptedException e)
-						{
-							e.printStackTrace();
-						}
-					});
+					else
+					{
+						J.a(rr);
+					}
 				}
 			}
 
@@ -609,7 +638,10 @@ public class PregenJob implements Listener
 			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
 		}
 
-		writer.flush();
+		if(instance.writer != null)
+		{
+			instance.writer.flush();
+		}
 	}
 
 	public int max()

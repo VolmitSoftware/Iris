@@ -80,7 +80,7 @@ public class HunkRegionSlice<T>
 
 	public void save()
 	{
-		BurstExecutor e = MultiBurst.burst.burst(save.size());
+		BurstExecutor e = MultiBurst.burst.burst();
 		for(ChunkPosition i : save.copy())
 		{
 			if(i == null)
@@ -89,7 +89,16 @@ public class HunkRegionSlice<T>
 			}
 
 			e.queue(() -> save(i.getX(), i.getZ()));
-			save.remove(i);
+
+			try
+			{
+				save.remove(i);
+			}
+
+			catch(Throwable ef)
+			{
+
+			}
 		}
 
 		e.complete();

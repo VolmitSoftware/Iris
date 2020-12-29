@@ -1,7 +1,6 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.J;
@@ -109,7 +108,6 @@ public class IrisEngine extends BlockPopulator implements Engine
         try
         {
             boolean structures = postblocks != null;
-            boolean multicore = !IrisSettings.get().isUseGleamPregenerator(); //TODO: LATER
             s.acquire(1);
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));

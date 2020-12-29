@@ -1,4 +1,4 @@
-package com.volmit.iris.scaffold.engine;
+package com.volmit.iris.pregen;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
@@ -33,7 +33,7 @@ public class DirectWorldWriter {
         this.worldFolder = worldFolder;
         lastUse = SmoothieMap.<Long, Long>newBuilder().build();
         writeBuffer = new KMap<>();
-        new File(worldFolder, "region").mkdirs();
+        new File(worldFolder, "iris/mca-region").mkdirs();
     }
 
     public void flush()
@@ -86,7 +86,7 @@ public class DirectWorldWriter {
 
     public File getMCAFile(int x, int z)
     {
-        return new File(worldFolder, "region/r." + x + "." + z + ".mca");
+        return new File(worldFolder, "iris/mca-region/r." + x + "." + z + ".mca");
     }
 
     public BlockData getBlockData(CompoundTag tag) {

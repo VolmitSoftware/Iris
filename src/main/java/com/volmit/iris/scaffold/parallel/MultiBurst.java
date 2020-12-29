@@ -83,4 +83,12 @@ public class MultiBurst
 			service.execute(o);
 		}
 	}
+
+	public void shutdownNow() {
+		service.shutdownNow().forEach(Runnable::run);
+	}
+
+	public void shutdown() {
+		service.shutdown();
+	}
 }

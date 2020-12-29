@@ -110,6 +110,11 @@ public final class MCAUtil {
 	 * @throws IOException If something goes wrong during serialization.
 	 * */
 	public static int write(MCAFile mcaFile, File file, boolean changeLastUpdate) throws IOException {
+		if(mcaFile == null)
+		{
+			return 0;
+		}
+
 		File to = file;
 		if (file.exists()) {
 			to = File.createTempFile(to.getName(), null);

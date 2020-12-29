@@ -2,6 +2,7 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
+import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;

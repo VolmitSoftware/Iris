@@ -6,6 +6,7 @@ import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.hunk.Hunk;
@@ -312,11 +313,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst)
     {
-        if(writer.getMCAFile(x, z).exists())
-        {
-            return;
-        }
-
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
@@ -327,7 +323,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             for(int j = 0; j < 32; j++)
             {
                 int jj = j;
-                e.queue(() -> directWriteChunk(w, ii + mcaox, jj + mcaoz, writer));
+                e.queue(() -> {
+                    directWriteChunk(w, ii + mcaox, jj + mcaoz, writer);
+                });
             }
         }
 

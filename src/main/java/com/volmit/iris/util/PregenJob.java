@@ -4,7 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.gui.PregenGui;
 import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.scaffold.engine.DirectWorldWriter;
+import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import io.papermc.lib.PaperLib;

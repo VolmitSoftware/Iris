@@ -2,7 +2,7 @@ package com.volmit.iris.scaffold.hunk.storage;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Consumer4;
-import com.volmit.iris.util.KMap;
+import io.timeandspace.smoothie.SmoothieMap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -12,12 +12,12 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = false)
 public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 {
-	private final KMap<Integer, T> data;
+	private final Map<Integer, T> data;
 
 	public MappedHunk(int w, int h, int d)
 	{
 		super(w, h, d);
-		data = new KMap<>();
+		data = SmoothieMap.<Integer, T>newBuilder().build();
 	}
 
 	@Override

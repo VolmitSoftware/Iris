@@ -1,10 +1,10 @@
 package com.volmit.iris.scaffold.parallel;
 
+import com.volmit.iris.util.KList;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-
-import com.volmit.iris.util.KList;
 
 public class BurstExecutor
 {
@@ -45,6 +45,11 @@ public class BurstExecutor
 	{
 		synchronized(futures)
 		{
+			if(futures.isEmpty())
+			{
+				return;
+			}
+
 			try
 			{
 				CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).get();

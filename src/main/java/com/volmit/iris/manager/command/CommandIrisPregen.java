@@ -1,13 +1,14 @@
 package com.volmit.iris.manager.command;
 
-import com.volmit.iris.util.KList;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-
 import com.volmit.iris.Iris;
+import com.volmit.iris.pregen.Pregenerator;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import com.volmit.iris.util.PregenJob;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 public class CommandIrisPregen extends MortarCommand
 {
@@ -45,22 +46,44 @@ public class CommandIrisPregen extends MortarCommand
 
 		if(args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("x"))
 		{
-			if(PregenJob.task == -1)
-			{
-				sender.sendMessage("No Active Pregens");
+			if(PregenJob.task == -1) {
+				if (Pregenerator.shutdownInstance()) {
+					sender.sendMessage("Stopped Pregen.");
+				} else
+				{
+					sender.sendMessage("No Active Pregens.");
+				}
 			}
 			else
 			{
-				sender.sendMessage("Stopped All Pregens.");
+				sender.sendMessage("Stopped Pregen.");
 				PregenJob.stop();
 			}
 			return true;
 		}
-		else if(args[0].equalsIgnoreCase("pause"))
+		else if(args[0].equalsIgnoreCase("pause") || args[0].equalsIgnoreCase("resume"))
 		{
 			if(PregenJob.task == -1)
 			{
-				sender.sendMessage("No Active Pregens");
+				if(Pregenerator.getInstance() != null)
+				{
+					Pregenerator.pauseResume();
+
+					if(Pregenerator.isPaused())
+					{
+						sender.sendMessage("Pregen Paused");
+					}
+
+					else
+					{
+						sender.sendMessage("Pregen Resumed");
+					}
+				}
+
+				else
+				{
+					sender.sendMessage("No Active Pregens");
+				}
 			}
 
 			else
@@ -79,27 +102,24 @@ public class CommandIrisPregen extends MortarCommand
 			}
 
 			return true;
-		} 
-		else if(args[0].equalsIgnoreCase("resume"))
-		{
-			if(PregenJob.isPaused()){
-				sender.sendMessage("Pregen Resumed");
-			}
-			else
-			{
-				sender.sendMessage("No paused pregens. Use /ir pregen pause to pause.");
-			}
 		}
-		else
 
-		if(sender.isPlayer())
+		else if(sender.isPlayer())
 		{
 			Player p = sender.player();
 			World world = p.getWorld();
 			try {
-				new PregenJob(world, getVal(args[0]), sender, () ->
+				if(Iris.instance.isMCA() && IrisWorlds.access(world) != null)
 				{
-				});
+					new Pregenerator(world, getVal(args[0]), 0, 0);
+				}
+
+				else
+				{
+					new PregenJob(world, getVal(args[0]), sender, () ->
+					{
+					});
+				}
 			} catch (NumberFormatException e){
 				sender.sendMessage("Invalid argument in command");
 				return true;

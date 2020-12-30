@@ -516,4 +516,8 @@ public class Iris extends VolmitPlugin
 			syncJobs.clear();
 		}
 	}
+
+    public boolean isMCA() {
+		return IrisSettings.get().useExperimentalGleamMCADirectWriteMode;
+    }
 }

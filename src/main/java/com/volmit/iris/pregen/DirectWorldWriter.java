@@ -1,6 +1,5 @@
 package com.volmit.iris.pregen;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
@@ -8,9 +7,10 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.B;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.M;
-import io.timeandspace.smoothie.SmoothieMap;
-import net.querz.mca.*;
+import net.querz.mca.Chunk;
+import net.querz.mca.MCAFile;
+import net.querz.mca.MCAUtil;
+import net.querz.mca.Section;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.StringTag;
 import org.bukkit.NamespacedKey;
@@ -18,20 +18,17 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 
 public class DirectWorldWriter {
     private final File worldFolder;
     private final Map<Long, MCAFile> writeBuffer;
-    private final Map<Long, Long> lastUse;
     private static final Map<String, CompoundTag> blockDataCache = new KMap<>();
     private static final Map<Biome, Integer> biomeIds = computeBiomeIDs();
 
     public DirectWorldWriter(File worldFolder)
     {
         this.worldFolder = worldFolder;
-        lastUse = SmoothieMap.<Long, Long>newBuilder().build();
         writeBuffer = new KMap<>();
         new File(worldFolder, "iris/mca-region").mkdirs();
     }
@@ -42,11 +39,6 @@ public class DirectWorldWriter {
 
         for(Long i : new KList<>(writeBuffer.keySet()))
         {
-            if(M.ms() - lastUse.get(i) < 10000)
-            {
-                continue;
-            }
-
             ex2.queue(() -> {
                 int x = Cache.keyX(i);
                 int z = Cache.keyZ(i);
@@ -69,7 +61,6 @@ public class DirectWorldWriter {
 
                     }
 
-                    lastUse.remove(i);
                     MCAUtil.write(writeBuffer.get(i), f, true);
                     writeBuffer.remove(i);
                 } catch (Throwable e) {
@@ -77,6 +68,8 @@ public class DirectWorldWriter {
                 }
             });
         }
+
+        ex2.complete();
     }
 
     public void optimizeChunk(int x, int z)
@@ -217,7 +210,6 @@ public class DirectWorldWriter {
         if(c == null)
         {
             c = Chunk.newChunk();
-            lastUse.put(Cache.key(x >> 5, z >> 5), M.ms());
             mca.setChunk(x&31, z&31, c);
         }
 
@@ -236,27 +228,7 @@ public class DirectWorldWriter {
 
         File f = getMCAFile(x, z);
         mca = new MCAFile(x, z);
-        if(f.exists())
-        {
-            try {
-                Iris.warn("HAD TO LOAD MCA REGION FILE " + x + " " + z + " which is EXPENSIVE!");
-                mca = MCAUtil.read(f);
-                try
-                {
-                    mca.cleanupPalettesAndBlockStates();
-                }
 
-                catch(Throwable ee)
-                {
-
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                Iris.warn("Failed to read RandomAccessFile " + f.getAbsolutePath() + ", assuming empty region!");
-            }
-        }
-
-        lastUse.put(key, M.ms());
         writeBuffer.put(key, mca);
         return mca;
     }

@@ -55,4 +55,9 @@ public class ChunkPosition
 		ChunkPosition other = (ChunkPosition) obj;
 		return x == other.x && z == other.z;
 	}
+
+    public double distance(ChunkPosition center)
+    {
+    	return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
+    }
 }

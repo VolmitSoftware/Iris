@@ -29,6 +29,8 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Data
@@ -53,14 +55,32 @@ public class Pregenerator implements Listener
 	private final KList<ChunkPosition> mcaDefer;
 	private final AtomicInteger generated;
 	private final AtomicInteger generatedLast;
-	private final AtomicInteger perSecond;
+	private final RollingSequence perSecond;
+	private final AtomicInteger totalChunks;
+	private final AtomicLong memory;
+	private final AtomicReference<String> memoryMetric;
+	private final AtomicReference<String> method;
+	private final AtomicInteger vmcax;
+	private final AtomicInteger vmcaz;
+	private final AtomicInteger vcax;
+	private final AtomicInteger vcaz;
+	private final long elapsed;
 
 	public Pregenerator(World world, int blockSize, int xoffset, int zoffset)
 	{
 		instance();
+		elapsed = M.ms();
+		memoryMetric = new AtomicReference<>("...");
+		method = new AtomicReference<>("IDLE");
+		memory = new AtomicLong(0);
 		this.world = world;
-		perSecond = new AtomicInteger(0);
+		vmcax = new AtomicInteger();
+		vmcaz = new AtomicInteger();
+		vcax = new AtomicInteger();
+		vcaz = new AtomicInteger();
+		perSecond = new RollingSequence(20);
 		generatedLast = new AtomicInteger(0);
+		totalChunks = new AtomicInteger(0);
 		generated = new AtomicInteger(0);
 		mcaDefer = new KList<>();
 		IrisAccess access = IrisWorlds.access(world);
@@ -77,6 +97,7 @@ public class Pregenerator implements Listener
 			min.setZ(Math.min(zz << 5, min.getZ()));
 			max.setX(Math.max((xx << 5) + 31, max.getX()));
 			max.setZ(Math.max((zz << 5) + 31, max.getZ()));
+			totalChunks.getAndAdd(1024);
 		}).drain();
 		gui = IrisSettings.get().isLocalPregenGui() && IrisSettings.get().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null;
 		KList<ChunkPosition> order = computeChunkOrder();
@@ -84,6 +105,8 @@ public class Pregenerator implements Listener
 				(ox, oz, r) -> order.forEach((i)
 						-> r.accept(i.getX() + ox, i.getZ() + oz));
 		Spiraler spiraler = new Spiraler(mcaSize, mcaSize, (xx,zz) -> {
+			vmcax.set(xx);
+			vmcaz.set(zz);
 			flushWorld();
 			drawMCA(xx, zz, COLOR_MCA_PREPARE);
 			if(generateMCARegion(xx, zz, burst, access, mcaIteration))
@@ -110,6 +133,8 @@ public class Pregenerator implements Listener
 			while(running.get() && mcaDefer.isNotEmpty())
 			{
 				ChunkPosition p = mcaDefer.popLast();
+				vmcax.set(p.getX());
+				vmcaz.set(p.getZ());
 				generateDeferedMCARegion(p.getX(), p.getZ(), burst, access, mcaIteration);
 				drawMCA(p.getX(), p.getZ(), COLOR_MCA_SEALING);
 				flushWorld();
@@ -134,10 +159,22 @@ public class Pregenerator implements Listener
 				int w = generatedLast.get();
 				int up = m - w;
 				double dur = p.getMilliseconds();
-				perSecond.set((int) (up / (dur / 1000D)));
+				perSecond.put((int) (up / (dur / 1000D)));
 				p.reset();
 				p.begin();
 				generatedLast.set(m);
+				J.sleep(100);
+				long lmem = memory.get();
+				memory.set(Runtime.getRuntime().freeMemory());
+
+				if(memory.get() > lmem)
+				{
+					long free = memory.get();
+					long max = Runtime.getRuntime().maxMemory();
+					long total = Runtime.getRuntime().totalMemory();
+					long use = total - free;
+					memoryMetric.set(Form.memSize(use, 2) + " (" + Form.pc((double)use / (double)max, 0) + ")");
+				}
 			}
 		}).start();
 	}
@@ -152,11 +189,14 @@ public class Pregenerator implements Listener
 		int mcaoz = z << 5;
 		if(isMCAWritable(x,z) && !mca.exists())
 		{
+			method.set("Direct (Fast)");
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
 				draw(ii, jj, COLOR_MCA_GENERATE);
 				access.directWriteChunk(world, ii, jj, directWriter);
 				draw(ii, jj, COLOR_MCA_GENERATED);
 				generated.getAndIncrement();
+				vcax.set(ii);
+				vcaz.set(jj);
 			}));
 			e.complete();
 			directWriter.flush();
@@ -184,11 +224,14 @@ public class Pregenerator implements Listener
 
 		if(PaperLib.isPaper())
 		{
+			method.set("PaperAsync (Slow)");
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
 				draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
 				access.generatePaper(world, ii, jj);
 				draw(ii, jj, COLOR_MCA_GENERATED);
 				generated.getAndIncrement();
+				vcax.set(ii);
+				vcaz.set(jj);
 			}));
 			e.complete();
 		}
@@ -196,6 +239,7 @@ public class Pregenerator implements Listener
 		else
 		{
 			AtomicInteger m = new AtomicInteger();
+			method.set("Spigot (Very Slow)");
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
 				draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
 				J.s(() -> {
@@ -203,6 +247,8 @@ public class Pregenerator implements Listener
 					draw(ii, jj, COLOR_MCA_GENERATED);
 					m.getAndIncrement();
 					generated.getAndIncrement();
+					vcax.set(ii);
+					vcaz.set(jj);
 				});
 			});
 
@@ -304,7 +350,7 @@ public class Pregenerator implements Listener
 
 		while(!b.get())
 		{
-			J.sleep(10);
+			J.sleep(1);
 		}
 	}
 
@@ -316,7 +362,6 @@ public class Pregenerator implements Listener
 		}
 
 		world.save();
-		Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
 	}
 
 	private boolean isMCAWritable(int x, int z) {
@@ -338,7 +383,16 @@ public class Pregenerator implements Listener
 	}
 
 	public String[] getProgress() {
-		return new String[]{"Chunks/s: " + perSecond.get(), "Generated: " + Form.f(generated.get())};
+		long eta = (long) ((totalChunks.get() - generated.get()) * ((double)(M.ms() - elapsed) / (double) generated.get()));
+
+		return new String[]{
+				"Progress : " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double)generated.get() / (double)totalChunks.get(), 0) + ")",
+				"ETA      : " + Form.duration(eta, 0),
+				"Chunks/s : " + Form.f((int)perSecond.getAverage()),
+				"Memory   : " + memoryMetric.get(),
+				"Cursor   : " + "MCA(" + vmcax.get() + ", " + vmcaz.get() + ") @ (" + vcax.get() + ", " + vcaz.get() + ")",
+				"Gen Mode : " + method.get(),
+		};
 	}
 
 	public boolean paused() {

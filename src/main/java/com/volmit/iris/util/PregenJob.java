@@ -4,7 +4,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.gui.PregenGui;
 import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import io.papermc.lib.PaperLib;
@@ -64,7 +63,6 @@ public class PregenJob implements Listener
 	private long pausedAt = 0;
 	private double pms = 0;
 	private boolean gleaming = false;
-	private final DirectWorldWriter writer;
 	int xc = 0;
 	private IrisAccess access = null;
 	private static int tid = 0;
@@ -94,7 +92,6 @@ public class PregenJob implements Listener
 		burst = new MultiBurst(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
 		instance = this;
 		working = new Semaphore(gleaming ? IrisSettings.get().getMaxAsyncChunkPregenThreads() : tc());
-		writer =IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode() ? new DirectWorldWriter(world.getWorldFolder()) : null;
 		this.s = PrecisionStopwatch.start();
 		Iris.instance.registerListener(this);
 		this.world = world;
@@ -130,10 +127,6 @@ public class PregenJob implements Listener
 			mcaX = x;
 			mcaZ = z;
 			chunkSpiraler.retarget(cubeSize, cubeSize);
-			if(writer != null)
-			{
-				writer.flush();
-			}
 			ticks++;
 		});
 
@@ -173,11 +166,6 @@ public class PregenJob implements Listener
 	{
 		try
 		{
-			if(instance.writer != null)
-			{
-				instance.writer.flush();
-			}
-
 			Bukkit.getScheduler().cancelTask(task);
 
 			if(consumer != null)
@@ -203,11 +191,6 @@ public class PregenJob implements Listener
 		instance.pms = instance.s.getMilliseconds();
 		instance.paused = true;
 		instance.pausedAt = M.ms();
-
-		if(instance.writer != null)
-		{
-			instance.writer.flush();
-		}
 	}
 
 	public static void resume()
@@ -268,9 +251,7 @@ public class PregenJob implements Listener
 	{
 		long eta = (long) ((total - genned) * (s.getMilliseconds() / (double) genned));
 		String ss = "Pregen: " + Form.pc(Math.min((double) genned / (double) total, 1.0), 0) + ", Elapsed: " +
-
 				Form.duration((long) (paused ? pms : s.getMilliseconds()))
-
 				+ ", ETA: " + (genned >= total - 5 ? "Any second..." : s.getMilliseconds() < 25000 ? "Calculating..." : Form.duration(eta)) + " MS: " + Form.duration((s.getMilliseconds() / (double) genned), 2);
 		Iris.info(ss);
 		if(sender.isPlayer() && sender.player().isOnline())
@@ -441,17 +422,7 @@ public class PregenJob implements Listener
 							}
 							int xx = cx;
 							int zz = cz;
-
-							if(IrisSettings.get().isUseExperimentalGleamMCADirectWriteMode())
-							{
-								access().directWriteChunk(world, cx, cz, writer);
-							}
-
-							else
-							{
-								access().generatePaper(world, cx, cz);
-							}
-
+							access().generatePaper(world, cx, cz);
 							working.release();
 							genned++;
 							nogen = M.ms();
@@ -636,11 +607,6 @@ Runnable rr = () ->
 		{
 			world.save();
 			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "save-all");
-		}
-
-		if(instance.writer != null)
-		{
-			instance.writer.flush();
 		}
 	}
 

@@ -23,8 +23,6 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
 
     public World getWorld();
 
-    public int getCurrentlyGeneratingEngines();
-
     public void printMetrics(CommandSender sender);
 
     public int getSize();
@@ -65,6 +63,14 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
         }
 
         return getEngine(getSize() - 1);
+    }
+
+    public default void recycle()
+    {
+        for(int i = 0; i < getSize(); i++)
+        {
+            getEngine(i).recycle();
+        }
     }
 
     public default void save()

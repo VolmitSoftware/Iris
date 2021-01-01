@@ -645,7 +645,6 @@ Runnable rr = () ->
 
 		try
 		{
-			vv.add("Parallelism: " + access().getCompound().getCurrentlyGeneratingEngines());
 			vv.add("Plax Cache : " + Form.f(access().getParallaxChunkCount()));
 		}
 

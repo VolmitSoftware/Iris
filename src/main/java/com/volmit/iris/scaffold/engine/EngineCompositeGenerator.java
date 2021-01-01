@@ -784,6 +784,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public boolean isFailing() {
+        if(getComposite() == null)
+        {
+            return false;
+        }
+
         return getComposite().isFailing();
     }
 

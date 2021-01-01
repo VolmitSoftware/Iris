@@ -27,6 +27,8 @@ public class ParallaxChunkMeta {
                 dos.writeByte(parallaxChunkMeta.getMinObject() + Byte.MIN_VALUE);
                 dos.writeByte(parallaxChunkMeta.getMaxObject() + Byte.MIN_VALUE);
             }
+
+            dos.writeInt(parallaxChunkMeta.count);
         }
 
         @Override
@@ -37,7 +39,7 @@ public class ParallaxChunkMeta {
             boolean o = din.readBoolean();
             int min = o ? din.readByte() - Byte.MIN_VALUE : -1;
             int max = o ? din.readByte() - Byte.MIN_VALUE : -1;
-            return new ParallaxChunkMeta(bb, g, p, o, min, max);
+            return new ParallaxChunkMeta(bb, g, p, o, min, max, din.readInt());
         }
     };
 
@@ -47,9 +49,10 @@ public class ParallaxChunkMeta {
     private boolean objects;
     private int maxObject = -1;
     private int minObject = -1;
+    private int count;
 
     public ParallaxChunkMeta()
     {
-        this(false, false, false, false, -1, -1);
+        this(false, false, false, false, -1, -1, 0);
     }
 }

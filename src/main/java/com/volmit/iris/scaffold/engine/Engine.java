@@ -26,8 +26,6 @@ import java.util.Arrays;
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     public void close();
 
-    public int getCurrentlyGenerating();
-
     public boolean isClosed();
 
     public EngineWorldManager getWorldManager();
@@ -41,6 +39,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     public EngineFramework getFramework();
 
     public void setMinHeight(int min);
+
+    public void recycle();
 
     public int getIndex();
 
@@ -56,7 +56,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     default void save()
     {
-        getParallax().saveAll();
+       getParallax().saveAll();
     }
 
     default void saveNow()

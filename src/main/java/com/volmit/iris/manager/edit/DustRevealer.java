@@ -1,8 +1,9 @@
 package com.volmit.iris.manager.edit;
 
-import com.volmit.iris.util.*;
-import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
+import com.volmit.iris.util.*;
 import lombok.Data;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,10 +19,11 @@ public class DustRevealer {
     public static void spawn(Block block, MortarSender sender)
     {
         World world = block.getWorld();
+        IrisAccess access = IrisWorlds.access(world);
 
-        if(world.getGenerator() instanceof EngineCompositeGenerator)
+        if(access != null)
         {
-            ParallaxAccess a = ((EngineCompositeGenerator)world.getGenerator()).getComposite().getEngineForHeight(block.getY()).getParallax();
+            ParallaxAccess a = access.getEngineAccess(block.getY()).getParallaxAccess();
 
             if(a.getObject(block.getX(), block.getY(), block.getZ()) != null)
             {
@@ -43,32 +45,39 @@ public class DustRevealer {
         J.s(() -> {
             new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 100);
             J.a(() -> {
-                is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ()));
-                is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ()));
-                is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ()));
-                is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ()));
-                is(new BlockPosition(block.getX(), block.getY(), block.getZ() + 1));
-                is(new BlockPosition(block.getX(), block.getY(), block.getZ() - 1));
-                is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ() + 1));
-                is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ() - 1));
-                is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ() + 1));
-                is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ() - 1));
-                is(new BlockPosition(block.getX() + 1, block.getY() + 1, block.getZ()));
-                is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ()));
-                is(new BlockPosition(block.getX() - 1, block.getY() + 1, block.getZ()));
-                is(new BlockPosition(block.getX() - 1, block.getY() - 1, block.getZ()));
-                is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ() + 1));
-                is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() + 1));
-                is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() + 1));
-                is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() + 1));
-                is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() + 1));
-                is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() - 1));
-                is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() + 1));
+                try {
+                    is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ()));
+                    is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ()));
+                    is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ()));
+                    is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ()));
+                    is(new BlockPosition(block.getX(), block.getY(), block.getZ() + 1));
+                    is(new BlockPosition(block.getX(), block.getY(), block.getZ() - 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ() + 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY(), block.getZ() - 1));
+                    is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ() + 1));
+                    is(new BlockPosition(block.getX() - 1, block.getY(), block.getZ() - 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY() + 1, block.getZ()));
+                    is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ()));
+                    is(new BlockPosition(block.getX() - 1, block.getY() + 1, block.getZ()));
+                    is(new BlockPosition(block.getX() - 1, block.getY() - 1, block.getZ()));
+                    is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() + 1));
+                }
+
+                catch(Throwable e)
+                {
+                    e.printStackTrace();
+                }
             });
         }, RNG.r.i(3,6));
     }
@@ -78,6 +87,7 @@ public class DustRevealer {
         {
             hits.add(a);
             new DustRevealer(parallax, world, a, key, hits);
+            return true;
         }
 
         return false;

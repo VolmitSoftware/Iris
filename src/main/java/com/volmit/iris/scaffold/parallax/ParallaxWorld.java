@@ -2,7 +2,6 @@ package com.volmit.iris.scaffold.parallax;
 
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.util.ChronoLatch;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
@@ -17,7 +16,6 @@ public class ParallaxWorld implements ParallaxAccess
 	private final KList<Long> save;
 	private final File folder;
 	private final int height;
-	private final ChronoLatch cleanup;
 
 	public ParallaxWorld(int height, File folder)
 	{
@@ -25,16 +23,15 @@ public class ParallaxWorld implements ParallaxAccess
 		this.folder = folder;
 		save = new KList<>();
 		loadedRegions = new KMap<>();
-		cleanup = new ChronoLatch(5000);
 		folder.mkdirs();
 	}
 
-	public int getRegionCount()
+	public  int getRegionCount()
 	{
 		return loadedRegions.size();
 	}
 
-	public int getChunkCount()
+	public  int getChunkCount()
 	{
 		int m = 0;
 
@@ -54,7 +51,7 @@ public class ParallaxWorld implements ParallaxAccess
 		return m;
 	}
 
-	public void close()
+	public  void close()
 	{
 		for(ParallaxRegion i : loadedRegions.v())
 		{
@@ -65,7 +62,7 @@ public class ParallaxWorld implements ParallaxAccess
 		loadedRegions.clear();
 	}
 
-	public void save(ParallaxRegion region)
+	public  void save(ParallaxRegion region)
 	{
 		try
 		{
@@ -78,12 +75,12 @@ public class ParallaxWorld implements ParallaxAccess
 		}
 	}
 
-	public boolean isLoaded(int x, int z)
+	public  boolean isLoaded(int x, int z)
 	{
 		return loadedRegions.containsKey(key(x, z));
 	}
 
-	public void save(int x, int z)
+	public  void save(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -91,7 +88,7 @@ public class ParallaxWorld implements ParallaxAccess
 		}
 	}
 
-	public int unload(int x, int z)
+	public  int unload(int x, int z)
 	{
 		long key = key(x, z);
 		int v = 0;
@@ -114,7 +111,7 @@ public class ParallaxWorld implements ParallaxAccess
 		return v;
 	}
 
-	public ParallaxRegion load(int x, int z)
+	public  ParallaxRegion load(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -124,15 +121,10 @@ public class ParallaxWorld implements ParallaxAccess
 		ParallaxRegion v = new ParallaxRegion(height, folder, x, z);
 		loadedRegions.put(key(x, z), v);
 
-		if(cleanup.flip())
-		{
-			cleanup();
-		}
-
 		return v;
 	}
 
-	public ParallaxRegion getR(int x, int z)
+	public  ParallaxRegion getR(int x, int z)
 	{
 		long key = key(x, z);
 
@@ -146,7 +138,7 @@ public class ParallaxWorld implements ParallaxAccess
 		return region;
 	}
 
-	public ParallaxRegion getRW(int x, int z)
+	public  ParallaxRegion getRW(int x, int z)
 	{
 		save.addIfMissing(key(x, z));
 		return getR(x, z);
@@ -158,60 +150,60 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public Hunk<BlockData> getBlocksR(int x, int z)
+	public  Hunk<BlockData> getBlocksR(int x, int z)
 	{
 		return getR(x >> 5, z >> 5).getBlockSlice().getR(x & 31, z & 31);
 	}
 
 	@Override
-	public Hunk<BlockData> getBlocksRW(int x, int z)
+	public  Hunk<BlockData> getBlocksRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getBlockSlice().getRW(x & 31, z & 31);
 	}
 
 	@Override
-	public Hunk<String> getObjectsR(int x, int z)
+	public  Hunk<String> getObjectsR(int x, int z)
 	{
 		return getR(x >> 5, z >> 5).getObjectSlice().getR(x & 31, z & 31);
 	}
 
 	@Override
-	public Hunk<String> getObjectsRW(int x, int z)
+	public  Hunk<String> getObjectsRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getObjectSlice().getRW(x & 31, z & 31);
 	}
 
 	@Override
-	public Hunk<Boolean> getUpdatesR(int x, int z)
+	public  Hunk<Boolean> getUpdatesR(int x, int z)
 	{
 		return getR(x >> 5, z >> 5).getUpdateSlice().getR(x & 31, z & 31);
 	}
 
 	@Override
-	public Hunk<Boolean> getUpdatesRW(int x, int z)
+	public  Hunk<Boolean> getUpdatesRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getUpdateSlice().getRW(x & 31, z & 31);
 	}
 
 	@Override
-	public ParallaxChunkMeta getMetaR(int x, int z)
+	public  ParallaxChunkMeta getMetaR(int x, int z)
 	{
 		return getR(x >> 5, z >> 5).getMetaR(x & 31, z & 31);
 	}
 
 	@Override
-	public ParallaxChunkMeta getMetaRW(int x, int z)
+	public  ParallaxChunkMeta getMetaRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getMetaRW(x & 31, z & 31);
 	}
 
-	public void cleanup()
+	public  void cleanup()
 	{
 		cleanup(IrisSettings.get().getParallaxRegionEvictionMS(), IrisSettings.get().getParallaxChunkEvictionMS());
 	}
 
 	@Override
-	public void cleanup(long r, long c) {
+	public  void cleanup(long r, long c) {
 		J.a(() -> {
 			try
 			{
@@ -241,12 +233,12 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
-	public void saveAll() {
+	public  void saveAll() {
 		J.a(this::saveAllNOW);
 	}
 
 	@Override
-	public void saveAllNOW() {
+	public  void saveAllNOW() {
 		for(ParallaxRegion i : loadedRegions.v())
 		{
 			if(save.contains(key(i.getX(), i.getZ())))

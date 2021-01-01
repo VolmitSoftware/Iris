@@ -35,7 +35,7 @@ public class HunkRegionSlice<T>
 		this.lastUse = new KMap<>();
 	}
 
-	public int cleanup(long t)
+	public  int cleanup(long t)
 	{
 		int v = 0;
 		if(loadedChunks.size() != lastUse.size())
@@ -64,21 +64,18 @@ public class HunkRegionSlice<T>
 		return v;
 	}
 
-	public void clear()
+	public  void clear()
 	{
-		synchronized(save)
+		for(String i : new KList<>(compound.getValue().keySet()))
 		{
-			for(String i : new KList<>(compound.getValue().keySet()))
+			if(i.startsWith(key + "."))
 			{
-				if(i.startsWith(key + "."))
-				{
-					compound.getValue().remove(i);
-				}
+				compound.getValue().remove(i);
 			}
 		}
 	}
 
-	public void save()
+	public  void save()
 	{
 		BurstExecutor e = MultiBurst.burst.burst();
 		for(ChunkPosition i : save.copy())
@@ -104,17 +101,17 @@ public class HunkRegionSlice<T>
 		e.complete();
 	}
 
-	public boolean contains(int x, int z)
+	public  boolean contains(int x, int z)
 	{
 		return compound.getValue().containsKey(key(x, z));
 	}
 
-	public void delete(int x, int z)
+	public  void delete(int x, int z)
 	{
 		compound.getValue().remove(key(x, z));
 	}
 
-	public Hunk<T> read(int x, int z) throws IOException
+	public  Hunk<T> read(int x, int z) throws IOException
 	{
 		Tag t = compound.getValue().get(key(x, z));
 
@@ -127,12 +124,12 @@ public class HunkRegionSlice<T>
 		return adapter.read(factory, (ByteArrayTag) t);
 	}
 
-	public void write(Hunk<T> hunk, int x, int z) throws IOException
+	public  void write(Hunk<T> hunk, int x, int z) throws IOException
 	{
 		compound.getValue().put(key(x, z), hunk.writeByteArrayTag(adapter, key(x, z)));
 	}
 
-	public synchronized int unloadAll()
+	public  int unloadAll()
 	{
 		int v = 0;
 		for(ChunkPosition i : loadedChunks.k())
@@ -147,7 +144,7 @@ public class HunkRegionSlice<T>
 		return v;
 	}
 
-	public synchronized void save(Hunk<T> region, int x, int z)
+	public  void save(Hunk<T> region, int x, int z)
 	{
 		try
 		{
@@ -159,12 +156,12 @@ public class HunkRegionSlice<T>
 		}
 	}
 
-	public boolean isLoaded(int x, int z)
+	public  boolean isLoaded(int x, int z)
 	{
 		return loadedChunks.containsKey(new ChunkPosition(x, z));
 	}
 
-	public synchronized void save(int x, int z)
+	public  void save(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -172,7 +169,7 @@ public class HunkRegionSlice<T>
 		}
 	}
 
-	public synchronized void unload(int x, int z)
+	public  void unload(int x, int z)
 	{
 		ChunkPosition key = new ChunkPosition(x, z);
 		if(isLoaded(x, z))
@@ -188,7 +185,7 @@ public class HunkRegionSlice<T>
 		}
 	}
 
-	public synchronized Hunk<T> load(int x, int z)
+	public  Hunk<T> load(int x, int z)
 	{
 		if(isLoaded(x, z))
 		{
@@ -220,7 +217,7 @@ public class HunkRegionSlice<T>
 		return v;
 	}
 
-	public Hunk<T> get(int x, int z)
+	public  Hunk<T> get(int x, int z)
 	{
 		ChunkPosition key = new ChunkPosition(x, z);
 
@@ -236,12 +233,12 @@ public class HunkRegionSlice<T>
 		return c;
 	}
 
-	public Hunk<T> getR(int x, int z)
+	public  Hunk<T> getR(int x, int z)
 	{
 		return get(x, z).readOnly();
 	}
 
-	public Hunk<T> getRW(int x, int z)
+	public  Hunk<T> getRW(int x, int z)
 	{
 		save.addIfMissing(new ChunkPosition(x, z));
 		return get(x, z);
@@ -257,7 +254,7 @@ public class HunkRegionSlice<T>
 		return key + "." + x + "." + z;
 	}
 
-	public int getLoadCount()
+	public  int getLoadCount()
 	{
 		return loadedChunks.size();
 	}

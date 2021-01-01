@@ -210,6 +210,7 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes)
     {
+        recycle();
         PrecisionStopwatch p = PrecisionStopwatch.start();
         if(engines.length == 1 && !getEngine(0).getTarget().isInverted())
         {
@@ -270,17 +271,6 @@ public class IrisEngineCompound implements EngineCompound {
         }
 
         wallClock.put(p.getMilliseconds());
-    }
-
-    @Override
-    public int getCurrentlyGeneratingEngines() {
-        int v = 0;
-        for(Engine i : engines)
-        {
-            v+= i.getCurrentlyGenerating();
-        }
-
-        return v;
     }
 
     @Override

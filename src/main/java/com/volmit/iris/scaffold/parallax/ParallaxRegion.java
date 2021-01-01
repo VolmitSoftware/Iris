@@ -49,17 +49,17 @@ public class ParallaxRegion extends HunkRegion
 		lastUse = M.ms();
 	}
 
-	public boolean hasBeenIdleLongerThan(long time)
+	public  boolean hasBeenIdleLongerThan(long time)
 	{
 		return M.ms() - lastUse > time;
 	}
 
-	public ParallaxChunkMeta getMetaR(int x, int z)
+	public  ParallaxChunkMeta getMetaR(int x, int z)
 	{
 		return getMetaHunkR().getOr(x, 0, z, new ParallaxChunkMeta());
 	}
 
-	public ParallaxChunkMeta getMetaRW(int x, int z)
+	public  ParallaxChunkMeta getMetaRW(int x, int z)
 	{
 		lastUse = M.ms();
 		dirtyMeta = true;
@@ -73,7 +73,7 @@ public class ParallaxRegion extends HunkRegion
 		return p;
 	}
 
-	private Hunk<ParallaxChunkMeta> getMetaHunkR()
+	private  Hunk<ParallaxChunkMeta> getMetaHunkR()
 	{
 		if(meta == null)
 		{
@@ -83,13 +83,13 @@ public class ParallaxRegion extends HunkRegion
 		return meta;
 	}
 
-	private Hunk<ParallaxChunkMeta> getMetaHunkRW()
+	private  Hunk<ParallaxChunkMeta> getMetaHunkRW()
 	{
 		dirtyMeta = true;
 		return getMetaHunkR();
 	}
 
-	public Hunk<ParallaxChunkMeta> loadMetaHunk()
+	public  Hunk<ParallaxChunkMeta> loadMetaHunk()
 	{
 		lastUse = M.ms();
 		if(meta == null)
@@ -114,7 +114,7 @@ public class ParallaxRegion extends HunkRegion
 		return meta;
 	}
 
-	public void unloadMetaHunk()
+	public  void unloadMetaHunk()
 	{
 		if(dirtyMeta)
 		{
@@ -125,7 +125,7 @@ public class ParallaxRegion extends HunkRegion
 		meta = null;
 	}
 
-	public void saveMetaHunk()
+	public  void saveMetaHunk()
 	{
 		if(meta != null && dirtyMeta)
 		{
@@ -138,7 +138,7 @@ public class ParallaxRegion extends HunkRegion
 		}
 	}
 
-	public void save() throws IOException
+	public  void save() throws IOException
 	{
 		blockSlice.save();
 		objectSlice.save();
@@ -147,7 +147,7 @@ public class ParallaxRegion extends HunkRegion
 		super.save();
 	}
 
-	public int unload()
+	public  int unload()
 	{
 		unloadMetaHunk();
 		return blockSlice.unloadAll()+
@@ -155,28 +155,28 @@ public class ParallaxRegion extends HunkRegion
 		updateSlice.unloadAll();
 	}
 
-	public HunkRegionSlice<BlockData> getBlockSlice() {
+	public  HunkRegionSlice<BlockData> getBlockSlice() {
 		lastUse = M.ms();
 		return blockSlice;
 	}
 
-	public HunkRegionSlice<String> getObjectSlice() {
+	public  HunkRegionSlice<String> getObjectSlice() {
 		lastUse = M.ms();
 		return objectSlice;
 	}
 
-	public HunkRegionSlice<Boolean> getUpdateSlice() {
+	public  HunkRegionSlice<Boolean> getUpdateSlice() {
 		lastUse = M.ms();
 		return updateSlice;
 	}
 
-	public int cleanup(long c) {
+	public  int cleanup(long c) {
 		return blockSlice.cleanup(c) +
 		objectSlice.cleanup(c) +
 		updateSlice.cleanup(c);
 	}
 
-	public int getChunkCount() {
+	public  int getChunkCount() {
 		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + updateSlice.getLoadCount();
 	}
 }

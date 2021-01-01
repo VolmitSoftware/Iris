@@ -16,7 +16,6 @@ import org.bukkit.generator.BlockPopulator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
-import java.util.concurrent.Semaphore;
 
 public class IrisEngine extends BlockPopulator implements Engine
 {
@@ -48,19 +47,15 @@ public class IrisEngine extends BlockPopulator implements Engine
     @Setter
     @Getter
     private volatile int minHeight;
-    private int permits;
     private boolean failing;
     private boolean closed;
     private int cacheId;
-    private Semaphore s;
-    private int art;
+    private final int art;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index)
     {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
-        permits = 10000;
-        this.s = new Semaphore(permits);
         this.target = target;
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
@@ -84,13 +79,13 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public int getCurrentlyGenerating() {
-        return permits - s.availablePermits();
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override
-    public boolean isClosed() {
-        return closed;
+    public void recycle() {
+        getFramework().recycle();
     }
 
     @Override
@@ -108,7 +103,6 @@ public class IrisEngine extends BlockPopulator implements Engine
         try
         {
             boolean structures = postblocks != null;
-            s.acquire(1);
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> pblocks = structures ? postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t)) : null;
@@ -120,11 +114,9 @@ public class IrisEngine extends BlockPopulator implements Engine
             getFramework().getRavineModifier().modify(x, z, blocks);
             getFramework().getPostModifier().modify(x, z, blocks);
             getFramework().getDecorantActuator().actuate(x, z, structures ? fringe : blocks);
-            getFramework().getEngineParallax().insertParallax(x, z, structures ? fringe : blocks);
+            getFramework().getEngineParallax().insertParallax(x, z, blocks);
             getFramework().getDepositModifier().modify(x, z, blocks);
             getMetrics().getTotal().put(p.getMilliseconds());
-            s.release(1);
-            getFramework().recycle();
         }
 
         catch(Throwable e)

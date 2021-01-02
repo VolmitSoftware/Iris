@@ -2,11 +2,9 @@ package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.pregen.Pregenerator;
-import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.PregenJob;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -46,51 +44,21 @@ public class CommandIrisPregen extends MortarCommand
 
 		if(args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("x"))
 		{
-			if(PregenJob.task == -1) {
-				if (Pregenerator.shutdownInstance()) {
-					sender.sendMessage("Stopped Pregen.");
-				} else
-				{
-					sender.sendMessage("No Active Pregens.");
-				}
-			}
-			else
-			{
+			if (Pregenerator.shutdownInstance()) {
 				sender.sendMessage("Stopped Pregen.");
-				PregenJob.stop();
+			} else
+			{
+				sender.sendMessage("No Active Pregens.");
 			}
 			return true;
 		}
 		else if(args[0].equalsIgnoreCase("pause") || args[0].equalsIgnoreCase("resume"))
 		{
-			if(PregenJob.task == -1)
+			if(Pregenerator.getInstance() != null)
 			{
-				if(Pregenerator.getInstance() != null)
-				{
-					Pregenerator.pauseResume();
+				Pregenerator.pauseResume();
 
-					if(Pregenerator.isPaused())
-					{
-						sender.sendMessage("Pregen Paused");
-					}
-
-					else
-					{
-						sender.sendMessage("Pregen Resumed");
-					}
-				}
-
-				else
-				{
-					sender.sendMessage("No Active Pregens");
-				}
-			}
-
-			else
-			{
-				PregenJob.pauseResume();
-
-				if(PregenJob.isPaused())
+				if(Pregenerator.isPaused())
 				{
 					sender.sendMessage("Pregen Paused");
 				}
@@ -101,6 +69,11 @@ public class CommandIrisPregen extends MortarCommand
 				}
 			}
 
+			else
+			{
+				sender.sendMessage("No Active Pregens");
+			}
+
 			return true;
 		}
 
@@ -109,17 +82,7 @@ public class CommandIrisPregen extends MortarCommand
 			Player p = sender.player();
 			World world = p.getWorld();
 			try {
-				if(Iris.instance.isMCA() && IrisWorlds.access(world) != null)
-				{
-					new Pregenerator(world, getVal(args[0]), 0, 0);
-				}
-
-				else
-				{
-					new PregenJob(world, getVal(args[0]), sender, () ->
-					{
-					});
-				}
+				new Pregenerator(world, getVal(args[0]));
 			} catch (NumberFormatException e){
 				sender.sendMessage("Invalid argument in command");
 				return true;
@@ -140,20 +103,20 @@ public class CommandIrisPregen extends MortarCommand
 
 		if(arg.toLowerCase().endsWith("c") || arg.toLowerCase().endsWith("chunks"))
 		{
-			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qc\\E", "").replaceAll("\\Qchunks\\E", "")) * 16;
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qc\\E", "").replaceAll("\\Qchunks\\E", "")) * 16;
 		}
 
 		if(arg.toLowerCase().endsWith("r") || arg.toLowerCase().endsWith("regions"))
 		{
-			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qr\\E", "").replaceAll("\\Qregions\\E", "")) * 512;
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qr\\E", "").replaceAll("\\Qregions\\E", "")) * 512;
 		}
 
 		if(arg.toLowerCase().endsWith("k"))
 		{
-			return Integer.valueOf(arg.toLowerCase().replaceAll("\\Qk\\E", "")) * 1000;
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qk\\E", "")) * 1000;
 		}
 
-		return Integer.valueOf(arg.toLowerCase());
+		return Integer.parseInt(arg.toLowerCase());
 	}
 
 	@Override

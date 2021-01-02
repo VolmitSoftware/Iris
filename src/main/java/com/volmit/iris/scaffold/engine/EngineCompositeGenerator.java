@@ -163,8 +163,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (hint == null) {
-            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming " + IrisSettings.get().getDefaultWorldType() + "!");
-            hint = IrisSettings.get().getDefaultWorldType();
+            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
+            hint = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
         dim = IrisDataManager.loadAnyDimension(hint);
@@ -238,8 +238,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (hint == null) {
-            Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming " + IrisSettings.get().getDefaultWorldType() + "!");
-            hint = IrisSettings.get().getDefaultWorldType();
+            Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
+            hint = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
         dim = IrisDataManager.loadAnyDimension(hint);

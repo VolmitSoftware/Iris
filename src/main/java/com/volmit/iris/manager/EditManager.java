@@ -96,7 +96,7 @@ public class EditManager implements Listener
 
 		BlockEditor e = null;
 
-		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().isIgnoreWorldEdit())
+		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().getGeneral().isIgnoreWorldEdit())
 		{
 			try
 			{

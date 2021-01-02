@@ -1,6 +1,5 @@
 package com.volmit.iris.util;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import org.bukkit.Sound;
 
@@ -60,7 +59,7 @@ public abstract class MortarCommand implements ICommand
 			return null;
 		}
 
-		if(sender.isPlayer() && IrisSettings.get().commandSounds)
+		if(sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds())
 		{
 			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 0.25f, 1.7f);
 		}
@@ -94,7 +93,7 @@ public abstract class MortarCommand implements ICommand
 			sender.sendMessage("There are either no sub-commands or you do not have permission to use them.");
 		}
 
-		if(sender.isPlayer() && IrisSettings.get().commandSounds)
+		if(sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds())
 		{
 			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 0.28f, 1.4f);
 			sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ITEM_AXE_STRIP, 0.35f, 1.7f);

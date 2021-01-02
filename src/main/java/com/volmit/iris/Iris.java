@@ -66,7 +66,7 @@ public class Iris extends VolmitPlugin
 
 	public static int getThreadCount()
 	{
-		int tc = IrisSettings.get().getForceThreadCount();
+		int tc = IrisSettings.get().getConcurrency().getThreadCount();
 
 		if(tc <= 0)
 		{
@@ -251,7 +251,7 @@ public class Iris extends VolmitPlugin
 
 	private void bstats()
 	{
-		if(IrisSettings.get().isPluginMetrics())
+		if(IrisSettings.get().getGeneral().isPluginMetrics())
 		{
 			J.s(() -> {
 				Metrics m = new Metrics(Iris.instance, 8757);
@@ -415,7 +415,7 @@ public class Iris extends VolmitPlugin
 	{
 		try
 		{
-			if(IrisSettings.get().verbose)
+			if(IrisSettings.get().getGeneral().isVerbose())
 			{
 				msg(C.GRAY + string);
 			}
@@ -444,7 +444,7 @@ public class Iris extends VolmitPlugin
 
 	public void splash()
 	{
-		if(!IrisSettings.get().isSplashLogoStartup())
+		if(!IrisSettings.get().getGeneral().isSplashLogoStartup())
 		{
 			return;
 		}
@@ -518,6 +518,6 @@ public class Iris extends VolmitPlugin
 	}
 
     public boolean isMCA() {
-		return IrisSettings.get().useExperimentalGleamMCADirectWriteMode;
+		return IrisSettings.get().getGenerator().isMcaPregenerator();
     }
 }

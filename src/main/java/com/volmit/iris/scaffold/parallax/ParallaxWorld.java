@@ -199,7 +199,7 @@ public class ParallaxWorld implements ParallaxAccess
 
 	public  void cleanup()
 	{
-		cleanup(IrisSettings.get().getParallaxRegionEvictionMS(), IrisSettings.get().getParallaxChunkEvictionMS());
+		cleanup(IrisSettings.get().getParallaxRegionEvictionMS(), IrisSettings.get().getParallax().getParallaxChunkEvictionMS());
 	}
 
 	@Override

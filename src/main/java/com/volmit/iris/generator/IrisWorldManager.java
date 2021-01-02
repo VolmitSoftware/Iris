@@ -55,7 +55,7 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
 
         try
         {
-            if(!IrisSettings.get().isSystemEntitySpawnOverrides())
+            if(!IrisSettings.get().getGenerator().isSystemEntitySpawnOverrides())
             {
                 return;
             }

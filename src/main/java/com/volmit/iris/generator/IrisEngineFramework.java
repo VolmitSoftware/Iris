@@ -65,7 +65,7 @@ public class IrisEngineFramework implements EngineFramework {
         this.caveModifier = new IrisCaveModifier(engine);
         this.postModifier = new IrisPostModifier(engine);
         cleaning = new AtomicBoolean(false);
-        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().parallaxChunkEvictionMS, IrisSettings.get().parallaxRegionEvictionMS)));
+        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax().getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
     }
 
     @Override

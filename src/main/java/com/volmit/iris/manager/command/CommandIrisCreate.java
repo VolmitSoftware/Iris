@@ -3,6 +3,7 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.pregen.Pregenerator;
 import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
@@ -105,7 +106,7 @@ public class CommandIrisCreate extends MortarCommand
 			sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
 			sender.sendMessage("Expect Extreme server lag during this time. Use '/iris world pregen stop' to cancel");
 
-			new PregenJob(world, pregen, sender, () ->
+			new Pregenerator(world, pregen, () ->
 			{
 				b.set(true);
 			});
@@ -130,7 +131,6 @@ public class CommandIrisCreate extends MortarCommand
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
 			{
 				world.save();
-
 				sender.sendMessage("All Done!");
 			});
 		});

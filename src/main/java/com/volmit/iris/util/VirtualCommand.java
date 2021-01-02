@@ -1,13 +1,12 @@
 package com.volmit.iris.util;
 
-import java.lang.reflect.Field;
-
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 
-import com.volmit.iris.Iris;
+import java.lang.reflect.Field;
 
 /**
  * Represents a virtual command. A chain of iterative processing through
@@ -108,7 +107,7 @@ public class VirtualCommand
 					c.remove(0);
 					if(cmd.hit(sender, c, vs.getCommand()))
 					{
-						if(vs.isPlayer() && IrisSettings.get().commandSounds)
+						if(vs.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds())
 						{
 							vs.player().getWorld().playSound(vs.player().getLocation(), Sound.ITEM_AXE_STRIP, 0.35f, 1.8f);
 						}

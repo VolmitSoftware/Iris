@@ -25,7 +25,7 @@ public class INMS
 
 	private static final String getNMSTag()
 	{
-		if(IrisSettings.get().disableNMS)
+		if(IrisSettings.get().getGeneral().isDisableNMS())
 		{
 			return "BUKKIT";
 		}

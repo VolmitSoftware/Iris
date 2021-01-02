@@ -81,7 +81,7 @@ public class IrisProject
 							sender.sendMessage("Workspace Updated");
 						});
 
-						if(IrisSettings.get().openVSCode)
+						if(IrisSettings.get().getStudio().isOpenVSCode())
 						{
 							Desktop.getDesktop().open(i);
 						}

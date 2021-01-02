@@ -223,7 +223,7 @@ public class IrisEngineCompound implements EngineCompound {
             int offset = 0;
             BurstExecutor e = burster.burst();
             Runnable[] insert = new Runnable[engines.length];
-            boolean structures = getDefaultEngine().getDimension().isVanillaStructures() && !IrisSettings.get().isDisableNMS();
+            boolean structures = getDefaultEngine().getDimension().isVanillaStructures() && !IrisSettings.get().getGeneral().isDisableNMS();
 
             for(i = 0; i < engines.length; i++)
             {

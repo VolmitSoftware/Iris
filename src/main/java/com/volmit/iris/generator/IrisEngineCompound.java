@@ -242,31 +242,16 @@ public class IrisEngineCompound implements EngineCompound {
                 }
 
                 cbiome.set(engine.getTarget().isInverted() ? cbiome.get().invertY() : cbiome.get());
-                e.queue(() -> {
-                    engine.generate(x, z, cblock.get(), cpblock.get(), cbiome.get());
-                    synchronized (insert)
-                    {
-                        insert[index.get()] = () -> {
-                            blocks.insert(0, doffset, 0, cblock.get());
+                engine.generate(x, z, cblock.get(), cpblock.get(), cbiome.get());
+                blocks.insert(0, doffset, 0, cblock.get());
 
-                            if(structures)
-                            {
-                                postblocks.insert(0, doffset, 0, cpblock.get());
-                            }
+                if(structures)
+                {
+                    postblocks.insert(0, doffset, 0, cpblock.get());
+                }
 
-                            biomes.insert(0, doffset, 0, cbiome.get());
-                        };
-                    }
-                });
-
+                biomes.insert(0, doffset, 0, cbiome.get());
                 offset += height;
-            }
-
-            e.complete();
-
-            for(i = 0; i < insert.length; i++)
-            {
-                insert[i].run();
             }
         }
 

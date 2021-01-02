@@ -145,7 +145,7 @@ public class IrisComplex implements DataProvider
 			.convertAware2D(this::implode).cache2D(cacheSize);
 		heightStream = ProceduralStream.of((x, z) -> {
 			IrisBiome b = baseBiomeStream.get(x, z);
-			return getHeight(b, x, z, engine.getWorld().getSeed());
+			return getHeight(engine, b, x, z, engine.getWorld().getSeed());
 		}, Interpolated.DOUBLE).cache2D(cacheSize);
 		slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
 		trueBiomeStream = heightStream
@@ -289,7 +289,7 @@ public class IrisComplex implements DataProvider
 		return biome;
 	}
 
-	private double getHeight(IrisBiome b, double x, double z, long seed)
+	private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed)
 	{
 		double h = 0;
 
@@ -332,7 +332,13 @@ public class IrisComplex implements DataProvider
 			h += M.lerp(lo, hi, gen.getHeight(x, z, seed + 239945));
 		}
 
-		return h + fluidHeight + overlayStream.get(x,z);
+		double noise = h + fluidHeight + overlayStream.get(x,z);
+		for(NoiseEffectZone i : engine.getDimension().getNoiseEffectZones())
+		{
+			noise = i.filter(x, z, noise);
+		}
+
+		return Math.min(engine.getHeight(), Math.max(noise, 0));
 	}
 
 	private void registerGenerator(IrisGenerator cachedGenerator)

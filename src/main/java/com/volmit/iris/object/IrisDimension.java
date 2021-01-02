@@ -57,6 +57,11 @@ public class IrisDimension extends IrisRegistrant
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
 	@DontObfuscate
+	@Desc("Add spatial effects to iris noise")
+	@ArrayType(min = 1, type = NoiseEffectZone.class)
+	private KList<NoiseEffectZone> noiseEffectZones = new KList<>();
+
+	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();

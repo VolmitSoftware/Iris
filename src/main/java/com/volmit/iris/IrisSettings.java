@@ -11,87 +11,122 @@ import java.io.IOException;
 public class IrisSettings
 {
 	public static transient IrisSettings settings;
+	private IrisSettingsCache cache = new IrisSettingsCache();
+	private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
+	private IrisSettingsParallax parallax = new IrisSettingsParallax();
+	private IrisSettingsGeneral general = new IrisSettingsGeneral();
+	private IrisSettingsGUI gui = new IrisSettingsGUI();
+	private IrisSettingsGenerator generator = new IrisSettingsGenerator();
+	private IrisSettingsStudio studio = new IrisSettingsStudio();
 
 	@DontObfuscate
-	public int configurationVersion = 2;
+	public int configurationVersion = 3;
 
-	@DontObfuscate
-	public int streamingCacheSize = 8192;
+	public boolean isStudio() {
+		return getStudio().isStudio();
+	}
 
-	@DontObfuscate
-	public int parallaxRegionEvictionMS = 15000;
+	public boolean isUseServerLaunchedGuis() {
+		return getGui().isUseServerLaunchedGuis();
+	}
 
-	@DontObfuscate
-	public int parallaxChunkEvictionMS = 5000;
+	public long getParallaxRegionEvictionMS() {
+		return getParallax().getParallaxRegionEvictionMS();
+	}
 
-	@DontObfuscate
-	public boolean forceSingleThreadedPerChunk = false;
+	@Data
+	public static class IrisSettingsCache
+	{
+		@DontObfuscate
+		public int streamingCacheSize = 8192;
+	}
 
-	@DontObfuscate
-	public int forceThreadCount = -1;
+	@Data
+	public static class IrisSettingsConcurrency
+	{
+		@DontObfuscate
+		public int threadCount = -1;
+	}
 
-	@DontObfuscate
-	public String defaultWorldType = "overworld";
+	@Data
+	public static class IrisSettingsParallax
+	{
+		@DontObfuscate
+		public int parallaxRegionEvictionMS = 15000;
 
-	@DontObfuscate
-	public int maxAsyncChunkPregenThreads = 128;
+		@DontObfuscate
+		public int parallaxChunkEvictionMS = 5000;
+	}
 
-	@DontObfuscate
-	public boolean maximumPregenGuiFPS = false;
+	@Data
+	public static class IrisSettingsGeneral
+	{
 
-	@DontObfuscate
-	public boolean commandSounds = true;
+		@DontObfuscate
+		public boolean commandSounds = true;
 
-	@DontObfuscate
-	public boolean verbose = false;
+		@DontObfuscate
+		public boolean verbose = false;
 
-	@DontObfuscate
-	public boolean ignoreWorldEdit = false;
+		@DontObfuscate
+		public boolean ignoreWorldEdit = false;
 
-	@DontObfuscate
-	public boolean useGleamPregenerator = false;
+		@DontObfuscate
+		public boolean disableNMS = false;
 
-	@DontObfuscate
-	public boolean useExperimentalGleamMCADirectWriteMode = false;
+		@DontObfuscate
+		public boolean pluginMetrics = true;
 
-	@DontObfuscate
-	public boolean disableNMS = false;
+		@DontObfuscate
+		public boolean splashLogoStartup = true;
+	}
 
-	@DontObfuscate
-	public boolean systemEffects = true;
+	@Data
+	public static class IrisSettingsGUI
+	{
+		@DontObfuscate
+		public boolean useServerLaunchedGuis = true;
 
-	@DontObfuscate
-	public boolean saveAllDuringPregen = true;
+		@DontObfuscate
+		public boolean maximumPregenGuiFPS = false;
 
-	@DontObfuscate
-	public boolean localPregenGui = true;
+		@DontObfuscate
+		public boolean localPregenGui = true;
+	}
 
-	@DontObfuscate
-	public boolean systemEntitySpawnOverrides = true;
+	@Data
+	public static class IrisSettingsGenerator
+	{
+		@DontObfuscate
+		public String defaultWorldType = "overworld";
 
-	@DontObfuscate
-	public boolean systemEntityInitialSpawns = true;
+		@DontObfuscate
+		public boolean mcaPregenerator = false;
 
-	@DontObfuscate
-	public int maxBiomeChildDepth = 5;
+		@DontObfuscate
+		public boolean systemEffects = true;
 
-	@DontObfuscate
-	public boolean sharedCaching = true;
+		@DontObfuscate
+		public boolean systemEntitySpawnOverrides = true;
 
-	@DontObfuscate
-	public boolean studio = true;
+		@DontObfuscate
+		public boolean systemEntityInitialSpawns = true;
 
-	@DontObfuscate
-	public boolean useServerLaunchedGuis = true;
+		@DontObfuscate
+		public int maxBiomeChildDepth = 5;
 
-	@DontObfuscate
-	public boolean openVSCode = true;
+	}
 
-	@DontObfuscate
-	public boolean pluginMetrics = true;
+	@Data
+	public static class IrisSettingsStudio
+	{
 
-	@DontObfuscate
-	public boolean splashLogoStartup = true;
+		@DontObfuscate
+		public boolean studio = true;
+
+		@DontObfuscate
+		public boolean openVSCode = true;
+	}
 
 	public static IrisSettings get()
 	{

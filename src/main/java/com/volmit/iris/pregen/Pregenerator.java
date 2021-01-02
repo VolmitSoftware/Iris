@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,13 +38,13 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Pregenerator implements Listener
 {
 	private static Pregenerator instance;
-	private static final Color COLOR_MCA_PREPARE = Color.DARK_GRAY;
-	private static final Color COLOR_MCA_GENERATE = Color.MAGENTA;
-	private static final Color COLOR_MCA_GENERATE_SLOW = Color.YELLOW;
-	private static final Color COLOR_MCA_GENERATED = Color.GREEN;
-	private static final Color COLOR_MCA_SEALED = Color.GREEN;
-	private static final Color COLOR_MCA_SEALING = Color.GREEN.darker().darker();
-	private static final Color COLOR_MCA_DEFERRED = Color.YELLOW.darker().darker();
+	private static final Color COLOR_MCA_PREPARE = Color.decode("#16211d");
+	private static final Color COLOR_MCA_GENERATE = Color.decode("#34c0eb");
+	private static final Color COLOR_MCA_GENERATE_SLOW = Color.decode("#34c0eb");
+	private static final Color COLOR_MCA_GENERATE_SLOW_ASYNC = Color.decode("#34c0eb");
+	private static final Color COLOR_MCA_GENERATED = Color.decode("#34eb83");
+	private static final Color COLOR_MCA_SEALED = Color.decode("#34eb83");
+	private static final Color COLOR_MCA_DEFERRED = Color.decode("#211617");
 	private final World world;
 	private final DirectWorldWriter directWriter;
 	private final AtomicBoolean active;
@@ -66,12 +67,18 @@ public class Pregenerator implements Listener
 	private final AtomicInteger vcaz;
 	private final long elapsed;
 
-	public Pregenerator(World world, int blockSize, int xoffset, int zoffset)
+	public Pregenerator(World world, int blockSize, Runnable onComplete)
+	{
+		this(world, blockSize);
+		this.onComplete.add(onComplete);
+	}
+
+	public Pregenerator(World world, int blockSize)
 	{
 		instance();
 		elapsed = M.ms();
 		memoryMetric = new AtomicReference<>("...");
-		method = new AtomicReference<>("IDLE");
+		method = new AtomicReference<>("STARTUP");
 		memory = new AtomicLong(0);
 		this.world = world;
 		vmcax = new AtomicInteger();
@@ -92,24 +99,28 @@ public class Pregenerator implements Listener
 		onComplete = new KList<>();
 		max = new ChunkPosition(0,0);
 		min = new ChunkPosition(0,0);
+		KList<Runnable> draw = new KList<>();
 		new Spiraler(mcaSize, mcaSize, (xx,zz) -> {
 			min.setX(Math.min(xx << 5, min.getX()));
 			min.setZ(Math.min(zz << 5, min.getZ()));
 			max.setX(Math.max((xx << 5) + 31, max.getX()));
 			max.setZ(Math.max((zz << 5) + 31, max.getZ()));
 			totalChunks.getAndAdd(1024);
+			draw.add(() -> drawMCA(xx, zz, COLOR_MCA_PREPARE));
 		}).drain();
-		gui = IrisSettings.get().isLocalPregenGui() && IrisSettings.get().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null;
+		gui = IrisSettings.get().getGui().isLocalPregenGui() && IrisSettings.get().getGui().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null;
+		flushWorld();
 		KList<ChunkPosition> order = computeChunkOrder();
 		Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration =
 				(ox, oz, r) -> order.forEach((i)
 						-> r.accept(i.getX() + ox, i.getZ() + oz));
+		draw.forEach(Runnable::run);
 		Spiraler spiraler = new Spiraler(mcaSize, mcaSize, (xx,zz) -> {
 			vmcax.set(xx);
 			vmcaz.set(zz);
 			flushWorld();
 			drawMCA(xx, zz, COLOR_MCA_PREPARE);
-			if(generateMCARegion(xx, zz, burst, access, mcaIteration))
+			if(access != null && generateMCARegion(xx, zz, burst, access, mcaIteration))
 			{
 				flushWorld();
 			}
@@ -117,9 +128,15 @@ public class Pregenerator implements Listener
 			else
 			{
 				drawMCA(xx, zz, COLOR_MCA_DEFERRED);
+				mcaDefer.add(new ChunkPosition(xx, zz));
 			}
 		});
+
 		new Thread(() -> {
+			flushWorld();
+			J.sleep(2000);
+			flushWorld();
+
 			while(running.get() && spiraler.hasNext())
 			{
 				if(active.get())
@@ -135,8 +152,7 @@ public class Pregenerator implements Listener
 				ChunkPosition p = mcaDefer.popLast();
 				vmcax.set(p.getX());
 				vmcaz.set(p.getZ());
-				generateDeferedMCARegion(p.getX(), p.getZ(), burst, access, mcaIteration);
-				drawMCA(p.getX(), p.getZ(), COLOR_MCA_SEALING);
+				generateDeferedMCARegion(p.getX(), p.getZ(), burst, mcaIteration);
 				flushWorld();
 				drawMCA(p.getX(), p.getZ(), COLOR_MCA_SEALED);
 			}
@@ -200,10 +216,11 @@ public class Pregenerator implements Listener
 			}));
 			e.complete();
 			directWriter.flush();
-			try {
-				Files.move(fileToMovePath, targetPath);
-			} catch (IOException ef) {
-				ef.printStackTrace();
+			if(!install(mcg, mca))
+			{
+				drawMCA(x, z, COLOR_MCA_DEFERRED);
+				generated.set(generated.get() - 1024);
+				mcaDefer.add(new ChunkPosition(x, z));
 			}
 		}
 
@@ -217,22 +234,48 @@ public class Pregenerator implements Listener
 		return true;
 	}
 
-	private void generateDeferedMCARegion(int x, int z, MultiBurst burst, IrisAccess access, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
+	private boolean install(File from, File to) {
+		try
+		{
+			Files.move(from.toPath(), to.toPath());
+			return true;
+		}
+
+		catch(Throwable ignored)
+		{
+
+		}
+
+		try {
+			IO.copyFile(from, to);
+			from.delete();
+			return true;
+		} catch (IOException ignored) {
+
+		}
+
+		return false;
+	}
+
+	private void generateDeferedMCARegion(int x, int z, MultiBurst burst, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
 		BurstExecutor e = burst.burst(1024);
 		int mcaox = x << 5;
 		int mcaoz = z << 5;
-
 		if(PaperLib.isPaper())
 		{
 			method.set("PaperAsync (Slow)");
-			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
+			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
 				draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
-				access.generatePaper(world, ii, jj);
-				draw(ii, jj, COLOR_MCA_GENERATED);
-				generated.getAndIncrement();
-				vcax.set(ii);
-				vcaz.set(jj);
-			}));
+				CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
+				draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
+				e.queue(() -> {
+					cc.join();
+					draw(ii, jj, COLOR_MCA_GENERATED);
+					generated.getAndIncrement();
+					vcax.set(ii);
+					vcaz.set(jj);
+				});
+			});
 			e.complete();
 		}
 
@@ -474,7 +517,7 @@ public class Pregenerator implements Listener
 				g.drawString("Press P to Pause", 20, hh += h);
 			}
 
-			J.sleep((long) (IrisSettings.get().isMaximumPregenGuiFPS() ? 4 : 250));
+			J.sleep((long) (IrisSettings.get().getGui().isMaximumPregenGuiFPS() ? 4 : 250));
 			repaint();
 		}
 
@@ -557,7 +600,7 @@ public class Pregenerator implements Listener
 		{
 			if(e.getKeyCode() == KeyEvent.VK_P)
 			{
-				PregenJob.pauseResume();
+				Pregenerator.pauseResume();
 			}
 		}
 

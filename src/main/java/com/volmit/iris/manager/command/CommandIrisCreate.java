@@ -1,6 +1,7 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.pregen.Pregenerator;
@@ -33,7 +34,7 @@ public class CommandIrisCreate extends MortarCommand
 	{
 		if(args.length < 1)
 		{
-			sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000] [-zip]");
+			sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000]");
 			return true;
 		}
 
@@ -41,16 +42,7 @@ public class CommandIrisCreate extends MortarCommand
 		String type = "overworld";
 		long seed = 1337;
 		int pregen = 0;
-		File folder = new File(worldName);
-
-		if(folder.exists())
-		{
-			sender.sendMessage("That world folder already exists!");
-			return true;
-		}
-
-		File iris = new File(folder, "iris");
-		iris.mkdirs();
+		boolean multiverse = Iris.linkMultiverseCore.supported();
 
 		for(String i : args)
 		{
@@ -59,42 +51,71 @@ public class CommandIrisCreate extends MortarCommand
 			pregen = i.startsWith("pregen=") ? Integer.parseInt(i.split("\\Q=\\E")[1]) : pregen;
 		}
 
-		IrisDimension dim = Iris.proj.installIntoWorld(sender, type, folder);
-
-		WorldCreator wc = new IrisWorldCreator().dimension(dim).name(worldName)
-				.productionMode().seed(seed).create();
-		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
-		O<Boolean> done = new O<Boolean>();
-		done.set(false);
-
-		J.a(() ->
+		Iris.linkMultiverseCore.assignWorldType(worldName, type);
+		World world = null;
+		IrisDimension dim;
+		File folder = new File(worldName);
+		if(multiverse)
 		{
-			double last = 0;
-			int req = 800;
-			while(!done.get())
+			dim = IrisDataManager.loadAnyDimension(type);
+			String command = "mv create " + worldName + " " + Iris.linkMultiverseCore.envName(dim.getEnvironment());
+			command += " -s " + seed;
+			command += " -g Iris";
+			sender.sendMessage("Delegating " + command);
+			Bukkit.dispatchCommand(sender, command);
+			world= Bukkit.getWorld(worldName);
+		}
+
+		else
+		{
+			if(folder.exists())
 			{
-				boolean derp = false;
-				double v = (double) ((IrisAccess) wc.generator()).getGenerated() / (double) req;
-
-				if(last > v || v > 1)
-				{
-					derp = true;
-					v = last;
-				}
-
-				else
-				{
-					last = v;
-				}
-
-				sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
-				J.sleep(3000);
+				sender.sendMessage("That world folder already exists!");
+				return true;
 			}
-		});
 
-		World world = INMS.get().createWorld(wc, false);
+			File iris = new File(folder, "iris");
+			iris.mkdirs();
 
-		done.set(true);
+			dim = Iris.proj.installIntoWorld(sender, type, folder);
+
+			WorldCreator wc = new IrisWorldCreator().dimension(dim).name(worldName)
+					.productionMode().seed(seed).create();
+			sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
+			O<Boolean> done = new O<Boolean>();
+			done.set(false);
+
+			J.a(() ->
+			{
+				double last = 0;
+				int req = 800;
+				while(!done.get())
+				{
+					boolean derp = false;
+					double v = (double) ((IrisAccess) wc.generator()).getGenerated() / (double) req;
+
+					if(last > v || v > 1)
+					{
+						derp = true;
+						v = last;
+					}
+
+					else
+					{
+						last = v;
+					}
+
+					sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
+					J.sleep(3000);
+				}
+			});
+
+			world = INMS.get().createWorld(wc, false);
+
+			done.set(true);
+		}
+
+
 		sender.sendMessage(worldName + " Spawn Area generated.");
 
 		O<Boolean> b = new O<Boolean>();
@@ -104,7 +125,7 @@ public class CommandIrisCreate extends MortarCommand
 		{
 			b.set(false);
 			sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
-			sender.sendMessage("Expect Extreme server lag during this time. Use '/iris world pregen stop' to cancel");
+			sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
 			new Pregenerator(world, pregen, () ->
 			{
@@ -114,13 +135,7 @@ public class CommandIrisCreate extends MortarCommand
 
 		IrisDimension dimm = dim;
 		long seedd = seed;
-
-		if(Iris.linkMultiverseCore.supported())
-		{
-			Iris.linkMultiverseCore.addWorld(worldName, dimm, seedd + "");
-			sender.sendMessage("Added " + worldName + " to MultiverseCore.");
-		}
-
+		World ww = world;
 		J.a(() ->
 		{
 			while(!b.get())
@@ -128,9 +143,10 @@ public class CommandIrisCreate extends MortarCommand
 				J.sleep(1000);
 			}
 
+
 			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
 			{
-				world.save();
+				ww.save();
 				sender.sendMessage("All Done!");
 			});
 		});
@@ -141,6 +157,6 @@ public class CommandIrisCreate extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "<name> [type=overworld] [seed=1337] [pregen=5000] [-zip]";
+		return "<name> [type=overworld] [seed=1337] [pregen=5000]";
 	}
 }

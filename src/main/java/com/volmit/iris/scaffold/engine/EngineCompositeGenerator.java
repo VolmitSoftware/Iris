@@ -132,6 +132,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     private synchronized IrisDimension getDimension(World world) {
         String hint = dimensionHint;
+        hint = Iris.linkMultiverseCore.getWorldNameType(world.getName(), hint);
+
         IrisDimension dim = null;
 
         if (hint == null) {

@@ -92,7 +92,18 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             if(!meta.isParallaxGenerated())
             {
                 Iris.warn("Chunk " + (x >> 4) + " " + (z >> 4) + " has no parallax data!");
-                return;
+                generateParallaxLayer(x, z, true);
+                meta = getParallaxAccess().getMetaR(x>>4, z>>4);
+
+                if(meta.isParallaxGenerated())
+                {
+                    Iris.info("Fixed!");
+                }
+
+                else
+                {
+                    Iris.error("Not Fixed!");
+                }
             }
 
             if(!meta.isObjects()) {

@@ -121,6 +121,19 @@ public class CommandIrisCreate extends MortarCommand
 		O<Boolean> b = new O<Boolean>();
 		b.set(true);
 
+		if(sender.isPlayer())
+		{
+			try
+			{
+				sender.player().teleport(world.getSpawnLocation());
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		}
+
 		if(pregen > 0)
 		{
 			b.set(false);

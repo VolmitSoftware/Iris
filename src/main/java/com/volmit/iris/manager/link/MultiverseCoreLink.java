@@ -1,27 +1,23 @@
 package com.volmit.iris.manager.link;
 
+import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.util.KMap;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.WorldType;
+import org.bukkit.plugin.Plugin;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.World.Environment;
-import org.bukkit.WorldType;
-import org.bukkit.plugin.Plugin;
-
-import com.volmit.iris.object.IrisDimension;
-
 public class MultiverseCoreLink
 {
+	private final KMap<String, String> worldNameTypes = new KMap<>();
+
 	public MultiverseCoreLink()
 	{
 
-	}
-
-	public boolean supported()
-	{
-		return getMultiverse() != null;
 	}
 
 	public boolean addWorld(String worldName, IrisDimension dim, String seed)
@@ -37,7 +33,7 @@ public class MultiverseCoreLink
 			Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
 			Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
 
-					String.class, Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
+					String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
 			boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, dim.isVanillaStructures(), "Iris", false);
 			saveConfig();
 			return b;
@@ -81,7 +77,7 @@ public class MultiverseCoreLink
 		getList().remove(world.getName());
 		saveConfig();
 	}
-	
+
 	public void removeFromConfig(String world)
 	{
 		if(!supported())
@@ -108,6 +104,22 @@ public class MultiverseCoreLink
 		}
 	}
 
+	public void assignWorldType(String worldName, String type)
+	{
+		worldNameTypes.put(worldName, type);
+	}
+
+	public String getWorldNameType(String worldName, String defaultType)
+	{
+		String t = worldNameTypes.get(worldName);
+		return t == null ? defaultType : t;
+	}
+
+	public boolean supported()
+	{
+		return getMultiverse() != null;
+	}
+
 	public Plugin getMultiverse()
 	{
 		Plugin p = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
@@ -118,5 +130,19 @@ public class MultiverseCoreLink
 		}
 
 		return p;
+	}
+
+	public String envName(World.Environment environment) {
+		switch(environment)
+		{
+			case NORMAL:
+				return "normal";
+			case NETHER:
+				return "nether";
+			case THE_END:
+				return "end";
+		}
+
+		return environment.toString().toLowerCase();
 	}
 }

@@ -1,5 +1,6 @@
 package com.volmit.iris.pregen;
 
+import com.sun.javafx.scene.control.skin.TableHeaderRow;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -66,6 +67,7 @@ public class Pregenerator implements Listener
 	private final AtomicInteger vcax;
 	private final AtomicInteger vcaz;
 	private final long elapsed;
+	private final ChronoLatch latch;
 
 	public Pregenerator(World world, int blockSize, Runnable onComplete)
 	{
@@ -77,6 +79,7 @@ public class Pregenerator implements Listener
 	{
 		instance();
 		elapsed = M.ms();
+		latch = new ChronoLatch(5000);
 		memoryMetric = new AtomicReference<>("...");
 		method = new AtomicReference<>("STARTUP");
 		memory = new AtomicLong(0);
@@ -161,7 +164,8 @@ public class Pregenerator implements Listener
 			directWriter.flush();
 			flushWorld();
 			onComplete.forEach(Runnable::run);
-
+			running.set(false);
+			active.set(false);
 			if(gui != null)
 			{
 				gui.close();
@@ -178,6 +182,7 @@ public class Pregenerator implements Listener
 				perSecond.put((int) (up / (dur / 1000D)));
 				p.reset();
 				p.begin();
+				updateProgress();
 				generatedLast.set(m);
 				J.sleep(100);
 				long lmem = memory.get();
@@ -257,6 +262,17 @@ public class Pregenerator implements Listener
 		return false;
 	}
 
+	public void updateProgress()
+	{
+		if(!latch.flip())
+		{
+			return;
+		}
+
+		String[] v = getProgress();
+		Iris.info("[Pregen]: " + v[0] + " "  + v[1] + " " + v[2] + " " + v[3]);
+	}
+
 	private void generateDeferedMCARegion(int x, int z, MultiBurst burst, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
 		BurstExecutor e = burst.burst(1024);
 		int mcaox = x << 5;
@@ -265,10 +281,9 @@ public class Pregenerator implements Listener
 		{
 			method.set("PaperAsync (Slow)");
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-				draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
-				CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
-				draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
 				e.queue(() -> {
+					CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
+					draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
 					cc.join();
 					draw(ii, jj, COLOR_MCA_GENERATED);
 					generated.getAndIncrement();
@@ -283,9 +298,10 @@ public class Pregenerator implements Listener
 		{
 			AtomicInteger m = new AtomicInteger();
 			method.set("Spigot (Very Slow)");
+			KList<Runnable> q = new KList<>();
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-				draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
-				J.s(() -> {
+				q.add(() -> {
+					draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
 					world.getChunkAt(ii, jj).load(true);
 					draw(ii, jj, COLOR_MCA_GENERATED);
 					m.getAndIncrement();
@@ -294,6 +310,32 @@ public class Pregenerator implements Listener
 					vcaz.set(jj);
 				});
 			});
+			ChronoLatch tick = new ChronoLatch(1000);
+			new SR(0) {
+				@Override
+				public void run() {
+					if(tick.flip())
+					{
+						return;
+					}
+
+					if(q.isEmpty())
+					{
+						cancel();
+						return;
+					}
+
+					try
+					{
+						q.pop().run();
+					}
+
+					catch(Throwable e)
+					{
+
+					}
+				}
+			};
 
 			while(m.get() < 1024)
 			{

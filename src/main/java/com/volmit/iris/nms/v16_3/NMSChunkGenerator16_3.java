@@ -6,7 +6,6 @@
 package com.volmit.iris.nms.v16_3;
 
 import com.mojang.serialization.Codec;
-import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
@@ -424,12 +423,6 @@ public final class NMSChunkGenerator16_3 extends ChunkGenerator implements IrisA
         if(r != null)
         {
             r.run();
-        }
-
-        if(posts.size() > 1000)
-        {
-            Iris.warn("POSTS OUT OF CONTROL CLEARING QUEUE!");
-            posts.clear();
         }
     }
 

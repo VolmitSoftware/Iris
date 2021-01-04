@@ -74,16 +74,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
 
     default void insertParallax(int x, int z, Hunk<BlockData> data)
     {
-        insertParallax(x, z, data, 5);
-    }
-
-    default void insertParallax(int x, int z, Hunk<BlockData> data, int tries)
-    {
-        if(tries <= 0)
-        {
-            return;
-        }
-
         try
         {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -111,11 +101,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
                 return;
             }
 
-            int min = Math.max(meta.getMinObject(), 0);
-            int max = meta.getMaxObject();
-            max = max < 0 ? 255 : max;
-            boolean placed = false;
-
             for(int i = x; i < x+ data.getWidth(); i++)
             {
                 for(int j= z; j < z + data.getDepth(); j++)
@@ -127,22 +112,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
                         if(d != null)
                         {
                             data.set(i - x, k, j - z, d);
-                            placed = true;
                         }
                     }
                 }
-            }
-
-            if(!placed)
-            {
-                J.sleep(150);
-
-                if(tries < 4)
-                {
-                    generateParallaxLayer(x, z, true);
-                }
-
-                insertParallax(x, z, data, tries-1);
             }
 
             getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());

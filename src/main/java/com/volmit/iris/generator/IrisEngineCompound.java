@@ -24,8 +24,6 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
@@ -227,30 +225,33 @@ public class IrisEngineCompound implements EngineCompound {
 
             for(i = 0; i < engines.length; i++)
             {
-                AtomicInteger index = new AtomicInteger(i);
                 Engine engine = engines[i];
                 int doffset = offset;
                 int height = engine.getTarget().getHeight();
-                AtomicReference<Hunk<BlockData>> cblock = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
-                AtomicReference<Hunk<BlockData>> cpblock = new AtomicReference<>(structures ? Hunk.newArrayHunk(16, height, 16) : null);
-                AtomicReference<Hunk<Biome>> cbiome = new AtomicReference<>(Hunk.newArrayHunk(16, height, 16));
-                cblock.set(engine.getTarget().isInverted() ? cblock.get().invertY() : cblock.get());
+                Hunk<BlockData> cblock = Hunk.newArrayHunk(16, height, 16);
+                Hunk<BlockData> cpblock = structures ? Hunk.newArrayHunk(16, height, 16) : null;
+                Hunk<Biome> cbiome = Hunk.newArrayHunk(16, height, 16);
+
+                if(engine.getTarget().isInverted())
+                {
+                    cblock = cblock.invertY();
+                    cbiome = cbiome.invertY();
+
+                    if(structures)
+                    {
+                        cpblock = cpblock.invertY();
+                    }
+                }
+
+                engine.generate(x, z, cblock, cpblock, cbiome);
+                blocks.insert(0, doffset, 0, cblock);
 
                 if(structures)
                 {
-                    cpblock.set(engine.getTarget().isInverted() ? cpblock.get().invertY() : cpblock.get());
+                    postblocks.insert(0, doffset, 0, cpblock);
                 }
 
-                cbiome.set(engine.getTarget().isInverted() ? cbiome.get().invertY() : cbiome.get());
-                engine.generate(x, z, cblock.get(), cpblock.get(), cbiome.get());
-                blocks.insert(0, doffset, 0, cblock.get());
-
-                if(structures)
-                {
-                    postblocks.insert(0, doffset, 0, cpblock.get());
-                }
-
-                biomes.insert(0, doffset, 0, cbiome.get());
+                biomes.insert(0, doffset, 0, cbiome);
                 offset += height;
             }
         }

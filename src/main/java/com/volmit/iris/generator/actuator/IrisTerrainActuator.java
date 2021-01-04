@@ -62,6 +62,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                         if(getDimension().isBedrock())
                         {
                             h.set(xf, i, zf, BEDROCK);
+                            continue;
                         }
                     }
 

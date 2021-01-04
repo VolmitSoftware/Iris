@@ -70,9 +70,13 @@ public class NoiseEffectZone {
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
     private static double BLOCK = 1D / 256D;
 
-    public double filter(double x, double z, double noise)
-    {
-        if(invertZone ? distance2(x, z) < (blockRadius + (interpolationRadius * 5)) * (blockRadius + + (interpolationRadius * 5)) : distance2(x, z) > (blockRadius + interpolationRadius) * (blockRadius + interpolationRadius))
+    public double filter(double x, double z, double noise) {
+        if (invertZone && distance2(x, z) < (blockRadius - (interpolationRadius * 5)) * (blockRadius - (interpolationRadius * 5)))
+        {
+            return noise;
+        }
+
+        if(distance2(x, z) > (blockRadius + (interpolationRadius * 5)) * (blockRadius + (interpolationRadius * 5)))
         {
             return noise;
         }

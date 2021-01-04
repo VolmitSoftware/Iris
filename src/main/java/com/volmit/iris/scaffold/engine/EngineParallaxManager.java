@@ -105,7 +105,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer
             {
                 for(int j= z; j < z + data.getDepth(); j++)
                 {
-                    for(int k = 0; k < getEngine().getHeight(); k++)
+                    for(int k = Math.max(0, meta.getMinObject()-16); k < Math.min(getEngine().getHeight(), meta.getMaxObject()+16); k++)
                     {
                         BlockData d = getParallaxAccess().getBlock(i, k, j);
 

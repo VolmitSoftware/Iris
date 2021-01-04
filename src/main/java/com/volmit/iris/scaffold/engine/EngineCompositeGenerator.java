@@ -502,13 +502,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
-        AtomicBoolean postMod = new AtomicBoolean(false);
-        Hunk<BlockData> trk = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
-        Hunk<BlockData> post = trk.trackWrite(postMod);
+        Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
         compound.generate(x * 16, z * 16, blocks, post, biomes);
         generated++;
 
-        return postMod.get() ? () -> blocks.insertSoftly(0,0,0, post, (b) -> b == null || B.isAirOrFluid(b)) : () -> {};
+        return () -> blocks.insertSoftly(0,0,0, post, (b) -> b == null || B.isAirOrFluid(b));
     }
 
     @Override

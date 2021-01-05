@@ -1,5 +1,6 @@
 package com.volmit.iris.util;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.object.NoiseStyle;
@@ -616,6 +617,23 @@ public class IrisInterpolation
 				n.noise(x3, z3), 
 				px, pz, t, b, a);
 		//@done
+	}
+
+	public static double getRealRadius(InterpolationMethod method, int x, int z, double h)
+	{
+		AtomicDouble rad = new AtomicDouble(h);
+		AtomicDouble accessX = new AtomicDouble();
+		AtomicDouble accessZ = new AtomicDouble();
+		NoiseProvider np = (x1, z1) -> {
+			double d = Math.max(Math.abs(x1-x), Math.abs(z1 - z));
+			if(d > rad.get())
+			{
+				rad.set(d);
+			}
+			return 0;
+		};
+		getNoise(method, x, z, h, np);
+		return rad.get();
 	}
 
 	public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n)

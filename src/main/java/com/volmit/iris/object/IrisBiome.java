@@ -42,6 +42,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
 	@DontObfuscate
+	@Desc("Add random chances for terrain features")
+	@ArrayType(min = 1, type = IrisFeaturePotential.class)
+	private KList<IrisFeaturePotential> features = new KList<>();
+
+	@DontObfuscate
 	@Desc("Entity spawns during generation")
 	@ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();

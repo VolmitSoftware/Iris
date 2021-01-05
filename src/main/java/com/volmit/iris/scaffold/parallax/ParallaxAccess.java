@@ -40,12 +40,20 @@ public interface ParallaxAccess {
         return getMetaR(x, z).isGenerated();
     }
 
+    default boolean isFeatureGenerated(int x, int z) {
+        return getMetaR(x, z).isFeatureGenerated();
+    }
+
     default void setParallaxGenerated(int x, int z) {
         setParallaxGenerated(x, z, true);
     }
 
     default void setChunkGenerated(int x, int z) {
         setChunkGenerated(x, z, true);
+    }
+
+    default void setFeatureGenerated(int x, int z) {
+        setFeatureGenerated(x, z, true);
     }
 
     default void setParallaxGenerated(int x, int z, boolean v) {
@@ -73,6 +81,10 @@ public interface ParallaxAccess {
 
     default void setChunkGenerated(int x, int z, boolean v) {
         getMetaRW(x, z).setGenerated(v);
+    }
+
+    default void setFeatureGenerated(int x, int z, boolean v) {
+        getMetaRW(x, z).setFeatureGenerated(v);
     }
 
     public Hunk<BlockData> getBlocksR(int x, int z);

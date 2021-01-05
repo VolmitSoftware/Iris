@@ -12,6 +12,8 @@ import com.volmit.iris.scaffold.parallax.ParallaxChunkMeta;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
+import org.bukkit.Chunk;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
@@ -72,6 +74,51 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return r;
     }
 
+    /**
+     * Verifies the chunk correctly has all the parallax objects it should.
+     * This method should not have to be written but why not.
+     * Thread Safe, Designed to run async
+     * @param c the bukkit chunk
+     */
+    default int repairChunk(Chunk c)
+    {
+        ParallaxChunkMeta m = getParallaxAccess().getMetaR(c.getX(), c.getZ());
+        Hunk<String> o = getParallaxAccess().getObjectsR(c.getX(), c.getZ());
+        Hunk<BlockData> b = getParallaxAccess().getBlocksR(c.getX(), c.getZ());
+        ChunkSnapshot snapshot = c.getChunkSnapshot(false, false, false);
+        KList<Runnable> queue = new KList<>();
+
+        o.iterateSync((x,y,z,s) -> {
+            if(s != null)
+            {
+
+                BlockData bd = b.get(x,y,z);
+                if(bd != null)
+                {
+                    BlockData bdx = snapshot.getBlockData(x,y,z);
+
+                    if(!bdx.getMaterial().equals(bd.getMaterial()))
+                    {
+                        queue.add(() -> c.getBlock(x,y,z).setBlockData(bd, false));
+                    }
+                }
+            }
+        });
+
+        AtomicBoolean bx = new AtomicBoolean(false);
+        J.s(() -> {
+            queue.forEach(Runnable::run);
+            bx.set(true);
+        });
+
+        while(!bx.get())
+        {
+            J.sleep(50);
+        }
+
+        return queue.size();
+    }
+
     default void insertParallax(int x, int z, Hunk<BlockData> data) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -113,7 +160,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void generateParallaxAreaFeatures(int x, int z, BurstExecutor b) {
+    default void generateParallaxAreaFeatures(int x, int z) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             int s = (int) Math.ceil(getParallaxSize() / 2D);
@@ -133,13 +180,12 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
                         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
                         IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
-                        b.queue(() -> generateParallaxFeatures(rng, xx, zz, region, biome));
+                        generateParallaxFeatures(rng, xx, zz, region, biome);
                         getParallaxAccess().setFeatureGenerated(xx, zz);
                     }
                 }
             }
 
-            b.complete();
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
         } catch (Throwable e) {
@@ -189,9 +235,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             int s = (int) Math.ceil(getParallaxSize() / 2D);
             int i,j;
-            BurstExecutor b = MultiBurst.burst.burst(((s * 2) * (s * 2)));
-            BurstExecutor b2 = MultiBurst.burst.burst(((s * 2) * (s * 2)));
-            generateParallaxAreaFeatures(x, z, b2);
+            generateParallaxAreaFeatures(x, z);
 
             for(i = -s; i <= s; i++)
             {
@@ -199,12 +243,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for(j = -s; j <= s; j++)
                 {
                     int jj = j;
-                    b.queue(() -> generateParallaxLayer((ii*16)+x, (jj*16)+z));
+                     generateParallaxLayer((ii*16)+x, (jj*16)+z);
                 }
             }
 
-            b2.complete();
-            b.complete();
             getParallaxAccess().setChunkGenerated(x>>4, z>>4);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());

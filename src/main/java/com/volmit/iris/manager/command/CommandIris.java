@@ -12,6 +12,9 @@ public class CommandIris extends MortarCommand
 	private CommandIrisCreate create;
 
 	@Command
+	private CommandIrisFix fix;
+
+	@Command
 	private CommandIrisStudio studio;
 
 	@Command

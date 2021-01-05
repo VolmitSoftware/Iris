@@ -2,6 +2,7 @@ package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.pregen.Pregenerator;
@@ -58,6 +59,16 @@ public class CommandIrisCreate extends MortarCommand
 		if(multiverse)
 		{
 			dim = IrisDataManager.loadAnyDimension(type);
+			if(dim.getEnvironment() == null)
+			{
+				dim.setEnvironment(World.Environment.NORMAL);
+			}
+
+			if(Iris.linkMultiverseCore == null)
+			{
+				Iris.linkMultiverseCore = new MultiverseCoreLink();
+			}
+
 			String command = "mv create " + worldName + " " + Iris.linkMultiverseCore.envName(dim.getEnvironment());
 			command += " -s " + seed;
 			command += " -g Iris";

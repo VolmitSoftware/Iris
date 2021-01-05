@@ -292,6 +292,7 @@ public class Iris extends VolmitPlugin
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
+		//TODO: Support ID
 		try
 		{
 			return INMS.get().createWorld(new IrisWorldCreator()

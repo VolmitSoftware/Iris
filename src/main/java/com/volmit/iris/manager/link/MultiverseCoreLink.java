@@ -133,6 +133,11 @@ public class MultiverseCoreLink
 	}
 
 	public String envName(World.Environment environment) {
+		if(environment == null)
+		{
+			return "normal";
+		}
+
 		switch(environment)
 		{
 			case NORMAL:

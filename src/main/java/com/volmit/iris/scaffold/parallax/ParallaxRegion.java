@@ -4,6 +4,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
 import com.volmit.iris.scaffold.hunk.io.HunkRegion;
 import com.volmit.iris.scaffold.hunk.io.HunkRegionSlice;
+import com.volmit.iris.scaffold.parallel.GridLock;
 import com.volmit.iris.util.ByteArrayTag;
 import com.volmit.iris.util.CompoundTag;
 import com.volmit.iris.util.M;
@@ -21,6 +22,7 @@ public class ParallaxRegion extends HunkRegion
 	private HunkRegionSlice<BlockData> blockSlice;
 	private HunkRegionSlice<String> objectSlice;
 	private HunkRegionSlice<Boolean> updateSlice;
+	private final GridLock lock;
 	private long lastUse;
 	private final int height;
 
@@ -29,6 +31,7 @@ public class ParallaxRegion extends HunkRegion
 		super(folder, x, z, compound);
 		this.height = height;
 		setupSlices();
+		lock = new GridLock(32, 32);
 	}
 
 	public ParallaxRegion(int height, File folder, int x, int z)
@@ -36,6 +39,7 @@ public class ParallaxRegion extends HunkRegion
 		super(folder, x, z);
 		this.height = height;
 		setupSlices();
+		lock = new GridLock(32, 32);
 	}
 
 	private void setupSlices()
@@ -49,28 +53,30 @@ public class ParallaxRegion extends HunkRegion
 		lastUse = M.ms();
 	}
 
-	public  boolean hasBeenIdleLongerThan(long time)
+	public boolean hasBeenIdleLongerThan(long time)
 	{
 		return M.ms() - lastUse > time;
 	}
 
-	public  ParallaxChunkMeta getMetaR(int x, int z)
+	public ParallaxChunkMeta getMetaR(int x, int z)
 	{
-		return getMetaHunkR().getOr(x, 0, z, new ParallaxChunkMeta());
+		return lock.withResult(x, z, () -> getMetaHunkR().getOr(x, 0, z, new ParallaxChunkMeta()));
 	}
 
 	public  ParallaxChunkMeta getMetaRW(int x, int z)
 	{
-		lastUse = M.ms();
-		dirtyMeta = true;
-		ParallaxChunkMeta p = getMetaHunkRW().get(x, 0, z);
-		if(p == null)
-		{
-			p = new ParallaxChunkMeta();
-			getMetaHunkRW().set(x,0,z,p);
-		}
+		return lock.withResult(x, z, () -> {
+			lastUse = M.ms();
+			dirtyMeta = true;
+			ParallaxChunkMeta p = getMetaHunkRW().get(x, 0, z);
+			if(p == null)
+			{
+				p = new ParallaxChunkMeta();
+				getMetaHunkRW().set(x,0,z,p);
+			}
 
-		return p;
+			return p;
+		});
 	}
 
 	private  Hunk<ParallaxChunkMeta> getMetaHunkR()
@@ -89,7 +95,7 @@ public class ParallaxRegion extends HunkRegion
 		return getMetaHunkR();
 	}
 
-	public  Hunk<ParallaxChunkMeta> loadMetaHunk()
+	private Hunk<ParallaxChunkMeta> loadMetaHunk()
 	{
 		lastUse = M.ms();
 		if(meta == null)
@@ -138,7 +144,7 @@ public class ParallaxRegion extends HunkRegion
 		}
 	}
 
-	public  void save() throws IOException
+	public synchronized void save() throws IOException
 	{
 		blockSlice.save();
 		objectSlice.save();
@@ -147,7 +153,7 @@ public class ParallaxRegion extends HunkRegion
 		super.save();
 	}
 
-	public  int unload()
+	public int unload()
 	{
 		unloadMetaHunk();
 		return blockSlice.unloadAll()+
@@ -155,7 +161,7 @@ public class ParallaxRegion extends HunkRegion
 		updateSlice.unloadAll();
 	}
 
-	public  HunkRegionSlice<BlockData> getBlockSlice() {
+	public HunkRegionSlice<BlockData> getBlockSlice() {
 		lastUse = M.ms();
 		return blockSlice;
 	}
@@ -165,18 +171,18 @@ public class ParallaxRegion extends HunkRegion
 		return objectSlice;
 	}
 
-	public  HunkRegionSlice<Boolean> getUpdateSlice() {
+	public HunkRegionSlice<Boolean> getUpdateSlice() {
 		lastUse = M.ms();
 		return updateSlice;
 	}
 
-	public  int cleanup(long c) {
+	public synchronized int cleanup(long c) {
 		return blockSlice.cleanup(c) +
 		objectSlice.cleanup(c) +
 		updateSlice.cleanup(c);
 	}
 
-	public  int getChunkCount() {
+	public int getChunkCount() {
 		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + updateSlice.getLoadCount();
 	}
 }

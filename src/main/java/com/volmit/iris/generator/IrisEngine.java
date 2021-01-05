@@ -107,7 +107,7 @@ public class IrisEngine extends BlockPopulator implements Engine
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
             Hunk<BlockData> pblocks = structures ? postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t)) : null;
             Hunk<BlockData> fringe = structures ? Hunk.fringe(blocks, pblocks) : null;
-            getFramework().getEngineParallax().generateParallaxArea(x, z);
+            getFramework().getEngineParallax().generateParallaxArea(x>>4, z>>4);
             getFramework().getBiomeActuator().actuate(x, z, vbiomes);
             getFramework().getTerrainActuator().actuate(x, z, blocks);
             getFramework().getCaveModifier().modify(x, z, blocks);

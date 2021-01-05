@@ -1,6 +1,5 @@
 package com.volmit.iris.pregen;
 
-import com.sun.javafx.scene.control.skin.TableHeaderRow;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -201,6 +200,11 @@ public class Pregenerator implements Listener
 	}
 
 	private boolean generateMCARegion(int x, int z, MultiBurst burst, IrisAccess access, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
+		if(!Iris.instance.isMCA())
+		{
+			return false;
+		}
+
 		File mca = new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca");
 		File mcg = directWriter.getMCAFile(x, z);
 		Path fileToMovePath = Paths.get(mcg.toURI());

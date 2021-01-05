@@ -1,6 +1,8 @@
 package com.volmit.iris.util;
 
-public interface NastyRunnable
+import java.io.IOException;
+
+public interface IORunnable
 {
-	public void run() throws Throwable;
+	public void run() throws IOException;
 }

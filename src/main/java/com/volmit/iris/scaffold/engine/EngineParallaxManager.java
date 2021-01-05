@@ -124,12 +124,17 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (j = -s; j <= s; j++) {
                     int jj = j;
 
-                    if (!getParallaxAccess().isFeatureGenerated(((ii * 16) + x) >> 4, ((jj * 16) + z) >> 4)) {
-                        RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-                        IrisRegion region = getComplex().getRegionStream().get(x + 8, z + 8);
-                        IrisBiome biome = getComplex().getTrueBiomeStream().get(x + 8, z + 8);
-                        b.queue(() -> generateParallaxFeatures(rng, ((ii * 16) + x) >> 4, ((jj * 16) + z) >> 4, region, biome));
-                        getParallaxAccess().setFeatureGenerated(((ii * 16) + x) >> 4, ((jj * 16) + z) >> 4);
+                    int xxx = ((ii * 16) + (x));
+                    int zzz = ((jj * 16) + (z));
+                    int xx = xxx >> 4;
+                    int zz = zzz >> 4;
+
+                    if (!getParallaxAccess().isFeatureGenerated(xx, zz)){
+                        RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+                        IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
+                        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+                        b.queue(() -> generateParallaxFeatures(rng, xx, zz, region, biome));
+                        getParallaxAccess().setFeatureGenerated(xx, zz);
                     }
                 }
             }
@@ -164,7 +169,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             for(j = -s; j <= s; j++)
             {
                 int jj = j;
-                ParallaxChunkMeta m = getParallaxAccess().getMetaR(((ii*16)+cx)>>4, ((jj*16)+cz)>>4);
+                ParallaxChunkMeta m = getParallaxAccess().getMetaR(ii+cx, jj+cz);
 
                 for(IrisFeaturePositional k : m.getZones())
                 {

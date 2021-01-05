@@ -1,6 +1,7 @@
 package com.volmit.iris.manager;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisFeaturePositional;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
@@ -128,6 +129,26 @@ public class IrisBoardManager implements BoardProvider, Listener
 		{
 			v.add("&7&m------------------");
 			v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Iris.jobCount());
+		}
+
+
+		KList<IrisFeaturePositional> features = new KList<>();
+
+		if(engine != null);
+		{
+			engine.getFramework().getEngineParallax().forEachFeature(x, z, features::add);
+
+			if(features.isNotEmpty())
+			{
+				v.add("&7&m------------------");
+
+				int m = 0;
+				for(IrisFeaturePositional i : features)
+				{
+					m++;
+					v.add(C.AQUA + "Feature #" + m + C.GRAY + ": " + Form.pc(i.getStrength(x, z), 0));
+				}
+			}
 		}
 
 

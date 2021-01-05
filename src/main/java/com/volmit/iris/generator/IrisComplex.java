@@ -1,5 +1,6 @@
 package com.volmit.iris.generator;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.actuator.IrisTerrainActuator;
@@ -11,7 +12,10 @@ import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import com.volmit.iris.scaffold.stream.interpolation.Interpolated;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.CaveResult;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.M;
+import com.volmit.iris.util.RNG;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -35,6 +39,7 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<IrisBiome> trueBiomeStream;
 	private ProceduralStream<Biome> trueBiomeDerivativeStream;
 	private ProceduralStream<Double> heightStream;
+	private ProceduralStream<Double> objectChanceStream;
 	private ProceduralStream<Double> maxHeightStream;
 	private ProceduralStream<Double> overlayStream;
 	private ProceduralStream<Double> heightFluidStream;
@@ -148,6 +153,12 @@ public class IrisComplex implements DataProvider
 			return getHeight(engine, b, x, z, engine.getWorld().getSeed());
 		}, Interpolated.DOUBLE).cache2D(cacheSize);
 		slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
+		objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
+			AtomicDouble str = new AtomicDouble(1D);
+			engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
+					-> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z))));
+			return str.get();
+		});
 		trueBiomeStream = heightStream
 				.convertAware2D((h, x, z) ->
 					fixBiomeType(h, baseBiomeStream.get(x, z),
@@ -332,13 +343,10 @@ public class IrisComplex implements DataProvider
 			h += M.lerp(lo, hi, gen.getHeight(x, z, seed + 239945));
 		}
 
-		double noise = h + fluidHeight + overlayStream.get(x,z);
-		for(NoiseEffectZone i : engine.getDimension().getNoiseEffectZones())
-		{
-			noise = i.filter(x, z, noise);
-		}
-
-		return Math.min(engine.getHeight(), Math.max(noise, 0));
+		AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x,z));
+		engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
+				-> noise.set(i.filter(x, z, noise.get())));
+		return Math.min(engine.getHeight(), Math.max(noise.get(), 0));
 	}
 
 	private void registerGenerator(IrisGenerator cachedGenerator)

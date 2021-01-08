@@ -52,6 +52,12 @@ public class IrisAxisRotationClamp
 	@Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nSetting this to 0 means totally free rotation.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
 	private double interval = 0;
 
+	public void minMax(double fd)
+	{
+		min = fd;
+		max = fd;
+	}
+
 	public boolean isUnlimited()
 	{
 		return min == max && min == 0;

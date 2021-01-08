@@ -1,6 +1,7 @@
 package com.volmit.iris.util;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -176,5 +177,19 @@ public class RNG extends Random
 
     public boolean chance(double chance) {
 		return chance >= nextDouble();
+    }
+
+    public <T> T pick(List<T> pieces) {
+		if(pieces.isEmpty())
+		{
+			return null;
+		}
+
+		if(pieces.size() == 1)
+		{
+			return pieces.get(0);
+		}
+
+		return pieces.get(nextInt(pieces.size()));
     }
 }

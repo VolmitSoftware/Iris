@@ -31,4 +31,16 @@ public class IrisJigsawPiece extends IrisRegistrant
 	@ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
 	@Desc("The connectors this object contains")
 	private KList<IrisJigsawPieceConnector> connectors = new KList<>();
+
+	public IrisJigsawPieceConnector getConnector(IrisPosition relativePosition) {
+		for(IrisJigsawPieceConnector i : connectors)
+		{
+			if(i.getPosition().equals(relativePosition))
+			{
+				return i;
+			}
+		}
+
+		return null;
+	}
 }

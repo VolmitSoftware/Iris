@@ -25,4 +25,8 @@ public class IrisPosition
 	@DontObfuscate
 	@Desc("The z position")
 	private int z = 0;
+
+	public IrisPosition add(IrisPosition relativePosition) {
+		return new IrisPosition(relativePosition.x+x, relativePosition.y+y, relativePosition.z + z);
+	}
 }

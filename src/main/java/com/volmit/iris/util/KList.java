@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.AtomicDoubleArray;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class KList<T> extends ArrayList<T> implements List<T>
 {
@@ -213,6 +214,13 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		return this;
 	}
 
+
+	public KList<T> shuffle(Random rng)
+	{
+		Collections.shuffle(this, rng);
+		return this;
+	}
+
 	/**
 	 * Sort the list (based on toString comparison)
 	 *
@@ -312,6 +320,19 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		KList<V> v = new KList<V>();
 		forEach((t) -> v.addNonNull(converter.apply(t)));
 		return v;
+	}
+
+	public KList<T> removeWhere(Predicate<T> t)
+	{
+		for(T i : copy())
+		{
+			if(t.test(i))
+			{
+				remove(i);
+			}
+		}
+
+		return this;
 	}
 
 	/**
@@ -729,5 +750,11 @@ public class KList<T> extends ArrayList<T> implements List<T>
 				add(i);
 			}
 		}
+	}
+
+	public KList<T> shuffleCopy(Random rng) {
+		KList<T> t = copy();
+		t.shuffle(rng);
+		return t;
 	}
 }

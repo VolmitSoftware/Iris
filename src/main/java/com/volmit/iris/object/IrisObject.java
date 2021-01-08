@@ -2,6 +2,8 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.scaffold.cache.AtomicCache;
+import com.volmit.iris.util.AxisAlignedBB;
 import com.volmit.iris.util.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,6 +35,25 @@ public class IrisObject extends IrisRegistrant
 	private transient BlockVector center;
 	private transient volatile boolean smartBored = false;
 	private transient IrisLock lock = new IrisLock("Preloadcache");
+	private transient AtomicCache<AxisAlignedBB> aabb;
+
+	public AxisAlignedBB getAABB()
+	{
+		return aabb.aquire(() -> {
+			int[] v = new int[]{0,0,0,0,0,0};
+			for(BlockVector i : blocks.k())
+			{
+				v[0] = Math.min(v[0], i.getBlockX());
+				v[1] = Math.min(v[1], i.getBlockY());
+				v[2] = Math.min(v[2], i.getBlockZ());
+				v[3] = Math.max(v[3], i.getBlockX());
+				v[4] = Math.max(v[4], i.getBlockY());
+				v[5] = Math.max(v[5], i.getBlockZ());
+			}
+
+			return new AxisAlignedBB(new IrisPosition(v[0], v[1], v[2]), new IrisPosition(v[3], v[4], v[5]));
+		});
+	}
 
 	public void ensureSmartBored(boolean debug)
 	{
@@ -628,13 +649,14 @@ public class IrisObject extends IrisRegistrant
 		return y;
 	}
 
+	public IrisObject rotateCopy(IrisObjectRotation rt) {
+		IrisObject copy = copy();
+		copy.rotate(rt, 0, 0, 0);
+		return copy;
+	}
+
 	public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz)
 	{
-		if(shitty)
-		{
-			return;
-		}
-
 		KMap<BlockVector, BlockData> v = blocks.copy();
 		blocks.clear();
 
@@ -646,11 +668,6 @@ public class IrisObject extends IrisRegistrant
 
 	public void place(Location at)
 	{
-		if(shitty)
-		{
-			return;
-		}
-
 		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(blocks.get(i), false);
@@ -659,11 +676,6 @@ public class IrisObject extends IrisRegistrant
 
 	public void placeCenterY(Location at)
 	{
-		if(shitty)
-		{
-			return;
-		}
-
 		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(blocks.get(i), false);
@@ -672,11 +684,6 @@ public class IrisObject extends IrisRegistrant
 
 	public void unplaceCenterY(Location at)
 	{
-		if(shitty)
-		{
-			return;
-		}
-
 		for(BlockVector i : blocks.keySet())
 		{
 			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(Material.AIR.createBlockData(), false);

@@ -1,9 +1,9 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
-import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.pregen.Pregenerator;
 import com.volmit.iris.scaffold.IrisWorldCreator;
@@ -40,7 +40,7 @@ public class CommandIrisCreate extends MortarCommand
 		}
 
 		String worldName = args[0];
-		String type = "overworld";
+		String type = IrisSettings.get().getGenerator().getDefaultWorldType();
 		long seed = 1337;
 		int pregen = 0;
 		boolean multiverse = Iris.linkMultiverseCore.supported();
@@ -59,6 +59,13 @@ public class CommandIrisCreate extends MortarCommand
 		if(multiverse)
 		{
 			dim = IrisDataManager.loadAnyDimension(type);
+
+			if(dim == null)
+			{
+				sender.sendMessage("Cant find dimension type: " + type);
+				return true;
+			}
+
 			if(dim.getEnvironment() == null)
 			{
 				dim.setEnvironment(World.Environment.NORMAL);
@@ -71,7 +78,7 @@ public class CommandIrisCreate extends MortarCommand
 
 			String command = "mv create " + worldName + " " + Iris.linkMultiverseCore.envName(dim.getEnvironment());
 			command += " -s " + seed;
-			command += " -g Iris";
+			command += " -g Iris:" + dim.getLoadKey();
 			sender.sendMessage("Delegating " + command);
 			Bukkit.dispatchCommand(sender, command);
 			world= Bukkit.getWorld(worldName);
@@ -121,7 +128,7 @@ public class CommandIrisCreate extends MortarCommand
 				}
 			});
 
-			world = INMS.get().createWorld(wc, false);
+			world = wc.createWorld();
 
 			done.set(true);
 		}

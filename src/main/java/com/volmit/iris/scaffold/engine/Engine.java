@@ -50,7 +50,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     public double modifyZ(double z);
 
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
+    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
     public EngineMetrics getMetrics();
 

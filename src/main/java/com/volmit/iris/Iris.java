@@ -9,8 +9,8 @@ import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
-import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
@@ -289,27 +289,20 @@ public class Iris extends VolmitPlugin
 		s.sendMessage(C.GREEN + "[" + C.DARK_GRAY + "Iris" + C.GREEN + "]" + C.GRAY + ": " + msg);
 	}
 
+
+
 	@Override
 	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
 	{
-		//TODO: Support ID
-		try
+		String dimension = IrisSettings.get().getGenerator().getDefaultWorldType();
+
+		if(id != null && !id.isEmpty())
 		{
-			return INMS.get().createWorld(new IrisWorldCreator()
-					.productionMode()
-					.name(worldName)
-					.create()).getGenerator();
+			dimension = id;
+			Iris.info("Generator ID: " + id + " requested by bukkit/plugin. Assuming IrisDimension: " + id);
 		}
 
-		catch(Throwable e)
-		{
-
-		}
-
-		return new IrisWorldCreator()
-				.productionMode()
-				.name(worldName)
-				.create().generator();
+		return new EngineCompositeGenerator(dimension, true);
 	}
 
 	public static void msg(String string)

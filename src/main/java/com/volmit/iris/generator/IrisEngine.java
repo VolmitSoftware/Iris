@@ -99,22 +99,19 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<BlockData> postblocks, Hunk<Biome> vbiomes) {
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try
         {
-            boolean structures = postblocks != null;
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
-            Hunk<BlockData> pblocks = structures ? postblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t)) : null;
-            Hunk<BlockData> fringe = structures ? Hunk.fringe(blocks, pblocks) : null;
             getFramework().getEngineParallax().generateParallaxArea(x>>4, z>>4);
             getFramework().getBiomeActuator().actuate(x, z, vbiomes);
             getFramework().getTerrainActuator().actuate(x, z, blocks);
             getFramework().getCaveModifier().modify(x, z, blocks);
             getFramework().getRavineModifier().modify(x, z, blocks);
             getFramework().getPostModifier().modify(x, z, blocks);
-            getFramework().getDecorantActuator().actuate(x, z, structures ? fringe : blocks);
-            getFramework().getEngineParallax().insertParallax(x, z, structures ? fringe : blocks);
+            getFramework().getDecorantActuator().actuate(x, z, blocks);
+            getFramework().getEngineParallax().insertParallax(x, z, blocks);
             getFramework().getDepositModifier().modify(x, z, blocks);
             getMetrics().getTotal().put(p.getMilliseconds());
         }

@@ -212,7 +212,7 @@ public class IrisEngineCompound implements EngineCompound {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         if(engines.length == 1 && !getEngine(0).getTarget().isInverted())
         {
-            engines[0].generate(x, z, blocks, postblocks, biomes);
+            engines[0].generate(x, z, blocks, biomes);
         }
 
         else
@@ -229,28 +229,16 @@ public class IrisEngineCompound implements EngineCompound {
                 int doffset = offset;
                 int height = engine.getTarget().getHeight();
                 Hunk<BlockData> cblock = Hunk.newArrayHunk(16, height, 16);
-                Hunk<BlockData> cpblock = structures ? Hunk.newArrayHunk(16, height, 16) : null;
                 Hunk<Biome> cbiome = Hunk.newArrayHunk(16, height, 16);
 
                 if(engine.getTarget().isInverted())
                 {
                     cblock = cblock.invertY();
                     cbiome = cbiome.invertY();
-
-                    if(structures)
-                    {
-                        cpblock = cpblock.invertY();
-                    }
                 }
 
-                engine.generate(x, z, cblock, cpblock, cbiome);
+                engine.generate(x, z, cblock, cbiome);
                 blocks.insert(0, doffset, 0, cblock);
-
-                if(structures)
-                {
-                    postblocks.insert(0, doffset, 0, cpblock);
-                }
-
                 biomes.insert(0, doffset, 0, cbiome);
                 offset += height;
             }

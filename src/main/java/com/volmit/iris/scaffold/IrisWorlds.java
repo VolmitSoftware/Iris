@@ -20,6 +20,11 @@ public class IrisWorlds
 
 	public static boolean isIrisWorld(World world)
 	{
+		if(world == null)
+		{
+			return false;
+		}
+
 		if(provisioned.containsKey(world.getUID().toString()))
 		{
 			return true;

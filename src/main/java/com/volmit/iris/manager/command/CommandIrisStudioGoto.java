@@ -28,7 +28,6 @@ public class CommandIrisStudioGoto extends MortarCommand
 		{
 			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getBiomeLoader().getPossibleKeys());
 			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getRegionLoader().getPossibleKeys());
-			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getObjectLoader().getPossibleKeys());
 		}
 	}
 

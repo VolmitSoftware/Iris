@@ -246,6 +246,11 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             }
         }
 
+        if(engines.isEmpty())
+        {
+            return null;
+        }
+
         AtomicInteger tries = new AtomicInteger(0);
         AtomicBoolean found = new AtomicBoolean(false);
         AtomicReference<Location> location = new AtomicReference<>();

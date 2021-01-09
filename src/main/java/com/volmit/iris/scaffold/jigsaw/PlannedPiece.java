@@ -91,4 +91,8 @@ public class PlannedPiece {
     {
         return this.position.add(position);
     }
+
+    public boolean isFull() {
+        return connected.size() >= piece.getConnectors().size();
+    }
 }

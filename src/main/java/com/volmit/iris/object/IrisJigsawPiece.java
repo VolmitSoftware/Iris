@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.google.gson.Gson;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,5 +43,9 @@ public class IrisJigsawPiece extends IrisRegistrant
 		}
 
 		return null;
+	}
+
+	public IrisJigsawPiece copy() {
+		return new Gson().fromJson(new Gson().toJson(this), getClass());
 	}
 }

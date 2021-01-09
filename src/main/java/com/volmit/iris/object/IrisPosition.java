@@ -34,4 +34,8 @@ public class IrisPosition
 	public IrisPosition add(IrisPosition relativePosition) {
 		return new IrisPosition(relativePosition.x+x, relativePosition.y+y, relativePosition.z + z);
 	}
+
+	public IrisPosition sub(IrisPosition relativePosition) {
+		return new IrisPosition(x-relativePosition.x, y-relativePosition.y, z-relativePosition.z);
+	}
 }

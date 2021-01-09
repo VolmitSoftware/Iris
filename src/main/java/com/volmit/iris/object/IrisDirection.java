@@ -224,7 +224,7 @@ public enum IrisDirection
 				break;
 		}
 
-		return null;
+		return EAST_POSITIVE_X;
 	}
 
 	public int x()

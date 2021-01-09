@@ -19,7 +19,7 @@ public class TileResult
 		this.tile = tile;
 		IrisObjectPlacement p = new IrisObjectPlacement();
 		IrisObjectRotation rt = new IrisObjectRotation();
-		rt.setYAxis(new IrisAxisRotationClamp(rot != 0, rot, rot, 0));
+		rt.setYAxis(new IrisAxisRotationClamp(rot != 0, false, rot, rot, 0));
 		p.setRotation(rt);
 		p.setBottom(true);
 		p.setBore(structure.isBore());

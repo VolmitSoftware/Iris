@@ -22,7 +22,6 @@ import java.util.List;
 @Data
 public class IrisObjectRotation
 {
-
 	@DontObfuscate
 	@Desc("If this rotator is enabled or not")
 	private boolean enabled = true;
@@ -52,6 +51,51 @@ public class IrisObjectRotation
 	public double getZRotation(int spin)
 	{
 		return getRotation(spin, zAxis);
+	}
+
+	public IrisObject rotateCopy(IrisObject e)
+	{
+		return e.rotateCopy(this);
+	}
+
+
+	public IrisJigsawPiece rotateCopy(IrisJigsawPiece v) {
+		IrisJigsawPiece piece = v.copy();
+		for(IrisJigsawPieceConnector i : piece.getConnectors())
+		{
+			i.setPosition(rotate(i.getPosition()));
+			i.setDirection(rotate(i.getDirection()));
+		}
+
+		return piece;
+	}
+
+
+	public BlockVector rotate(BlockVector direction) {
+		return rotate(direction, 0,0,0);
+	}
+
+	public IrisDirection rotate(IrisDirection direction) {
+		BlockVector v = rotate(direction.toVector().toBlockVector());
+		return IrisDirection.closest(v);
+	}
+
+	public static IrisObjectRotation of(double x, double y, double z) {
+		IrisObjectRotation rt = new IrisObjectRotation();
+		rt.setEnabled(true);
+		IrisAxisRotationClamp rtx = new IrisAxisRotationClamp();
+		rtx.setEnabled(x != 0);
+		rtx.setMax(x);
+		rt.setXAxis(rtx);
+		IrisAxisRotationClamp rty = new IrisAxisRotationClamp();
+		rty.setEnabled(y != 0);
+		rty.setMax(y);
+		rt.setXAxis(rty);
+		IrisAxisRotationClamp rtz = new IrisAxisRotationClamp();
+		rtz.setEnabled(z != 0);
+		rtz.setMax(z);
+		rt.setXAxis(rtz);
+		return rt;
 	}
 
 	public double getRotation(int spin, IrisAxisRotationClamp clamp)
@@ -240,6 +284,16 @@ public class IrisObjectRotation
 		}
 
 		return d;
+	}
+
+	public IrisPosition rotate(IrisPosition b)
+	{
+		return rotate(b, 0,0,0);
+	}
+
+	public IrisPosition rotate(IrisPosition b, int spinx, int spiny, int spinz)
+	{
+		return new IrisPosition(rotate(new BlockVector(b.getX(), b.getY(), b.getZ()), spinx, spiny, spinz));
 	}
 
 	public BlockVector rotate(BlockVector b, int spinx, int spiny, int spinz)

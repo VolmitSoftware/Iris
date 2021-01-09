@@ -3,22 +3,19 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.manager.edit.JigsawEditor;
-import com.volmit.iris.object.IrisJigsawPiece;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.object.IrisJigsawStructure;
+import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.scaffold.jigsaw.PlannedStructure;
+import com.volmit.iris.util.*;
 
-import java.io.File;
-
-public class CommandIrisJigsawEdit extends MortarCommand
+public class CommandIrisJigsawPlace extends MortarCommand
 {
-	public CommandIrisJigsawEdit()
+	public CommandIrisJigsawPlace()
 	{
-		super("edit", "e", "*");
+		super("place", "paste");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
-		setDescription("Create a new jigsaw piece");
+		setDescription("Place a jigsaw structure");
 	}
 
 	@Override
@@ -41,13 +38,14 @@ public class CommandIrisJigsawEdit extends MortarCommand
 			return true;
 		}
 
+		IrisJigsawStructure str = IrisDataManager.loadAnyJigsawStructure(args[0]);
 
-		IrisJigsawPiece piece = IrisDataManager.loadAnyJigsawPiece(args[0]);
-
-		if(piece != null)
+		if(str != null)
 		{
-			File dest = piece.getLoadFile();
-			new JigsawEditor(sender.player(), piece, IrisDataManager.loadAnyObject(piece.getObject()), dest);
+			PrecisionStopwatch p = PrecisionStopwatch.start();
+			PlannedStructure ps = new PlannedStructure(str, new IrisPosition(sender.player().getLocation()), new RNG());
+			sender.sendMessage("Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
+			ps.place(sender.player().getWorld());
 		}
 
 		return true;

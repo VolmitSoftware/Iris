@@ -73,7 +73,7 @@ public class JigsawEditor implements Listener {
             {
                 for(IrisPosition i : falling.k())
                 {
-                    Location at = origin.clone().add(new Vector(i.getX()+1, i.getY()+1, i.getZ()+1)).getBlock().getLocation();
+                    Location at = toLocation(i);
 
                     if(at.equals(target))
                     {
@@ -84,17 +84,27 @@ public class JigsawEditor implements Listener {
         }
     }
 
+    public Location toLocation(IrisPosition i)
+    {
+        return origin.clone()
+                .add(new Vector(i.getX(), i.getY(), i.getZ()))
+                .add(object.getCenter())
+                .getBlock()
+                .getLocation();
+    }
+
     public IrisPosition toPosition(Location l)
     {
-        Vector v = l.clone().subtract(origin.clone()).subtract(object.getCenter()).toVector();
-
-        return new IrisPosition(v.getBlockX()+1, v.getBlockY()+1, v.getBlockZ()+1);
+        return new IrisPosition(l.clone().getBlock().getLocation()
+                .subtract(origin.clone())
+                .subtract(object.getCenter())
+                .add(1,1,1)
+                .toVector());
     }
 
     @EventHandler
     public void on(PlayerInteractEvent e)
     {
-        e.getPlayer().sendMessage("Center is " + object.getCenter().toString());
         if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
         {
             if(e.getClickedBlock() != null && cuboid.contains(e.getClickedBlock().getLocation()) && e.getPlayer().equals(player))
@@ -170,7 +180,7 @@ public class JigsawEditor implements Listener {
             for(IrisJigsawPieceConnector i : piece.getConnectors())
             {
                 IrisPosition pos = i.getPosition();
-                Location at = origin.clone().add(object.getCenter()).add(new Vector(pos.getX(), pos.getY(), pos.getZ()));
+                Location at = toLocation(pos);
 
                 Vector dir = i.getDirection().toVector().clone();
 

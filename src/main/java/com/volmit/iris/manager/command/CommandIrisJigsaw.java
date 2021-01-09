@@ -18,6 +18,9 @@ public class CommandIrisJigsaw extends MortarCommand
 	@Command
 	private CommandIrisJigsawSave save;
 
+	@Command
+	private CommandIrisJigsawPlace place;
+
 	public CommandIrisJigsaw()
 	{
 		super("jigsaw", "jig", "jsw");

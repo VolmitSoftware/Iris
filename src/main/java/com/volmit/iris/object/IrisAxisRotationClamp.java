@@ -21,15 +21,15 @@ import lombok.experimental.Accessors;
 public class IrisAxisRotationClamp
 {
 	@DontObfuscate
-
 	@Desc("Should this axis be rotated at all?")
 	private boolean enabled = false;
+
+	private transient boolean forceLock = false;
 
 	@Required
 	@DependsOn({"max"})
 	@MinNumber(-360)
 	@MaxNumber(360)
-
 	@DontObfuscate
 	@Desc("The minimum angle (from) or set this and max to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double min = 0;
@@ -38,7 +38,6 @@ public class IrisAxisRotationClamp
 	@DependsOn({"min"})
 	@MinNumber(-360)
 	@MaxNumber(360)
-
 	@DontObfuscate
 	@Desc("The maximum angle (to) or set this and min to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
 	private double max = 0;
@@ -48,7 +47,6 @@ public class IrisAxisRotationClamp
 	@MinNumber(0)
 	@MaxNumber(360)
 	@DontObfuscate
-
 	@Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nSetting this to 0 means totally free rotation.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
 	private double interval = 0;
 
@@ -56,6 +54,7 @@ public class IrisAxisRotationClamp
 	{
 		min = fd;
 		max = fd;
+		forceLock = true;
 	}
 
 	public boolean isUnlimited()
@@ -70,6 +69,11 @@ public class IrisAxisRotationClamp
 
 	public double getRadians(int rng)
 	{
+		if(forceLock)
+		{
+			return Math.toRadians(max);
+		}
+
 		if(isUnlimited())
 		{
 			if(interval < 1)

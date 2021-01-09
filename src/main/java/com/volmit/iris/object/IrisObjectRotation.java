@@ -32,7 +32,7 @@ public class IrisObjectRotation
 
 	@DontObfuscate
 	@Desc("The y axis rotation")
-	private IrisAxisRotationClamp yAxis = new IrisAxisRotationClamp(true, 0, 0, 90);
+	private IrisAxisRotationClamp yAxis = new IrisAxisRotationClamp(true, false, 0, 0, 90);
 
 	@DontObfuscate
 	@Desc("The z axis rotation")
@@ -82,19 +82,23 @@ public class IrisObjectRotation
 
 	public static IrisObjectRotation of(double x, double y, double z) {
 		IrisObjectRotation rt = new IrisObjectRotation();
-		rt.setEnabled(true);
 		IrisAxisRotationClamp rtx = new IrisAxisRotationClamp();
-		rtx.setEnabled(x != 0);
-		rtx.setMax(x);
-		rt.setXAxis(rtx);
 		IrisAxisRotationClamp rty = new IrisAxisRotationClamp();
-		rty.setEnabled(y != 0);
-		rty.setMax(y);
-		rt.setXAxis(rty);
 		IrisAxisRotationClamp rtz = new IrisAxisRotationClamp();
+		rt.setEnabled(x != 0 || y != 0 || z != 0);
+		rt.setXAxis(rtx);
+		rt.setYAxis(rty);
+		rt.setZAxis(rtz);
+		rtx.setEnabled(x != 0);
+		rty.setEnabled(y != 0);
 		rtz.setEnabled(z != 0);
-		rtz.setMax(z);
-		rt.setXAxis(rtz);
+		rtx.setInterval(90);
+		rty.setInterval(90);
+		rtz.setInterval(90);
+		rtx.minMax(x);
+		rty.minMax(y);
+		rtz.minMax(z);
+
 		return rt;
 	}
 
@@ -307,32 +311,94 @@ public class IrisObjectRotation
 
 		if(canRotateX())
 		{
-			v.rotateAroundX(getXRotation(spinx));
+			if(getXAxis().isLocked())
+			{
+				if(Math.abs(getXAxis().getMax())%360D == 180D)
+				{
+					v.setZ(-v.getZ());
+					v.setY(-v.getY());
+				}
+
+				else if(getXAxis().getMax()%360D == 90D || getXAxis().getMax()%360D == -270D)
+				{
+					double z = v.getZ();
+					v.setZ(v.getY());
+					v.setY(-z);
+				}
+
+				else if(getXAxis().getMax() == -90D || getXAxis().getMax()%360D == 270D)
+				{
+					double z = v.getZ();
+					v.setZ(-v.getY());
+					v.setY(z);
+				}
+
+				else
+				{
+					v.rotateAroundX(getXRotation(spinx));
+				}
+			}
+
+			else
+			{
+				v.rotateAroundX(getXRotation(spinx));
+			}
 		}
 
 		if(canRotateZ())
 		{
-			v.rotateAroundZ(getZRotation(spinz));
+			if(getZAxis().isLocked())
+			{
+				if(Math.abs(getZAxis().getMax())%360D == 180D)
+				{
+					v.setY(-v.getY());
+					v.setX(-v.getX());
+				}
+
+				else if(getZAxis().getMax()%360D == 90D || getZAxis().getMax()%360D == -270D)
+				{
+					double y = v.getY();
+					v.setY(v.getX());
+					v.setX(-y);
+				}
+
+				else if(getZAxis().getMax() == -90D || getZAxis().getMax()%360D == 270D)
+				{
+					double y = v.getY();
+					v.setY(-v.getX());
+					v.setX(y);
+				}
+
+				else
+				{
+					v.rotateAroundZ(getZRotation(spinz));
+				}
+			}
+
+			else
+			{
+				v.rotateAroundY(getZRotation(spinz));
+			}
 		}
 
 		if(canRotateY())
 		{
 			if(getYAxis().isLocked())
 			{
-				if(Math.abs(getYAxis().getMax()) == 180D)
+				if(Math.abs(getYAxis().getMax())%360D == 180D)
 				{
 					v.setX(-v.getX());
 					v.setZ(-v.getZ());
 				}
 
-				else if(getYAxis().getMax() == 90D || getYAxis().getMax() == -270D)
+				else if(getYAxis().getMax()%360D == 90D || getYAxis().getMax()%360D == -270D)
 				{
 					double x = v.getX();
 					v.setX(v.getZ());
 					v.setZ(-x);
 				}
 
-				else if(getYAxis().getMax() == -90D || getYAxis().getMax() == 270D)
+				else if(getYAxis().getMax() == -90D || getYAxis().getMax()%360D == 270D)
 				{
 					double x = v.getX();
 					v.setX(-v.getZ());
@@ -350,6 +416,7 @@ public class IrisObjectRotation
 				v.rotateAroundY(getYRotation(spiny));
 			}
 		}
+
 
 		return v;
 	}

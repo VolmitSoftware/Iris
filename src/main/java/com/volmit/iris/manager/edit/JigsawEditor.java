@@ -84,15 +84,22 @@ public class JigsawEditor implements Listener {
         }
     }
 
+    public IrisPosition toPosition(Location l)
+    {
+        Vector v = l.clone().subtract(origin.clone()).subtract(object.getCenter()).toVector();
+
+        return new IrisPosition(v.getBlockX()+1, v.getBlockY()+1, v.getBlockZ()+1);
+    }
+
     @EventHandler
     public void on(PlayerInteractEvent e)
     {
+        e.getPlayer().sendMessage("Center is " + object.getCenter().toString());
         if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
         {
             if(e.getClickedBlock() != null && cuboid.contains(e.getClickedBlock().getLocation()) && e.getPlayer().equals(player))
             {
-                Vector v = e.getClickedBlock().getLocation().clone().subtract(origin.clone()).toVector();
-                IrisPosition pos = new IrisPosition(v.getBlockX(), v.getBlockY(), v.getBlockZ());
+                IrisPosition pos = toPosition(e.getClickedBlock().getLocation());
                 IrisJigsawPieceConnector connector = null;
                 for(IrisJigsawPieceConnector i : piece.getConnectors())
                 {
@@ -163,7 +170,7 @@ public class JigsawEditor implements Listener {
             for(IrisJigsawPieceConnector i : piece.getConnectors())
             {
                 IrisPosition pos = i.getPosition();
-                Location at = origin.clone().add(new Vector(pos.getX()+1, pos.getY()+1, pos.getZ()+1));
+                Location at = origin.clone().add(object.getCenter()).add(new Vector(pos.getX(), pos.getY(), pos.getZ()));
 
                 Vector dir = i.getDirection().toVector().clone();
 

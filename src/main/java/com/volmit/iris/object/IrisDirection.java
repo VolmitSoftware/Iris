@@ -109,7 +109,7 @@ public enum IrisDirection
 		for(IrisDirection i : values())
 		{
 			Vector x = i.toVector();
-			double g = x.dot(v);
+			double g = x.distance(v);
 
 			if(g < m)
 			{

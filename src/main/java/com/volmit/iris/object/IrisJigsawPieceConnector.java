@@ -44,4 +44,9 @@ public class IrisJigsawPieceConnector
 	@Desc("The direction this connector is facing. If the direction is set to UP, then pieces will place ABOVE the connector.")
 	@Required
 	private IrisDirection direction = IrisDirection.UP_POSITIVE_Y;
+
+	public String toString()
+	{
+		return direction.getFace().name() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")";
+	}
 }

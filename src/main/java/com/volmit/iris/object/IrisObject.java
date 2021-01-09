@@ -39,20 +39,8 @@ public class IrisObject extends IrisRegistrant
 
 	public AxisAlignedBB getAABB()
 	{
-		return aabb.aquire(() -> {
-			int[] v = new int[]{0,0,0,0,0,0};
-			for(BlockVector i : blocks.k())
-			{
-				v[0] = Math.min(v[0], i.getBlockX());
-				v[1] = Math.min(v[1], i.getBlockY());
-				v[2] = Math.min(v[2], i.getBlockZ());
-				v[3] = Math.max(v[3], i.getBlockX());
-				v[4] = Math.max(v[4], i.getBlockY());
-				v[5] = Math.max(v[5], i.getBlockZ());
-			}
-
-			return new AxisAlignedBB(new IrisPosition(v[0], v[1], v[2]), new IrisPosition(v[3], v[4], v[5]));
-		});
+		return new AxisAlignedBB(new IrisPosition(new BlockVector(0,0,0).subtract(center).toBlockVector()),
+				new IrisPosition(new BlockVector(w-1,h-1,d-1).subtract(center).toBlockVector()));
 	}
 
 	public void ensureSmartBored(boolean debug)
@@ -77,12 +65,12 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : blocks.k())
 		{
-			max.setX(i.getX() > max.getX() ? i.getX() : max.getX());
-			min.setX(i.getX() < min.getX() ? i.getX() : min.getX());
-			max.setY(i.getY() > max.getY() ? i.getY() : max.getY());
-			min.setY(i.getY() < min.getY() ? i.getY() : min.getY());
-			max.setZ(i.getZ() > max.getZ() ? i.getZ() : max.getZ());
-			min.setZ(i.getZ() < min.getZ() ? i.getZ() : min.getZ());
+			max.setX(Math.max(i.getX(), max.getX()));
+			min.setX(Math.min(i.getX(), min.getX()));
+			max.setY(Math.max(i.getY(), max.getY()));
+			min.setY(Math.min(i.getY(), min.getY()));
+			max.setZ(Math.max(i.getZ(), max.getZ()));
+			min.setZ(Math.min(i.getZ(), min.getZ()));
 		}
 
 		// Smash X

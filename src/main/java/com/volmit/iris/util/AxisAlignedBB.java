@@ -1,6 +1,7 @@
 package com.volmit.iris.util;
 
 import com.volmit.iris.object.IrisPosition;
+import org.bukkit.World;
 
 public class AxisAlignedBB
 {
@@ -64,5 +65,9 @@ public class AxisAlignedBB
 	public IrisPosition min()
 	{
 		return new IrisPosition((int)xa, (int)ya, (int)za);
+	}
+
+	public Cuboid toCuboid(World world) {
+		return new Cuboid(min().toLocation(world), max().toLocation(world));
 	}
 }

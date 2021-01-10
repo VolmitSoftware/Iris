@@ -173,7 +173,6 @@ public class PlannedStructure {
         Iris.info("Connected {" + test + "/" + testConnector + "} <==> {" + piece + "/" + pieceConnector + "}");
         piece.connect(pieceConnector);
         test.connect(testConnector);
-
         pieces.add(test);
 
         return true;

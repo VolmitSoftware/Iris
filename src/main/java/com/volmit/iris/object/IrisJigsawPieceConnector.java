@@ -18,8 +18,14 @@ public class IrisJigsawPieceConnector
 {
 	@Required
 	@DontObfuscate
-	@Desc("The name of this connector, such as entry, or table node. This is a name for organization, it has no effect on generation.")
+	@Desc("The name of this connector, such as entry, or table node. This is a name for organization. Other connectors can specifically use targetName to target a specific connector type. Multiple connectors can use the same name.")
 	private String name = "";
+
+
+	@Required
+	@DontObfuscate
+	@Desc("Target a piece's connector with the specified name. For any piece's connector, define * or don't define it.")
+	private String targetName = "*";
 
 	@DontObfuscate
 	@Desc("Rotates the placed piece on this connector. If rotation is enabled, this connector will effectivley rotate, if this connector is facing the Z direction, then the connected piece would rotate in the X,Y direction in 90 degree segments.")

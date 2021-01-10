@@ -82,7 +82,7 @@ public class DirectWorldWriter {
         return new File(worldFolder, "iris/mca-region/r." + x + "." + z + ".mca");
     }
 
-    public BlockData getBlockData(CompoundTag tag) {
+    public static BlockData getBlockData(CompoundTag tag) {
         if (tag == null)
         {
             return B.getAir();
@@ -114,7 +114,7 @@ public class DirectWorldWriter {
         return b;
     }
 
-    public CompoundTag getCompound(BlockData blockData)
+    public static CompoundTag getCompound(BlockData blockData)
     {
         String data = blockData.getAsString(true);
 

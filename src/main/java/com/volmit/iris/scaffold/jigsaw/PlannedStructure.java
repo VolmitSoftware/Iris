@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
@@ -15,76 +16,59 @@ public class PlannedStructure {
     private IrisJigsawStructure structure;
     private IrisPosition position;
     private IrisDataManager data;
+    private KMap<String, IrisObject> objectRotationCache;
     private RNG rng;
     private boolean verbose;
 
     public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng)
     {
+        objectRotationCache = new KMap<>();
         verbose = true;
         this.pieces = new KList<>();
         this.structure = structure;
         this.position = position;
         this.rng = rng;
         this.data = structure.getLoader();
-        v("Creating Structure " + structure.getLoadKey() + " at " + position.toString() + " with depth of " + structure.getMaxDepth());
         generateStartPiece();
 
         for(int i = 0; i < structure.getMaxDepth(); i++)
         {
-            v("--- Layer " + i + " ---");
             generateOutwards(i);
         }
 
         generateTerminators();
     }
 
-    public void v(String v)
-    {
-        if(!verbose)
-        {
-            return;
-        }
-
-        Iris.info("[Jigsaw]: " + v);
-    }
-
     public void place(World world)
     {
         for(PlannedPiece i : pieces)
         {
-            i.place(world);
+            Iris.sq(() -> i.place(world));
         }
     }
 
     private void generateOutwards(int layer) {
-        if(getPiecesWithAvailableConnectors().isEmpty())
-        {
-            v("There are no more available pieces with open connections!");
-        }
-
         for(PlannedPiece i : getPiecesWithAvailableConnectors().shuffleCopy(rng))
         {
-            v("  Expanding Piece: " + i.toString());
-            generatePieceOutwards(i);
+            if(!generatePieceOutwards(i))
+            {
+                i.setDead(true);
+            }
         }
     }
 
     private boolean generatePieceOutwards(PlannedPiece piece) {
-        if(piece.getAvailableConnectors().isEmpty())
-        {
-            v("Piece " + piece.toString() + " has no more connectors!");
-        }
+        boolean b = false;
 
         for(IrisJigsawPieceConnector i : piece.getAvailableConnectors().shuffleCopy(rng))
         {
-            v("    Expanding Piece " + piece + " Connector: " + i);
             if(generateConnectorOutwards(piece, i))
             {
-
+                b = true;
             }
         }
 
-        return false;
+        return b;
     }
 
     private boolean generateConnectorOutwards(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector) {
@@ -132,7 +116,7 @@ public class PlannedStructure {
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, int x, int y, int z)
     {
-        PlannedPiece test = new PlannedPiece(piece.getPosition(), idea, x, y, z);
+        PlannedPiece test = new PlannedPiece(this, piece.getPosition(), idea, x, y, z);
 
         for(IrisJigsawPieceConnector j : test.getPiece().getConnectors().shuffleCopy(rng))
         {
@@ -154,6 +138,11 @@ public class PlannedStructure {
         IrisDirection desiredDirection = pieceConnector.getDirection().reverse();
         IrisPosition desiredPosition = connector.sub(new IrisPosition(desiredDirection.toVector()));
 
+        if(!pieceConnector.getTargetName().equals("*") && !pieceConnector.getTargetName().equals(testConnector.getName()))
+        {
+            return false;
+        }
+
         if(!testConnector.getDirection().equals(desiredDirection))
         {
             return false;
@@ -161,14 +150,27 @@ public class PlannedStructure {
 
         IrisPosition shift = test.getWorldPosition(testConnector);
         test.setPosition(desiredPosition.sub(shift));
+        KList<PlannedPiece> collision = collidesWith(test);
 
-        if(collidesWith(test))
+        if(pieceConnector.isInnerConnector() && collision.isNotEmpty())
+        {
+            for(PlannedPiece i : collision)
+            {
+                if(i.equals(piece))
+                {
+                   continue;
+                }
+
+                return false;
+            }
+        }
+
+        else if(collision.isNotEmpty())
         {
             return false;
         }
 
-
-        v("Connected {" + test + "/" + testConnector + "} <==> {" + piece + "/" + pieceConnector + "}");
+        Iris.info("Connected {" + test + "/" + testConnector + "} <==> {" + piece + "/" + pieceConnector + "}");
         piece.connect(pieceConnector);
         test.connect(testConnector);
 
@@ -193,7 +195,7 @@ public class PlannedStructure {
     }
 
     private void generateStartPiece() {
-        pieces.add(new PlannedPiece(position, getData().getJigsawPieceLoader().load(rng.pick(getStructure().getPieces())), 0, rng.nextInt(4), 0));
+        pieces.add(new PlannedPiece(this, position, getData().getJigsawPieceLoader().load(rng.pick(getStructure().getPieces())), 0, rng.nextInt(4), 0));
     }
 
     private void generateTerminators() {
@@ -228,17 +230,18 @@ public class PlannedStructure {
         return v;
     }
 
-    public boolean collidesWith(PlannedPiece piece)
+    public KList<PlannedPiece> collidesWith(PlannedPiece piece)
     {
+        KList<PlannedPiece> v = new KList<>();
         for(PlannedPiece i : pieces)
         {
             if(i.collidesWith(piece))
             {
-                return true;
+                v.add(i);
             }
         }
 
-        return false;
+        return v;
     }
 
     public boolean collidesWith(PlannedPiece piece, PlannedPiece ignore)
@@ -270,5 +273,18 @@ public class PlannedStructure {
         }
 
         return false;
+    }
+
+    public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
+        String key = piece.getObject() + "-" + rotation.hashCode();
+
+        if(objectRotationCache.containsKey(key))
+        {
+            return objectRotationCache.get(key);
+        }
+
+        IrisObject o = rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
+        objectRotationCache.put(key, o);
+        return o;
     }
 }

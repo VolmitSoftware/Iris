@@ -160,33 +160,26 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f)
-    {
-        for(IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures())
-        {
-            if(i.shouldFilter(x, z))
-            {
+    default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
+        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
+            if (i.shouldFilter(x, z)) {
                 f.accept(i);
             }
         }
 
         int s = (int) Math.ceil(getParallaxSize() / 2D);
-        int i,j;
-        int cx = (int)x >> 4;
-        int cz = (int)z >> 4;
+        int i, j;
+        int cx = (int) x >> 4;
+        int cz = (int) z >> 4;
 
-        for(i = -s; i <= s; i++)
-        {
+        for (i = -s; i <= s; i++) {
             int ii = i;
-            for(j = -s; j <= s; j++)
-            {
+            for (j = -s; j <= s; j++) {
                 int jj = j;
-                ParallaxChunkMeta m = getParallaxAccess().getMetaR(ii+cx, jj+cz);
+                ParallaxChunkMeta m = getParallaxAccess().getMetaR(ii + cx, jj + cz);
 
-                for(IrisFeaturePositional k : m.getZones())
-                {
-                    if(k.shouldFilter(x, z))
-                    {
+                for (IrisFeaturePositional k : m.getZones()) {
+                    if (k.shouldFilter(x, z)) {
                         f.accept(k);
                     }
                 }
@@ -194,10 +187,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void generateParallaxAreaFeatures(int x, int z) {
-        try {
+    default void generateParallaxArea(int x, int z)
+    {
+        try
+        {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+
             int s = (int) Math.ceil(getParallaxSize() / 2D);
-            int i, j;
+            int i,j;
 
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
@@ -215,21 +212,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     }
                 }
             }
-
-        } catch (Throwable e) {
-            Iris.error("Failed to generate parallax in " + x + " " + z);
-            e.printStackTrace();
-        }
-    }
-
-    default void generateParallaxArea(int x, int z)
-    {
-        try
-        {
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            generateParallaxAreaFeatures(x, z);
-            int s = (int) Math.ceil(getParallaxSize() / 2D);
-            int i,j;
 
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {

@@ -41,6 +41,11 @@ public class CommandIrisJigsawEdit extends MortarCommand
 			return true;
 		}
 
+		if(args.length < 1)
+		{
+			sender.sendMessage(getArgsUsage());
+			return true;
+		}
 
 		IrisJigsawPiece piece = IrisDataManager.loadAnyJigsawPiece(args[0]);
 

@@ -35,4 +35,53 @@ public class IrisJigsawStructure extends IrisRegistrant
 	private boolean terminate = true;
 
 	private AtomicCache<Integer> maxDimension = new AtomicCache<>();
+
+	private void loadPool(String p, KList<String> pools, KList<String> pieces)
+	{
+		IrisJigsawPool pool = getLoader().getJigsawPoolLoader().load(p);
+
+		for(String i : pool.getPieces())
+		{
+			if(pieces.addIfMissing(i))
+			{
+				loadPiece(i, pools, pieces);
+			}
+		}
+	}
+
+	private void loadPiece(String p, KList<String> pools, KList<String> pieces)
+	{
+		IrisJigsawPiece piece = getLoader().getJigsawPieceLoader().load(p);
+		for(IrisJigsawPieceConnector i : piece.getConnectors())
+		{
+			for(String j : i.getPools())
+			{
+				if(pools.addIfMissing(j))
+				{
+					loadPool(p, pools, pieces);
+				}
+			}
+		}
+	}
+
+	public int getMaxDimension()
+	{
+		return maxDimension.aquire(() -> {
+			int max = 0;
+			KList<String> pools = new KList<>();
+			KList<String> pieces = new KList<>();
+
+			for(String i : getPieces())
+			{
+				loadPiece(i, pools, pieces);
+			}
+
+			for(String i : pieces)
+			{
+				max = Math.max(max, getLoader().getJigsawPieceLoader().load(i).getMax3dDimension());
+			}
+
+			return max;
+		});
+	}
 }

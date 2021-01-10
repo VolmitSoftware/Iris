@@ -1,11 +1,15 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.util.BlockVector;
+
+import java.io.IOException;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -31,6 +35,35 @@ public class IrisJigsawPiece extends IrisRegistrant
 	@Desc("Change how this object places depending on the terrain height map.")
 	@DontObfuscate
 	private ObjectPlaceMode placeMode;
+
+	AtomicCache<Integer> max2dDim = new AtomicCache<>();
+	AtomicCache<Integer> max3dDim = new AtomicCache<>();
+
+	public int getMax2dDimension() {
+		return max2dDim.aquire(() -> {
+			try {
+				BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
+				return Math.max(v.getBlockX(), v.getBlockZ());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			return 0;
+		});
+	}
+
+	public int getMax3dDimension() {
+		return max2dDim.aquire(() -> {
+			try {
+				BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
+				return Math.max(Math.max(v.getBlockX(), v.getBlockZ()), v.getBlockY());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			return 0;
+		});
+	}
 
 	public IrisJigsawPieceConnector getConnector(IrisPosition relativePosition) {
 		for(IrisJigsawPieceConnector i : connectors)

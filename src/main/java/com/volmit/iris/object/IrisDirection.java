@@ -4,6 +4,7 @@ import com.volmit.iris.util.Cuboid.CuboidDirection;
 import com.volmit.iris.util.*;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.type.Jigsaw;
 import org.bukkit.util.Vector;
 
 /**
@@ -72,6 +73,43 @@ public enum IrisDirection
 		}
 
 		return DOWN_NEGATIVE_Y;
+	}
+
+    public static IrisDirection fromJigsawBlock(String direction) {
+		for(IrisDirection i : IrisDirection.values())
+		{
+			if(i.name().toLowerCase().split("\\Q_\\E")[0]
+					.equals(direction.split("\\Q_\\E")[0]))
+			{
+				return i;
+			}
+		}
+
+		return null;
+    }
+
+	public static IrisDirection getDirection(Jigsaw.Orientation orientation) {
+		switch(orientation)
+		{
+			case DOWN_EAST:
+			case UP_EAST:
+			case EAST_UP:
+				return EAST_POSITIVE_X;
+			case DOWN_NORTH:
+			case UP_NORTH:
+			case NORTH_UP:
+				return NORTH_NEGATIVE_Z;
+			case DOWN_SOUTH:
+			case UP_SOUTH:
+			case SOUTH_UP:
+				return SOUTH_POSITIVE_Z;
+			case DOWN_WEST:
+			case UP_WEST:
+			case WEST_UP:
+				return WEST_NEGATIVE_X;
+		}
+
+		return null;
 	}
 
 	@Override

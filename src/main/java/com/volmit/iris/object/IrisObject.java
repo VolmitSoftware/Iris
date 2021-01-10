@@ -39,8 +39,19 @@ public class IrisObject extends IrisRegistrant
 
 	public AxisAlignedBB getAABB()
 	{
+		return getAABBFor(new BlockVector(w,h,d));
+	}
+
+	public static BlockVector getCenterForSize(BlockVector size)
+	{
+		return new BlockVector(size.getX() / 2, size.getY() / 2, size.getZ() / 2);
+	}
+
+	public static AxisAlignedBB getAABBFor(BlockVector size)
+	{
+		BlockVector center = new BlockVector(size.getX() / 2, size.getY() / 2, size.getZ() / 2);
 		return new AxisAlignedBB(new IrisPosition(new BlockVector(0,0,0).subtract(center).toBlockVector()),
-				new IrisPosition(new BlockVector(w-1,h-1,d-1).subtract(center).toBlockVector()));
+				new IrisPosition(new BlockVector(size.getX()-1,size.getY()-1,size.getZ()-1).subtract(center).toBlockVector()));
 	}
 
 	public void ensureSmartBored(boolean debug)

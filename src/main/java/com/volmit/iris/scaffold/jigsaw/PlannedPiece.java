@@ -17,24 +17,34 @@ public class PlannedPiece {
     private IrisObjectRotation rotation;
     private IrisDataManager data;
     private KList<IrisPosition> connected;
+    private boolean dead = false;
     private int rotationKey;
+    private AxisAlignedBB box;
+    private PlannedStructure structure;
 
-    public PlannedPiece(IrisPosition position, IrisJigsawPiece piece)
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece)
     {
-        this(position, piece, 0,0,0);
+        this(structure, position, piece, 0,0,0);
     }
 
-    public PlannedPiece(IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz)
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz)
     {
+        this.structure = structure;
         this.position = position;
         rotationKey = (rz * 100) + (rx * 10) + ry;
         this.data = piece.getLoader();
         this.rotation = IrisObjectRotation.of(rx*90D, ry*90D, rz*90D);
-        this.object = rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
+        this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
         this.object.setLoadKey(object.getLoadKey());
         this.connected = new KList<>();
+    }
+
+    public void setPosition(IrisPosition p)
+    {
+        this.position = p;
+        box = null;
     }
 
     public String toString()
@@ -44,8 +54,14 @@ public class PlannedPiece {
 
     public AxisAlignedBB getBox()
     {
+        if(box != null)
+        {
+            return box;
+        }
+
         BlockVector v = getObject().getCenter();
-        return object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())));
+        box = object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())));
+        return box;
     }
 
     public boolean contains(IrisPosition p)
@@ -109,7 +125,7 @@ public class PlannedPiece {
     }
 
     public boolean isFull() {
-        return connected.size() >= piece.getConnectors().size();
+        return connected.size() >= piece.getConnectors().size() || isDead();
     }
 
     public void place(World world) {

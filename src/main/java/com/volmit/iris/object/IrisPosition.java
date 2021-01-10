@@ -53,4 +53,8 @@ public class IrisPosition
 	public Location toLocation(World world) {
 		return new Location(world, x,y,z);
 	}
+
+    public IrisPosition copy() {
+		return new IrisPosition(x,y,z);
+    }
 }

@@ -21,7 +21,6 @@ public class IrisJigsawPieceConnector
 	@Desc("The name of this connector, such as entry, or table node. This is a name for organization. Other connectors can specifically use targetName to target a specific connector type. Multiple connectors can use the same name.")
 	private String name = "";
 
-
 	@Required
 	@DontObfuscate
 	@Desc("Target a piece's connector with the specified name. For any piece's connector, define * or don't define it.")
@@ -54,5 +53,17 @@ public class IrisJigsawPieceConnector
 	public String toString()
 	{
 		return direction.getFace().name() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")";
+	}
+
+	public IrisJigsawPieceConnector copy() {
+		IrisJigsawPieceConnector c = new IrisJigsawPieceConnector();
+		c.setInnerConnector(isInnerConnector());
+		c.setTargetName(getTargetName());
+		c.setPosition(getPosition().copy());
+		c.setDirection(getDirection());
+		c.setRotateConnector(isRotateConnector());
+		c.setName(getName());
+		c.setPools(getPools().copy());
+		return c;
 	}
 }

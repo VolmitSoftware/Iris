@@ -1,6 +1,5 @@
 package com.volmit.iris.object;
 
-import com.google.gson.Gson;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,15 +22,15 @@ public class IrisJigsawPiece extends IrisRegistrant
 	@Desc("The object this piece represents")
 	private String object = "";
 
-	@DontObfuscate
-	@Desc("Options for placement")
-	private IrisObjectPlacementOptions placementOptions = new IrisObjectPlacementOptions();
-
 	@Required
 	@DontObfuscate
 	@ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
 	@Desc("The connectors this object contains")
 	private KList<IrisJigsawPieceConnector> connectors = new KList<>();
+
+	@Desc("Change how this object places depending on the terrain height map.")
+	@DontObfuscate
+	private ObjectPlaceMode placeMode;
 
 	public IrisJigsawPieceConnector getConnector(IrisPosition relativePosition) {
 		for(IrisJigsawPieceConnector i : connectors)
@@ -46,6 +45,19 @@ public class IrisJigsawPiece extends IrisRegistrant
 	}
 
 	public IrisJigsawPiece copy() {
-		return new Gson().fromJson(new Gson().toJson(this), getClass());
+		IrisJigsawPiece p = new IrisJigsawPiece();
+		p.setObject(getObject());
+		p.setLoader(getLoader());
+		p.setLoadKey(getLoadKey());
+		p.setLoadFile(getLoadFile());
+		p.setPlaceMode(getPlaceMode());
+		p.setConnectors(new KList<>());
+
+		for(IrisJigsawPieceConnector i : getConnectors())
+		{
+			p.getConnectors().add(i.copy());
+		}
+
+		return p;
 	}
 }

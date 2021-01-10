@@ -289,18 +289,19 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public void setUnsigned(int x, int y, int z, BlockData block)
+	public BlockVector getSigned(int x, int y, int z)
 	{
-		if(shitty)
-		{
-			return;
-		}
 		if(x >= w || y >= h || z >= d)
 		{
 			throw new RuntimeException(x + " " + y + " " + z + " exceeds limit of " + w + " " + h + " " + d);
 		}
 
-		BlockVector v = new BlockVector(x, y, z).subtract(center).toBlockVector();
+		return new BlockVector(x, y, z).subtract(center).toBlockVector();
+	}
+
+	public void setUnsigned(int x, int y, int z, BlockData block)
+	{
+		BlockVector v = getSigned(x,y,z);
 
 		if(block == null)
 		{

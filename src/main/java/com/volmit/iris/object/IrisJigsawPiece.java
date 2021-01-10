@@ -60,4 +60,8 @@ public class IrisJigsawPiece extends IrisRegistrant
 
 		return p;
 	}
+
+	public boolean isTerminal() {
+		return connectors.size() == 1;
+	}
 }

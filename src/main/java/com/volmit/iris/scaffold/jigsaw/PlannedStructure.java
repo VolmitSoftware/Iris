@@ -19,9 +19,11 @@ public class PlannedStructure {
     private KMap<String, IrisObject> objectRotationCache;
     private RNG rng;
     private boolean verbose;
+    private boolean terminating;
 
     public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng)
     {
+        terminating = false;
         objectRotationCache = new KMap<>();
         verbose = true;
         this.pieces = new KList<>();
@@ -186,7 +188,14 @@ public class PlannedStructure {
         {
             for(String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng))
             {
-                p.addIfMissing(getData().getJigsawPieceLoader().load(j));
+                IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
+
+                if(terminating && !pi.isTerminal())
+                {
+                    continue;
+                }
+
+                p.addIfMissing(pi);
             }
         }
 
@@ -198,6 +207,11 @@ public class PlannedStructure {
     }
 
     private void generateTerminators() {
+        if(getStructure().isTerminate())
+        {
+            terminating = true;
+            generateOutwards(structure.getMaxDepth());
+        }
     }
 
     public KList<PlannedPiece> getPiecesWithAvailableConnectors()

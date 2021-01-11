@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
@@ -34,11 +35,17 @@ public class IrisJigsawStructure extends IrisRegistrant
 	@Desc("If set to true, iris will look for any pieces with only one connector in valid pools for edge connectors and attach them to 'terminate' the paths/piece connectors. Essentially it caps off ends. For example in a village, Iris would add houses to the ends of roads where possible. For terminators to be selected, they can only have one connector or they wont be chosen.")
 	private boolean terminate = true;
 
-	private AtomicCache<Integer> maxDimension = new AtomicCache<>();
+	private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 
 	private void loadPool(String p, KList<String> pools, KList<String> pieces)
 	{
 		IrisJigsawPool pool = getLoader().getJigsawPoolLoader().load(p);
+
+		if(pool == null)
+		{
+			Iris.warn("Can't find jigsaw pool: " + p);
+			return;
+		}
 
 		for(String i : pool.getPieces())
 		{
@@ -52,13 +59,20 @@ public class IrisJigsawStructure extends IrisRegistrant
 	private void loadPiece(String p, KList<String> pools, KList<String> pieces)
 	{
 		IrisJigsawPiece piece = getLoader().getJigsawPieceLoader().load(p);
+
+		if(piece == null)
+		{
+			Iris.warn("Can't find jigsaw piece: " + p);
+			return;
+		}
+
 		for(IrisJigsawPieceConnector i : piece.getConnectors())
 		{
 			for(String j : i.getPools())
 			{
 				if(pools.addIfMissing(j))
 				{
-					loadPool(p, pools, pieces);
+					loadPool(j, pools, pieces);
 				}
 			}
 		}

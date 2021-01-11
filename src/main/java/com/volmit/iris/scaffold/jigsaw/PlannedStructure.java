@@ -3,12 +3,18 @@ package com.volmit.iris.scaffold.jigsaw;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
+import com.volmit.iris.scaffold.engine.EngineParallaxManager;
+import com.volmit.iris.scaffold.parallax.ParallaxChunkMeta;
+import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
 import com.volmit.iris.util.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
 public class PlannedStructure {
@@ -39,6 +45,74 @@ public class PlannedStructure {
         }
 
         generateTerminators();
+    }
+
+    public void place(IObjectPlacer placer, EngineParallaxManager e)
+    {
+        IrisObjectPlacement options = new IrisObjectPlacement();
+        int startHeight = pieces.get(0).getPosition().getY();
+
+        for(PlannedPiece i : pieces)
+        {
+            if(i.getPiece().getPlaceMode().equals(ObjectPlaceMode.VACUUM))
+            {
+                place(i, startHeight, options, placer, e);
+            }
+        }
+
+        for(PlannedPiece i : pieces)
+        {
+            if(!i.getPiece().getPlaceMode().equals(ObjectPlaceMode.VACUUM))
+            {
+                place(i, startHeight, options, placer, e);
+            }
+        }
+    }
+
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement options, IObjectPlacer placer, EngineParallaxManager e)
+    {
+        IrisObject v = i.getObject();
+        int xx = i.getPosition().getX();
+        int zz = i.getPosition().getZ();
+        int offset = i.getPosition().getY() - startHeight;
+        int height = placer.getHighest(xx, zz) + offset;
+        options.setMode(i.getPiece().getPlaceMode());
+
+        if(options.getMode().equals(ObjectPlaceMode.PAINT) || options.getMode().equals(ObjectPlaceMode.VACUUM))
+        {
+            height = -1;
+        }
+
+        int id = rng.i(0, Integer.MAX_VALUE);
+        int maxf = 10000;
+        AtomicBoolean pl = new AtomicBoolean(false);
+        AtomicInteger max = new AtomicInteger(-1);
+        AtomicInteger min = new AtomicInteger(maxf);
+        int h = v.place(xx, height, zz, placer, options, rng, (b) -> {
+            int xf = b.getX();
+            int yf = b.getY();
+            int zf = b.getZ();
+            e.getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
+            ParallaxChunkMeta meta = e.getParallaxAccess().getMetaRW(xf>>4, zf>>4);
+            meta.setObjects(true);
+            meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
+            meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
+
+        }, null, getData());
+
+        if(options.isVacuum())
+        {
+            double a = Math.max(v.getW(), v.getD());
+            IrisFeature f = new IrisFeature();
+            f.setConvergeToHeight(h-(v.getH() >> 1));
+            f.setBlockRadius(a);
+            f.setInterpolationRadius(a/4);
+            f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
+            f.setStrength(1D);
+            e.getParallaxAccess().getMetaRW(xx>>4, zz>>4)
+                    .getZones()
+                    .add(new IrisFeaturePositional(xx, zz, f));
+        }
     }
 
     public void place(World world)
@@ -172,7 +246,6 @@ public class PlannedStructure {
             return false;
         }
 
-        Iris.info("Connected {" + test + "/" + testConnector + "} <==> {" + piece + "/" + pieceConnector + "}");
         piece.connect(pieceConnector);
         test.connect(testConnector);
         pieces.add(test);

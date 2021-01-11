@@ -3,7 +3,6 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
@@ -17,7 +16,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 	public CommandIrisStudioGoto()
 	{
 		super("goto", "find", "g", "tp");
-		setDescription("Find any region, biome or placed object");
+		setDescription("Find any region or biome");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");
 	}
@@ -56,7 +55,6 @@ public class CommandIrisStudioGoto extends MortarCommand
 				IrisAccess g = IrisWorlds.access(world);
 				IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
 				IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
-				IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 
 				if(b != null)
 				{
@@ -89,24 +87,6 @@ public class CommandIrisStudioGoto extends MortarCommand
 						else
 						{
 							sender.sendMessage("Found " + r.getName() + "!");
-							J.s(() -> sender.player().teleport(l));
-						}
-					});
-				}
-
-				else if(o != null)
-				{
-					J.a(() -> {
-						Location l = g.lookForObject(o, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + o.getLoadKey() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Objects"));
-
-						if(l == null)
-						{
-							sender.sendMessage("Couldn't find " + o.getLoadKey() + ".");
-						}
-
-						else
-						{
-							sender.sendMessage("Found " + o.getLoadKey() + "!");
 							J.s(() -> sender.player().teleport(l));
 						}
 					});

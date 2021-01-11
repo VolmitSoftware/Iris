@@ -95,7 +95,7 @@ public class IrisJigsawStructure extends IrisRegistrant
 				max = Math.max(max, getLoader().getJigsawPieceLoader().load(i).getMax3dDimension());
 			}
 
-			return max;
+			return max * (((getMaxDepth() + 1) * 2) + 1);
 		});
 	}
 }

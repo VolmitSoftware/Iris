@@ -53,7 +53,7 @@ public class IrisJigsawPiece extends IrisRegistrant
 	}
 
 	public int getMax3dDimension() {
-		return max2dDim.aquire(() -> {
+		return max3dDim.aquire(() -> {
 			try {
 				BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
 				return Math.max(Math.max(v.getBlockX(), v.getBlockZ()), v.getBlockY());
@@ -61,7 +61,7 @@ public class IrisJigsawPiece extends IrisRegistrant
 				e.printStackTrace();
 			}
 
-			return 0;
+			return -1;
 		});
 	}
 

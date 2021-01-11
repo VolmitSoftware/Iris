@@ -34,10 +34,10 @@ public class IrisJigsawPiece extends IrisRegistrant
 
 	@Desc("Change how this object places depending on the terrain height map.")
 	@DontObfuscate
-	private ObjectPlaceMode placeMode;
+	private ObjectPlaceMode placeMode = ObjectPlaceMode.FAST_MAX_HEIGHT;
 
-	AtomicCache<Integer> max2dDim = new AtomicCache<>();
-	AtomicCache<Integer> max3dDim = new AtomicCache<>();
+	private transient AtomicCache<Integer> max2dDim = new AtomicCache<>();
+	private transient AtomicCache<Integer> max3dDim = new AtomicCache<>();
 
 	public int getMax2dDimension() {
 		return max2dDim.aquire(() -> {

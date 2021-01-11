@@ -476,9 +476,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         AtomicInteger zg = new AtomicInteger();
         xg.set(0);
         zg.set(0);
-
         int jig = 0;
-
         KSet<String> objects = new KSet<>();
         KList<IrisRegion> r = getAllRegions();
         KList<IrisBiome> b = getAllBiomes();
@@ -493,6 +491,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             for(IrisJigsawStructurePlacement j : i.getJigsaw())
             {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
+                Iris.info("Jig -> " + jig);
             }
         }
 
@@ -564,9 +563,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
         Iris.info("Parallax Size: " + x + " Chunks");
-        Iris.info("  Object Parallax Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + " )");
-        Iris.info("  Jigsaw Parallax Size: " + u + " (" + ((Math.max(jig, 16) + 16) >> 4) + " )");
-        Iris.info("  Feature Parallax Size: " + v + " (" + ((Math.max(v, 16) + 16) >> 4) + " )");
+        Iris.info("  Object Parallax Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
+        Iris.info("  Jigsaw Parallax Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
+        Iris.info("  Feature Parallax Size: " + v + " (" + ((Math.max(v, 16) + 16) >> 4) + ")");
 
         return x;
     }

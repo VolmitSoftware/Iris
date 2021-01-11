@@ -317,12 +317,10 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("The rock zoom mostly for zooming in on a wispy palette")
 	private double rockZoom = 5;
 
-	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'stone'")
 	private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
 
-	@ArrayType(min = 1, type = String.class)
 	@DontObfuscate
 	@Desc("The palette of blocks for 'water'")
 	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
@@ -332,7 +330,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Define biome mutations for this dimension")
 	private KList<IrisBiomeMutation> mutations = new KList<>();
 
-	private transient boolean skyDimension = false;
 	private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
 	private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();

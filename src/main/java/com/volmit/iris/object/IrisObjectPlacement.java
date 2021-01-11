@@ -187,4 +187,8 @@ public class IrisObjectPlacement
 
 		return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
 	}
+
+	public boolean isVacuum() {
+		return getMode().equals(ObjectPlaceMode.VACUUM);
+	}
 }

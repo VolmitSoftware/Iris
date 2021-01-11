@@ -5,15 +5,20 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisObject;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 {
-	private ChronoLatch useFlip = new ChronoLatch(2863);
+	private ChronoLatch useFlip = new ChronoLatch(2222);
 	private KMap<String, Long> useCache = new KMap<>();
+	private ChronoLatch cl;
+	private AtomicInteger unload;
 
 	public ObjectResourceLoader(File root, IrisDataManager idm, String folderName, String resourceTypeName)
 	{
 		super(root, idm, folderName, resourceTypeName, IrisObject.class);
+		cl = new ChronoLatch(30000);
+		unload = new AtomicInteger(0);
 	}
 
 	public int getSize()
@@ -37,7 +42,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 	{
 		if(useFlip.flip())
 		{
-			unloadLast(Iris.lowMemoryMode ? 60000 : (60000 * 5));
+			unloadLast(30000);
 		}
 	}
 
@@ -80,7 +85,20 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 		useCache.remove(v);
 		loadCache.remove(v);
 		lock.unlock();
-		J.a(() -> Iris.verbose("Unloaded Object: " + v));
+		unload.getAndIncrement();
+
+		if(unload.get() == 1)
+		{
+			cl.flip();
+		}
+
+		if(cl.flip())
+		{
+			J.a(() -> {
+				Iris.verbose("Unloaded " + C.WHITE + unload.get() +" " + resourceTypeName + (unload.get() == 1 ? "" : "s") + C.GRAY + " to optimize memory usage." + " (" + Form.f(getLoadCache().size() )+ " " + resourceTypeName + (loadCache.size() == 1 ? "" : "s")+ " Loaded)");
+				unload.set(0);
+			});
+		}
 	}
 
 	public IrisObject loadFile(File j, String key, String name)
@@ -91,7 +109,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject>
 			IrisObject t = new IrisObject(0, 0, 0);
 			t.read(j);
 			loadCache.put(key, t);
-			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
+			logLoad(j);
 			t.setLoadKey(name);
 			t.setLoader(manager);
 			t.setLoadFile(j);

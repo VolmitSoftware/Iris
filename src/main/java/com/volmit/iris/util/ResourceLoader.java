@@ -7,6 +7,7 @@ import com.volmit.iris.object.IrisRegistrant;
 import lombok.Data;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant>
@@ -22,11 +23,15 @@ public class ResourceLoader<T extends IrisRegistrant>
 	protected IrisLock lock;
 	protected String[] possibleKeys = null;
 	protected IrisDataManager manager;
+	protected AtomicInteger loads;
+	protected ChronoLatch sec;
 
 	public ResourceLoader(File root, IrisDataManager manager, String folderName, String resourceTypeName, Class<? extends T> objectClass)
 	{
 		lock = new IrisLock("Res");
 		this.manager = manager;
+		sec = new ChronoLatch(5000);
+		loads = new AtomicInteger();
 		folderMapCache = new KMap<>();
 		this.objectClass = objectClass;
 		cname = objectClass.getCanonicalName();
@@ -36,6 +41,29 @@ public class ResourceLoader<T extends IrisRegistrant>
 		loadCache = new KMap<>();
 	}
 
+	public void logLoad(File path)
+	{
+		loads.getAndIncrement();
+
+		if(loads.get() == 1)
+		{
+			sec.flip();
+		}
+
+		if(sec.flip())
+		{
+			J.a(() -> {
+				Iris.verbose("Loaded " + C.WHITE + loads.get()  + " " + resourceTypeName + (loads.get() == 1 ? "" : "s") + C.GRAY + " (" + Form.f(getLoadCache().size() ) + " " + resourceTypeName + (loadCache.size() == 1 ? "" : "s") + " Loaded)");
+				loads.set(0);
+			});
+		}
+	}
+
+	public void failLoad(File path, Throwable e)
+	{
+		J.a(() -> Iris.warn("Couldn't Load " + resourceTypeName + " file: " + path.getPath() + ": " + e.getMessage()));
+	}
+
 	public String[] getPossibleKeys()
 	{
 		if(possibleKeys != null)
@@ -43,7 +71,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 			return possibleKeys;
 		}
 
-		Iris.info("Building " + resourceTypeName + " Possibility Lists");
+		Iris.info("Building " + resourceTypeName + " Registry Lists");
 		KSet<String> m = new KSet<>();
 
 		for(File i : getFolders())
@@ -84,7 +112,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		{
 			T t = new Gson().fromJson(IO.readAll(j), objectClass);
 			loadCache.put(key, t);
-			J.a(() -> Iris.verbose("Loading " + resourceTypeName + ": " + j.getPath()));
+			logLoad(j);
 			t.setLoadKey(name);
 			t.setLoadFile(j);
 			t.setLoader(manager);
@@ -95,7 +123,7 @@ public class ResourceLoader<T extends IrisRegistrant>
 		catch(Throwable e)
 		{
 			lock.unlock();
-			J.a(() -> Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage()));
+			failLoad(j, e);
 			return null;
 		}
 	}

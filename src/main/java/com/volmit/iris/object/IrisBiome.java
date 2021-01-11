@@ -130,6 +130,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
 	private KList<String> children = new KList<>();
 
+	@ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
+	@DontObfuscate
+	@Desc("Jigsaw structures")
+	private KList<IrisJigsawStructurePlacement> jigsaw = new KList<>();
+
 	@RegistryListBiome
 	@DontObfuscate
 	@Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")

@@ -178,7 +178,7 @@ public class IrisObjectPlacement
 		return 0;
 	}
 
-	public IrisObject getSchematic(DataProvider g, RNG random)
+	public IrisObject getObject(DataProvider g, RNG random)
 	{
 		if(place.isEmpty())
 		{

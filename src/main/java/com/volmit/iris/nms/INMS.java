@@ -23,7 +23,7 @@ public class INMS
 		return binding;
 	}
 
-	private static final String getNMSTag()
+	public static final String getNMSTag()
 	{
 		if(IrisSettings.get().getGeneral().isDisableNMS())
 		{

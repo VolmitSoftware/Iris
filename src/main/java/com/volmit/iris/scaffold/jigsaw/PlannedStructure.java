@@ -68,9 +68,9 @@ public class PlannedStructure {
     {
         IrisObjectPlacement options = o;
 
-        if(i.getPiece().getPlacementOverrides() != null)
+        if(i.getPiece().getPlacementOptions() != null)
         {
-            options= i.getPiece().getPlacementOverrides();
+            options= i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
         }
 

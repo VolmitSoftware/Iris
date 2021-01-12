@@ -2,8 +2,10 @@ package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;
+import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineCompound;
 import com.volmit.iris.scaffold.engine.EngineData;
@@ -62,6 +64,41 @@ public class IrisEngineCompound implements EngineCompound {
         engineMetadata = EngineData.load(getEngineMetadataFile());
         engineMetadata.setDimension(rootDimension.getLoadKey());
         engineMetadata.setLastVersion(Iris.instance.getDescription().getVersion());
+
+
+        if(engineMetadata.getStrongholdPosition() == null)
+        {
+            if(!(world instanceof FakeWorld && world instanceof HeightedFakeWorld))
+            {
+                Object nmsWorld = new V(world).invoke("getHandle");
+                Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
+                Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
+                try {
+                    Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
+                    Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
+                    Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
+                    Object bp = clazz.getDeclaredMethod("findNearestMapFeature",
+                            nmsWorld.getClass(),
+                            clazzSG,
+                            clazzBP,
+                            int.class,
+                            boolean.class
+                    ).invoke(chunkGenerator,
+                            nmsWorld,
+                            clazzSG.getDeclaredField("STRONGHOLD").get(null),
+                            clazzBP.getDeclaredField("ZERO").get(null),
+                            100,
+                            false
+                    );
+                    engineMetadata.setStrongholdPosition(new IrisPosition((int)new V(bp, false).invoke("getX"), (int)new V(bp, false).invoke("getY"), (int)new V(bp, false).invoke("getZ")));
+                } catch (Throwable ignored) {
+                    engineMetadata.setStrongholdPosition(new IrisPosition(1337, 32, -1337));
+                    Iris.warn("Couldn't properly find the stronghold positon for this world. Is this headless mode?");
+                }
+                Iris.info("Stronghold: " + engineMetadata.getStrongholdPosition().toString());
+            }
+        }
+
         saveEngineMetadata();
         populators = new KList<>();
 
@@ -120,6 +157,11 @@ public class IrisEngineCompound implements EngineCompound {
         }
 
         Iris.instance.registerListener(this);
+    }
+    
+    public IrisPosition getStrongholdPosition()
+    {
+        return engineMetadata.getStrongholdPosition();
     }
 
     @EventHandler

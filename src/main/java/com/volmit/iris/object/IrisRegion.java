@@ -122,11 +122,6 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
 	private double biomeImplosionRatio = 0.4;
 
-	@ArrayType(min = 1, type = IrisStructurePlacement.class)
-	@DontObfuscate
-	@Desc("A list of structure tilesets")
-	private KList<IrisStructurePlacement> structures = new KList<>();
-
 	@RegistryListBiome
 	@Required
 	@ArrayType(min = 1, type = String.class)

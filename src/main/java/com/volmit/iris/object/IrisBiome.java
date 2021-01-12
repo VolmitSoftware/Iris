@@ -133,7 +133,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
 	@DontObfuscate
 	@Desc("Jigsaw structures")
-	private KList<IrisJigsawStructurePlacement> jigsaw = new KList<>();
+	private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
 
 	@RegistryListBiome
 	@DontObfuscate
@@ -174,11 +174,6 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@DontObfuscate
 	@Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
 	private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
-
-	@ArrayType(min = 1, type = IrisStructurePlacement.class)
-	@DontObfuscate
-	@Desc("A list of structure tilesets")
-	private KList<IrisStructurePlacement> structures = new KList<>();
 
 	@ArrayType(min = 1, type = IrisDepositGenerator.class)
 	@DontObfuscate

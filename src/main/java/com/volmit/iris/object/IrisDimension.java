@@ -153,14 +153,6 @@ public class IrisDimension extends IrisRegistrant
 	private boolean carving = true;
 
 	@DontObfuscate
-	@Desc("Generate vanilla caves")
-	private boolean vanillaCaves = false;
-
-	@DontObfuscate
-	@Desc("Generate vanilla structures")
-	private boolean vanillaStructures = false;
-
-	@DontObfuscate
 	@Desc("If defined, If air is defined below the area, this fluid will always place")
 	private IrisCaveFluid forceFluid = new IrisCaveFluid();
 

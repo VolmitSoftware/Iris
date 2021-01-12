@@ -336,7 +336,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome) {
         KList<Runnable> placeAfter = new KList<>();
 
-        for (IrisJigsawStructurePlacement i : biome.getJigsaw())
+        for (IrisJigsawStructurePlacement i : biome.getJigsawStructures())
         {
             if(rng.nextInt(i.getRarity()) == 0)
             {
@@ -526,7 +526,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 objects.addAll(j.getPlace());
             }
 
-            for(IrisJigsawStructurePlacement j : i.getJigsaw())
+            for(IrisJigsawStructurePlacement j : i.getJigsawStructures())
             {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 Iris.info("Jig -> " + jig);

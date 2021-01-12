@@ -25,6 +25,11 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	@Desc("The name of the region")
 	private String name = "A Region";
 
+	@ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
+	@DontObfuscate
+	@Desc("Jigsaw structures")
+	private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
+
 	@DontObfuscate
 	@Desc("Add random chances for terrain features")
 	@ArrayType(min = 1, type = IrisFeaturePotential.class)

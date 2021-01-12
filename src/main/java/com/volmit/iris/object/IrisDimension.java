@@ -39,6 +39,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Create an inverted dimension in the sky (like the nether)")
 	private IrisDimension sky = null;
 
+	@RegistryListJigsaw
+	@DontObfuscate
+	@Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
+	private String stronghold;
+
 	@DontObfuscate
 	@Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
 	private boolean aggressiveBiomeReshuffle = false;
@@ -203,6 +208,11 @@ public class IrisDimension extends IrisRegistrant
 	@DontObfuscate
 	@Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
 	private KList<String> regions = new KList<>();
+
+	@ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
+	@DontObfuscate
+	@Desc("Jigsaw structures")
+	private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
 
 	@Required
 	@MinNumber(0)

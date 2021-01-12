@@ -197,8 +197,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int s = (int) Math.ceil(getParallaxSize() / 2D);
             int i,j;
             KList<Runnable> after = new KList<>();
-
-            // Generate Initial Features
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
                     int xx = i +x;
@@ -251,8 +249,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int xx = x<<4;
         int zz = z<<4;
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+        IrisRegion region = getComplex().getRegionStream().get(xx+8, zz+8);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
-        after.addAll(generateParallaxJigsaw(rng, x, z, biome));
+        after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
         generateParallaxSurface(rng, x, z, biome, true);
         generateParallaxMutations(rng, x, z, true);
         return after;
@@ -269,7 +268,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int zz = z<<4;
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-        IrisRegion region = getComplex().getRegionStream().get(xx+8, zz+8);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
         generateParallaxSurface(rng, x, z, biome, false);
         generateParallaxMutations(rng, x, z, false);
@@ -306,27 +304,80 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         generateParallaxLayer(x, z, false);
     }
 
-    default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome) {
+    default KList<Runnable> placeStructure(IrisPosition position, IrisJigsawStructure structure, RNG rng)
+    {
         KList<Runnable> placeAfter = new KList<>();
 
-        for (IrisJigsawStructurePlacement i : biome.getJigsawStructures())
+        if(structure.getFeature() != null)
         {
-            if(rng.nextInt(i.getRarity()) == 0)
+            if(structure.getFeature().getBlockRadius() == 32)
             {
-                IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
-                IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                structure.getFeature().setBlockRadius((double)structure.getMaxDimension()/3);
+            }
 
-                if(structure.getFeature() != null)
+            getParallaxAccess().getMetaRW(position.getX() >> 4, position.getZ() >> 4).getFeatures()
+                    .add(new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
+        }
+
+        placeAfter.addAll(new PlannedStructure(structure, position, rng).place(this, this));
+        return placeAfter;
+    }
+
+    default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
+        KList<Runnable> placeAfter = new KList<>();
+        boolean placed = false;
+
+        if(getEngine().getDimension().getStronghold() != null)
+        {
+            IrisPosition pos = getEngine().getCompound().getStrongholdPosition();
+
+            if(x == pos.getX() >> 4 && z == pos.getZ() >> 4)
+            {
+                IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
+                placeAfter.addAll(placeStructure(pos, structure, rng));
+                placed = true;
+            }
+        }
+
+        if(!placed)
+        {
+            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures())
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
                 {
-                    if(structure.getFeature().getBlockRadius() == 32)
-                    {
-                        structure.getFeature().setBlockRadius((double)structure.getMaxDimension()/3);
-                    }
-                    getParallaxAccess().getMetaRW(position.getX() >> 4, position.getZ() >> 4).getFeatures()
-                            .add(new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
+                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                    placeAfter.addAll(placeStructure(position, structure, rng));
+                    placed = true;
                 }
+            }
+        }
 
-                placeAfter.addAll(new PlannedStructure(structure, position, rng).place(this, this));
+        if(!placed)
+        {
+            for (IrisJigsawStructurePlacement i : region.getJigsawStructures())
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
+                {
+                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                    placeAfter.addAll(placeStructure(position, structure, rng));
+                    placed = true;
+                }
+            }
+        }
+
+        if(!placed)
+        {
+            for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures())
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
+                {
+                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                    placeAfter.addAll(placeStructure(position, structure, rng));
+                    placed = true;
+                }
             }
         }
 

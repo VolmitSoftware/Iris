@@ -38,7 +38,7 @@ public enum ObjectPlaceMode
 	@DontObfuscate
 	PAINT,
 
-	@Desc("Applies multiple terrain features into the parallax layer before this object places to distort the height, essentially vacuuming the terrain's heightmap closer to the bottom of this object.")
+	@Desc("Applies multiple terrain features into the parallax layer before this object places to distort the height, essentially vacuuming the terrain's heightmap closer to the bottom of this object. Uses MAX_HEIGHT to place")
 	@DontObfuscate
-	VACUUM;
+	VACUUM
 }

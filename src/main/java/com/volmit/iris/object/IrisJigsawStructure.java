@@ -31,6 +31,10 @@ public class IrisJigsawStructure extends IrisRegistrant
 	@Desc("The maximum pieces that can step out from the center piece")
 	private int maxDepth = 9;
 
+	@Desc("Add a noise feature to this village")
+	@DontObfuscate
+	private IrisFeature feature = null;
+
 	@DontObfuscate
 	@Desc("If set to true, iris will look for any pieces with only one connector in valid pools for edge connectors and attach them to 'terminate' the paths/piece connectors. Essentially it caps off ends. For example in a village, Iris would add houses to the ends of roads where possible. For terminators to be selected, they can only have one connector or they wont be chosen.")
 	private boolean terminate = true;

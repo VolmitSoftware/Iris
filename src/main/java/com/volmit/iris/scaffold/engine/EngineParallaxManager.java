@@ -167,14 +167,23 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int cz = (int) z >> 4;
 
         for (i = -s; i <= s; i++) {
-            int ii = i;
             for (j = -s; j <= s; j++) {
-                int jj = j;
-                ParallaxChunkMeta m = getParallaxAccess().getMetaR(ii + cx, jj + cz);
+                ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
-                for (IrisFeaturePositional k : m.getZones()) {
-                    if (k.shouldFilter(x, z)) {
-                        f.accept(k);
+                synchronized (m.getFeatures())
+                {
+                    try
+                    {
+                        for (IrisFeaturePositional k : m.getFeatures()) {
+                            if (k.shouldFilter(x, z)) {
+                                f.accept(k);
+                            }
+                        }
+                    }
+
+                    catch(Throwable e)
+                    {
+                        Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
                     }
                 }
             }
@@ -189,6 +198,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             int s = (int) Math.ceil(getParallaxSize() / 2D);
             int i,j;
+            KList<Runnable> after = new KList<>();
 
             // Generate Initial Features
             for (i = -s; i <= s; i++) {
@@ -210,7 +220,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
-                    generateParallaxVacuumLayer(i +x, j +z);
+                    after.addAll(generateParallaxVacuumLayer(i +x, j +z));
                 }
             }
 
@@ -220,6 +230,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
             }
 
+            after.forEach(Runnable::run);
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
@@ -232,19 +243,21 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void generateParallaxVacuumLayer(int x, int z)
+    default KList<Runnable> generateParallaxVacuumLayer(int x, int z)
     {
+        KList<Runnable> after = new KList<>();
         if(getParallaxAccess().isParallaxGenerated(x, z))
         {
-            return;
+            return after;
         }
-
         int xx = x<<4;
         int zz = z<<4;
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
+        after.addAll(generateParallaxJigsaw(rng, x, z, biome));
         generateParallaxSurface(rng, x, z, biome, true);
         generateParallaxMutations(rng, x, z, true);
+        return after;
     }
 
     default void generateParallaxLayer(int x, int z, boolean force)
@@ -260,7 +273,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
         IrisRegion region = getComplex().getRegionStream().get(xx+8, zz+8);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
-        generateParallaxJigsaw(rng, x, z, biome);
         generateParallaxSurface(rng, x, z, biome, false);
         generateParallaxMutations(rng, x, z, false);
         generateStructures(rng, x, z, region, biome);
@@ -288,7 +300,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     {
         if(i.hasZone(rng, cx, cz))
         {
-            getParallaxAccess().getMetaRW(cx, cz).getZones().add(new IrisFeaturePositional((cx << 4) + rng.nextInt(16), (cz << 4)+ rng.nextInt(16), i.getZone()));
+            getParallaxAccess().getMetaRW(cx, cz).getFeatures().add(new IrisFeaturePositional((cx << 4) + rng.nextInt(16), (cz << 4)+ rng.nextInt(16), i.getZone()));
         }
     }
 
@@ -321,14 +333,31 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome) {
+    default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome) {
+        KList<Runnable> placeAfter = new KList<>();
+
         for (IrisJigsawStructurePlacement i : biome.getJigsaw())
         {
             if(rng.nextInt(i.getRarity()) == 0)
             {
-                new PlannedStructure(getData().getJigsawStructureLoader().load(i.getStructure()), new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15)), rng).place(this, this);
+                IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+                IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+
+                if(structure.getFeature() != null)
+                {
+                    if(structure.getFeature().getBlockRadius() == 32)
+                    {
+                        structure.getFeature().setBlockRadius((double)structure.getMaxDimension()/3);
+                    }
+                    getParallaxAccess().getMetaRW(position.getX() >> 4, position.getZ() >> 4).getFeatures()
+                            .add(new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
+                }
+
+                placeAfter.addAll(new PlannedStructure(structure, position, rng).place(this, this));
             }
         }
+
+        return placeAfter;
     }
 
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, boolean vacuum) {
@@ -416,48 +445,57 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
             f.setStrength(1D);
             getParallaxAccess().getMetaRW(xx>>4, zz>>4)
-                    .getZones()
+                    .getFeatures()
                     .add(new IrisFeaturePositional(xx, zz, f));
         }
     }
 
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement)
     {
-        for(int i = 0; i < objectPlacement.getDensity(); i++)
+        try
         {
-            IrisObject v = objectPlacement.getSchematic(getComplex(), rng);
-            int xx = rng.i(x, x+16);
-            int zz = rng.i(z, z+16);
-            int id = rng.i(0, Integer.MAX_VALUE);
-            int maxf = 10000;
-            AtomicBoolean pl = new AtomicBoolean(false);
-            AtomicInteger max = new AtomicInteger(-1);
-            AtomicInteger min = new AtomicInteger(maxf);
-            int h = v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
-                int xf = b.getX();
-                int yf = b.getY();
-                int zf = b.getZ();
-                getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
-                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
-                meta.setObjects(true);
-                meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
-                meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
-
-            }, null, getData());
-
-            if(objectPlacement.isVacuum())
+            for(int i = 0; i < objectPlacement.getDensity(); i++)
             {
-                double a = Math.max(v.getW(), v.getD());
-                IrisFeature f = new IrisFeature();
-                f.setConvergeToHeight(h-(v.getH() >> 1));
-                f.setBlockRadius(a);
-                f.setInterpolationRadius(a/4);
-                f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
-                f.setStrength(1D);
-                getParallaxAccess().getMetaRW(xx>>4, zz>>4)
-                        .getZones()
-                        .add(new IrisFeaturePositional(xx, zz, f));
+                IrisObject v = objectPlacement.getObject(getComplex(), rng);
+                int xx = rng.i(x, x+16);
+                int zz = rng.i(z, z+16);
+                int id = rng.i(0, Integer.MAX_VALUE);
+                int maxf = 10000;
+                AtomicBoolean pl = new AtomicBoolean(false);
+                AtomicInteger max = new AtomicInteger(-1);
+                AtomicInteger min = new AtomicInteger(maxf);
+                int h = v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
+                    int xf = b.getX();
+                    int yf = b.getY();
+                    int zf = b.getZ();
+                    getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
+                    ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
+                    meta.setObjects(true);
+                    meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
+                    meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
+
+                }, null, getData());
+
+                if(objectPlacement.isVacuum())
+                {
+                    double a = Math.max(v.getW(), v.getD());
+                    IrisFeature f = new IrisFeature();
+                    f.setConvergeToHeight(h-(v.getH() >> 1));
+                    f.setBlockRadius(a);
+                    f.setInterpolationRadius(a/4);
+                    f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
+                    f.setStrength(1D);
+                    getParallaxAccess().getMetaRW(xx>>4, zz>>4)
+                            .getFeatures()
+                            .add(new IrisFeaturePositional(xx, zz, f));
+                }
             }
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("Failed to place one of the following object(s) " + objectPlacement.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + "). Are these objects missing?");
+            e.printStackTrace();
         }
     }
 

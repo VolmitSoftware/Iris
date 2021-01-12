@@ -135,6 +135,11 @@ public class ResourceLoader<T extends IrisRegistrant>
 
 	public T load(String name, boolean warn)
 	{
+		if(name == null)
+		{
+			return null;
+		}
+
 		if(name.trim().isEmpty())
 		{
 			return null;

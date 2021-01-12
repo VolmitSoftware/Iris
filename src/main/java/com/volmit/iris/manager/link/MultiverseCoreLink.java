@@ -34,7 +34,7 @@ public class MultiverseCoreLink
 			Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
 
 					String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
-			boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, dim.isVanillaStructures(), "Iris", false);
+			boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, false, "Iris", false);
 			saveConfig();
 			return b;
 		}

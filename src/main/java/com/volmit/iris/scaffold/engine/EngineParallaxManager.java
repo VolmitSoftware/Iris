@@ -29,8 +29,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     public int getParallaxSize();
 
-    public EngineStructureManager getStructureManager();
-
     default EngineFramework getFramework() {
         return getEngine().getFramework();
     }
@@ -275,7 +273,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
         generateParallaxSurface(rng, x, z, biome, false);
         generateParallaxMutations(rng, x, z, false);
-        generateStructures(rng, x, z, region, biome);
     }
 
     default void generateParallaxFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome)
@@ -307,30 +304,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     default void generateParallaxLayer(int x, int z)
     {
         generateParallaxLayer(x, z, false);
-    }
-
-    default void generateStructures(RNG rng, int x, int z, IrisRegion region, IrisBiome biome)
-    {
-        int g = 30265;
-        for(IrisStructurePlacement k : region.getStructures())
-        {
-            if(k == null)
-            {
-                continue;
-            }
-
-            getStructureManager().placeStructure(k, rng.nextParallelRNG(2228 * 2 * g++), x, z);
-        }
-
-        for(IrisStructurePlacement k : biome.getStructures())
-        {
-            if(k == null)
-            {
-                continue;
-            }
-
-            getStructureManager().placeStructure(k, rng.nextParallelRNG(-22228 * 4 * g++), x, z);
-        }
     }
 
     default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome) {

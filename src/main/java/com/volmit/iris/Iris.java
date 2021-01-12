@@ -35,7 +35,6 @@ public class Iris extends VolmitPlugin
 	public static ProjectManager proj;
 	public static ConversionManager convert;
 	public static WandManager wand;
-	public static StructureManager struct;
 	public static EditManager edit;
 	public static IrisBoardManager board;
 	public static BKLink linkBK;
@@ -162,7 +161,6 @@ public class Iris extends VolmitPlugin
 		proj = new ProjectManager();
 		convert = new ConversionManager();
 		wand = new WandManager();
-		struct = new StructureManager();
 		board = new IrisBoardManager();
 		linkMultiverseCore = new MultiverseCoreLink();
 		linkBK = new BKLink();

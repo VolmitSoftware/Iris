@@ -1,7 +1,6 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;
@@ -221,7 +220,6 @@ public class IrisEngineCompound implements EngineCompound {
             int offset = 0;
             BurstExecutor e = burster.burst();
             Runnable[] insert = new Runnable[engines.length];
-            boolean structures = getDefaultEngine().getDimension().isVanillaStructures() && !IrisSettings.get().getGeneral().isDisableNMS();
 
             for(i = 0; i < engines.length; i++)
             {

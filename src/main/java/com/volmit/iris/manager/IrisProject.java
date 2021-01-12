@@ -281,7 +281,6 @@ public class IrisProject
 		schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json"));
 		schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json"));
 		schemas.put(getSchemaEntry(IrisGenerator.class,dm, "/generators/*.json"));
-		schemas.put(getSchemaEntry(IrisStructure.class, dm, "/structures/*.json"));
 		schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json"));
 		schemas.put(getSchemaEntry(IrisJigsawPool.class, dm, "/jigsaw-pools/*.json"));
 		schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json"));
@@ -315,7 +314,6 @@ public class IrisProject
 		KSet<IrisRegion> regions = new KSet<>();
 		KSet<IrisBiome> biomes = new KSet<>();
 		KSet<IrisEntity> entities = new KSet<>();
-		KSet<IrisStructure> structures = new KSet<>();
 		KSet<IrisGenerator> generators = new KSet<>();
 		KSet<IrisLootTable> loot = new KSet<>();
 		KSet<IrisBlockData> blocks = new KSet<>();
@@ -330,19 +328,11 @@ public class IrisProject
 		dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
 		regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
 		biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
-		regions.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
-		biomes.forEach((i) -> i.getStructures().forEach((j) -> structures.add(j.getStructure(null))));
 		regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
 		biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-		structures.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-		structures.forEach((b) -> b.getTiles().forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)))));
-		structures.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())))));
 		biomes.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 		regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 		dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
-		structures.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-		structures.forEach((s) -> s.getTiles().forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())))));
 		biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 		regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 		dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
@@ -351,31 +341,6 @@ public class IrisProject
 		StringBuilder b = new StringBuilder();
 		StringBuilder c = new StringBuilder();
 		sender.sendMessage("Serializing Objects");
-
-		for(IrisStructure i : structures)
-		{
-			for(IrisStructureTile j : i.getTiles())
-			{
-				b.append(j.hashCode());
-				KList<String> newNames = new KList<>();
-
-				for(String k : j.getObjects())
-				{
-					if(renameObjects.containsKey(k))
-					{
-						newNames.add(renameObjects.get(k));
-						continue;
-					}
-
-					String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
-					b.append(name);
-					newNames.add(name);
-					renameObjects.put(k, name);
-				}
-
-				j.setObjects(newNames);
-			}
-		}
 
 		for(IrisBiome i : biomes)
 		{
@@ -455,29 +420,6 @@ public class IrisProject
 			}
 		})));
 
-		structures.forEach((i) -> i.getTiles().forEach((j) -> j.getObjects().forEach((k) ->
-		{
-			try
-			{
-				File f = dm.getObjectLoader().findFile(lookupObjects.get(k).get(0));
-				IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
-				gb.append(IO.hash(f));
-				ggg.set(ggg.get() + 1);
-
-				if(cl.flip())
-				{
-					int g = ggg.get();
-					ggg.set(0);
-					sender.sendMessage("Wrote another " + g + " Objects");
-				}
-			}
-
-			catch(Throwable e)
-			{
-
-			}
-		})));
-
 		dimension.getMutations().forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
 		{
 			try
@@ -534,13 +476,6 @@ public class IrisProject
 			{
 				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
 				IO.writeAll(new File(folder, "blocks/" + i.getLoadKey() + ".json"), a);
-				b.append(IO.hash(a));
-			}
-
-			for(IrisStructure i : structures)
-			{
-				a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
-				IO.writeAll(new File(folder, "structures/" + i.getLoadKey() + ".json"), a);
 				b.append(IO.hash(a));
 			}
 

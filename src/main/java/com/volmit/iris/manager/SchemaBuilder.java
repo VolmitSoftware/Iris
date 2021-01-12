@@ -366,22 +366,6 @@ public class SchemaBuilder
 
 			}
 
-			else if(k.isAnnotationPresent(RegistryListStructure.class))
-			{
-				String key = "enum-reg-structure-tileset";
-
-				if(!definitions.containsKey(key))
-				{
-					JSONObject j = new JSONObject();
-					j.put("enum", new JSONArray(data.getStructureLoader().getPossibleKeys()));
-					definitions.put(key, j);
-				}
-
-				fancyType = "Iris Structure Tileset";
-				prop.put("$ref", "#/definitions/" + key);
-				description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
-			}
-
 			else if(k.isAnnotationPresent(RegistryListJigsawPiece.class))
 			{
 				String key = "enum-reg-structure-piece";
@@ -793,24 +777,6 @@ public class SchemaBuilder
 						items.put("$ref", "#/definitions/" + key);
 						prop.put("items", items);
 						description.add(SYMBOL_TYPE__N + "  Must be a valid Region (use ctrl+space for auto complete!)");
-					}
-
-					else if(k.isAnnotationPresent(RegistryListStructure.class))
-					{
-						fancyType = "List of Iris Structure Tilesets";
-						String key = "enum-reg-structure-tileset";
-
-						if(!definitions.containsKey(key))
-						{
-							JSONObject j = new JSONObject();
-							j.put("enum", new JSONArray(data.getStructureLoader().getPossibleKeys()));
-							definitions.put(key, j);
-						}
-
-						JSONObject items = new JSONObject();
-						items.put("$ref", "#/definitions/" + key);
-						prop.put("items", items);
-						description.add(SYMBOL_TYPE__N + "  Must be a valid Structure Tileset (use ctrl+space for auto complete!)");
 					}
 
 					else if(k.isAnnotationPresent(RegistryListJigsawPiece.class))

@@ -18,7 +18,6 @@ public class IrisDataManager
 	private ResourceLoader<IrisRegion> regionLoader;
 	private ResourceLoader<IrisDimension> dimensionLoader;
 	private ResourceLoader<IrisGenerator> generatorLoader;
-	private ResourceLoader<IrisStructure> structureLoader;
 	private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
 	private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
 	private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
@@ -51,7 +50,6 @@ public class IrisDataManager
 		this.regionLoader =  null;
 		this.biomeLoader =  null;
 		this.dimensionLoader =  null;
-		this.structureLoader =  null;
 		this.jigsawPoolLoader =  null;
 		this.jigsawPieceLoader =  null;
 		this.generatorLoader =  null;
@@ -83,7 +81,6 @@ public class IrisDataManager
 		this.regionLoader = new ResourceLoader<>(packs, this, "regions", "Region", IrisRegion.class);
 		this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
 		this.dimensionLoader = new ResourceLoader<>(packs, this, "dimensions", "Dimension", IrisDimension.class);
-		this.structureLoader = new ResourceLoader<>(packs, this, "structures", "Structure", IrisStructure.class);
 		this.jigsawPoolLoader = new ResourceLoader<>(packs, this, "jigsaw-pools", "Jigsaw Pool", IrisJigsawPool.class);
 		this.jigsawStructureLoader = new ResourceLoader<>(packs, this, "jigsaw-structures", "Jigsaw Structure", IrisJigsawStructure.class);
 		this.jigsawPieceLoader = new ResourceLoader<>(packs, this, "jigsaw-pieces", "Jigsaw Piece", IrisJigsawPiece.class);
@@ -109,7 +106,6 @@ public class IrisDataManager
 		dimensionLoader.clearCache();
 		entityLoader.clearCache();
 		generatorLoader.clearCache();
-		structureLoader.clearCache();
 	}
 
 	public void clearLists()
@@ -127,7 +123,6 @@ public class IrisDataManager
 		dimensionLoader.clearList();
 		generatorLoader.clearList();
 		jigsawStructureLoader.clearList();
-		structureLoader.clearList();
 		jigsawPoolLoader.clearList();
 		jigsawPieceLoader.clearList();
 		objectLoader.clearList();
@@ -141,11 +136,6 @@ public class IrisDataManager
 	public static IrisBiome loadAnyBiome(String key)
 	{
 		return loadAny(key, (dm) -> dm.getBiomeLoader().load(key, false));
-	}
-
-	public static IrisStructure loadAnyStructure(String key)
-	{
-		return loadAny(key, (dm) -> dm.getStructureLoader().load(key, false));
 	}
 
 	public static IrisJigsawPiece loadAnyJigsawPiece(String key)

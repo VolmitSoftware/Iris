@@ -64,8 +64,21 @@ public class PlannedStructure {
         return after;
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement options, IObjectPlacer placer, EngineParallaxManager e)
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, EngineParallaxManager e)
     {
+        IrisObjectPlacement options = o;
+
+        if(i.getPiece().getPlacementOverrides() != null)
+        {
+            options= i.getPiece().getPlacementOverrides();
+            options.getRotation().setEnabled(false);
+        }
+
+        else
+        {
+            options.setMode(i.getPiece().getPlaceMode());
+        }
+
         IrisObject v = i.getObject();
         int sx = (v.getW()/2);
         int sz = (v.getD()/2);
@@ -73,7 +86,6 @@ public class PlannedStructure {
         int zz = i.getPosition().getZ() + sz;
         int offset = i.getPosition().getY() - startHeight;
         int height = placer.getHighest(xx, zz) + offset + (v.getH() / 2);
-        options.setMode(i.getPiece().getPlaceMode());
 
         if(options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum())
         {

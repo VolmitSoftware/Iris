@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.google.gson.Gson;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,10 @@ public class IrisJigsawPiece extends IrisRegistrant
 	@Desc("Change how this object places depending on the terrain height map.")
 	@DontObfuscate
 	private ObjectPlaceMode placeMode = ObjectPlaceMode.FAST_MAX_HEIGHT;
+
+	@Desc("Configure everything about the object placement. Please don't define this unless you actually need it as using this option will slow down the jigsaw deign stage. Use this where you need it, just avoid using it everywhere to keep things fast.")
+	@DontObfuscate
+	private IrisObjectPlacement placementOverrides;
 
 	private transient AtomicCache<Integer> max2dDim = new AtomicCache<>();
 	private transient AtomicCache<Integer> max3dDim = new AtomicCache<>();
@@ -85,6 +90,12 @@ public class IrisJigsawPiece extends IrisRegistrant
 		p.setLoadFile(getLoadFile());
 		p.setPlaceMode(getPlaceMode());
 		p.setConnectors(new KList<>());
+
+		if(getPlacementOverrides() != null)
+		{
+			// God fucking dammit
+			p.setPlacementOverrides(new Gson().fromJson(new Gson().toJson(getPlacementOverrides()), IrisObjectPlacement.class));
+		}
 
 		for(IrisJigsawPieceConnector i : getConnectors())
 		{

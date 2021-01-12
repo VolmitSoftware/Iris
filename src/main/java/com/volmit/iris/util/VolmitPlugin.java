@@ -6,9 +6,12 @@ import org.bukkit.command.Command;
 import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,9 +21,11 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 
 public abstract class VolmitPlugin extends JavaPlugin implements Listener
 {
@@ -31,6 +36,112 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener
 	private KMap<String, IController> controllers;
 	private KList<IController> cachedControllers;
 	private KMap<Class<? extends IController>, IController> cachedClassControllers;
+
+	public void selfDistruct()
+	{
+		HandlerList.unregisterAll((Plugin)this);
+		getServer().getScheduler().cancelTasks(this);
+		File me = getFile();
+		Plugin plugin = this;
+		String name = plugin.getName();
+		SimpleCommandMap commandMap = null;
+		List<Plugin> plugins = null;
+		Map<String, Plugin> names = null;
+		Map<String, Command> commands = null;
+		Map<Event, SortedSet<RegisteredListener>> listeners = null;
+
+		try
+		{
+
+			Field pluginsField = Bukkit.getPluginManager().getClass().getDeclaredField("plugins");
+			pluginsField.setAccessible(true);
+			plugins = (List<Plugin>) pluginsField.get(getServer().getPluginManager());
+			Field lookupNamesField = Bukkit.getPluginManager().getClass().getDeclaredField("lookupNames");
+			lookupNamesField.setAccessible(true);
+			names = (Map<String, Plugin>) lookupNamesField.get(getServer().getPluginManager());
+
+			try
+			{
+				Field listenersField = Bukkit.getPluginManager().getClass().getDeclaredField("listeners");
+				listenersField.setAccessible(true);
+				listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(getServer().getPluginManager());
+			}
+
+			catch(Throwable ignored)
+			{
+
+			}
+
+			Field commandMapField = Bukkit.getPluginManager().getClass().getDeclaredField("commandMap");
+			commandMapField.setAccessible(true);
+			commandMap = (SimpleCommandMap) commandMapField.get(getServer().getPluginManager());
+			Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
+			knownCommandsField.setAccessible(true);
+			commands = (Map<String, Command>) knownCommandsField.get(commandMap);
+
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+
+		getServer().getPluginManager().disablePlugin(plugin);
+		plugins.remove(plugin);
+		names.remove(name);
+
+		if(listeners != null)
+		{
+			for(SortedSet<RegisteredListener> set : listeners.values())
+			{
+				set.removeIf(value -> value.getPlugin().equals(plugin));
+			}
+		}
+
+		for(Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext();)
+		{
+			Map.Entry<String, Command> entry = it.next();
+			if(entry.getValue() instanceof PluginCommand)
+			{
+				PluginCommand c = (PluginCommand) entry.getValue();
+				if(c.getPlugin() == plugin)
+				{
+					c.unregister(commandMap);
+					it.remove();
+				}
+			}
+		}
+
+		new Thread(() -> {
+			// Attempt to close the classloader to unlock any handles on the
+			// plugin's
+			// jar file.
+			ClassLoader cl = plugin.getClass().getClassLoader();
+
+			if(cl instanceof URLClassLoader)
+			{
+				try
+				{
+					((URLClassLoader) cl).close();
+				}
+				catch(IOException ignored)
+				{
+
+				}
+			}
+
+			// Will not work on processes started with the -XX:+DisableExplicitGC
+			// flag,
+			// but lets try it anyway. This tries to get around the issue where
+			// Windows
+			// refuses to unlock jar files that were previously loaded into the JVM.
+			System.gc();
+			if(!me.delete())
+			{
+				me.deleteOnExit();
+			}
+		}).start();
+	}
 
 	public void l(Object l)
 	{

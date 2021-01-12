@@ -37,7 +37,7 @@ public class ParallaxChunkMeta {
     private int maxObject = -1;
     private int minObject = -1;
     private int count;
-    private KList<IrisFeaturePositional> zones;
+    private KList<IrisFeaturePositional> features;
 
     public ParallaxChunkMeta()
     {

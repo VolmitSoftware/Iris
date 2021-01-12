@@ -3,6 +3,7 @@ package com.volmit.iris.scaffold.engine;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
@@ -22,6 +23,8 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
 
     public World getWorld();
+
+    public IrisPosition getStrongholdPosition();
 
     public void printMetrics(CommandSender sender);
 

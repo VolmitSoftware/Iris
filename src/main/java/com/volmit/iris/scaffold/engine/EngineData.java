@@ -1,6 +1,7 @@
 package com.volmit.iris.scaffold.engine;
 
 import com.google.gson.Gson;
+import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.util.IO;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ import java.io.IOException;
 public class EngineData {
     private String dimension;
     private String lastVersion;
+    private IrisPosition strongholdPosition;
 
     public void save(File f)
     {

@@ -1,8 +1,8 @@
 package com.volmit.iris.scaffold.engine;
 
-import com.volmit.iris.scaffold.parallax.ParallaxWorld;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.scaffold.parallax.ParallaxWorld;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import lombok.Data;
 import org.bukkit.World;

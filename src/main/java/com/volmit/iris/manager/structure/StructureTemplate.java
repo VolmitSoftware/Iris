@@ -274,7 +274,7 @@ public class StructureTemplate implements Listener, IObjectPlacer
 		IrisObject object = new IrisObject(origin.getW(), origin.getH(), origin.getD());
 		object.setCenter(origin.getCenter().clone());
 
-		for(BlockVector i : origin.getBlocks().k())
+		for(BlockVector i : origin.getBlocks().keySet())
 		{
 			object.getBlocks().put(i.clone(), origin.getBlocks().get(i).clone());
 		}

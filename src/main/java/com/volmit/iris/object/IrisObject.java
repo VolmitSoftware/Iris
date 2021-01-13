@@ -640,10 +640,12 @@ public class IrisObject extends IrisRegistrant
 		for(BlockVector g : getBlocks().keySet())
 		{
 			BlockData d = null;
+			TileData<? extends TileState> tile = null;
 
 			try
 			{
 				d = getBlocks().get(g);
+				tile = getStates().get(g);
 			}
 
 			catch(Throwable e)
@@ -733,6 +735,12 @@ public class IrisObject extends IrisRegistrant
 			if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR))
 			{
 				placer.set(xx, yy, zz, data);
+
+				if(tile != null)
+				{
+					placer.setTile(xx, yy, zz, tile);
+				}
+
 			}
 		}
 		readLock.unlock();

@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.hunk.Hunk;
@@ -15,6 +16,7 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
@@ -670,6 +672,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     @Override
     default void set(int x, int y, int z, BlockData d) {
         getParallaxAccess().setBlock(x,y,z,d);
+    }
+
+    @Override
+    default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
+        getParallaxAccess().setTile(x,y,z,d);
     }
 
     @Override

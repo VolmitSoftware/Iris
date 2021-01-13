@@ -2,6 +2,7 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import io.timeandspace.smoothie.OptimizationObjective;
@@ -11,6 +12,8 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
@@ -30,6 +33,7 @@ public class IrisObject extends IrisRegistrant
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
 	private SmoothieMap<BlockVector, BlockData> blocks;
+	private SmoothieMap<BlockVector, TileData<? extends TileState>> states;
 	private int w;
 	private int d;
 	private int h;
@@ -202,16 +206,25 @@ public class IrisObject extends IrisRegistrant
 			o.getBlocks().put(i.clone(), getBlocks().get(i).clone());
 		}
 
+		for(BlockVector i : getStates().keySet())
+		{
+			o.getStates().put(i.clone(), getStates().get(i).clone());
+		}
+
 		return o;
 	}
 
 	public IrisObject(int w, int h, int d)
 	{
 		blocks = SmoothieMap.<BlockVector, BlockData>newBuilder()
-			.doShrink(true)
-			.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-			.expectedSize(Math.max(100, (w * h * d) / 2))
-			.build();
+				.doShrink(true)
+				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
+				.expectedSize(Math.max(100, (w * h * d) / 2))
+				.build();
+		states = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
+				.doShrink(true)
+				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
+				.build();
 		this.w = w;
 		this.h = h;
 		this.d = d;
@@ -224,17 +237,12 @@ public class IrisObject extends IrisRegistrant
 		FileInputStream in = new FileInputStream(file);
 		DataInputStream din = new DataInputStream(in);
 		BlockVector bv = new BlockVector(din.readInt(), din.readInt(), din.readInt());
-		Iris.later(() -> din.close());
+		Iris.later(din::close);
 		return bv;
 	}
 
-	public void read(InputStream in) throws IOException
+	public void readLegacy(InputStream in) throws IOException
 	{
-		if(shitty)
-		{
-			return;
-		}
-
 		DataInputStream din = new DataInputStream(in);
 		this.w = din.readInt();
 		this.h = din.readInt();
@@ -246,6 +254,97 @@ public class IrisObject extends IrisRegistrant
 		{
 			getBlocks().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
 		}
+
+		try
+		{
+			int size = din.readInt();
+
+			for(int i = 0; i < size; i++)
+			{
+				getStates().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+	}
+
+	public void read(InputStream in) throws Throwable
+	{
+		DataInputStream din = new DataInputStream(in);
+		this.w = din.readInt();
+		this.h = din.readInt();
+		this.d = din.readInt();
+		if(!din.readUTF().equals("Iris V2 IOB;"))
+		{
+			throw new IOException("Not V2 Format");
+		}
+		center = new BlockVector(w / 2, h / 2, d / 2);
+		int s = din.readShort();
+		int i;
+		KList<String> palette = new KList<>();
+
+		for(i = 0; i < s; i++)
+		{
+			palette.add(din.readUTF());
+		}
+
+		s = din.readInt();
+
+		for(i = 0; i < s; i++)
+		{
+			getBlocks().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), B.get(palette.get(din.readShort())));
+		}
+
+		s = din.readInt();
+
+		for(i = 0; i < s; i++)
+		{
+			getStates().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+		}
+	}
+
+	public void write(OutputStream o) throws IOException
+	{
+		DataOutputStream dos = new DataOutputStream(o);
+		dos.writeInt(w);
+		dos.writeInt(h);
+		dos.writeInt(d);
+		dos.writeUTF("Iris V2 IOB;");
+		KList<String> palette = new KList<>();
+
+		for(BlockData i : getBlocks().values())
+		{
+			palette.addIfMissing(i.getAsString());
+		}
+
+		dos.writeShort(palette.size());
+
+		for(String i : palette)
+		{
+			dos.writeUTF(i);
+		}
+
+		dos.writeInt(getBlocks().size());
+
+		for(BlockVector i : getBlocks().keySet())
+		{
+			dos.writeShort(i.getBlockX());
+			dos.writeShort(i.getBlockY());
+			dos.writeShort(i.getBlockZ());
+			dos.writeShort(palette.indexOf(getBlocks().get(i).getAsString()));
+		}
+
+		dos.writeInt(getStates().size());
+		for(BlockVector i : getStates().keySet())
+		{
+			dos.writeShort(i.getBlockX());
+			dos.writeShort(i.getBlockY());
+			dos.writeShort(i.getBlockZ());
+			getStates().get(i).toBinary(dos);
+		}
 	}
 
 	public void read(File file) throws IOException
@@ -254,41 +353,31 @@ public class IrisObject extends IrisRegistrant
 		{
 			return;
 		}
+
 		FileInputStream fin = new FileInputStream(file);
-		read(fin);
-		fin.close();
+		try
+		{
+			read(fin);
+			fin.close();
+		}
+
+		catch(Throwable e)
+		{
+			fin.close();
+			fin = new FileInputStream(file);
+			readLegacy(fin);
+			fin.close();
+			write(file);
+			Iris.info("Converted " + file.getPath() + " to IOB V2");
+		}
 	}
 
 	public void write(File file) throws IOException
 	{
-		if(shitty)
-		{
-			return;
-		}
 		file.getParentFile().mkdirs();
 		FileOutputStream out = new FileOutputStream(file);
 		write(out);
 		out.close();
-	}
-
-	public void write(OutputStream o) throws IOException
-	{
-		if(shitty)
-		{
-			return;
-		}
-		DataOutputStream dos = new DataOutputStream(o);
-		dos.writeInt(w);
-		dos.writeInt(h);
-		dos.writeInt(d);
-		dos.writeInt(getBlocks().size());
-		for(BlockVector i : getBlocks().keySet())
-		{
-			dos.writeShort(i.getBlockX());
-			dos.writeShort(i.getBlockY());
-			dos.writeShort(i.getBlockZ());
-			dos.writeUTF(getBlocks().get(i).getAsString(true));
-		}
 	}
 
 	public void clean()
@@ -304,7 +393,24 @@ public class IrisObject extends IrisRegistrant
 			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getBlocks().get(i));
 		}
 
+		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
+				.doShrink(true)
+				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
+				.expectedSize(getStates().size())
+				.build();
+
+		for(BlockVector i : getBlocks().keySet())
+		{
+			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getBlocks().get(i));
+		}
+
+		for(BlockVector i : getStates().keySet())
+		{
+			dx.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getStates().get(i));
+		}
+
 		blocks = d;
+		states = dx;
 	}
 
 	public BlockVector getSigned(int x, int y, int z)
@@ -324,11 +430,34 @@ public class IrisObject extends IrisRegistrant
 		if(block == null)
 		{
 			getBlocks().remove(v);
+			getStates().remove(v);
 		}
 
 		else
 		{
 			getBlocks().put(v, block);
+		}
+	}
+
+	public void setUnsigned(int x, int y, int z, Block block)
+	{
+		BlockVector v = getSigned(x,y,z);
+
+		if(block == null)
+		{
+			getBlocks().remove(v);
+			getStates().remove(v);
+		}
+
+		else
+		{
+			BlockData data = block.getBlockData();
+			getBlocks().put(v, data);
+			TileData<? extends TileState> state = TileData.getTileState(block);
+			if(state != null)
+			{
+				getStates().put(v, state);
+			}
 		}
 	}
 
@@ -461,11 +590,6 @@ public class IrisObject extends IrisRegistrant
 		else
 		{
 			y = yv;
-		}
-
-		if(y <= 0)
-		{
-			// TODO: return -1;
 		}
 
 		if(yv >= 0 && config.isBottom())
@@ -717,14 +841,33 @@ public class IrisObject extends IrisRegistrant
 			d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(getBlocks().get(i).clone(), spinx, spiny, spinz));
 		}
 
+
+		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
+				.doShrink(true)
+				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
+				.expectedSize(getStates().size())
+				.build();
+
+		for(BlockVector i : getStates().keySet())
+		{
+			dx.put(r.rotate(i.clone(), spinx, spiny, spinz), getStates().get(i));
+		}
+
 		blocks = d;
+		states = dx;
 	}
 
 	public void place(Location at)
 	{
 		for(BlockVector i : getBlocks().keySet())
 		{
-			at.clone().add(0, getCenter().getY(), 0).add(i).getBlock().setBlockData(getBlocks().get(i), false);
+			Block b = at.clone().add(0, getCenter().getY(), 0).add(i).getBlock();
+			b.setBlockData(getBlocks().get(i), false);
+
+			if(getStates().containsKey(i))
+			{
+				getStates().get(i).toBukkitTry(b.getState());
+			}
 		}
 	}
 
@@ -732,7 +875,13 @@ public class IrisObject extends IrisRegistrant
 	{
 		for(BlockVector i : getBlocks().keySet())
 		{
-			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(getBlocks().get(i), false);
+			Block b = at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock();
+			b.setBlockData(getBlocks().get(i), false);
+
+			if(getStates().containsKey(i))
+			{
+				getStates().get(i).toBukkitTry(b.getState());
+			}
 		}
 	}
 
@@ -741,11 +890,16 @@ public class IrisObject extends IrisRegistrant
 		return blocks;
 	}
 
+	public synchronized SmoothieMap<BlockVector, TileData<? extends TileState>> getStates()
+	{
+		return states;
+	}
+
 	public void unplaceCenterY(Location at)
 	{
 		for(BlockVector i : getBlocks().keySet())
 		{
-			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(Material.AIR.createBlockData(), false);
+			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(AIR, false);
 		}
 	}
 }

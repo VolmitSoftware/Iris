@@ -1,11 +1,13 @@
 package com.volmit.iris.scaffold.hunk.io;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.GridLock;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.IOException;
@@ -14,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class HunkRegionSlice<T>
 {
 	public static final Function2<Integer, CompoundTag, HunkRegionSlice<BlockData>> BLOCKDATA = (h, c) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new BlockDataHunkIOAdapter(), c, "blockdata");
+	public static final Function2<Integer, CompoundTag, HunkRegionSlice<TileData<? extends TileState>>> TILE = (h, c) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new TileDataHunkIOAdapter(), c, "tile");
 	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<String>> STRING = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new StringHunkIOAdapter(), c, t);
 	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<Boolean>> BOOLEAN = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new BooleanHunkIOAdapter(), c, t);
 	private final Function3<Integer, Integer, Integer, Hunk<T>> factory;

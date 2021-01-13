@@ -28,7 +28,6 @@ public class CommandIrisObjectPaste extends MortarCommand
 		setDescription("Paste an object");
 	}
 
-
 	@Override
 	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 

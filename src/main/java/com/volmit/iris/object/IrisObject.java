@@ -841,7 +841,6 @@ public class IrisObject extends IrisRegistrant
 			d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(getBlocks().get(i).clone(), spinx, spiny, spinz));
 		}
 
-
 		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
 				.doShrink(true)
 				.optimizeFor(OptimizationObjective.LOW_GARBAGE)

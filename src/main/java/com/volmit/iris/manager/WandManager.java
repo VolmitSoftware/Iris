@@ -214,7 +214,7 @@ public class WandManager implements Listener
 				}
 
 				BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-				s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b.getBlockData());
+				s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
 			}
 
 			return s;

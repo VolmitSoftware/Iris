@@ -13,6 +13,7 @@ import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
@@ -367,8 +368,6 @@ public class IrisObject extends IrisRegistrant
 			fin = new FileInputStream(file);
 			readLegacy(fin);
 			fin.close();
-			write(file);
-			Iris.info("Converted " + file.getPath() + " to IOB V2");
 		}
 	}
 
@@ -456,6 +455,7 @@ public class IrisObject extends IrisRegistrant
 			TileData<? extends TileState> state = TileData.getTileState(block);
 			if(state != null)
 			{
+				Iris.info("Saved State " + v);
 				getStates().put(v, state);
 			}
 		}
@@ -865,7 +865,10 @@ public class IrisObject extends IrisRegistrant
 
 			if(getStates().containsKey(i))
 			{
-				getStates().get(i).toBukkitTry(b.getState());
+				Iris.info(states.get(i).toString());
+				BlockState st = b.getState();
+				getStates().get(i).toBukkitTry(st);
+				st.update();
 			}
 		}
 	}

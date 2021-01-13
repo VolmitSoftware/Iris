@@ -1,10 +1,12 @@
 package com.volmit.iris.scaffold.parallax;
 
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.KMap;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
@@ -159,6 +161,18 @@ public class ParallaxWorld implements ParallaxAccess
 	public Hunk<BlockData> getBlocksRW(int x, int z)
 	{
 		return getRW(x >> 5, z >> 5).getBlockSlice().getRW(x & 31, z & 31);
+	}
+
+	@Override
+	public Hunk<TileData<? extends TileState>> getTilesR(int x, int z)
+	{
+		return getR(x >> 5, z >> 5).getTileSlice().getR(x & 31, z & 31);
+	}
+
+	@Override
+	public Hunk<TileData<? extends TileState>> getTilesRW(int x, int z)
+	{
+		return getRW(x >> 5, z >> 5).getTileSlice().getRW(x & 31, z & 31);
 	}
 
 	@Override

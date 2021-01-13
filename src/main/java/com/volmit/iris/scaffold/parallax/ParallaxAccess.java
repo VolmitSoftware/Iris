@@ -1,6 +1,8 @@
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 public interface ParallaxAccess {
@@ -10,6 +12,14 @@ public interface ParallaxAccess {
 
     default void setBlock(int x, int y, int z, BlockData d) {
         getBlocksRW(x >> 4, z >> 4).set(x & 15, y, z & 15, d);
+    }
+
+    default TileData<? extends TileState> getTile(int x, int y, int z) {
+        return getTilesR(x >> 4, z >> 4).get(x & 15, y, z & 15);
+    }
+
+    default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
+        getTilesRW(x >> 4, z >> 4).set(x & 15, y, z & 15, d);
     }
 
     default String getObject(int x, int y, int z) {
@@ -87,6 +97,10 @@ public interface ParallaxAccess {
         getMetaRW(x, z).setFeatureGenerated(v);
     }
 
+    public Hunk<TileData<? extends TileState>> getTilesR(int x, int z);
+
+    public Hunk<TileData<? extends TileState>> getTilesRW(int x, int z);
+
     public Hunk<BlockData> getBlocksR(int x, int z);
 
     public Hunk<BlockData> getBlocksRW(int x, int z);
@@ -119,6 +133,7 @@ public interface ParallaxAccess {
     {
         getUpdatesRW(x, z).fill(false);
         getBlocksRW(x, z).fill(null);
+        getTilesRW(x, z).fill(null);
         getObjectsRW(x, z).fill(null);
     }
 }

@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
 import com.volmit.iris.scaffold.hunk.io.HunkRegion;
@@ -9,6 +10,7 @@ import com.volmit.iris.util.ByteArrayTag;
 import com.volmit.iris.util.CompoundTag;
 import com.volmit.iris.util.M;
 import com.volmit.iris.util.Tag;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
@@ -20,6 +22,7 @@ public class ParallaxRegion extends HunkRegion
 	private Hunk<ParallaxChunkMeta> meta;
 	private HunkIOAdapter<ParallaxChunkMeta> metaAdapter;
 	private HunkRegionSlice<BlockData> blockSlice;
+	private HunkRegionSlice<TileData<? extends TileState>> tileSlice;
 	private HunkRegionSlice<String> objectSlice;
 	private HunkRegionSlice<Boolean> updateSlice;
 	private final GridLock lock;
@@ -45,6 +48,7 @@ public class ParallaxRegion extends HunkRegion
 	private void setupSlices()
 	{
 		blockSlice = HunkRegionSlice.BLOCKDATA.apply(height, getCompound());
+		tileSlice = HunkRegionSlice.TILE.apply(height, getCompound());
 		objectSlice = HunkRegionSlice.STRING.apply(height, getCompound(), "objects");
 		updateSlice = HunkRegionSlice.BOOLEAN.apply(height, getCompound(), "updates");
 		metaAdapter = ParallaxChunkMeta.adapter.apply(getCompound());
@@ -148,6 +152,7 @@ public class ParallaxRegion extends HunkRegion
 	{
 		blockSlice.save();
 		objectSlice.save();
+		tileSlice.save();
 		updateSlice.save();
 		saveMetaHunk();
 		super.save();
@@ -157,13 +162,19 @@ public class ParallaxRegion extends HunkRegion
 	{
 		unloadMetaHunk();
 		return blockSlice.unloadAll()+
-		objectSlice.unloadAll()+
+				objectSlice.unloadAll()+
+				tileSlice.unloadAll()+
 		updateSlice.unloadAll();
 	}
 
 	public HunkRegionSlice<BlockData> getBlockSlice() {
 		lastUse = M.ms();
 		return blockSlice;
+	}
+
+	public HunkRegionSlice<TileData<? extends TileState>> getTileSlice() {
+		lastUse = M.ms();
+		return tileSlice;
 	}
 
 	public  HunkRegionSlice<String> getObjectSlice() {
@@ -178,11 +189,12 @@ public class ParallaxRegion extends HunkRegion
 
 	public synchronized int cleanup(long c) {
 		return blockSlice.cleanup(c) +
-		objectSlice.cleanup(c) +
+				objectSlice.cleanup(c) +
+				tileSlice.cleanup(c) +
 		updateSlice.cleanup(c);
 	}
 
 	public int getChunkCount() {
-		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + updateSlice.getLoadCount();
+		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + tileSlice.getLoadCount() + updateSlice.getLoadCount();
 	}
 }

@@ -48,6 +48,7 @@ public class CommandIrisJigsaw extends MortarCommand
 			sender.sendMessage("Ingame only");
 			return true;
 		}
+		sender.sendMessage("Iris Jigsaw Commands");
 		printHelp(sender);
 		return true;
 	}

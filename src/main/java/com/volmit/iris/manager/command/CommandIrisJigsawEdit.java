@@ -18,7 +18,7 @@ public class CommandIrisJigsawEdit extends MortarCommand
 		super("edit", "e", "*");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
-		setDescription("Create a new jigsaw piece");
+		setDescription("Edit an existing Jigsaw piece");
 	}
 
 	@Override

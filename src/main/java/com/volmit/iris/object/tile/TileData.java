@@ -19,6 +19,7 @@ public interface TileData<T extends TileState> extends Cloneable {
         KList<TileData<? extends TileState>> registry = new KList<>();
 
         registry.add(new TileSign());
+        registry.add(new TileSpawner());
 
         return registry;
     }

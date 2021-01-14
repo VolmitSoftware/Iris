@@ -58,7 +58,6 @@ public class IrisObjectRotation
 		return e.rotateCopy(this);
 	}
 
-
 	public IrisJigsawPiece rotateCopy(IrisJigsawPiece v) {
 		IrisJigsawPiece piece = v.copy();
 		for(IrisJigsawPieceConnector i : piece.getConnectors())
@@ -247,6 +246,19 @@ public class IrisObjectRotation
 			g.setRotation(t);
 		}
 
+		else if(d instanceof Orientable)
+		{
+			BlockFace f = getFace(((Orientable) d).getAxis());
+			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+			bv = rotate(bv.clone(), spinx, spiny, spinz);
+			Axis a = getAxis(bv);
+
+			if(!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a))
+			{
+				((Orientable) d).setAxis(a);
+			}
+		}
+
 		else if(d instanceof MultipleFacing)
 		{
 			List<BlockFace> faces = new KList<>();
@@ -288,6 +300,40 @@ public class IrisObjectRotation
 		}
 
 		return d;
+	}
+
+	public Axis getAxis(BlockVector v)
+	{
+		if(Math.abs(v.getBlockX()) > Math.max(Math.abs(v.getBlockY()), Math.abs(v.getBlockZ())))
+		{
+			return Axis.X;
+		}
+
+		if(Math.abs(v.getBlockY()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockZ())))
+		{
+			return Axis.Y;
+		}
+
+		if(Math.abs(v.getBlockZ()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockY())))
+		{
+			return Axis.Z;
+		}
+
+		return Axis.Y;
+	}
+
+	private BlockFace getFace(Axis axis) {
+		switch (axis)
+		{
+			case X:
+				return BlockFace.EAST;
+			case Y:
+				return BlockFace.UP;
+			case Z:
+				return BlockFace.SOUTH;
+		}
+
+		return BlockFace.UP;
 	}
 
 	public IrisPosition rotate(IrisPosition b)

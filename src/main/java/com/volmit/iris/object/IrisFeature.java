@@ -1,6 +1,7 @@
 package com.volmit.iris.object;
 
 import com.google.gson.Gson;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -70,6 +71,13 @@ public class IrisFeature {
     @Desc("Add additional noise to this spot")
     private IrisGeneratorStyle addNoise = NoiseStyle.FLAT.style();
 
+
+    private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
+    public double getActualRadius()
+    {
+        return actualRadius.aquire(() -> IrisInterpolation.getRealRadius(getInterpolator(),getInterpolationRadius()));
+    }
+
     public static IrisFeature read(DataInputStream s) throws IOException
     {
         return new Gson().fromJson(s.readUTF(), IrisFeature.class);
@@ -80,6 +88,6 @@ public class IrisFeature {
     }
 
     public int getRealSize() {
-        return (int) Math.ceil(IrisInterpolation.getRealRadius(interpolator, 0, 0, interpolationRadius) + blockRadius * 2);
+        return (int) Math.ceil((getActualRadius() + blockRadius) * 2);
     }
 }

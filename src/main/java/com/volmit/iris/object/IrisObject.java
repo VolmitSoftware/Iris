@@ -196,7 +196,7 @@ public class IrisObject extends IrisRegistrant
 		lock.unlock();
 	}
 
-	public IrisObject copy()
+	public synchronized IrisObject copy()
 	{
 		IrisObject o = new IrisObject(w, h, d);
 		o.setLoadKey(o.getLoadKey());

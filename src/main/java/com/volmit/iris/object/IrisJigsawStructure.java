@@ -110,7 +110,6 @@ public class IrisJigsawStructure extends IrisRegistrant
 
 			else
 			{
-				int max = 0;
 				KList<String> pools = new KList<>();
 				KList<String> pieces = new KList<>();
 

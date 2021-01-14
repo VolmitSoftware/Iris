@@ -429,7 +429,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 continue;
             }
 
-            if(rng.chance(i.getChance()) && rng.chance(getComplex().getObjectChanceStream().get(x, z)))
+            if(rng.chance(i.getChance()) && rng.chance(getComplex().getObjectChanceStream().get(x<<4, z<<4)))
             {
                 place(rng, x<<4, z<<4, i);
             }

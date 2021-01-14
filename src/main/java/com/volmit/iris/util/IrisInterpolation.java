@@ -619,20 +619,20 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double getRealRadius(InterpolationMethod method, int x, int z, double h)
+	public static double getRealRadius(InterpolationMethod method, double h)
 	{
 		AtomicDouble rad = new AtomicDouble(h);
 		AtomicDouble accessX = new AtomicDouble();
 		AtomicDouble accessZ = new AtomicDouble();
 		NoiseProvider np = (x1, z1) -> {
-			double d = Math.max(Math.abs(x1-x), Math.abs(z1 - z));
+			double d = Math.max(Math.abs(x1), Math.abs(z1));
 			if(d > rad.get())
 			{
 				rad.set(d);
 			}
 			return 0;
 		};
-		getNoise(method, x, z, h, np);
+		getNoise(method, 0, 0, h, np);
 		return rad.get();
 	}
 

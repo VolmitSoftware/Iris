@@ -38,7 +38,6 @@ public class IrisFeaturePositional {
     private IrisFeature feature;
 
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
-    private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
     private static double BLOCK = 1D / 256D;
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException
@@ -52,7 +51,7 @@ public class IrisFeaturePositional {
 
     public boolean shouldFilter(double x, double z)
     {
-        double actualRadius = IrisInterpolation.getRealRadius(getFeature().getInterpolator(), (int)x, (int)z, getFeature().getInterpolationRadius());
+        double actualRadius = getFeature().getActualRadius();
         double dist2 = distance2(x, z);
 
         if(getFeature().isInvertZone()) {
@@ -71,7 +70,7 @@ public class IrisFeaturePositional {
 
     public double getStrength(double x, double z)
     {
-        double actualRadius = IrisInterpolation.getRealRadius(getFeature().getInterpolator(), (int)x, (int)z, getFeature().getInterpolationRadius());
+        double actualRadius = getFeature().getActualRadius();
         double dist2 = distance2(x, z);
 
         if(getFeature().isInvertZone())

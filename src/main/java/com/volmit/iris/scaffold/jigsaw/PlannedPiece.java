@@ -37,7 +37,7 @@ public class PlannedPiece {
         this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
-        this.object.setLoadKey(object.getLoadKey());
+        this.object.setLoadKey(piece.getObject());
         this.connected = new KList<>();
     }
 

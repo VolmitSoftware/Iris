@@ -15,10 +15,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class HunkRegionSlice<T>
 {
-	public static final Function2<Integer, CompoundTag, HunkRegionSlice<BlockData>> BLOCKDATA = (h, c) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new BlockDataHunkIOAdapter(), c, "blockdata");
-	public static final Function2<Integer, CompoundTag, HunkRegionSlice<TileData<? extends TileState>>> TILE = (h, c) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new TileDataHunkIOAdapter(), c, "tile");
-	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<String>> STRING = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new StringHunkIOAdapter(), c, t);
-	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<Boolean>> BOOLEAN = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newAtomicHunk, new BooleanHunkIOAdapter(), c, t);
+	public static final Function2<Integer, CompoundTag, HunkRegionSlice<BlockData>> BLOCKDATA = (h, c) -> new HunkRegionSlice<>(h, Hunk::newMappedHunkSynced, new BlockDataHunkIOAdapter(), c, "blockdata");
+	public static final Function2<Integer, CompoundTag, HunkRegionSlice<TileData<? extends TileState>>> TILE = (h, c) -> new HunkRegionSlice<>(h, Hunk::newMappedHunkSynced, new TileDataHunkIOAdapter(), c, "tile");
+	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<String>> STRING = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newMappedHunkSynced, new StringHunkIOAdapter(), c, t);
+	public static final Function3<Integer, CompoundTag, String, HunkRegionSlice<Boolean>> BOOLEAN = (h, c, t) -> new HunkRegionSlice<>(h, Hunk::newMappedHunkSynced, new BooleanHunkIOAdapter(), c, t);
 	private final Function3<Integer, Integer, Integer, Hunk<T>> factory;
 	private final GridLock lock;
 	private final HunkIOAdapter<T> adapter;

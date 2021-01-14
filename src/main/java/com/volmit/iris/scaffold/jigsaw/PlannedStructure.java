@@ -16,7 +16,7 @@ public class PlannedStructure {
     private IrisJigsawStructure structure;
     private IrisPosition position;
     private IrisDataManager data;
-    private KMap<String, IrisObject> objectRotationCache;
+    private static KMap<String, IrisObject> objectRotationCache;
     private RNG rng;
     private boolean verbose;
     private boolean terminating;
@@ -368,12 +368,17 @@ public class PlannedStructure {
         return false;
     }
 
-    public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
+    public synchronized IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
         if(objectRotationCache.containsKey(key))
         {
-            return objectRotationCache.get(key);
+            IrisObject o = objectRotationCache.get(key);
+
+            if(o != null)
+            {
+                return o;
+            }
         }
 
         IrisObject o = rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));

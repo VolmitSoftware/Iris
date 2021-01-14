@@ -21,6 +21,11 @@ public class TileSign implements TileData<Sign> {
     private DyeColor dyeColor;
 
     @Override
+    public String getTileId() {
+        return "minecraft:sign";
+    }
+
+    @Override
     public boolean isApplicable(BlockData data) {
         return data instanceof org.bukkit.block.data.type.Sign || data instanceof WallSign;
     }

@@ -60,6 +60,8 @@ public interface TileData<T extends TileState> extends Cloneable {
         return null;
     }
 
+    public String getTileId();
+
     public boolean isApplicable(BlockData data);
 
     public void toBukkit(T t);

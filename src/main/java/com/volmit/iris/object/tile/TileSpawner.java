@@ -18,6 +18,11 @@ public class TileSpawner implements TileData<CreatureSpawner> {
     private EntityType entityType;
 
     @Override
+    public String getTileId() {
+        return "minecraft:spawner";
+    }
+
+    @Override
     public boolean isApplicable(BlockData data) {
         return data instanceof org.bukkit.block.data.type.Sign || data instanceof WallSign;
     }

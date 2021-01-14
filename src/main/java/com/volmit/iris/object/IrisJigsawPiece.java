@@ -65,6 +65,8 @@ public class IrisJigsawPiece extends IrisRegistrant
 		});
 	}
 
+
+
 	public IrisJigsawPieceConnector getConnector(IrisPosition relativePosition) {
 		for(IrisJigsawPieceConnector i : connectors)
 		{

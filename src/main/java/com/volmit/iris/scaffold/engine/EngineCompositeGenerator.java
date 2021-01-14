@@ -442,6 +442,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 return 0;
             }
         }).run();
+
         writer.optimizeChunk(x, z);
     }
 

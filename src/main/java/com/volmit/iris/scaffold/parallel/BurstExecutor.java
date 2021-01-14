@@ -27,6 +27,19 @@ public class BurstExecutor
 		}
 	}
 
+	public BurstExecutor queue(KList<Runnable> r) {
+		synchronized(futures)
+		{
+			for(Runnable i : r)
+			{
+				CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
+				futures.add(c);
+			}
+		}
+
+		return this;
+	}
+
 	public BurstExecutor queue(Runnable[] r)
 	{
 		synchronized(futures)

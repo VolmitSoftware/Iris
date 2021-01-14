@@ -1,6 +1,7 @@
 package com.volmit.iris.scaffold.parallel;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.KList;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +39,10 @@ public class MultiBurst
 	public void burst(Runnable... r)
 	{
 		burst(r.length).queue(r).complete();
+	}
+
+	public void burst(KList<Runnable> r) {
+		burst(r.size()).queue(r).complete();
 	}
 
 	public void sync(Runnable... r)

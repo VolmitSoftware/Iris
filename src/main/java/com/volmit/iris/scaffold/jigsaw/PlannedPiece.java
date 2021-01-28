@@ -2,11 +2,15 @@ package com.volmit.iris.scaffold.jigsaw;
 
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
+import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.util.AxisAlignedBB;
+import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 import lombok.Data;
-import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.TileState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
 @Data
@@ -129,6 +133,58 @@ public class PlannedPiece {
     }
 
     public void place(World world) {
-        getObject().placeCenterY(new Location(world, position.getX(), position.getY(), position.getZ()));
+
+        getPiece().getPlacementOptions().getRotation().setEnabled(false);
+        getObject().place(position.getX()+getObject().getCenter().getBlockX(), position.getY()+getObject().getCenter().getBlockY(), position.getZ()+getObject().getCenter().getBlockZ(), new IObjectPlacer() {
+            @Override
+            public int getHighest(int x, int z) {
+                return position.getY();
+            }
+
+            @Override
+            public int getHighest(int x, int z, boolean ignoreFluid) {
+                return position.getY();
+            }
+
+            @Override
+            public void set(int x, int y, int z, BlockData d) {
+                world.getBlockAt(x,y,z).setBlockData(d);
+            }
+
+            @Override
+            public BlockData get(int x, int y, int z) {
+                return world.getBlockAt(x,y,z).getBlockData();
+            }
+
+            @Override
+            public boolean isPreventingDecay() {
+                return false;
+            }
+
+            @Override
+            public boolean isSolid(int x, int y, int z) {
+                return false;
+            }
+
+            @Override
+            public boolean isUnderwater(int x, int z) {
+                return false;
+            }
+
+            @Override
+            public int getFluidHeight() {
+                return 0;
+            }
+
+            @Override
+            public boolean isDebugSmartBore() {
+                return false;
+            }
+
+            @Override
+            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
+
+            }
+        }, piece.getPlacementOptions(), new RNG(), getData());
     }
 }

@@ -30,6 +30,14 @@ public interface ParallaxAccess {
         getObjectsRW(x >> 4, z >> 4).set(x & 15, y, z & 15, d);
     }
 
+    default String getEntity(int x, int y, int z) {
+        return getEntitiesR(x >> 4, z >> 4).get(x & 15, y, z & 15);
+    }
+
+    default void setEntity(int x, int y, int z, String d) {
+        getEntitiesRW(x >> 4, z >> 4).set(x & 15, y, z & 15, d);
+    }
+
     default Boolean isUpdate(int x, int y, int z) {
         return getUpdatesR(x >> 4, z >> 4).get(x & 15, y, z & 15);
     }
@@ -109,6 +117,10 @@ public interface ParallaxAccess {
 
     public Hunk<String> getObjectsRW(int x, int z);
 
+    public Hunk<String> getEntitiesRW(int x, int z);
+
+    public Hunk<String> getEntitiesR(int x, int z);
+
     public Hunk<Boolean> getUpdatesR(int x, int z);
 
     public Hunk<Boolean> getUpdatesRW(int x, int z);
@@ -131,9 +143,10 @@ public interface ParallaxAccess {
 
     public default void delete(int x, int z)
     {
-        getUpdatesRW(x, z).fill(false);
-        getBlocksRW(x, z).fill(null);
-        getTilesRW(x, z).fill(null);
-        getObjectsRW(x, z).fill(null);
+        getUpdatesRW(x, z).empty(false);
+        getBlocksRW(x, z).empty(null);
+        getTilesRW(x, z).empty(null);
+        getEntitiesRW(x, z).empty(null);
+        getObjectsRW(x, z).empty(null);
     }
 }

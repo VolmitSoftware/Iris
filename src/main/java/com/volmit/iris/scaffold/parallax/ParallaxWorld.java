@@ -188,6 +188,16 @@ public class ParallaxWorld implements ParallaxAccess
 	}
 
 	@Override
+	public Hunk<String> getEntitiesRW(int x, int z) {
+		return getRW(x >> 5, z >> 5).getEntitySlice().getRW(x & 31, z & 31);
+	}
+
+	@Override
+	public Hunk<String> getEntitiesR(int x, int z) {
+		return getRW(x >> 5, z >> 5).getEntitySlice().getR(x & 31, z & 31);
+	}
+
+	@Override
 	public Hunk<Boolean> getUpdatesR(int x, int z)
 	{
 		return getR(x >> 5, z >> 5).getUpdateSlice().getR(x & 31, z & 31);

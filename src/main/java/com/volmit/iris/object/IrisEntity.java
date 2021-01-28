@@ -279,11 +279,6 @@ public class IrisEntity extends IrisRegistrant
 			return Iris.linkMythicMobs.spawn(getMythicalType(), at);
 		}
 
-		if(isCitizens())
-		{
-			// TODO: return Iris.linkCitizens.spawn(getType(), at); SPAWN SOME TYPE TOO
-		}
-
 		return at.getWorld().spawnEntity(at, getType());
 	}
 

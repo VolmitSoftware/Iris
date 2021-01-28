@@ -1425,4 +1425,13 @@ public interface Hunk<T>
 			}
 		}
 	}
+
+	/**
+	 * Acts like fill, however if used by a mapped hunk, will simply clear it
+	 * @param b the data to use for fill
+	 */
+	default void empty(T b)
+	{
+		fill(b);
+	}
 }

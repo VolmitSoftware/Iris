@@ -127,6 +127,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     {
         getWorldManager().spawnInitialEntities(c);
         updateChunk(c);
+        placeTiles(c);
     }
 
     @Override

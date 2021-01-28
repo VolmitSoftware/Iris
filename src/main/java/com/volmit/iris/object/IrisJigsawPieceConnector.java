@@ -40,6 +40,11 @@ public class IrisJigsawPieceConnector
 	@Required
 	private KList<String> pools = new KList<>();
 
+	@RegistryListEntity
+	@DontObfuscate
+	@Desc("Pick an entity to spawn on this connector")
+	private String spawnEntity;
+
 	@DontObfuscate
 	@Desc("The relative position this connector is located at for connecting to other pieces")
 	@Required
@@ -63,6 +68,7 @@ public class IrisJigsawPieceConnector
 		c.setDirection(getDirection());
 		c.setRotateConnector(isRotateConnector());
 		c.setName(getName());
+		c.setSpawnEntity(getSpawnEntity());
 		c.setPools(getPools().copy());
 		return c;
 	}

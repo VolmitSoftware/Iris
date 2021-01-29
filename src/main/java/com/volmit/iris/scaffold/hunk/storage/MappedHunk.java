@@ -54,6 +54,12 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T>
 	}
 
 	@Override
+	public void empty(T b)
+	{
+		data.clear();
+	}
+
+	@Override
 	public T getRaw(int x, int y, int z)
 	{
 		return data.get(index(x, y, z));

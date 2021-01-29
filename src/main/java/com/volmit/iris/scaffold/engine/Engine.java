@@ -155,6 +155,9 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         }
     }
 
+    public default void placeTiles(Chunk c) {
+
+    }
 
     @Override
     public default void updateChunk(Chunk c)

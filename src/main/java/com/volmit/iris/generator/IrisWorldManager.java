@@ -9,6 +9,7 @@ import com.volmit.iris.util.J;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -34,6 +35,18 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
     @Override
     public void spawnInitialEntities(Chunk c) {
         RNG rng = new RNG(Cache.key(c));
+
+        getEngine().getParallaxAccess().getEntitiesR(c.getX(), c.getZ()).iterateSync((x,y,z,e) -> {
+            if(e != null)
+            {
+                IrisEntity en = getData().getEntityLoader().load(e);
+
+                if(en != null){
+                    en.spawn(getEngine(), new Location(c.getWorld(), x+(c.getX()<<4),y,z+(c.getZ()<<4)));
+                }
+            }
+        });
+
         int x = (c.getX() * 16) + rng.nextInt(15);
         int z = (c.getZ() * 16) + rng.nextInt(15);
         int y = getEngine().getHeight(x, z) + 1;
@@ -43,6 +56,8 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
         trySpawn(above.getEntityInitialSpawns(), c, rng);
         trySpawn(region.getEntityInitialSpawns(), c, rng);
         trySpawn(dim.getEntityInitialSpawns(), c, rng);
+
+
     }
 
     @Override

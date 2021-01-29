@@ -3,11 +3,17 @@ package com.volmit.iris.scaffold.jigsaw;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
+import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.EngineParallaxManager;
+import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallax.ParallaxChunkMeta;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.IObjectPlacer;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
+import org.bukkit.Location;
 import org.bukkit.World;
 
 @Data
@@ -105,6 +111,27 @@ public class PlannedStructure {
             meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
         }, null, getData());
 
+
+        for(IrisJigsawPieceConnector j : i.getAvailableConnectors())
+        {
+            if(j.getSpawnEntity() != null)
+            {
+                IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
+
+                if(options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum())
+                {
+                    p.setY(placer.getHighest(xx, zz) + offset + (v.getH() / 2));
+                }
+
+                else
+                {
+                    p.setY(height);
+                }
+
+                e.getParallaxAccess().setEntity(p.getX(), p.getY(), p.getZ(), j.getSpawnEntity());
+            }
+        }
+
         if(options.isVacuum())
         {
             int dx = xx;
@@ -126,6 +153,23 @@ public class PlannedStructure {
     {
         for(PlannedPiece i : pieces)
         {
+            Iris.sq(() -> {
+                for(IrisJigsawPieceConnector j : i.getAvailableConnectors())
+                {
+                    if(j.getSpawnEntity() != null)
+                    {
+                        IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
+                        IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
+                        IrisAccess a = IrisWorlds.access(world);
+
+                        if(a != null)
+                        {
+                            e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX(), p.getY(), p.getZ()), rng);
+                        }
+                    }
+                }
+            });
+
             Iris.sq(() -> i.place(world));
         }
     }

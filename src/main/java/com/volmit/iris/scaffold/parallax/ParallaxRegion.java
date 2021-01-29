@@ -24,6 +24,7 @@ public class ParallaxRegion extends HunkRegion
 	private HunkRegionSlice<BlockData> blockSlice;
 	private HunkRegionSlice<TileData<? extends TileState>> tileSlice;
 	private HunkRegionSlice<String> objectSlice;
+	private HunkRegionSlice<String> entitySlice;
 	private HunkRegionSlice<Boolean> updateSlice;
 	private final GridLock lock;
 	private long lastUse;
@@ -50,6 +51,7 @@ public class ParallaxRegion extends HunkRegion
 		blockSlice = HunkRegionSlice.BLOCKDATA.apply(height, getCompound());
 		tileSlice = HunkRegionSlice.TILE.apply(height, getCompound());
 		objectSlice = HunkRegionSlice.STRING.apply(height, getCompound(), "objects");
+		entitySlice = HunkRegionSlice.STRING.apply(height, getCompound(), "entities");
 		updateSlice = HunkRegionSlice.BOOLEAN.apply(height, getCompound(), "updates");
 		metaAdapter = ParallaxChunkMeta.adapter.apply(getCompound());
 		dirtyMeta = false;
@@ -152,6 +154,7 @@ public class ParallaxRegion extends HunkRegion
 	{
 		blockSlice.save();
 		objectSlice.save();
+		entitySlice.save();
 		tileSlice.save();
 		updateSlice.save();
 		saveMetaHunk();
@@ -163,6 +166,7 @@ public class ParallaxRegion extends HunkRegion
 		unloadMetaHunk();
 		return blockSlice.unloadAll()+
 				objectSlice.unloadAll()+
+				entitySlice.unloadAll()+
 				tileSlice.unloadAll()+
 		updateSlice.unloadAll();
 	}
@@ -170,6 +174,11 @@ public class ParallaxRegion extends HunkRegion
 	public HunkRegionSlice<BlockData> getBlockSlice() {
 		lastUse = M.ms();
 		return blockSlice;
+	}
+
+	public HunkRegionSlice<String> getEntitySlice() {
+		lastUse = M.ms();
+		return entitySlice;
 	}
 
 	public HunkRegionSlice<TileData<? extends TileState>> getTileSlice() {
@@ -190,11 +199,12 @@ public class ParallaxRegion extends HunkRegion
 	public synchronized int cleanup(long c) {
 		return blockSlice.cleanup(c) +
 				objectSlice.cleanup(c) +
+				entitySlice.cleanup(c) +
 				tileSlice.cleanup(c) +
 		updateSlice.cleanup(c);
 	}
 
 	public int getChunkCount() {
-		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + tileSlice.getLoadCount() + updateSlice.getLoadCount();
+		return blockSlice.getLoadCount() + objectSlice.getLoadCount() + entitySlice.getLoadCount() + tileSlice.getLoadCount() + updateSlice.getLoadCount();
 	}
 }

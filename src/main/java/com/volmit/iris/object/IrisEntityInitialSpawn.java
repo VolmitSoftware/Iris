@@ -18,7 +18,6 @@ import org.bukkit.entity.Entity;
 @Data
 public class IrisEntityInitialSpawn
 {
-
 	@RegistryListEntity
 	@Required
 	@DontObfuscate

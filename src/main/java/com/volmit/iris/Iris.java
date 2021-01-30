@@ -150,14 +150,18 @@ public class Iris extends VolmitPlugin
 	{
 		instance = this;
 		if (!new File("compat.json").exists()) {
-			msg("Creating Compat file.");
+			msg("Creating Compat file");
 			try {
 				new File("compat.json").createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				msg("Could not forcefully initiate Compat");
 			}
 		}
-		compat = IrisCompat.configured(getDataFile("compat.json"));
+		try {
+			compat = IrisCompat.configured(getDataFile("compat.json"));
+		} catch (Exception e) {
+			msg("Could not find Compat file despite forceful initiation");
+		}
 		proj = new ProjectManager();
 		convert = new ConversionManager();
 		wand = new WandManager();

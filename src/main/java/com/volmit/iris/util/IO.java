@@ -406,7 +406,13 @@ public class IO
 
 	public static String readAll(File f) throws IOException
 	{
-		BufferedReader bu = new BufferedReader(new FileReader(f));
+		FileReader fr;
+		try {
+			fr = new FileReader(f);
+		} catch (IOException e) {
+			throw new IOException(e);
+		}
+		BufferedReader bu = new BufferedReader(fr);
 		String c = "";
 		String l = "";
 

@@ -59,14 +59,14 @@ public class IrisObjectPlacement
 	@MaxNumber(64)
 	@MinNumber(0)
 	@DontObfuscate
-	@Desc("When boar is enabled, expand max-y of the cuboid it removes")
-	private int boarExtendMaxY = 0;
+	@Desc("When bore is enabled, expand max-y of the cuboid it removes")
+	private int boreExtendMaxY = 0;
 
 	@MaxNumber(64)
 	@MinNumber(0)
 	@DontObfuscate
-	@Desc("When boar is enabled, lower min-y of the cuboid it removes")
-	private int boarExtendMinY = 0;
+	@Desc("When bore is enabled, lower min-y of the cuboid it removes")
+	private int boreExtendMinY = 0;
 
 	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
@@ -137,8 +137,8 @@ public class IrisObjectPlacement
 		p.setSmartBore(smartBore);
 		p.setCarvingSupport(carvingSupport);
 		p.setUnderwater(underwater);
-		p.setBoarExtendMaxY(boarExtendMaxY);
-		p.setBoarExtendMinY(boarExtendMinY);
+		p.setBoreExtendMaxY(boreExtendMaxY);
+		p.setBoreExtendMinY(boreExtendMinY);
 		p.setOverStilt(overStilt);
 		p.setDensity(density);
 		p.setChance(chance);

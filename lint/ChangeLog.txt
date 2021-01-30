@@ -10593,8 +10593,8 @@ Class: public com.volmit.iris.object.IrisObjectLimit	NameNotChanged
 Class: public com.volmit.iris.object.IrisObjectPlacement	NameNotChanged
 	Source: "IrisObjectPlacement.java"
 	FieldsOf: com.volmit.iris.object.IrisObjectPlacement
-		private int boarExtendMaxY	NameNotChanged
-		private int boarExtendMinY	NameNotChanged
+		private int boreExtendMaxY	NameNotChanged
+		private int boreExtendMinY	NameNotChanged
 		private boolean bore	NameNotChanged
 		private boolean bottom	NameNotChanged
 		private double chance	NameNotChanged
@@ -10617,8 +10617,8 @@ Class: public com.volmit.iris.object.IrisObjectPlacement	NameNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected boolean canEqual(java.lang.Object) 	SignatureNotChanged
 		public boolean equals(java.lang.Object) 	SignatureNotChanged
-		public int getBoarExtendMaxY() 	SignatureNotChanged
-		public int getBoarExtendMinY() 	SignatureNotChanged
+		public int getBoreExtendMaxY() 	SignatureNotChanged
+		public int getBoreExtendMinY() 	SignatureNotChanged
 		public double getChance() 	SignatureNotChanged
 		public com.volmit.iris.object.IrisObjectLimit getClamp() 	SignatureNotChanged
 		public int getDensity() 	SignatureNotChanged

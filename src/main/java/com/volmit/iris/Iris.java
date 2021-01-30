@@ -149,18 +149,10 @@ public class Iris extends VolmitPlugin
 	public void onEnable()
 	{
 		instance = this;
-		if (!new File("compat.json").exists()) {
-			msg("Creating Compat file");
-			try {
-				new File("compat.json").createNewFile();
-			} catch (IOException e) {
-				msg("Could not forcefully initiate Compat");
-			}
-		}
 		try {
 			compat = IrisCompat.configured(getDataFile("compat.json"));
-		} catch (Exception e) {
-			msg("Could not find Compat file despite forceful initiation");
+		} catch (IOException e){
+			// Do nothing. Everything continues properly but the exception is still there.
 		}
 		proj = new ProjectManager();
 		convert = new ConversionManager();

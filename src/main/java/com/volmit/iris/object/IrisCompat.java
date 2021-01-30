@@ -149,7 +149,7 @@ public class IrisCompat
 		}
 	}
 
-	public static IrisCompat configured(File f)
+	public static IrisCompat configured(File f) throws IOException
 	{
 		IrisCompat def = new IrisCompat();
 		String defa =  new JSONObject(new Gson().toJson(def)).toString(4);
@@ -174,10 +174,12 @@ public class IrisCompat
 				def.getItemFilters().add(i);
 			}
 		}
-
-		catch(JsonSyntaxException | IOException e)
+		catch(JsonSyntaxException e)
 		{
 			e.printStackTrace();
+		}
+		catch(IOException e){
+			throw e;
 		}
 
 		return def;

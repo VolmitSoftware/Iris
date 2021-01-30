@@ -410,7 +410,7 @@ public class IO
 		try {
 			fr = new FileReader(f);
 		} catch (IOException e) {
-			throw new IOException(e);
+			throw e;
 		}
 		BufferedReader bu = new BufferedReader(fr);
 		String c = "";

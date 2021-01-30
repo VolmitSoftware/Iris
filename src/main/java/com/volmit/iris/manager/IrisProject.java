@@ -273,7 +273,7 @@ public class IrisProject
 		jc.put("editor.quickSuggestions", st);
 		jc.put("editor.suggest.insertMode", "replace");
 		settings.put("[json]", jc);
-		settings.put("json.maxItemsComputed", 15000);
+		settings.put("json.maxItemsComputed", 30000);
 		JSONArray schemas = new JSONArray();
 		IrisDataManager dm = new IrisDataManager(getPath());
 		schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json"));

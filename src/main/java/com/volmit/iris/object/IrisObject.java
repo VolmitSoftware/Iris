@@ -622,11 +622,12 @@ public class IrisObject extends IrisRegistrant
 
 		if(config.isBore())
 		{
-			for(int i = x - Math.floorDiv(w, 2); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0); i++)
+			BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+			for(int i = x - Math.floorDiv(w, 2) + (int) offset.getX(); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0) + (int) offset.getX(); i++)
 			{
-				for(int j = y - Math.floorDiv(h, 2) - config.getBoarExtendMinY(); j <= y + Math.floorDiv(h, 2) + config.getBoarExtendMaxY() - (h % 2 == 0 ? 1 : 0); j++)
+				for(int j = y - Math.floorDiv(h, 2) - config.getBoarExtendMinY() + (int) offset.getY(); j <= y + Math.floorDiv(h, 2) + config.getBoarExtendMaxY() - (h % 2 == 0 ? 1 : 0) + (int) offset.getY(); j++)
 				{
-					for(int k = z - Math.floorDiv(d, 2); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0); k++)
+					for(int k = (int) (z - Math.floorDiv(d, 2) + (int) offset.getZ()); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0) + (int) offset.getX(); k++)
 					{
 						placer.set(i, j, k, AIR);
 					}

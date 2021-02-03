@@ -24,6 +24,7 @@ public class CommandLocate extends MortarCommand
     @Override
     public boolean handle(MortarSender sender, String[] args)
     {
+        sender.sendMessage("Locate command");
         if(sender.isPlayer()) {
             Player p = sender.player();
             World world = p.getWorld();

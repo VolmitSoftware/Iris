@@ -7,6 +7,7 @@ import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import java.awt.HeadlessException;
 
 public class CommandIrisPregen extends MortarCommand
 {
@@ -88,6 +89,8 @@ public class CommandIrisPregen extends MortarCommand
 				return true;
 			} catch (NullPointerException e){
 				sender.sendMessage("No radius specified");
+			} catch (HeadlessException e){
+				sender.sendMessage("If you are seeing this and are using a hosted server, please turn off 'useServerLaunchedGUIs' in the settings");
 			}
 
 			return true;

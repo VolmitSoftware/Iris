@@ -21,6 +21,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.awt.HeadlessException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -74,7 +75,7 @@ public class Pregenerator implements Listener
 		this.onComplete.add(onComplete);
 	}
 
-	public Pregenerator(World world, int blockSize)
+	public Pregenerator(World world, int blockSize) throws HeadlessException
 	{
 		instance();
 		elapsed = M.ms();
@@ -582,9 +583,14 @@ public class Pregenerator implements Listener
 		}
 
 		@SuppressWarnings("deprecation")
-		private static MCAPregenGui createAndShowGUI(Pregenerator j)
+		private static MCAPregenGui createAndShowGUI(Pregenerator j) throws HeadlessException
 		{
-			JFrame frame = new JFrame("Pregen View");
+			JFrame frame;
+			try {
+				frame = new JFrame("Pregen View");
+			} catch (HeadlessException e) {
+				throw e;
+			}
 			MCAPregenGui nv = new MCAPregenGui();
 			frame.addKeyListener(nv);
 			nv.l = new ReentrantLock();

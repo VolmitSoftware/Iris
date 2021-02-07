@@ -62,7 +62,7 @@ public class CommandIrisCreate extends MortarCommand
 
 			if(dim == null)
 			{
-				sender.sendMessage("Cant find dimension type: " + type);
+				sender.sendMessage("Cant find dimension type: " + type + ". Did you forget to /ir download " + type + "?");
 				return true;
 			}
 

@@ -118,11 +118,11 @@ public class CommandIrisPregen extends MortarCommand
 		}
 		else
 		{
-			if (args[0] == null){
+			if (args.length < 1){
 				sender.sendMessage("Please specify the size of the pregen and the name of the world. E.g. /ir pregen 5k world");
 				return true;
 			}
-			if (args[1] == null){
+			if (args.length < 2){
 				sender.sendMessage("Please specify the name of the world after the command. E.g. /ir pregen 5k world");
 				return true;
 			}

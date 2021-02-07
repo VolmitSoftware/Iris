@@ -2,18 +2,26 @@ package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.Bukkit;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
-public class CommandLocate extends MortarCommand
+public class CommandLocate extends MortarCommand implements Listener
 {
-    @Command
-    private CommandIrisStudioGoto got0;
+    @EventHandler
+    public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
+        if (event.getMessage().contains("locate") && IrisWorlds.isIrisWorld(event.getPlayer().getWorld())){
+            MortarSender s = (MortarSender) event.getPlayer();
+            s.sendMessage("/locate command blocked in Iris worlds. Please use '/ir goto' instead.");
+            event.setCancelled(true);
+        }
+    }
 
     public CommandLocate()
     {

@@ -2,6 +2,7 @@ package com.volmit.iris;
 
 import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
+import com.volmit.iris.manager.command.CommandLocate;
 import com.volmit.iris.manager.command.PermissionIris;
 import com.volmit.iris.manager.link.BKLink;
 import com.volmit.iris.manager.link.CitizensLink;
@@ -20,6 +21,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.event.Listener;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -169,6 +171,7 @@ public class Iris extends VolmitPlugin
 		J.sr(this::tickQueue, 0);
 		J.ar(this::checkConfigHotload, 50);
 		PaperLib.suggestPaper(this);
+		getServer().getPluginManager().registerEvents(new CommandLocate(), this);
 		super.onEnable();
 	}
 

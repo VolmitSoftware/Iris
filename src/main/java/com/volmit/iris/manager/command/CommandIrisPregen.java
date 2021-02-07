@@ -39,6 +39,9 @@ public class CommandIrisPregen extends MortarCommand
 		list.add("25c");
 		list.add("5r");
 		list.add("10r");
+		for (World w : Bukkit.getServer().getWorlds()){
+			list.add(w.getName());
+		}
 	}
 
 	@Override

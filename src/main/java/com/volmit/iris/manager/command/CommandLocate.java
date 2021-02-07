@@ -17,9 +17,8 @@ public class CommandLocate extends MortarCommand implements Listener
     @EventHandler
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
         if (event.getMessage().contains("locate") && IrisWorlds.isIrisWorld(event.getPlayer().getWorld())){
-            MortarSender s = (MortarSender) event.getPlayer();
-            s.sendMessage("/locate command blocked in Iris worlds. Please use '/ir goto' instead.");
             event.setCancelled(true);
+            event.getPlayer().sendMessage("/locate command blocked in Iris worlds. Please use '/ir goto' instead.");
         }
     }
 

@@ -5,16 +5,23 @@ import com.volmit.iris.pregen.Pregenerator;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import java.awt.HeadlessException;
+
+import java.awt.*;
 
 public class CommandIrisPregen extends MortarCommand
 {
 	public CommandIrisPregen()
 	{
 		super("pregen");
-		setDescription("Pregen this world with optional parameters: '1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks");
+		setDescription(
+				"Pregen this world with optional parameters: " +
+				"\n'1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks." +
+				"\nIf you are using the console or want to pregen a world you're not in:" +
+				"\nalso specify the name of the world. E.g. /ir pregen 5k world"
+		);
 		requiresPermission(Iris.perm.studio);
 		setCategory("Pregen");
 	}
@@ -81,7 +88,18 @@ public class CommandIrisPregen extends MortarCommand
 		else if(sender.isPlayer())
 		{
 			Player p = sender.player();
-			World world = p.getWorld();
+			World world;
+			if (args[1] == null) {
+				world = p.getWorld();
+			} else {
+				try {
+					world = Bukkit.getWorld(args[1]);
+				} catch (Exception e){
+					sender.sendMessage("Could not find specified world");
+					sender.sendMessage("Please doublecheck your command. E.g. /ir pregen 5k world");
+					return true;
+				}
+			}
 			try {
 				new Pregenerator(world, getVal(args[0]));
 			} catch (NumberFormatException e){
@@ -97,9 +115,28 @@ public class CommandIrisPregen extends MortarCommand
 		}
 		else
 		{
-			sender.sendMessage("Players only.");
+			if (args[0] == null){
+				sender.sendMessage("Please specify the size of the pregen and the name of the world. E.g. /ir pregen 5k world");
+				return true;
+			}
+			if (args[1] == null){
+				sender.sendMessage("Please specify the name of the world after the command. E.g. /ir pregen 5k world");
+				return true;
+			}
+			World world = Bukkit.getWorld(args[1]);
+			try {
+				new Pregenerator(world, getVal(args[0]));
+			} catch (NumberFormatException e){
+				sender.sendMessage("Invalid argument in command");
+				return true;
+			} catch (NullPointerException e){
+				sender.sendMessage("Not all required parameters specified");
+			} catch (HeadlessException e){
+				sender.sendMessage("If you are seeing this and are using a hosted server, please turn off 'useServerLaunchedGUIs' in the settings");
+			}
+
+			return true;
 		}
-		return true;
 	}
 
 	private int getVal(String arg) {

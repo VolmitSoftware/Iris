@@ -275,7 +275,7 @@ public class Pregenerator implements Listener
 		}
 
 		String[] v = getProgress();
-		Iris.info("[Pregen]: " + v[0] + " "  + v[1] + " " + v[2] + " " + v[3]);
+		Iris.info("Pregeneration " + v[0] + " | "  + v[1] + " | " + v[2] + " | " + v[3]);
 	}
 
 	private void generateDeferedMCARegion(int x, int z, MultiBurst burst, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
@@ -476,12 +476,12 @@ public class Pregenerator implements Listener
 		long eta = (long) ((totalChunks.get() - generated.get()) * ((double)(M.ms() - elapsed) / (double) generated.get()));
 
 		return new String[]{
-				"Progress : " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double)generated.get() / (double)totalChunks.get(), 0) + ")",
-				"ETA      : " + Form.duration(eta, 0),
-				"Chunks/s : " + Form.f((int)perSecond.getAverage()),
-				"Memory   : " + memoryMetric.get(),
-				"Cursor   : " + "MCA(" + vmcax.get() + ", " + vmcaz.get() + ") @ (" + vcax.get() + ", " + vcaz.get() + ")",
-				"Gen Mode : " + method.get(),
+				"Progress: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double)generated.get() / (double)totalChunks.get(), 0) + ")",
+				"ETA: " + Form.duration(eta, 0),
+				"Chunks/s: " + Form.f((int)perSecond.getAverage()),
+				"Memory: " + memoryMetric.get(),
+				"Cursor: " + "MCA(" + vmcax.get() + ", " + vmcaz.get() + ") @ (" + vcax.get() + ", " + vcaz.get() + ")",
+				"Gen Mode: " + method.get(),
 		};
 	}
 

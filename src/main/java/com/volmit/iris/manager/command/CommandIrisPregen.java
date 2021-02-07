@@ -92,7 +92,7 @@ public class CommandIrisPregen extends MortarCommand
 		{
 			Player p = sender.player();
 			World world;
-			if (args[1] == null) {
+			if (args.length != 2) {
 				world = p.getWorld();
 			} else {
 				try {

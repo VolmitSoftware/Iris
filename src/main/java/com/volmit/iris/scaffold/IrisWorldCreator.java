@@ -4,6 +4,7 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -66,26 +67,14 @@ public class IrisWorldCreator
     }
 
     private World.Environment findEnvironment() {
-        if(dimensionName == null)
+        IrisDimension dim = IrisDataManager.loadAnyDimension(dimensionName);
+        if(dim == null || dim.getEnvironment() == null)
         {
             return World.Environment.NORMAL;
         }
-        else if(dimensionName == "NETHER")
-        {
-            return World.Environment.NETHER;
-        }
-        else if(dimensionName == "END")
-        {
-            return World.Environment.THE_END;
-        }
-
-        IrisDimension dim = IrisDataManager.loadAnyDimension(dimensionName);
-
-        if(dim != null)
+        else
         {
             return dim.getEnvironment();
         }
-
-        return World.Environment.NORMAL;
     }
 }

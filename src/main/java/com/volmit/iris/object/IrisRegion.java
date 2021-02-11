@@ -235,6 +235,10 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	private final transient AtomicCache<CNG> riverGen = new AtomicCache<>();
 	private final transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
 
+	public String getName(){
+		return name;
+	}
+
 	public KList<IrisObjectPlacement> getSurfaceObjects()
 	{
 		return getSurfaceObjectsCache().aquire(() ->

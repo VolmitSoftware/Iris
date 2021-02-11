@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
     private EngineCompound compound;
     private final AtomicBoolean initialized;
-    private final String dimensionHint;
+    private final String dimensionQuery;
     private final boolean production;
     private final KList<BlockPopulator> populators;
     private long mst = 0;
@@ -51,13 +51,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         this(null, true);
     }
 
-    public EngineCompositeGenerator(String hint, boolean production) {
+    public EngineCompositeGenerator(String query, boolean production) {
         super();
         chunkCache = new KMap<>();
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
-        this.dimensionHint = hint;
+        this.dimensionQuery = query;
         initialized = new AtomicBoolean(false);
         art = J.ar(this::tick, 100);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
@@ -131,12 +131,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     private synchronized IrisDimension getDimension(World world) {
-        String hint = dimensionHint;
-        hint = Iris.linkMultiverseCore.getWorldNameType(world.getName(), hint);
+        String query = dimensionQuery;
+        query = Iris.linkMultiverseCore.getWorldNameType(world.getName(), query);
 
         IrisDimension dim = null;
 
-        if (hint == null) {
+        if (query == null) {
             File iris = new File(world.getWorldFolder(), "iris");
 
             if(iris.exists() && iris.isDirectory())
@@ -147,7 +147,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     if (i.isDirectory() && i.getName().equals("dimensions")) {
                         for (File j : i.listFiles()) {
                             if (j.isFile() && j.getName().endsWith(".json")) {
-                                hint = j.getName().replaceAll("\\Q.json\\E", "");
+                                query = j.getName().replaceAll("\\Q.json\\E", "");
                                 Iris.error("Found v1 install. Please create a new world, this will cause chunks to change in your existing iris worlds!");
                                 throw new RuntimeException();
                             }
@@ -157,32 +157,32 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     // Look for v2 location
                     else if (i.isFile() && i.getName().equals("engine-metadata.json")) {
                         EngineData metadata = EngineData.load(i);
-                        hint = metadata.getDimension();
+                        query = metadata.getDimension();
                         break;
                     }
                 }
             }
         }
 
-        if (hint == null) {
+        if (query == null) {
             Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
-            hint = IrisSettings.get().getGenerator().getDefaultWorldType();
+            query = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
-        dim = IrisDataManager.loadAnyDimension(hint);
+        dim = IrisDataManager.loadAnyDimension(query);
 
         if (dim == null) {
-            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), hint, false);
-            dim = IrisDataManager.loadAnyDimension(hint);
+            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
+            dim = IrisDataManager.loadAnyDimension(query);
 
             if(dim == null)
             {
-                throw new RuntimeException("Cannot find dimension: " + hint);
+                throw new RuntimeException("Cannot find dimension: " + query);
             }
 
             else
             {
-                Iris.info("Download pack: " + hint);
+                Iris.info("Download pack: " + query);
             }
         }
 
@@ -197,7 +197,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
                 if(dim == null)
                 {
-                    throw new RuntimeException("Cannot find dimension: " + hint);
+                    throw new RuntimeException("Cannot find dimension: " + query);
                 }
             }
         }
@@ -208,10 +208,10 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     private synchronized IrisDimension getDimension(String world) {
-        String hint = dimensionHint;
+        String query = dimensionQuery;
         IrisDimension dim = null;
 
-        if (hint == null) {
+        if (query == null) {
             File iris = new File(world +"/iris");
 
             if(iris.exists() && iris.isDirectory())
@@ -222,7 +222,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     if (i.isDirectory() && i.getName().equals("dimensions")) {
                         for (File j : i.listFiles()) {
                             if (j.isFile() && j.getName().endsWith(".json")) {
-                                hint = j.getName().replaceAll("\\Q.json\\E", "");
+                                query = j.getName().replaceAll("\\Q.json\\E", "");
                                 Iris.error("Found v1 install. Please create a new world, this will cause chunks to change in your existing iris worlds!");
                                 throw new RuntimeException();
                             }
@@ -232,32 +232,32 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     // Look for v2 location
                     else if (i.isFile() && i.getName().equals("engine-metadata.json")) {
                         EngineData metadata = EngineData.load(i);
-                        hint = metadata.getDimension();
+                        query = metadata.getDimension();
                         break;
                     }
                 }
             }
         }
 
-        if (hint == null) {
+        if (query == null) {
             Iris.error("Cannot find iris dimension data for world: " + world + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
-            hint = IrisSettings.get().getGenerator().getDefaultWorldType();
+            query = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
-        dim = IrisDataManager.loadAnyDimension(hint);
+        dim = IrisDataManager.loadAnyDimension(query);
 
         if (dim == null) {
-            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), hint, false);
-            dim = IrisDataManager.loadAnyDimension(hint);
+            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
+            dim = IrisDataManager.loadAnyDimension(query);
 
             if(dim == null)
             {
-                throw new RuntimeException("Cannot find dimension: " + hint);
+                throw new RuntimeException("Cannot find dimension: " + query);
             }
 
             else
             {
-                Iris.info("Download pack: " + hint);
+                Iris.info("Download pack: " + query);
             }
         }
 
@@ -272,7 +272,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
                 if(dim == null)
                 {
-                    throw new RuntimeException("Cannot find dimension: " + hint);
+                    throw new RuntimeException("Cannot find dimension: " + query);
                 }
             }
         }

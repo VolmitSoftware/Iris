@@ -135,6 +135,8 @@ public class CommandIrisCreate extends MortarCommand
 
 
 		sender.sendMessage(worldName + " Spawn Area generated.");
+		sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
+		sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
 
 		O<Boolean> b = new O<Boolean>();
 		b.set(true);

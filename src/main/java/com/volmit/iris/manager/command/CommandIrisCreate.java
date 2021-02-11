@@ -166,8 +166,6 @@ public class CommandIrisCreate extends MortarCommand
 			});
 		}
 
-		IrisDimension dimm = dim;
-		long seedd = seed;
 		World ww = world;
 		J.a(() ->
 		{

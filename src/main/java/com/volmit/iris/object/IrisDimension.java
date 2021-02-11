@@ -80,7 +80,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Reference loot tables in this area")
 	private IrisLootReference loot = new IrisLootReference();
 
-	@Required
 	@MinNumber(0)
 	@DontObfuscate
 	@Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
@@ -169,13 +168,11 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Generate ravines or not")
 	private boolean ravines = true;
 
-	@Required
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The rarity of a ravine layer having a lib (or rib) that sticks in or out by one block. Minecraft's default is 3.")
 	private int ravineRibRarity = 2;
 
-	@Required
 	@MinNumber(1)
 	@DontObfuscate
 	@Desc("The rarity of ravines. Each chunk has a 1 in X chance")
@@ -197,7 +194,6 @@ public class IrisDimension extends IrisRegistrant
 	@Desc("Use post processing for caves or not")
 	private boolean postProcessCaves = true;
 
-	@Required
 	@DontObfuscate
 	@Desc("The world environment")
 	private Environment environment = Environment.NORMAL;
@@ -374,6 +370,18 @@ public class IrisDimension extends IrisRegistrant
 		}
 
 		return false;
+	}
+
+	public Environment getEnvironment(){
+		return environment;
+	}
+
+	public boolean hasFocusRegion(){
+		return !focusRegion.equals("");
+	}
+
+	public String getFocusRegion(){
+		return focusRegion;
 	}
 
 	public double sinRotate()

@@ -40,10 +40,15 @@ public class J
 
 	public static boolean doif(Supplier<Boolean> c, Runnable g)
 	{
-		if(c.get())
-		{
-			g.run();
-			return true;
+		try {
+			if (c.get()) {
+				g.run();
+				return true;
+			}
+		}
+		catch (NullPointerException e) {
+			// TODO: Fix this because this is just a suppression for an NPE on g
+			return false;
 		}
 
 		return false;

@@ -49,7 +49,7 @@ public class CommandIrisCreate extends MortarCommand
 		{
 			type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
 			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
-			pregen = i.startsWith("pregen=") ? Integer.parseInt(i.split("\\Q=\\E")[1]) : pregen;
+			pregen = i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen;
 		}
 
 		Iris.linkMultiverseCore.assignWorldType(worldName, type);
@@ -183,6 +183,26 @@ public class CommandIrisCreate extends MortarCommand
 		});
 
 		return true;
+	}
+
+	private int getVal(String arg) {
+
+		if(arg.toLowerCase().endsWith("c") || arg.toLowerCase().endsWith("chunks"))
+		{
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qc\\E", "").replaceAll("\\Qchunks\\E", "")) * 16;
+		}
+
+		if(arg.toLowerCase().endsWith("r") || arg.toLowerCase().endsWith("regions"))
+		{
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qr\\E", "").replaceAll("\\Qregions\\E", "")) * 512;
+		}
+
+		if(arg.toLowerCase().endsWith("k"))
+		{
+			return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qk\\E", "")) * 1000;
+		}
+
+		return Integer.parseInt(arg.toLowerCase());
 	}
 
 	@Override

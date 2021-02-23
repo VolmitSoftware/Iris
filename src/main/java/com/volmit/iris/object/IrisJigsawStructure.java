@@ -125,7 +125,7 @@ public class IrisJigsawStructure extends IrisRegistrant
 					avg += getLoader().getJigsawPieceLoader().load(i).getMax2dDimension();
 				}
 
-				return (avg/(pieces.size() > 0 ? 1 : pieces.size())) * (((getMaxDepth() + 1) * 2) + 1);
+				return (avg/(pieces.size() > 0 ? pieces.size() : 1)) * (((getMaxDepth() + 1) * 2) + 1);
 			}
 		});
 	}

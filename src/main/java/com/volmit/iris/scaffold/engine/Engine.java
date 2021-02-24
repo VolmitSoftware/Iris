@@ -193,8 +193,12 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
         if(B.isLit(data))
         {
-            block.setType(Material.AIR, false);
-            block.setBlockData(data, true);
+            try {
+                block.setType(Material.AIR, false);
+                block.setBlockData(data, true);
+            } catch (Exception e){
+                // Issue when adding block data. Suppress massive warnings and stack-traces to console.
+            }
         }
     }
 

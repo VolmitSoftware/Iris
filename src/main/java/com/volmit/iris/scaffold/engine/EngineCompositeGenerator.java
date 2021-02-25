@@ -113,8 +113,10 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         try
         {
-            J.a(() -> hotloader.check());
-            getComposite().clean();
+            if (hotloader != null) {
+                J.a(() -> hotloader.check());
+                getComposite().clean();
+            }
         }
 
         catch(Throwable e)

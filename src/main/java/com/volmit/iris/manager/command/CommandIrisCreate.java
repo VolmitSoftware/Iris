@@ -167,6 +167,10 @@ public class CommandIrisCreate extends MortarCommand
 		}
 
 		World ww = world;
+		if (ww == null){
+			sender.sendMessage("World not created, can not finish");
+			return true;
+		}
 		J.a(() ->
 		{
 			while(!b.get())

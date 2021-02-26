@@ -21,6 +21,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -345,6 +346,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     {
         KList<Runnable> placeAfter = new KList<>();
 
+        if (structure == null){
+            return null;
+        }
+
         if(structure.getFeature() != null)
         {
             if(structure.getFeature().getBlockRadius() == 32)
@@ -366,13 +371,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         if(getEngine().getDimension().getStronghold() != null)
         {
-            IrisPosition pos = getEngine().getCompound().getStrongholdPosition();
-
-            if(x == pos.getX() >> 4 && z == pos.getZ() >> 4)
-            {
-                IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
-                placeAfter.addAll(placeStructure(pos, structure, rng));
-                placed = true;
+            List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
+            for (IrisPosition pos : poss) {
+                if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
+                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
+                    placeAfter.addAll(placeStructure(pos, structure, rng));
+                    placed = true;
+                }
             }
         }
 

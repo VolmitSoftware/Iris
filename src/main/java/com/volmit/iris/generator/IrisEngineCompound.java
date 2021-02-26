@@ -16,6 +16,7 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -25,6 +26,10 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
@@ -66,36 +71,47 @@ public class IrisEngineCompound implements EngineCompound {
         engineMetadata.setLastVersion(Iris.instance.getDescription().getVersion());
 
 
-        if(engineMetadata.getStrongholdPosition() == null)
+        if(engineMetadata.getStrongholdPositions() == null || engineMetadata.getStrongholdPositions().size() == 0)
         {
-            if(!(world instanceof FakeWorld && world instanceof HeightedFakeWorld))
+            if(!(world instanceof FakeWorld || world instanceof HeightedFakeWorld))
             {
+                Iris.info("Got this far (0)");
+                List<IrisPosition> strongholds = new ArrayList<>();
                 Object nmsWorld = new V(world).invoke("getHandle");
                 Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
                 Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
                 try {
+                    Iris.info("Got this far (1)");
                     Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
                     Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
                     Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
-                    Object bp = clazz.getDeclaredMethod("findNearestMapFeature",
-                            nmsWorld.getClass(),
-                            clazzSG,
-                            clazzBP,
-                            int.class,
-                            boolean.class
-                    ).invoke(chunkGenerator,
-                            nmsWorld,
-                            clazzSG.getDeclaredField("STRONGHOLD").get(null),
-                            clazzBP.getDeclaredField("ZERO").get(null),
-                            100,
-                            false
-                    );
-                    engineMetadata.setStrongholdPosition(new IrisPosition((int)new V(bp, false).invoke("getX"), (int)new V(bp, false).invoke("getY"), (int)new V(bp, false).invoke("getZ")));
+                    CompletableFuture<Object> cf = new CompletableFuture<>();
+                    Object BP = null;
+                    getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
+                        Iris.info("Got this far (2)");
+                        strongholds.add(new IrisPosition((int) new V(bp, false).invoke("getX"), (int) new V(bp, false).invoke("getY"), (int) new V(bp, false).invoke("getZ")));
+                        Iris.info("Got this far (3)");
+                        String positions = "";
+                        for (IrisPosition pos : strongholds){
+                            positions += "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ") ";
+                        }
+                        Iris.info("Strongholds (" + engineMetadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
+                    });
+
+                    engineMetadata.setStrongholdPositions(strongholds);
                 } catch (Throwable ignored) {
-                    engineMetadata.setStrongholdPosition(new IrisPosition(1337, 32, -1337));
-                    Iris.warn("Couldn't properly find the stronghold positon for this world. Is this headless mode?");
+                    strongholds.add( new IrisPosition(10337, 32, -1337) );
+                    engineMetadata.setStrongholdPositions(strongholds);
+                    Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode?");
+                    Iris.warn("  -> Setting default stronghold position");
+                    ignored.printStackTrace();
+                    Iris.info("Got this far (3)");
+                    String positions = "";
+                    for (IrisPosition pos : strongholds){
+                        positions += "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ") ";
+                    }
+                    Iris.info("Strongholds (" + engineMetadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
                 }
-                Iris.info("Stronghold: " + engineMetadata.getStrongholdPosition().toString());
             }
         }
 
@@ -158,10 +174,39 @@ public class IrisEngineCompound implements EngineCompound {
 
         Iris.instance.registerListener(this);
     }
-    
-    public IrisPosition getStrongholdPosition()
+
+    private Object getBP(Class clazz, Class clazzSG, Class clazzBP, Object nmsWorld, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        return clazz.getDeclaredMethod("findNearestMapFeature",
+            nmsWorld.getClass(),
+            clazzSG,
+            clazzBP,
+            int.class,
+            boolean.class
+        ).invoke(chunkGenerator,
+            nmsWorld,
+            clazzSG.getDeclaredField("STRONGHOLD").get(null),
+            clazzBP.getDeclaredField("ZERO").get(null),
+            100,
+            false
+        );
+    }
+
+    public CompletableFuture<Object> getBPSafe(Class clazz, Class clazzSG, Class clazzBP, Object nmsWorld, Object chunkGenerator) {
+        CompletableFuture<Object> cf = new CompletableFuture<>();
+        Bukkit.getScheduler().runTask(Iris.instance, () -> {
+            try {
+                cf.complete(getBP(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator));
+            } catch (Throwable e){
+                cf.complete(null);
+                e.printStackTrace();
+            }
+        });
+        return cf;
+    }
+
+    public List<IrisPosition> getStrongholdPositions()
     {
-        return engineMetadata.getStrongholdPosition();
+        return engineMetadata.getStrongholdPositions();
     }
 
     @EventHandler

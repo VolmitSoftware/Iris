@@ -7,12 +7,13 @@ import lombok.Data;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 @Data
 public class EngineData {
     private String dimension;
     private String lastVersion;
-    private IrisPosition strongholdPosition;
+    private List<IrisPosition> strongholdPositions;
 
     public void save(File f)
     {

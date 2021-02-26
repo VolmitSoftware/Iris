@@ -16,6 +16,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.BlockPopulator;
 
+import java.util.List;
+
 public interface EngineCompound extends Listener, Hotloadable, DataProvider
 {
     public IrisDimension getRootDimension();
@@ -24,7 +26,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
 
     public World getWorld();
 
-    public IrisPosition getStrongholdPosition();
+    public List<IrisPosition> getStrongholdPositions();
 
     public void printMetrics(CommandSender sender);
 

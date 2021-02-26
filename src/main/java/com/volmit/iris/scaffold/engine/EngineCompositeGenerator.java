@@ -769,7 +769,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public EngineTarget getTarget() {
-        return getComposite().getEngine(0).getTarget();
+        try {
+            return getComposite().getEngine(0).getTarget();
+        } catch (NullPointerException e){
+            Iris.info("Failed to get composite engine. Please re-create the world in case you notice issues");
+            return null;
+        }
     }
 
     @Override

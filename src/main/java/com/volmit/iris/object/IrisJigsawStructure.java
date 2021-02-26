@@ -32,7 +32,7 @@ public class IrisJigsawStructure extends IrisRegistrant
 	private int maxDepth = 9;
 
 	@DontObfuscate
-	@Desc("Jigsaw grows the parallax layer which slows iris down a bit. Since there are so many pieces, Iris takes the avg piece size and calculates the parallax radius from that. Unless your structures are using only the biggest pieces, your structure should fit in the chosen size fine. If you are seeing cut-off parts of your structures or broken terrain, turn this option on. This option will pick the biggest piece dimensions and multiply it by your (maxDepth+1) * 2 as the size to grow the parallax layer by. But typically kepp this off.")
+	@Desc("Jigsaw grows the parallax layer which slows iris down a bit. Since there are so many pieces, Iris takes the avg piece size and calculates the parallax radius from that. Unless your structures are using only the biggest pieces, your structure should fit in the chosen size fine. If you are seeing cut-off parts of your structures or broken terrain, turn this option on. This option will pick the biggest piece dimensions and multiply it by your (maxDepth+1) * 2 as the size to grow the parallax layer by. But typically keep this off.")
 	private boolean useMaxPieceSizeForParallaxRadius = false;
 
 	@Desc("Add a noise feature to this village")

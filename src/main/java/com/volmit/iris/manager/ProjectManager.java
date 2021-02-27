@@ -221,7 +221,18 @@ public class ProjectManager
 		File work = new File(temp, "dl-" + UUID.randomUUID());
 		File packs = getWorkspaceFolder();
 		sender.sendMessage("Unpacking " + repo);
-		ZipUtil.unpack(zip, work);
+		try {
+			ZipUtil.unpack(zip, work);
+		} catch (Exception e){
+			sender.sendMessage(
+				"Issue when unpacking. Please check/do the following:" +
+				"\n1. Do you have a functioning internet connection?" +
+				"\n2. Did the download corrupt?" +
+				"\n3. Try deleting the */plugins/iris/packs folder and re-download." +
+				"\n4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld" +
+				"\n5. Contact support (if all other options do not help)"
+			);
+		}
 		File dir = work.listFiles().length == 1 && work.listFiles()[0].isDirectory() ? work.listFiles()[0] : null;
 
 		if(dir == null)

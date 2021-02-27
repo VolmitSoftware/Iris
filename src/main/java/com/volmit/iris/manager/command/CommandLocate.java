@@ -18,7 +18,7 @@ public class CommandLocate extends MortarCommand implements Listener
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
         if (!event.getMessage().contains("stronghold") && event.getMessage().contains("locate") && IrisWorlds.isIrisWorld(event.getPlayer().getWorld())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("/locate command blocked in Iris worlds. Please use '/ir goto' instead. You can /locate stronghold!");
+            event.getPlayer().sendMessage("/locate command blocked in Iris worlds. Please use '/ir std goto' instead. You can /locate stronghold!");
         }
     }
 

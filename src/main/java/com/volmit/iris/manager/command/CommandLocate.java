@@ -6,19 +6,29 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
+import java.util.Arrays;
+
 public class CommandLocate extends MortarCommand implements Listener
 {
+    CommandLocate instance;
     @EventHandler
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
-        if (!event.getMessage().contains("stronghold") && event.getMessage().contains("locate") && IrisWorlds.isIrisWorld(event.getPlayer().getWorld())) {
-            event.setCancelled(true);
-            event.getPlayer().sendMessage("/locate command blocked in Iris worlds. Please use '/ir std goto' instead. You can /locate stronghold!");
+        if (IrisWorlds.isIrisWorld(event.getPlayer().getWorld())){
+
+            // Make sure the command starts with /locate and does not locate stronghold
+            if (event.getMessage().contains("/locate") && event.getMessage().contains("stronghold")){
+                return;
+            }
+            if (event.getMessage().contains("/locate")) {
+                event.setCancelled(true); // Cancel the vanilla command process
+                event.getPlayer().sendMessage("/locate command overwritten in Iris worlds. Ran /ir std goto instead");
+                String command = event.getMessage().replace("/locate", "/ir std goto");
+                Bukkit.dispatchCommand(event.getPlayer(), command);
+            }
         }
     }
 
@@ -26,27 +36,13 @@ public class CommandLocate extends MortarCommand implements Listener
     {
         super("locate");
         requiresPermission(Iris.perm);
+        this.instance = this;
     }
 
     @Override
     public boolean handle(MortarSender sender, String[] args)
     {
-        sender.sendMessage("Locate command");
-        if(sender.isPlayer()) {
-            Player p = sender.player();
-            World world = p.getWorld();
-            if (!IrisWorlds.isIrisWorld(world)) {
-                String cmd = "locate";
-                for (int i = 0; i < args.length; i++){
-                    cmd.concat(" " + args[i]);
-                }
-                Bukkit.dispatchCommand(sender, cmd);
-                return true;
-            }
-            sender.sendMessage("You are in an Iris world and the /locate command is currently disabled in those.");
-        } else {
-            sender.sendMessage("Players only");
-        }
+        Bukkit.dispatchCommand(sender, "/ir std goto " + Arrays.toString(args));
         return true;
     }
 
@@ -58,6 +54,6 @@ public class CommandLocate extends MortarCommand implements Listener
     @Override
     protected String getArgsUsage()
     {
-        return "";
+        return "[biome/region/structure]";
     }
 }

@@ -3,6 +3,7 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisObject;
 import com.volmit.iris.object.IrisRegion;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
@@ -10,6 +11,10 @@ import com.volmit.iris.util.*;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CommandIrisStudioGoto extends MortarCommand
 {
@@ -25,8 +30,14 @@ public class CommandIrisStudioGoto extends MortarCommand
 	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 		if(args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld()))
 		{
-			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getBiomeLoader().getPossibleKeys());
-			list.add(IrisWorlds.access(sender.player().getWorld()).getData().getRegionLoader().getPossibleKeys());
+			IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+			if (data == null){
+				sender.sendMessage("Issue when loading tab completions. No data found (?)");
+			} else {
+				list.add(data.getBiomeLoader().getPossibleKeys());
+				list.add(data.getRegionLoader().getPossibleKeys());
+				list.add(data.getObjectLoader().getPossibleKeys());
+			}
 		}
 	}
 
@@ -55,6 +66,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 				IrisAccess g = IrisWorlds.access(world);
 				IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
 				IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
+				IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 
 				if(b != null)
 				{
@@ -91,6 +103,28 @@ public class CommandIrisStudioGoto extends MortarCommand
 						}
 					});
 				}
+				/* TODO: Fix this shit
+				else if (o != null)
+				{
+					// Get all object names
+					for (File f : listf( Iris.instance.getDataFolders + "/objects")){
+
+					}
+					J.a(() -> {
+						Location l = g.lookForObject(o, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + o.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+
+						if(l == null)
+						{
+							sender.sendMessage("Couldn't find " + o.getName() + ".");
+						}
+
+						else
+						{
+							sender.sendMessage("Found " + o.getName() + "!");
+							J.s(() -> sender.player().teleport(l));
+						}
+					});
+				}*/
 
 				else
 				{
@@ -120,5 +154,22 @@ public class CommandIrisStudioGoto extends MortarCommand
 	protected String getArgsUsage()
 	{
 		return "[biome/region]";
+	}
+
+	private List<File> listf(String directoryName) {
+		File directory = new File(directoryName);
+		List<File> files = new ArrayList<>();
+
+		// Get all files from a directory.
+		File[] fList = directory.listFiles();
+		if(fList != null)
+			for (File file : fList) {
+				if (file.isFile()) {
+					files.add(file);
+				} else if (file.isDirectory()) {
+					files.addAll(listf(file.getAbsolutePath()));
+				}
+			}
+		return files;
 	}
 }

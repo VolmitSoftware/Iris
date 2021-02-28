@@ -8,6 +8,7 @@ import com.volmit.iris.util.ResourceLoader;
 import lombok.Data;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.function.Function;
 
 @Data
@@ -186,7 +187,7 @@ public class IrisDataManager
 	public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisDataManager, T> v) {
 		try
 		{
-			for(File i : Iris.instance.getDataFolder("packs").listFiles())
+			for(File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles()))
 			{
 				if(i.isDirectory())
 				{

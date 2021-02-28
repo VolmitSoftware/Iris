@@ -75,22 +75,18 @@ public class IrisEngineCompound implements EngineCompound {
         {
             if(!(world instanceof FakeWorld || world instanceof HeightedFakeWorld))
             {
-                Iris.info("Got this far (0)");
                 List<IrisPosition> strongholds = new ArrayList<>();
                 Object nmsWorld = new V(world).invoke("getHandle");
                 Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
                 Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
                 try {
-                    Iris.info("Got this far (1)");
                     Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
                     Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
                     Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
                     CompletableFuture<Object> cf = new CompletableFuture<>();
                     Object BP = null;
                     getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
-                        Iris.info("Got this far (2)");
                         strongholds.add(new IrisPosition((int) new V(bp, false).invoke("getX"), (int) new V(bp, false).invoke("getY"), (int) new V(bp, false).invoke("getZ")));
-                        Iris.info("Got this far (3)");
                         String positions = "";
                         for (IrisPosition pos : strongholds){
                             positions += "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ") ";
@@ -102,7 +98,7 @@ public class IrisEngineCompound implements EngineCompound {
                 } catch (Throwable ignored) {
                     strongholds.add( new IrisPosition(10337, 32, -1337) );
                     engineMetadata.setStrongholdPositions(strongholds);
-                    Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode?");
+                    Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
                     Iris.warn("  -> Setting default stronghold position");
                     ignored.printStackTrace();
                     Iris.info("Got this far (3)");
@@ -196,9 +192,8 @@ public class IrisEngineCompound implements EngineCompound {
         Bukkit.getScheduler().runTask(Iris.instance, () -> {
             try {
                 cf.complete(getBP(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator));
-            } catch (Throwable e){
+            } catch (Exception e){
                 cf.complete(null);
-                e.printStackTrace();
             }
         });
         return cf;

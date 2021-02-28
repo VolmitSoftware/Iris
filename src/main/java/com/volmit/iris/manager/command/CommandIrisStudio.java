@@ -46,7 +46,7 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioLoot loot;
 
 	@Command
-	private CommandIrisStudioTP tp;
+	private CommandIrisStudioTPStudio tps;
 	
 	@Command
 	private CommandIrisStudioConvert convert;

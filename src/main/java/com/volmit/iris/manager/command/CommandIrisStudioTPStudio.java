@@ -6,11 +6,11 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStudioTP extends MortarCommand
+public class CommandIrisStudioTPStudio extends MortarCommand
 {
-	public CommandIrisStudioTP()
+	public CommandIrisStudioTPStudio()
 	{
-		super("tp");
+		super("tps", "tpstudio");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Go to the spawn of the currently open studio world.");
 		setCategory("Studio");

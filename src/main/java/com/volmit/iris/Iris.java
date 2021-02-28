@@ -21,7 +21,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.event.HandlerList;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.event.Listener;
 
 import java.io.BufferedInputStream;
 import java.io.File;

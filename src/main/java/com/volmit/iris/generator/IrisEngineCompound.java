@@ -86,6 +86,9 @@ public class IrisEngineCompound implements EngineCompound {
                     CompletableFuture<Object> cf = new CompletableFuture<>();
                     Object BP = null;
                     getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
+                        if (bp == null){
+                            throw new NullPointerException();
+                        }
                         strongholds.add(new IrisPosition((int) new V(bp, false).invoke("getX"), (int) new V(bp, false).invoke("getY"), (int) new V(bp, false).invoke("getZ")));
                         String positions = "";
                         for (IrisPosition pos : strongholds){
@@ -192,7 +195,7 @@ public class IrisEngineCompound implements EngineCompound {
         Bukkit.getScheduler().runTask(Iris.instance, () -> {
             try {
                 cf.complete(getBP(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator));
-            } catch (Exception e){
+            } catch (Throwable e){
                 cf.complete(null);
             }
         });

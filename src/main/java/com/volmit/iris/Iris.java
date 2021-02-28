@@ -460,8 +460,9 @@ public class Iris extends VolmitPlugin
 		String[] splash = {padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@", padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.GREEN + "   .(((()))).                     ", padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.GREEN + "  .((((((())))))).                  ", padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.GREEN + "  ((((((((()))))))))               " + C.GRAY + " @", padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.GREEN + "    ((((((((-)))))))))              " + C.GRAY + " @@", padd + C.GRAY + "@@@&&" + C.GREEN + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@", padd + C.GRAY + "@@" + C.GREEN + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@", padd + C.GRAY + "@" + C.GREEN + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@", padd + C.GRAY + "" + C.GREEN + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@", padd + C.GRAY + "" + C.GREEN + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@", padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
 		};
 		//@done
-		Iris.info(Bukkit.getVersion());
-		Iris.info(Bukkit.getBukkitVersion() + "   bk");
+		Iris.info("Server type & version: " + Bukkit.getVersion());
+		Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
+		Iris.info("Java version: " + getJavaVersion());
 		for(int i = 0; i < info.length; i++)
 		{
 			splash[i] += info[i];
@@ -518,6 +519,16 @@ public class Iris extends VolmitPlugin
 		{
 			syncJobs.clear();
 		}
+	}
+
+	private static int getJavaVersion() {
+		String version = System.getProperty("java.version");
+		if(version.startsWith("1.")) {
+			version = version.substring(2, 3);
+		} else {
+			int dot = version.indexOf(".");
+			if(dot != -1) { version = version.substring(0, dot); }
+		} return Integer.parseInt(version);
 	}
 
     public boolean isMCA() {

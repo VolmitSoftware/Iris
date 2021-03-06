@@ -6,6 +6,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.PrecisionStopwatch;
+import com.volmit.iris.util.RNG;
 import org.bukkit.block.Biome;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
@@ -28,7 +29,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome>
                 int zzf = zf;
 
                 burst.queue(() -> {
-                    Biome v = getComplex().getTrueBiomeStream().get(modX(xxf+x), modZ(zzf+z)).getDerivative();
+                    Biome v = getComplex().getTrueBiomeStream().get(modX(xxf+x), modZ(zzf+z)).getSkyBiome(RNG.r, x, 0, z);
                     for(int i = 0; i < h.getHeight(); i++)
                     {
                         h.set(xxf, i, zzf, v);

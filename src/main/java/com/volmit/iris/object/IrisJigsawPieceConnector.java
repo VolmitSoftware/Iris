@@ -51,6 +51,11 @@ public class IrisJigsawPieceConnector
 	private IrisPosition position = new IrisPosition(0,0,0);
 
 	@DontObfuscate
+	@Desc("The relative position to this connector to place entities at")
+	@DependsOn({"spawnEntity"})
+	private IrisPosition entityPosition = null;
+
+	@DontObfuscate
 	@Desc("The direction this connector is facing. If the direction is set to UP, then pieces will place ABOVE the connector.")
 	@Required
 	private IrisDirection direction = IrisDirection.UP_POSITIVE_Y;

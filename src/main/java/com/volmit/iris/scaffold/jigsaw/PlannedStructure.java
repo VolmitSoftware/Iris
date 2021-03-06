@@ -114,9 +114,14 @@ public class PlannedStructure {
 
         for(IrisJigsawPieceConnector j : i.getAvailableConnectors())
         {
-            if(j.getSpawnEntity() != null)
+            if(j.getSpawnEntity() != null && h != -1)
             {
-                IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
+                IrisPosition p = null;
+                if (j.getEntityPosition() == null){
+                    p = new IrisPosition(j.getDirection().toVector().multiply(2));
+                } else {
+                    p = i.getWorldPosition(j).add(j.getEntityPosition());
+                }
 
                 if(options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum())
                 {

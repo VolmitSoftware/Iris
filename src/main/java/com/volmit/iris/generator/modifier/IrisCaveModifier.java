@@ -164,11 +164,14 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                 }
 
                 boolean isAboveSea = true;
-                for (IrisBiomeGeneratorLink gen : getEngine().getBiome(x, pu, z).getGenerators()){
-                    if (gen.getMin() < 0){
-                        isAboveSea = false;
+                if (pu < surface - 5) {
+                    for (IrisBiomeGeneratorLink gen : getEngine().getBiome(x, pu, z).getGenerators()) {
+                        if (gen.getMin() < 0) {
+                            isAboveSea = false;
+                        }
                     }
-                };
+                    ;
+                }
 
                 if(!isAboveSea){
                     continue;

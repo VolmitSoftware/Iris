@@ -53,7 +53,7 @@ public class CommandIrisStudio extends MortarCommand
 
 	public CommandIrisStudio()
 	{
-		super("studio", "std");
+		super("studio", "std", "s");
 		requiresPermission(Iris.perm.studio);
 		setCategory("Studio");
 	}

@@ -38,6 +38,11 @@ public class CommandIrisJigsawPlace extends MortarCommand
 			return true;
 		}
 
+		if(args.length == 0){
+			sender.sendMessage("You have to specify a jigsaw structure!");
+			return true;
+		}
+
 		IrisJigsawStructure str = IrisDataManager.loadAnyJigsawStructure(args[0]);
 
 		if(str != null)

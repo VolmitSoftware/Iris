@@ -32,7 +32,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
-    private EngineCompound compound;
+    private EngineCompound compound = null;
     private final AtomicBoolean initialized;
     private final String dimensionQuery;
     private final boolean production;
@@ -608,6 +608,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public IrisDataManager getData() {
+        if (getCompound() == null){
+            return null;
+        }
         return getComposite().getData();
     }
 

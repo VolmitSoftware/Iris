@@ -25,8 +25,7 @@ public class CommandLocate extends MortarCommand implements Listener
             }
             if (event.getMessage().contains("/locate")) {
                 event.setCancelled(true); // Cancel the vanilla command process
-                event.getPlayer().sendMessage("/locate command overwritten in Iris worlds. Ran /ir std goto instead");
-                String command = event.getMessage().replace("/locate", "/ir std goto");
+                String command = event.getMessage().replace("/locate", "ir std goto");
                 Bukkit.dispatchCommand(event.getPlayer(), command);
             }
         }

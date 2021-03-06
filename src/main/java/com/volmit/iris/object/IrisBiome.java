@@ -644,7 +644,7 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 	public Biome getGroundBiome(RNG rng, double x, double y, double z)
 	{
-		if(biomeSkyScatter.isEmpty())
+		if(biomeScatter.isEmpty())
 		{
 			return getDerivative();
 		}

@@ -170,7 +170,6 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                             isAboveSea = false;
                         }
                     }
-                    ;
                 }
 
                 if(!isAboveSea){

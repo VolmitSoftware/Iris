@@ -1,11 +1,9 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.Spiraler;
 
 public class CommandIrisRegen extends MortarCommand
 {
@@ -25,6 +23,9 @@ public class CommandIrisRegen extends MortarCommand
 	@Override
 	public boolean handle(MortarSender sender, String[] args)
 	{
+		sender.sendMessage("Iris' /regen command is currently disabled due to maintenance. Apologies.");
+		return true;
+		/* This is commented yes
 		try
 		{
 			if(args.length == 0)
@@ -65,6 +66,7 @@ public class CommandIrisRegen extends MortarCommand
 		}
 
 		return true;
+		*/
 	}
 
 	@Override

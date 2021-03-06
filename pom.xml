@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.volmit</groupId>
 	<artifactId>Iris</artifactId>
-	<version>1.3.3.5D</version>
+	<version>1.3.3.6D</version>
 	<name>Iris</name>
 	<properties>
 		<skip.copy>false</skip.copy>

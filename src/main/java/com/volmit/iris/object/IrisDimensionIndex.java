@@ -37,5 +37,6 @@ public class IrisDimensionIndex
 	@Required
 	@RegistryListDimension
 	@MinNumber(1)
+	@Desc("Name of dimension")
 	private String dimension = "";
 }

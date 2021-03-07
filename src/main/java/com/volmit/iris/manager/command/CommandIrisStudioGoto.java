@@ -36,7 +36,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 			} else {
 				list.add(data.getBiomeLoader().getPossibleKeys());
 				list.add(data.getRegionLoader().getPossibleKeys());
-				list.add(data.getObjectLoader().getPossibleKeys());
+				//TODO: Remove comment here -> list.add(data.getObjectLoader().getPossibleKeys());
 			}
 		}
 	}
@@ -128,7 +128,7 @@ public class CommandIrisStudioGoto extends MortarCommand
 
 				else
 				{
-					sender.sendMessage(args[0] + " is not a biome,region or object in this dimension.");
+					sender.sendMessage(args[0] + " is not a biome or region in this dimension. (Biome teleportation works best!");
 				}
 
 				return true;

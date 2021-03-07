@@ -131,7 +131,7 @@ public class IrisProject
 		J.a(() ->
 		{
 			double last = 0;
-			int req = 740;
+			int req = 300;
 			double lpc = 0;
 			boolean fc = false;
 
@@ -159,7 +159,7 @@ public class IrisProject
 					sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
 				}
 
-				J.sleep(3000);
+				J.sleep(1500);
 
 				if(gx.isFailing())
 				{

@@ -5,6 +5,7 @@ import com.volmit.iris.IrisSettings;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
+import org.bukkit.GameMode;
 
 public class CommandIrisStudioTPStudio extends MortarCommand
 {
@@ -30,6 +31,11 @@ public class CommandIrisStudioTPStudio extends MortarCommand
 			return true;
 		}
 
+		if(!sender.isPlayer()){
+			sender.sendMessage("Cannot be ran by console.");
+			return true;
+		}
+
 		if(!Iris.proj.isProjectOpen())
 		{
 			sender.sendMessage("There is not a studio currently loaded.");
@@ -40,6 +46,7 @@ public class CommandIrisStudioTPStudio extends MortarCommand
 		{
 			sender.sendMessage("Teleporting you to the active studio world.");
 			sender.player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSpawnLocation());
+			sender.player().setGameMode(GameMode.SPECTATOR);
 		}
 
 		catch(Throwable e)

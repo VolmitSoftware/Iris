@@ -183,7 +183,7 @@ public class IrisProject
 
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
 		{
-			sender.sendMessage("Hotloading Active! Change any files and watch them appear as you load new chunks!");
+			sender.sendMessage("Hotloading Active! Change any files and watch your changes appear as you load new chunks!");
 
 			if(sender.isPlayer())
 			{

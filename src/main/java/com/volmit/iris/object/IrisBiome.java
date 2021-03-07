@@ -32,9 +32,11 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	@Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
 	private String name = "A Biome";
 
+	/* Needs to be implemented but it's not
 	@DontObfuscate
-	@Desc("The type of fluid if this biome is underwater. To 'defer' this value to whatever the parent dimension fluid type is, use an emtpy string.")
-	private String fluidType = "";
+	@Desc("The palette of blocks for 'water' in this biome (overwrites dimension)")
+	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("void_air");
+	*/
 
 	@DontObfuscate
 	@Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")

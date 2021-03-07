@@ -12,6 +12,7 @@ import org.bukkit.util.Vector;
  *
  * @author cyberpwn
  */
+@Desc("A direction object")
 public enum IrisDirection
 {
 	UP_POSITIVE_Y(0, 1, 0, CuboidDirection.Up),
@@ -35,39 +36,26 @@ public enum IrisDirection
 			case DOWN:
 				return DOWN_NEGATIVE_Y;
 			case EAST:
-				return EAST_POSITIVE_X;
 			case EAST_NORTH_EAST:
-				return EAST_POSITIVE_X;
 			case EAST_SOUTH_EAST:
 				return EAST_POSITIVE_X;
 			case NORTH:
-				return NORTH_NEGATIVE_Z;
-			case NORTH_EAST:
-				return NORTH_NEGATIVE_Z;
-			case NORTH_NORTH_EAST:
-				return NORTH_NEGATIVE_Z;
 			case NORTH_NORTH_WEST:
-				return NORTH_NEGATIVE_Z;
+			case NORTH_EAST:
+			case NORTH_NORTH_EAST:
 			case NORTH_WEST:
 				return NORTH_NEGATIVE_Z;
 			case SELF:
-				return UP_POSITIVE_Y;
-			case SOUTH:
-				return SOUTH_POSITIVE_Z;
-			case SOUTH_EAST:
-				return SOUTH_POSITIVE_Z;
-			case SOUTH_SOUTH_EAST:
-				return SOUTH_POSITIVE_Z;
-			case SOUTH_SOUTH_WEST:
-				return SOUTH_POSITIVE_Z;
-			case SOUTH_WEST:
-				return SOUTH_POSITIVE_Z;
 			case UP:
 				return UP_POSITIVE_Y;
+			case SOUTH:
+			case SOUTH_EAST:
+			case SOUTH_SOUTH_EAST:
+			case SOUTH_SOUTH_WEST:
+			case SOUTH_WEST:
+				return SOUTH_POSITIVE_Z;
 			case WEST:
-				return WEST_NEGATIVE_X;
 			case WEST_NORTH_WEST:
-				return WEST_NEGATIVE_X;
 			case WEST_SOUTH_WEST:
 				return WEST_NEGATIVE_X;
 		}
@@ -211,12 +199,7 @@ public enum IrisDirection
 			return false;
 		}
 
-		if(equals(to))
-		{
-			return false;
-		}
-
-		return true;
+		return !equals(to);
 	}
 
 	private IrisDirection(int x, int y, int z, CuboidDirection f)
@@ -552,17 +535,14 @@ public enum IrisDirection
 		switch(this)
 		{
 			case DOWN_NEGATIVE_Y:
-				return Axis.Y;
-			case EAST_POSITIVE_X:
-				return Axis.X;
-			case NORTH_NEGATIVE_Z:
-				return Axis.Z;
-			case SOUTH_POSITIVE_Z:
-				return Axis.Z;
 			case UP_POSITIVE_Y:
 				return Axis.Y;
+			case EAST_POSITIVE_X:
 			case WEST_NEGATIVE_X:
 				return Axis.X;
+			case NORTH_NEGATIVE_Z:
+			case SOUTH_POSITIVE_Z:
+				return Axis.Z;
 		}
 
 		return null;

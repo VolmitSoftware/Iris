@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -204,8 +205,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
         }
 
-        Iris.info(world.getName() + " is configured to generate " + dim.getName() + "!");
-
         return dim;
     }
 
@@ -218,11 +217,10 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             if(iris.exists() && iris.isDirectory())
             {
-                searching:
-                for (File i : iris.listFiles()) {
+                for (File i : Objects.requireNonNull(iris.listFiles())) {
                     // Look for v1 location
                     if (i.isDirectory() && i.getName().equals("dimensions")) {
-                        for (File j : i.listFiles()) {
+                        for (File j : Objects.requireNonNull(i.listFiles())) {
                             if (j.isFile() && j.getName().endsWith(".json")) {
                                 query = j.getName().replaceAll("\\Q.json\\E", "");
                                 Iris.error("Found v1 install. Please create a new world, this will cause chunks to change in your existing iris worlds!");

@@ -436,7 +436,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             if(rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x<<4, z<<4)))
             {
-                place(rng, x<<4, z<<4, i);
+                try {
+                    place(rng, x << 4, z << 4, i);
+                } catch(Throwable e) {
+                    Iris.error("Failed to place objects in the following biome: " + biome.getName());
+                    Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
+                    Iris.error("Are these objects missing?");
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -516,48 +523,39 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement)
     {
-        try
+        for(int i = 0; i < objectPlacement.getDensity(); i++)
         {
-            for(int i = 0; i < objectPlacement.getDensity(); i++)
+            IrisObject v = objectPlacement.getObject(getComplex(), rng);
+            int xx = rng.i(x, x+16);
+            int zz = rng.i(z, z+16);
+            int id = rng.i(0, Integer.MAX_VALUE);
+            int maxf = 10000;
+            AtomicBoolean pl = new AtomicBoolean(false);
+            AtomicInteger max = new AtomicInteger(-1);
+            AtomicInteger min = new AtomicInteger(maxf);
+            int h = v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
+                int xf = b.getX();
+                int yf = b.getY();
+                int zf = b.getZ();
+                getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
+                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
+                meta.setObjects(true);
+                meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
+                meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
+
+            }, null, getData());
+
+            if(objectPlacement.isVacuum())
             {
-                IrisObject v = objectPlacement.getObject(getComplex(), rng);
-                int xx = rng.i(x, x+16);
-                int zz = rng.i(z, z+16);
-                int id = rng.i(0, Integer.MAX_VALUE);
-                int maxf = 10000;
-                AtomicBoolean pl = new AtomicBoolean(false);
-                AtomicInteger max = new AtomicInteger(-1);
-                AtomicInteger min = new AtomicInteger(maxf);
-                int h = v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
-                    int xf = b.getX();
-                    int yf = b.getY();
-                    int zf = b.getZ();
-                    getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
-                    ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
-                    meta.setObjects(true);
-                    meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
-                    meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
-
-                }, null, getData());
-
-                if(objectPlacement.isVacuum())
-                {
-                    double a = Math.max(v.getW(), v.getD());
-                    IrisFeature f = new IrisFeature();
-                    f.setConvergeToHeight(h-(v.getH() >> 1));
-                    f.setBlockRadius(a);
-                    f.setInterpolationRadius(a/4);
-                    f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
-                    f.setStrength(1D);
-                    getParallaxAccess().getMetaRW(xx>>4, zz>>4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
-                }
+                double a = Math.max(v.getW(), v.getD());
+                IrisFeature f = new IrisFeature();
+                f.setConvergeToHeight(h-(v.getH() >> 1));
+                f.setBlockRadius(a);
+                f.setInterpolationRadius(a/4);
+                f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
+                f.setStrength(1D);
+                getParallaxAccess().getMetaRW(xx>>4, zz>>4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
-        }
-
-        catch(Throwable e)
-        {
-            Iris.error("Failed to place one of the following object(s) " + objectPlacement.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + "). Are these objects missing?");
-            e.printStackTrace();
         }
     }
 

@@ -174,7 +174,8 @@ public class IrisProject
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);
-		sender.sendMessage("Generating 100%");
+		sender.sendMessage(C.WHITE + "Generating 100%");
+\
 
 		if(sender.isPlayer())
 		{

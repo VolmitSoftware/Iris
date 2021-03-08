@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.hunk;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
 import com.volmit.iris.scaffold.hunk.storage.*;
 import com.volmit.iris.scaffold.hunk.view.*;
@@ -1001,7 +1002,7 @@ public interface Hunk<T>
 	{
 		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth())
 		{
-			throw new IndexOutOfBoundsException(x + "," + y + "," + z + " does not fit within size " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
+			Iris.warn(x + "," + y + "," + z + " does not fit within size " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
 		}
 	}
 
@@ -1009,7 +1010,7 @@ public interface Hunk<T>
 	{
 		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth() || x + w < 0 || x + w > getWidth() || y + h < 0 || y + h > getHeight() || z + d < 0 || z + d > getDepth())
 		{
-			throw new IndexOutOfBoundsException("The hunk " + w + "," + h + "," + d + " with an offset of " + x + "," + y + "," + z + " does not fit within the parent hunk " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
+			Iris.warn("The hunk " + w + "," + h + "," + d + " with an offset of " + x + "," + y + "," + z + " does not fit within the parent hunk " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
 		}
 	}
 

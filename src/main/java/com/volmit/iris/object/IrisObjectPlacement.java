@@ -63,7 +63,7 @@ public class IrisObjectPlacement
 	private int boreExtendMaxY = 0;
 
 	@MaxNumber(64)
-	@MinNumber(0)
+	@MinNumber(-1)
 	@DontObfuscate
 	@Desc("When bore is enabled, lower min-y of the cuboid it removes")
 	private int boreExtendMinY = 0;

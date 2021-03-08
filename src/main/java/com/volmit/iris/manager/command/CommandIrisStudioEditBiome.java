@@ -33,7 +33,13 @@ public class CommandIrisStudioEditBiome extends MortarCommand
 			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
 			return true;
 		}
-		
+
+		if(!Iris.proj.isProjectOpen())
+		{
+			sender.sendMessage("There is not a studio currently loaded.");
+			return true;
+		}
+
 		if(sender.isPlayer())
 		{
 			Player p = sender.player();
@@ -46,7 +52,7 @@ public class CommandIrisStudioEditBiome extends MortarCommand
 
 			catch(Throwable e)
 			{
-				sender.sendMessage("Cant find the file. Are you in an Iris world?");
+				sender.sendMessage("Cant find the file. Are you in an Iris Studio world?");
 			}
 
 			return true;

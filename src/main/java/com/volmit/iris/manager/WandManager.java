@@ -21,6 +21,7 @@ import org.bukkit.util.Vector;
 
 import java.awt.Color;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class WandManager implements Listener
 {
@@ -154,7 +155,7 @@ public class WandManager implements Listener
 				if(e.getAction().equals(Action.LEFT_CLICK_BLOCK))
 				{
 					e.setCancelled(true);
-					e.getPlayer().getInventory().setItemInMainHand(update(true, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
+					e.getPlayer().getInventory().setItemInMainHand(update(true, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
 					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.67f);
 					e.getPlayer().updateInventory();
 				}
@@ -162,7 +163,7 @@ public class WandManager implements Listener
 				else if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
 				{
 					e.setCancelled(true);
-					e.getPlayer().getInventory().setItemInMainHand(update(false, e.getClickedBlock().getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
+					e.getPlayer().getInventory().setItemInMainHand(update(false, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
 					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 1.17f);
 					e.getPlayer().updateInventory();
 				}
@@ -173,14 +174,14 @@ public class WandManager implements Listener
 				if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
 				{
 					e.setCancelled(true);
-					e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
+					e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
 					DustRevealer.spawn(e.getClickedBlock(), new MortarSender(e.getPlayer(), Iris.instance.getTag()));
 
 				}
 			}
 		}
 
-		catch(Throwable ex)
+		catch(Throwable ignored)
 		{
 
 		}

@@ -17,6 +17,7 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.UUID;
 
 @Data
@@ -68,7 +69,7 @@ public class IrisProject
 				}
 				File f = d.getLoader().getDataFolder();
 				boolean foundWork = false;
-				for(File i : f.listFiles())
+				for(File i : Objects.requireNonNull(f.listFiles()))
 				{
 					if(i.getName().endsWith(".code-workspace"))
 					{
@@ -175,7 +176,6 @@ public class IrisProject
 
 		done.set(true);
 		sender.sendMessage(C.WHITE + "Generating 100%");
-\
 
 		if(sender.isPlayer())
 		{

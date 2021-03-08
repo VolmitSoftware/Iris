@@ -8,6 +8,8 @@ import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
 import lombok.Data;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
@@ -125,7 +127,7 @@ public class IrisProject
 				.create();
 		IrisAccess gx = ((IrisAccess)c.generator());
 		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
-		O<Boolean> done = new O<Boolean>();
+		O<Boolean> done = new O<>();
 		done.set(false);
 		activeProvider = gx;
 
@@ -134,12 +136,13 @@ public class IrisProject
 			double last = 0;
 			int req = 300;
 			double lpc = 0;
-			boolean fc = false;
+			boolean fc;
 
 			while(!done.get())
 			{
 				boolean derp = false;
 
+				assert gx != null;
 				double v = (double) gx.getGenerated() / (double) req;
 				fc = lpc != v;
 				lpc = v;
@@ -160,10 +163,15 @@ public class IrisProject
 					sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
 				}
 
+				if (sender.isPlayer()){
+					sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
+				}
+
 				J.sleep(1500);
 
 				if(gx.isFailing())
 				{
+
 					sender.sendMessage("Generation Failed!");
 					return;
 				}
@@ -175,10 +183,11 @@ public class IrisProject
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);
-		sender.sendMessage(C.WHITE + "Generating 100%");
+		sender.sendMessage(C.WHITE + "Generating Complete!");
 
 		if(sender.isPlayer())
 		{
+			assert world != null;
 			sender.player().teleport(world.getSpawnLocation());
 		}
 
@@ -305,8 +314,7 @@ public class IrisProject
 
 	public File compilePackage(MortarSender sender, boolean obfuscate, boolean minify)
 	{
-		String dim = getName();
-		String dimm = dim;
+		String dimm = getName();
 		IrisDataManager dm = new IrisDataManager(path);
 		IrisDimension dimension = dm.getDimensionLoader().load(dimm);
 		File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
@@ -338,7 +346,7 @@ public class IrisProject
 		regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 		dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
 		KMap<String, String> renameObjects = new KMap<>();
-		String a = "";
+		String a;
 		StringBuilder b = new StringBuilder();
 		StringBuilder c = new StringBuilder();
 		sender.sendMessage("Serializing Objects");
@@ -396,7 +404,7 @@ public class IrisProject
 		KMap<String, KList<String>> lookupObjects = renameObjects.flip();
 		StringBuilder gb = new StringBuilder();
 		ChronoLatch cl = new ChronoLatch(1000);
-		O<Integer> ggg = new O<Integer>();
+		O<Integer> ggg = new O<>();
 		ggg.set(0);
 		biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
 		{
@@ -415,7 +423,7 @@ public class IrisProject
 				}
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}
@@ -438,7 +446,7 @@ public class IrisProject
 				}
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}
@@ -502,7 +510,6 @@ public class IrisProject
 			}
 
 			c.append(IO.hash(b.toString()));
-			b = new StringBuilder();
 			String finalHash = IO.hash(c.toString());
 			JSONObject meta = new JSONObject();
 			meta.put("hash", finalHash);

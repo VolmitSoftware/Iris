@@ -31,7 +31,7 @@ public class IrisBlockData extends IrisRegistrant
 	@RegistryListBlockType
 	@Required
 	@DontObfuscate
-	@Desc("The cave zoom. Higher values makes caves spread out further and branch less often, but are thicker.")
+	@Desc("The block to use")
 	private String block = "air";
 
 	@Desc("Debug this block by printing it to the console when it's used")

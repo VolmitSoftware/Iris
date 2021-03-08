@@ -217,11 +217,11 @@ public class IrisProject
 		try
 		{
 			PrecisionStopwatch p = PrecisionStopwatch.start();
-			Iris.info("Updating Workspace: " + ws.getPath());
+			Iris.info("Building Workspace: " + ws.getPath());
 			JSONObject j = createCodeWorkspaceConfig();
 			IO.writeAll(ws, j.toString(4));
 			p.end();
-			Iris.info("Updated Workspace: " + ws.getPath() + " in " + Form.duration(p.getMilliseconds(), 2));
+			Iris.info("Building Workspace: " + ws.getPath() + " took " + Form.duration(p.getMilliseconds(), 2));
 			return true;
 		}
 

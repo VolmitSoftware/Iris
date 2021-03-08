@@ -2,7 +2,6 @@ package com.volmit.iris.generator.modifier;
 
 import com.volmit.iris.generator.noise.FastNoiseDouble;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.object.IrisCaveLayer;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
@@ -160,20 +159,6 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 
                 if((pu > 255 && pd > 255) || (pu < 0 && pd < 0))
                 {
-                    continue;
-                }
-
-                boolean isAboveSea = true;
-                if (pu < surface - 5) {
-                    for (IrisBiomeGeneratorLink gen : getEngine().getBiome(x, pu, z).getGenerators()) {
-                        if (gen.getMin() < 0) {
-                            isAboveSea = false;
-                            break;
-                        }
-                    }
-                }
-
-                if(!isAboveSea){
                     continue;
                 }
 

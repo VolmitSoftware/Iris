@@ -24,7 +24,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
     public IrisCaveModifier(Engine engine) {
         super(engine, "Cave");
         rng = new RNG(engine.getWorld().getSeed() + 28934555);
-        gg = new FastNoiseDouble(324895 * rng.nextParallelRNG(49678).imax());
+        gg = new FastNoiseDouble(324895L * rng.nextParallelRNG(49678).imax());
     }
 
     @Override
@@ -74,7 +74,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                     }
                 }
             }
-        };
+        }
 
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
@@ -168,6 +168,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                     for (IrisBiomeGeneratorLink gen : getEngine().getBiome(x, pu, z).getGenerators()) {
                         if (gen.getMin() < 0) {
                             isAboveSea = false;
+                            break;
                         }
                     }
                 }

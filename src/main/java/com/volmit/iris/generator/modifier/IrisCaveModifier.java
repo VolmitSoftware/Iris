@@ -210,7 +210,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 
     private Material mat(int x, int y, int z, Hunk<BlockData> data)
     {
-        BlockData d = data.get(x,y,z);
+        BlockData d = data.get(Math.max(x, 0),Math.max(y, 0),Math.max(z,0));
 
         if(d != null)
         {

@@ -1,6 +1,11 @@
 package com.volmit.iris.manager.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.manager.command.jigsaw.CommandIrisJigsaw;
+import com.volmit.iris.manager.command.object.CommandIrisObject;
+import com.volmit.iris.manager.command.studio.CommandIrisStudio;
+import com.volmit.iris.manager.command.what.CommandIrisWhat;
+import com.volmit.iris.manager.command.world.*;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
@@ -46,9 +51,6 @@ public class CommandIris extends MortarCommand
 
 	@Command
 	private CommandIrisReload reload;
-
-	@Command
-	private CommandIrisCapture capture;
 
 	public CommandIris()
 	{

@@ -2,7 +2,7 @@ package com.volmit.iris;
 
 import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
-import com.volmit.iris.manager.command.CommandLocate;
+import com.volmit.iris.manager.command.world.CommandLocate;
 import com.volmit.iris.manager.command.PermissionIris;
 import com.volmit.iris.manager.link.BKLink;
 import com.volmit.iris.manager.link.CitizensLink;

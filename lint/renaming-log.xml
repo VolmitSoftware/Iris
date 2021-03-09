@@ -587,7 +587,7 @@
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="32" e="32"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectExpand" new="com.volmit.iris.manager.command.CommandIrisObjectExpand">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectExpand" new="com.volmit.iris.manager.command.object.CommandIrisObjectExpand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -672,7 +672,7 @@
    <field old="name Ljava/lang/String;" new="H"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudio" new="com.volmit.iris.manager.command.CommandIrisStudio">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudio" new="com.volmit.iris.manager.command.studio.CommandIrisStudio">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="52" e="52"/>
@@ -781,7 +781,7 @@
    <method old="set(IILjava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="18"/>
    <field old="data Ljava/util/concurrent/atomic/AtomicReferenceArray;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectXPY" new="com.volmit.iris.manager.command.CommandIrisObjectXPY">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectXPY" new="com.volmit.iris.manager.command.object.CommandIrisObjectXPY">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="77" e="77"/>
@@ -893,7 +893,7 @@
    <field old="val$names Ljava/util/Set;" new="M"/>
    <field old="val$out Ljava/util/zip/ZipOutputStream;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectShift" new="com.volmit.iris.manager.command.CommandIrisObjectShift">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectShift" new="com.volmit.iris.manager.command.object.CommandIrisObjectShift">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="61" e="61"/>
@@ -2476,7 +2476,7 @@
    <method old="close()V" new="close" s="43" e="43"/>
    <method old="read([CII)I" new="read" s="40" e="40"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisWhatBlock" new="com.volmit.iris.manager.command.CommandIrisWhatBlock">
+  <class old="com.volmit.iris.manager.command.what.CommandIrisWhatBlock" new="com.volmit.iris.manager.command.what.CommandIrisWhatBlock">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="45" e="45"/>
@@ -2668,7 +2668,7 @@
    <field old="tables Lcom/volmit/iris/util/KList;" new="M"/>
    <field old="tt Lcom/volmit/iris/gen/atomics/AtomicCache;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisWhatHand" new="com.volmit.iris.manager.command.CommandIrisWhatHand">
+  <class old="com.volmit.iris.manager.command.what.CommandIrisWhatHand" new="com.volmit.iris.manager.command.what.CommandIrisWhatHand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="41" e="41"/>
@@ -3435,7 +3435,7 @@
    <method old="write(Ljava/io/Writer;II)Ljava/io/Writer;" new="ALLATORIxDEMOxanyValidIdentifierName" s="1214" e="1249"/>
    <field old="myArrayList Ljava/util/ArrayList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudioUpdate" new="com.volmit.iris.manager.command.CommandIrisStudioUpdate">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate" new="com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="29" e="29"/>
@@ -4113,7 +4113,7 @@
    <field old="NULL_MDCA_URL Ljava/lang/String;" new="M"/>
    <field old="mdcAdapter Lorg/slf4j/spi/MDCAdapter;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisPregen" new="com.volmit.iris.manager.command.CommandIrisPregen">
+  <class old="com.volmit.iris.manager.command.world.CommandIrisPregen" new="com.volmit.iris.manager.command.world.CommandIrisPregen">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -6064,7 +6064,7 @@
   </class>
   <class old="com.volmit.iris.util.RegistryListBiome" new="com.volmit.iris.util.RegistryListBiome">
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudioClose" new="com.volmit.iris.manager.command.CommandIrisStudioClose">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudioClose" new="com.volmit.iris.manager.command.studio.CommandIrisStudioClose">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="70" e="70"/>
@@ -8532,7 +8532,7 @@
    <method old="v()Lcom/volmit/iris/util/KList;" new="hashCode"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudioOpen" new="com.volmit.iris.manager.command.CommandIrisStudioOpen">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudioOpen" new="com.volmit.iris.manager.command.studio.CommandIrisStudioOpen">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="32" e="32"/>
@@ -9128,7 +9128,7 @@
    <field old="UPPER_CAMEL_CASE Lcom/google/gson/FieldNamingPolicy;" new="D"/>
    <field old="UPPER_CAMEL_CASE_WITH_SPACES Lcom/google/gson/FieldNamingPolicy;" new="j"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudioCreate" new="com.volmit.iris.manager.command.CommandIrisStudioCreate">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudioCreate" new="com.volmit.iris.manager.command.studio.CommandIrisStudioCreate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="37" e="37"/>
@@ -9462,7 +9462,7 @@
    <field old="ceiling I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="floor I" new="H"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectSave" new="com.volmit.iris.manager.command.CommandIrisObjectSave">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectSave" new="com.volmit.iris.manager.command.object.CommandIrisObjectSave">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="85" e="85"/>
@@ -10004,7 +10004,7 @@
    <method old="getType()Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="op(Lorg/bukkit/util/Vector;)Lorg/bukkit/util/Vector;" new="ALLATORIxDEMOxanyValidIdentifierName" s="436" e="436"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectContract" new="com.volmit.iris.manager.command.CommandIrisObjectContract">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectContract" new="com.volmit.iris.manager.command.object.CommandIrisObjectContract">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="60" e="60"/>
@@ -11873,7 +11873,7 @@
    <method old="getValue()Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <field old="name Ljava/lang/String;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectXAY" new="com.volmit.iris.manager.command.CommandIrisObjectXAY">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectXAY" new="com.volmit.iris.manager.command.object.CommandIrisObjectXAY">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="89" e="89"/>
@@ -12817,7 +12817,7 @@
    <field old="val$name Ljava/lang/String;" new="M"/>
    <field old="val$priority I" new="H"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectPaste" new="com.volmit.iris.manager.command.CommandIrisObjectPaste">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectPaste" new="com.volmit.iris.manager.command.object.CommandIrisObjectPaste">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="83" e="83"/>
@@ -13103,7 +13103,7 @@
   <class old="com.volmit.iris.util.Cuboid$1" new="com.volmit.iris.util.Cuboid$1">
    <field old="$SwitchMap$com$volmit$iris$util$Cuboid$CuboidDirection [I" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObject" new="com.volmit.iris.manager.command.CommandIrisObject">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObject" new="com.volmit.iris.manager.command.object.CommandIrisObject">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="59" e="59"/>
@@ -13907,7 +13907,7 @@
    <method old="setOctaves(I)V" new="ALLATORIxDEMOxanyValidIdentifierName" s="36" e="37"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisStudioPackage" new="com.volmit.iris.manager.command.CommandIrisStudioPackage">
+  <class old="com.volmit.iris.manager.command.studio.CommandIrisStudioPackage" new="com.volmit.iris.manager.command.studio.CommandIrisStudioPackage">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="49" e="49"/>
@@ -14973,7 +14973,7 @@
    <method old="get(II)Ljava/lang/Object;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="set(IILjava/lang/Object;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisCreate" new="com.volmit.iris.manager.command.CommandIrisCreate">
+  <class old="com.volmit.iris.manager.command.world.CommandIrisCreate" new="com.volmit.iris.manager.command.world.CommandIrisCreate">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="197" e="197"/>
@@ -15194,7 +15194,7 @@
    <method old="onDecorateBackground(Lcom/volmit/iris/util/inventory/Window;II)Lcom/volmit/iris/util/inventory/Element;" new="ALLATORIxDEMOxanyValidIdentifierName" s="17" e="17"/>
    <field old="element Lcom/volmit/iris/util/inventory/Element;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisWhat" new="com.volmit.iris.manager.command.CommandIrisWhat">
+  <class old="com.volmit.iris.manager.command.what.CommandIrisWhat" new="com.volmit.iris.manager.command.what.CommandIrisWhat">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="61" e="61"/>
@@ -15301,7 +15301,7 @@
    <method old="v()Lcom/volmit/iris/util/KList;" new="hashCode" s="325" e="325"/>
    <field old="serialVersionUID J" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectP1" new="com.volmit.iris.manager.command.CommandIrisObjectP1">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectP1" new="com.volmit.iris.manager.command.object.CommandIrisObjectP1">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="64" e="64"/>
@@ -15385,7 +15385,7 @@
    <field old="name Ljava/lang/String;" new="H"/>
    <field old="serialVersionUID J" new="M"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectP2" new="com.volmit.iris.manager.command.CommandIrisObjectP2">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectP2" new="com.volmit.iris.manager.command.object.CommandIrisObjectP2">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="64" e="64"/>
@@ -15480,7 +15480,7 @@
    <method old="noise(DDD)D" new="ALLATORIxDEMOxanyValidIdentifierName" s="31" e="31"/>
    <field old="n Lcom/volmit/iris/noise/FastNoise;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
   </class>
-  <class old="com.volmit.iris.manager.command.CommandIrisObjectWand" new="com.volmit.iris.manager.command.CommandIrisObjectWand">
+  <class old="com.volmit.iris.manager.command.object.CommandIrisObjectWand" new="com.volmit.iris.manager.command.object.CommandIrisObjectWand">
    <method old="addNode(Ljava/lang/String;)V" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getAllNodes()Lcom/volmit/iris/util/KList;" new="ALLATORIxDEMOxanyValidIdentifierName"/>
    <method old="getArgsUsage()Ljava/lang/String;" new="getMaxHeight" s="38" e="38"/>

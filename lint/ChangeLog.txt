@@ -1738,11 +1738,11 @@ Class: public com.volmit.iris.activation.IrisActivation2	NameNotChanged
 Class: public com.volmit.iris.manager.command.CommandIris	NameNotChanged
 	Source: "CommandIris.java"
 	FieldsOf: com.volmit.iris.manager.command.CommandIris
-		private com.volmit.iris.manager.command.CommandIrisCreate create	=>	j
-		private com.volmit.iris.manager.command.CommandIrisObject object	=>	k
+		private com.volmit.iris.manager.command.world.CommandIrisCreate create	=>	j
+		private com.volmit.iris.manager.command.object.CommandIrisObject object	=>	k
 		private com.volmit.iris.manager.command.CommandIrisStructure structure	=>	g
-		private com.volmit.iris.manager.command.CommandIrisStudio studio	=>	i
-		private com.volmit.iris.manager.command.CommandIrisWhat what	=>	h
+		private com.volmit.iris.manager.command.studio.CommandIrisStudio studio	=>	i
+		private com.volmit.iris.manager.command.what.CommandIrisWhat what	=>	h
 	MethodsOf: com.volmit.iris.manager.command.CommandIris
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
@@ -1757,10 +1757,10 @@ Class: public com.volmit.iris.manager.command.CommandIris	NameNotChanged
 		36	=>	1
 		42	=>	3
 
-Class: public com.volmit.iris.manager.command.CommandIrisCreate	NameNotChanged
+Class: public com.volmit.iris.manager.command.world.CommandIrisCreate	NameNotChanged
 	Source: "CommandIrisCreate.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisCreate
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisCreate
+	FieldsOf: com.volmit.iris.manager.command.world.CommandIrisCreate
+	MethodsOf: com.volmit.iris.manager.command.world.CommandIrisCreate
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
@@ -1769,7 +1769,7 @@ Class: public com.volmit.iris.manager.command.CommandIrisCreate	NameNotChanged
 		private static synthetic void lambda$handle$1(com.volmit.iris.util.O) 	SignatureNotChanged
 		private static synthetic void lambda$handle$3(com.volmit.iris.util.O, org.bukkit.World, com.volmit.iris.util.MortarSender, boolean, java.io.File) 	SignatureNotChanged
 		private static synthetic void lambda$null$2(org.bukkit.World, com.volmit.iris.util.MortarSender, boolean, java.io.File) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisCreate
+	LineNumbersOf: com.volmit.iris.manager.command.world.CommandIrisCreate
 		28	=>	34
 		29	=>	63
 		30	=>	43
@@ -2081,25 +2081,25 @@ Class: public com.volmit.iris.manager.command.CommandIrisMetrics	NameNotChanged
 		48	=>	17
 		54	=>	19
 
-Class: public com.volmit.iris.manager.command.CommandIrisObject	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObject	NameNotChanged
 	Source: "CommandIrisObject.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObject
-		private com.volmit.iris.manager.command.CommandIrisObjectContract contract	=>	m
-		private com.volmit.iris.manager.command.CommandIrisObjectExpand expand	=>	p
-		private com.volmit.iris.manager.command.CommandIrisObjectP1 p1	=>	l
-		private com.volmit.iris.manager.command.CommandIrisObjectP2 p2	=>	n
-		private com.volmit.iris.manager.command.CommandIrisObjectPaste paste	=>	i
-		private com.volmit.iris.manager.command.CommandIrisObjectSave save	=>	j
-		private com.volmit.iris.manager.command.CommandIrisObjectShift shift	=>	h
-		private com.volmit.iris.manager.command.CommandIrisObjectWand wand	=>	g
-		private com.volmit.iris.manager.command.CommandIrisObjectXAY xay	=>	k
-		private com.volmit.iris.manager.command.CommandIrisObjectXPY xpy	=>	o
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObject
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObject
+		private com.volmit.iris.manager.command.object.CommandIrisObjectContract contract	=>	m
+		private com.volmit.iris.manager.command.object.CommandIrisObjectExpand expand	=>	p
+		private com.volmit.iris.manager.command.object.CommandIrisObjectP1 p1	=>	l
+		private com.volmit.iris.manager.command.object.CommandIrisObjectP2 p2	=>	n
+		private com.volmit.iris.manager.command.object.CommandIrisObjectPaste paste	=>	i
+		private com.volmit.iris.manager.command.object.CommandIrisObjectSave save	=>	j
+		private com.volmit.iris.manager.command.object.CommandIrisObjectShift shift	=>	h
+		private com.volmit.iris.manager.command.object.CommandIrisObjectWand wand	=>	g
+		private com.volmit.iris.manager.command.object.CommandIrisObjectXAY xay	=>	k
+		private com.volmit.iris.manager.command.object.CommandIrisObjectXPY xpy	=>	o
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObject
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObject
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObject
 		42	=>	8
 		43	=>	7
 		44	=>	2
@@ -2110,15 +2110,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObject	NameNotChanged
 		53	=>	1
 		59	=>	3
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectContract	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectContract	NameNotChanged
 	Source: "CommandIrisObjectContract.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectContract
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectContract
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectContract
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectContract
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectContract
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectContract
 		18	=>	23
 		19	=>	18
 		20	=>	3
@@ -2146,15 +2146,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectContract	NameNotC
 		54	=>	13
 		60	=>	16
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectExpand	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectExpand	NameNotChanged
 	Source: "CommandIrisObjectExpand.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectExpand
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectExpand
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectExpand
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectExpand
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectExpand
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectExpand
 		18	=>	3
 		19	=>	2
 		20	=>	17
@@ -2182,15 +2182,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectExpand	NameNotCha
 		54	=>	5
 		60	=>	12
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectP1	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectP1	NameNotChanged
 	Source: "CommandIrisObjectP1.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectP1
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectP1
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectP1
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectP1
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectP1
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectP1
 		19	=>	18
 		20	=>	7
 		21	=>	17
@@ -2213,15 +2213,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectP1	NameNotChanged
 		58	=>	1
 		64	=>	21
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectP2	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectP2	NameNotChanged
 	Source: "CommandIrisObjectP2.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectP2
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectP2
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectP2
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectP2
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectP2
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectP2
 		19	=>	10
 		20	=>	18
 		21	=>	12
@@ -2244,15 +2244,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectP2	NameNotChanged
 		58	=>	20
 		64	=>	7
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectPaste	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectPaste	NameNotChanged
 	Source: "CommandIrisObjectPaste.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectPaste
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectPaste
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectPaste
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectPaste
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectPaste
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectPaste
 		22	=>	1
 		23	=>	9
 		24	=>	8
@@ -2286,16 +2286,16 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectPaste	NameNotChan
 		77	=>	3
 		83	=>	33
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectSave	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectSave	NameNotChanged
 	Source: "CommandIrisObjectSave.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectSave
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectSave
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectSave
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectSave
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		private static java.lang.Throwable a(java.lang.Throwable) 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectSave
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectSave
 		19	=>	22
 		20	=>	1
 		21	=>	7
@@ -2330,15 +2330,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectSave	NameNotChang
 		79	=>	10
 		85	=>	4
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectShift	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectShift	NameNotChanged
 	Source: "CommandIrisObjectShift.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectShift
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectShift
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectShift
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectShift
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectShift
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectShift
 		18	=>	26
 		19	=>	12
 		20	=>	19
@@ -2367,15 +2367,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectShift	NameNotChan
 		55	=>	8
 		61	=>	21
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectWand	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectWand	NameNotChanged
 	Source: "CommandIrisObjectWand.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectWand
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectWand
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectWand
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectWand
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectWand
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectWand
 		14	=>	4
 		15	=>	5
 		16	=>	2
@@ -2389,15 +2389,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectWand	NameNotChang
 		32	=>	12
 		38	=>	1
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectXAY	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectXAY	NameNotChanged
 	Source: "CommandIrisObjectXAY.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectXAY
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectXAY
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectXAY
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectXAY
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectXAY
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectXAY
 		20	=>	44
 		21	=>	37
 		22	=>	20
@@ -2444,15 +2444,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectXAY	NameNotChange
 		83	=>	22
 		89	=>	26
 
-Class: public com.volmit.iris.manager.command.CommandIrisObjectXPY	NameNotChanged
+Class: public com.volmit.iris.manager.command.object.CommandIrisObjectXPY	NameNotChanged
 	Source: "CommandIrisObjectXPY.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisObjectXPY
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisObjectXPY
+	FieldsOf: com.volmit.iris.manager.command.object.CommandIrisObjectXPY
+	MethodsOf: com.volmit.iris.manager.command.object.CommandIrisObjectXPY
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisObjectXPY
+	LineNumbersOf: com.volmit.iris.manager.command.object.CommandIrisObjectXPY
 		20	=>	15
 		21	=>	34
 		22	=>	12
@@ -2492,16 +2492,16 @@ Class: public com.volmit.iris.manager.command.CommandIrisObjectXPY	NameNotChange
 		71	=>	29
 		77	=>	3
 
-Class: public com.volmit.iris.manager.command.CommandIrisPregen	NameNotChanged
+Class: public com.volmit.iris.manager.command.world.CommandIrisPregen	NameNotChanged
 	Source: "CommandIrisPregen.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisPregen
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisPregen
+	FieldsOf: com.volmit.iris.manager.command.world.CommandIrisPregen
+	MethodsOf: com.volmit.iris.manager.command.world.CommandIrisPregen
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
 		private static synthetic void lambda$handle$0() 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisPregen
+	LineNumbersOf: com.volmit.iris.manager.command.world.CommandIrisPregen
 		15	=>	17
 		16	=>	20
 		17	=>	1
@@ -2737,11 +2737,11 @@ Class: public com.volmit.iris.manager.command.CommandIrisStructureVariants	NameN
 		40	=>	8
 		46	=>	14
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudio	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudio	NameNotChanged
 	Source: "CommandIrisStudio.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudio
-		private com.volmit.iris.manager.command.CommandIrisStudioClose close	=>	g
-		private com.volmit.iris.manager.command.CommandIrisStudioCreate create	=>	u
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudio
+		private com.volmit.iris.manager.command.studio.CommandIrisStudioClose close	=>	g
+		private com.volmit.iris.manager.command.studio.CommandIrisStudioCreate create	=>	u
 		private com.volmit.iris.manager.command.CommandIrisEditBiome ebiome	=>	s
 		private com.volmit.iris.manager.command.CommandIrisGoto got0	=>	j
 		private com.volmit.iris.manager.command.CommandIrisHotload hotload	=>	p
@@ -2749,19 +2749,19 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudio	NameNotChanged
 		private com.volmit.iris.manager.command.CommandIrisLoot loot	=>	k
 		private com.volmit.iris.manager.command.CommandIrisMap map	=>	h
 		private com.volmit.iris.manager.command.CommandIrisMetrics metrics	=>	q
-		private com.volmit.iris.manager.command.CommandIrisStudioOpen open	=>	l
-		private com.volmit.iris.manager.command.CommandIrisStudioPackage pkg	=>	t
-		private com.volmit.iris.manager.command.CommandIrisPregen pregen	=>	o
+		private com.volmit.iris.manager.command.studio.CommandIrisStudioOpen open	=>	l
+		private com.volmit.iris.manager.command.studio.CommandIrisStudioPackage pkg	=>	t
+		private com.volmit.iris.manager.command.world.CommandIrisPregen pregen	=>	o
 		private com.volmit.iris.manager.command.CommandIrisTC tc	=>	v
-		private com.volmit.iris.manager.command.CommandIrisStudioUpdate update	=>	m
+		private com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate update	=>	m
 		private com.volmit.iris.manager.command.CommandIrisStudioVerify verify	=>	r
-		private com.volmit.iris.manager.command.CommandIrisPregen world	=>	n
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudio
+		private com.volmit.iris.manager.command.world.CommandIrisPregen world	=>	n
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudio
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudio
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudio
 		60	=>	8
 		61	=>	1
 		62	=>	7
@@ -2771,15 +2771,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudio	NameNotChanged
 		70	=>	2
 		76	=>	6
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudioClose	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudioClose	NameNotChanged
 	Source: "CommandIrisStudioClose.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudioClose
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudioClose
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioClose
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioClose
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudioClose
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudioClose
 		15	=>	15
 		16	=>	19
 		17	=>	5
@@ -2807,15 +2807,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudioClose	NameNotChan
 		64	=>	13
 		70	=>	20
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudioCreate	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudioCreate	NameNotChanged
 	Source: "CommandIrisStudioCreate.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudioCreate
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudioCreate
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioCreate
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioCreate
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudioCreate
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudioCreate
 		12	=>	12
 		13	=>	10
 		14	=>	11
@@ -2858,15 +2858,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudioList	NameNotChang
 		46	=>	13
 		52	=>	9
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudioOpen	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudioOpen	NameNotChanged
 	Source: "CommandIrisStudioOpen.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudioOpen
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudioOpen
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioOpen
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioOpen
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudioOpen
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudioOpen
 		11	=>	5
 		12	=>	8
 		13	=>	10
@@ -2878,16 +2878,16 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudioOpen	NameNotChang
 		26	=>	2
 		32	=>	3
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudioPackage	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudioPackage	NameNotChanged
 	Source: "CommandIrisStudioPackage.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudioPackage
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudioPackage
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioPackage
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioPackage
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
 		private static synthetic void lambda$handle$0(java.lang.String[], com.volmit.iris.util.MortarSender) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudioPackage
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudioPackage
 		12	=>	12
 		13	=>	5
 		14	=>	18
@@ -2907,15 +2907,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisStudioPackage	NameNotCh
 		43	=>	6
 		49	=>	3
 
-Class: public com.volmit.iris.manager.command.CommandIrisStudioUpdate	NameNotChanged
+Class: public com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate	NameNotChanged
 	Source: "CommandIrisStudioUpdate.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisStudioUpdate
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisStudioUpdate
+	FieldsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate
+	MethodsOf: com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisStudioUpdate
+	LineNumbersOf: com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate
 		9	=>	1
 		10	=>	5
 		11	=>	3
@@ -2990,17 +2990,17 @@ Class: public com.volmit.iris.manager.command.CommandIrisTC	NameNotChanged
 		47	=>	13
 		53	=>	5
 
-Class: public com.volmit.iris.manager.command.CommandIrisWhat	NameNotChanged
+Class: public com.volmit.iris.manager.command.what.CommandIrisWhat	NameNotChanged
 	Source: "CommandIrisWhat.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisWhat
-		private com.volmit.iris.manager.command.CommandIrisWhatBlock block	=>	h
-		private com.volmit.iris.manager.command.CommandIrisWhatHand hand	=>	g
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisWhat
+	FieldsOf: com.volmit.iris.manager.command.what.CommandIrisWhat
+		private com.volmit.iris.manager.command.what.CommandIrisWhatBlock block	=>	h
+		private com.volmit.iris.manager.command.what.CommandIrisWhatHand hand	=>	g
+	MethodsOf: com.volmit.iris.manager.command.what.CommandIrisWhat
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisWhat
+	LineNumbersOf: com.volmit.iris.manager.command.what.CommandIrisWhat
 		25	=>	8
 		26	=>	15
 		27	=>	18
@@ -3022,15 +3022,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisWhat	NameNotChanged
 		55	=>	9
 		61	=>	13
 
-Class: public com.volmit.iris.manager.command.CommandIrisWhatBlock	NameNotChanged
+Class: public com.volmit.iris.manager.command.what.CommandIrisWhatBlock	NameNotChanged
 	Source: "CommandIrisWhatBlock.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisWhatBlock
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisWhatBlock
+	FieldsOf: com.volmit.iris.manager.command.what.CommandIrisWhatBlock
+	MethodsOf: com.volmit.iris.manager.command.what.CommandIrisWhatBlock
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisWhatBlock
+	LineNumbersOf: com.volmit.iris.manager.command.what.CommandIrisWhatBlock
 		16	=>	7
 		17	=>	3
 		18	=>	6
@@ -3047,15 +3047,15 @@ Class: public com.volmit.iris.manager.command.CommandIrisWhatBlock	NameNotChange
 		39	=>	15
 		45	=>	8
 
-Class: public com.volmit.iris.manager.command.CommandIrisWhatHand	NameNotChanged
+Class: public com.volmit.iris.manager.command.what.CommandIrisWhatHand	NameNotChanged
 	Source: "CommandIrisWhatHand.java"
-	FieldsOf: com.volmit.iris.manager.command.CommandIrisWhatHand
-	MethodsOf: com.volmit.iris.manager.command.CommandIrisWhatHand
+	FieldsOf: com.volmit.iris.manager.command.what.CommandIrisWhatHand
+	MethodsOf: com.volmit.iris.manager.command.what.CommandIrisWhatHand
 		static void <clinit>() 	SignatureNotChanged
 		public void <init>() 	SignatureNotChanged
 		protected java.lang.String getArgsUsage() 	SignatureNotChanged
 		public boolean handle(com.volmit.iris.util.MortarSender, java.lang.String[]) 	SignatureNotChanged
-	LineNumbersOf: com.volmit.iris.manager.command.CommandIrisWhatHand
+	LineNumbersOf: com.volmit.iris.manager.command.what.CommandIrisWhatHand
 		15	=>	9
 		16	=>	6
 		17	=>	8
@@ -20123,25 +20123,25 @@ MemberClass: com.volmit.iris.WandManager	Data: 2660
 MemberClass: com.volmit.iris.activation.IrisActivation1	Data: 4187 K
 MemberClass: com.volmit.iris.activation.IrisActivation2	Data: 4188 v
 MemberClass: com.volmit.iris.manager.command.CommandIris	Data: 3461
-MemberClass: com.volmit.iris.manager.command.CommandIrisCreate	Data: 4057
+MemberClass: com.volmit.iris.manager.command.world.CommandIrisCreate	Data: 4057
 MemberClass: com.volmit.iris.manager.command.CommandIrisEditBiome	Data: 4343
 MemberClass: com.volmit.iris.manager.command.CommandIrisGoto	Data: 3870
 MemberClass: com.volmit.iris.manager.command.CommandIrisHotload	Data: 4176
 MemberClass: com.volmit.iris.manager.command.CommandIrisLoot	Data: 3875
 MemberClass: com.volmit.iris.manager.command.CommandIrisMap	Data: 3747
 MemberClass: com.volmit.iris.manager.command.CommandIrisMetrics	Data: 4188
-MemberClass: com.volmit.iris.manager.command.CommandIrisObject	Data: 4060
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectContract	Data: 4890
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectExpand	Data: 4668
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectP1	Data: 4189
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectP2	Data: 4190
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectPaste	Data: 4569
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectSave	Data: 4459
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectShift	Data: 4570
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectWand	Data: 4454
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectXAY	Data: 4302
-MemberClass: com.volmit.iris.manager.command.CommandIrisObjectXPY	Data: 4317
-MemberClass: com.volmit.iris.manager.command.CommandIrisPregen	Data: 4070
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObject	Data: 4060
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectContract	Data: 4890
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectExpand	Data: 4668
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectP1	Data: 4189
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectP2	Data: 4190
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectPaste	Data: 4569
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectSave	Data: 4459
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectShift	Data: 4570
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectWand	Data: 4454
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectXAY	Data: 4302
+MemberClass: com.volmit.iris.manager.command.object.CommandIrisObjectXPY	Data: 4317
+MemberClass: com.volmit.iris.manager.command.world.CommandIrisPregen	Data: 4070
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructure	Data: 4438
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructureClose	Data: 4940
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructureCreate	Data: 5034
@@ -20150,18 +20150,18 @@ MemberClass: com.volmit.iris.manager.command.CommandIrisStructureMore	Data: 4841
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructureOpen	Data: 4840
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructureSave	Data: 4837
 MemberClass: com.volmit.iris.manager.command.CommandIrisStructureVariants	Data: 5278
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudio	Data: 4093
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudioClose	Data: 4595
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudioCreate	Data: 4689
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudio	Data: 4093
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudioClose	Data: 4595
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudioCreate	Data: 4689
 MemberClass: com.volmit.iris.manager.command.CommandIrisStudioList	Data: 4505 r
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudioOpen	Data: 4495
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudioPackage	Data: 4777
-MemberClass: com.volmit.iris.manager.command.CommandIrisStudioUpdate	Data: 4704
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudioOpen	Data: 4495
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudioPackage	Data: 4777
+MemberClass: com.volmit.iris.manager.command.studio.CommandIrisStudioUpdate	Data: 4704
 MemberClass: com.volmit.iris.manager.command.CommandIrisStudioVerify	Data: 4722 A
 MemberClass: com.volmit.iris.manager.command.CommandIrisTC	Data: 3612
-MemberClass: com.volmit.iris.manager.command.CommandIrisWhat	Data: 3865
-MemberClass: com.volmit.iris.manager.command.CommandIrisWhatBlock	Data: 4356
-MemberClass: com.volmit.iris.manager.command.CommandIrisWhatHand	Data: 4244
+MemberClass: com.volmit.iris.manager.command.what.CommandIrisWhat	Data: 3865
+MemberClass: com.volmit.iris.manager.command.what.CommandIrisWhatBlock	Data: 4356
+MemberClass: com.volmit.iris.manager.command.what.CommandIrisWhatHand	Data: 4244
 MemberClass: com.volmit.iris.manager.command.PermissionIris	Data: 3823
 MemberClass: com.volmit.iris.manager.command.PermissionIrisStudio	Data: 4455
 MemberClass: com.volmit.iris.generator.ContextualChunkGenerator	Data: 4434 X

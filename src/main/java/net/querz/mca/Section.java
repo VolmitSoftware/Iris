@@ -1,5 +1,6 @@
 package net.querz.mca;
 
+import com.volmit.iris.Iris;
 import io.timeandspace.smoothie.OptimizationObjective;
 import io.timeandspace.smoothie.SmoothieMap;
 import net.querz.nbt.tag.ByteArrayTag;
@@ -27,6 +28,7 @@ public class Section {
 
 	public Section(CompoundTag sectionRoot, int dataVersion) {
 		this(sectionRoot, dataVersion, ALL_DATA);
+		Iris.warnsmoothie();
 	}
 
 	public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {

@@ -1,5 +1,6 @@
 package net.querz.nbt.tag;
 
+import com.volmit.iris.Iris;
 import io.timeandspace.smoothie.OptimizationObjective;
 import io.timeandspace.smoothie.SmoothieMap;
 import net.querz.io.MaxDepthIO;
@@ -13,6 +14,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 
 	public CompoundTag() {
 		super(createEmptyValue());
+		Iris.warnsmoothie();
 	}
 
 	@Override

@@ -218,6 +218,7 @@ public class IrisObject extends IrisRegistrant
 
 	public IrisObject(int w, int h, int d)
 	{
+		Iris.warnsmoothie();
 		blocks = SmoothieMap.<BlockVector, BlockData>newBuilder()
 				.doShrink(true)
 				.optimizeFor(OptimizationObjective.LOW_GARBAGE)

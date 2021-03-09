@@ -2,15 +2,9 @@ package com.volmit.iris.manager.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
-import com.volmit.iris.util.C;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.GameMode;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 public class CommandIrisStudioOpen extends MortarCommand
 {
@@ -40,14 +34,6 @@ public class CommandIrisStudioOpen extends MortarCommand
 		{
 			sender.sendMessage("/iris std open <DIMENSION> (file name without .json)");
 			return true;
-		}
-
-		if(sender.isPlayer())
-		{
-			sender.player().setGameMode(GameMode.SPECTATOR);
-			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 2000, 10));
-			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 2000, 10));
-			sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
 		}
 
 		Iris.proj.open(sender, args[0]);

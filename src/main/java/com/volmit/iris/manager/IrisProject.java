@@ -14,6 +14,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
@@ -59,6 +61,11 @@ public class IrisProject
 		{
 			sender.sendMessage("Can't find dimension: " + getName());
 			return;
+		} else if(sender.isPlayer()){
+			sender.player().setGameMode(GameMode.SPECTATOR);
+			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 2000, 10));
+			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 2000, 10));
+			sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
 		}
 
 		J.attemptAsync(() ->

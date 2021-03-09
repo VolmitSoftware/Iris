@@ -11,7 +11,6 @@ import com.volmit.iris.scaffold.engine.EngineCompound;
 import com.volmit.iris.scaffold.engine.EngineData;
 import com.volmit.iris.scaffold.engine.EngineTarget;
 import com.volmit.iris.scaffold.hunk.Hunk;
-import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
@@ -54,7 +53,7 @@ public class IrisEngineCompound implements EngineCompound {
     private final IrisDimension rootDimension;
 
     @Getter
-    private int threadCount;
+    private final int threadCount = -1;
 
     @Getter
     @Setter
@@ -83,31 +82,29 @@ public class IrisEngineCompound implements EngineCompound {
                     Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
                     Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
                     Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
-                    CompletableFuture<Object> cf = new CompletableFuture<>();
-                    Object BP = null;
                     getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
                         if (bp == null){
                             throw new NullPointerException();
                         }
                         strongholds.add(new IrisPosition((int) new V(bp, false).invoke("getX"), (int) new V(bp, false).invoke("getY"), (int) new V(bp, false).invoke("getZ")));
-                        String positions = "";
+                        StringBuilder positions = new StringBuilder();
                         for (IrisPosition pos : strongholds){
-                            positions += "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ") ";
+                            positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
                         }
                         Iris.info("Strongholds (" + engineMetadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
                     });
 
                     engineMetadata.setStrongholdPositions(strongholds);
-                } catch (Throwable ignored) {
-                    strongholds.add( new IrisPosition(10337, 32, -1337) );
+                } catch (Throwable e) {
+                    strongholds.add( new IrisPosition(1337, 32, -1337) );
                     engineMetadata.setStrongholdPositions(strongholds);
                     Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
                     Iris.warn("  -> Setting default stronghold position");
-                    ignored.printStackTrace();
+                    e.printStackTrace();
                     Iris.info("Got this far (3)");
-                    String positions = "";
+                    StringBuilder positions = new StringBuilder();
                     for (IrisPosition pos : strongholds){
-                        positions += "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ") ";
+                        positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
                     }
                     Iris.info("Strongholds (" + engineMetadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
                 }
@@ -303,8 +300,6 @@ public class IrisEngineCompound implements EngineCompound {
         {
             int i;
             int offset = 0;
-            BurstExecutor e = burster.burst();
-            Runnable[] insert = new Runnable[engines.length];
 
             for(i = 0; i < engines.length; i++)
             {

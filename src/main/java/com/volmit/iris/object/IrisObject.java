@@ -21,6 +21,7 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
 
 import java.io.*;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
@@ -103,8 +104,8 @@ public class IrisObject extends IrisRegistrant
 				{
 					if(getBlocks().containsKey(new BlockVector(ray, rayY, rayZ)))
 					{
-						start = ray < start ? ray : start;
-						end = ray > end ? ray : end;
+						start = Math.min(ray, start);
+						end = Math.max(ray, end);
 					}
 				}
 
@@ -136,8 +137,8 @@ public class IrisObject extends IrisRegistrant
 				{
 					if(getBlocks().containsKey(new BlockVector(rayX, ray, rayZ)))
 					{
-						start = ray < start ? ray : start;
-						end = ray > end ? ray : end;
+						start = Math.min(ray, start);
+						end = Math.max(ray, end);
 					}
 				}
 
@@ -169,8 +170,8 @@ public class IrisObject extends IrisRegistrant
 				{
 					if(getBlocks().containsKey(new BlockVector(rayX, rayY, ray)))
 					{
-						start = ray < start ? ray : start;
-						end = ray > end ? ray : end;
+						start = Math.min(ray, start);
+						end = Math.max(ray, end);
 					}
 				}
 
@@ -204,12 +205,12 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : getBlocks().keySet())
 		{
-			o.getBlocks().put(i.clone(), getBlocks().get(i).clone());
+			o.getBlocks().put(i.clone(), Objects.requireNonNull(getBlocks().get(i)).clone());
 		}
 
 		for(BlockVector i : getStates().keySet())
 		{
-			o.getStates().put(i.clone(), getStates().get(i).clone());
+			o.getStates().put(i.clone(), Objects.requireNonNull(getStates().get(i)).clone());
 		}
 
 		return o;
@@ -266,7 +267,7 @@ public class IrisObject extends IrisRegistrant
 			}
 		}
 
-		catch(Throwable e)
+		catch(Throwable ignored)
 		{
 
 		}
@@ -335,7 +336,7 @@ public class IrisObject extends IrisRegistrant
 			dos.writeShort(i.getBlockX());
 			dos.writeShort(i.getBlockY());
 			dos.writeShort(i.getBlockZ());
-			dos.writeShort(palette.indexOf(getBlocks().get(i).getAsString()));
+			dos.writeShort(palette.indexOf(Objects.requireNonNull(getBlocks().get(i)).getAsString()));
 		}
 
 		dos.writeInt(getStates().size());
@@ -344,7 +345,7 @@ public class IrisObject extends IrisRegistrant
 			dos.writeShort(i.getBlockX());
 			dos.writeShort(i.getBlockY());
 			dos.writeShort(i.getBlockZ());
-			getStates().get(i).toBinary(dos);
+			Objects.requireNonNull(getStates().get(i)).toBinary(dos);
 		}
 	}
 
@@ -389,7 +390,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : getBlocks().keySet())
 		{
-			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getBlocks().get(i));
+			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
 		}
 
 		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
@@ -400,12 +401,12 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : getBlocks().keySet())
 		{
-			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getBlocks().get(i));
+			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
 		}
 
 		for(BlockVector i : getStates().keySet())
 		{
-			dx.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), getStates().get(i));
+			dx.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getStates().get(i)));
 		}
 
 		blocks = d;
@@ -627,7 +628,7 @@ public class IrisObject extends IrisRegistrant
 			{
 				for(int j = y - Math.floorDiv(h, 2) - config.getBoreExtendMinY() + (int) offset.getY(); j <= y + Math.floorDiv(h, 2) + config.getBoreExtendMaxY() - (h % 2 == 0 ? 1 : 0) + (int) offset.getY(); j++)
 				{
-					for(int k = (int) (z - Math.floorDiv(d, 2) + (int) offset.getZ()); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0) + (int) offset.getX(); k++)
+					for(int k = z - Math.floorDiv(d, 2) + (int) offset.getZ(); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0) + (int) offset.getX(); k++)
 					{
 						placer.set(i, j, k, AIR);
 					}
@@ -640,7 +641,7 @@ public class IrisObject extends IrisRegistrant
 		readLock.lock();
 		for(BlockVector g : getBlocks().keySet())
 		{
-			BlockData d = null;
+			BlockData d;
 			TileData<? extends TileState> tile = null;
 
 			try
@@ -751,7 +752,7 @@ public class IrisObject extends IrisRegistrant
 			readLock.lock();
 			for(BlockVector g : getBlocks().keySet())
 			{
-				BlockData d = null;
+				BlockData d;
 
 				try
 				{
@@ -847,7 +848,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : getBlocks().keySet())
 		{
-			d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(getBlocks().get(i).clone(), spinx, spiny, spinz));
+			d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(Objects.requireNonNull(getBlocks().get(i)).clone(), spinx, spiny, spinz));
 		}
 
 		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
@@ -858,7 +859,7 @@ public class IrisObject extends IrisRegistrant
 
 		for(BlockVector i : getStates().keySet())
 		{
-			dx.put(r.rotate(i.clone(), spinx, spiny, spinz), getStates().get(i));
+			dx.put(r.rotate(i.clone(), spinx, spiny, spinz), Objects.requireNonNull(getStates().get(i)));
 		}
 
 		blocks = d;
@@ -870,13 +871,13 @@ public class IrisObject extends IrisRegistrant
 		for(BlockVector i : getBlocks().keySet())
 		{
 			Block b = at.clone().add(0, getCenter().getY(), 0).add(i).getBlock();
-			b.setBlockData(getBlocks().get(i), false);
+			b.setBlockData(Objects.requireNonNull(getBlocks().get(i)), false);
 
 			if(getStates().containsKey(i))
 			{
-				Iris.info(states.get(i).toString());
+				Iris.info(Objects.requireNonNull(states.get(i)).toString());
 				BlockState st = b.getState();
-				getStates().get(i).toBukkitTry(st);
+				Objects.requireNonNull(getStates().get(i)).toBukkitTry(st);
 				st.update();
 			}
 		}
@@ -887,11 +888,11 @@ public class IrisObject extends IrisRegistrant
 		for(BlockVector i : getBlocks().keySet())
 		{
 			Block b = at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock();
-			b.setBlockData(getBlocks().get(i), false);
+			b.setBlockData(Objects.requireNonNull(getBlocks().get(i)), false);
 
 			if(getStates().containsKey(i))
 			{
-				getStates().get(i).toBukkitTry(b.getState());
+				Objects.requireNonNull(getStates().get(i)).toBukkitTry(b.getState());
 			}
 		}
 	}

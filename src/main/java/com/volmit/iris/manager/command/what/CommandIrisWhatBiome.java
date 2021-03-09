@@ -38,6 +38,7 @@ public class CommandIrisWhatBiome extends MortarCommand
 			{
 
 				IrisAccess g = IrisWorlds.access(w);
+				assert g != null;
 				IrisBiome b = g.getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
 				sender.sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
 			}

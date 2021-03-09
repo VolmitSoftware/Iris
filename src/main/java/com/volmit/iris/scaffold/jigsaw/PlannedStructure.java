@@ -41,7 +41,7 @@ public class PlannedStructure {
 
         for(int i = 0; i < structure.getMaxDepth(); i++)
         {
-            generateOutwards(i);
+            generateOutwards();
         }
 
         generateTerminators();
@@ -116,7 +116,7 @@ public class PlannedStructure {
         {
             if(j.getSpawnEntity() != null && h != -1)
             {
-                IrisPosition p = null;
+                IrisPosition p;
                 if (j.getEntityPosition() == null){
                     p = new IrisPosition(j.getDirection().toVector().multiply(2));
                 } else {
@@ -139,8 +139,6 @@ public class PlannedStructure {
 
         if(options.isVacuum())
         {
-            int dx = xx;
-            int dz = zz;
             double a = Math.max(v.getW(), v.getD());
             IrisFeature f = new IrisFeature();
             f.setConvergeToHeight(h - (v.getH() >> 1)-1);
@@ -148,9 +146,9 @@ public class PlannedStructure {
             f.setInterpolationRadius(a/4);
             f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
             f.setStrength(1D);
-            e.getParallaxAccess().getMetaRW(dx>>4, dz>>4)
+            e.getParallaxAccess().getMetaRW(xx >>4, zz >>4)
                     .getFeatures()
-                    .add(new IrisFeaturePositional(dx, dz, f));
+                    .add(new IrisFeaturePositional(xx, zz, f));
         }
     }
 
@@ -179,7 +177,7 @@ public class PlannedStructure {
         }
     }
 
-    private void generateOutwards(int layer) {
+    private void generateOutwards() {
         for(PlannedPiece i : getPiecesWithAvailableConnectors().shuffleCopy(rng))
         {
             if(!generatePieceOutwards(i))
@@ -221,18 +219,17 @@ public class PlannedStructure {
 
         for(Integer i : forder1)
         {
-            if(pieceConnector.isRotateConnector() && !pieceConnector.getDirection().getAxis().equals(Axis.Y))
-            {
-                for(Integer j : forder2)
-                {
-                    if(pieceConnector.getDirection().getAxis().equals(Axis.X) && generateRotatedPiece(piece, pieceConnector, idea, j, i, 0))
-                    {
-                        return true;
-                    }
+            if(pieceConnector.isRotateConnector()) {
+                assert pieceConnector.getDirection().getAxis() != null;
+                if (!pieceConnector.getDirection().getAxis().equals(Axis.Y)) {
+                    for (Integer j : forder2) {
+                        if (pieceConnector.getDirection().getAxis().equals(Axis.X) && generateRotatedPiece(piece, pieceConnector, idea, j, i, 0)) {
+                            return true;
+                        }
 
-                    if(pieceConnector.getDirection().getAxis().equals(Axis.Z) && generateRotatedPiece(piece, pieceConnector, idea, 0, i, j))
-                    {
-                        return true;
+                        if (pieceConnector.getDirection().getAxis().equals(Axis.Z) && generateRotatedPiece(piece, pieceConnector, idea, 0, i, j)) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -339,7 +336,7 @@ public class PlannedStructure {
         if(getStructure().isTerminate())
         {
             terminating = true;
-            generateOutwards(structure.getMaxDepth());
+            generateOutwards();
         }
     }
 

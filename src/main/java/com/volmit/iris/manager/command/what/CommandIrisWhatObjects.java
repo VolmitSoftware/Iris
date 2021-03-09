@@ -233,7 +233,7 @@ public class CommandIrisWhatObjects extends MortarCommand
 					stop.add(i);
 				}
 
-				catch(Throwable e)
+				catch(Throwable ignored)
 				{
 
 				}

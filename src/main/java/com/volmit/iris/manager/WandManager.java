@@ -150,7 +150,7 @@ public class WandManager implements Listener
 	{
 		try
 		{
-			if(e.getHand().equals(EquipmentSlot.HAND) && isWand(e.getPlayer().getInventory().getItemInMainHand()))
+			if(Objects.equals(e.getHand(), EquipmentSlot.HAND) && isWand(e.getPlayer().getInventory().getItemInMainHand()))
 			{
 				if(e.getAction().equals(Action.LEFT_CLICK_BLOCK))
 				{

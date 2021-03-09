@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.stream;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.stream.arithmetic.*;
 import com.volmit.iris.scaffold.stream.convert.*;
@@ -15,7 +16,13 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T>
 {
 	public static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f)
 	{
-		return of(f, Interpolated.DOUBLE);
+		try {
+			return of(f, Interpolated.DOUBLE);
+		} catch (IncompatibleClassChangeError e){
+			Iris.warn(f.toString());
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	public static ProceduralStream<Double> ofDouble(Function3<Double, Double, Double, Double> f)

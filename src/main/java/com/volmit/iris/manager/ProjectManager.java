@@ -16,6 +16,7 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.UUID;
 
 @Data
@@ -308,16 +309,16 @@ public class ProjectManager
 			return cacheListing;
 		}
 
-		JSONArray a = new JSONArray();
+		JSONArray a;
 
 		if(cached)
 		{
-			a = new JSONArray(Iris.getCached("cachedlisting", LISTING));
+			a = new JSONArray(Objects.requireNonNull(Iris.getCached("cachedlisting", LISTING)));
 		}
 
 		else
 		{
-			a = new JSONArray(Iris.getNonCached(!cached + "listing", LISTING));
+			a = new JSONArray(Iris.getNonCached(true + "listing", LISTING));
 		}
 
 		KMap<String, String> l = new KMap<>();
@@ -331,7 +332,7 @@ public class ProjectManager
 				l.put(v[0], v[1]);
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}

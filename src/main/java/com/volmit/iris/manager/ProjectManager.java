@@ -347,12 +347,18 @@ public class ProjectManager
 
 	public void open(MortarSender sender, String dimm)
 	{
-		open(sender, dimm, () ->
-		{
-			if (sender.isPlayer()) {
-				sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
-			}
-		});
+		try {
+			open(sender, dimm, () ->
+			{
+				if (sender.isPlayer()) {
+					sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
+				}
+			});
+		} catch (Exception e){
+			sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
+			sender.sendMessage("Error when creating studio world:");
+			e.printStackTrace();
+		}
 	}
 
 	public void open(MortarSender sender, String dimm, Runnable onDone)

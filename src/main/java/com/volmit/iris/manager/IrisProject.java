@@ -85,7 +85,9 @@ public class IrisProject
 
 						if(IrisSettings.get().getStudio().isOpenVSCode())
 						{
-							Desktop.getDesktop().open(i);
+							if (!GraphicsEnvironment.isHeadless()) {
+								Desktop.getDesktop().open(i);
+							}
 						}
 
 						break;

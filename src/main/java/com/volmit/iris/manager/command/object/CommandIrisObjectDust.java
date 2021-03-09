@@ -12,7 +12,7 @@ public class CommandIrisObjectDust extends MortarCommand
 {
 	public CommandIrisObjectDust()
 	{
-		super("dust", "dst");
+		super("dust", "dst", "d");
 		requiresPermission(Iris.perm);
 		setCategory("Object");
 		setDescription("Get a powder that reveals placed objects");

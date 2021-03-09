@@ -349,9 +349,11 @@ public class ProjectManager
 	{
 		open(sender, dimm, () ->
 		{
-			sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
-			sender.player().removePotionEffect(PotionEffectType.CONFUSION);
-			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 20, 1));
+			if (sender.isPlayer()) {
+				sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
+				sender.player().removePotionEffect(PotionEffectType.CONFUSION);
+				sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 20, 1));
+			}
 		});
 	}
 

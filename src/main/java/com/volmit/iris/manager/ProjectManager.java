@@ -8,7 +8,6 @@ import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.Data;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
@@ -352,8 +351,6 @@ public class ProjectManager
 		{
 			if (sender.isPlayer()) {
 				sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
-				sender.player().removePotionEffect(PotionEffectType.CONFUSION);
-				sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 20, 1));
 			}
 		});
 	}

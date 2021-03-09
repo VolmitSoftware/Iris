@@ -64,7 +64,6 @@ public class IrisProject
 		} else if(sender.isPlayer()){
 			sender.player().setGameMode(GameMode.SPECTATOR);
 			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 2000, 10));
-			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 2000, 10));
 			sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
 		}
 
@@ -93,6 +92,8 @@ public class IrisProject
 						if(IrisSettings.get().getStudio().isOpenVSCode())
 						{
 							if (!GraphicsEnvironment.isHeadless()) {
+								Iris.msg("Opening VSCode. You may see the output from VSCode.");
+								Iris.msg("VSCode output always starts with: '(node:#####) electron'");
 								Desktop.getDesktop().open(i);
 							}
 						}

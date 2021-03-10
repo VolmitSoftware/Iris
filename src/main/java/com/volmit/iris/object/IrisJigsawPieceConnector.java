@@ -31,7 +31,7 @@ public class IrisJigsawPieceConnector
 	private boolean rotateConnector = false;
 
 	@DontObfuscate
-	@Desc("If set to true, this connector @ is allowed to place pieces inside of it's own piece. For example if you are adding a light post, or house on top of a path piece, you would set this to true to allow the piece to collide with the path bounding box.")
+	@Desc("If set to true, this connector is allowed to place pieces inside of it's own piece. For example if you are adding a light post, or house on top of a path piece, you would set this to true to allow the piece to collide with the path bounding box.")
 	private boolean innerConnector = false;
 
 	@RegistryListJigsawPool

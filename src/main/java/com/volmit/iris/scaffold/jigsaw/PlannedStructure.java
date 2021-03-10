@@ -114,11 +114,11 @@ public class PlannedStructure {
 
         for(IrisJigsawPieceConnector j : i.getAvailableConnectors())
         {
-            if(j.getSpawnEntity() != null && h != -1)
+            if(j.getSpawnEntity() != null)// && h != -1)
             {
                 IrisPosition p;
                 if (j.getEntityPosition() == null){
-                    p = new IrisPosition(j.getDirection().toVector().multiply(2));
+                    p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
                 } else {
                     p = i.getWorldPosition(j).add(j.getEntityPosition());
                 }
@@ -132,7 +132,9 @@ public class PlannedStructure {
                 {
                     p.setY(height);
                 }
-
+                if (j.getSpawnEntity().equals("villager")){
+                    Iris.msg("Spawning villager on jigsaw @" + p.getX() + "/" + p.getY() + "/" + p.getZ());
+                }
                 e.getParallaxAccess().setEntity(p.getX(), p.getY(), p.getZ(), j.getSpawnEntity());
             }
         }

@@ -680,11 +680,12 @@ public class IrisObject extends IrisRegistrant
 
 			for(IrisObjectReplace j : config.getEdit())
 			{
-				for(BlockData k : j.getFind(rdata))
-				{
-					if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial()))
+				if (rng.chance(j.getChance())) {
+					for(BlockData k : j.getFind(rdata))
 					{
-						data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+						if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
+							data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+						}
 					}
 				}
 			}

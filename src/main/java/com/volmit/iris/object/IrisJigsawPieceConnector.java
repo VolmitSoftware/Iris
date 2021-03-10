@@ -46,6 +46,12 @@ public class IrisJigsawPieceConnector
 	private String spawnEntity;
 
 	@DontObfuscate
+	@MaxNumber(50)
+	@MinNumber(1)
+	@Desc("The amount of entities to spawn (must be a whole number)")
+	private int entityCount = 1;
+
+	@DontObfuscate
 	@Desc("The relative position this connector is located at for connecting to other pieces")
 	@Required
 	private IrisPosition position = new IrisPosition(0,0,0);

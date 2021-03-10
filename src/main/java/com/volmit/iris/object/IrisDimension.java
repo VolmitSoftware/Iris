@@ -166,7 +166,7 @@ public class IrisDimension extends IrisRegistrant
 
 	@DontObfuscate
 	@Desc("Generate ravines or not")
-	private boolean ravines = true;
+	private boolean ravines = false;
 
 	@MinNumber(1)
 	@DontObfuscate

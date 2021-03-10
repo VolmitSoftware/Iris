@@ -3,12 +3,7 @@ package com.volmit.iris.object;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.util.*;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,6 +32,12 @@ public class IrisObjectReplace
 	@Desc("Exactly match the block data or not")
 	@DontObfuscate
 	private boolean exact = false;
+
+	@MinNumber(0)
+	@MaxNumber(1)
+	@Desc("Modifies the chance the block is replaced")
+	@DontObfuscate
+	private float chance = 1;
 
 	private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
 	private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();

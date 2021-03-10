@@ -22,7 +22,7 @@ public class CommandIrisObjectPaste extends MortarCommand
 {
 	public CommandIrisObjectPaste()
 	{
-		super("paste", "pasta");
+		super("paste", "pasta", "place", "p");
 		requiresPermission(Iris.perm);
 		setCategory("Object");
 		setDescription("Paste an object");

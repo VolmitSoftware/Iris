@@ -11,7 +11,7 @@ public class CommandIrisStudioTPStudio extends MortarCommand
 {
 	public CommandIrisStudioTPStudio()
 	{
-		super("tps", "tpstudio");
+		super("tps", "stp", "tpstudio");
 		requiresPermission(Iris.perm.studio);
 		setDescription("Go to the spawn of the currently open studio world.");
 		setCategory("Studio");

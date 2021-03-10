@@ -132,9 +132,6 @@ public class PlannedStructure {
                 {
                     p.setY(height);
                 }
-                if (j.getSpawnEntity().equals("villager")){
-                    Iris.msg("Spawning villager on jigsaw @" + p.getX() + "/" + p.getY() + "/" + p.getZ());
-                }
                 for (int k = 0; k < j.getEntityCount(); k++) {
                     e.getParallaxAccess().setEntity(p.getX(), p.getY(), p.getZ(), j.getSpawnEntity());
                 }

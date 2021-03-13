@@ -1,21 +1,14 @@
+VOLMIT SOFTWARE PUBLIC LICENSE
 
-
-VOLMIT SOFTWARE PRIVATE LICENSE
-
-Version 1.0, 24 February 2021
+Version 1.2, 13 March 2021
 
 Copyright :copyright: 2021 Andrew Baker
-
-
-Preamble
-
-This license pertains to any of Volmit Software's private repositories. 
 
 TERMS AND CONDITIONS
 
 0. Definitions
 
-"License" refers to this file.
+"License" refers to this file. An updated version is available at <https://github.com/VolmitSoftware/Licenses>. The version at <https://github.com/VolmitSoftware/Licenses> is always correct and up-to-date.
 
 "Author" refers to the person Andrew Baker <andrew@andrewcbaker.net>.
 
@@ -29,17 +22,14 @@ TERMS AND CONDITIONS
 
 "Compile" refers to the act of building the Content into an executable file such as a JAR file.
 
-1. You may not host, copy, Modify, distribute, create derivative works, or distribute derivative works of the Content without explicit, written permission from the Author.
+1. You may freely copy, Modify, distribute, create derivative works, or distribute derivative works of the Content as long as you obey the unmodified License that is supplied with the Content.
 
-2. You may not host, copy, Modify, or distribute the Content in such a way that it will, directly or indirectly, generate revenue without explicit, written permission from the Author.
+2. You may not copy, Modify, or distribute the Content in such a way that it will, directly or indirectly, generate revenue without explicit, written permission from the Author.
 
-3. You may not host publicly available download links to Compiled versions of the Content without explicit, written permission from the Author.
+3. You may not host publicly available download links to Compiled versions of the Content unless you are using less than 5% of the original Content in a Repository of your own.
 
-4. You may not host, copy, Modify, distribute, create derivative works, or distribute derivative works of the Content if you are Brian Fopiano <mypsn1550@gmail.com> or are associated with Brian Fopiano.
-
-5. For any conditions not outlined in the License, refer to your country or state laws for Copyright.
+4. For any conditions not outlined in the License, refer to your country or state laws for Copyright.
 
 5. If you do not agree to any of the above conditions you must delete the Content in its entirety as well as all copies of the Content and derivative works of the Content that you have made.
 
 END TERMS AND CONDITIONS
-

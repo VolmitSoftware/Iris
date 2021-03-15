@@ -12,9 +12,6 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<development.location.dan>${user.home}\Documents\development\server\plugins\${project.name}.jar</development.location.dan>
-		<development.location.brian>D:\Dan\MinecraftDevelopment\server\plugins\${project.name}.jar</development.location.brian>
-		<lint.in>${project.basedir}\lint\in.jar</lint.in>
 	</properties>
 	<build>
 		<resources>
@@ -58,96 +55,6 @@
 			</plugin>
 		</plugins>
 	</build>
-	<profiles>
-		<profile>
-			<id>dan</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2</version>
-						<executions>
-							<execution>
-								<id>runbatchfile</id>
-								<phase>package</phase>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<skip>${skip.copy}</skip>
-							<executable>${project.basedir}/scripts/copy.bat</executable>
-							<arguments>
-								<argument>${project.basedir}\target\${project.name}-${project.version}.jar</argument>
-								<argument>${development.location.dan}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>brian</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2</version>
-						<executions>
-							<execution>
-								<id>runbatchfile</id>
-								<phase>package</phase>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<skip>${skip.copy}</skip>
-							<executable>${project.basedir}/scripts/copy.bat</executable>
-							<arguments>
-								<argument>${project.basedir}\target\${project.name}-${project.version}.jar</argument>
-								<argument>${development.location.brian}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>release</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2</version>
-						<executions>
-							<execution>
-								<id>runbatchfile</id>
-								<phase>package</phase>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<skip>${skip.copy}</skip>
-							<executable>${project.basedir}/scripts/release.bat</executable>
-							<arguments>
-								<argument>${project.basedir}\target\${project.name}-${project.version}.jar</argument>
-								<argument>${lint.in}</argument>
-								<argument>${project.version}</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 	<repositories>
 		<repository>
 			<id>volmit</id>

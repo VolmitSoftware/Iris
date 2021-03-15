@@ -120,3 +120,6 @@ gradle-app.setting
 
 # Cache of project
 .gradletasknamecache
+
+# Custom folders
+release/

@@ -17,6 +17,8 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 public class ProjectManager
@@ -190,33 +192,50 @@ public class ProjectManager
 
 	public void downloadSearch(MortarSender sender, String key, boolean trim, boolean forceOverwrite)
 	{
-		String repo = getListing(false).get(key);
+		/*
+		 * Regex removes "/branch" from "IrisDimensions/repo/branch"
+		 * Results in "IrisDimensions/repo"
+		 */
+		final Pattern pattern = Pattern.compile("^[^/]*(?:/[^/]*)", Pattern.MULTILINE);
+		final Matcher matcher = pattern.matcher(getListing(false).get(key));
 
-		if(repo == null)
+		while (matcher.find())
 		{
-			sender.sendMessage("Couldn't find the pack '" + key + "' in the iris repo listing.");
-			return;
-		}
+			String repo = matcher.group(0);
+			/*
+			 * Regex removes "IrisDimensions/repo" from "IrisDimensions/repo/branch"
+			 * Results in "/branch"
+			 */
+			String branch = getListing(false).get(key).replaceAll("^[^/]*(?:/[^/]*)", "");
+			if(branch == null || branch.equals("")) {
+				branch = "/master";
+			}
+			if(repo == null)
+			{
+				sender.sendMessage("Couldn't find the pack '" + key + "' in the iris repo listing.");
+				return;
+			}
 
-		sender.sendMessage("Found '" + key + "' in the Iris Listing as " + repo);
-		try
-		{
-			download(sender, repo, trim, forceOverwrite);
-		}
-		catch(JsonSyntaxException | IOException e)
-		{
-			sender.sendMessage("Failed to download '" + key + "'.");
+			sender.sendMessage("Found '" + key + "' in the Iris Listing as " + repo + ", branch " + branch);
+			try
+			{
+				download(sender, repo, branch, trim, forceOverwrite);
+			}
+			catch(JsonSyntaxException | IOException e)
+			{
+				sender.sendMessage("Failed to download '" + key + "'.");
+			}
 		}
 	}
 
-	public void download(MortarSender sender, String repo, boolean trim) throws JsonSyntaxException, IOException
+	public void download(MortarSender sender, String repo, String branch, boolean trim) throws JsonSyntaxException, IOException
 	{
-		download(sender, repo, trim, false);
+		download(sender, repo, branch, trim, false);
 	}
 
-	public void download(MortarSender sender, String repo, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException
+	public void download(MortarSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException
 	{
-		String url = "https://codeload.github.com/" + repo + "/zip/master";
+		String url = "https://codeload.github.com/" + repo + "/zip" + branch;
 		sender.sendMessage("Downloading " + url);
 		File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
 		File temp = Iris.getTemp();

@@ -208,6 +208,7 @@ public class ProjectManager
 			 */
 			String branch = getListing(false).get(key).replaceAll("^[^/]*(?:/[^/]*)", "");
 			if(branch == null || branch.equals("")) {
+				sender.sendMessage("Couldn't find specific branch, assuming master");
 				branch = "/master";
 			}
 			if(repo == null)

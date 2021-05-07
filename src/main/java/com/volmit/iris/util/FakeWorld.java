@@ -17,6 +17,8 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Consumer;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
@@ -325,10 +327,18 @@ public class FakeWorld implements World
 		return null;
 	}
 
+	@NotNull @Override public Item dropItem(@NotNull Location location, @NotNull ItemStack itemStack, @Nullable Consumer<Item> consumer) {
+		return null;
+	}
+
 	@Override
 	public Item dropItemNaturally(Location location, ItemStack item)
 	{
 
+		return null;
+	}
+
+	@NotNull @Override public Item dropItemNaturally(@NotNull Location location, @NotNull ItemStack itemStack, @Nullable Consumer<Item> consumer) {
 		return null;
 	}
 
@@ -535,6 +545,10 @@ public class FakeWorld implements World
 		return false;
 	}
 
+	@Override public boolean setSpawnLocation(int i, int i1, int i2, float v) {
+		return false;
+	}
+
 	@Override
 	public boolean setSpawnLocation(int x, int y, int z)
 	{
@@ -566,6 +580,10 @@ public class FakeWorld implements World
 	public void setFullTime(long time)
 	{
 
+	}
+
+	@Override public long getGameTime() {
+		return 0;
 	}
 
 	@Override
@@ -618,6 +636,18 @@ public class FakeWorld implements World
 	public void setThunderDuration(int duration)
 	{
 
+	}
+
+	@Override public boolean isClearWeather() {
+		return false;
+	}
+
+	@Override public void setClearWeatherDuration(int i) {
+
+	}
+
+	@Override public int getClearWeatherDuration() {
+		return 0;
 	}
 
 	@Override
@@ -860,6 +890,10 @@ public class FakeWorld implements World
 	public double getHumidity(int x, int y, int z)
 	{
 
+		return 0;
+	}
+
+	@Override public int getMinHeight() {
 		return 0;
 	}
 

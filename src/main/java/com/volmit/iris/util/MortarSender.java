@@ -1,6 +1,7 @@
 package com.volmit.iris.util;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -12,6 +13,8 @@ import org.bukkit.plugin.Plugin;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a volume sender. A command sender with extra crap in it
@@ -191,6 +194,16 @@ public class MortarSender implements CommandSender
 	{
 		for(String str : messages)
 			s.sendMessage(C.translateAlternateColorCodes('&', getTag() + str));
+	}
+
+	@Override
+	public void sendMessage(@Nullable UUID uuid, @NotNull String message) {
+		sendMessage(message);
+	}
+
+	@Override
+	public void sendMessage(@Nullable UUID uuid, @NotNull String[] messages) {
+		sendMessage(messages);
 	}
 
 	@Override

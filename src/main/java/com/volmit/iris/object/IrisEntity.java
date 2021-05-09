@@ -264,6 +264,10 @@ public class IrisEntity extends IrisRegistrant
 			((Panda) e).setMainGene(getPandaHiddenGene());
 		}
 
+		if (e instanceof Villager) {
+			((Villager) e).setRemoveWhenFarAway(false);
+		}
+
 		if(Iris.awareEntities && e instanceof Mob)
 		{
 			Mob m = (Mob) e;

@@ -149,6 +149,7 @@ public class IrisEntity extends IrisRegistrant
 		e.setGravity(isGravity());
 		e.setInvulnerable(isInvulnerable());
 		e.setSilent(isSilent());
+		e.setPersistent(true);
 
 		int gg = 0;
 		for(IrisEntity i : passengers)

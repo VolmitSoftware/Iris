@@ -109,7 +109,8 @@ public class CommandIrisPregen extends MortarCommand
 				sender.sendMessage("Invalid argument in command");
 				return true;
 			} catch (NullPointerException e){
-				sender.sendMessage("No radius specified");
+				e.printStackTrace();
+				sender.sendMessage("No radius specified (check error in console)");
 			} catch (HeadlessException e){
 				sender.sendMessage("If you are seeing this and are using a hosted server, please turn off 'useServerLaunchedGUIs' in the settings");
 			}

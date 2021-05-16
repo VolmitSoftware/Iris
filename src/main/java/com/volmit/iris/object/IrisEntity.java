@@ -8,7 +8,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attributable;
 import org.bukkit.entity.*;
@@ -265,7 +267,13 @@ public class IrisEntity extends IrisRegistrant
 		}
 
 		if (e instanceof Villager) {
-			((Villager) e).setRemoveWhenFarAway(false);
+			Villager villager = (Villager) e;
+			villager.setRemoveWhenFarAway(false);
+			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+				villager.setPersistent(true);
+				villager.setCustomName(" ");
+				villager.setCustomNameVisible(false);
+			},1);
 		}
 
 		if(Iris.awareEntities && e instanceof Mob)

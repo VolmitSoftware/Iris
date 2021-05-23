@@ -12,7 +12,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -20,13 +19,17 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.awt.Color;
-import java.util.Iterator;
 import java.util.Objects;
 
-public class WandManager implements Listener
-{
+public class WandManager implements Listener {
+
+	private static ItemStack wand;
+	private static ItemStack dust;
+
 	public WandManager()
 	{
+		wand = createWand();
+		dust = createDust();
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
 		{
 			for(Player i : Bukkit.getOnlinePlayers())
@@ -34,7 +37,6 @@ public class WandManager implements Listener
 				tick(i);
 			}
 		}, 0, 5);
-		Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 	}
 
 	public void tick(Player p)
@@ -48,7 +50,7 @@ public class WandManager implements Listener
 			}
 		}
 
-		catch(Throwable e)
+		catch(Throwable ignored)
 		{
 
 		}
@@ -94,9 +96,6 @@ public class WandManager implements Listener
 						boolean jj = j == minx || j == maxx;
 						boolean kk = k == miny || k == maxy;
 						boolean ll = l == minz || l == maxz;
-						double aa = j;
-						double bb = k;
-						double cc = l;
 
 						if((jj && kk) || (jj && ll) || (ll && kk))
 						{
@@ -132,8 +131,8 @@ public class WandManager implements Listener
 								push.add(new Vector(0, 0, 0.55));
 							}
 
-							Location lv = new Location(d[0].getWorld(), aa, bb, cc).clone().add(0.5, 0.5, 0.5).clone().add(push);
-							Color color = Color.getHSBColor((float) (0.5f + (Math.sin((aa + bb + cc + (p.getTicksLived() / 2)) / 20f) / 2)), 1, 1);
+							Location lv = new Location(d[0].getWorld(), j, k, l).clone().add(0.5, 0.5, 0.5).clone().add(push);
+							Color color = Color.getHSBColor((float) (0.5f + (Math.sin((j + k + l + (p.getTicksLived() / 2)) / 20f) / 2)), 1, 1);
 							int r = color.getRed();
 							int g = color.getGreen();
 							int b = color.getBlue();
@@ -150,7 +149,7 @@ public class WandManager implements Listener
 	{
 		try
 		{
-			if(Objects.equals(e.getHand(), EquipmentSlot.HAND) && isWand(e.getPlayer().getInventory().getItemInMainHand()))
+			if(isWand(e.getPlayer()))
 			{
 				if(e.getAction().equals(Action.LEFT_CLICK_BLOCK))
 				{
@@ -169,7 +168,7 @@ public class WandManager implements Listener
 				}
 			}
 
-			if(e.getHand().equals(EquipmentSlot.HAND) && isDust(e.getPlayer().getInventory().getItemInMainHand()))
+			if(isDust(e.getPlayer()))
 			{
 				if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK))
 				{
@@ -204,13 +203,8 @@ public class WandManager implements Listener
 			Location[] f = getCuboid(wand);
 			Cuboid c = new Cuboid(f[0], f[1]);
 			IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-			Iterator<Block> bb = c.iterator();
-			while(bb.hasNext())
-			{
-				Block b = bb.next();
-
-				if(b.getType().equals(Material.AIR))
-				{
+			for (Block b : c) {
+				if (b.getType().equals(Material.AIR)) {
 					continue;
 				}
 
@@ -235,7 +229,7 @@ public class WandManager implements Listener
 		{
 			String[] f = s.split("\\Q in \\E");
 			String[] g = f[0].split("\\Q,\\E");
-			return new Location(Bukkit.getWorld(f[1]), Integer.valueOf(g[0]), Integer.valueOf(g[1]), Integer.valueOf(g[2]));
+			return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
 		}
 
 		catch(Throwable e)
@@ -273,22 +267,18 @@ public class WandManager implements Listener
 		return is;
 	}
 
-	public boolean isDust(ItemStack is)
+	public boolean isDust(Player p)
 	{
-		if(is == null || is.getType().equals(Material.AIR))
-		{
-			return false;
-		}
-
-		if(is.getType().equals(Material.GLOWSTONE_DUST))
-		{
-			return true;
-		}
-
-		return false;
+		ItemStack is = p.getInventory().getItemInMainHand();
+		return is != null && isDust(is);
 	}
 
-	public static ItemStack update(boolean left, Location a, ItemStack item)
+	public boolean isDust(ItemStack is)
+	{
+		return is.equals(dust);
+	}
+
+	public ItemStack update(boolean left, Location a, ItemStack item)
 	{
 		if(!isWand(item))
 		{
@@ -320,35 +310,24 @@ public class WandManager implements Listener
 		return is;
 	}
 
-	public static boolean isWand(Player p)
-	{
-		ItemStack is = p.getInventory().getItemInMainHand();
-		return !(is == null || !isWand(is));
-	}
-
 	public static Location[] getCuboid(ItemStack is)
 	{
 		ItemMeta im = is.getItemMeta();
 		return new Location[] {stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
 	}
 
-	public static boolean isWand(ItemStack item)
+	public static boolean isWand(Player p)
 	{
-		if(!item.getType().equals(createWand().getType()))
-		{
-			return false;
-		}
+		ItemStack is = p.getInventory().getItemInMainHand();
+		return is != null && is.equals(wand);
+	}
 
-		if(!item.getItemMeta().getEnchants().equals(createWand().getItemMeta().getEnchants()))
-		{
-			return false;
-		}
-
-		if(!item.getItemMeta().getDisplayName().equals(createWand().getItemMeta().getDisplayName()))
-		{
-			return false;
-		}
-
-		return true;
+	public static boolean isWand(ItemStack is)
+	{
+		if (is.getItemMeta() == null) return false;
+		return is.getType().equals(wand.getType()) &&
+				is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
+				is.getItemMeta().getEnchants().equals(wand.getItemMeta().getEnchants()) &&
+				is.getItemMeta().getItemFlags().equals(wand.getItemMeta().getItemFlags());
 	}
 }

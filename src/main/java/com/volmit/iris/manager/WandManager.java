@@ -319,11 +319,12 @@ public class WandManager implements Listener {
 	public static boolean isWand(Player p)
 	{
 		ItemStack is = p.getInventory().getItemInMainHand();
-		return is != null && is.equals(wand);
+		return is != null && isWand(is);
 	}
 
 	public static boolean isWand(ItemStack is)
 	{
+		ItemStack wand = createWand();
 		if (is.getItemMeta() == null) return false;
 		return is.getType().equals(wand.getType()) &&
 				is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&

@@ -31,7 +31,7 @@ public class EnginePlayer {
     {
         sample();
 
-        J.s(() -> {
+        J.a(() -> {
             if(region != null)
             {
                 for(IrisEffect j : region.getEffects())

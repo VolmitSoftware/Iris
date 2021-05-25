@@ -236,17 +236,6 @@ public class J
 	}
 
 	/**
-	 * Run a sync task
-	 *
-	 * @param r
-	 *            the runnable
-	 */
-	public static void sr(Runnable r)
-	{
-		Bukkit.getScheduler().runTask(Iris.instance, r);
-	}
-
-	/**
 	 * Queue a sync task
 	 *
 	 * @param r

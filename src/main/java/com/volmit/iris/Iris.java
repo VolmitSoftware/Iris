@@ -179,6 +179,7 @@ public class Iris extends VolmitPlugin
 		J.ar(this::checkConfigHotload, 50);
 		PaperLib.suggestPaper(this);
 		getServer().getPluginManager().registerEvents(new CommandLocate(), this);
+		getServer().getPluginManager().registerEvents(new WandManager() ,this);
 		super.onEnable();
 	}
 

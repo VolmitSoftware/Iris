@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -228,7 +229,16 @@ public class IrisEffect
 		if(sound != null)
 		{
 			Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-			p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+
+			J.s(() -> {
+				p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+				Iris.instance.getLogger().info("§bPlayer Location: " +
+						p.getLocation().getBlockX() + " " + p.getLocation().getBlockY() + " " + p.getLocation().getBlockZ() +
+						"   Sound Location: " + part.getBlockX() + " " + part.getBlockY() + " " + part.getBlockZ() +
+						"   Sound's Name: " + getSound().name());
+			});
+		} else {
+			Bukkit.getConsoleSender().sendMessage("Sound is null :(");
 		}
 
 		if(particleEffect != null)
@@ -239,12 +249,26 @@ public class IrisEffect
 			part.add(RNG.r.d(), 0, RNG.r.d());
 			if(extra != 0)
 			{
-				p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(), particleCount, randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX, randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY, randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ, extra);
+				J.s(() -> {
+					p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
+						part.getZ(),
+						particleCount,
+						randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+						randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+						randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
+						extra);
+				});
 			}
 
 			else
 			{
-				p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(), particleCount, randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX, randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY, randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ);
+				J.s(() -> {
+					p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
+							particleCount,
+							randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+							randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+							randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ);
+				});
 			}
 		}
 
@@ -258,10 +282,18 @@ public class IrisEffect
 					return;
 				}
 
-				p.removePotionEffect(getRealType());
+				J.s(() -> {
+					p.removePotionEffect(getRealType());
+				});
 			}
 
-			p.addPotionEffect(new PotionEffect(getRealType(), RNG.r.i(Math.min(potionTicksMax, potionTicksMin), Math.max(potionTicksMax, potionTicksMin)), getPotionStrength(), true, false, false));
+			J.s(() -> {
+				p.addPotionEffect(new PotionEffect(getRealType(),
+						RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
+								Math.max(potionTicksMax, potionTicksMin)),
+						getPotionStrength(),
+						true, false, false));
+			});
 		}
 	}
 }

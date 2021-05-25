@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -231,7 +232,13 @@ public class IrisEffect
 
 			J.sr(() -> {
 				p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+				Iris.instance.getLogger().info("§bPlayer Location: " +
+						p.getLocation().getBlockX() + " " + p.getLocation().getBlockY() + " " + p.getLocation().getBlockZ() +
+						"   Sound Location: " + part.getBlockX() + " " + part.getBlockY() + " " + part.getBlockZ() +
+						"   Sound's Name: " + getSound().name());
 			});
+		} else {
+			Bukkit.getConsoleSender().sendMessage("Sound is null :(");
 		}
 
 		if(particleEffect != null)
@@ -275,10 +282,18 @@ public class IrisEffect
 					return;
 				}
 
-				p.removePotionEffect(getRealType());
+				J.sr(() -> {
+					p.removePotionEffect(getRealType());
+				});
 			}
 
-			p.addPotionEffect(new PotionEffect(getRealType(), RNG.r.i(Math.min(potionTicksMax, potionTicksMin), Math.max(potionTicksMax, potionTicksMin)), getPotionStrength(), true, false, false));
+			J.sr(() -> {
+				p.addPotionEffect(new PotionEffect(getRealType(),
+						RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
+								Math.max(potionTicksMax, potionTicksMin)),
+						getPotionStrength(),
+						true, false, false));
+			});
 		}
 	}
 }

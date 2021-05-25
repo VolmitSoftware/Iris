@@ -77,7 +77,7 @@ public class IrisEntitySpawnOverride
 
 		if(rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)).i(1, getRarity()) == 1)
 		{
-			return getRealEntity(g).spawn(g, at, rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)));
+			return getRealEntity(g).spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().getSeed() + 4)));
 		}
 
 		return null;

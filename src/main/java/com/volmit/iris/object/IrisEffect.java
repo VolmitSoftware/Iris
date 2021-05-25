@@ -230,7 +230,7 @@ public class IrisEffect
 		{
 			Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
 
-			J.sr(() -> {
+			J.s(() -> {
 				p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch));
 				Iris.instance.getLogger().info("§bPlayer Location: " +
 						p.getLocation().getBlockX() + " " + p.getLocation().getBlockY() + " " + p.getLocation().getBlockZ() +
@@ -249,7 +249,7 @@ public class IrisEffect
 			part.add(RNG.r.d(), 0, RNG.r.d());
 			if(extra != 0)
 			{
-				J.sr(() -> {
+				J.s(() -> {
 					p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
 						part.getZ(),
 						particleCount,
@@ -262,7 +262,7 @@ public class IrisEffect
 
 			else
 			{
-				J.sr(() -> {
+				J.s(() -> {
 					p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
 							particleCount,
 							randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -282,12 +282,12 @@ public class IrisEffect
 					return;
 				}
 
-				J.sr(() -> {
+				J.s(() -> {
 					p.removePotionEffect(getRealType());
 				});
 			}
 
-			J.sr(() -> {
+			J.s(() -> {
 				p.addPotionEffect(new PotionEffect(getRealType(),
 						RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
 								Math.max(potionTicksMax, potionTicksMin)),

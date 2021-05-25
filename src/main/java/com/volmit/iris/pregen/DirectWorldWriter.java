@@ -240,9 +240,11 @@ public class DirectWorldWriter {
     private static Map<Biome, Integer> computeBiomeIDs() {
         Map<Biome, Integer> biomeIds = new KMap<>();
 
-        for(Biome i : Biome.values())
+        for(Biome biome : Biome.values())
         {
-            biomeIds.put(i, INMS.get().getBiomeId(i));
+            if (biome != Biome.CUSTOM) {
+                biomeIds.put(biome, INMS.get().getBiomeId(biome));
+            }
         }
 
         return biomeIds;

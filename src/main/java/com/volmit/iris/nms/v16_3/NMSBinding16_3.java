@@ -1,5 +1,6 @@
 package com.volmit.iris.nms.v16_3;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMSBinding;
 import com.volmit.iris.util.KMap;
 import net.minecraft.server.v1_16_R3.BiomeBase;
@@ -28,6 +29,12 @@ public class NMSBinding16_3 implements INMSBinding
 			return v;
 		}
 		v = org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
+		if (v == null) {
+			// Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
+			// But, this does NOT exist within CraftBukkit which makes it return an error.
+			// So, we will just return the ID that the plains biome returns instead.
+			return org.bukkit.craftbukkit.v1_16_R3.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, Biome.PLAINS);
+		}
 		baseBiomeCache.put(biome, v);
 		return v;
 	}

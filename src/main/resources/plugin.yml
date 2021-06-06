@@ -1,6 +1,6 @@
-name: ${project.name}
-version: ${project.version}
-main: com.volmit.iris.Iris
+name: ${name}
+version: ${version}
+main: ${main}
 load: STARTUP
 authors: [cyberpwn, NextdoorPsycho]
 website: volmit.com
@@ -8,5 +8,5 @@ description: More than a Dimenson!
 commands:
   iris:
     aliases: [ir, irs]
-api-version: 1.14
+api-version: ${apiversion}
 hotload-dependencies: false

@@ -1,10 +1,11 @@
 package com.volmit.iris.scaffold.hunk.storage;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
-import org.bouncycastle.util.Arrays;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.Arrays;
 
 @Data
 @EqualsAndHashCode(callSuper = false)

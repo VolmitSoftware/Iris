@@ -394,7 +394,7 @@ public class Iris extends VolmitPlugin
 	{
 		String h = IO.hash(name + "*" + url);
 		File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
-
+		Iris.verbose("Download " + name + " -> " + url);
 		try(BufferedInputStream in = new BufferedInputStream(new URL(url).openStream()); FileOutputStream fileOutputStream = new FileOutputStream(f))
 		{
 			byte[] dataBuffer = new byte[1024];
@@ -405,9 +405,9 @@ public class Iris extends VolmitPlugin
 			}
 		}
 
-		catch(IOException ignored)
+		catch(IOException e)
 		{
-
+			e.printStackTrace();
 		}
 
 		return f;

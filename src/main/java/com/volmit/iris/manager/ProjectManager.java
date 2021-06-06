@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 @Data
 public class ProjectManager
 {
-	public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing.json";
+	public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
 	public static final String WORKSPACE_NAME = "packs";
 	private KMap<String, String> cacheListing = null;
 	private IrisProject activeProject;
@@ -192,40 +192,24 @@ public class ProjectManager
 
 	public void downloadSearch(MortarSender sender, String key, boolean trim, boolean forceOverwrite)
 	{
-		/*
-		 * Regex removes "/branch" from "IrisDimensions/repo/branch"
-		 * Results in "IrisDimensions/repo"
-		 */
-		final Pattern pattern = Pattern.compile("^[^/]*(?:/[^/]*)", Pattern.MULTILINE);
-		final Matcher matcher = pattern.matcher(getListing(false).get(key));
+		String url = "?";
 
-		while (matcher.find())
+		try
 		{
-			String repo = matcher.group(0);
-			/*
-			 * Regex removes "IrisDimensions/repo" from "IrisDimensions/repo/branch"
-			 * Results in "/branch"
-			 */
-			String branch = getListing(false).get(key).replaceAll("^[^/]*(?:/[^/]*)", "");
-			if(branch == null || branch.equals("")) {
-				sender.sendMessage("Couldn't find specific branch, assuming master");
-				branch = "/master";
-			}
-			if(repo == null)
-			{
-				sender.sendMessage("Couldn't find the pack '" + key + "' in the iris repo listing.");
-				return;
-			}
+			url = getListing(false).get(key);
+			url = url == null ? key : url;
+			Iris.info("Assuming URL " + url);
+			String branch = "master";
+			String[] nodes = url.split("\\Q/\\E");
+			String repo = nodes[0] + "/" + nodes[1];
+			branch = nodes.length > 2 ? nodes[2] : branch;
+			download(sender, repo, branch, trim, forceOverwrite);
+		}
 
-			sender.sendMessage("Found '" + key + "' in the Iris Listing as " + repo + ", branch " + branch);
-			try
-			{
-				download(sender, repo, branch, trim, forceOverwrite);
-			}
-			catch(JsonSyntaxException | IOException e)
-			{
-				sender.sendMessage("Failed to download '" + key + "'.");
-			}
+		catch(Throwable e)
+		{
+			e.printStackTrace();
+			sender.sendMessage("Failed to download '" + key + "' from " + url + ".");
 		}
 	}
 
@@ -236,7 +220,7 @@ public class ProjectManager
 
 	public void download(MortarSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException
 	{
-		String url = "https://codeload.github.com/" + repo + "/zip" + branch;
+		String url = "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
 		sender.sendMessage("Downloading " + url);
 		File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
 		File temp = Iris.getTemp();
@@ -245,7 +229,8 @@ public class ProjectManager
 		sender.sendMessage("Unpacking " + repo);
 		try {
 			ZipUtil.unpack(zip, work);
-		} catch (Exception e){
+		} catch (Throwable e){
+			e.printStackTrace();
 			sender.sendMessage(
 				"Issue when unpacking. Please check/do the following:" +
 				"\n1. Do you have a functioning internet connection?" +
@@ -328,33 +313,23 @@ public class ProjectManager
 			return cacheListing;
 		}
 
-		JSONArray a;
+		JSONObject a;
 
 		if(cached)
 		{
-			a = new JSONArray(Objects.requireNonNull(Iris.getCached("cachedlisting", LISTING)));
+			a = new JSONObject(Iris.getCached("cachedlisting", LISTING));
 		}
 
 		else
 		{
-			a = new JSONArray(Iris.getNonCached(true + "listing", LISTING));
+			a = new JSONObject(Iris.getNonCached(true + "listing", LISTING));
 		}
 
 		KMap<String, String> l = new KMap<>();
 
-		for(int i = 0; i < a.length(); i++)
+		for(String i : a.keySet())
 		{
-			try
-			{
-				String m = a.getString(i).trim();
-				String[] v = m.split("\\Q \\E");
-				l.put(v[0], v[1]);
-			}
-
-			catch(Throwable ignored)
-			{
-
-			}
+			l.put(i, a.getString(i));
 		}
 
 		return l;

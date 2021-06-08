@@ -20,7 +20,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.awt.HeadlessException;
 import java.io.File;
 import java.io.IOException;
@@ -66,7 +65,7 @@ public class Pregenerator implements Listener
 	private final AtomicInteger vmcaz;
 	private final AtomicInteger vcax;
 	private final AtomicInteger vcaz;
-	private final long elapsed;
+	private final long startTime;
 	private final ChronoLatch latch;
 
 	public Pregenerator(World world, int blockSize, Runnable onComplete)
@@ -78,7 +77,7 @@ public class Pregenerator implements Listener
 	public Pregenerator(World world, int blockSize) throws HeadlessException
 	{
 		instance();
-		elapsed = M.ms();
+		startTime = M.ms();
 		latch = new ChronoLatch(5000);
 		memoryMetric = new AtomicReference<>("...");
 		method = new AtomicReference<>("STARTUP");
@@ -473,7 +472,7 @@ public class Pregenerator implements Listener
 	}
 
 	public String[] getProgress() {
-		long eta = (long) ((totalChunks.get() - generated.get()) * ((double)(M.ms() - elapsed) / (double) generated.get()));
+		long eta = (long) ((totalChunks.get() - generated.get()) / perSecond.getAverage());
 
 		return new String[]{
 				"Progress: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double)generated.get() / (double)totalChunks.get(), 0) + ")",
@@ -493,22 +492,17 @@ public class Pregenerator implements Listener
 	{
 		private Pregenerator job;
 		private static final long serialVersionUID = 2094606939770332040L;
-		private KList<Runnable> order = new KList<>();
-		private int res = 512;
+		private final KList<Runnable> order = new KList<>();
+		private final int res = 512;
 		Graphics2D bg;
 		private ReentrantLock l;
-		private BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
+		private final BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
 		private Consumer2<ChunkPosition,Color> func;
 		private JFrame frame;
 
 		public MCAPregenGui()
 		{
 
-		}
-
-		public void paint(int x, int z, Color c)
-		{
-			func.accept(new ChunkPosition(x, z), c);
 		}
 
 		@Override
@@ -525,21 +519,14 @@ public class Pregenerator implements Listener
 					order.pop().run();
 				}
 
-				catch(Throwable e)
+				catch(Throwable ignored)
 				{
 
 				}
 			}
 			l.unlock();
 
-			g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), new ImageObserver()
-			{
-				@Override
-				public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height)
-				{
-					return true;
-				}
-			});
+			g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), (img, infoflags, x, y, width, height) -> true);
 
 			g.setColor(Color.WHITE);
 			g.setFont(new Font("Hevetica", Font.BOLD, 28));

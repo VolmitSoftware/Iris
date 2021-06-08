@@ -242,9 +242,7 @@ public class DirectWorldWriter {
 
         for(Biome biome : Biome.values())
         {
-            if (biome != Biome.CUSTOM) {
-                biomeIds.put(biome, INMS.get().getBiomeId(biome));
-            }
+            biomeIds.put(biome, INMS.get().getBiomeId(biome));
         }
 
         return biomeIds;

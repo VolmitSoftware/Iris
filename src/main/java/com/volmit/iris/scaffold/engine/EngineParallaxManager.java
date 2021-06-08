@@ -526,6 +526,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         for(int i = 0; i < objectPlacement.getDensity(); i++)
         {
             IrisObject v = objectPlacement.getObject(getComplex(), rng);
+            if (v == null){
+                Iris.error("ParallaxManager tried placing an object but found none existed, where one was expected.");
+                return;
+            }
             int xx = rng.i(x, x+16);
             int zz = rng.i(z, z+16);
             int id = rng.i(0, Integer.MAX_VALUE);

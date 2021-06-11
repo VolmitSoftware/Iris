@@ -78,7 +78,6 @@ public class Pregenerator implements Listener
 	public Pregenerator(World world, int blockSize) throws HeadlessException
 	{
 		instance();
-		elapsed = M.ms();
 		latch = new ChronoLatch(5000);
 		memoryMetric = new AtomicReference<>("...");
 		method = new AtomicReference<>("STARTUP");
@@ -134,6 +133,8 @@ public class Pregenerator implements Listener
 				mcaDefer.add(new ChunkPosition(xx, zz));
 			}
 		});
+
+		elapsed = M.ms();
 
 		new Thread(() -> {
 			flushWorld();

@@ -70,6 +70,7 @@ public class IrisEngineCompound implements EngineCompound {
         engineMetadata.setLastVersion(Iris.instance.getDescription().getVersion());
 
 
+
         if(engineMetadata.getStrongholdPositions() == null || engineMetadata.getStrongholdPositions().size() == 0)
         {
             if(!(world instanceof FakeWorld || world instanceof HeightedFakeWorld))

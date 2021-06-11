@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
     private EngineCompound compound = null;
@@ -72,6 +74,39 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     }
                 }
             }
+        });
+    }
+
+    public void prepareSpawnAsync(long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
+    {
+        prepareSpawnAsync(256, seed, worldName, env, radius, progress, onComplete);
+    }
+
+    public void prepareSpawnAsync(int worldHeight, long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
+    {
+        FakeWorld world = new FakeWorld(worldHeight, seed, new File(worldName), env);
+        world.setWorldName(worldName);
+        AtomicInteger generated = new AtomicInteger();
+        int total = (int) Math.pow(radius * 2, 2);
+        MultiBurst.burst.lazy(() -> {
+            progress.accept(0D);
+            BurstExecutor burst = MultiBurst.burst.burst(total);
+            new Spiraler(radius * 2, radius * 2, (x, z) -> burst.queue(() -> {
+                try {
+                    precache(world, x, z);
+                    generated.getAndIncrement();
+                }
+
+                catch(Throwable e)
+                {
+                    e.printStackTrace();
+                }
+            })).drain();
+            burst.complete();
+            System.out.println("BURSTER FINISHED TOTAL IS " + total + " OF GENNED " + generated.get());
+            J.sleep(5000);
+            progress.accept(1D);
+            onComplete.run();
         });
     }
 
@@ -287,6 +322,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             return;
         }
 
+
+        System.out.println("INIT Get Dim");
         IrisDimension dim = getDimension(world);
         IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
         compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());

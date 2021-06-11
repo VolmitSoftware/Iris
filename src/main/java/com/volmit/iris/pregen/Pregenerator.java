@@ -473,7 +473,7 @@ public class Pregenerator implements Listener
 	}
 
 	public String[] getProgress() {
-		long eta = (long) ((totalChunks.get() - generated.get()) * ((double)(M.ms() - elapsed) / (double) generated.get()));
+		long eta = (long) ((totalChunks.get() - generated.get()) / perSecond.getAverage());
 
 		return new String[]{
 				"Progress: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double)generated.get() / (double)totalChunks.get(), 0) + ")",

@@ -111,8 +111,16 @@ public class MultiverseCoreLink
 
 	public String getWorldNameType(String worldName, String defaultType)
 	{
-		String t = worldNameTypes.get(worldName);
-		return t == null ? defaultType : t;
+		try
+		{
+			String t = worldNameTypes.get(worldName);
+			return t == null ? defaultType : t;
+		}
+
+		catch(Throwable e)
+		{
+			return defaultType;
+		}
 	}
 
 	public boolean supported()

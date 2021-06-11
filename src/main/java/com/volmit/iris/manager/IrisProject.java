@@ -134,84 +134,86 @@ public class IrisProject
 				.seed(1337)
 				.name(wfp)
 				.studioMode()
+				.asyncPrepare()
 				.create();
-		IrisAccess gx = ((IrisAccess)c.generator());
-		sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
-		O<Boolean> done = new O<>();
-		done.set(false);
-		activeProvider = gx;
+					IrisAccess gx = ((IrisAccess)c.generator());
+					sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
+					O<Boolean> done = new O<>();
+					done.set(false);
+					activeProvider = gx;
 
-		J.a(() ->
-		{
-			double last = 0;
-			int req = 300;
-			double lpc = 0;
-			boolean fc;
+					J.a(() ->
+					{
+						double last = 0;
+						int req = 300;
+						double lpc = 0;
+						boolean fc;
 
-			while(!done.get())
-			{
-				boolean derp = false;
+						while(!done.get())
+						{
+							boolean derp = false;
 
-				assert gx != null;
-				double v = (double) gx.getGenerated() / (double) req;
-				fc = lpc != v;
-				lpc = v;
+							assert gx != null;
+							double v = (double) gx.getGenerated() / (double) req;
+							fc = lpc != v;
+							lpc = v;
 
-				if(last > v || v > 1)
-				{
-					derp = true;
-					v = last;
-				}
+							if(last > v || v > 1)
+							{
+								derp = true;
+								v = last;
+							}
 
-				else
-				{
-					last = v;
-				}
+							else
+							{
+								last = v;
+							}
 
-				if(fc)
-				{
-					sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
-				}
+							if(fc)
+							{
+								sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
+							}
 
-				if (sender.isPlayer()){
-					sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
-				}
+							if (sender.isPlayer()){
+								sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
+							}
 
-				J.sleep(1500);
+							J.sleep(1500);
 
-				if(gx.isFailing())
-				{
+							if(gx.isFailing())
+							{
 
-					sender.sendMessage("Generation Failed!");
-					return;
-				}
-			}
-		});
+								sender.sendMessage("Generation Failed!");
+								return;
+							}
+						}
+					});
 
-		//@builder
-		World world = c.createWorld();
-		Iris.linkMultiverseCore.removeFromConfig(world);
+					//@builder
+					World world = c.createWorld();
+					Iris.linkMultiverseCore.removeFromConfig(world);
 
-		done.set(true);
-		sender.sendMessage(C.WHITE + "Generating Complete!");
+					done.set(true);
+					sender.sendMessage(C.WHITE + "Generating Complete!");
 
-		if(sender.isPlayer())
-		{
-			assert world != null;
-			sender.player().teleport(world.getSpawnLocation());
-		}
+					if(sender.isPlayer())
+					{
+						assert world != null;
+						sender.player().teleport(world.getSpawnLocation());
+					}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-		{
-			sender.sendMessage("Hotloading Active! Change any files and watch your changes appear as you load new chunks!");
+					Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+					{
+						sender.sendMessage("Hotloading Active! Change any files and watch your changes appear as you load new chunks!");
 
-			if(sender.isPlayer())
-			{
-				sender.player().setGameMode(GameMode.SPECTATOR);
-			}
+						if(sender.isPlayer())
+						{
+							sender.player().setGameMode(GameMode.SPECTATOR);
+						}
 
-			onDone.run();
-		}, 0);
+						onDone.run();
+					}, 0);
+
 	}
 
 	public void close()

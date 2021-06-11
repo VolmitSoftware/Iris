@@ -1,5 +1,6 @@
 package com.volmit.iris.util;
 
+import lombok.Setter;
 import org.bukkit.HeightMap;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -31,6 +32,8 @@ public class FakeWorld implements World
 	private final long seed;
 	private final File worldFolder;
 	private final Environment environment;
+	@Setter
+	private String worldName;
 
 	public FakeWorld(int height, long seed, File worldFolder, Environment environment)
 	{
@@ -38,6 +41,7 @@ public class FakeWorld implements World
 		this.seed = seed;
 		this.worldFolder = worldFolder;
 		this.environment = environment;
+		worldFolder.mkdirs();
 	}
 
 	@Override
@@ -521,7 +525,7 @@ public class FakeWorld implements World
 	public String getName()
 	{
 
-		return null;
+		return worldName;
 	}
 
 	@Override

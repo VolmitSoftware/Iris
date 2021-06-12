@@ -527,7 +527,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         {
             IrisObject v = objectPlacement.getObject(getComplex(), rng);
             if (v == null){
-                Iris.error("ParallaxManager tried placing an object but found none existed, where one was expected.");
                 return;
             }
             int xx = rng.i(x, x+16);

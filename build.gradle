@@ -5,13 +5,13 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.3.9'
+version '1.3.12'
 def apiVersion = '1.14'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
 
 // ==============================================================
-registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('Cyberpwn', 'C://Users/sjoer/documents/VolmitSoftware/server/plugins');
 // ==============================================================
 
 configurations {

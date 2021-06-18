@@ -12,7 +12,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public interface TileData<T extends TileState> extends Cloneable {
-    public static int id = 0;
+
     public static final KList<TileData<? extends TileState>> registry = setup();
 
     static KList<TileData<? extends TileState>> setup() {
@@ -20,6 +20,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
         registry.add(new TileSign());
         registry.add(new TileSpawner());
+        registry.add(new TileBanner());
 
         return registry;
     }

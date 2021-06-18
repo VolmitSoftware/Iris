@@ -13,7 +13,7 @@ import java.io.IOException;
 
 @Data
 public class TileSign implements TileData<Sign> {
-    public static int id = TileData.id;
+    public static final int id = 0;
     private String line1;
     private String line2;
     private String line3;

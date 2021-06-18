@@ -3,9 +3,9 @@ package com.volmit.iris.object.tile;
 import lombok.Data;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.ListTag;
+import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.WallSign;
 import org.bukkit.entity.EntityType;
 
 import java.io.DataInputStream;
@@ -14,7 +14,7 @@ import java.io.IOException;
 
 @Data
 public class TileSpawner implements TileData<CreatureSpawner> {
-    public static int id = TileData.id;
+    public static final int id = 1;
     private EntityType entityType;
 
     @Override
@@ -24,7 +24,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
 
     @Override
     public boolean isApplicable(BlockData data) {
-        return data instanceof org.bukkit.block.data.type.Sign || data instanceof WallSign;
+        return data.getMaterial() == Material.SPAWNER;
     }
 
     @Override

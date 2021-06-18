@@ -123,7 +123,7 @@ public class ProjectManager
 
 			catch(IOException e)
 			{
-				
+
 			}
 		}
 
@@ -232,15 +232,28 @@ public class ProjectManager
 		} catch (Throwable e){
 			e.printStackTrace();
 			sender.sendMessage(
-				"Issue when unpacking. Please check/do the following:" +
-				"\n1. Do you have a functioning internet connection?" +
-				"\n2. Did the download corrupt?" +
-				"\n3. Try deleting the */plugins/iris/packs folder and re-download." +
-				"\n4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld" +
-				"\n5. Contact support (if all other options do not help)"
+					"Issue when unpacking. Please check/do the following:" +
+							"\n1. Do you have a functioning internet connection?" +
+							"\n2. Did the download corrupt?" +
+							"\n3. Try deleting the */plugins/iris/packs folder and re-download." +
+							"\n4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld" +
+							"\n5. Contact support (if all other options do not help)"
 			);
 		}
-		File dir = work.listFiles().length == 1 && work.listFiles()[0].isDirectory() ? work.listFiles()[0] : null;
+		File dir = null;
+		File[] zipFiles = work.listFiles();
+
+		if (zipFiles == null) {
+			sender.sendMessage("No files were extracted from the zip file.");
+			return;
+		}
+
+		try {
+			dir = zipFiles.length == 1 && zipFiles[0].isDirectory() ? zipFiles[0] : null;
+		} catch (NullPointerException e) {
+			sender.sendMessage("Error when finding home directory. Are there any non-text characters in the file name?");
+			return;
+		}
 
 		if(dir == null)
 		{
@@ -256,7 +269,11 @@ public class ProjectManager
 			return;
 		}
 
-		if(dimensions.listFiles().length != 1)
+		if(dimensions.listFiles() == null){
+			sender.sendMessage("No dimension file found in the extracted zip file.");
+			sender.sendMessage("Check it is there on GitHub and report this to staff!");
+		}
+		else if (dimensions.listFiles().length != 1)
 		{
 			sender.sendMessage("Dimensions folder must have 1 file in it");
 			return;

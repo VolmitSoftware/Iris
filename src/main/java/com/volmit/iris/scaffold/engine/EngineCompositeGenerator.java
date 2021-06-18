@@ -679,6 +679,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void regenerate(int x, int z) {
+
         clearRegeneratedLists(x, z);
         int xx = x*16;
         int zz = z*16;
@@ -709,8 +710,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             @Override
+            public int getMinHeight() {
+                return getComposite().getWorld().getMinHeight();
+            }
+
+            @Override
             public int getMaxHeight() {
-                return 256;
+                return getComposite().getWorld().getMaxHeight();
             }
 
             @Override

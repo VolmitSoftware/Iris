@@ -403,6 +403,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             @Override
+            public int getMinHeight() {
+                return w.getMinHeight();
+            }
+
+            @Override
             public int getMaxHeight() {
                 return w.getMaxHeight();
             }

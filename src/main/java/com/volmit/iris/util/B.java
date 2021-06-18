@@ -393,7 +393,7 @@ public class B
 			return false;
 		}
 
-		if(onto.equals(Material.GRASS_PATH))
+		if(onto.equals(Material.DIRT_PATH))
 		{
 			if(!mat.isSolid())
 			{

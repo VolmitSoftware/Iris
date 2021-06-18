@@ -79,6 +79,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void prepareSpawnAsync(long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
     {
+        // TODO: WARNING HEIGHT
         prepareSpawnAsync(256, seed, worldName, env, radius, progress, onComplete);
     }
 

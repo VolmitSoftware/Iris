@@ -51,7 +51,7 @@ public class IrisRegion extends IrisRegistrant implements IRare
 	private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
 	@MinNumber(1)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The rarity of the region")
 	private int rarity = 1;

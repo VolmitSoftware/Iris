@@ -38,7 +38,7 @@ public class IrisFeaturePositional {
     private IrisFeature feature;
 
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
-    private static double BLOCK = 1D / 256D;
+    private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException
     {

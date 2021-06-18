@@ -19,14 +19,14 @@ public class IrisDepositGenerator
 {
 	@Required
 	@MinNumber(0)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The minimum height this deposit can generate at")
 	private int minHeight = 7;
 
 	@Required
 	@MinNumber(0)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The maximum height this deposit can generate at")
 	private int maxHeight = 55;

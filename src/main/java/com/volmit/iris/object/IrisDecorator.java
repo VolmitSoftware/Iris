@@ -42,14 +42,14 @@ public class IrisDecorator
 
 	@DependsOn({"stackMin", "stackMax"})
 	@MinNumber(1)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
 	private int stackMin = 1;
 
 	@DependsOn({"stackMin", "stackMax"})
 	@MinNumber(1)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The maximum repeat stack height")
 	private int stackMax = 1;
@@ -74,7 +74,7 @@ public class IrisDecorator
 	@MinNumber(0)
 	@MaxNumber(1)
 	@DontObfuscate
-	@Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)")
+	@Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)") // TODO: WARNING HEIGHT
 	private double chance = 0.1;
 
 	@Required

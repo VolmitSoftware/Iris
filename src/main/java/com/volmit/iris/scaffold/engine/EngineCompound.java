@@ -34,6 +34,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
 
     public default int getHeight()
     {
+        // TODO: WARNING HEIGHT
         return 256;
     }
 

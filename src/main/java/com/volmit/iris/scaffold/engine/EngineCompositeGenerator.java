@@ -79,6 +79,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public void prepareSpawnAsync(long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
     {
+        // TODO: WARNING HEIGHT
         prepareSpawnAsync(256, seed, worldName, env, radius, progress, onComplete);
     }
 
@@ -403,6 +404,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             @Override
+            public int getMinHeight() {
+                return w.getMinHeight();
+            }
+
+            @Override
             public int getMaxHeight() {
                 return w.getMaxHeight();
             }
@@ -674,6 +680,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void regenerate(int x, int z) {
+
         clearRegeneratedLists(x, z);
         int xx = x*16;
         int zz = z*16;
@@ -704,8 +711,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             @Override
+            public int getMinHeight() {
+                return getComposite().getWorld().getMinHeight();
+            }
+
+            @Override
             public int getMaxHeight() {
-                return 256;
+                return getComposite().getWorld().getMaxHeight();
             }
 
             @Override

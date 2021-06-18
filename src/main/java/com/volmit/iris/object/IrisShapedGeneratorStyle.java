@@ -26,16 +26,16 @@ public class IrisShapedGeneratorStyle
 	private IrisGeneratorStyle generator = new IrisGeneratorStyle(NoiseStyle.IRIS);
 
 	@Required
-	@MinNumber(-256)
-	@MaxNumber(256)
+	@MinNumber(-256) // TODO: WARNING HEIGHT
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 
 	@DontObfuscate
 	@Desc("The min block value")
 	private int min = 0;
 
 	@Required
-	@MinNumber(-256)
-	@MaxNumber(256)
+	@MinNumber(-256) // TODO: WARNING HEIGHT
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The max block value")
 	private int max = 0;

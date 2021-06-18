@@ -32,14 +32,14 @@ public class IrisBiomePaletteLayer
 
 	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(0)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The min thickness of this layer")
 	private int minHeight = 1;
 
 	@DependsOn({"minHeight", "maxHeight"})
 	@MinNumber(1)
-	@MaxNumber(256)
+	@MaxNumber(256) // TODO: WARNING HEIGHT
 	@DontObfuscate
 	@Desc("The max thickness of this layer")
 	private int maxHeight = 1;

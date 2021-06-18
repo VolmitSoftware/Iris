@@ -28,6 +28,7 @@ public class BiomeGridHunkView implements Hunk<Biome>
 	@Override
 	public int getHeight()
 	{
+		// TODO: WARNING HEIGHT
 		return 256;
 	}
 

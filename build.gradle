@@ -10,37 +10,11 @@ def apiVersion = '1.14'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
 
+// ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins');
 // ==============================================================
-
-configurations {
-    provided
-}
-
-processResources {
-    filesMatching('**/plugin.yml') {
-        expand(
-            'name': name.toString(),
-            'version': version.toString(),
-            'main': main.toString(),
-            'apiversion': apiVersion.toString()
-        )
-    }
-}
-
-repositories {
-    mavenCentral()
-    gradlePluginPortal()
-    maven {
-        allowInsecureProtocol true
-        url "http://archive.arcane.art/repository/arcane/"
-    }
-}
-
-shadowJar {
-
-}
 
 def registerCustomOutputTask(name, path) {
     tasks.register('build' + name, Copy) {
@@ -55,19 +29,43 @@ def registerCustomOutputTask(name, path) {
     }
 }
 
+processResources {
+    filesMatching('**/plugin.yml') {
+        expand(
+            'name': name.toString(),
+            'version': version.toString(),
+            'main': main.toString(),
+            'apiversion': apiVersion.toString()
+        )
+    }
+}
+
+repositories {
+    maven {
+        allowInsecureProtocol true
+        url "http://archive.arcane.art/repository/arcane"
+    }
+    mavenLocal()
+}
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.12'
-    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    // Shade
     implementation 'io.timeandspace:smoothie-map:2.0.2'
     implementation 'com.github.ben-manes.caffeine:caffeine:2.8.5'
     implementation 'org.zeroturnaround:zt-zip:1.14'
+    implementation 'org.apache.commons:commons-compress:1.20'
     implementation 'io.papermc:paperlib:1.0.5'
-    compileClasspath 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
-    compileClasspath 'org.bukkit.craftbukkit:1.16.3:1.16.3'
-    compileClasspath 'org.bukkit.craftbukkit:1.16.4:1.16.4'
-    compileClasspath 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
-    compileClasspath 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
-    compileClasspath 'io.lumine.xikage:MythicMobs:4.9.1'
-    compileClasspath 'com.google.code.gson:gson:2.8.5'
+
+    // Provided
+    implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
+    implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
+    implementation 'org.bukkit.craftbukkit:1.16.4:1.16.4'
+    implementation 'org.bukkit.craftbukkit:1.17:1.17'
+    implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
+    implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
+    implementation 'io.lumine.xikage:MythicMobs:4.9.1'
+    implementation 'com.google.code.gson:gson:2.8.5'
 }

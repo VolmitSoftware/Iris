@@ -245,7 +245,9 @@ public class IrisObjectRotation
 			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
 			bv = rotate(bv.clone(), spinx, spiny, spinz);
 			BlockFace t = getFace(bv);
-			g.setRotation(t);
+			if (t.getModY() == 0) {
+				g.setRotation(t);
+			}
 		}
 
 		else if(d instanceof Orientable)

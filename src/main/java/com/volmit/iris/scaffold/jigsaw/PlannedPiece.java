@@ -9,6 +9,7 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import lombok.Data;
 import org.bukkit.World;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
@@ -163,7 +164,7 @@ public class PlannedPiece {
 
             @Override
             public boolean isSolid(int x, int y, int z) {
-                return false;
+                return world.getBlockAt(x,y,z).getType().isSolid();
             }
 
             @Override
@@ -183,7 +184,9 @@ public class PlannedPiece {
 
             @Override
             public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-
+                BlockState state = world.getBlockAt(xx,yy,zz).getState();
+                tile.toBukkitTry(state);
+                state.update();
             }
         }, piece.getPlacementOptions(), new RNG(), getData());
     }

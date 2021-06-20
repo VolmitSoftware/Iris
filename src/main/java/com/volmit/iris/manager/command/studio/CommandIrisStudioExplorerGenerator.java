@@ -2,6 +2,7 @@ package com.volmit.iris.manager.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.NoiseExplorer;
 import com.volmit.iris.object.IrisGenerator;
 import com.volmit.iris.util.KList;
@@ -14,7 +15,7 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 	public CommandIrisStudioExplorerGenerator()
 	{
 		super("generator", "gen", "g");
-		setDescription("Explore different generators");
+		setDescription("Preview created noise noises generators");
 		requiresPermission(Iris.perm.studio);
 		setCategory("World");
 	}
@@ -39,38 +40,31 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 			return true;
 		}
 
-		if(!Iris.proj.isProjectOpen())
-		{
-			sender.sendMessage("No project is open");
-			return true;
-		}
+		IrisGenerator generator;
+		long seed = 12345;
 
-		if(args.length == 0)
+		if (Iris.proj.isProjectOpen())
 		{
-			sender.sendMessage("Provide a generator name");
-			return true;
+			generator = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
+			seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSeed();
 		}
-
 		else
 		{
-			String g = args[0];
-			IrisGenerator b = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(g);
+			generator = IrisDataManager.loadAnyGenerator(args[0]);
+		}
 
-			if(b != null)
-			{
-				NoiseExplorer.launch((x, z) ->
-				{
-					return b.getHeight(x, z, new RNG(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSeed()).nextParallelRNG(3245).lmax());
-				}, "Gen: " + b.getLoadKey());
+		if (generator != null)
+		{
+			long finalSeed = seed;
+			NoiseExplorer.launch((x, z) ->
+					generator.getHeight(x, z, new RNG(finalSeed).nextParallelRNG(3245).lmax()), "Gen: " + generator.getLoadKey());
 
-				sender.sendMessage("Opening Noise Explorer for gen " + b.getLoadKey());
-				return true;
-			}
-
-			else
-			{
-				sender.sendMessage("Invalid Generator");
-			}
+			sender.sendMessage("Opening Noise Explorer for gen " + generator.getLoadKey() + " (" + generator.getLoader().getDataFolder().getName() + ")");
+			return true;
+		}
+		else
+		{
+			sender.sendMessage("Invalid Generator");
 		}
 
 		return true;
@@ -79,6 +73,6 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "";
+		return "[generator]";
 	}
 }

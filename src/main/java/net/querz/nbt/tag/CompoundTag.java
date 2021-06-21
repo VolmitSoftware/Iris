@@ -13,7 +13,6 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 
 	public CompoundTag() {
 		super(createEmptyValue());
-		Iris.warnsmoothie();
 	}
 
 	@Override

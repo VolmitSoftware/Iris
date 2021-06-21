@@ -102,7 +102,6 @@ public class IrisEngineCompound implements EngineCompound {
                     Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
                     Iris.warn("  -> Setting default stronghold position");
                     e.printStackTrace();
-                    Iris.info("Got this far (3)");
                     StringBuilder positions = new StringBuilder();
                     for (IrisPosition pos : strongholds){
                         positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");

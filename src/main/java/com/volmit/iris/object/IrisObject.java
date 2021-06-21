@@ -216,7 +216,6 @@ public class IrisObject extends IrisRegistrant
 
 	public IrisObject(int w, int h, int d)
 	{
-		Iris.warnsmoothie();
 		blocks = new KMap<>();
 		states = new KMap<>();
 		this.w = w;

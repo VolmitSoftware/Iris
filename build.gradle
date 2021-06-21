@@ -48,6 +48,16 @@ repositories {
     mavenLocal()
 }
 
+shadowJar
+{
+    minimize()
+    dependencies {
+        include(dependency('com.github.ben-manes.caffeine:caffeine:2.8.5'))
+        include(dependency('org.zeroturnaround:zt-zip:1.14'))
+        include(dependency('io.papermc:paperlib:1.0.5'))
+    }
+}
+
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
@@ -55,7 +65,6 @@ dependencies {
     // Shade
     implementation 'com.github.ben-manes.caffeine:caffeine:2.8.5'
     implementation 'org.zeroturnaround:zt-zip:1.14'
-    implementation 'org.apache.commons:commons-compress:1.20'
     implementation 'io.papermc:paperlib:1.0.5'
 
     // Provided

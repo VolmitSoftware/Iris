@@ -5,8 +5,6 @@ import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
-import io.timeandspace.smoothie.OptimizationObjective;
-import io.timeandspace.smoothie.SmoothieMap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -34,8 +32,8 @@ public class IrisObject extends IrisRegistrant
 	private static final BlockData VAIR_DEBUG = B.get("COBWEB");
 	private static final BlockData[] SNOW_LAYERS = new BlockData[] {B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
 	public static boolean shitty = false;
-	private SmoothieMap<BlockVector, BlockData> blocks;
-	private SmoothieMap<BlockVector, TileData<? extends TileState>> states;
+	private KMap<BlockVector, BlockData> blocks;
+	private KMap<BlockVector, TileData<? extends TileState>> states;
 	private int w;
 	private int d;
 	private int h;
@@ -219,15 +217,8 @@ public class IrisObject extends IrisRegistrant
 	public IrisObject(int w, int h, int d)
 	{
 		Iris.warnsmoothie();
-		blocks = SmoothieMap.<BlockVector, BlockData>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.expectedSize(Math.max(100, (w * h * d) / 2))
-				.build();
-		states = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.build();
+		blocks = new KMap<>();
+		states = new KMap<>();
 		this.w = w;
 		this.h = h;
 		this.d = d;
@@ -383,22 +374,14 @@ public class IrisObject extends IrisRegistrant
 
 	public void clean()
 	{
-		SmoothieMap<BlockVector, BlockData> d = SmoothieMap.<BlockVector, BlockData>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.expectedSize(getBlocks().size())
-				.build();
+		KMap<BlockVector, BlockData> d = new KMap<>();
 
 		for(BlockVector i : getBlocks().keySet())
 		{
 			d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
 		}
 
-		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.expectedSize(getStates().size())
-				.build();
+		KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
 
 		for(BlockVector i : getBlocks().keySet())
 		{
@@ -842,22 +825,14 @@ public class IrisObject extends IrisRegistrant
 
 	public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz)
 	{
-		SmoothieMap<BlockVector, BlockData> d = SmoothieMap.<BlockVector, BlockData>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.expectedSize(getBlocks().size())
-				.build();
+		KMap<BlockVector, BlockData> d = new KMap<>();
 
 		for(BlockVector i : getBlocks().keySet())
 		{
 			d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(Objects.requireNonNull(getBlocks().get(i)).clone(), spinx, spiny, spinz));
 		}
 
-		SmoothieMap<BlockVector, TileData<? extends TileState>> dx = SmoothieMap.<BlockVector, TileData<? extends TileState>>newBuilder()
-				.doShrink(true)
-				.optimizeFor(OptimizationObjective.LOW_GARBAGE)
-				.expectedSize(getStates().size())
-				.build();
+		KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
 
 		for(BlockVector i : getStates().keySet())
 		{
@@ -899,12 +874,12 @@ public class IrisObject extends IrisRegistrant
 		}
 	}
 
-	public synchronized SmoothieMap<BlockVector, BlockData> getBlocks()
+	public synchronized KMap<BlockVector, BlockData> getBlocks()
 	{
 		return blocks;
 	}
 
-	public synchronized SmoothieMap<BlockVector, TileData<? extends TileState>> getStates()
+	public synchronized KMap<BlockVector, TileData<? extends TileState>> getStates()
 	{
 		return states;
 	}

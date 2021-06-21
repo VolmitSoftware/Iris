@@ -1,8 +1,7 @@
 package net.querz.mca;
 
 import com.volmit.iris.Iris;
-import io.timeandspace.smoothie.OptimizationObjective;
-import io.timeandspace.smoothie.SmoothieMap;
+import com.volmit.iris.util.KMap;
 import net.querz.nbt.tag.ByteArrayTag;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.ListTag;
@@ -18,8 +17,7 @@ import static net.querz.mca.LoadFlags.*;
 public class Section {
 
 	private CompoundTag data;
-	private Map<String, List<PaletteIndex>> valueIndexedPalette = SmoothieMap.<String, List<PaletteIndex>>newBuilder()
-			.optimizeFor(OptimizationObjective.FOOTPRINT).build();
+	private Map<String, List<PaletteIndex>> valueIndexedPalette = new KMap<>();
 	private ListTag<CompoundTag> palette;
 	private byte[] blockLight;
 	private long[] blockStates;

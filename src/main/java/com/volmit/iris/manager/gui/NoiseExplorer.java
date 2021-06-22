@@ -55,25 +55,24 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 	int[][] co;
 	int w = 0;
 	int h = 0;
-	static Function2<Double, Double, Double> generator;
+	Function2<Double, Double, Double> generator;
 	static double oxp = 0;
 	static double ozp = 0;
-	double ox = 0;
-	double oz = 0;
+	double ox = 0; //Offset X
+	double oz = 0; //Offset Y
 	double mx = 0;
 	double mz = 0;
 	static double mxx = 0;
 	static double mzz = 0;
 	static boolean down = false;
-
-	double lx = Double.MAX_VALUE;
-	double lz = Double.MAX_VALUE;
-	double tz = 1D;
-	double t = 1D;
+	double lx = Double.MAX_VALUE; //MouseX
+	double lz = Double.MAX_VALUE; //MouseY
+	double t;
+	double tz;
 
 	public NoiseExplorer()
 	{
-		addMouseWheelListener((MouseWheelListener) this);
+		addMouseWheelListener(this);
 		addMouseMotionListener(new MouseMotionListener()
 		{
 			@Override
@@ -110,7 +109,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		}
 
 		scale = scale + ((0.044 * scale) * notches);
-		scale = scale < 0.00001 ? 0.00001 : scale;
+		scale = Math.max(scale, 0.00001);
 	}
 
 	@Override
@@ -206,7 +205,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 					int zz = z;
 					gx.queue("a", () ->
 					{
-						double n = generator != null ? generator.apply(Double.valueOf((xx * ascale) + oxp), Double.valueOf((zz * ascale) + ozp)) : cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
+						double n = generator != null ? generator.apply((xx * ascale) + oxp, (zz * ascale) + ozp) : cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
 
 						if(n > 1 || n < 0)
 						{
@@ -272,7 +271,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		JLayeredPane pane = new JLayeredPane();
 		nv.setSize(new Dimension(1440, 820));
 		pane.add(nv, 1, 0);
-		NoiseExplorer.generator = gen;
+		nv.generator = gen;
 		frame.add(pane);
 		File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 
@@ -282,11 +281,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			{
 				frame.setIconImage(ImageIO.read(file));
 			}
-
-			catch(IOException e)
-			{
-
-			}
+			catch(IOException ignored) { }
 		}
 		frame.setSize(1440, 820);
 		frame.setVisible(true);
@@ -301,15 +296,11 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		combo = new JComboBox<String>(li.toArray(new String[li.size()]));
 		combo.setSelectedItem("STATIC");
 		combo.setFocusable(false);
-		combo.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				@SuppressWarnings("unchecked")
-				String b = (String) (((JComboBox<String>) e.getSource()).getSelectedItem());
-				NoiseStyle s = NoiseStyle.valueOf(b);
-				nv.cng = s.create(RNG.r.nextParallelRNG(RNG.r.imax()));
-			}
+		combo.addActionListener(e -> {
+			@SuppressWarnings("unchecked")
+			String b = (String) (((JComboBox<String>) e.getSource()).getSelectedItem());
+			NoiseStyle s = NoiseStyle.valueOf(b);
+			nv.cng = s.create(RNG.r.nextParallelRNG(RNG.r.imax()));
 		});
 
 		combo.setSize(500, 30);
@@ -326,11 +317,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			{
 				frame.setIconImage(ImageIO.read(file));
 			}
-
-			catch(IOException e)
-			{
-
-			}
+			catch(IOException ignored) { }
 		}
 		frame.setSize(1440, 820);
 		frame.setVisible(true);
@@ -338,24 +325,12 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 
 	public static void launch(Function2<Double, Double, Double> gen, String genName)
 	{
-		EventQueue.invokeLater(new Runnable()
-		{
-			public void run()
-			{
-				createAndShowGUI(gen, genName);
-			}
-		});
+		EventQueue.invokeLater(() -> createAndShowGUI(gen, genName));
 	}
 
 	public static void launch()
 	{
-		EventQueue.invokeLater(new Runnable()
-		{
-			public void run()
-			{
-				createAndShowGUI();
-			}
-		});
+		EventQueue.invokeLater(() -> createAndShowGUI());
 	}
 
 	static class HandScrollListener extends MouseAdapter

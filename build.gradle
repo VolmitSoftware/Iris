@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.3.10'
+version '1.4'
 def apiVersion = '1.14'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -57,9 +57,10 @@ def registerCustomOutputTask(name, path) {
 
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.12'
-    annotationProcessor 'org.projectlombok:lombok:1.18.12'
-    implementation 'io.timeandspace:smoothie-map:2.0.2'
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    // Shade
     implementation 'com.github.ben-manes.caffeine:caffeine:2.8.5'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'io.papermc:paperlib:1.0.5'

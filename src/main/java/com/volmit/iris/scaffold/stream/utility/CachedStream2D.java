@@ -40,10 +40,6 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 	@Override
 	public T get(double x, double z)
 	{
-		if(cl.flip())
-		{
-			Iris.info("Cache: " + Form.f(cache.size()) + " / " + Form.f(cache.weightedSize()));
-		}
 		long ck = Cache.key((int) x, (int) z);
 		return cache.compute(ck, (k, v) -> v != null ? v : stream.get(Cache.keyX(ck), Cache.keyZ(ck)));
 	}

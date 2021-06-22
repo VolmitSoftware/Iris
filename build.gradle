@@ -63,7 +63,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
     // Shade
-    implementation 'com.github.ben-manes.caffeine:caffeine:2.8.5'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.2'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'io.papermc:paperlib:1.0.5'
 

@@ -3,11 +3,12 @@ package com.volmit.iris.manager.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
@@ -47,14 +48,14 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 	boolean colorMode = true;
 	double scale = 1;
 	static boolean hd = false;
-	static double ascale = 1;
+	static double ascale = 10;
 	CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
 	GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY, "Iris Renderer");
 	ReentrantLock l = new ReentrantLock();
 	int[][] co;
 	int w = 0;
 	int h = 0;
-	static Function2<Double, Double, Double> generator;
+	Function2<Double, Double, Double> generator;
 	static double oxp = 0;
 	static double ozp = 0;
 	double ox = 0; //Offset X
@@ -64,10 +65,10 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 	static double mxx = 0;
 	static double mzz = 0;
 	static boolean down = false;
-
 	double lx = Double.MAX_VALUE; //MouseX
 	double lz = Double.MAX_VALUE; //MouseY
-	int accuracy = 6;
+	double t;
+	double tz;
 
 	public NoiseExplorer()
 	{
@@ -103,13 +104,12 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		int notches = e.getWheelRotation();
 		if(e.isControlDown())
 		{
-			accuracy += notches > 0 ? 1 : -1;
-			if (accuracy < 3) accuracy = 3; //This limit is in place because the render lag of the GUI becomes immense when lower than 3
+			t = t + ((0.0025 * t) * notches);
 			return;
 		}
 
 		scale = scale + ((0.044 * scale) * notches);
-		scale = scale < 0.00001 ? 0.00001 : scale;
+		scale = Math.max(scale, 0.00001);
 	}
 
 	@Override
@@ -123,6 +123,16 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		if(scale > ascale)
 		{
 			ascale += Math.abs(ascale - scale) * 0.16;
+		}
+
+		if(t < tz)
+		{
+			tz -= Math.abs(t - tz) * 0.29;
+		}
+
+		if(t > tz)
+		{
+			tz += Math.abs(tz - t) * 0.29;
 		}
 
 		if(ox < oxp)
@@ -166,7 +176,8 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		}
 
 		PrecisionStopwatch p = PrecisionStopwatch.start();
-		int accuracy = hd ? 1 : this.accuracy;
+		int accuracy = hd ? 1 : M.clip((r.getAverage() / 6D), 1D, 128D).intValue();
+		accuracy = down ? accuracy * 4 : accuracy;
 		int v = 1000;
 
 		if(g instanceof Graphics2D)
@@ -194,7 +205,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 					int zz = z;
 					gx.queue("a", () ->
 					{
-						double n = generator != null ? generator.apply((xx * ascale) + oxp, (zz * ascale) + ozp) : cng.noise((xx * ascale) + oxp, 100, (zz * ascale) + ozp);
+						double n = generator != null ? generator.apply((xx * ascale) + oxp, (zz * ascale) + ozp) : cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
 
 						if(n > 1 || n < 0)
 						{
@@ -227,6 +238,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 
 		p.end();
 
+		t += 1D;
 		r.put(p.getMilliseconds());
 
 		if(!isVisible())
@@ -259,7 +271,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		JLayeredPane pane = new JLayeredPane();
 		nv.setSize(new Dimension(1440, 820));
 		pane.add(nv, 1, 0);
-		NoiseExplorer.generator = gen;
+		nv.generator = gen;
 		frame.add(pane);
 		File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 
@@ -269,11 +281,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			{
 				frame.setIconImage(ImageIO.read(file));
 			}
-
-			catch(IOException ignored)
-			{
-
-			}
+			catch(IOException ignored) { }
 		}
 		frame.setSize(1440, 820);
 		frame.setVisible(true);
@@ -288,7 +296,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		combo = new JComboBox<String>(li.toArray(new String[li.size()]));
 		combo.setSelectedItem("STATIC");
 		combo.setFocusable(false);
-		combo.addActionListener( e -> {
+		combo.addActionListener(e -> {
 			@SuppressWarnings("unchecked")
 			String b = (String) (((JComboBox<String>) e.getSource()).getSelectedItem());
 			NoiseStyle s = NoiseStyle.valueOf(b);
@@ -309,11 +317,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			{
 				frame.setIconImage(ImageIO.read(file));
 			}
-
-			catch(IOException e)
-			{
-
-			}
+			catch(IOException ignored) { }
 		}
 		frame.setSize(1440, 820);
 		frame.setVisible(true);

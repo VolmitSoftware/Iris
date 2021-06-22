@@ -15,11 +15,14 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.core.BlockPosition;
+import net.minecraft.world.level.levelgen.feature.StructureGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_17_R1.generator.InternalChunkGenerator;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
@@ -80,9 +83,9 @@ public class IrisEngineCompound implements EngineCompound {
                 Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
                 Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
                 try {
-                    Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
-                    Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
-                    Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
+                    Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
+                    Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
+                    Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
                     getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
                         if (bp == null){
                             throw new NullPointerException();

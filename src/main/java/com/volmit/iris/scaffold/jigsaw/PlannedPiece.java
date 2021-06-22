@@ -21,7 +21,7 @@ public class PlannedPiece {
     private IrisJigsawPiece piece;
     private IrisObjectRotation rotation;
     private IrisDataManager data;
-    private KList<IrisPosition> connected;
+    private KList<IrisJigsawPieceConnector> connected;
     private boolean dead = false;
     private int rotationKey;
     private AxisAlignedBB box;
@@ -95,7 +95,7 @@ public class PlannedPiece {
 
         for(IrisJigsawPieceConnector i : piece.getConnectors())
         {
-            if(!connected.contains(i.getPosition()))
+            if(!connected.contains(i))
             {
                 c.add(i);
             }
@@ -108,15 +108,10 @@ public class PlannedPiece {
     {
         if(piece.getConnectors().contains(c))
         {
-            return connect(c.getPosition());
+            return connected.addIfMissing(c);
         }
 
         return false;
-    }
-
-    private boolean connect(IrisPosition p)
-    {
-        return connected.addIfMissing(p);
     }
 
     public IrisPosition getWorldPosition(IrisJigsawPieceConnector c)

@@ -157,6 +157,42 @@ public class IrisObjectRotation
 		return BlockFace.SOUTH;
 	}
 
+	public BlockFace getHexFace(BlockVector v)
+	{
+		int x = v.getBlockX();
+		int y = v.getBlockY();
+		int z = v.getBlockZ();
+
+		if(x == 0 && z == -1) return BlockFace.NORTH;
+		if(x == 1 && z == -2) return BlockFace.NORTH_NORTH_EAST;
+		if(x == 1 && z == -1) return BlockFace.NORTH_EAST;
+		if(x == 2 && z == -1) return BlockFace.EAST_NORTH_EAST;
+		if(x == 1 && z == 0) return BlockFace.EAST;
+		if(x == 2 && z == 1) return BlockFace.EAST_SOUTH_EAST;
+		if(x == 1 && z == 1) return BlockFace.SOUTH_EAST;
+		if(x == 1 && z == 2) return BlockFace.SOUTH_SOUTH_EAST;
+		if(x == 0 && z == 1) return BlockFace.SOUTH;
+		if(x == -1 && z == 2) return BlockFace.SOUTH_SOUTH_WEST;
+		if(x == -1 && z == 1) return BlockFace.SOUTH_WEST;
+		if(x == -2 && z == 1) return BlockFace.WEST_SOUTH_WEST;
+		if(x == -1 && z == 0) return BlockFace.WEST;
+		if(x == -2 && z == -1) return BlockFace.WEST_NORTH_WEST;
+		if(x == -1 && z == -1) return BlockFace.NORTH_WEST;
+		if(x == -1 && z == -2) return BlockFace.NORTH_NORTH_WEST;
+
+		if(y > 0)
+		{
+			return BlockFace.UP;
+		}
+
+		if(y < 0)
+		{
+			return BlockFace.DOWN;
+		}
+
+		return BlockFace.SOUTH;
+	}
+
 	public BlockFace faceForAxis(Axis axis)
 	{
 		switch(axis)
@@ -242,12 +278,13 @@ public class IrisObjectRotation
 		{
 			Rotatable g = ((Rotatable) d);
 			BlockFace f = g.getRotation();
-			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+
+			BlockVector bv = new BlockVector(f.getModX(), 0, f.getModZ());
 			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			BlockFace t = getFace(bv);
-			if (t.getModY() == 0) {
-				g.setRotation(t);
-			}
+			BlockFace face = getHexFace(bv);
+
+			g.setRotation(face);
+
 		}
 
 		else if(d instanceof Orientable)

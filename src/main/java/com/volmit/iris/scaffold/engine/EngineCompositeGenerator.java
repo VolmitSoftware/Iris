@@ -323,16 +323,23 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             return;
         }
 
-
-        System.out.println("INIT Get Dim");
-        IrisDimension dim = getDimension(world);
-        IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
-        compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
-        compound.setStudio(!production);
         initialized.set(true);
-        populators.clear();
-        populators.addAll(compound.getPopulators());
-        hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
+        try
+        {
+            IrisDimension dim = getDimension(world);
+            IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
+            compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
+            compound.setStudio(!production);
+            populators.clear();
+            populators.addAll(compound.getPopulators());
+            hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+            Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
+        }
     }
 
     private File getDataFolder(World world) {

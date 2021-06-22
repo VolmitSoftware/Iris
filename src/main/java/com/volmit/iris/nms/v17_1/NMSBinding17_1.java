@@ -16,7 +16,7 @@ public class NMSBinding17_1 implements INMSBinding
 	@Override
 	public Object getBiomeBase(World world, Biome biome)
 	{
-		return getBiomeBase(((CraftWorld)world).getHandle().r().b(IRegistry.ay), biome);
+		return getBiomeBase(((CraftWorld)world).getHandle().t().d(IRegistry.aO), biome);
 	}
 
 	@Override
@@ -44,8 +44,10 @@ public class NMSBinding17_1 implements INMSBinding
 		{
 			if(i.getEnvironment().equals(World.Environment.NORMAL))
 			{
-				IRegistry<BiomeBase> registry = ((CraftWorld)i).getHandle().r().b(IRegistry.ay);
-				return registry.a((BiomeBase) getBiomeBase(registry, biome));
+
+				IRegistry<BiomeBase> registry = ((CraftWorld)i).getHandle().t().d(IRegistry.aO);
+
+				return registry.getId((BiomeBase) getBiomeBase(registry, biome));
 			}
 		}
 

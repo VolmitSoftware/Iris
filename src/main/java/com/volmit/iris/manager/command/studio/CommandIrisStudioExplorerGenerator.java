@@ -40,6 +40,12 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand
 			return true;
 		}
 
+		if (args.length == 0)
+		{
+			sender.sendMessage("Specify a generator to preview");
+			return true;
+		}
+
 		IrisGenerator generator;
 		long seed = 12345;
 

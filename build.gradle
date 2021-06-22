@@ -12,6 +12,7 @@ def main = 'com.volmit.iris.Iris'
 
 // ==============================================================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('ArcaneArts', 'C://Users/cyberpwn/Documents/development/server/plugins');
 // ==============================================================
 
 configurations {

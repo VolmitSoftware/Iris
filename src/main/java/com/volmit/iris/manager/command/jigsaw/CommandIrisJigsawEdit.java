@@ -53,7 +53,10 @@ public class CommandIrisJigsawEdit extends MortarCommand
 		{
 			File dest = piece.getLoadFile();
 			new JigsawEditor(sender.player(), piece, IrisDataManager.loadAnyObject(piece.getObject()), dest);
+			return true;
 		}
+
+		sender.sendMessage("Failed to find existing jigsaw piece: " + args[0]);
 
 		return true;
 	}

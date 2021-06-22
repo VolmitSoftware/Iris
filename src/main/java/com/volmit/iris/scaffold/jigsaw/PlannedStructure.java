@@ -179,7 +179,7 @@ public class PlannedStructure {
     }
 
     private void generateOutwards() {
-        for(PlannedPiece i : getPiecesWithAvailableConnectors().shuffleCopy(rng))
+        for(PlannedPiece i : getPiecesWithAvailableConnectors().shuffle(rng))
         {
             if(!generatePieceOutwards(i))
             {
@@ -317,7 +317,7 @@ public class PlannedStructure {
             {
                 IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
-                if(terminating && !pi.isTerminal())
+                if (pi == null || (terminating && !pi.isTerminal()))
                 {
                     continue;
                 }
@@ -325,8 +325,7 @@ public class PlannedStructure {
                 p.addIfMissing(pi);
             }
         }
-
-        return p.shuffleCopy(rng);
+        return p.shuffle(rng);
     }
 
     private void generateStartPiece() {

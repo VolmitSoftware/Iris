@@ -48,6 +48,12 @@ public class CommandIrisJigsawNew extends MortarCommand
 		}
 
 		IrisObject object = IrisDataManager.loadAnyObject(args[2]);
+
+		if (object == null) {
+			sender.sendMessage("Failed to find existing object: " + args[2]);
+			return true;
+		}
+
 		File dest = Iris.instance.getDataFile("packs", args[1], "jigsaw-pieces", args[0] + ".json");
 		new JigsawEditor(sender.player(), null, object, dest);
 		sender.sendMessage("* Right Click blocks to make them connectors");

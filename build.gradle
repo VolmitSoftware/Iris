@@ -52,22 +52,18 @@ shadowJar
 {
     minimize()
     dependencies {
-        include(dependency('com.github.ben-manes.caffeine:caffeine:2.8.5'))
         include(dependency('org.zeroturnaround:zt-zip:1.14'))
         include(dependency('io.papermc:paperlib:1.0.5'))
+        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
     }
 }
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
-
-    // Shade
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.2'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'io.papermc:paperlib:1.0.5'
-
-    // Provided
+    implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
     implementation 'org.bukkit.craftbukkit:1.17:1.17'
     implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'

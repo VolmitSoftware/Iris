@@ -1,18 +1,14 @@
 package com.volmit.iris.scaffold.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
-import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.Form;
 
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>
 {
 	private final ProceduralStream<T> stream;
 	private final ConcurrentLinkedHashMap<Long, T> cache;
-	private ChronoLatch cl = new ChronoLatch(1000);
 
 	public CachedStream2D(ProceduralStream<T> stream, int size)
 	{
@@ -40,10 +36,6 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 	@Override
 	public T get(double x, double z)
 	{
-		if(cl.flip())
-		{
-			Iris.info("Cache: " + Form.f(cache.size()) + " / " + Form.f(cache.weightedSize()));
-		}
 		long ck = Cache.key((int) x, (int) z);
 		return cache.compute(ck, (k, v) -> v != null ? v : stream.get(Cache.keyX(ck), Cache.keyZ(ck)));
 	}

@@ -1,12 +1,10 @@
 package com.volmit.iris.scaffold.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import com.volmit.iris.util.ChronoLatch;
-import com.volmit.iris.util.Form;
 
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>
 {

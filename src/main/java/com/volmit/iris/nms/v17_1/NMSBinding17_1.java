@@ -4,10 +4,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Lifecycle;
-import com.volmit.iris.manager.command.world.CommandIrisPregen;
 import com.volmit.iris.nms.INMSBinding;
 import com.volmit.iris.pregen.Pregenerator;
-import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KMap;
 import net.minecraft.core.IRegistry;
@@ -179,7 +177,7 @@ public class NMSBinding17_1 implements INMSBinding
 				internal.G.a();
 				cs.getPluginManager().callEvent(new WorldLoadEvent(internal.getWorld()));
 				J.a(() -> {
-					new Pregenerator(internal.getWorld(), 16 * 10);
+					new Pregenerator(internal.getWorld(), 256);
 				});
 				return internal.getWorld();
 			}

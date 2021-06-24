@@ -35,7 +35,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
-    private final World world;
+    private World world;
 
     private final AtomicRollingSequence wallClock;
 
@@ -359,6 +359,11 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public Engine getDefaultEngine() {
         return defaultEngine;
+    }
+
+    @Override
+    public void updateWorld(World world) {
+        this.world = world;
     }
 
     @Override

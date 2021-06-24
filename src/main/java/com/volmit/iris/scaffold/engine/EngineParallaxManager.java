@@ -290,7 +290,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         IrisRegion region = getComplex().getRegionStream().get(xx+8, zz+8);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
         after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
-        generateParallaxSurface(rng, x, z, biome, true);
+        generateParallaxSurface(rng, x, z, biome, region, true);
         generateParallaxMutations(rng, x, z, true);
         return after;
     }
@@ -307,7 +307,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
-        generateParallaxSurface(rng, x, z, biome, false);
+        IrisRegion region = getComplex().getRegionStream().get(xx+8,zz+8);
+        generateParallaxSurface(rng, x, z, biome,  region,false);
         generateParallaxMutations(rng, x, z, false);
     }
 
@@ -427,8 +428,28 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return placeAfter;
     }
 
-    default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, boolean vacuum) {
+    default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean vacuum) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
+        {
+            if(i.isVacuum() != vacuum)
+            {
+                continue;
+            }
+
+            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x<<4, z<<4)))
+            {
+                try {
+                    place(rng, x << 4, z << 4, i);
+                } catch(Throwable e) {
+                    Iris.error("Failed to place objects in the following biome: " + biome.getName());
+                    Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
+                    Iris.error("Are these objects missing?");
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        for (IrisObjectPlacement i : region.getSurfaceObjects())
         {
             if(i.isVacuum() != vacuum)
             {

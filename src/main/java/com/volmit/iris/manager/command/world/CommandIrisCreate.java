@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.pregen.Pregenerator;
 import com.volmit.iris.scaffold.IrisWorldCreator;
@@ -161,7 +162,7 @@ public class CommandIrisCreate extends MortarCommand
 
 			dim = Iris.proj.installIntoWorld(sender, type, folder);
 
-			WorldCreator wc = new IrisWorldCreator().dimension(dim).name(worldName)
+			WorldCreator wc = new IrisWorldCreator().dimension(dim.getLoadKey()).name(worldName)
 					.productionMode().seed(seed).create();
 
 			J.s(() -> {
@@ -194,7 +195,7 @@ public class CommandIrisCreate extends MortarCommand
 					}
 				});
 
-				world.set(wc.createWorld());
+				world.set(INMS.get().createWorld(wc));
 
 				done.set(true);
 			});

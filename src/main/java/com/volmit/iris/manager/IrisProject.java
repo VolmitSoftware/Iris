@@ -3,6 +3,7 @@ package com.volmit.iris.manager;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.IrisWorldCreator;
 import com.volmit.iris.scaffold.engine.IrisAccess;
@@ -14,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
@@ -190,7 +192,7 @@ public class IrisProject
 		});
 
 		//@builder
-		World world = c.createWorld();
+		World world = INMS.get().createWorld(c);
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);

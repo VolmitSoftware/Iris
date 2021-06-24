@@ -29,17 +29,20 @@ import java.util.function.Predicate;
 public class FakeWorld implements World
 {
 	private final int height;
+	private final int minHeight;
 	private final long seed;
 	private final File worldFolder;
 	private final Environment environment;
 	@Setter
 	private String worldName;
 
-	public FakeWorld(int height, long seed, File worldFolder, Environment environment)
+	public FakeWorld(String name, int minHeight, int height, long seed, File worldFolder, Environment environment)
 	{
+		this.worldName = name;
 		this.height = height;
 		this.seed = seed;
 		this.worldFolder = worldFolder;
+		this.minHeight = minHeight;
 		this.environment = environment;
 		worldFolder.mkdirs();
 	}
@@ -898,7 +901,7 @@ public class FakeWorld implements World
 	}
 
 	@Override public int getMinHeight() {
-		return 0;
+		return minHeight;
 	}
 
 	@Override

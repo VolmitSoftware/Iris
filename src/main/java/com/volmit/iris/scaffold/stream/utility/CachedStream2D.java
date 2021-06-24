@@ -1,23 +1,26 @@
 package com.volmit.iris.scaffold.stream.utility;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
+import com.volmit.iris.util.ChronoLatch;
 
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>
 {
 	private final ProceduralStream<T> stream;
-	private final LoadingCache<Long, T> cache;
+	private final ConcurrentLinkedHashMap<Long, T> cache;
+	private ChronoLatch cl = new ChronoLatch(1000);
 
 	public CachedStream2D(ProceduralStream<T> stream, int size)
 	{
 		super();
 		this.stream = stream;
-		cache = Caffeine.newBuilder()
-				.maximumSize(size)
-				.build((b) -> stream.get(Cache.keyX(b), Cache.keyZ(b)));
+		cache = new ConcurrentLinkedHashMap.Builder<Long, T>()
+				.initialCapacity(size)
+				.maximumWeightedCapacity(size)
+				.concurrencyLevel(32)
+				.build();
 	}
 
 	@Override
@@ -35,7 +38,8 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 	@Override
 	public T get(double x, double z)
 	{
-		return cache.get(Cache.key((int) x, (int) z));
+		long ck = Cache.key((int) x, (int) z);
+		return cache.compute(ck, (k, v) -> v != null ? v : stream.get(Cache.keyX(ck), Cache.keyZ(ck)));
 	}
 
 	@Override

@@ -4,17 +4,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.J;
-import org.bukkit.Bukkit;
+import com.volmit.iris.util.FakeWorld;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
-import org.bukkit.entity.Player;
-import org.bukkit.generator.ChunkGenerator;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.io.File;
 
 public class IrisWorldCreator
 {
@@ -22,7 +16,8 @@ public class IrisWorldCreator
     private boolean studio = false;
     private String dimensionName = null;
     private long seed = 1337;
-    private boolean asyncPrepare = false;
+    private int maxHeight = 256;
+    private int minHeight = 0;
 
     public IrisWorldCreator()
     {
@@ -35,9 +30,17 @@ public class IrisWorldCreator
         return this;
     }
 
-    public IrisWorldCreator dimension(IrisDimension dim)
+    public IrisWorldCreator height(int maxHeight)
     {
-        this.dimensionName = dim.getLoadKey();
+        this.maxHeight = maxHeight;
+        this.minHeight = 0;
+        return this;
+    }
+
+    public IrisWorldCreator height(int minHeight, int maxHeight)
+    {
+        this.maxHeight = maxHeight;
+        this.minHeight = minHeight;
         return this;
     }
 
@@ -59,12 +62,6 @@ public class IrisWorldCreator
         return this;
     }
 
-    public IrisWorldCreator asyncPrepare()
-    {
-        this.asyncPrepare = true;
-        return this;
-    }
-
     public IrisWorldCreator productionMode()
     {
         this.studio = false;
@@ -73,30 +70,13 @@ public class IrisWorldCreator
 
     public WorldCreator create()
     {
-        EngineCompositeGenerator g =  new EngineCompositeGenerator(dimensionName, !studio);
+        EngineCompositeGenerator g = new EngineCompositeGenerator(dimensionName, !studio);
+        g.initialize(new FakeWorld(name, minHeight, maxHeight, seed, new File(name), findEnvironment()));
 
         return new WorldCreator(name)
                 .environment(findEnvironment())
                 .generateStructures(true)
                 .generator(g).seed(seed);
-    }
-
-    public void createAsync(Consumer<WorldCreator> result)
-    {
-        EngineCompositeGenerator g =  new EngineCompositeGenerator(dimensionName, !studio);
-        Environment env = findEnvironment();
-        g.prepareSpawnAsync(seed, name, env, 16, (progresss) -> {
-            for(Player i : Bukkit.getOnlinePlayers())
-            {
-                i.sendMessage("Async Prepare 32x32: " + Form.pc(progresss, 2));
-            }
-
-        }, () -> {
-            J.s(() -> result.accept(new WorldCreator(name)
-                    .environment(env)
-                    .generateStructures(true)
-                    .generator(g).seed(seed)));
-        });
     }
 
     private World.Environment findEnvironment() {
@@ -105,6 +85,7 @@ public class IrisWorldCreator
         {
             return World.Environment.NORMAL;
         }
+
         else
         {
             return dim.getEnvironment();

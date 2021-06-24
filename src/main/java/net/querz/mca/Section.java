@@ -26,7 +26,6 @@ public class Section {
 
 	public Section(CompoundTag sectionRoot, int dataVersion) {
 		this(sectionRoot, dataVersion, ALL_DATA);
-		Iris.warnsmoothie();
 	}
 
 	public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {

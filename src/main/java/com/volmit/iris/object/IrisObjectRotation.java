@@ -11,6 +11,8 @@ import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.*;
+import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_17_R1.block.impl.CraftRotatable;
 import org.bukkit.util.BlockVector;
 
 import java.util.List;
@@ -241,7 +243,7 @@ public class IrisObjectRotation
 		return Axis.Z;
 	}
 
-	public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
+	public synchronized BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
 	{
 		BlockData d = dd;
 		int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));

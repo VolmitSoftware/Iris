@@ -62,6 +62,7 @@ public class CommandIrisObjectP2 extends MortarCommand
 
 			if(args.length == 1 && args[0].equals("-l"))
 			{
+				// TODO: WARNING HEIGHT
 				g[1] = p.getTargetBlock((Set<Material>) null, 256).getLocation().clone();
 			}
 

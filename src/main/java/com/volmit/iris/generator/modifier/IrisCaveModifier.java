@@ -135,6 +135,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
             return;
         }
 
+        // TODO: WARNING HEIGHT
         int ceiling = -256;
         int floor = 512;
 

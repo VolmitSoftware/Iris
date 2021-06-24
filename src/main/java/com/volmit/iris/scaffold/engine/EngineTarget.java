@@ -14,7 +14,7 @@ public class EngineTarget
 {
     private final MultiBurst burster;
     private final IrisDimension dimension;
-    private final World world;
+    private World world;
     private final int height;
     private final IrisDataManager data;
     private final ParallaxWorld parallaxWorld;
@@ -26,9 +26,15 @@ public class EngineTarget
         this.height = height;
         this.dimension = dimension;
         this.data = data;
+        // TODO: WARNING HEIGHT
         this.parallaxWorld = new ParallaxWorld(256, new File(world.getWorldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
         this.inverted = inverted;
         this.burster = new MultiBurst(threads);
+    }
+
+    public void updateWorld(World world)
+    {
+        this.world = world;
     }
 
     public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, int threads)

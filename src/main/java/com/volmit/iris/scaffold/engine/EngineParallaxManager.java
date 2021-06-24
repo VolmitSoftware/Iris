@@ -372,6 +372,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         if(getEngine().getDimension().getStronghold() != null)
         {
             List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
+            poss = poss == null ? new KList<>() : null;
             for (IrisPosition pos : poss) {
                 if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());

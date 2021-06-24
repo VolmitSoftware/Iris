@@ -77,6 +77,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
             n5 = 1;
         }
         float f6 = 1.0f;
+        // TODO: WARNING HEIGHT
         for(int i = 0; i < 256; ++i)
         {
             if(i == 0 || random.nextInt(getDimension().getRavineRibRarity()) == 0)
@@ -153,6 +154,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
                         {
                             for(int j = n10 + 1; !bl && j >= n9 - 1; --j)
                             {
+                                // TODO: WARNING HEIGHT
                                 if(j < 0 || j >= 256)
                                 {
                                     continue;

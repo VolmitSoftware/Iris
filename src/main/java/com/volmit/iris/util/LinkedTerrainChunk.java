@@ -123,6 +123,11 @@ public class LinkedTerrainChunk implements TerrainChunk
 	}
 
 	@Override
+	public int getMinHeight() {
+		return rawChunkData.getMinHeight();
+	}
+
+	@Override
 	public int getMaxHeight()
 	{
 		return rawChunkData.getMaxHeight();

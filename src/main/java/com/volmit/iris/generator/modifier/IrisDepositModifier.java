@@ -87,6 +87,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             }
 
             int i = Math.max(0, k.getMinHeight());
+            // TODO: WARNING HEIGHT
             int a = Math.min(height, Math.min(256, k.getMaxHeight()));
 
             if(i >= a)

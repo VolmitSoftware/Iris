@@ -45,6 +45,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private int lgenerated = 0;
     private final KMap<Long, PregeneratedData> chunkCache;
     private ChronoLatch hotloadcd;
+    private AtomicBoolean fake;
     @Getter
     private double generatedPerSecond = 0;
     private int art;
@@ -57,6 +58,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineCompositeGenerator(String query, boolean production) {
         super();
         chunkCache = new KMap<>();
+        fake = new AtomicBoolean(true);
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
@@ -74,39 +76,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     }
                 }
             }
-        });
-    }
-
-    public void prepareSpawnAsync(long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
-    {
-        prepareSpawnAsync(256, seed, worldName, env, radius, progress, onComplete);
-    }
-
-    public void prepareSpawnAsync(int worldHeight, long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
-    {
-        FakeWorld world = new FakeWorld(worldHeight, seed, new File(worldName), env);
-        world.setWorldName(worldName);
-        AtomicInteger generated = new AtomicInteger();
-        int total = (int) Math.pow(radius * 2, 2);
-        MultiBurst.burst.lazy(() -> {
-            progress.accept(0D);
-            BurstExecutor burst = MultiBurst.burst.burst(total);
-            new Spiraler(radius * 2, radius * 2, (x, z) -> burst.queue(() -> {
-                try {
-                    precache(world, x, z);
-                    generated.getAndIncrement();
-                }
-
-                catch(Throwable e)
-                {
-                    e.printStackTrace();
-                }
-            })).drain();
-            burst.complete();
-            System.out.println("BURSTER FINISHED TOTAL IS " + total + " OF GENNED " + generated.get());
-            J.sleep(5000);
-            progress.accept(1D);
-            onComplete.run();
         });
     }
 
@@ -317,21 +286,42 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
-    private synchronized void initialize(World world) {
+    public synchronized void initialize(World world) {
+        if(!(world instanceof FakeWorld) && fake.get())
+        {
+            fake.set(false);
+            this.compound.updateWorld(world);
+            getTarget().updateWorld(world);
+
+            for(int i = 0; i < getComposite().getSize(); i++)
+            {
+                getComposite().getEngine(i).getTarget().updateWorld(world);
+            }
+
+            Iris.info("Attached Real World to Engine Target");
+        }
+
         if (initialized.get()) {
             return;
         }
 
+        try
+        {
+            initialized.set(true);
+            IrisDimension dim = getDimension(world);
+            IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
+            compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
+            compound.setStudio(!production);
+            populators.clear();
+            populators.addAll(compound.getPopulators());
+            hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
+        }
 
-        System.out.println("INIT Get Dim");
-        IrisDimension dim = getDimension(world);
-        IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
-        compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());
-        compound.setStudio(!production);
-        initialized.set(true);
-        populators.clear();
-        populators.addAll(compound.getPopulators());
-        hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+            Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
+        }
     }
 
     private File getDataFolder(World world) {
@@ -345,6 +335,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        long key = Cache.key(x, z);
         TerrainChunk tc = TerrainChunk.create(world, biome);
         generateChunkRawData(world, x, z, tc).run();
         return tc.getRaw();
@@ -362,9 +353,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             for(int j = 0; j < 32; j++)
             {
                 int jj = j;
-                e.queue(() -> {
-                    directWriteChunk(w, ii + mcaox, jj + mcaoz, writer);
-                });
+                e.queue(() -> directWriteChunk(w, ii + mcaox, jj + mcaoz, writer));
             }
         }
 
@@ -400,6 +389,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             @Override
             public void setBiome(int x, int y, int z, Biome bio) {
                 writer.setBiome((ox + x), y, oz + z, bio);
+            }
+
+            @Override
+            public int getMinHeight() {
+                return w.getMinHeight();
             }
 
             @Override
@@ -674,6 +668,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void regenerate(int x, int z) {
+
         clearRegeneratedLists(x, z);
         int xx = x*16;
         int zz = z*16;
@@ -704,8 +699,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             @Override
+            public int getMinHeight() {
+                return getComposite().getWorld().getMinHeight();
+            }
+
+            @Override
             public int getMaxHeight() {
-                return 256;
+                return getComposite().getWorld().getMaxHeight();
             }
 
             @Override

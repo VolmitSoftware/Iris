@@ -15,7 +15,7 @@ public class IrisBiomeStorage
 	static
 	{
 		e = (int) Math.round(Math.log(16.0) / Math.log(2.0)) - 2;
-		f = (int) Math.round(Math.log(256.0) / Math.log(2.0)) - 2;
+		f = (int) Math.round(Math.log(256.0) / Math.log(2.0)) - 2; // TODO: WARNING HEIGHT
 		a = 1 << IrisBiomeStorage.e + IrisBiomeStorage.e + IrisBiomeStorage.f;
 		b = (1 << IrisBiomeStorage.e) - 1;
 		c = (1 << IrisBiomeStorage.f) - 1;
@@ -38,6 +38,7 @@ public class IrisBiomeStorage
 
 	public void inject(BiomeGrid grid)
 	{
+		// TODO: WARNING HEIGHT
 		for(int i = 0; i < 256; i++)
 		{
 			for(int j = 0; j < 16; j++)

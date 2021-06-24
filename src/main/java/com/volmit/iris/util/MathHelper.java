@@ -569,6 +569,7 @@ public class MathHelper
 	{
 		for(int var02 = 0; var02 < 257; ++var02)
 		{
+			// TODO: WARNING HEIGHT 
 			double var1 = (double) var02 / 256.0;
 			double var3 = Math.asin(var1);
 			MathHelper.g[var02] = Math.cos(var3);

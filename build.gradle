@@ -5,8 +5,8 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.4'
-def apiVersion = '1.14'
+version '1.4.3'
+def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
 
@@ -38,37 +38,26 @@ repositories {
     }
 }
 
-shadowJar {
-
-}
-
-def registerCustomOutputTask(name, path) {
-    tasks.register('build' + name, Copy) {
-        group('development')
-        outputs.upToDateWhen{false}
-        dependsOn ':shadowJar'
-        from(file('build/libs/Iris-' + version + '-all.jar'))
-        into(file(path))
-        rename { String fileName ->
-            fileName.replace('Iris-' + version + '-all.jar', "Iris.jar")
-        }
+shadowJar
+{
+    minimize()
+    dependencies {
+        include(dependency('org.zeroturnaround:zt-zip:1.14'))
+        include(dependency('io.papermc:paperlib:1.0.5'))
+        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
     }
 }
-
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
-
-    // Shade
-    implementation 'com.github.ben-manes.caffeine:caffeine:2.8.5'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'io.papermc:paperlib:1.0.5'
-    compileClasspath 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
-    compileClasspath 'org.bukkit.craftbukkit:1.16.3:1.16.3'
-    compileClasspath 'org.bukkit.craftbukkit:1.16.4:1.16.4'
-    compileClasspath 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
-    compileClasspath 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
-    compileClasspath 'io.lumine.xikage:MythicMobs:4.9.1'
-    compileClasspath 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
+    implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
+    implementation 'org.bukkit.craftbukkit:1.17:1.17'
+    implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
+    implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
+    implementation 'io.lumine.xikage:MythicMobs:4.9.1'
+    implementation 'com.google.code.gson:gson:2.8.5'
 }

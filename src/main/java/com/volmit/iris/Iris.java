@@ -49,7 +49,6 @@ public class Iris extends VolmitPlugin
 	public static boolean lowMemoryMode = false;
 	public static IrisCompat compat;
 	public static FileWatcher configWatcher;
-	public static boolean warnsmoothie = true;
 
 	@Permission
 	public static PermissionIris perm;
@@ -128,13 +127,6 @@ public class Iris extends VolmitPlugin
 		}
 
 		return false;
-	}
-
-	public static void warnsmoothie(){
-		if (warnsmoothie){
-			warn("The smoothieMap 'illegal reflective access operation' is required and can be safely ignored");
-			warnsmoothie = false;
-		}
 	}
 
 	@Override

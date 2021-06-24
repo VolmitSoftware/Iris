@@ -15,11 +15,14 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.core.BlockPosition;
+import net.minecraft.world.level.levelgen.feature.StructureGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_17_R1.generator.InternalChunkGenerator;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
@@ -32,7 +35,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
-    private final World world;
+    private World world;
 
     private final AtomicRollingSequence wallClock;
 
@@ -80,9 +83,9 @@ public class IrisEngineCompound implements EngineCompound {
                 Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
                 Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
                 try {
-                    Class<?> clazz = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".ChunkGenerator");
-                    Class<?> clazzSG = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".StructureGenerator");
-                    Class<?> clazzBP = Class.forName("net.minecraft.server." + INMS.getNMSTag() + ".BlockPosition");
+                    Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
+                    Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
+                    Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
                     getBPSafe(clazz, clazzSG, clazzBP, nmsWorld, chunkGenerator).thenAccept(bp -> {
                         if (bp == null){
                             throw new NullPointerException();
@@ -102,7 +105,6 @@ public class IrisEngineCompound implements EngineCompound {
                     Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
                     Iris.warn("  -> Setting default stronghold position");
                     e.printStackTrace();
-                    Iris.info("Got this far (3)");
                     StringBuilder positions = new StringBuilder();
                     for (IrisPosition pos : strongholds){
                         positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
@@ -118,6 +120,7 @@ public class IrisEngineCompound implements EngineCompound {
         if(rootDimension.getDimensionalComposite().isEmpty())
         {
             burster = null;
+            // TODO: WARNING HEIGHT
             engines = new Engine[]{new IrisEngine(new EngineTarget(world, rootDimension, data, 256, maximumThreads), this, 0)};
             defaultEngine = engines[0];
         }
@@ -145,6 +148,7 @@ public class IrisEngineCompound implements EngineCompound {
             {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
+                // TODO: WARNING HEIGHT
                 engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);
                 buf += engines[i].getHeight();
@@ -355,6 +359,11 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public Engine getDefaultEngine() {
         return defaultEngine;
+    }
+
+    @Override
+    public void updateWorld(World world) {
+        this.world = world;
     }
 
     @Override

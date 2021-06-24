@@ -1,20 +1,10 @@
 package com.volmit.iris.scaffold;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
-import com.volmit.iris.util.Form;
-import com.volmit.iris.util.J;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
-import org.bukkit.entity.Player;
-import org.bukkit.generator.ChunkGenerator;
-
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class IrisWorldCreator
 {
@@ -22,7 +12,6 @@ public class IrisWorldCreator
     private boolean studio = false;
     private String dimensionName = null;
     private long seed = 1337;
-    private boolean asyncPrepare = false;
 
     public IrisWorldCreator()
     {
@@ -59,12 +48,6 @@ public class IrisWorldCreator
         return this;
     }
 
-    public IrisWorldCreator asyncPrepare()
-    {
-        this.asyncPrepare = true;
-        return this;
-    }
-
     public IrisWorldCreator productionMode()
     {
         this.studio = false;
@@ -79,24 +62,6 @@ public class IrisWorldCreator
                 .environment(findEnvironment())
                 .generateStructures(true)
                 .generator(g).seed(seed);
-    }
-
-    public void createAsync(Consumer<WorldCreator> result)
-    {
-        EngineCompositeGenerator g =  new EngineCompositeGenerator(dimensionName, !studio);
-        Environment env = findEnvironment();
-        g.prepareSpawnAsync(seed, name, env, 16, (progresss) -> {
-            for(Player i : Bukkit.getOnlinePlayers())
-            {
-                i.sendMessage("Async Prepare 32x32: " + Form.pc(progresss, 2));
-            }
-
-        }, () -> {
-            J.s(() -> result.accept(new WorldCreator(name)
-                    .environment(env)
-                    .generateStructures(true)
-                    .generator(g).seed(seed)));
-        });
     }
 
     private World.Environment findEnvironment() {

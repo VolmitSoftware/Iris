@@ -14,6 +14,9 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class CommandIrisCreate extends MortarCommand
 {
@@ -42,20 +45,80 @@ public class CommandIrisCreate extends MortarCommand
 		String worldName = args[0];
 		String type = IrisSettings.get().getGenerator().getDefaultWorldType();
 		long seed = 1337;
-		int pregen = 0;
+		AtomicInteger pregen = new AtomicInteger(0);
 		boolean multiverse = Iris.linkMultiverseCore.supported();
 
 		for(String i : args)
 		{
 			type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
 			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
-			pregen = i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen;
+			pregen.set(i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen.get());
 		}
 
 		Iris.linkMultiverseCore.assignWorldType(worldName, type);
-		World world = null;
+		final AtomicReference<World> world = new AtomicReference<>();
 		IrisDimension dim;
 		File folder = new File(worldName);
+
+
+
+		Runnable onDone = () -> {
+
+			sender.sendMessage(worldName + " Spawn Area generated.");
+			sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
+			sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
+
+			O<Boolean> b = new O<Boolean>();
+			b.set(true);
+
+			if(sender.isPlayer())
+			{
+				try
+				{
+					sender.player().teleport(world.get().getSpawnLocation());
+				}
+
+				catch(Throwable e)
+				{
+
+				}
+			}
+
+			if(pregen.get() > 0)
+			{
+				b.set(false);
+				sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
+				sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
+
+				new Pregenerator(world.get(), pregen.get(), () ->
+				{
+					b.set(true);
+				});
+			}
+
+			World ww = world.get();
+			if (ww == null){
+				sender.sendMessage("World not created, can not finish");
+				return;
+			}
+			J.a(() ->
+			{
+				while(!b.get())
+				{
+					J.sleep(1000);
+				}
+
+
+				Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+				{
+					ww.save();
+					sender.sendMessage("All Done!");
+				});
+			});
+		};
+
+
+
 		if(multiverse)
 		{
 			dim = IrisDataManager.loadAnyDimension(type);
@@ -81,7 +144,8 @@ public class CommandIrisCreate extends MortarCommand
 			command += " -g Iris:" + dim.getLoadKey();
 			sender.sendMessage("Delegating " + command);
 			Bukkit.dispatchCommand(sender, command);
-			world= Bukkit.getWorld(worldName);
+			world.set(Bukkit.getWorld(worldName));
+			onDone.run();
 		}
 
 		else
@@ -99,92 +163,43 @@ public class CommandIrisCreate extends MortarCommand
 
 			WorldCreator wc = new IrisWorldCreator().dimension(dim).name(worldName)
 					.productionMode().seed(seed).create();
-			sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
-			O<Boolean> done = new O<Boolean>();
-			done.set(false);
 
-			J.a(() ->
-			{
-				double last = 0;
-				int req = 800;
-				while(!done.get())
+			J.s(() -> {
+				sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
+				O<Boolean> done = new O<>();
+				done.set(false);
+
+				J.a(() ->
 				{
-					boolean derp = false;
-					double v = (double) ((IrisAccess) wc.generator()).getGenerated() / (double) req;
-
-					if(last > v || v > 1)
+					double last = 0;
+					int req = 800;
+					while(!done.get())
 					{
-						derp = true;
-						v = last;
+						boolean derp = false;
+						double v = (double) ((IrisAccess) wc.generator()).getGenerated() / (double) req;
+
+						if(last > v || v > 1)
+						{
+							derp = true;
+							v = last;
+						}
+
+						else
+						{
+							last = v;
+						}
+
+						sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
+						J.sleep(3000);
 					}
+				});
 
-					else
-					{
-						last = v;
-					}
+				world.set(wc.createWorld());
 
-					sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
-					J.sleep(3000);
-				}
-			});
-
-			world = wc.createWorld();
-
-			done.set(true);
-		}
-
-
-		sender.sendMessage(worldName + " Spawn Area generated.");
-		sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
-		sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
-
-		O<Boolean> b = new O<Boolean>();
-		b.set(true);
-
-		if(sender.isPlayer())
-		{
-			try
-			{
-				sender.player().teleport(world.getSpawnLocation());
-			}
-
-			catch(Throwable e)
-			{
-
-			}
-		}
-
-		if(pregen > 0)
-		{
-			b.set(false);
-			sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
-			sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
-
-			new Pregenerator(world, pregen, () ->
-			{
-				b.set(true);
+				done.set(true);
 			});
 		}
 
-		World ww = world;
-		if (ww == null){
-			sender.sendMessage("World not created, can not finish");
-			return true;
-		}
-		J.a(() ->
-		{
-			while(!b.get())
-			{
-				J.sleep(1000);
-			}
-
-
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-			{
-				ww.save();
-				sender.sendMessage("All Done!");
-			});
-		});
 
 		return true;
 	}

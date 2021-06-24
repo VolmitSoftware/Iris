@@ -77,40 +77,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         });
     }
 
-    public void prepareSpawnAsync(long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
-    {
-        // TODO: WARNING HEIGHT
-        prepareSpawnAsync(256, seed, worldName, env, radius, progress, onComplete);
-    }
-
-    public void prepareSpawnAsync(int worldHeight, long seed, String worldName, World.Environment env, int radius, Consumer<Double> progress, Runnable onComplete)
-    {
-        FakeWorld world = new FakeWorld(worldHeight, seed, new File(worldName), env);
-        world.setWorldName(worldName);
-        AtomicInteger generated = new AtomicInteger();
-        int total = (int) Math.pow(radius * 2, 2);
-        MultiBurst.burst.lazy(() -> {
-            progress.accept(0D);
-            BurstExecutor burst = MultiBurst.burst.burst(total);
-            new Spiraler(radius * 2, radius * 2, (x, z) -> burst.queue(() -> {
-                try {
-                    precache(world, x, z);
-                    generated.getAndIncrement();
-                }
-
-                catch(Throwable e)
-                {
-                    e.printStackTrace();
-                }
-            })).drain();
-            burst.complete();
-            System.out.println("BURSTER FINISHED TOTAL IS " + total + " OF GENNED " + generated.get());
-            J.sleep(5000);
-            progress.accept(1D);
-            onComplete.run();
-        });
-    }
-
     public void hotload()
     {
         if(isStudio())
@@ -318,7 +284,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
-    private synchronized void initialize(World world) {
+    public synchronized void initialize(World world) {
         if (initialized.get()) {
             return;
         }
@@ -353,6 +319,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        long key = Cache.key(x, z);
         TerrainChunk tc = TerrainChunk.create(world, biome);
         generateChunkRawData(world, x, z, tc).run();
         return tc.getRaw();
@@ -370,9 +337,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             for(int j = 0; j < 32; j++)
             {
                 int jj = j;
-                e.queue(() -> {
-                    directWriteChunk(w, ii + mcaox, jj + mcaoz, writer);
-                });
+                e.queue(() -> directWriteChunk(w, ii + mcaox, jj + mcaoz, writer));
             }
         }
 

@@ -77,6 +77,11 @@ public class Pregenerator implements Listener
 
 	public Pregenerator(World world, int blockSize) throws HeadlessException
 	{
+		this(world, blockSize, true);
+	}
+
+	public Pregenerator(World world, int blockSize, boolean dogui) throws HeadlessException
+	{
 		instance();
 		latch = new ChronoLatch(5000);
 		memoryMetric = new AtomicReference<>("...");
@@ -110,7 +115,7 @@ public class Pregenerator implements Listener
 			totalChunks.getAndAdd(1024);
 			draw.add(() -> drawMCA(xx, zz, COLOR_MCA_PREPARE));
 		}).drain();
-		gui = IrisSettings.get().getGui().isLocalPregenGui() && IrisSettings.get().getGui().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null;
+		gui = dogui ?(IrisSettings.get().getGui().isLocalPregenGui() && IrisSettings.get().getGui().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null) : null;
 		flushWorld();
 		KList<ChunkPosition> order = computeChunkOrder();
 		Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration =

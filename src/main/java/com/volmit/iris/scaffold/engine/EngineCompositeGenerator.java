@@ -45,6 +45,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private int lgenerated = 0;
     private final KMap<Long, PregeneratedData> chunkCache;
     private ChronoLatch hotloadcd;
+    private AtomicBoolean fake;
     @Getter
     private double generatedPerSecond = 0;
     private int art;
@@ -57,6 +58,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineCompositeGenerator(String query, boolean production) {
         super();
         chunkCache = new KMap<>();
+        fake = new AtomicBoolean(true);
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
@@ -285,13 +287,27 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public synchronized void initialize(World world) {
+        if(!(world instanceof FakeWorld) && fake.get())
+        {
+            fake.set(false);
+            this.compound.updateWorld(world);
+            getTarget().updateWorld(world);
+
+            for(int i = 0; i < getComposite().getSize(); i++)
+            {
+                getComposite().getEngine(i).getTarget().updateWorld(world);
+            }
+
+            Iris.info("Attached Real World to Engine Target");
+        }
+
         if (initialized.get()) {
             return;
         }
 
-        initialized.set(true);
         try
         {
+            initialized.set(true);
             IrisDimension dim = getDimension(world);
             IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
             compound = new IrisEngineCompound(world, dim, data, Iris.getThreadCount());

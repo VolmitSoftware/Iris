@@ -149,4 +149,6 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
 
         return v.v();
     }
+
+    void updateWorld(World world);
 }

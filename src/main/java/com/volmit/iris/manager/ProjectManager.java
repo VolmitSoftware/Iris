@@ -363,11 +363,9 @@ public class ProjectManager
 			open(sender, dimm, () ->
 			{
 				if (sender.isPlayer()) {
-					sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
 				}
 			});
 		} catch (Exception e){
-			sender.player().removePotionEffect(PotionEffectType.BLINDNESS);
 			sender.sendMessage("Error when creating studio world:");
 			e.printStackTrace();
 		}

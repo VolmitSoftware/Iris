@@ -63,7 +63,6 @@ public class IrisProject
 			return;
 		} else if(sender.isPlayer()){
 			sender.player().setGameMode(GameMode.SPECTATOR);
-			sender.player().addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 500, 10));
 			sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
 		}
 

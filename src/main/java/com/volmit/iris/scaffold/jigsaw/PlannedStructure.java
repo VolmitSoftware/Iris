@@ -168,7 +168,7 @@ public class PlannedStructure {
 
                         if(a != null)
                         {
-                            e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX(), p.getY(), p.getZ()), rng);
+                            e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
                         }
                     }
                 }

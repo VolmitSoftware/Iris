@@ -121,6 +121,11 @@ public class IrisObjectPlacement
 	@Desc("Translate this object's placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
 
+	@ArrayType(min = 1, type = IrisObjectLoot.class)
+	@DontObfuscate
+	@Desc("The loot tables to apply to these objects")
+	private KList<IrisObjectLoot> loot = new KList<>();
+
 	public IrisObjectPlacement toPlacement(String... place)
 	{
 		IrisObjectPlacement p = new IrisObjectPlacement();

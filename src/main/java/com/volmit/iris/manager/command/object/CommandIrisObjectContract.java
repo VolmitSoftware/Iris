@@ -16,7 +16,7 @@ public class CommandIrisObjectContract extends MortarCommand
 		super("-");
 		requiresPermission(Iris.perm);
 		setCategory("Object");
-		setDescription("Contract a selection based on your lookign direction");
+		setDescription("Contract a selection based on your looking direction");
 	}
 
 

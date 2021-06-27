@@ -12,7 +12,7 @@ public class CommandIrisJigsawPlace extends MortarCommand
 {
 	public CommandIrisJigsawPlace()
 	{
-		super("place", "paste");
+		super("place", "paste", "p");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
 		setDescription("Place a jigsaw structure");

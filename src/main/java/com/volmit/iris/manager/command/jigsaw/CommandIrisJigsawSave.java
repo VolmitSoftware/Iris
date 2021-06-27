@@ -11,7 +11,7 @@ public class CommandIrisJigsawSave extends MortarCommand
 {
 	public CommandIrisJigsawSave()
 	{
-		super("save");
+		super("save", "s");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
 		setDescription("Save a currently open piece");

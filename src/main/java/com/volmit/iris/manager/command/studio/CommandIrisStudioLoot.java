@@ -2,6 +2,7 @@ package com.volmit.iris.manager.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.InventorySlotType;
 import com.volmit.iris.object.IrisLootTable;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -41,9 +42,9 @@ public class CommandIrisStudioLoot extends MortarCommand
 			Player p = sender.player();
 			IrisAccess prov = IrisWorlds.access(sender.player().getWorld());
 
-			if(prov == null)
+			if (!Iris.proj.isProjectOpen())
 			{
-				sender.sendMessage("You can only use /iris loot in a studio world of iris.");
+				sender.sendMessage("You can only use /iris studio loot in a studio world of iris.");
 				return true;
 			}
 

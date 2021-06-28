@@ -162,14 +162,15 @@ public class PlannedStructure {
                 {
                     if(j.getSpawnEntity() != null)
                     {
+                        IrisAccess a = IrisWorlds.access(world);
+                        if (a == null) {
+                            Iris.warn("Cannot spawn entities from jigsaw in non Iris world!");
+                            break;
+                        }
                         IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
                         IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
-                        IrisAccess a = IrisWorlds.access(world);
 
-                        if(a != null)
-                        {
-                            e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX(), p.getY(), p.getZ()), rng);
-                        }
+                        e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
                     }
                 }
             });

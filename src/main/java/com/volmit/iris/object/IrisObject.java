@@ -667,7 +667,12 @@ public class IrisObject extends IrisRegistrant
 					for(BlockData k : j.getFind(rdata))
 					{
 						if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
-							data = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+							BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+
+							if (newData.getMaterial() == data.getMaterial())
+								data = data.merge(newData);
+							else
+								data = newData;
 						}
 					}
 				}
@@ -727,7 +732,6 @@ public class IrisObject extends IrisRegistrant
 				{
 					placer.setTile(xx, yy, zz, tile);
 				}
-
 			}
 		}
 		readLock.unlock();

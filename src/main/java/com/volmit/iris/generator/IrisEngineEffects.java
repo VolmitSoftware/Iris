@@ -27,6 +27,9 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
     @Override
     public void updatePlayerMap() {
         List<Player> pr = getEngine().getWorld().getPlayers();
+
+        if (pr == null) return; //Fix for paper returning a world with a null playerlist
+
         for(Player i : pr)
         {
             Location l = i.getLocation();

@@ -3,6 +3,7 @@ package com.volmit.iris.object;
 import java.lang.reflect.Field;
 
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.volmit.iris.util.Desc;
@@ -52,6 +53,10 @@ public class IrisEnchantment
 		{
 			if(rng.nextDouble() < chance)
 			{
+				if (meta instanceof EnchantmentStorageMeta) {
+					((EnchantmentStorageMeta) meta).addStoredEnchant(getEnchant(), getLevel(rng), true);
+					return;
+				}
 				meta.addEnchant(getEnchant(), getLevel(rng), true);
 			}
 		}

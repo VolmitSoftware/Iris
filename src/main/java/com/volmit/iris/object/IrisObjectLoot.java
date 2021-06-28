@@ -1,11 +1,13 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.ArrayType;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RegistryListLoot;
 import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,11 +24,17 @@ public class IrisObjectLoot {
 
     @DontObfuscate
     @ArrayType(min = 1, type = IrisBlockData.class)
+    @Desc("The list of blocks this loot table should apply to")
     private KList<IrisBlockData> filter = new KList<>();
+
+    @Desc("Exactly match the block data or not")
+    @DontObfuscate
+    private boolean exact = false;
 
     @DontObfuscate
     @Desc("The loot table name")
     @Required
+    @RegistryListLoot
     private String name;
 
     @DontObfuscate

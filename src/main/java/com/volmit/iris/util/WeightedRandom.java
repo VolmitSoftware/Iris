@@ -31,6 +31,10 @@ public class WeightedRandom<T> {
         return weightedObjects.get(index).getK();
     }
 
+    public int getSize() {
+        return weightedObjects.size();
+    }
+
     public void shuffle() {
         weightedObjects.shuffle(random);
     }

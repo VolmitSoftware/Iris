@@ -1,6 +1,8 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.noise.CNG;
+import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
@@ -9,6 +11,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 
 @EqualsAndHashCode()
 @Accessors(chain = true)
@@ -150,6 +154,7 @@ public class IrisObjectPlacement
 		p.setSnow(snow);
 		p.setClamp(clamp);
 		p.setRotation(rotation);
+		p.setLoot(loot);
 		return p;
 	}
 
@@ -195,5 +200,75 @@ public class IrisObjectPlacement
 
 	public boolean isVacuum() {
 		return getMode().equals(ObjectPlaceMode.VACUUM);
+	}
+
+	private transient AtomicCache<TableCache> cache = new AtomicCache<>();
+
+	private class TableCache {
+		transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
+		transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
+		transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
+	}
+
+	private TableCache getCache(IrisDataManager manager) {
+		return cache.aquire(() -> {
+			TableCache tc = new TableCache();
+
+			for (IrisObjectLoot loot : getLoot()) {
+				IrisLootTable table = manager.getLootLoader().load(loot.getName());
+				if (table == null) {
+					Iris.warn("Couldn't find loot table " + loot.getName());
+					continue;
+				}
+
+				if (loot.getFilter().isEmpty()) //Table applies to all containers
+				{
+					tc.global.put(table, loot.getWeight());
+				} else if (!loot.isExact()) //Table is meant to be by type
+				{
+					for (BlockData filterData : loot.getFilter(manager)) {
+						if (!tc.basic.containsKey(filterData.getMaterial())) {
+							tc.basic.put(filterData.getMaterial(), new WeightedRandom<>());
+						}
+
+						tc.basic.get(filterData.getMaterial()).put(table, loot.getWeight());
+					}
+				} else //Filter is exact
+				{
+					for (BlockData filterData : loot.getFilter(manager)) {
+						if (!tc.exact.containsKey(filterData.getMaterial())) {
+							tc.exact.put(filterData.getMaterial(), new KMap<>());
+						}
+
+						if (!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
+							tc.exact.get(filterData.getMaterial()).put(filterData, new WeightedRandom<>());
+						}
+
+						tc.exact.get(filterData.getMaterial()).get(filterData).put(table, loot.getWeight());
+					}
+				}
+			}
+			return tc;
+		});
+	}
+
+	public IrisLootTable getTable(BlockData data, IrisDataManager dataManager) {
+		TableCache cache = getCache(dataManager);
+
+		if(B.isStorageChest(data))
+		{
+			IrisLootTable picked = null;
+			if (cache.exact.containsKey(data.getMaterial()) && cache.exact.containsKey(data)) {
+				picked = cache.exact.get(data.getMaterial()).get(data).pullRandom();
+			} else if (cache.basic.containsKey(data.getMaterial())) {
+				picked = cache.basic.get(data.getMaterial()).pullRandom();
+			} else if (cache.global.getSize() > 0){
+				picked = cache.global.pullRandom();
+			}
+
+			return picked;
+		}
+
+		return null;
 	}
 }

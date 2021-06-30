@@ -1,6 +1,7 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisDimensionIndex;

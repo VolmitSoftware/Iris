@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.3.11'
+version '1.3.12'
 def apiVersion = '1.14'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -13,10 +13,17 @@ def main = 'com.volmit.iris.Iris'
 // ==============================================================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
 registerCustomOutputTask('ArcaneArts', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('Strange', 'D://Servers/HoloParadise Bungee Server/Survival/plugins');
 // ==============================================================
 
 configurations {
     provided
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
 }
 
 processResources {

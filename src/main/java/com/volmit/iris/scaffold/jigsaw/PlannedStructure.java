@@ -15,6 +15,7 @@ import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 
 @Data
 public class PlannedStructure {
@@ -170,7 +171,13 @@ public class PlannedStructure {
                         IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
                         IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
 
-                        e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
+                        if(a != null)
+                        {
+                            Entity entity = e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
+                            if (j.isKeepEntity()) {
+                                entity.setPersistent(true);
+                            }
+                        }
                     }
                 }
             });

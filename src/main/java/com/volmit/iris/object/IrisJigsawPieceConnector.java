@@ -46,6 +46,10 @@ public class IrisJigsawPieceConnector
 	private String spawnEntity;
 
 	@DontObfuscate
+	@Desc("Stop the entity from despawning")
+	private boolean keepEntity;
+
+	@DontObfuscate
 	@MaxNumber(50)
 	@MinNumber(1)
 	@Desc("The amount of entities to spawn (must be a whole number)")

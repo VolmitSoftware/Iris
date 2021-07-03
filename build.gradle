@@ -2,10 +2,11 @@ plugins {
     id 'java'
     id 'io.freefair.lombok' version '5.2.1'
     id "com.github.johnrengelman.shadow" version "7.0.0"
+    id 'maven-publish'
 }
 
 group 'com.volmit.iris'
-version '1.3.12'
+version '1.4.0-LEGACY'
 def apiVersion = '1.14'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -18,6 +19,14 @@ registerCustomOutputTask('Strange', 'D://Servers/HoloParadise Bungee Server/Surv
 
 configurations {
     provided
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
 }
 
 java {

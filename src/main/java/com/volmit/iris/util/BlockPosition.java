@@ -2,6 +2,8 @@ package com.volmit.iris.util;
 
 import lombok.Data;
 
+import java.util.Objects;
+
 @Data
 public class BlockPosition
 {
@@ -14,6 +16,11 @@ public class BlockPosition
 		this.x = x;
 		this.y = y;
 		this.z = z;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(x, y, z);
 	}
 
 	public boolean equals(Object o)

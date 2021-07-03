@@ -287,7 +287,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public synchronized void initialize(World world) {
-        if(!(world instanceof FakeWorld) && fake.get())
+        if(!(world instanceof FakeWorld) && fake.get() && this.compound != null)
         {
             fake.set(false);
             this.compound.updateWorld(world);

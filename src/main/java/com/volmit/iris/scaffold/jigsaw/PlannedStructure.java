@@ -80,7 +80,6 @@ public class PlannedStructure {
             options= i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
         }
-
         else
         {
             options.setMode(i.getPiece().getPlaceMode());

@@ -460,8 +460,52 @@ public class IrisObject extends IrisRegistrant
 		return place(x, yv, z, placer, config, rng, null, null, rdata);
 	}
 
-	public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata)
+	public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata)
 	{
+		IObjectPlacer placer = (config.getHeightmap() != null) ? new IObjectPlacer() {
+			final long s = rng.nextLong() + yv + z - x;
+
+			public int getHighest(int param1Int1, int param1Int2) {
+				return (int)Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+			}
+
+			public int getHighest(int param1Int1, int param1Int2, boolean param1Boolean) {
+				return (int)Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+			}
+
+			public void set(int param1Int1, int param1Int2, int param1Int3, BlockData param1BlockData) {
+				oplacer.set(param1Int1, param1Int2, param1Int3, param1BlockData);
+			}
+
+			public BlockData get(int param1Int1, int param1Int2, int param1Int3) {
+				return oplacer.get(param1Int1, param1Int2, param1Int3);
+			}
+
+			public boolean isPreventingDecay() {
+				return oplacer.isPreventingDecay();
+			}
+
+			public boolean isSolid(int param1Int1, int param1Int2, int param1Int3) {
+				return oplacer.isSolid(param1Int1, param1Int2, param1Int3);
+			}
+
+			public boolean isUnderwater(int param1Int1, int param1Int2) {
+				return oplacer.isUnderwater(param1Int1, param1Int2);
+			}
+
+			public int getFluidHeight() {
+				return oplacer.getFluidHeight();
+			}
+
+			public boolean isDebugSmartBore() {
+				return oplacer.isDebugSmartBore();
+			}
+
+			public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData<? extends TileState> param1TileData) {
+				oplacer.setTile(param1Int1, param1Int2, param1Int3, param1TileData);
+			}
+		} : oplacer;
+
 		if(config.isSmartBore())
 		{
 			ensureSmartBored(placer.isDebugSmartBore());

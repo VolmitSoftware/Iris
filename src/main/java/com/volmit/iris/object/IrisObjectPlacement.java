@@ -81,6 +81,10 @@ public class IrisObjectPlacement
 	private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
 
 	@DontObfuscate
+	@Desc("If this is defined, this object wont place on the terrain heightmap, but instead on this virtual heightmap")
+	private IrisNoiseGenerator heightmap;
+
+	@DontObfuscate
 	@Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
 	private boolean smartBore = false;
 

@@ -1352,7 +1352,7 @@ public class JSONObject
 	 */
 	public JSONObject put(String key, double value) throws JSONException
 	{
-		this.put(key, new Double(value));
+		this.put(key, value);
 		return this;
 	}
 	

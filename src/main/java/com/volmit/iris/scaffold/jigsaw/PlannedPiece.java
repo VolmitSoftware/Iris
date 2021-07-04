@@ -1,17 +1,25 @@
 package com.volmit.iris.scaffold.jigsaw;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.generator.IrisEngine;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.object.tile.TileData;
+import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.Engine;
+import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.AxisAlignedBB;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import lombok.Data;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.util.BlockVector;
 
 @Data
@@ -129,8 +137,17 @@ public class PlannedPiece {
     }
 
     public void place(World world) {
+        IrisAccess a = IrisWorlds.access(world);
+
+        int minY = 0;
+        if (a != null) {
+            minY = a.getCompound().getDefaultEngine().getMinHeight();
+
+            if (!a.getCompound().getRootDimension().isBedrock()) minY--; //If the dimension has no bedrock, allow it to go a block lower
+        }
 
         getPiece().getPlacementOptions().getRotation().setEnabled(false);
+        int finalMinY = minY;
         getObject().place(position.getX()+getObject().getCenter().getBlockX(), position.getY()+getObject().getCenter().getBlockY(), position.getZ()+getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z) {
@@ -144,7 +161,22 @@ public class PlannedPiece {
 
             @Override
             public void set(int x, int y, int z, BlockData d) {
-                world.getBlockAt(x,y,z).setBlockData(d);
+                Block block = world.getBlockAt(x, y, z);
+
+                //Prevent blocks being set in or bellow bedrock
+                if (y <= finalMinY || block.getType() == Material.BEDROCK) return;
+
+                block.setBlockData(d);
+
+                if (a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
+                        block.getState() instanceof InventoryHolder) {
+
+                    IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
+                    if (table == null) return;
+                    Engine engine = a.getCompound().getEngineForHeight(y);
+                    engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(), getStructure().getRng(),
+                            new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
+                }
             }
 
             @Override
@@ -183,6 +215,6 @@ public class PlannedPiece {
                 tile.toBukkitTry(state);
                 state.update();
             }
-        }, piece.getPlacementOptions(), new RNG(), getData());
+        }, piece.getPlacementOptions(), getStructure().getRng(), getData());
     }
 }

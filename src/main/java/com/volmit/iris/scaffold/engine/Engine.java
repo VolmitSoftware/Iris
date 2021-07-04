@@ -302,6 +302,17 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         int rx = b.getX();
         int rz = b.getZ();
         double he = getFramework().getComplex().getHeightStream().get(rx, rz);
+        PlacedObject po = getFramework().getEngine().getObjectPlacement(rx, b.getY(), rz);
+        if (po != null && po.getPlacement() != null) {
+
+            if(B.isStorageChest(b.getBlockData()))
+            {
+                IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
+                if (table != null) {
+                    return new KList<>(table);
+                }
+            }
+        }
         IrisRegion region = getFramework().getComplex().getRegionStream().get(rx, rz);
         IrisBiome biomeSurface = getFramework().getComplex().getTrueBiomeStream().get(rx, rz);
         IrisBiome biomeUnder = b.getY() < he ? getFramework().getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;

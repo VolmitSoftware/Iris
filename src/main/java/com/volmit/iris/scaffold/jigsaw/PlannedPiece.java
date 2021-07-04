@@ -9,6 +9,7 @@ import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.AxisAlignedBB;
+import com.volmit.iris.util.BlockPosition;
 import com.volmit.iris.util.IObjectPlacer;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
@@ -148,6 +149,7 @@ public class PlannedPiece {
 
         getPiece().getPlacementOptions().getRotation().setEnabled(false);
         int finalMinY = minY;
+        RNG rng = getStructure().getRng().nextParallelRNG(37555);
         getObject().place(position.getX()+getObject().getCenter().getBlockX(), position.getY()+getObject().getCenter().getBlockY(), position.getZ()+getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z) {
@@ -174,7 +176,8 @@ public class PlannedPiece {
                     IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
                     if (table == null) return;
                     Engine engine = a.getCompound().getEngineForHeight(y);
-                    engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(), getStructure().getRng(),
+                    engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
+                           rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
                             new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
                 }
             }
@@ -215,6 +218,6 @@ public class PlannedPiece {
                 tile.toBukkitTry(state);
                 state.update();
             }
-        }, piece.getPlacementOptions(), getStructure().getRng(), getData());
+        }, piece.getPlacementOptions(), rng, getData());
     }
 }

@@ -15,7 +15,7 @@ public class CommandIrisJigsawNew extends MortarCommand
 {
 	public CommandIrisJigsawNew()
 	{
-		super("create", "new", "+");
+		super("create", "new", "+", "n");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
 		setDescription("Create a new jigsaw piece");

@@ -23,7 +23,7 @@ public class CommandIrisJigsaw extends MortarCommand
 
 	public CommandIrisJigsaw()
 	{
-		super("jigsaw", "jig", "jsw");
+		super("jigsaw", "jig", "jsw", "j");
 		requiresPermission(Iris.perm);
 		setCategory("Jigsaw");
 		setDescription("Iris jigsaw commands");

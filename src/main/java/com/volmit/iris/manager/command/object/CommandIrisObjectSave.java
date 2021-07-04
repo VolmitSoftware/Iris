@@ -18,7 +18,7 @@ public class CommandIrisObjectSave extends MortarCommand
 {
 	public CommandIrisObjectSave()
 	{
-		super("save");
+		super("save",  "s");
 		requiresPermission(Iris.perm);
 		setCategory("Object");
 		setDescription("Save an object");

@@ -189,9 +189,11 @@ public class IrisProject
 
 		//@builder
 		World world = INMS.get().createWorld(c);
-		world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-		world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-		world.setTime(6000);
+		if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
+			world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+			world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+			world.setTime(6000);
+		}
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);

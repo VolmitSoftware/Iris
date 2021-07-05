@@ -13,6 +13,7 @@ def main = 'com.volmit.iris.Iris'
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('Psycho', 'C://Users/cyberpwn/Documents/development/server/plugins');
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins');
 // ==============================================================
 

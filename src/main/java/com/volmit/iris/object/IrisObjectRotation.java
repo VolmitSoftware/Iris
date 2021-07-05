@@ -364,14 +364,17 @@ public class IrisObjectRotation
 	}
 
 	private BlockFace getFace(Axis axis) {
-		switch (axis)
+		synchronized (axis)
 		{
-			case X:
-				return BlockFace.EAST;
-			case Y:
-				return BlockFace.UP;
-			case Z:
-				return BlockFace.SOUTH;
+			switch (axis)
+			{
+				case X:
+					return BlockFace.EAST;
+				case Y:
+					return BlockFace.UP;
+				case Z:
+					return BlockFace.SOUTH;
+			}
 		}
 
 		return BlockFace.UP;

@@ -11,10 +11,7 @@ import com.volmit.iris.util.*;
 import lombok.Data;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -192,6 +189,11 @@ public class IrisProject
 
 		//@builder
 		World world = INMS.get().createWorld(c);
+		if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
+			world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+			world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+			world.setTime(6000);
+		}
 		Iris.linkMultiverseCore.removeFromConfig(world);
 
 		done.set(true);

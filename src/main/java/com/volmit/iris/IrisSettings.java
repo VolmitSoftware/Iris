@@ -126,6 +126,9 @@ public class IrisSettings
 
 		@DontObfuscate
 		public boolean openVSCode = true;
+
+		@DontObfuscate
+		public boolean disableTimeAndWeather = true;
 	}
 
 	public static IrisSettings get()

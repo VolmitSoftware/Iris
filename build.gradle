@@ -13,7 +13,7 @@ def main = 'com.volmit.iris.Iris'
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
-registerCustomOutputTask('Psycho', 'C://Users/cyberpwn/Documents/development/server/plugins');
+registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins');
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins');
 // ==============================================================
 
@@ -35,10 +35,10 @@ file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParent
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
-            'name': name.toString(),
-            'version': version.toString(),
-            'main': main.toString(),
-            'apiversion': apiVersion.toString()
+                'name': name.toString(),
+                'version': version.toString(),
+                'main': main.toString(),
+                'apiversion': apiVersion.toString()
         )
     }
 }
@@ -52,14 +52,14 @@ repositories {
 }
 
 shadowJar
-{
-    minimize()
-    dependencies {
-        include(dependency('org.zeroturnaround:zt-zip:1.14'))
-        include(dependency('io.papermc:paperlib:1.0.5'))
-        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
-    }
-}
+        {
+            minimize()
+            dependencies {
+                include(dependency('org.zeroturnaround:zt-zip:1.14'))
+                include(dependency('io.papermc:paperlib:1.0.5'))
+                include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
+            }
+        }
 
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'

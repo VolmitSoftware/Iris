@@ -43,6 +43,9 @@ public class CommandIrisStudio extends MortarCommand
 	private CommandIrisStudioExplorer exp;
 
 	@Command
+	private CommandIrisStudioBeautify beautify;
+
+	@Command
 	private CommandIrisStudioExplorerGenerator generator;
 
 	@Command

@@ -256,6 +256,12 @@ public class IrisObjectPlacement
 		});
 	}
 
+	/**
+	 * Gets the loot table that should be used for the block
+	 * @param data The block data of the block
+	 * @param dataManager Iris Data Manager
+	 * @return The loot table it should use.
+	 */
 	public IrisLootTable getTable(BlockData data, IrisDataManager dataManager) {
 		TableCache cache = getCache(dataManager);
 

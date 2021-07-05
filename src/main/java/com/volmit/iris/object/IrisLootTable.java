@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import com.volmit.iris.util.ArrayType;
@@ -56,35 +57,21 @@ public class IrisLootTable extends IrisRegistrant
 		KList<ItemStack> lootf = new KList<>();
 
 		int m = 0;
+		int mx = rng.i(getMinPicked(), getMaxPicked());
 
-		for(IrisLoot i : loot)
-		{
-			if(i.getSlotTypes().equals(slot))
+		while (m < mx) {
+			int num = rng.i(loot.size());
+
+			IrisLoot l = loot.get(num);
+
+			if(l.getSlotTypes() == slot)
 			{
-				ItemStack item = i.get(debug, false, this, rng, x, y, z);
+				ItemStack item = l.get(debug, false, this, rng, x, y, z);
 
-				if(item != null)
+				if(item != null && item.getType() != Material.AIR)
 				{
 					lootf.add(item);
-				}
-			}
-
-			m++;
-
-			if(m > maxPicked)
-			{
-				break;
-			}
-		}
-
-		if(lootf.size() < getMinPicked())
-		{
-			for(int i = 0; i < getMinPicked() - lootf.size(); i++)
-			{
-				ItemStack item = loot.get(rng.nextParallelRNG(3945).nextInt(loot.size())).get(debug, doSomething, this, rng, x, y, z);
-				if(item != null)
-				{
-					lootf.add(item);
+					m++;
 				}
 			}
 		}

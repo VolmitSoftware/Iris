@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.Renderer;
 import com.volmit.iris.object.*;
@@ -210,7 +211,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
         if(B.isStorage(data))
         {
-            RNG rx = rf.nextParallelRNG(x).nextParallelRNG(z).nextParallelRNG(y);
+            RNG rx = rf.nextParallelRNG(BlockPosition.toLong(x, y, z));
             InventorySlotType slot = null;
 
             if(B.isStorageChest(data))
@@ -220,7 +221,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
             if(slot != null)
             {
-                KList<IrisLootTable> tables = getLootTables(rx.nextParallelRNG(4568111), block);
+                KList<IrisLootTable> tables = getLootTables(rx, block);
                 InventorySlotType slott = slot;
 
                 try
@@ -350,7 +351,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         for(IrisLootTable i : tables)
         {
             b++;
-            items.addAll(i.getLoot(debug, items.isEmpty(), rng.nextParallelRNG(345911), slot, x, y, z, b + b, mgf + b));
+            items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }
 
         for(ItemStack i : items)

@@ -132,7 +132,7 @@ public class RNG extends Random
 
 	public int i(int lowerBound, int upperBound)
 	{
-		return (int) Math.round(d(lowerBound, upperBound));
+		return (int) Math.floor(d(lowerBound, upperBound));
 	}
 
 	public int i(int upperBound)
@@ -192,4 +192,8 @@ public class RNG extends Random
 
 		return pieces.get(nextInt(pieces.size()));
     }
+
+    public long getSeed() {
+		return sx;
+	}
 }

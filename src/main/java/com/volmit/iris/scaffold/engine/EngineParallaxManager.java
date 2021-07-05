@@ -18,6 +18,7 @@ import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_17_R1.util.CraftMagicNumbers;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
 
@@ -638,7 +639,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             catch(Throwable e)
             {
-
+                Iris.error("THIS IS THE ONE");
+                e.printStackTrace();
             }
         }
 

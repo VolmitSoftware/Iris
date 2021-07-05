@@ -47,6 +47,11 @@ public class IrisJigsawStructure extends IrisRegistrant
 
 	private void loadPool(String p, KList<String> pools, KList<String> pieces)
 	{
+		if(p.isEmpty())
+		{
+			return;
+		}
+
 		IrisJigsawPool pool = getLoader().getJigsawPoolLoader().load(p);
 
 		if(pool == null)

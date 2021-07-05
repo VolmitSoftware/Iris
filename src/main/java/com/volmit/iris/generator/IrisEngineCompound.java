@@ -14,6 +14,9 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.core.BlockPosition;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.feature.StructureGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -68,8 +71,7 @@ public class IrisEngineCompound implements EngineCompound {
         engineMetadata.setDimension(rootDimension.getLoadKey());
         engineMetadata.setLastVersion(Iris.instance.getDescription().getVersion());
 
-
-
+        // TODO: In nms class, not here. Also it doesnt work
         if(engineMetadata.getStrongholdPositions() == null || engineMetadata.getStrongholdPositions().size() == 0)
         {
             if(!(world instanceof FakeWorld || world instanceof HeightedFakeWorld))
@@ -172,7 +174,7 @@ public class IrisEngineCompound implements EngineCompound {
         Iris.instance.registerListener(this);
     }
 
-    private Object getBP(Class clazz, Class clazzSG, Class clazzBP, Object nmsWorld, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+    private Object getBP(Class<?> clazz, Class<?> clazzSG, Class<?> clazzBP, Object nmsWorld, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         return clazz.getDeclaredMethod("findNearestMapFeature",
             nmsWorld.getClass(),
             clazzSG,
@@ -181,14 +183,14 @@ public class IrisEngineCompound implements EngineCompound {
             boolean.class
         ).invoke(chunkGenerator,
             nmsWorld,
-            clazzSG.getDeclaredField("STRONGHOLD").get(null),
-            clazzBP.getDeclaredField("ZERO").get(null),
+            clazzSG.getDeclaredField("k").get(null),
+            clazzBP.getDeclaredField("b").get(null),
             100,
             false
         );
     }
 
-    public CompletableFuture<Object> getBPSafe(Class clazz, Class clazzSG, Class clazzBP, Object nmsWorld, Object chunkGenerator) {
+    public CompletableFuture<Object> getBPSafe(Class<?> clazz, Class<?> clazzSG, Class<?> clazzBP, Object nmsWorld, Object chunkGenerator) {
         CompletableFuture<Object> cf = new CompletableFuture<>();
         Bukkit.getScheduler().runTask(Iris.instance, () -> {
             try {

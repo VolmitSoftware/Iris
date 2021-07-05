@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.4.7'
+version '1.4.8'
 def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -28,6 +28,8 @@ def registerCustomOutputTask(name, path) {
         }
     }
 }
+
+file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParentFile().getAbsolutePath() + '/build/resources/main/plugin.yml').delete()
 
 processResources {
     filesMatching('**/plugin.yml') {

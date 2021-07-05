@@ -138,7 +138,7 @@ public class NMSBinding17_1 implements INMSBinding
 	public World createWorld(WorldCreator creator) {
 		if(PaperLib.isPaper())
 		{
-			return createWorldPaper17(creator);
+			return creator.createWorld();
 		}
 
 		CraftServer cs = (CraftServer) Bukkit.getServer();
@@ -247,114 +247,6 @@ public class NMSBinding17_1 implements INMSBinding
 				return internal.getWorld();
 			}
 		}
-	}
-
-	public World createWorldPaper17(WorldCreator creator) {
-		CraftServer cs = (CraftServer) Bukkit.getServer();
-		DedicatedServer console = getField(cs, "console");
-		Map<String, World> worlds = getField(cs, "worlds");
-		ResourceKey<WorldDimension> actualDimension;
-		Convertable.ConversionSession worldSession;
-		DimensionManager dimensionmanager;
-		net.minecraft.world.level.chunk.ChunkGenerator chunkgenerator = null;
-		ResourceKey<net.minecraft.world.level.World> worldKey = null;
-		Preconditions.checkState(!console.R.isEmpty(), "Cannot create additional worlds on STARTUP");
-		Validate.notNull(creator, "Creator may not be null");
-		String name = creator.name();
-		ChunkGenerator generator = creator.generator();
-		File folder = new File(cs.getWorldContainer(), name);
-		World world = cs.getWorld(name);
-		if (world != null)
-			return world;
-		if (folder.exists() && !folder.isDirectory())
-			throw new IllegalArgumentException("File exists with the name '" + name + "' and isn't a folder");
-		if (generator == null)
-			generator = cs.getGenerator(name);
-
-		if(creator.environment().name().equals("IP") || creator.environment().name().equals("NORMAL"))
-		{
-			actualDimension = WorldDimension.b;
-		}
-
-		else if(creator.environment().name().equals("NAME") || creator.environment().name().equals("NETHER"))
-		{
-			actualDimension = WorldDimension.c;
-		}
-
-		else if(creator.environment().name().equals("THE_END"))
-		{
-			actualDimension = WorldDimension.d;
-		}
-
-		else
-		{
-			throw new IllegalArgumentException("Illegal dimension: " + creator.environment().name());
-		}
-
-		try {
-			worldSession = Convertable.a(cs.getWorldContainer().toPath()).c(name, actualDimension);
-		} catch (IOException ex) {
-			throw new RuntimeException(ex);
-		}
-		MinecraftServer.convertWorld(worldSession);
-		boolean hardcore = creator.hardcore();
-		RegistryReadOps<NBTBase> registryreadops = RegistryReadOps.a((DynamicOps)DynamicOpsNBT.a, console.aC.i(), (IRegistryCustom) console.l);
-		WorldDataServer worlddata = invoke(worldSession, "getDataTag", (DynamicOps)registryreadops, console.datapackconfiguration);
-		if (worlddata == null) {
-			Properties properties = new Properties();
-			properties.put("generator-settings", Objects.toString(creator.generatorSettings()));
-			properties.put("level-seed", Objects.toString(Long.valueOf(creator.seed())));
-			properties.put("generate-structures", Objects.toString(Boolean.valueOf(creator.generateStructures())));
-			properties.put("level-type", Objects.toString(creator.type().getName()));
-			GeneratorSettings generatorsettings = GeneratorSettings.a(console.getCustomRegistry(), properties);
-			WorldSettings worldSettings = new WorldSettings(name, EnumGamemode.getById(cs.getDefaultGameMode().getValue()), hardcore, EnumDifficulty.b, false, new GameRules(), console.datapackconfiguration);
-			worlddata = new WorldDataServer(worldSettings, generatorsettings, Lifecycle.stable());
-		}
-		worlddata.checkName(name);
-		worlddata.a(console.getServerModName(), console.getModded().isPresent());
-		long j = BiomeManager.a(creator.seed());
-		ImmutableList immutableList = ImmutableList.of(new MobSpawnerPhantom(), new MobSpawnerPatrol(), new MobSpawnerCat(), new VillageSiege(), new MobSpawnerTrader((IWorldDataServer)worlddata));
-		RegistryMaterials<WorldDimension> registrymaterials = worlddata.getGeneratorSettings().d();
-		WorldDimension worlddimension = (WorldDimension)registrymaterials.a(actualDimension);
-		if (worlddimension == null) {
-			dimensionmanager = (DimensionManager)console.l.d(IRegistry.P).d(DimensionManager.k);
-			ChunkGeneratorAbstract chunkGeneratorAbstract = GeneratorSettings.a(console.l.d(IRegistry.aO), console.l.d(IRegistry.aH), (new Random()).nextLong());
-		} else {
-			dimensionmanager = worlddimension.b();
-			chunkgenerator = worlddimension.c();
-		}
-		if (console.options.has("forceUpgrade")) {
-			ResourceKey<WorldDimension> dimkey = invokeStatic(World.class, "getDimensionKey", dimensionmanager);
-			invokeStatic(Main.class, "convertWorldButItWorks", actualDimension, dimkey,
-					worldSession.getLevelName(), DataConverterRegistry.a(), console.options.has("eraseCache"));
-		}
-		String levelName = (cs.getServer().getDedicatedServerProperties()).p;
-		if (name.equals(levelName + "_nether")) {
-			worldKey = invokeStatic(World.class, "g");
-		} else if (name.equals(levelName + "_the_end")) {
-			worldKey = invokeStatic(World.class, "h");
-		} else {
-			worldKey = ResourceKey.a(IRegistry.Q, new MinecraftKey(((NamespacedKey)invoke(creator, "key"))
-					.getNamespace().toLowerCase(Locale.ENGLISH), ((NamespacedKey)invoke(creator, "key"))
-					.getKey().toLowerCase(Locale.ENGLISH)));
-		}
-		WorldServer internal = new WorldServer((MinecraftServer)console, console.aA, worldSession, (IWorldDataServer) worlddata,
-				worldKey,
-				dimensionmanager, (cs.getServer()).L.create(11), chunkgenerator, worlddata.getGeneratorSettings().isDebugWorld(), j, (creator.environment() == World.Environment.NORMAL) ? (List)immutableList : (List)ImmutableList.of(), true, creator.environment(), generator);
-		if (!worlds.containsKey(name.toLowerCase(Locale.ENGLISH))) {
-			return null;
-		}
-		console.initWorld(internal, (IWorldDataServer)worlddata, (SaveData) worlddata, worlddata.getGeneratorSettings());
-		internal.setSpawnFlags(true, true);
-		console.R.put(internal.getDimensionKey(), internal);
-		// cs.getServer().loadSpawn((internal.getChunkProvider()).a.z, internal);
-		cs.getLogger().info("Preparing start region for dime... Oh right, This is Iris.");
-		internal.G.a();
-		cs.getPluginManager().callEvent((org.bukkit.event.Event) new WorldLoadEvent(internal.getWorld()));
-		J.a(() -> {
-			new Pregenerator(internal.getWorld(), 256);
-		});
-		return internal.getWorld();
 	}
 
 	@Override

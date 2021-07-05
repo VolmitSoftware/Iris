@@ -395,4 +395,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     {
         return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
     }
+
+    IrisBiome getFocus();
 }

@@ -55,6 +55,7 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
+	private IrisBiome focus;
 
 	public ProceduralStream<IrisBiome> getBiomeStream(InferredType type)
 	{
@@ -86,6 +87,8 @@ public class IrisComplex implements DataProvider
 		double height = engine.getHeight();
 		fluidHeight = engine.getDimension().getFluidHeight();
 		generators = new KList<>();
+		focus = engine.getFocus();
+		IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
 		RNG rng = new RNG(engine.getWorld().getSeed());
 		//@builder
 		engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
@@ -101,7 +104,10 @@ public class IrisComplex implements DataProvider
 			.select(engine.getDimension().getRockPalette().getBlockData(data));
 		fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
 			.select(engine.getDimension().getFluidPalette().getBlockData(data));
-		regionStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883)).stream()
+		regionStream = focusRegion != null ?
+					ProceduralStream.of((x,z) -> focusRegion,
+							Interpolated.of(a -> 0D, a -> focusRegion))
+	: engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883)).stream()
 			.zoom(engine.getDimension().getRegionZoom())
 			.selectRarity(engine.getDimension().getRegions())
 			.convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
@@ -143,13 +149,18 @@ public class IrisComplex implements DataProvider
 				.convertCached((s) -> data.getBiomeLoader().load(s)
 						.setInferredType(InferredType.SHORE))
 			).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
-		bridgeStream = engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565)).bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+		bridgeStream = focus != null ? ProceduralStream.of((x,z)->focus.getInferredType(),
+				Interpolated.of(a -> 0D, a -> focus.getInferredType())) :
+				engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565))
+						.bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
 			.convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
-		baseBiomeStream = bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
+		baseBiomeStream = focus != null ? ProceduralStream.of((x,z) -> focus,
+				Interpolated.of(a -> 0D, a -> focus)) :
+				bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
 			? seaBiomeStream.get(x, z) : landBiomeStream.get(x, z))
 			.convertAware2D(this::implode).cache2D(cacheSize);
 		heightStream = ProceduralStream.of((x, z) -> {
-			IrisBiome b = baseBiomeStream.get(x, z);
+			IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
 			return getHeight(engine, b, x, z, engine.getWorld().getSeed());
 		}, Interpolated.DOUBLE).cache2D(cacheSize);
 		slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
@@ -159,7 +170,9 @@ public class IrisComplex implements DataProvider
 					-> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z))));
 			return str.get();
 		});
-		trueBiomeStream = heightStream
+
+		trueBiomeStream = focus != null ? ProceduralStream.of((x,y) -> focus, Interpolated.of(a -> 0D,
+				b -> focus)) : heightStream
 				.convertAware2D((h, x, z) ->
 					fixBiomeType(h, baseBiomeStream.get(x, z),
 							regionStream.get(x, z), x, z, fluidHeight)).cache2D(cacheSize);
@@ -219,6 +232,18 @@ public class IrisComplex implements DataProvider
 			return m;
 		}, Interpolated.INT).cache2D(cacheSize);
 		//@done
+	}
+
+	private IrisRegion findRegion(IrisBiome focus, Engine engine) {
+		for(IrisRegion i : engine.getDimension().getAllRegions(engine))
+		{
+			if(i.getAllBiomeIds().contains(focus.getLoadKey()))
+			{
+				return i;
+			}
+		}
+
+		return null;
 	}
 
 	private IrisDecorator decorateFor(IrisBiome b, double x, double z, DecorationPart part)

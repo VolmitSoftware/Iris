@@ -377,9 +377,8 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		return getShoreHeightGenerator().fitDouble(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
 	}
 
-	public KList<IrisBiome> getAllBiomes(DataProvider g)
+	public KSet<String> getAllBiomeIds()
 	{
-		KMap<String, IrisBiome> b = new KMap<>();
 		KSet<String> names = new KSet<>();
 		names.addAll(landBiomes);
 		names.addAll(caveBiomes);
@@ -389,6 +388,14 @@ public class IrisRegion extends IrisRegistrant implements IRare
 		names.addAll(lakeBiomes);
 		spotBiomes.forEach((i) -> names.add(i.getBiome()));
 		ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
+
+		return names;
+	}
+
+	public KList<IrisBiome> getAllBiomes(DataProvider g)
+	{
+		KMap<String, IrisBiome> b = new KMap<>();
+		KSet<String> names = getAllBiomeIds();
 
 		while(!names.isEmpty())
 		{

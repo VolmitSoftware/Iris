@@ -1,6 +1,8 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.J;
@@ -120,6 +122,16 @@ public class IrisEngine extends BlockPopulator implements Engine
         {
             fail("Failed to generate " + x + ", " + z, e);
         }
+    }
+
+    @Override
+    public IrisBiome getFocus() {
+        if(getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty())
+        {
+            return null;
+        }
+
+        return getData().getBiomeLoader().load(getDimension().getFocus());
     }
 
     @Override

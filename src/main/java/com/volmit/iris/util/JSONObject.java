@@ -1,6 +1,5 @@
 package com.volmit.iris.util;
 
-
 /*
  Copyright (c) 2002 JSON.org
 
@@ -33,15 +32,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.ResourceBundle;
-import java.util.Set;
 
 /**
  * A JSONObject is an unordered collection of name/value pairs. Its external
@@ -143,7 +135,7 @@ public class JSONObject
 	/**
 	 * The map where the JSONObject's properties are kept.
 	 */
-	private final Map<String, Object> map;
+	private final LinkedHashMap<String, Object> map;
 	
 	/**
 	 * It is sometimes more convenient and less ambiguous to have a
@@ -158,7 +150,7 @@ public class JSONObject
 	 */
 	public JSONObject()
 	{
-		this.map = new HashMap<String, Object>();
+		this.map = new LinkedHashMap<>();
 	}
 	
 	/**
@@ -261,7 +253,7 @@ public class JSONObject
 	 */
 	public JSONObject(Map<String, Object> map)
 	{
-		this.map = new HashMap<String, Object>();
+		this.map = new LinkedHashMap<>();
 		if(map != null)
 		{
 			Iterator<Entry<String, Object>> i = map.entrySet().iterator();

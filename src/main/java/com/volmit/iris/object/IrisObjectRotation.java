@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
 import com.volmit.iris.util.KList;
@@ -243,101 +244,110 @@ public class IrisObjectRotation
 		return Axis.Z;
 	}
 
-	public synchronized BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
+	public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz)
 	{
 		BlockData d = dd;
-		int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
-		int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
-		int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
-
-		if(!canRotate())
+		try
 		{
-			return d;
-		}
+			int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
+			int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
+			int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
 
-		if(d instanceof Directional)
-		{
-			Directional g = ((Directional) d);
-			BlockFace f = g.getFacing();
-			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
-			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			BlockFace t = getFace(bv);
-
-			if(g.getFaces().contains(t))
+			if(!canRotate())
 			{
-				g.setFacing(t);
+				return d;
 			}
 
-			else if(!g.getMaterial().isSolid())
+			if(d instanceof Directional)
 			{
-				d = null;
+				Directional g = ((Directional) d);
+				BlockFace f = g.getFacing();
+				BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+				bv = rotate(bv.clone(), spinx, spiny, spinz);
+				BlockFace t = getFace(bv);
+
+				if(g.getFaces().contains(t))
+				{
+					g.setFacing(t);
+				}
+
+				else if(!g.getMaterial().isSolid())
+				{
+					d = null;
+				}
 			}
-		}
 
-		else if(d instanceof Rotatable)
-		{
-			Rotatable g = ((Rotatable) d);
-			BlockFace f = g.getRotation();
-
-			BlockVector bv = new BlockVector(f.getModX(), 0, f.getModZ());
-			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			BlockFace face = getHexFace(bv);
-
-			g.setRotation(face);
-
-		}
-
-		else if(d instanceof Orientable)
-		{
-			BlockFace f = getFace(((Orientable) d).getAxis());
-			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
-			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			Axis a = getAxis(bv);
-
-			if(!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a))
+			else if(d instanceof Rotatable)
 			{
+				Rotatable g = ((Rotatable) d);
+				BlockFace f = g.getRotation();
+
+				BlockVector bv = new BlockVector(f.getModX(), 0, f.getModZ());
+				bv = rotate(bv.clone(), spinx, spiny, spinz);
+				BlockFace face = getHexFace(bv);
+
+				g.setRotation(face);
+
+			}
+
+			else if(d instanceof Orientable)
+			{
+				BlockFace f = getFace(((Orientable) d).getAxis());
+				BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+				bv = rotate(bv.clone(), spinx, spiny, spinz);
+				Axis a = getAxis(bv);
+
+				if(!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a))
+				{
+					((Orientable) d).setAxis(a);
+				}
+			}
+
+			else if(d instanceof MultipleFacing)
+			{
+				List<BlockFace> faces = new KList<>();
+				MultipleFacing g = (MultipleFacing) d;
+
+				for(BlockFace i : g.getFaces())
+				{
+					BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
+					bv = rotate(bv.clone(), spinx, spiny, spinz);
+					BlockFace r = getFace(bv);
+
+					if(g.getAllowedFaces().contains(r))
+					{
+						faces.add(r);
+					}
+				}
+
+				for(BlockFace i : g.getFaces())
+				{
+					g.setFace(i, false);
+				}
+
+				for(BlockFace i : faces)
+				{
+					g.setFace(i, true);
+				}
+			}
+
+			else if(d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable)
+			{
+				//TODO: Fucks up logs
+				Orientable g = ((Orientable) d);
+				BlockFace f = faceForAxis(g.getAxis());
+				BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
+				bv = rotate(bv.clone(), spinx, spiny, spinz);
+				BlockFace t = getFace(bv);
+				Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
 				((Orientable) d).setAxis(a);
 			}
 		}
 
-		else if(d instanceof MultipleFacing)
+		catch(Throwable e)
 		{
-			List<BlockFace> faces = new KList<>();
-			MultipleFacing g = (MultipleFacing) d;
-
-			for(BlockFace i : g.getFaces())
-			{
-				BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
-				bv = rotate(bv.clone(), spinx, spiny, spinz);
-				BlockFace r = getFace(bv);
-
-				if(g.getAllowedFaces().contains(r))
-				{
-					faces.add(r);
-				}
-			}
-
-			for(BlockFace i : g.getFaces())
-			{
-				g.setFace(i, false);
-			}
-
-			for(BlockFace i : faces)
-			{
-				g.setFace(i, true);
-			}
-		}
-
-		else if(d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable)
-		{
-			//TODO: Fucks up logs
-			Orientable g = ((Orientable) d);
-			BlockFace f = faceForAxis(g.getAxis());
-			BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
-			bv = rotate(bv.clone(), spinx, spiny, spinz);
-			BlockFace t = getFace(bv);
-			Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
-			((Orientable) d).setAxis(a);
+			Iris.error("Rotation Failure");
+			e.printStackTrace();
 		}
 
 		return d;

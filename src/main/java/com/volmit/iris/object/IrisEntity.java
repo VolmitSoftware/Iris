@@ -22,6 +22,7 @@ import org.bukkit.loot.Lootable;
 
 import java.util.Collection;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -286,6 +287,22 @@ public class IrisEntity extends IrisRegistrant
 
 	private Entity doSpawn(Location at)
 	{
+		if(!Bukkit.isPrimaryThread())
+		{
+			// Someone called spawn (worldedit maybe?) on a non server thread
+			// Due to the structure of iris, we will call it sync and busy wait until it's done.
+			AtomicReference<Entity> ae = new AtomicReference<>();
+			J.s(() -> ae.set(doSpawn(at)));
+			PrecisionStopwatch p = PrecisionStopwatch.start();
+
+			while(ae == null)
+			{
+				J.sleep(3);
+			}
+
+			return ae.get();
+		}
+
 		if(isMythical())
 		{
 			return Iris.linkMythicMobs.spawn(getMythicalType(), at);

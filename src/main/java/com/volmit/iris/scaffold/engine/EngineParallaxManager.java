@@ -43,8 +43,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default boolean isCarved(int x, int y, int z)
     {
-        return ((IrisCaveModifier)getEngine().getFramework().getCaveModifier()).isCave(x,y,z) ||
-                getEngine().getDimension().isCarved(x,y,z, getComplex().getRng(), getEngine().getHeight());
+        return getEngine().getDimension().isCarved(x,y,z, getComplex().getRng(), getEngine().getHeight());
     }
 
     default IrisDataManager getData() {

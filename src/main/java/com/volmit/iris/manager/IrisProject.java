@@ -41,6 +41,30 @@ public class IrisProject
 		return activeProvider != null;
 	}
 
+	public KList<File> collectFiles(File f, String json)
+	{
+		KList<File> l = new KList<>();
+
+		if(f.isDirectory())
+		{
+			for(File i : f.listFiles())
+			{
+				l.addAll(collectFiles(i, json));
+			}
+		}
+
+		else if(f.getName().endsWith("."+json))
+		{
+			l.add(f);
+		}
+
+		return l;
+	}
+
+	public KList<File> collectFiles(String json) {
+		return collectFiles(path, json);
+	}
+
 	public void open(MortarSender sender)
 	{
 		open(sender, () ->

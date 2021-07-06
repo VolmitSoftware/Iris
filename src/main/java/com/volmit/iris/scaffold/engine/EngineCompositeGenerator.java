@@ -6,6 +6,7 @@ import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.cache.Cache;
@@ -13,6 +14,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.parallel.BurstExecutor;
 import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
+import io.netty.util.internal.ConcurrentSet;
 import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import org.bukkit.*;
@@ -27,12 +29,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
     private EngineCompound compound = null;
@@ -292,6 +304,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             fake.set(false);
             this.compound.updateWorld(world);
             getTarget().updateWorld(world);
+            placeStrongholds(world);
 
             for(int i = 0; i < getComposite().getSize(); i++)
             {
@@ -322,6 +335,122 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             e.printStackTrace();
             Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
         }
+    }
+
+    /**
+     * Place strongholds in the world
+     * @param world
+     */
+    public void placeStrongholds(World world) {
+        EngineData metadata = getComposite().getEngineMetadata();
+        // TODO: In nms class, not here. Also it doesnt work
+        if(metadata.getStrongholdPositions() == null || metadata.getStrongholdPositions().size() == 0)
+        {
+
+                List<IrisPosition> strongholds = new ArrayList<>();
+                Object nmsWorld = new V(world).invoke("getHandle");
+                Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
+                Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
+                try {
+                    Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
+                    Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
+                    Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
+                    Constructor bpCon = clazzBP.getConstructor(int.class, int.class, int.class);
+
+                    //By default, we place 9 strongholds. One near 0,0 and 8 all around it at about 10_000 blocks out
+                    int coords[][] = {{0, 0}, {7000, -7000}, {10000, 0}, {7000, 7000}, {0, 10000}, {-7000, 7000}, {-10000, 0}, {-7000, -7000}, {0, -10000}};
+
+                    //Set of stronghold locations so we don't place 2 strongholds at the same location
+                    Set<Long> existing = new ConcurrentSet<>();
+                    Set<CompletableFuture<Object>> futures = new HashSet<>();
+                    for (int[] currCoords : coords) {
+                        //Create a NMS BlockPosition
+                        Object blockPosToTest = bpCon.newInstance(currCoords[0], 0, currCoords[1]);
+                        //Create a CompletableFuture so we can track once the sync code is complete
+
+                        CompletableFuture<Object> future = new CompletableFuture<>();
+                        futures.add(future);
+
+                        //We have to run this code synchronously because it uses NMS
+                        J.s(() -> {
+                            try {
+                                Object o = getBP(clazz, clazzSG, clazzBP, nmsWorld, blockPosToTest, chunkGenerator);
+                                future.complete(o);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                future.complete(e);
+                            }
+                        });
+                    }
+
+                    CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
+                    all.thenAccept((_void) -> { //Once all futures for all 9 strongholds have completed
+                        for (CompletableFuture<Object> future : futures) {
+                            try {
+                                Object pos = future.getNow(null);
+                                if (pos != null) {
+                                    IrisPosition ipos = new IrisPosition((int) new V(pos, false).invoke("getX"), (int) new V(pos,
+                                            false).invoke("getY"), (int) new V(pos, false).invoke("getZ"));
+                                    long xz = (((long)ipos.getX()) << 32) | (ipos.getZ() & 0xffffffffL);
+                                    if (existing.contains(xz)) return; //Make sure we don't double up on stronghold locs
+                                    existing.add(xz);
+                                    strongholds.add(ipos);
+
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        StringBuilder positions = new StringBuilder();
+                        for (IrisPosition pos : strongholds){
+                            positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
+                        }
+                        Iris.info("Strongholds (" + strongholds.size() + ") found at [" + positions + "]");
+
+                        metadata.setStrongholdPositions(strongholds);
+                        getComposite().saveEngineMetadata();
+                    });
+
+                } catch (Exception e) {
+                    strongholds.add( new IrisPosition(1337, 32, -1337) );
+                    metadata.setStrongholdPositions(strongholds);
+                    Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
+                    Iris.warn("  -> Setting default stronghold position");
+                    e.printStackTrace();
+                    StringBuilder positions = new StringBuilder();
+                    for (IrisPosition pos : strongholds){
+                        positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
+                    }
+                    Iris.info("Strongholds (" + metadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
+                }
+
+        }
+    }
+
+
+    /**
+     * Get BlockPosition for nearest stronghold from the provided position
+     */
+    private Object getBP(Class<?> clazz, Class<?> clazzSG, Class<?> clazzBP, Object nmsWorld, Object pos, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
+        final String stronghold = "k"; //1.17_01 mapping
+
+        Object structureGeneratorStronghold = clazzSG.getDeclaredField(stronghold).get(null);
+        Method getNearestGeneratedFeature = clazz.getDeclaredMethod("findNearestMapFeature",
+                nmsWorld.getClass(),
+                clazzSG,
+                clazzBP,
+                int.class,
+                boolean.class
+        );
+        Object nearestPOS = getNearestGeneratedFeature.invoke(chunkGenerator,
+                nmsWorld,
+                structureGeneratorStronghold,
+                pos,
+                100,
+                false
+        );
+        return nearestPOS;
     }
 
     private File getDataFolder(World world) {

@@ -18,7 +18,6 @@ import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_17_R1.util.CraftMagicNumbers;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
 
@@ -27,11 +26,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
-    public static final BlockData AIR = B.get("AIR");
+    BlockData AIR = B.get("AIR");
 
-    public Engine getEngine();
+    Engine getEngine();
 
-    public int getParallaxSize();
+    int getParallaxSize();
 
     default EngineFramework getFramework() {
         return getEngine().getFramework();

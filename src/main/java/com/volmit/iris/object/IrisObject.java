@@ -474,11 +474,6 @@ public class IrisObject extends IrisRegistrant
 			}
 
 			public void set(int param1Int1, int param1Int2, int param1Int3, BlockData param1BlockData) {
-				if(config.isCarved() && oplacer.isCarved(param1Int1, param1Int2, param1Int3))
-				{
-					return;
-				}
-
 				oplacer.set(param1Int1, param1Int2, param1Int3, param1BlockData);
 			}
 
@@ -508,11 +503,6 @@ public class IrisObject extends IrisRegistrant
 
 			public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData<? extends TileState> param1TileData) {
 				oplacer.setTile(param1Int1, param1Int2, param1Int3, param1TileData);
-			}
-
-			@Override
-			public boolean isCarved(int xx, int j, int zz) {
-				return oplacer.isCarved(xx,j,zz);
 			}
 		} : oplacer;
 
@@ -779,11 +769,6 @@ public class IrisObject extends IrisRegistrant
 
 			if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR))
 			{
-				if(config.isCarved() && placer.isCarved(xx, yy, zz))
-				{
-					continue;
-				}
-
 				placer.set(xx, yy, zz, data);
 
 				if(tile != null)
@@ -851,11 +836,6 @@ public class IrisObject extends IrisRegistrant
 
 				for(int j = lowest + y; j > yg - config.getOverStilt() - 1; j--)
 				{
-					if(config.isCarved() && placer.isCarved(xx, j, zz))
-					{
-						continue;
-					}
-
 					placer.set(xx, j, zz, d);
 				}
 			}
@@ -876,12 +856,6 @@ public class IrisObject extends IrisRegistrant
 				if(config.getSnow() > 0)
 				{
 					int height = rngx.i(0, (int) (config.getSnow() * 7));
-
-					if(config.isCarved() && placer.isCarved(vx, vy + 1, vz))
-					{
-						continue;
-					}
-
 					placer.set(vx, vy + 1, vz, SNOW_LAYERS[Math.max(Math.min(height, 7), 0)]);
 				}
 			}

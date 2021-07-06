@@ -6,25 +6,23 @@ import org.bukkit.block.data.BlockData;
 
 public interface IObjectPlacer
 {
-	int getHighest(int x, int z);
+	public int getHighest(int x, int z);
 
-	int getHighest(int x, int z, boolean ignoreFluid);
+	public int getHighest(int x, int z, boolean ignoreFluid);
 
-	void set(int x, int y, int z, BlockData d);
+	public void set(int x, int y, int z, BlockData d);
 
-	BlockData get(int x, int y, int z);
+	public BlockData get(int x, int y, int z);
 
-	boolean isPreventingDecay();
+	public boolean isPreventingDecay();
 
-	boolean isSolid(int x, int y, int z);
+	public boolean isSolid(int x, int y, int z);
 
-	boolean isUnderwater(int x, int z);
+	public boolean isUnderwater(int x, int z);
 
-	int getFluidHeight();
+	public int getFluidHeight();
 
-	boolean isDebugSmartBore();
+	public boolean isDebugSmartBore();
 
     void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile);
-
-    boolean isCarved(int xx, int j, int zz);
 }

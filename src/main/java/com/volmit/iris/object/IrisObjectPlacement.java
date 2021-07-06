@@ -73,10 +73,6 @@ public class IrisObjectPlacement
 	private int boreExtendMinY = 0;
 
 	@DontObfuscate
-	@Desc("Allow objects to be carved by caves and carvings. Use this sparingly, there is a performance impact.")
-	private boolean carved = false;
-
-	@DontObfuscate
 	@Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
 	private boolean underwater = false;
 

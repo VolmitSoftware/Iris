@@ -259,4 +259,16 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
     {
         return B.isSolid(m) && !m.equals(Material.BEDROCK);
     }
+
+    public boolean isCave(int x, int y, int z) {
+        for(CaveResult i : genCaves(x, z, x&15,z&15, null))
+        {
+            if(i.getFloor() < y && i.getCeiling() > y)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

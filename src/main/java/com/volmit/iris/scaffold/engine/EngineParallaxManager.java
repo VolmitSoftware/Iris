@@ -2,6 +2,7 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
+import com.volmit.iris.generator.modifier.IrisCaveModifier;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.object.tile.TileData;
@@ -18,7 +19,6 @@ import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_17_R1.util.CraftMagicNumbers;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
 
@@ -39,6 +39,12 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default ParallaxAccess getParallaxAccess() {
         return getEngine().getParallax();
+    }
+
+    default boolean isCarved(int x, int y, int z)
+    {
+        return ((IrisCaveModifier)getEngine().getFramework().getCaveModifier()).isCave(x,y,z) ||
+                getEngine().getDimension().isCarved(x,y,z, getComplex().getRng(), getEngine().getHeight());
     }
 
     default IrisDataManager getData() {

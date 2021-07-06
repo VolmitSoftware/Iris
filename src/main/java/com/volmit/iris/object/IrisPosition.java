@@ -57,4 +57,9 @@ public class IrisPosition
     public IrisPosition copy() {
 		return new IrisPosition(x,y,z);
     }
+
+    @Override
+    public String toString() {
+		return "[" + getX() + "," + getY() + "," + getZ() + "]";
+	}
 }

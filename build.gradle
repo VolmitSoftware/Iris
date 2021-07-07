@@ -69,6 +69,7 @@ dependencies {
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
     implementation 'org.bukkit.craftbukkit:1.17:1.17'
+    implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
     implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'

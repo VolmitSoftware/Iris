@@ -16,6 +16,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.Collection;
+
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -138,4 +140,17 @@ public class IrisNoiseGenerator
 
 		return n;
 	}
+
+    public KList<IrisNoiseGenerator> getAllComposites() {
+	    KList<IrisNoiseGenerator> g = new KList<IrisNoiseGenerator>();
+
+	    g.add(this);
+
+	    for(IrisNoiseGenerator i : getFracture())
+	    {
+	    	g.addAll(i.getAllComposites());
+	    }
+
+	    return g;
+    }
 }

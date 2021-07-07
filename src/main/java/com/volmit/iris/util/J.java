@@ -54,6 +54,22 @@ public class J
 		return false;
 	}
 
+	public static void arun(Runnable a)
+	{
+		e.submit(() -> {
+			try
+			{
+				a.run();
+			}
+
+			catch(Throwable e)
+			{
+				System.out.println("Failed to run async task");
+				e.printStackTrace();
+			}
+		});
+	}
+
 	public static void a(Runnable a)
 	{
 		e.submit(() -> {

@@ -30,7 +30,6 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant
 {
-
 	@MinNumber(0.001)
 	@DontObfuscate
 	@Desc("The zoom or frequency.")
@@ -314,5 +313,16 @@ public class IrisGenerator extends IrisRegistrant
 	{
 		zoom /= scale;
 		return this;
+	}
+
+	public KList<IrisNoiseGenerator> getAllComposites() {
+		KList<IrisNoiseGenerator> g = new KList<>();
+
+		for(IrisNoiseGenerator i : composite)
+		{
+			g.addAll(i.getAllComposites());
+		}
+
+		return g;
 	}
 }

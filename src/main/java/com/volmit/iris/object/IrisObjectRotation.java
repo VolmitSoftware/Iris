@@ -344,10 +344,9 @@ public class IrisObjectRotation
 			}
 		}
 
-		catch(Throwable e)
+		catch(Throwable throwable)
 		{
-			Iris.error("Rotation Failure");
-			e.printStackTrace();
+
 		}
 
 		return d;

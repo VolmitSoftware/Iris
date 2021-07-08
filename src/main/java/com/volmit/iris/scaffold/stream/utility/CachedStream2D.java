@@ -1,6 +1,7 @@
 package com.volmit.iris.scaffold.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;

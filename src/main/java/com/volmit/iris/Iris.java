@@ -1,5 +1,6 @@
 package com.volmit.iris;
 
+import com.google.gson.Gson;
 import com.volmit.iris.manager.*;
 import com.volmit.iris.manager.command.CommandIris;
 import com.volmit.iris.manager.command.world.CommandLocate;
@@ -10,6 +11,8 @@ import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
+import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.object.IrisObjectPlacement;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import com.volmit.iris.util.*;
@@ -18,18 +21,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.Callable;
 
-public class Iris extends VolmitPlugin
+public class Iris extends VolmitPlugin implements Listener
 {
 	public static KList<GroupedExecutor> executors = new KList<>();
 	public static Iris instance;
@@ -62,6 +66,7 @@ public class Iris extends VolmitPlugin
 		INMS.get();
 		IO.delete(new File("iris"));
 		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4g
+
 	}
 
 	public static int getThreadCount()
@@ -129,7 +134,7 @@ public class Iris extends VolmitPlugin
 		return false;
 	}
 
-	@Override
+    @Override
 	public void start()
 	{
 

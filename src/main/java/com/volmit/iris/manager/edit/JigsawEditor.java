@@ -146,16 +146,21 @@ public class JigsawEditor implements Listener {
 
     public void close()
     {
-        J.car(ticker);
-        Iris.instance.unregisterListener(this);
-        object.unplaceCenterY(origin);
-        editors.remove(player);
-        falling.v().forEach(Runnable::run);
+        exit();
         try {
             IO.writeAll(targetSaveLocation, new JSONObject(new Gson().toJson(piece)).toString(4));
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void exit()
+    {
+        J.car(ticker);
+        Iris.instance.unregisterListener(this);
+        object.unplaceCenterY(origin);
+        editors.remove(player);
+        falling.v().forEach(Runnable::run);
     }
 
     public void onTick()

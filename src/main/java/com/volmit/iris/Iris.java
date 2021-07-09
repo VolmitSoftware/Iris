@@ -65,8 +65,7 @@ public class Iris extends VolmitPlugin implements Listener
 		instance = this;
 		INMS.get();
 		IO.delete(new File("iris"));
-		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4g
-
+		lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4;
 	}
 
 	public static int getThreadCount()
@@ -178,6 +177,7 @@ public class Iris extends VolmitPlugin implements Listener
 		getServer().getPluginManager().registerEvents(new CommandLocate(), this);
 		getServer().getPluginManager().registerEvents(new WandManager() ,this);
 		super.onEnable();
+		Bukkit.getPluginManager().registerEvents(this, this);
 	}
 
 	private void checkConfigHotload() {

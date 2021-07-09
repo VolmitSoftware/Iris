@@ -432,6 +432,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean vacuum) {
+
         for (IrisObjectPlacement i : biome.getSurfaceObjects())
         {
             if(i.isVacuum() != vacuum)

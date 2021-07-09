@@ -6,6 +6,8 @@ import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>
 {
 	private final ProceduralStream<T> stream;

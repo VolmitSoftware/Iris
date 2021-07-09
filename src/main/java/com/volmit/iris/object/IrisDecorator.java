@@ -85,7 +85,7 @@ public class IrisDecorator
 			return stackMin;
 		}
 
-		return getHeightGenerator(rng, data).fit(stackMin, stackMax, x / heightVariance.getZoom(), z / heightVariance.getZoom());
+		return getHeightGenerator(rng, data).fit(stackMin, stackMax, x / heightVariance.getZoom(), z / heightVariance.getZoom()) + 1;
 	}
 
 	public CNG getHeightGenerator(RNG rng, IrisDataManager data)
@@ -134,7 +134,7 @@ public class IrisDecorator
 				return getBlockData(data).get(0);
 			}
 
-			return getVarianceGenerator(rng, data).fit(getBlockData(data), zz, xx); //X and Z must be switched
+			return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x); //X and Z must be switched
 		}
 
 		return null;
@@ -162,7 +162,7 @@ public class IrisDecorator
 			return getBlockData(data).get(0);
 		}
 
-		return getVarianceGenerator(rng, data).fit(getBlockData(data), zz, xx).clone(); //X and Z must be switched
+		return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x).clone(); //X and Z must be switched
 	}
 
 	public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
@@ -182,7 +182,7 @@ public class IrisDecorator
 				return getBlockDataTops(data).get(0);
 			}
 
-			return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), zz, xx); //X and Z must be switched
+			return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), z, x); //X and Z must be switched
 		}
 
 		return null;

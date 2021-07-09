@@ -32,10 +32,9 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator
                     {
                         data.set(x, height+1, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
                     }
-
                     else
                     {
-                        int stack = Math.min(getRng().nextParallelRNG(Cache.key(realX, realZ)).i(decorator.getStackMin(), decorator.getStackMax()), max);
+                        int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
 
                         for(int i = 0; i < stack; i++)
                         {

@@ -104,7 +104,7 @@ public class CommandIrisPregen extends MortarCommand
 				}
 			}
 			try {
-				new Pregenerator(world, getVal(args[0]));
+				new Pregenerator(world, getVal(args[0]) * 2);
 			} catch (NumberFormatException e){
 				sender.sendMessage("Invalid argument in command");
 				return true;
@@ -120,7 +120,7 @@ public class CommandIrisPregen extends MortarCommand
 		else
 		{
 			if (args.length < 1){
-				sender.sendMessage("Please specify the size of the pregen and the name of the world. E.g. /ir pregen 5k world");
+				sender.sendMessage("Please specify the radius of the pregen and the name of the world. E.g. /ir pregen 5k world");
 				return true;
 			}
 			if (args.length < 2){
@@ -129,7 +129,7 @@ public class CommandIrisPregen extends MortarCommand
 			}
 			World world = Bukkit.getWorld(args[1]);
 			try {
-				new Pregenerator(world, getVal(args[0]));
+				new Pregenerator(world, getVal(args[0]) * 2);
 			} catch (NumberFormatException e){
 				sender.sendMessage("Invalid argument in command");
 				return true;
@@ -166,6 +166,6 @@ public class CommandIrisPregen extends MortarCommand
 	@Override
 	protected String getArgsUsage()
 	{
-		return "[width]";
+		return "[radius]";
 	}
 }

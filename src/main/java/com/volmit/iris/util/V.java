@@ -106,6 +106,10 @@ public class V
 		return null;
 	}
 
+	public Object getSelf() {
+		return o;
+	}
+
 	public Object invoke(String method, Object... parameters)
 	{
 		KList<Class<?>> par = new KList<Class<?>>();

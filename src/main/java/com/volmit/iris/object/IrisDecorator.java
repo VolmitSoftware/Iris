@@ -198,7 +198,9 @@ public class IrisDecorator
 				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
-					blockData.add(bx);
+					for (int n = 0; n < i.getWeight(); n++) {
+						blockData.add(bx);
+					}
 				}
 			}
 
@@ -216,7 +218,9 @@ public class IrisDecorator
 				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
-					blockDataTops.add(bx);
+					for (int n = 0; n < i.getWeight(); n++) {
+						blockDataTops.add(bx);
+					}
 				}
 			}
 

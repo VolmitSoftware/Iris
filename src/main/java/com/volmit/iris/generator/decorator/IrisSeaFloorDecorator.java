@@ -1,6 +1,5 @@
 package com.volmit.iris.generator.decorator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
@@ -31,12 +30,14 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator
                 {
                     int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                     stack = Math.min(stack, getDimension().getFluidHeight() - height + 2);
-                    //Iris.info("Stack at " + realX + "," + realZ + " is " + stack);
+
                     BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                     BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+
                     for(int i = 0; i < stack; i++)
                     {
-                        data.set(x, height+i, z, i == stack-1 ? top : fill);
+                        double threshold = ((double)i) / (stack - 1);
+                        data.set(x, height+i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                     }
                 }
             }

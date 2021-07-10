@@ -30,9 +30,13 @@ public class IrisCeilingDecorator extends IrisEngineDecorator
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                 stack = Math.min(max + 1, stack);
 
+                BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
+                BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+
                 for(int i = 0; i < stack; i++)
                 {
-                    data.set(x, height-i, z, i == 0 ? decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData()) : decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+                    double threshold = (((double)i) / (double)(stack - 1));
+                    data.set(x, height-i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                 }
             }
         }

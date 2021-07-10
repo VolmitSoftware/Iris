@@ -72,6 +72,13 @@ public class IrisDecorator
 	@Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
 	private KList<IrisBlockData> topPalette = new KList<IrisBlockData>();
 
+	@DependsOn("topPalette")
+	@MinNumber(0.01)
+	@MaxNumber(1.0)
+	@DontObfuscate
+	@Desc("When the stack passes the top threshold, the top palette will start being used instead of the normal palette.")
+	private double topThreshold = 1.0;
+
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();

@@ -106,7 +106,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                         {
                             if (emptyFor > 0) {
                                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, emptyFor);
-                                getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid, emptyFor);
+                                getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
                                 emptyFor = 0;
                             }
                             lastSolid = k;

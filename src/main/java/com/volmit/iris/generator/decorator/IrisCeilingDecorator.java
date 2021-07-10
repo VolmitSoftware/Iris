@@ -36,7 +36,7 @@ public class IrisCeilingDecorator extends IrisEngineDecorator
                 for(int i = 0; i < stack; i++)
                 {
                     double threshold = (((double)i) / (double)(stack - 1));
-                    data.set(x, height-i, z, threshold >= decorator.getTopThreshold() ? top : fill);
+                    data.set(x, height - i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                 }
             }
         }

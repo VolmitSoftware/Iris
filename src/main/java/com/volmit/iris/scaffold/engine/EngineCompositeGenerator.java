@@ -6,6 +6,7 @@ import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -532,7 +533,15 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBlock(int x, int y, int z, BlockData blockData) {
-                cc.setBlockStateAt((x+ox)&15, y, (z+oz)&15, writer.getCompound(blockData), false);
+                int xx = (x+ox)&15;
+                int zz = (z+oz)&15;
+
+                if(y > 255 || y < 0)
+                {
+                    return;
+                }
+
+                cc.setBlockStateAt(xx, y, zz, writer.getCompound(blockData), false);
             }
 
             @Override

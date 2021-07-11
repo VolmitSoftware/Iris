@@ -1002,6 +1002,15 @@ public interface Hunk<T>
 	{
 		if(x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth())
 		{
+			try
+			{
+				throw new RuntimeException();
+			}
+
+			catch(Throwable e)
+			{
+				e.printStackTrace();
+			}
 			Iris.warn(x + "," + y + "," + z + " does not fit within size " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
 		}
 	}

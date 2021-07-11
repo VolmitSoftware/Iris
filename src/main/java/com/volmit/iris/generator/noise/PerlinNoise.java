@@ -86,4 +86,13 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise
 	{
 		octaves = o;
 	}
+
+	public NoiseGenerator hermite() {
+		n.m_longerp = FastNoiseDouble.Longerp.Hermite;
+		return this;
+	}
+	public NoiseGenerator quad() {
+		n.m_longerp = FastNoiseDouble.Longerp.Qulongic;
+		return this;
+	}
 }

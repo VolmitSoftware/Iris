@@ -1,5 +1,6 @@
 package com.volmit.iris.generator.decorator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
@@ -32,9 +33,17 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
 
         for(IrisDecorator i : biome.getDecorators())
         {
-            if(i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null)
+            try
             {
-                v.add(i);
+                if(i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null)
+                {
+                    v.add(i);
+                }
+            }
+
+            catch(Throwable e)
+            {
+                Iris.error("PART OF: " + biome.getLoadFile().getAbsolutePath() + " HAS AN INVALID DECORATOR near 'partOf'!!!");
             }
         }
 

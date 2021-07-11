@@ -81,7 +81,7 @@ public class FastNoiseDouble
 
 	private long m_seed = 1337;
 	private double m_frequency = (double) 0.01;
-	private Longerp m_longerp = Longerp.Linear;
+	public Longerp m_longerp = Longerp.Linear;
 	private NoiseType m_noiseType = NoiseType.Simplex;
 
 	private long m_octaves = 3;
@@ -1087,22 +1087,20 @@ public class FastNoiseDouble
 		long x1 = x0 + 1;
 		long y1 = y0 + 1;
 
-		double xs, ys;
-		switch(m_longerp)
-		{
-			default:
-			case Linear:
+		double xs = 0, ys = 0;
+		switch (m_longerp) {
+			case Linear -> {
 				xs = x - x0;
 				ys = y - y0;
-				break;
-			case Hermite:
+			}
+			case Hermite -> {
 				xs = longerpHermiteFunc(x - x0);
 				ys = longerpHermiteFunc(y - y0);
-				break;
-			case Qulongic:
+			}
+			case Qulongic -> {
 				xs = longerpQulongicFunc(x - x0);
 				ys = longerpQulongicFunc(y - y0);
-				break;
+			}
 		}
 
 		double xd0 = x - x0;

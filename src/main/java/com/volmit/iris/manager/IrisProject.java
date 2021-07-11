@@ -3,18 +3,18 @@ package com.volmit.iris.manager;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.report.Report;
+import com.volmit.iris.manager.report.ReportType;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.IrisWorldCreator;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
 import lombok.Data;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
-import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
@@ -34,6 +34,102 @@ public class IrisProject
 	{
 		this.path = path;
 		this.name = path.getName();
+	}
+
+	public KList<Report> scanForErrors()
+	{
+		KList<Report> reports = new KList<>();
+		IrisDataManager data = new IrisDataManager(path);
+
+		for(int i = 0; i < getActiveProvider().getCompound().getSize(); i++)
+		{
+			Engine e = getActiveProvider().getCompound().getEngine(i);
+			IrisDimension dim = e.getDimension();
+			reports.add(scanForErrors(dim));
+		}
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrors(IrisDimension dim) {
+		KList<Report> reports = new KList<>();
+
+		if(dim.getFocus() != null && !dim.getFocus().isEmpty())
+		{
+			reports.add(Report.builder()
+					.type(ReportType.NOTICE)
+					.title("Focus Mode is Enabled")
+					.message("Make sure to disable this before pushing")
+					.suggestion("Turn off focus mode")
+					.build());
+		}
+
+		for(IrisRegion i : dim.getAllRegions(getActiveProvider()))
+		{
+			scanForErrors(i);
+		}
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrors(IrisRegion region) {
+		KList<Report> reports = new KList<>();
+
+		if(region.getRarity() > 60)
+		{
+			reports.add(Report.builder()
+					.type(ReportType.WARNING)
+					.title("Region " + region.getName() + " has a rarity of " + region.getRarity())
+					.message("The region rarity higher than 60 can cause performance issues")
+					.suggestion("Scale all rarities down by 50% all at once, then repeat until all rarities are below 60")
+					.build());
+		}
+
+		for(IrisBiome i : region.getAllBiomes(getActiveProvider()))
+		{
+			reports.add(scanForErrors(i));
+		}
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrors(IrisBiome biome) {
+		KList<Report> reports = new KList<>();
+
+		for(IrisObjectPlacement i : biome.getObjects())
+		{
+			reports.add(scanForErrors(biome, i));
+		}
+
+		for(IrisBiomePaletteLayer i : biome.getLayers())
+		{
+			reports.add(scanForErrors(biome, i));
+		}
+
+		for(IrisBiomePaletteLayer i : biome.getSeaLayers())
+		{
+			reports.add(scanForErrorsSeaLayers(biome, i));
+		}
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrors(IrisBiome biome, IrisObjectPlacement i) {
+		KList<Report> reports = new KList<>();
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrors(IrisBiome biome, IrisBiomePaletteLayer i) {
+		KList<Report> reports = new KList<>();
+
+		return reports;
+	}
+
+	private KList<Report> scanForErrorsSeaLayers(IrisBiome biome, IrisBiomePaletteLayer i) {
+		KList<Report> reports = new KList<>();
+
+		return reports;
 	}
 
 	public boolean isOpen()

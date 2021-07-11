@@ -18,11 +18,13 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
     @Getter
     private final RNG rng;
+    private final boolean carving;
     private final boolean hasUnder;
 
     public IrisTerrainActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getWorld().getSeed());
+        carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
         hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }
 
@@ -66,7 +68,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                         }
                     }
 
-                    if(getDimension().isCarved(realX, i, realZ, rng, he))
+                    if(carving && getDimension().isCarved(realX, i, realZ, rng, he))
                     {
                         continue;
                     }

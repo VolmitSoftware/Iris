@@ -20,6 +20,38 @@ public enum NoiseStyle
 	@DontObfuscate
 	IRIS(rng -> CNG.signature(rng).scale(1)),
 
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE(rng -> CNG.signaturePerlin(rng).scale(0.776).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_CELLULAR(rng -> CNG.signaturePerlin(rng, NoiseType.CELLULAR).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_SIMPLEX(rng -> CNG.signaturePerlin(rng, NoiseType.SIMPLEX).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_GLOB(rng -> CNG.signaturePerlin(rng, NoiseType.GLOB).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_VASCULAR(rng -> CNG.signaturePerlin(rng, NoiseType.VASCULAR).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_CUBIC(rng -> CNG.signaturePerlin(rng, NoiseType.CUBIC).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_SUPERFRACTAL(rng -> CNG.signaturePerlin(rng, NoiseType.FRACTAL_RIGID_MULTI_SIMPLEX).scale(1).bake()),
+
+	@Desc("Classic German Engineering")
+	@DontObfuscate
+	NOWHERE_FRACTAL(rng -> CNG.signaturePerlin(rng, NoiseType.FRACTAL_BILLOW_PERLIN).scale(1).bake()),
+
 	@Desc("Wispy Perlin-looking simplex noise. The 'iris' style noise.")
 	@DontObfuscate
 	IRIS_DOUBLE(rng -> CNG.signatureDouble(rng).scale(1)),
@@ -58,7 +90,7 @@ public enum NoiseStyle
 
 	@Desc("Perlin. Like simplex but more natural")
 	@DontObfuscate
-	PERLIN(rng -> new CNG(rng, NoiseType.PERLIN, 1D, 1).scale(1.47)),
+	PERLIN(rng -> new CNG(rng, NoiseType.PERLIN, 1D, 1).scale(1.15)),
 
 	@Desc("Perlin. Like simplex but more natural")
 	@DontObfuscate

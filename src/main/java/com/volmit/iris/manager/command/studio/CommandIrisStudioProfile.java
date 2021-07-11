@@ -76,7 +76,7 @@ public class CommandIrisStudioProfile extends MortarCommand
 			{
 				CNG c = i.create(new RNG(i.hashCode()));
 
-				for(int j = 0; j < 3000; j++)
+				for(int j = 0; j < 30000; j++)
 				{
 					c.noise(j, j + 1000, j * j);
 					c.noise(j, -j);
@@ -84,7 +84,7 @@ public class CommandIrisStudioProfile extends MortarCommand
 
 				PrecisionStopwatch px = PrecisionStopwatch.start();
 
-				for(int j = 0; j < 100000; j++)
+				for(int j = 0; j < 1000000; j++)
 				{
 					c.noise(j, j + 1000, j * j);
 					c.noise(j, -j);

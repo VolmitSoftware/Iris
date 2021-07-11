@@ -80,10 +80,44 @@ public class CNG
 		return signatureThick(rng, t).fractureWith(signature(rng.nextParallelRNG(4956)), 93);
 	}
 
+
+	public static CNG signatureDoubleFast(RNG rng, NoiseType t, NoiseType f)
+	{
+		return signatureThickFast(rng, t, f)
+				.fractureWith(signatureFast(rng.nextParallelRNG(4956), t, f), 93);
+	}
+
 	public static CNG signature(RNG rng, NoiseType t)
 	{
 		// @NoArgsConstructor
 		return new CNG(rng.nextParallelRNG(17), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145), 44).bake();
+		// @done
+	}
+
+	public static CNG signaturePerlin(RNG rng)
+	{
+		return signaturePerlin(rng, NoiseType.PERLIN);
+	}
+
+	public static CNG signaturePerlin(RNG rng, NoiseType t)
+	{
+		// @NoArgsConstructor
+		return new CNG(rng.nextParallelRNG(124996), t, 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(18), NoiseType.PERLIN, 1, 1).scale(1.25), 250)
+				.bake();
+		// @done
+	}
+
+	public static CNG signatureFast(RNG rng, NoiseType t, NoiseType f)
+	{
+		// @NoArgsConstructor
+		return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
+				.scale(0.9)
+				.fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+				.scale(0.21)
+				.fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 620), 145), 44)
+				.bake();
 		// @done
 	}
 
@@ -94,10 +128,31 @@ public class CNG
 		// @done
 	}
 
+	public static CNG signatureThickFast(RNG rng, NoiseType t, NoiseType f)
+	{
+		// @NoArgsConstructor
+		return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
+						.scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+								.scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+										.scale(0.4), 620), 145), 44).bake();
+		// @done
+	}
+
 	public static CNG signatureHalf(RNG rng, NoiseType t)
 	{
 		// @NoArgsConstructor
 		return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99), 22).bake();
+		// @done
+	}
+
+	public static CNG signatureHalfFast(RNG rng, NoiseType t, NoiseType f)
+	{
+		// @NoArgsConstructor
+		return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
+				.fractureWith(new CNG(rng.nextParallelRNG(18),f, 1, 1).scale(0.9)
+						.fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.21)
+								.fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 420), 99), 22).bake();
 		// @done
 	}
 

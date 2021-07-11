@@ -18,6 +18,10 @@ public enum DecorationPart
 	@DontObfuscate
 	SEA_SURFACE,
 
+	@Desc("Targets the sea floor (entire placement must be bellow sea level)")
+	@DontObfuscate
+	SEA_FLOOR,
+
 	@Desc("Decorates on cave & carving ceilings or underside of overhangs")
 	@DontObfuscate
 	CEILING,

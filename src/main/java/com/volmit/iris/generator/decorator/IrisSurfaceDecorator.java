@@ -62,23 +62,21 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
                 data.set(x, height+1, z, bd);
 
             }
-
-            else {
+            else
+            {
                 if (height < getDimension().getFluidHeight())
                 {
                     max = getDimension().getFluidHeight() - height;
                 }
 
-                int stack = Math.min(getRng().nextParallelRNG(Cache.key(realX, realZ)).i(decorator.getStackMin(), decorator.getStackMax()), max);
+                int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
+                BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
+                BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
 
                 for(int i = 0; i < stack; i++)
                 {
-                    bd = i == stack-1 ? decorator.getBlockDataForTop(biome, getRng(), realX+i, realZ-i, getData()) : decorator.getBlockData100(biome, getRng(), realX+i, realZ-i, getData());
-
-                    if(bd == null && i == stack-1)
-                    {
-                        bd = decorator.getBlockData100(biome, getRng(), realX+i, realZ-i, getData());
-                    }
+                    double threshold = ((double)i) / (stack - 1);
+                    bd = threshold >= decorator.getTopThreshold() ? top : fill;
 
                     if(bd == null)
                     {

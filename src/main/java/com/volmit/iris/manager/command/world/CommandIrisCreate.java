@@ -2,6 +2,7 @@ package com.volmit.iris.manager.command.world;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
+import com.volmit.iris.generator.IrisWorldManager;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.nms.INMS;
@@ -15,6 +16,8 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
 import java.io.File;
+import java.util.Locale;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -31,7 +34,56 @@ public class CommandIrisCreate extends MortarCommand
 
 	@Override
 	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+		if (args.length == 0 || args[args.length - 1].equals("")) { //They are about to type a new argument
+			list.addAll(getBase(args));
+			return;
+		}
 
+		String[] split = args[args.length - 1].split("\\Q=\\E");
+		if (split.length == 0) { //They haven't typed the = yet so just keep the options there
+			list.addAll(getBase(args));
+			return;
+		}
+
+		String pre = split[0].toLowerCase();
+
+		if (pre.equals("type")) {
+			for (String s : Iris.proj.getListing(true).keySet()) {
+				list.add("type=" + s);
+			}
+			if (!list.contains("type=overworld")) {
+				list.contains("type=overworld");
+			}
+		} else if (pre.equals("seed")) {
+			list.add("seed=1337");
+			list.add("seed=" + new Random().nextInt());
+			list.add("seed=random");
+		} else if (pre.equals("pregen")) {
+			list.add("500");
+			list.add("1000");
+			list.add("2000");
+			list.add("5k");
+			list.add("10k");
+			list.add("25k");
+		}
+	}
+
+	private KList<String> getBase(String[] args) {
+		KList<String> list = new KList<>();
+		boolean seed = true;
+		boolean type = true;
+		boolean pregen = true;
+
+		for (String s : args) {
+			if (s.toLowerCase().startsWith("seed=")) seed = false;
+			else if (s.toLowerCase().startsWith("type=")) type = false;
+			else if (s.toLowerCase().startsWith("pregen=")) pregen = false;
+		}
+
+		if (seed) list.add("seed=");
+		if (type) list.add("type=");
+		if (pregen) list.add("pregen=");
+		return list;
 	}
 
 	@Override
@@ -42,17 +94,17 @@ public class CommandIrisCreate extends MortarCommand
 			sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000]");
 			return true;
 		}
-
+		Random random = new Random();
 		String worldName = args[0];
 		String type = IrisSettings.get().getGenerator().getDefaultWorldType();
-		long seed = 1337;
-		AtomicInteger pregen = new AtomicInteger(0);
+		long seed = random.nextLong(); //Random seed when creating a world
+		AtomicInteger pregen = new AtomicInteger(256);
 		boolean multiverse = Iris.linkMultiverseCore.supported();
 
 		for(String i : args)
 		{
 			type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
-			seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
+			seed = i.startsWith("seed=") ? (i.split("\\Q=\\E")[1].equalsIgnoreCase("random") ? random.nextLong() : Long.valueOf(i.split("\\Q=\\E")[1])) : seed;
 			pregen.set(i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen.get());
 		}
 
@@ -60,8 +112,6 @@ public class CommandIrisCreate extends MortarCommand
 		final AtomicReference<World> world = new AtomicReference<>();
 		IrisDimension dim;
 		File folder = new File(worldName);
-
-
 
 		Runnable onDone = () -> {
 
@@ -88,10 +138,12 @@ public class CommandIrisCreate extends MortarCommand
 			if(pregen.get() > 0)
 			{
 				b.set(false);
-				sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
+				int size = pregen.get();
+				size *= 2;
+				sender.sendMessage("Pregenerating " + worldName + " " + size + " x " + size);
 				sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
-				new Pregenerator(world.get(), pregen.get(), () ->
+				new Pregenerator(world.get(), size, () ->
 				{
 					b.set(true);
 				});
@@ -117,7 +169,6 @@ public class CommandIrisCreate extends MortarCommand
 				});
 			});
 		};
-
 
 
 		if(multiverse)
@@ -148,7 +199,6 @@ public class CommandIrisCreate extends MortarCommand
 			world.set(Bukkit.getWorld(worldName));
 			onDone.run();
 		}
-
 		else
 		{
 			if(folder.exists())
@@ -195,7 +245,12 @@ public class CommandIrisCreate extends MortarCommand
 					}
 				});
 
-				world.set(INMS.get().createWorld(wc));
+				World w = INMS.get().createWorld(wc);
+				world.set(w);
+
+				J.a(() -> {
+					new Pregenerator(w, pregen.get() * 2);
+				});
 
 				done.set(true);
 			});

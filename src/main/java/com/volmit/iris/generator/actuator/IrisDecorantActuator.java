@@ -1,5 +1,6 @@
 package com.volmit.iris.generator.actuator;
 
+import com.volmit.iris.generator.decorator.IrisSeaFloorDecorator;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.util.PrecisionStopwatch;
 import com.volmit.iris.util.RNG;
@@ -28,6 +29,8 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
     @Getter
     private final EngineDecorator seaSurfaceDecorator;
     @Getter
+    private final EngineDecorator seaFloorDecorator;
+    @Getter
     private final EngineDecorator shoreLineDecorator;
     private final boolean shouldRay;
 
@@ -39,6 +42,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
         ceilingDecorator = new IrisCeilingDecorator(getEngine());
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(getEngine());
         shoreLineDecorator = new IrisShoreLineDecorator(getEngine());
+        seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
     }
 
     @Override
@@ -49,9 +53,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        boolean solid;
-        int emptyFor = 0;
-        int lastSolid = 0;
+
         int j, realX, realZ, height;
         IrisBiome biome, cave;
 
@@ -59,6 +61,9 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
         {
             for(j = 0; j < output.getDepth(); j++)
             {
+                boolean solid;
+                int emptyFor = 0;
+                int lastSolid = 0;
                 realX = (int) Math.round(modX(x + i));
                 realZ = (int) Math.round(modZ(z + j));
                 height = (int) Math.round(getComplex().getHeightStream().get(realX, realZ));
@@ -77,10 +82,16 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
                             realZ, (int) Math.round(modZ(z + j+1)), (int) Math.round(modZ(z + j-1)),
                             output, biome, height, getEngine().getHeight() - height);
                 }
-
+                else if (height == getDimension().getFluidHeight() + 1)
+                {
+                    getSeaSurfaceDecorator().decorate(i, j,
+                            realX, (int) Math.round(modX(x + i+1)), (int) Math.round(modX(x + i-1)),
+                            realZ, (int) Math.round(modZ(z + j+1)), (int) Math.round(modZ(z + j-1)),
+                            output, biome, height, getEngine().getHeight() - getDimension().getFluidHeight());
+                }
                 else if(height < getDimension().getFluidHeight())
                 {
-                    getSeaSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, getDimension().getFluidHeight(), getEngine().getHeight() - getDimension().getFluidHeight());
+                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight());
                 }
 
                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
@@ -93,18 +104,16 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData>
 
                         if(solid)
                         {
+                            if (emptyFor > 0) {
+                                getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, emptyFor);
+                                getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
+                                emptyFor = 0;
+                            }
                             lastSolid = k;
                         }
-
-                        else {
-                            emptyFor++;
-                        }
-
-                        if(solid && emptyFor > 0)
+                        else
                         {
-                            getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid, emptyFor);
-                            getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, emptyFor);
-                            emptyFor = 0;
+                            emptyFor++;
                         }
                     }
                 }

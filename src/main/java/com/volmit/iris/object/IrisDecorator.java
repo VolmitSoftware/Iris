@@ -54,22 +54,6 @@ public class IrisDecorator
 	@Desc("The maximum repeat stack height")
 	private int stackMax = 1;
 
-	@MinNumber(0.0001)
-	@DontObfuscate
-	@Desc("The zoom is for zooming in or out wispy dispersions. Makes patches bigger the higher this zoom value is")
-	private double zoom = 1;
-
-	@MinNumber(0.0001)
-	@DontObfuscate
-	@Desc("The zoom is for zooming in or out variance. Makes patches have more or less of one type.")
-	private double varianceZoom = 1;
-
-	@DependsOn({"stackMin", "stackMax"})
-	@MinNumber(0.0001)
-	@DontObfuscate
-	@Desc("The vertical zoom is for wispy stack heights. Zooming this in makes stack heights more slowly change over a distance")
-	private double verticalZoom = 1;
-
 	@Required
 	@MinNumber(0)
 	@MaxNumber(1)
@@ -88,6 +72,13 @@ public class IrisDecorator
 	@Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
 	private KList<IrisBlockData> topPalette = new KList<IrisBlockData>();
 
+	@DependsOn("topPalette")
+	@MinNumber(0.01)
+	@MaxNumber(1.0)
+	@DontObfuscate
+	@Desc("When the stack passes the top threshold, the top palette will start being used instead of the normal palette.")
+	private double topThreshold = 1.0;
+
 	private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
 	private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
@@ -101,7 +92,7 @@ public class IrisDecorator
 			return stackMin;
 		}
 
-		return getHeightGenerator(rng, data).fit(stackMin, stackMax, x / verticalZoom, z / verticalZoom);
+		return getHeightGenerator(rng, data).fit(stackMin, stackMax, x / heightVariance.getZoom(), z / heightVariance.getZoom()) + 1;
 	}
 
 	public CNG getHeightGenerator(RNG rng, IrisDataManager data)
@@ -123,7 +114,7 @@ public class IrisDecorator
 				variance.create(
 						rng.nextParallelRNG((int) (getBlockData(data).size())))
 
-						.scale(1D / varianceZoom));
+						.scale(1D / variance.getZoom()));
 	}
 
 	public KList<IrisBlockData> add(String b)
@@ -140,8 +131,8 @@ public class IrisDecorator
 			return null;
 		}
 
-		double xx = x / getZoom();
-		double zz = z / getZoom();
+		double xx = x / style.getZoom();
+		double zz = z / style.getZoom();
 
 		if(getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance)
 		{
@@ -150,7 +141,7 @@ public class IrisDecorator
 				return getBlockData(data).get(0);
 			}
 
-			return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz);
+			return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x); //X and Z must be switched
 		}
 
 		return null;
@@ -169,8 +160,8 @@ public class IrisDecorator
 
 		if(!getVarianceGenerator(rng, data).isStatic())
 		{
-			xx = x / getZoom();
-			zz = z / getZoom();
+			xx = x / style.getZoom();
+			zz = z / style.getZoom();
 		}
 
 		if(getBlockData(data).size() == 1)
@@ -178,7 +169,7 @@ public class IrisDecorator
 			return getBlockData(data).get(0);
 		}
 
-		return getVarianceGenerator(rng, data).fit(getBlockData(data), xx, zz).clone();
+		return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x).clone(); //X and Z must be switched
 	}
 
 	public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data)
@@ -188,8 +179,8 @@ public class IrisDecorator
 			return null;
 		}
 
-		double xx = x / getZoom();
-		double zz = z / getZoom();
+		double xx = x / style.getZoom();
+		double zz = z / style.getZoom();
 
 		if(getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance)
 		{
@@ -198,7 +189,7 @@ public class IrisDecorator
 				return getBlockDataTops(data).get(0);
 			}
 
-			return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), xx, zz);
+			return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), z, x); //X and Z must be switched
 		}
 
 		return null;
@@ -214,7 +205,9 @@ public class IrisDecorator
 				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
-					blockData.add(bx);
+					for (int n = 0; n < i.getWeight(); n++) {
+						blockData.add(bx);
+					}
 				}
 			}
 
@@ -232,7 +225,9 @@ public class IrisDecorator
 				BlockData bx = i.getBlockData(data);
 				if(bx != null)
 				{
-					blockDataTops.add(bx);
+					for (int n = 0; n < i.getWeight(); n++) {
+						blockDataTops.add(bx);
+					}
 				}
 			}
 

@@ -16,26 +16,24 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator
 
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
-        if(height < getDimension().getFluidHeight()) {
+        IrisDecorator decorator = getDecorator(biome, realX, realZ);
+
+        if(decorator != null)
+        {
+            if(!decorator.isStacking())
             {
-                IrisDecorator decorator = getDecorator(biome, realX, realZ);
+                data.set(x, getDimension().getFluidHeight()+1, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+            }
+            else
+            {
+                int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
 
-                if(decorator != null)
+                BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
+                BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+                for(int i = 0; i < stack; i++)
                 {
-                    if(!decorator.isStacking())
-                    {
-                        data.set(x, getDimension().getFluidHeight()+1, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
-                    }
-
-                    else
-                    {
-                        int stack = Math.min(getRng().nextParallelRNG(Cache.key(realX, realZ)).i(decorator.getStackMin(), decorator.getStackMax()), max);
-
-                        for(int i = 0; i < stack; i++)
-                        {
-                            data.set(x, getDimension().getFluidHeight()+1+i, z, i == stack-1 ? decorator.getBlockDataForTop(biome, getRng(), realX+i, realZ-i, getData()) : decorator.getBlockData100(biome, getRng(), realX+i, realZ-i, getData()));
-                        }
-                    }
+                    double threshold = ((double)i) / (stack - 1);
+                    data.set(x, getDimension().getFluidHeight() + 1 + i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                 }
             }
         }

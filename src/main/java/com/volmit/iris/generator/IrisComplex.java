@@ -52,6 +52,7 @@ public class IrisComplex implements DataProvider
 	private ProceduralStream<IrisDecorator> terrainCaveSurfaceDecoration;
 	private ProceduralStream<IrisDecorator> terrainCaveCeilingDecoration;
 	private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
+	private ProceduralStream<IrisDecorator> seaFloorDecoration;
 	private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
 	private ProceduralStream<BlockData> rockStream;
 	private ProceduralStream<BlockData> fluidStream;
@@ -191,6 +192,8 @@ public class IrisComplex implements DataProvider
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
 		seaSurfaceDecoration = trueBiomeStream
 			.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
+		seaFloorDecoration = trueBiomeStream
+				.convertAware2D((b, xx,zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_FLOOR));
 		trueHeightStream = ProceduralStream.of((x, z) -> {
 			int rx = (int) Math.round(engine.modifyX(x));
 			int rz = (int) Math.round(engine.modifyZ(z));

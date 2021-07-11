@@ -22,7 +22,10 @@ public class IrisCeilingDecorator extends IrisEngineDecorator
         {
             if(!decorator.isStacking())
             {
-                data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+                if(height >= 0 || height < getEngine().getHeight())
+                {
+                    data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+                }
             }
 
             else
@@ -35,6 +38,11 @@ public class IrisCeilingDecorator extends IrisEngineDecorator
 
                 for(int i = 0; i < stack; i++)
                 {
+                    if(height - i < 0 || height - i > getEngine().getHeight())
+                    {
+                        continue;
+                    }
+
                     double threshold = (((double)i) / (double)(stack - 1));
                     data.set(x, height - i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                 }

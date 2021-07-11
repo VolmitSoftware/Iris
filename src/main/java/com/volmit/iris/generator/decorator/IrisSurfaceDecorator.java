@@ -80,12 +80,17 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator
 
                     if(bd == null)
                     {
-                        return;
+                        break;
                     }
 
                     if(i == 0 && !underwater && !canGoOn(bd, bdx))
                     {
-                        return;
+                        break;
+                    }
+
+                    if(underwater && height + 1 + i > getDimension().getFluidHeight())
+                    {
+                        break;
                     }
 
                     data.set(x, height+1+i, z, bd);

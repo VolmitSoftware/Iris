@@ -1,7 +1,9 @@
 package com.volmit.iris.manager.command.world;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.pregen.GeneratorQueue;
 import com.volmit.iris.pregen.Pregenerator;
+import com.volmit.iris.pregen.queue.QueuedWorld;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;

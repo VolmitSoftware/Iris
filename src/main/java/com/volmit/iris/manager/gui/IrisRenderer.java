@@ -2,7 +2,9 @@ package com.volmit.iris.manager.gui;
 
 import java.awt.image.BufferedImage;
 
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.util.IrisInterpolation;
+import org.bukkit.Material;
 
 public class IrisRenderer
 {
@@ -31,4 +33,8 @@ public class IrisRenderer
 
 		return image;
 	}
+
+    public void set(double worldX, double worldZ) {
+	    ((Engine)renderer).getWorld().getBlockAt((int)worldX, 20, (int)worldZ).setType(Material.DIAMOND_BLOCK);
+    }
 }

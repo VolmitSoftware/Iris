@@ -3,6 +3,7 @@ package com.volmit.iris.manager.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.manager.gui.IrisVision;
+import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
@@ -38,9 +39,21 @@ public class CommandIrisStudioMap extends MortarCommand
 			return true;
 		}
 
-		IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
-		IrisVision.launch(g, 0);
-		sender.sendMessage("Opening Map!");
+
+		try
+		{
+			IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
+			IrisVision.launch(g, 0);
+			sender.sendMessage("Opening Map!");
+		}
+
+		catch(Throwable e)
+		{
+			IrisAccess g = IrisWorlds.access(sender.player().getWorld());
+			IrisVision.launch(g, 0);
+			sender.sendMessage("Opening Map!");
+		}
+
 		return true;
 	}
 

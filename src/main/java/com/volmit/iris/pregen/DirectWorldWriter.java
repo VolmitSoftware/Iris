@@ -18,6 +18,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 public class DirectWorldWriter {
@@ -49,16 +50,6 @@ public class DirectWorldWriter {
                     {
                         f.getParentFile().mkdirs();
                         f.createNewFile();
-                    }
-
-                    try
-                    {
-                        writeBuffer.get(i).cleanupPalettesAndBlockStates();
-                    }
-
-                    catch(Throwable e)
-                    {
-
                     }
 
                     MCAUtil.write(writeBuffer.get(i), f, true);
@@ -202,6 +193,10 @@ public class DirectWorldWriter {
         return s;
     }
 
+    public void deleteChunk(int x, int z) {
+
+    }
+
     public Chunk getChunk(int x, int z)
     {
         MCAFile mca = getMCA(x >> 5, z >> 5);
@@ -227,7 +222,12 @@ public class DirectWorldWriter {
         }
 
         File f = getMCAFile(x, z);
-        mca = new MCAFile(x, z);
+        try {
+            mca = f.exists() ?  MCAUtil.read(f) : new MCAFile(x, z);
+        } catch (IOException e) {
+            e.printStackTrace();
+            mca = new MCAFile(x, z);
+        }
 
         writeBuffer.put(key, mca);
         return mca;

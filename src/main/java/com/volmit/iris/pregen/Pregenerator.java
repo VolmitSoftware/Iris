@@ -11,6 +11,7 @@ import io.papermc.lib.PaperLib;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.event.Listener;
 
@@ -39,17 +40,22 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Pregenerator implements Listener
 {
 	private static Pregenerator instance;
-	private static final Color COLOR_MCA_PREPARE = Color.decode("#16211d");
-	private static final Color COLOR_MCA_GENERATE = Color.decode("#34c0eb");
-	private static final Color COLOR_MCA_GENERATE_SLOW = Color.decode("#34c0eb");
-	private static final Color COLOR_MCA_GENERATE_SLOW_ASYNC = Color.decode("#34c0eb");
-	private static final Color COLOR_MCA_GENERATED = Color.decode("#34eb83");
-	private static final Color COLOR_MCA_SEALED = Color.decode("#34eb83");
-	private static final Color COLOR_MCA_DEFERRED = Color.decode("#211617");
+	private static final Color COLOR_ERROR = Color.decode("#E34113");
+	private static final Color COLOR_MCA_PREPARE = Color.decode("#3CAAB5");
+	private static final Color COLOR_MCA_RELOAD = Color.decode("#41FF61");
+	private static final Color COLOR_MCA_GENERATE = Color.decode("#33FF8F");
+	private static final Color COLOR_MCA_GENERATE_SLOW = Color.decode("#13BAE3");
+	private static final Color COLOR_MCA_GENERATE_SLOW_ASYNC = Color.decode("#13BAE3");
+	private static final Color COLOR_MCA_GENERATED = Color.decode("#33FF8F");
+	private static final Color COLOR_MCA_GENERATED_MCA = Color.decode("#13E3C9");
+	private static final Color COLOR_MCA_SEALED = Color.decode("#33FF8F");
+	private static final Color COLOR_MCA_DEFERRED = Color.decode("#3CB57A");
 	private final World world;
+	private int lowestBedrock;
 	private final DirectWorldWriter directWriter;
 	private final AtomicBoolean active;
 	private final AtomicBoolean running;
+	private final KList<ChunkPosition> errors;
 	private final KList<Runnable> onComplete;
 	private final ChunkPosition max;
 	private final ChunkPosition min;
@@ -68,6 +74,8 @@ public class Pregenerator implements Listener
 	private final AtomicInteger vcaz;
 	private final long elapsed;
 	private final ChronoLatch latch;
+	private IrisAccess access;
+	private final KList<ChunkPosition> regionReload;
 
 	public Pregenerator(World world, int blockSize, Runnable onComplete)
 	{
@@ -83,11 +91,13 @@ public class Pregenerator implements Listener
 	public Pregenerator(World world, int blockSize, boolean dogui) throws HeadlessException
 	{
 		instance();
+		regionReload = new KList<>();
 		latch = new ChronoLatch(5000);
 		memoryMetric = new AtomicReference<>("...");
 		method = new AtomicReference<>("STARTUP");
 		memory = new AtomicLong(0);
 		this.world = world;
+		errors = new KList<>();
 		vmcax = new AtomicInteger();
 		vmcaz = new AtomicInteger();
 		vcax = new AtomicInteger();
@@ -97,7 +107,7 @@ public class Pregenerator implements Listener
 		totalChunks = new AtomicInteger(0);
 		generated = new AtomicInteger(0);
 		mcaDefer = new KList<>();
-		IrisAccess access = IrisWorlds.access(world);
+		access = IrisWorlds.access(world);
 		this.directWriter = new DirectWorldWriter(world.getWorldFolder());
 		this.running = new AtomicBoolean(true);
 		this.active = new AtomicBoolean(true);
@@ -115,6 +125,10 @@ public class Pregenerator implements Listener
 			totalChunks.getAndAdd(1024);
 			draw.add(() -> drawMCA(xx, zz, COLOR_MCA_PREPARE));
 		}).drain();
+		if(access != null)
+		{
+			lowestBedrock = access.getCompound().getLowestBedrock();
+		}
 		gui = dogui ?(IrisSettings.get().getGui().isLocalPregenGui() && IrisSettings.get().getGui().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this)  : null) : null;
 		flushWorld();
 		KList<ChunkPosition> order = computeChunkOrder();
@@ -135,7 +149,6 @@ public class Pregenerator implements Listener
 			else
 			{
 				drawMCA(xx, zz, COLOR_MCA_DEFERRED);
-				mcaDefer.add(new ChunkPosition(xx, zz));
 			}
 		});
 
@@ -163,7 +176,6 @@ public class Pregenerator implements Listener
 				vmcaz.set(p.getZ());
 				generateDeferedMCARegion(p.getX(), p.getZ(), burst, mcaIteration);
 				flushWorld();
-				drawMCA(p.getX(), p.getZ(), COLOR_MCA_SEALED);
 			}
 
 			burst.shutdownNow();
@@ -225,7 +237,7 @@ public class Pregenerator implements Listener
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
 				draw(ii, jj, COLOR_MCA_GENERATE);
 				access.directWriteChunk(world, ii, jj, directWriter);
-				draw(ii, jj, COLOR_MCA_GENERATED);
+				draw(ii, jj, COLOR_MCA_GENERATED_MCA);
 				generated.getAndIncrement();
 				vcax.set(ii);
 				vcaz.set(jj);
@@ -236,12 +248,14 @@ public class Pregenerator implements Listener
 			{
 				drawMCA(x, z, COLOR_MCA_DEFERRED);
 				generated.set(generated.get() - 1024);
-				mcaDefer.add(new ChunkPosition(x, z));
 			}
+			totalChunks.getAndAdd(1024);
+			mcaDefer.add(new ChunkPosition(x, z));
 		}
 
 		else
 		{
+			totalChunks.getAndAdd(1024);
 			mcaDefer.add(new ChunkPosition(x, z));
 			e.complete();
 			return false;
@@ -293,13 +307,26 @@ public class Pregenerator implements Listener
 			method.set("PaperAsync (Slow)");
 			mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
 				e.queue(() -> {
-					CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
-					draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
-					cc.join();
-					draw(ii, jj, COLOR_MCA_GENERATED);
-					generated.getAndIncrement();
-					vcax.set(ii);
-					vcaz.set(jj);
+					try
+					{
+						CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
+						draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
+						cc.join();
+						draw(ii, jj, COLOR_MCA_GENERATED);
+						generated.getAndIncrement();
+						vcax.set(ii);
+						vcaz.set(jj);
+					}
+
+					catch(Throwable ex)
+					{
+						draw(ii, jj, COLOR_ERROR);
+						ChunkPosition pos = new ChunkPosition(ii, jj);
+						errors.add(pos);
+						totalChunks.addAndGet(1024);
+						mcaDefer.add(new ChunkPosition(pos.getX() >> 5, pos.getZ() >> 5));
+						Iris.warn("Hole Detected in Chunk: " + pos.getX() + ", " + pos.getZ() + " (at block " + (pos.getX() << 4) + ", " + lowestBedrock + ", " + (pos.getZ() << 4) + ")");
+					}
 				});
 			});
 			e.complete();
@@ -314,7 +341,9 @@ public class Pregenerator implements Listener
 				q.add(() -> {
 					draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
 					world.getChunkAt(ii, jj).load(true);
+					Chunk c = world.getChunkAt(ii, jj);
 					draw(ii, jj, COLOR_MCA_GENERATED);
+					checkForError(c);
 					m.getAndIncrement();
 					generated.getAndIncrement();
 					vcax.set(ii);
@@ -351,6 +380,21 @@ public class Pregenerator implements Listener
 			while(m.get() < 1024)
 			{
 				J.sleep(25);
+			}
+		}
+	}
+
+	private void checkForError(Chunk c) {
+		if(lowestBedrock >= 0 && lowestBedrock < 256)
+		{
+			if(!c.getBlock(14, lowestBedrock, 14).getType().equals(Material.BEDROCK))
+			{
+				ChunkPosition pos = new ChunkPosition(c.getX(), c.getZ());
+				errors.add(pos);
+				totalChunks.addAndGet(1024);
+				mcaDefer.add(new ChunkPosition(pos.getX() >> 5, pos.getZ() >> 5));
+				draw(pos.getX(), pos.getZ(), COLOR_ERROR);
+				Iris.warn("Hole Detected in Chunk: " + pos.getX() + ", " + pos.getZ() + " (at block " + (pos.getX() << 4) + ", " + lowestBedrock + ", " + (pos.getZ() << 4) + ")");
 			}
 		}
 	}

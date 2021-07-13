@@ -27,9 +27,6 @@ public class CommandIrisStudio extends MortarCommand
 	@Command
 	private CommandIrisStudioUpdate update;
 
-	//@Command
-	//private CommandIrisStudioMap map;
-
 	@Command
 	private CommandIrisStudioGoto got0;
 
@@ -56,9 +53,12 @@ public class CommandIrisStudio extends MortarCommand
 
 	@Command
 	private CommandIrisStudioTPStudio tps;
-	
+
 	@Command
 	private CommandIrisStudioConvert convert;
+
+	@Command
+	private CommandIrisStudioMap map;
 
 	public CommandIrisStudio()
 	{

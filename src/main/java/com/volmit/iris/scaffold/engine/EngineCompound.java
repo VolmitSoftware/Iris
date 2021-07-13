@@ -1,5 +1,6 @@
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.generator.actuator.IrisTerrainActuator;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
@@ -151,4 +152,26 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
     }
 
     void updateWorld(World world);
+
+    default int getLowestBedrock()
+    {
+        int f = Integer.MAX_VALUE;
+
+        for(int i = 0; i < getSize(); i++)
+        {
+            Engine e = getEngine(i);
+
+            if(e.getDimension().isBedrock())
+            {
+                int m = ((IrisTerrainActuator)e.getFramework().getTerrainActuator()).getLastBedrock();
+
+                if(f > m)
+                {
+                    f = m;
+                }
+            }
+        }
+
+        return f;
+    }
 }

@@ -20,6 +20,8 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
     private final RNG rng;
     private final boolean carving;
     private final boolean hasUnder;
+    @Getter
+    private int lastBedrock = -1;
 
     public IrisTerrainActuator(Engine engine) {
         super(engine, "Terrain");
@@ -64,6 +66,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData>
                         if(getDimension().isBedrock())
                         {
                             h.set(xf, i, zf, BEDROCK);
+                            lastBedrock = i;
                             continue;
                         }
                     }

@@ -3,6 +3,8 @@ package com.volmit.iris.manager.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -24,6 +26,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	private static final long serialVersionUID = 2094606939770332040L;
 	private IrisRenderer renderer;
 	private int posX = 0;
+	private World world;
 	private int posZ = 0;
 	private double scale = 128;
 	private double mscale = 1D;
@@ -176,6 +179,26 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		return null;
 	}
 
+	private double getWorldX(double screenX)
+	{
+		return (screenX + oxp) * mscale;
+	}
+
+	private double getWorldZ(double screenZ)
+	{
+		return (screenZ + ozp) * mscale;
+	}
+
+	private double getScreenX(double x)
+	{
+		return (oxp + x) / mscale;
+	}
+
+	private double getScreenZ(double z)
+	{
+		return (ozp + z) / mscale;
+	}
+
 	@Override
 	public void paint(Graphics gx)
 	{
@@ -204,7 +227,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		w = getWidth();
 		h = getHeight();
 		double vscale = scale;
-		scale = w / 32D;
+		scale = w / 16D;
 
 		if(scale != vscale)
 		{
@@ -257,6 +280,12 @@ public class IrisVision extends JPanel implements MouseWheelListener
 			}
 		}
 
+		for(Player i : world.getPlayers())
+		{
+			g.setColor(Color.getHSBColor(RNG.r.f(), 1f, 1f));
+			g.drawRect((int)getScreenX(i.getLocation().getX()), (int)getScreenZ(i.getLocation().getZ()), 4, 4);
+		}
+
 		if(!isVisible())
 		{
 			return;
@@ -279,10 +308,11 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		});
 	}
 
-	private static void createAndShowGUI(Renderer r, int s)
+	private static void createAndShowGUI(Renderer r, int s, World world)
 	{
 		JFrame frame = new JFrame("Vision");
 		IrisVision nv = new IrisVision();
+		nv.world = world;
 		nv.renderer = new IrisRenderer(r);
 		frame.add(nv);
 		frame.setSize(1440, 820);
@@ -306,7 +336,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	public static void launch(IrisAccess g, int i) {
 		J.a(() ->
 		{
-			createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i);
+			createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i, g.getCompound().getWorld());
 		});
 	}
 

@@ -3,14 +3,17 @@ package com.volmit.iris.manager.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
+import io.lumine.xikage.mythicmobs.utils.cooldown.Cooldown;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerMoveEvent;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.File;
@@ -19,9 +22,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-public class IrisVision extends JPanel implements MouseWheelListener
+public class IrisVision extends JPanel implements MouseWheelListener, Listener
 {
 	private static final long serialVersionUID = 2094606939770332040L;
+	private static final int[] qualitySteps = new int[]{
+			25, 7, 1
+	};
+	private int tc = 8;
 	private IrisRenderer renderer;
 	private int posX = 0;
 	private int posZ = 0;
@@ -29,6 +36,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	private double mscale = 1D;
 	private int w = 0;
 	private int h = 0;
+	private World world;
 	private double lx = Double.MAX_VALUE;
 	private double lz = Double.MAX_VALUE;
 	private double ox = 0;
@@ -39,46 +47,21 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	private RollingSequence rs = new RollingSequence(512);
 	private O<Integer> m = new O<>();
 	private int tid = 0;
-	private KMap<BlockPosition, BufferedImage> positions = new KMap<>();
-	private KMap<BlockPosition, BufferedImage> fastpositions = new KMap<>();
+	private KSet<BlockPosition> cooldown = new KSet<>();
+	private KMap<BlockPosition, TileRender> positions = new KMap<>();
 	private KSet<BlockPosition> working = new KSet<>();
-	private KSet<BlockPosition> workingfast = new KSet<>();
-	private final ExecutorService e = Executors.newFixedThreadPool(8, new ThreadFactory()
-	{
-		@Override
-		public Thread newThread(Runnable r)
+	private final ExecutorService e = Executors.newFixedThreadPool(tc, r -> {
+		tid++;
+		Thread t = new Thread(r);
+		t.setName("Iris HD Renderer " + tid);
+		t.setPriority(Thread.MIN_PRIORITY);
+		t.setUncaughtExceptionHandler((et, e) ->
 		{
-			tid++;
-			Thread t = new Thread(r);
-			t.setName("Iris HD Renderer " + tid);
-			t.setPriority(Thread.MIN_PRIORITY);
-			t.setUncaughtExceptionHandler((et, e) ->
-			{
-				Iris.info("Exception encountered in " + et.getName());
-				e.printStackTrace();
-			});
+			Iris.info("Exception encountered in " + et.getName());
+			e.printStackTrace();
+		});
 
-			return t;
-		}
-	});
-
-	private final ExecutorService eh = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
-	{
-		@Override
-		public Thread newThread(Runnable r)
-		{
-			tid++;
-			Thread t = new Thread(r);
-			t.setName("Iris Renderer " + tid);
-			t.setPriority(Thread.NORM_PRIORITY);
-			t.setUncaughtExceptionHandler((et, e) ->
-			{
-				Iris.info("Exception encountered in " + et.getName());
-				e.printStackTrace();
-			});
-
-			return t;
-		}
+		return t;
 	});
 
 	public IrisVision()
@@ -86,7 +69,33 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		m.set(8);
 		renderer = new IrisRenderer(null);
 		rs.put(1);
-		addMouseWheelListener((MouseWheelListener) this);
+		addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				renderer.set(getWorldX(lx), getWorldZ(lz));
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+
+			}
+		});
+		addMouseWheelListener(this);
 		addMouseMotionListener(new MouseMotionListener()
 		{
 			@Override
@@ -109,71 +118,83 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		});
 	}
 
+	private double getWorldX(double screenX)
+	{
+		return (screenX + oxp) * mscale;
+	}
+
+	private double getWorldZ(double screenZ)
+	{
+		return (screenZ + ozp) * mscale;
+	}
+
+	private double getScreenX(double x)
+	{
+		return (x / mscale) - oxp;
+	}
+
+	private double getScreenZ(double z)
+	{
+		return (z / mscale) - ozp;
+	}
+
+	private int getTileQuality(TileRender r, int div)
+	{
+		if(r == null)
+		{
+			return div / qualitySteps[0];
+		}
+
+		for(int i : qualitySteps)
+		{
+			if(r.getQuality() < div / i)
+			{
+				return div / i;
+			}
+		}
+
+		return r.getQuality();
+	}
+
 	public BufferedImage getTile(KSet<BlockPosition> fg, int div, int x, int z, O<Integer> m)
 	{
 		BlockPosition key = new BlockPosition((int) mscale, Math.floorDiv(x, div), Math.floorDiv(z, div));
 		fg.add(key);
+		TileRender render = positions.get(key);
 
-		if(positions.containsKey(key))
+		if(render != null && getTileQuality(render, div) <= render.getQuality())
 		{
-			return positions.get(key);
+			return render.getImage();
 		}
 
-		if(fastpositions.containsKey(key))
+		if(!cooldown.contains(key) && !working.contains(key) && working.size() < tc)
 		{
-			if(!working.contains(key) && working.size() < 9)
-			{
-				m.set(m.get() - 1);
-
-				if(m.get() >= 0)
-				{
-					working.add(key);
-					double mk = mscale;
-					double mkd = scale;
-					e.submit(() ->
-					{
-						PrecisionStopwatch ps = PrecisionStopwatch.start();
-						BufferedImage b = renderer.render(x * mscale, z * mscale, div * mscale, div);
-						rs.put(ps.getMilliseconds());
-						working.remove(key);
-
-						if(mk == mscale && mkd == scale)
-						{
-							positions.put(key, b);
-						}
-					});
-				}
-			}
-
-			return fastpositions.get(key);
-		}
-
-		if(workingfast.contains(key))
-		{
-			return null;
-		}
-
-		m.set(m.get() - 1);
-
-		if(m.get() >= 0)
-		{
-			workingfast.add(key);
+			working.add(key);
 			double mk = mscale;
 			double mkd = scale;
-			eh.submit(() ->
+
+			e.submit(() ->
 			{
 				PrecisionStopwatch ps = PrecisionStopwatch.start();
-				BufferedImage b = renderer.render(x * mscale, z * mscale, div * mscale, div / 12);
+				int q = getTileQuality(render, div);
+				BufferedImage b = renderer.render(x * mscale, z * mscale, div * mscale, q);
 				rs.put(ps.getMilliseconds());
-				workingfast.remove(key);
+				working.remove(key);
 
 				if(mk == mscale && mkd == scale)
 				{
-					fastpositions.put(key, b);
+					TileRender r = render != null ? render : TileRender.builder()
+							.image(b).quality(q)
+							.build();
+					r.setImage(b);
+					r.setQuality(q);
+					positions.put(key, r);
+					cooldown.add(key);
 				}
 			});
 		}
-		return null;
+
+		return render != null ? render.getImage() : null;
 	}
 
 	@Override
@@ -204,7 +225,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		w = getWidth();
 		h = getHeight();
 		double vscale = scale;
-		scale = w / 32D;
+		scale = w / 16D;
 
 		if(scale != vscale)
 		{
@@ -218,33 +239,44 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		posX = (int) oxp;
 		posZ = (int) ozp;
 		m.set(3);
+		boolean hasNull = false;
 
 		for(int r = 0; r < Math.max(w, h); r += iscale)
 		{
-			for(int i = -iscale; i < w + iscale; i += iscale)
+			for(int i = -iscale*4; i < w + (iscale*4); i += iscale)
 			{
-				for(int j = -iscale; j < h + iscale; j += iscale)
+				for(int j = -iscale*4; j < h + (iscale*4); j += iscale)
 				{
 					int a = i - (w / 2);
 					int b = j - (h / 2);
 					if(a * a + b * b <= r * r)
 					{
-						BufferedImage t = getTile(gg, iscale, Math.floorDiv((posX / iscale) + i, iscale) * iscale, Math.floorDiv((posZ / iscale) + j, iscale) * iscale, m);
+						BufferedImage t = getTile(gg, iscale, Math
+								.floorDiv((posX / iscale) + i, iscale) * iscale, Math
+								.floorDiv((posZ / iscale) + j, iscale) * iscale, m);
 
 						if(t != null)
 						{
-							g.drawImage(t, i - ((posX / iscale) % (iscale)), j - ((posZ / iscale) % (iscale)), (int) (iscale), (int) (iscale), new ImageObserver()
-							{
-								@Override
-								public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height)
-								{
-									return true;
-								}
-							});
+							g.drawImage(t,
+									i - ((posX / iscale) % (iscale)),
+									j - ((posZ / iscale) % (iscale)),
+									iscale,
+									iscale,
+									(img, infoflags, x, y, width, height) -> true);
+						}
+
+						else
+						{
+							hasNull = true;
 						}
 					}
 				}
 			}
+		}
+
+		if(!hasNull)
+		{
+			cooldown.clear();
 		}
 
 		p.end();
@@ -256,6 +288,17 @@ public class IrisVision extends JPanel implements MouseWheelListener
 				positions.remove(i);
 			}
 		}
+
+		g.setColor(Color.red);
+		g.drawRect((int)lx, (int)lz, 3,3);
+
+		for(Player i : world.getPlayers())
+		{
+			g.drawRect((int)getScreenX(i.getLocation().getX()), (int)getScreenZ(i.getLocation().getZ()), 3,3);
+		}
+
+		g.drawString("X: " + posX, 20, 20);
+		g.drawString("Z: " + posZ, 20, 25 + g.getFont().getSize());
 
 		if(!isVisible())
 		{
@@ -279,11 +322,12 @@ public class IrisVision extends JPanel implements MouseWheelListener
 		});
 	}
 
-	private static void createAndShowGUI(Renderer r, int s)
+	private static void createAndShowGUI(Renderer r, World world, int s)
 	{
 		JFrame frame = new JFrame("Vision");
 		IrisVision nv = new IrisVision();
 		nv.renderer = new IrisRenderer(r);
+		nv.world = world;
 		frame.add(nv);
 		frame.setSize(1440, 820);
 		frame.setVisible(true);
@@ -306,7 +350,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 	public static void launch(IrisAccess g, int i) {
 		J.a(() ->
 		{
-			createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i);
+			createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), g.getTarget().getWorld(), i);
 		});
 	}
 
@@ -320,7 +364,7 @@ public class IrisVision extends JPanel implements MouseWheelListener
 
 		Iris.info("Blocks/Pixel: " + (mscale) + ", Blocks Wide: " + (w * mscale));
 		positions.clear();
-		fastpositions.clear();
+		cooldown.clear();
 		mscale = mscale + ((0.044 * mscale) * notches);
 		mscale = mscale < 0.00001 ? 0.00001 : mscale;
 	}

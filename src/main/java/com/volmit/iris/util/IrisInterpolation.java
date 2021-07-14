@@ -3,6 +3,7 @@ package com.volmit.iris.util;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.object.InterpolationMethod;
+import com.volmit.iris.object.IrisInterpolator;
 import com.volmit.iris.object.NoiseStyle;
 
 public class IrisInterpolation
@@ -221,7 +222,13 @@ public class IrisInterpolation
 		//@done
 	}
 
-	public static double tricubic(double p000, double p001, double p002, double p003, double p010, double p011, double p012, double p013, double p020, double p021, double p022, double p023, double p030, double p031, double p032, double p033, double p100, double p101, double p102, double p103, double p110, double p111, double p112, double p113, double p120, double p121, double p122, double p123, double p130, double p131, double p132, double p133, double p200, double p201, double p202, double p203, double p210, double p211, double p212, double p213, double p220, double p221, double p222, double p223, double p230, double p231, double p232, double p233, double p300, double p301, double p302, double p303, double p310, double p311, double p312, double p313, double p320, double p321, double p322, double p323, double p330, double p331, double p332, double p333, double mux, double muy, double muz)
+	public static double tricubic(double p000,
+							double p001,
+							double p002,
+							double p003,
+							double p010,
+							double p011,
+							double p012, double p013, double p020, double p021, double p022, double p023, double p030, double p031, double p032, double p033, double p100, double p101, double p102, double p103, double p110, double p111, double p112, double p113, double p120, double p121, double p122, double p123, double p130, double p131, double p132, double p133, double p200, double p201, double p202, double p203, double p210, double p211, double p212, double p213, double p220, double p221, double p222, double p223, double p230, double p231, double p232, double p233, double p300, double p301, double p302, double p303, double p310, double p311, double p312, double p313, double p320, double p321, double p322, double p323, double p330, double p331, double p332, double p333, double mux, double muy, double muz)
 	{
 		//@builder
 		return cubic(
@@ -302,10 +309,10 @@ public class IrisInterpolation
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
-		return blerp( 
-				n.noise(x1, z1), 
-				n.noise(x2, z1), 
-				n.noise(x1, z2), 
+		return blerp(
+				n.noise(x1, z1),
+				n.noise(x2, z1),
+				n.noise(x1, z2),
 				n.noise(x2, z2),
 				px, pz);
 		//@done
@@ -359,12 +366,229 @@ public class IrisInterpolation
 		double px = rangeScale(0, 1, x1, x2, x);
 		double pz = rangeScale(0, 1, z1, z2, z);
 		//@builder
-		return blerpParametric( 
-				n.noise(x1, z1), 
-				n.noise(x2, z1), 
-				n.noise(x1, z2), 
+		return blerpParametric(
+				n.noise(x1, z1),
+				n.noise(x2, z1),
+				n.noise(x1, z2),
 				n.noise(x2, z2),
 				px, pz, a);
+		//@done
+	}
+
+	public static double getTrilinear(int x, int y, int z, double rad, NoiseProvider3 n)
+	{
+		int fx = (int) Math.floor(x / rad);
+		int fy = (int) Math.floor(y / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x1 = (int) Math.round(fx * rad);
+		int y1 = (int) Math.round(fy * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int y2 = (int) Math.round((fy + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double py = rangeScale(0, 1, y1, y2, y);
+		double pz = rangeScale(0, 1, z1, z2, z);
+		//@builder
+		return trilerp(
+				n.noise(x1, y1, z1),
+				n.noise(x2, y1, z1),
+				n.noise(x1, y2, z1),
+				n.noise(x2, y2, z1),
+				n.noise(x1, y1, z2),
+				n.noise(x2, y1, z2),
+				n.noise(x1, y2, z2),
+				n.noise(x2, y2, z2),
+				px, py, pz);
+		//@done
+	}
+
+	public static double getTricubic(int x, int y, int z, double rad, NoiseProvider3 n)
+	{
+		int fx = (int) Math.floor(x / rad);
+		int fy = (int) Math.floor(y / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x0 = (int) Math.round((fx - 1) * rad);
+		int y0 = (int) Math.round((fy - 1) * rad);
+		int z0 = (int) Math.round((fz - 1) * rad);
+		int x1 = (int) Math.round(fx * rad);
+		int y1 = (int) Math.round(fy * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int y2 = (int) Math.round((fy + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
+		int x3 = (int) Math.round((fx + 2) * rad);
+		int y3 = (int) Math.round((fy + 2) * rad);
+		int z3 = (int) Math.round((fz + 2) * rad);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double py = rangeScale(0, 1, y1, y2, y);
+		double pz = rangeScale(0, 1, z1, z2, z);
+		//@builder
+		//!!!!!!!!!!!!!!!!!! 2 1 3
+
+		return tricubic(
+				n.noise(x0, y0, z0),
+				n.noise(x0, y1, z0),
+				n.noise(x0, y2, z0),
+				n.noise(x0, y3, z0),
+				n.noise(x1, y0, z0),
+				n.noise(x1, y1, z0),
+				n.noise(x1, y2, z0),
+				n.noise(x1, y3, z0),
+				n.noise(x2, y0, z0),
+				n.noise(x2, y1, z0),
+				n.noise(x2, y2, z0),
+				n.noise(x2, y3, z0),
+				n.noise(x3, y0, z0),
+				n.noise(x3, y1, z0),
+				n.noise(x3, y2, z0),
+				n.noise(x3, y3, z0),
+				n.noise(x0, y0, z1),
+				n.noise(x0, y1, z1),
+				n.noise(x0, y2, z1),
+				n.noise(x0, y3, z1),
+				n.noise(x1, y0, z1),
+				n.noise(x1, y1, z1),
+				n.noise(x1, y2, z1),
+				n.noise(x1, y3, z1),
+				n.noise(x2, y0, z1),
+				n.noise(x2, y1, z1),
+				n.noise(x2, y2, z1),
+				n.noise(x2, y3, z1),
+				n.noise(x3, y0, z1),
+				n.noise(x3, y1, z1),
+				n.noise(x3, y2, z1),
+				n.noise(x3, y3, z1),
+				n.noise(x0, y0, z2),
+				n.noise(x0, y1, z2),
+				n.noise(x0, y2, z2),
+				n.noise(x0, y3, z2),
+				n.noise(x1, y0, z2),
+				n.noise(x1, y1, z2),
+				n.noise(x1, y2, z2),
+				n.noise(x1, y3, z2),
+				n.noise(x2, y0, z2),
+				n.noise(x2, y1, z2),
+				n.noise(x2, y2, z2),
+				n.noise(x2, y3, z2),
+				n.noise(x3, y0, z2),
+				n.noise(x3, y1, z2),
+				n.noise(x3, y2, z2),
+				n.noise(x3, y3, z2),
+				n.noise(x0, y0, z3),
+				n.noise(x0, y1, z3),
+				n.noise(x0, y2, z3),
+				n.noise(x0, y3, z3),
+				n.noise(x1, y0, z3),
+				n.noise(x1, y1, z3),
+				n.noise(x1, y2, z3),
+				n.noise(x1, y3, z3),
+				n.noise(x2, y0, z3),
+				n.noise(x2, y1, z3),
+				n.noise(x2, y2, z3),
+				n.noise(x2, y3, z3),
+				n.noise(x3, y0, z3),
+				n.noise(x3, y1, z3),
+				n.noise(x3, y2, z3),
+				n.noise(x3, y3, z3),
+				px, py, pz);
+		//@done
+	}
+
+	public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n)
+	{
+		return getTrihermite(x,y,z,rad,n,0D,0D);
+	}
+
+	public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n, double tension, double bias)
+	{
+		int fx = (int) Math.floor(x / rad);
+		int fy = (int) Math.floor(y / rad);
+		int fz = (int) Math.floor(z / rad);
+		int x0 = (int) Math.round((fx - 1) * rad);
+		int y0 = (int) Math.round((fy - 1) * rad);
+		int z0 = (int) Math.round((fz - 1) * rad);
+		int x1 = (int) Math.round(fx * rad);
+		int y1 = (int) Math.round(fy * rad);
+		int z1 = (int) Math.round(fz * rad);
+		int x2 = (int) Math.round((fx + 1) * rad);
+		int y2 = (int) Math.round((fy + 1) * rad);
+		int z2 = (int) Math.round((fz + 1) * rad);
+		int x3 = (int) Math.round((fx + 2) * rad);
+		int y3 = (int) Math.round((fy + 2) * rad);
+		int z3 = (int) Math.round((fz + 2) * rad);
+		double px = rangeScale(0, 1, x1, x2, x);
+		double py = rangeScale(0, 1, y1, y2, y);
+		double pz = rangeScale(0, 1, z1, z2, z);
+		//@builder
+		//!!!!!!!!!!!!!!!!!! 2 1 3
+
+		return trihermite(
+				n.noise(x0, y0, z0),
+				n.noise(x0, y1, z0),
+				n.noise(x0, y2, z0),
+				n.noise(x0, y3, z0),
+				n.noise(x1, y0, z0),
+				n.noise(x1, y1, z0),
+				n.noise(x1, y2, z0),
+				n.noise(x1, y3, z0),
+				n.noise(x2, y0, z0),
+				n.noise(x2, y1, z0),
+				n.noise(x2, y2, z0),
+				n.noise(x2, y3, z0),
+				n.noise(x3, y0, z0),
+				n.noise(x3, y1, z0),
+				n.noise(x3, y2, z0),
+				n.noise(x3, y3, z0),
+				n.noise(x0, y0, z1),
+				n.noise(x0, y1, z1),
+				n.noise(x0, y2, z1),
+				n.noise(x0, y3, z1),
+				n.noise(x1, y0, z1),
+				n.noise(x1, y1, z1),
+				n.noise(x1, y2, z1),
+				n.noise(x1, y3, z1),
+				n.noise(x2, y0, z1),
+				n.noise(x2, y1, z1),
+				n.noise(x2, y2, z1),
+				n.noise(x2, y3, z1),
+				n.noise(x3, y0, z1),
+				n.noise(x3, y1, z1),
+				n.noise(x3, y2, z1),
+				n.noise(x3, y3, z1),
+				n.noise(x0, y0, z2),
+				n.noise(x0, y1, z2),
+				n.noise(x0, y2, z2),
+				n.noise(x0, y3, z2),
+				n.noise(x1, y0, z2),
+				n.noise(x1, y1, z2),
+				n.noise(x1, y2, z2),
+				n.noise(x1, y3, z2),
+				n.noise(x2, y0, z2),
+				n.noise(x2, y1, z2),
+				n.noise(x2, y2, z2),
+				n.noise(x2, y3, z2),
+				n.noise(x3, y0, z2),
+				n.noise(x3, y1, z2),
+				n.noise(x3, y2, z2),
+				n.noise(x3, y3, z2),
+				n.noise(x0, y0, z3),
+				n.noise(x0, y1, z3),
+				n.noise(x0, y2, z3),
+				n.noise(x0, y3, z3),
+				n.noise(x1, y0, z3),
+				n.noise(x1, y1, z3),
+				n.noise(x1, y2, z3),
+				n.noise(x1, y3, z3),
+				n.noise(x2, y0, z3),
+				n.noise(x2, y1, z3),
+				n.noise(x2, y2, z3),
+				n.noise(x2, y3, z3),
+				n.noise(x3, y0, z3),
+				n.noise(x3, y1, z3),
+				n.noise(x3, y2, z3),
+				n.noise(x3, y3, z3),
+				px, py, pz, tension, bias);
 		//@done
 	}
 

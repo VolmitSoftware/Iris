@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
@@ -582,5 +583,27 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         return getLayers().get(0).get(rng, x, 0, z, idm);
+    }
+
+    public IrisColor getColor() {
+        if (this.color == null) {
+            RandomColor randomColor = new RandomColor(getName().hashCode());
+            if (this.getVanillaDerivative() == null) {
+                this.color = new IrisColor();
+                this.color.setRed(255).setGreen(255).setBlue(255);
+                Iris.warn("No vanilla biome found for " + getName());
+            }
+            RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
+            RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
+            RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(this.getVanillaDerivative());
+            int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? RandomColor.SaturationType.MONOCHROME : sat, lum);
+
+
+            Color newColor = new Color(newColorI);
+            this.color = new IrisColor();
+            this.color.setRed(newColor.getRed()).setBlue(newColor.getBlue()).setGreen(newColor.getGreen());
+        }
+
+        return this.color;
     }
 }

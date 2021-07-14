@@ -1,5 +1,6 @@
 package com.volmit.iris.util;
 
+import com.volmit.iris.nms.BiomeBaseInjector;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -26,6 +27,8 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
     static TerrainChunk create(int maxHeight, BiomeGrid grid) {
         return new LinkedTerrainChunk(grid, maxHeight);
     }
+
+    BiomeBaseInjector getBiomeBaseInjector();
 
     void setRaw(ChunkData data);
 

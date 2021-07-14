@@ -4,6 +4,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.nms.BiomeBaseInjector;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisPosition;
@@ -445,7 +447,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.scaffold.data.mca.Chunk cc = writer.getChunk(x, z);
+        BiomeBaseInjector injector = (xx,yy,zz, biomeBase) -> cc.setBiomeAt(ox+xx, yy, oz+zz, INMS.get().getTrueBiomeBaseId(biomeBase));
         generateChunkRawData(w, x, z, new TerrainChunk() {
+            @Override
+            public BiomeBaseInjector getBiomeBaseInjector() {
+                return injector;
+            }
+
             @Override
             public void setRaw(ChunkData data) {
 
@@ -468,7 +476,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBiome(int x, int y, int z, Biome bio) {
-                writer.setBiome((ox + x), y, oz + z, bio);
+                writer.setBiome(ox + x, y, oz + z, bio);
             }
 
             @Override
@@ -744,7 +752,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         clearRegeneratedLists(x, z);
         int xx = x * 16;
         int zz = z * 16;
+        BiomeBaseInjector inj = (a,b,c,d) -> {};
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
+            @Override
+            public BiomeBaseInjector getBiomeBaseInjector() {
+                return inj;
+            }
+
             @Override
             public void setRaw(ChunkData data) {
 

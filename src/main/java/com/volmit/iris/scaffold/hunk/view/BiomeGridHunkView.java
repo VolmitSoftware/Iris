@@ -4,12 +4,14 @@ import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.LinkedTerrainChunk;
 import com.volmit.iris.util.TerrainChunk;
+import lombok.Getter;
 import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_17_R1.generator.CustomChunkGenerator;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
 public class BiomeGridHunkView implements Hunk<Biome> {
+    @Getter
     private final BiomeGrid chunk;
 
     public BiomeGridHunkView(BiomeGrid chunk) {

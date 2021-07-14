@@ -1,6 +1,8 @@
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.nms.BiomeBaseInjector;
+import com.volmit.iris.nms.INMS;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -42,6 +44,11 @@ public class LinkedTerrainChunk implements TerrainChunk {
         }
 
         return null;
+    }
+
+    @Override
+    public BiomeBaseInjector getBiomeBaseInjector() {
+        return (x, y, z, bb) -> INMS.get().forceBiomeInto(x, y, z, bb, storage);
     }
 
     @Override

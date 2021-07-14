@@ -322,9 +322,31 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                                 }
 
                                 if (!cancel && isAirOrWater(x, c, z, currentPostX, currentPostZ, currentData)) {
-                                    Slab slab = (Slab) d.clone();
-                                    slab.setType(Slab.Type.TOP);
-                                    setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                    try
+                                    {
+                                        Slab slab = (Slab) d.clone();
+                                        slab.setType(Slab.Type.TOP);
+                                        setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                    }
+
+                                    catch(Throwable ignored)
+                                    {
+                                        try
+                                        {
+                                            Slab slab = (Slab) d.clone();
+
+                                            synchronized (slab)
+                                            {
+                                                slab.setType(Slab.Type.TOP);
+                                                setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                            }
+                                        }
+
+                                        catch(Throwable ignored2)
+                                        {
+
+                                        }
+                                    }
                                 }
                             }
                         }

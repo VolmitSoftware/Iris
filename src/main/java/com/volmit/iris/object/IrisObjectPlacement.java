@@ -129,6 +129,10 @@ public class IrisObjectPlacement
 	@Desc("Translate this object's placement")
 	private IrisObjectTranslate translate = new IrisObjectTranslate();
 
+	@DontObfuscate
+	@Desc("Scale Objects")
+	private IrisObjectScale scale = new IrisObjectScale();
+
 	@ArrayType(min = 1, type = IrisObjectLoot.class)
 	@DontObfuscate
 	@Desc("The loot tables to apply to these objects")

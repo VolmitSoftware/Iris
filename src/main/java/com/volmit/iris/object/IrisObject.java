@@ -1,5 +1,12 @@
 package com.volmit.iris.object;
 
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.internal.annotation.Selection;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.Vector3;
+import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.world.block.BlockTypes;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.tile.TileData;
@@ -8,6 +15,7 @@ import com.volmit.iris.util.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -17,8 +25,12 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
+import org.bukkit.util.Vector;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -27,6 +39,7 @@ import java.util.function.Consumer;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant
 {
+	private static final Vector HALF = new Vector(0.5, 0.5, 0.5);
 	private static final BlockData AIR = B.get("CAVE_AIR");
 	private static final BlockData VAIR = B.get("VOID_AIR");
 	private static final BlockData VAIR_DEBUG = B.get("COBWEB");
@@ -937,5 +950,225 @@ public class IrisObject extends IrisRegistrant
 		{
 			at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(AIR, false);
 		}
+	}
+
+	public IrisObject scaled(double scale) {
+		Vector sm1 = new Vector(scale-1, scale-1, scale-1);
+		scale = Math.max(0.001, Math.min(50, scale));
+		if (scale<1){
+			scale = scale-0.0001;
+		}
+
+		IrisPosition l1 = getAABB().max();
+		IrisPosition l2 = getAABB().min();
+		Vector center = getCenter();
+		if (getH()==2){
+			center = center.setY(center.getBlockY() + 0.5);
+		}
+		if (getW()==2){
+			center = center.setX(center.getBlockX()+0.5);
+		}
+		if (getD()==2){
+			center = center.setZ(center.getBlockZ()+0.5);
+		}
+		HashMap<BlockVector, BlockData> placeBlock = new HashMap();
+
+		IrisObject oo = new IrisObject((int)Math.ceil((w * scale) + (scale*2)), (int)Math.ceil((h * scale) + (scale * 2)), (int)Math.ceil((d * scale) + (scale * 2)));
+
+		for(BlockVector i : blocks.keySet())
+		{
+			BlockData bd = blocks.get(i);
+			placeBlock.put(i.clone().add(HALF).subtract(center)
+					.multiply(scale).toBlockVector(), bd);
+		}
+
+		for (BlockVector v : placeBlock.keySet()){
+			if (scale>1) {
+				for (BlockVector vec : blocksBetweenTwoPoints(v.clone().add(center), v.clone().add(center).add(sm1))) {
+					oo.getBlocks().put(vec, placeBlock.get(v));
+				}
+			}
+
+			else {
+				oo.setUnsigned(v.getBlockX(), v.getBlockY(), v.getBlockZ(), placeBlock.get(v));
+			}
+		}
+
+		if(scale > 1)
+		{
+			// oo.trihermite((int) Math.round(scale));
+		}
+
+		return oo;
+	}
+
+	public void trilinear(int rad)
+	{
+		KMap<BlockVector, BlockData> v = getBlocks().copy();
+		KMap<BlockVector, BlockData> b = new KMap<>();
+		BlockVector min = getAABB().minbv();
+		BlockVector max = getAABB().maxbv();
+
+		for(int x = min.getBlockX(); x <= max.getBlockX(); x++)
+		{
+			for(int y = min.getBlockY(); y <= max.getBlockY(); y++)
+			{
+				for(int z = min.getBlockZ(); z <= max.getBlockZ(); z++)
+				{
+					if(IrisInterpolation.getTrilinear(x,y,z,rad, (xx,yy,zz) -> {
+						BlockData data = v.get(new BlockVector((int)xx,(int)yy,(int)zz));
+
+						if(data == null || data.getMaterial().isAir())
+						{
+							return 0;
+						}
+
+						return 1;
+					}) >= 0.5)
+					{
+						b.put(new BlockVector(x,y,z), nearestBlockData(x,y,z));
+					}
+
+					else
+					{
+						b.put(new BlockVector(x,y,z), AIR);
+					}
+				}
+			}
+		}
+
+		setBlocks(b);
+	}
+
+	public void tricubic(int rad)
+	{
+		KMap<BlockVector, BlockData> v = getBlocks().copy();
+		KMap<BlockVector, BlockData> b = new KMap<>();
+		BlockVector min = getAABB().minbv();
+		BlockVector max = getAABB().maxbv();
+
+		for(int x = min.getBlockX(); x <= max.getBlockX(); x++)
+		{
+			for(int y = min.getBlockY(); y <= max.getBlockY(); y++)
+			{
+				for(int z = min.getBlockZ(); z <= max.getBlockZ(); z++)
+				{
+					if(IrisInterpolation.getTricubic(x,y,z,rad, (xx,yy,zz) -> {
+						BlockData data = v.get(new BlockVector((int)xx,(int)yy,(int)zz));
+
+						if(data == null || data.getMaterial().isAir())
+						{
+							return 0;
+						}
+
+						return 1;
+					}) >= 0.5)
+					{
+						b.put(new BlockVector(x,y,z), nearestBlockData(x,y,z));
+					}
+
+					else
+					{
+						b.put(new BlockVector(x,y,z), AIR);
+					}
+				}
+			}
+		}
+
+		setBlocks(b);
+	}
+
+	public void trihermite(int rad)
+	{
+		trihermite(rad, 0D, 0D);
+	}
+
+	public void trihermite(int rad, double tension, double bias)
+	{
+		KMap<BlockVector, BlockData> v = getBlocks().copy();
+		KMap<BlockVector, BlockData> b = new KMap<>();
+		BlockVector min = getAABB().minbv();
+		BlockVector max = getAABB().maxbv();
+
+		for(int x = min.getBlockX(); x <= max.getBlockX(); x++)
+		{
+			for(int y = min.getBlockY(); y <= max.getBlockY(); y++)
+			{
+				for(int z = min.getBlockZ(); z <= max.getBlockZ(); z++)
+				{
+					if(IrisInterpolation.getTrihermite(x,y,z,rad, (xx,yy,zz) -> {
+						BlockData data = v.get(new BlockVector((int)xx,(int)yy,(int)zz));
+
+						if(data == null || data.getMaterial().isAir())
+						{
+							return 0;
+						}
+
+						return 1;
+					}, tension, bias) >= 0.5)
+					{
+						b.put(new BlockVector(x,y,z), nearestBlockData(x,y,z));
+					}
+
+					else
+					{
+						b.put(new BlockVector(x,y,z), AIR);
+					}
+				}
+			}
+		}
+
+		setBlocks(b);
+	}
+
+	private BlockData nearestBlockData(int x, int y, int z) {
+		BlockVector vv = new BlockVector(x,y,z);
+		BlockData r = getBlocks().get(vv);
+
+		if(r != null && !r.getMaterial().isAir())
+		{
+			return r;
+		}
+
+		double d = Double.MAX_VALUE;
+
+		for(BlockVector i : blocks.keySet())
+		{
+			BlockData dat = blocks.get(i);
+
+			if(dat.getMaterial().isAir())
+			{
+				continue;
+			}
+
+			double dx = i.distanceSquared(vv);
+
+			if(dx < d)
+			{
+				d = dx;
+				r = dat;
+			}
+		}
+
+		return r;
+	}
+
+	private static List<BlockVector> blocksBetweenTwoPoints(Vector loc1, Vector loc2) {
+		List<BlockVector> locations = new ArrayList<>();
+		int topBlockX = Math.max(loc1.getBlockX(), loc2.getBlockX());
+		int bottomBlockX = Math.min(loc1.getBlockX(), loc2.getBlockX());
+		int topBlockY = Math.max(loc1.getBlockY(), loc2.getBlockY());
+		int bottomBlockY = Math.min(loc1.getBlockY(), loc2.getBlockY());
+		int topBlockZ = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
+		int bottomBlockZ = Math.min(loc1.getBlockZ(), loc2.getBlockZ());
+
+		for (int x = bottomBlockX; x <= topBlockX; x++) {
+			for (int z = bottomBlockZ; z <= topBlockZ; z++) {
+				for (int y = bottomBlockY; y <= topBlockY; y++) {
+					locations.add(new BlockVector(x, y, z));
+				}
+			}
+		}
+		return locations;
 	}
 }

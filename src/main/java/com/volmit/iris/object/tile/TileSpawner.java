@@ -55,9 +55,9 @@ public class TileSpawner implements TileData<CreatureSpawner> {
         entityType = sign.getSpawnedType();
     }
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public TileSpawner clone() {
-        TileSpawner tileSpawner = (TileSpawner) super.clone();
         TileSpawner ts = new TileSpawner();
         ts.setEntityType(getEntityType());
         return ts;

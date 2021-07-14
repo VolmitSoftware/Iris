@@ -63,9 +63,9 @@ public class TileBanner implements TileData<Banner> {
         this.baseColor = banner.getBaseColor();
     }
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public TileBanner clone() {
-        TileBanner tileBanner = (TileBanner) super.clone();
         TileBanner ts = new TileBanner();
         ts.setBaseColor(getBaseColor());
         ts.setPatterns(getPatterns());

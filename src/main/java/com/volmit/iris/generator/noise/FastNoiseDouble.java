@@ -598,7 +598,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
         long z1 = z0 + 1;
 
-        double xs, ys, zs;
+        double xs=0, ys=0, zs=0;
         switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
@@ -696,7 +696,7 @@ public class FastNoiseDouble {
         long x1 = x0 + 1;
         long y1 = y0 + 1;
 
-        double xs, ys;
+        double xs=0, ys=0;
         switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
@@ -794,7 +794,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
         long z1 = z0 + 1;
 
-        double xs, ys, zs;
+        double xs=0, ys=0, zs=0;
         switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
@@ -1886,7 +1886,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
         long z1 = z0 + 1;
 
-        double xs, ys, zs;
+        double xs=0, ys=0, zs=0;
         switch (m_longerp) {
             case Linear -> {
                 xs = xf - x0;
@@ -1969,7 +1969,7 @@ public class FastNoiseDouble {
         long x1 = x0 + 1;
         long y1 = y0 + 1;
 
-        double xs, ys;
+        double xs=0, ys=0;
         switch (m_longerp) {
             case Linear -> {
                 xs = xf - x0;

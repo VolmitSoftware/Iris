@@ -66,9 +66,9 @@ public class TileSign implements TileData<Sign> {
         dyeColor = sign.getColor();
     }
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public TileSign clone() {
-        TileSign tileSign = (TileSign) super.clone();
         TileSign ts = new TileSign();
         ts.setDyeColor(getDyeColor());
         ts.setLine1(getLine1());

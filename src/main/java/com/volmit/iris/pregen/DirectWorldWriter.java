@@ -1,6 +1,7 @@
 package com.volmit.iris.pregen;
 
 import com.volmit.iris.nms.INMS;
+import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.mca.Chunk;
 import com.volmit.iris.scaffold.data.mca.MCAFile;
@@ -72,21 +73,20 @@ public class DirectWorldWriter {
             return B.getAir();
         }
 
-        String p = tag.getString("Name");
+        StringBuilder p = new StringBuilder(tag.getString("Name"));
 
         if (tag.containsKey("Properties")) {
             CompoundTag props = tag.getCompoundTag("Properties");
-            p += "[";
-            KList<String> m = new KList<>();
+            p.append('[');
 
             for (String i : props.keySet()) {
-                m.add(i + "=" + props.getString(i));
+                p.append(i).append('=').append(props.getString(i)).append(',');
             }
 
-            p += m.toString(",") + "]";
+            p.deleteCharAt(p.length()-1).append(']');
         }
 
-        BlockData b = B.getOrNull(p);
+        BlockData b = B.getOrNull(p.toString());
 
         if (b == null) {
             return B.getAir();

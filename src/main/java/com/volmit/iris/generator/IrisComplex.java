@@ -311,6 +311,7 @@ public class IrisComplex implements DataProvider {
 
                     return bx.getGenLinkMax(gen.getLoadKey());
                 } catch (Throwable e) {
+                    e.printStackTrace();
                     Iris.warn("Failed to sample hi biome at " + xx + " " + zz + " using the generator " + gen.getLoadKey());
                 }
 
@@ -324,6 +325,7 @@ public class IrisComplex implements DataProvider {
 
                     return bx.getGenLinkMin(gen.getLoadKey());
                 } catch (Throwable e) {
+                    e.printStackTrace();
                     Iris.warn("Failed to sample lo biome at " + xx + " " + zz + " using the generator " + gen.getLoadKey());
                 }
 

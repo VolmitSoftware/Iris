@@ -1,0 +1,69 @@
+name: Overworld Feature Request
+description: File a feature request for the Iris Dimensions Overworld, If you want to report a bug this is not the place
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill this out!
+  - type: dropdown
+    id: arc
+    attributes:
+      label: Adding, Removing, or Changing
+      description: What are you doing
+      options:
+        - Adding
+        - Removing
+        - Changing
+    validations:
+      required: true
+  - type: dropdown
+    id: atype
+    attributes:
+      label: Type of Modification
+      description: What Is it
+      options:
+        - Biome / Region
+        - Object
+        - Jigsaw
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: desc
+    attributes:
+      label: What are you trying to modify
+      description: Give as detailed of a description as you can for the modification that you want done (include pictures if applicable)
+      placeholder: Remove those honey blocks from.....
+    validations:
+      required: true
+  - type: input
+    id: mcversion
+    attributes:
+      label: Minecraft Version
+      description: What version of Minecraft are you running?
+      placeholder: Minecarft 1.17
+    validations:
+      required: true
+  - type: input
+    id: irisversion
+    attributes:
+      label: Iris Version
+      description: What version of Iris are you running? (see console)
+      placeholder: DO NOT SAY "LATEST"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checksum
+    attributes:
+      label: Checklist
+      description: Please ensure you meet each of the requirements below
+      options:
+        - label: I am using an unmodified version of the overworld. (If you modified the overworld but know the content suggestion is valid)
+          required: true
+        - label: I am using [the latest version of the overworld](../) **OR** I have made sure this feature was not already implemented in the latest version.
+          required: true
+  - type: markdown
+    id: thanks
+    attributes:
+      value: "Thank you for filling out the form! We will be with you soon. Please do not ask support to review your report."

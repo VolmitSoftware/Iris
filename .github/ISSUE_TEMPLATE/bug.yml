@@ -1,0 +1,74 @@
+name: Iris Bug Report
+description: File a bug report for Iris
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill this out!
+  - type: textarea
+    id: how
+    attributes:
+      label: Describe the problem
+      description: Please give a text description of what you think the problem is
+      placeholder: This broke... This object... This biome... at these coords. maybe this seed:123456789
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What Should Happen
+      description: Please give a text description of what you think should be happening
+      placeholder: the leaves should not be placed here
+    validations:
+      required: true
+  - type: input
+    id: biome
+    attributes:
+      label: What Biome
+      description: Which biome are you experiencing issues in? Use `/iris what biome` and send the full text here. If this is not related to a biome, omit this.
+      placeholder: Mosaic/Lith/Black
+  - type: input
+    id: Object-Id
+    attributes:
+      label: Object Id
+      description: What object are you talking about? (Use `/iris object dust`, and right click on the structure thats misbehaving) and send a screenshot link (imgur or related)
+      placeholder: Ships/Generic-1@5976587650987...
+  - type: input
+    id: mcversion
+    attributes:
+      label: Minecraft Version
+      description: What version of Minecraft are you running?
+      placeholder: Minecarft 1.17
+    validations:
+      required: true
+  - type: input
+    id: irisversion
+    attributes:
+      label: Iris Version
+      description: What version of Iris are you running? (see console)
+      placeholder: DO NOT SAY "LATEST"
+    validations:
+      required: true
+  - type: input
+    id: logs
+    attributes:
+      label: Relevant log output. (IF APPLICABLE)
+      description: If there are no errors in the log, you may omit this. Always use [mclogs](https://mclo.gs) Or [Pastebin](https://pastebin.com/) If the log is partial, or incomplete, your issue will be closed without any warning and ignored
+      placeholder: https://Link/to/your/FULL/log
+  - type: checkboxes
+    id: checksum
+    attributes:
+      label: Checklist
+      description: Please ensure you meet each of the requirements below
+      options:
+        - label: I am using an unmodified version of the overworld. (If you modified the overworld and see an issue, contact [support](discord.gg/volmit))
+          required: true
+        - label: I am using [the latest version of the overworld](../) **OR** I have made sure this issue was not already resolved on the latest version.
+          required: true
+        - label: I am using Spigot, Paper, Tuinity, or Purpur. (If you are not, and still think it is a valid issue, contact [support](discord.gg/volmit))
+          required: true
+  - type: markdown
+    id: thanks
+    attributes:
+      value: "Thank you for filling out the form! We will be with you soon. Please do not ask support to review your report."

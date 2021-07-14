@@ -85,6 +85,11 @@ public class LinkedTerrainChunk implements TerrainChunk {
         biome3D.setBiome(x, 0, z, bio);
     }
 
+    public BiomeGrid getRawBiome()
+    {
+        return storage;
+    }
+
     @Override
     public void setBiome(int x, int y, int z, Biome bio) {
         if (storage != null) {

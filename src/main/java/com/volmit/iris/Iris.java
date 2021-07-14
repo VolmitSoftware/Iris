@@ -10,7 +10,9 @@ import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
+import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
@@ -61,6 +63,66 @@ public class Iris extends VolmitPlugin implements Listener {
         INMS.get();
         IO.delete(new File("iris"));
         lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4;
+        installDataPacks();
+    }
+
+    private void installDataPacks() {
+        Iris.info("Checking Data Packs...");
+        boolean reboot = false;
+        File packs = new File("plugins/Iris/packs");
+        File dpacks = null;
+
+        look: for(File i : new File(".").listFiles())
+        {
+            if(i.isDirectory())
+            {
+                for(File j : i.listFiles())
+                {
+                    if(j.isDirectory() && j.getName().equals("datapacks"))
+                    {
+                        dpacks = j;
+                        break look;
+                    }
+                }
+            }
+        }
+
+        if(dpacks == null)
+        {
+            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
+            return;
+        }
+
+        if(packs.exists())
+        {
+            for(File i : packs.listFiles())
+            {
+                if(i.isDirectory())
+                {
+                    Iris.verbose("Checking Pack: " + i.getPath());
+                    IrisDataManager data = new IrisDataManager(i);
+                    File dims = new File(i, "dimensions");
+
+                    if(dims.exists())
+                    {
+                        for(File j : dims.listFiles())
+                        {
+                            if(j.getName().endsWith(".json"))
+                            {
+                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+                                Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
+                                if(dim.installDataPack(() -> data, dpacks))
+                                {
+                                    reboot = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Iris.info("Data Packs Setup!");
     }
 
     public static int getThreadCount() {
@@ -377,6 +439,7 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.info("Server type & version: " + Bukkit.getVersion());
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
         Iris.info("Java version: " + getJavaVersion());
+        Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         for (int i = 0; i < info.length; i++) {
             splash[i] += info[i];
         }

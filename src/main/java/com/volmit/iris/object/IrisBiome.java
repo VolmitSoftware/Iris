@@ -31,11 +31,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
     private String name = "A Biome";
 
-	/* Needs to be implemented but it's not
-	@DontObfuscate
-	@Desc("The palette of blocks for 'water' in this biome (overwrites dimension)")
-	private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("void_air");
-	*/
+    @DontObfuscate
+    @Desc("If the biome type custom is defined, specify this")
+    private IrisBiomeCustom custom;
 
     @DontObfuscate
     @Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")
@@ -199,6 +197,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public Biome getVanillaDerivative() {
         return vanillaDerivative == null ? derivative : vanillaDerivative;
+    }
+
+    public boolean isCustom()
+    {
+        return getCustom() != null;
     }
 
     public double getGenLinkMax(String loadKey) {

@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
+import org.bukkit.generator.ChunkGenerator;
 
 public interface INMSBinding {
     Object getBiomeBaseFromId(int id);
@@ -29,4 +30,8 @@ public interface INMSBinding {
     default World createWorld(WorldCreator c) {
         return c.createWorld();
     }
+
+	int countCustomBiomes();
+
+    void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk);
 }

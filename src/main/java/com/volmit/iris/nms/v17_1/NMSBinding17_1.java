@@ -1,5 +1,6 @@
 package com.volmit.iris.nms.v17_1;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMSBinding;
 import com.volmit.iris.util.KMap;
 import net.minecraft.core.IRegistry;
@@ -7,18 +8,54 @@ import net.minecraft.core.IRegistryWritable;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.BiomeBase;
+import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.generator.ChunkGenerator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
+    private Field biomeStorageCache = null;
+
+    private Object getBiomeStorage(ChunkGenerator.BiomeGrid g)
+    {
+        try {
+            return getFieldForBiomeStorage(g).get(g);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private Field getFieldForBiomeStorage(Object storage) {
+        Field f = biomeStorageCache;
+
+        if (f != null)
+        {
+            return f;
+        }
+        try {
+
+            f = storage.getClass().getDeclaredField("biome");
+            f.setAccessible(true);
+            return f;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.error(storage.getClass().getCanonicalName());
+        }
+
+        biomeStorageCache  = f;
+        return null;
+    }
 
     private IRegistryWritable<BiomeBase> getCustomBiomeRegistry() {
         return ((CraftServer) Bukkit.getServer()).getHandle().getServer().getCustomRegistry().b(IRegistry.aO);
@@ -146,6 +183,34 @@ public class NMSBinding17_1 implements INMSBinding {
         }
 
         return biome.ordinal();
+    }
+
+    @Override
+    public int countCustomBiomes() {
+        AtomicInteger a = new AtomicInteger(0);
+        getCustomBiomeRegistry().d().stream().forEach((i) -> {
+            MinecraftKey k = i.getKey().a();
+
+            if(k.getNamespace().equals("minecraft"))
+            {
+                return;
+            }
+
+            a.incrementAndGet();
+            Iris.verbose("Custom Biome: " + k.toString());
+        });
+
+        return a.get();
+    }
+
+    @Override
+    public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
+        try {
+            BiomeStorage s = (BiomeStorage) getFieldForBiomeStorage(chunk).get(chunk);
+            s.setBiome(x,y,z, (BiomeBase) somethingVeryDirty);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

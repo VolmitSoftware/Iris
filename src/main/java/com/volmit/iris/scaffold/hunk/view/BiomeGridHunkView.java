@@ -1,7 +1,12 @@
 package com.volmit.iris.scaffold.hunk.view;
 
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.hunk.Hunk;
+import com.volmit.iris.util.LinkedTerrainChunk;
+import com.volmit.iris.util.TerrainChunk;
+import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.block.Biome;
+import org.bukkit.craftbukkit.v1_17_R1.generator.CustomChunkGenerator;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
 public class BiomeGridHunkView implements Hunk<Biome> {
@@ -35,5 +40,14 @@ public class BiomeGridHunkView implements Hunk<Biome> {
     @Override
     public Biome getRaw(int x, int y, int z) {
         return chunk.getBiome(x, y, z);
+    }
+
+    public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {
+        if(chunk instanceof LinkedTerrainChunk)
+        {
+            INMS.get().forceBiomeInto(x,y,z,somethingVeryDirty,((LinkedTerrainChunk) chunk).getRawBiome());
+            return;
+        }
+        INMS.get().forceBiomeInto(x,y,z,somethingVeryDirty,chunk);
     }
 }

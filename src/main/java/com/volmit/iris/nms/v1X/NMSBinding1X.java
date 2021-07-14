@@ -4,6 +4,7 @@ import com.volmit.iris.nms.INMSBinding;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.generator.ChunkGenerator;
 
 public class NMSBinding1X implements INMSBinding {
     @Override
@@ -53,5 +54,15 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public int getBiomeId(Biome biome) {
         return biome.ordinal();
+    }
+
+    @Override
+    public int countCustomBiomes() {
+        return 0;
+    }
+
+    @Override
+    public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
+
     }
 }

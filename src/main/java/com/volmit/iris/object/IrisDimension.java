@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.cache.AtomicCache;
@@ -10,9 +11,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
+
+import java.io.File;
+import java.io.IOException;
 
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -451,5 +456,51 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return landBiomeStyle;
+    }
+
+    public boolean installDataPack(DataProvider data, File datapacks)
+    {
+        boolean write = false;
+        boolean changed = false;
+
+        for(IrisBiome i : getAllBiomes(data))
+        {
+            if(i.isCustom())
+            {
+                write = true;
+                File output = new File(datapacks, "iris/data/" + getLoadKey() + "/worldgen/biome/" + i.getCustom().getId() + ".json");
+
+                if(!output.exists())
+                {
+                    changed = true;
+                }
+
+                Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
+                output.getParentFile().mkdirs();
+                try {
+                    IO.writeAll(output, i.getCustom().generateJson());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        if(write)
+        {
+            File mcm = new File(datapacks, "iris/pack.mcmeta");
+            try {
+                IO.writeAll(mcm, "{\n" +
+                        "    \"pack\": {\n" +
+                        "        \"description\": \"Iris Data Pack. This pack contains all installed Iris Packs' resources.\",\n" +
+                        "        \"pack_format\": 7\n" +
+                        "    }\n" +
+                        "}\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());
+        }
+
+        return changed;
     }
 }

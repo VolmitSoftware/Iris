@@ -793,7 +793,7 @@ public class IrisObject extends IrisRegistrant {
         if (getD() == 2) {
             center = center.setZ(center.getBlockZ() + 0.5);
         }
-        HashMap<BlockVector, BlockData> placeBlock = new HashMap();
+        HashMap<BlockVector, BlockData> placeBlock = new HashMap<BlockVector, BlockData>();
 
         IrisObject oo = new IrisObject((int) Math.ceil((w * scale) + (scale * 2)), (int) Math.ceil((h * scale) + (scale * 2)), (int) Math.ceil((d * scale) + (scale * 2)));
 

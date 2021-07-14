@@ -30,6 +30,8 @@ import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -397,11 +399,7 @@ public class MapVision extends JPanel {
 
         clone.removeAll(checked);   //Remove the tiles that we know are onscreen
 
-        for (int id : clone) { //Loop through the invisible tiles and mark them for removal from memory
-            short[] c = getTileCoords(id);
-            queueForRemoval(getTile(c[0], c[1]));
-            //visibleTiles.remove(t);
-        }
+        queueForRemoval(clone);
 
         stopwatch.end();
         roll.put(stopwatch.getMillis());
@@ -414,8 +412,9 @@ public class MapVision extends JPanel {
      */
     public void queue(short tileX, short tileY) {
         //If the tile still exists but just isn't visible
-        if (tiles.containsKey(getTileId(tileX, tileY))) {
-            Tile tile = getTile(tileX, tileY);
+        int id = getTileId(tileX, tileY);
+        if (tiles.containsKey(id)) {
+            Tile tile = tiles.get(id);
             if (visibleTiles.contains(tile)) return;
 
             visibleTiles.add(tile);
@@ -456,17 +455,29 @@ public class MapVision extends JPanel {
     }
 
     /**
-     * Pend a tile for removal from the screen
-     * @param tile The tile to remove
+     * Pend tiles for removal from the screen
      */
-    public void queueForRemoval(Tile tile) {
+    public void queueForRemoval(Collection<Integer> ids) {
+        J.a(() -> {
+            for (int id : ids) {
+                Tile t = tiles.get(id);
+
+                if (t != null) {
+                    visibleTiles.remove(t);
+                }
+            }
+        }, 20);
+
         //TODO Change from using the async task system as it may be putting strain on the server from being called so often
-        J.a(() -> visibleTiles.remove(tile), 20); //Remove visibility in a bit
 
         J.a(() -> { //Remove it completely from memory after 5 seconds if it's still not visible
-            if (!visibleTiles.contains(tile)) {
-                tiles.remove(getTileId(tile.getX(), tile.getY()));
+            for (int id : ids) {
+                Tile t = tiles.get(id);
+                if (t != null && !visibleTiles.contains(t)) {
+                    tiles.remove(id);
+                }
             }
+
         }, 20 * 6);
     }
 
@@ -488,7 +499,7 @@ public class MapVision extends JPanel {
      * @return
      */
     public int getTileId(short tileX, short tileY) {
-        return tileX | tileY << 16;
+        return tileX + tileY << 16;
     }
 
     /**

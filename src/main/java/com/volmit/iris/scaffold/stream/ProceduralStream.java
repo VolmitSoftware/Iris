@@ -301,8 +301,8 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         }
 
         for (V i : types) {
-            rarityTypes.addMultiple(i, Math.max(1, (IRare.get(i) / totalRarity)));
-        }
+			rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
+		}
 
         return new SelectionStream<V>(this, rarityTypes);
     }

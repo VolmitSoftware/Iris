@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.manager.IrisDataManager;
@@ -18,16 +36,15 @@ public class IrisCaveFluid {
     @Required
     @MaxNumber(255)
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The fluid height of the cave")
     private int fluidHeight = 35;
 
-    @DontObfuscate
+
     @Desc("Insead of fluidHeight & below being fluid, turning inverse height on will simply spawn fluid in this cave layer from min(max_height, cave_height) to the fluid height. Basically, fluid will spawn above the fluidHeight value instead of below the fluidHeight.")
     private boolean inverseHeight = false;
 
     @Required
-    @DontObfuscate
+
     @Desc("The fluid type that should spawn here")
     private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 

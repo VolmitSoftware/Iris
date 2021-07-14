@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.scaffold.cache.AtomicCache;
@@ -14,25 +32,25 @@ import java.io.IOException;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@DontObfuscate
+
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawPiece extends IrisRegistrant {
     @RegistryListObject
     @Required
-    @DontObfuscate
+
     @Desc("The object this piece represents")
     private String object = "";
 
     @Required
-    @DontObfuscate
+
     @ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
     @Desc("The connectors this object contains")
     private KList<IrisJigsawPieceConnector> connectors = new KList<>();
 
     @Desc("Configure everything about the object placement. Please don't define this unless you actually need it as using this option will slow down the jigsaw deign stage. Use this where you need it, just avoid using it everywhere to keep things fast.")
-    @DontObfuscate
+
     private IrisObjectPlacement placementOptions = new IrisObjectPlacement().setMode(ObjectPlaceMode.FAST_MAX_HEIGHT);
 
     private transient AtomicCache<Integer> max2dDim = new AtomicCache<>();

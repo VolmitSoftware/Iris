@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.generator.noise.CellGenerator;
@@ -17,23 +35,21 @@ public class IrisRegionRidge {
 
     @RegistryListBiome
     @Required
-    @DontObfuscate
+
     @Desc("The biome name")
     private String biome = "";
 
 
     @Required
-    @DontObfuscate
+
     @Desc("The type this biome should override (land sea or shore)")
     private InferredType type = InferredType.LAND;
 
 
-    @DontObfuscate
     @Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
     private InferredType as = InferredType.DEFER;
 
 
-    @DontObfuscate
     @Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
     private double noiseMultiplier = 0;
 
@@ -41,41 +57,34 @@ public class IrisRegionRidge {
     @Required
     @MinNumber(0)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("The chance this biome will be placed in a given spot")
     private double chance = 0.75;
 
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The scale of the biome ridge. Higher values = wider veins & bigger connected cells")
     private double scale = 5;
 
 
-    @DontObfuscate
     @Desc("The chance scale (cell chances)")
     private double chanceScale = 4;
 
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The shuffle, how 'natural' this looks. Compared to pure polygons")
     private double shuffle = 16;
 
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The chance shuffle (polygon cell chances)")
     private double chanceShuffle = 128;
 
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The thickness of the vein")
     private double thickness = 0.125;
 
 
-    @DontObfuscate
     @Desc("If the noise multiplier is below zero, what should the air be filled with?")
     private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
 

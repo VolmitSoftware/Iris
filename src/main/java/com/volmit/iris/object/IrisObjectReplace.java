@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.generator.noise.CNG;
@@ -19,22 +37,22 @@ public class IrisObjectReplace {
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Desc("Find this block")
-    @DontObfuscate
+
     private KList<IrisBlockData> find = new KList<>();
 
     @Required
     @Desc("Replace it with this block palette")
-    @DontObfuscate
+
     private IrisMaterialPalette replace = new IrisMaterialPalette();
 
     @Desc("Exactly match the block data or not")
-    @DontObfuscate
+
     private boolean exact = false;
 
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Modifies the chance the block is replaced")
-    @DontObfuscate
+
     private float chance = 1;
 
     private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();

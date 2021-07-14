@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.nms.v17_1;
 
 import com.volmit.iris.Iris;
@@ -25,8 +43,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private Field biomeStorageCache = null;
 
-    private Object getBiomeStorage(ChunkGenerator.BiomeGrid g)
-    {
+    private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
         try {
             return getFieldForBiomeStorage(g).get(g);
         } catch (IllegalAccessException e) {
@@ -39,8 +56,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private Field getFieldForBiomeStorage(Object storage) {
         Field f = biomeStorageCache;
 
-        if (f != null)
-        {
+        if (f != null) {
             return f;
         }
         try {
@@ -53,7 +69,7 @@ public class NMSBinding17_1 implements INMSBinding {
             Iris.error(storage.getClass().getCanonicalName());
         }
 
-        biomeStorageCache  = f;
+        biomeStorageCache = f;
         return null;
     }
 
@@ -191,13 +207,12 @@ public class NMSBinding17_1 implements INMSBinding {
         getCustomBiomeRegistry().d().stream().forEach((i) -> {
             MinecraftKey k = i.getKey().a();
 
-            if(k.getNamespace().equals("minecraft"))
-            {
+            if (k.getNamespace().equals("minecraft")) {
                 return;
             }
 
             a.incrementAndGet();
-            Iris.verbose("Custom Biome: " + k.toString());
+            Iris.verbose("Custom Biome: " + k);
         });
 
         return a.get();
@@ -207,7 +222,7 @@ public class NMSBinding17_1 implements INMSBinding {
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
             BiomeStorage s = (BiomeStorage) getFieldForBiomeStorage(chunk).get(chunk);
-            s.setBiome(x,y,z, (BiomeBase) somethingVeryDirty);
+            s.setBiome(x, y, z, (BiomeBase) somethingVeryDirty);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
@@ -447,7 +465,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.scaffold.data.mca.Chunk cc = writer.getChunk(x, z);
-        BiomeBaseInjector injector = (xx,yy,zz, biomeBase) -> cc.setBiomeAt(ox+xx, yy, oz+zz, INMS.get().getTrueBiomeBaseId(biomeBase));
+        BiomeBaseInjector injector = (xx, yy, zz, biomeBase) -> cc.setBiomeAt(ox + xx, yy, oz + zz, INMS.get().getTrueBiomeBaseId(biomeBase));
         generateChunkRawData(w, x, z, new TerrainChunk() {
             @Override
             public BiomeBaseInjector getBiomeBaseInjector() {
@@ -752,7 +770,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         clearRegeneratedLists(x, z);
         int xx = x * 16;
         int zz = z * 16;
-        BiomeBaseInjector inj = (a,b,c,d) -> {};
+        BiomeBaseInjector inj = (a, b, c, d) -> {
+        };
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
             @Override
             public BiomeBaseInjector getBiomeBaseInjector() {

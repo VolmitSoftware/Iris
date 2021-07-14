@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.manager.IrisDataManager;
@@ -19,54 +37,48 @@ public class IrisDepositGenerator {
     @Required
     @MinNumber(0)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-    @DontObfuscate
+
     @Desc("The minimum height this deposit can generate at")
     private int minHeight = 7;
 
     @Required
     @MinNumber(0)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-    @DontObfuscate
+
     @Desc("The maximum height this deposit can generate at")
     private int maxHeight = 55;
 
     @Required
     @MinNumber(1)
     @MaxNumber(32)
-    @DontObfuscate
     @Desc("The minimum amount of deposit blocks per clump")
     private int minSize = 3;
 
     @Required
     @MinNumber(1)
     @MaxNumber(32)
-    @DontObfuscate
     @Desc("The maximum amount of deposit blocks per clump")
     private int maxSize = 5;
 
     @Required
     @MinNumber(1)
     @MaxNumber(128)
-    @DontObfuscate
     @Desc("The maximum amount of clumps per chunk")
     private int maxPerChunk = 3;
 
     @Required
     @MinNumber(0)
     @MaxNumber(128)
-    @DontObfuscate
     @Desc("The minimum amount of clumps per chunk")
     private int minPerChunk = 1;
 
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
-    @DontObfuscate
     @Desc("The palette of blocks to be used in this deposit generator")
     private KList<IrisBlockData> palette = new KList<IrisBlockData>();
 
     @MinNumber(1)
     @MaxNumber(64)
-    @DontObfuscate
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
 

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris;
 
 import com.volmit.iris.manager.*;
@@ -12,7 +30,6 @@ import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
@@ -71,53 +88,42 @@ public class Iris extends VolmitPlugin implements Listener {
         boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
         File dpacks = null;
-       File props = new File("server.properties");
+        File props = new File("server.properties");
 
-       if(props.exists())
-       {
-           try {
-               KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
+        if (props.exists()) {
+            try {
+                KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
 
-               for(String i : m) {
-                   if (i.trim().startsWith("level-name="))
-                   {
-                       dpacks = new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
-                       break;
-                   }
-               }
-           } catch (IOException e) {
-               e.printStackTrace();
-           }
-       }
+                for (String i : m) {
+                    if (i.trim().startsWith("level-name=")) {
+                        dpacks = new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
+                        break;
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
-        if(dpacks == null)
-        {
+        if (dpacks == null) {
             Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
             return;
         }
 
 
-
-        if(packs.exists())
-        {
-            for(File i : packs.listFiles())
-            {
-                if(i.isDirectory())
-                {
+        if (packs.exists()) {
+            for (File i : packs.listFiles()) {
+                if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
                     IrisDataManager data = new IrisDataManager(i);
                     File dims = new File(i, "dimensions");
 
-                    if(dims.exists())
-                    {
-                        for(File j : dims.listFiles())
-                        {
-                            if(j.getName().endsWith(".json"))
-                            {
+                    if (dims.exists()) {
+                        for (File j : dims.listFiles()) {
+                            if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                if(dim.installDataPack(() -> data, dpacks))
-                                {
+                                if (dim.installDataPack(() -> data, dpacks)) {
                                     reboot = true;
                                 }
                             }

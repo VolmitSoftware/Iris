@@ -1,35 +1,52 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
 
 @Desc("Represents a biome type")
 public enum InferredType {
     @Desc("Represents any shore biome type")
-    @DontObfuscate
+
     SHORE,
 
     @Desc("Represents any land biome type")
-    @DontObfuscate
+
     LAND,
 
     @Desc("Represents any sea biome type")
-    @DontObfuscate
+
     SEA,
 
     @Desc("Represents any cave biome type")
-    @DontObfuscate
+
     CAVE,
 
     @Desc("Represents any river biome type")
-    @DontObfuscate
+
     RIVER,
 
     @Desc("Represents any lake biome type")
-    @DontObfuscate
+
     LAKE,
 
     @Desc("Defers the type to whatever another biome type that already exists is.")
-    @DontObfuscate
+
     DEFER
 }

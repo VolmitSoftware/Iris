@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.manager.IrisDataManager;
@@ -16,22 +34,22 @@ import org.bukkit.block.data.BlockData;
 @Data
 public class IrisObjectLoot {
 
-    @DontObfuscate
+
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The list of blocks this loot table should apply to")
     private KList<IrisBlockData> filter = new KList<>();
 
     @Desc("Exactly match the block data or not")
-    @DontObfuscate
+
     private boolean exact = false;
 
-    @DontObfuscate
+
     @Desc("The loot table name")
     @Required
     @RegistryListLoot
     private String name;
 
-    @DontObfuscate
+
     @Desc("The weight of this loot table being chosen")
     private int weight = 1;
 

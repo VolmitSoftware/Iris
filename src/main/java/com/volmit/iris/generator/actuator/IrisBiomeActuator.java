@@ -1,6 +1,23 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.generator.actuator;
 
-import com.volmit.iris.nms.BiomeBaseInjector;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeCustom;
@@ -24,30 +41,20 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
         rng = new RNG(engine.getWorld().getSeed() + 243995);
     }
 
-    private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb)
-    {
-        try
-        {
-            if(h instanceof BiomeGridHunkView)
-            {
+    private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {
+        try {
+            if (h instanceof BiomeGridHunkView) {
                 BiomeGridHunkView hh = (BiomeGridHunkView) h;
                 ChunkGenerator.BiomeGrid g = hh.getChunk();
-                if(g instanceof TerrainChunk)
-                {
-                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x,y,z,bb);
+                if (g instanceof TerrainChunk) {
+                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
                     return true;
-                }
-
-                else
-                {
+                } else {
                     hh.forceBiomeBaseInto(x, y, z, bb);
                     return true;
                 }
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 
@@ -68,35 +75,26 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                 burst.queue(() -> {
                     IrisBiome ib = getComplex().getTrueBiomeStream().get(modX(xxf + x), modZ(zzf + z));
 
-                    if(ib.isCustom())
-                    {
-                        try
-                        {
+                    if (ib.isCustom()) {
+                        try {
                             IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                            Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey()+":"+custom.getId());
+                            Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
 
-                            if(!injectBiome(h, x, 0, z, biomeBase))
-                            {
+                            if (!injectBiome(h, x, 0, z, biomeBase)) {
                                 throw new RuntimeException("Cant inject biome!");
                             }
 
                             for (int i = 0; i < h.getHeight(); i++) {
                                 injectBiome(h, xxf, i, zzf, biomeBase);
                             }
-                        }
-
-                        catch(Throwable e)
-                        {
+                        } catch (Throwable e) {
                             e.printStackTrace();
                             Biome v = ib.getSkyBiome(rng, x, 0, z);
                             for (int i = 0; i < h.getHeight(); i++) {
                                 h.set(xxf, i, zzf, v);
                             }
                         }
-                    }
-
-                    else
-                    {
+                    } else {
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
                         for (int i = 0; i < h.getHeight(); i++) {
                             h.set(xxf, i, zzf, v);

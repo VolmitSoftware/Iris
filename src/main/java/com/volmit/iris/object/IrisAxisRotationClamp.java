@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.util.*;
@@ -12,17 +30,15 @@ import lombok.experimental.Accessors;
 @Desc("Represents a rotation axis with intervals and maxes. The x and z axis values are defaulted to disabled. The Y axis defaults to on, rotating by 90 degree increments.")
 @Data
 public class IrisAxisRotationClamp {
-    @DontObfuscate
+
     @Desc("Should this axis be rotated at all?")
     private boolean enabled = false;
-
     private transient boolean forceLock = false;
 
     @Required
     @DependsOn({"max"})
     @MinNumber(-360)
     @MaxNumber(360)
-    @DontObfuscate
     @Desc("The minimum angle (from) or set this and max to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
     private double min = 0;
 
@@ -30,7 +46,6 @@ public class IrisAxisRotationClamp {
     @DependsOn({"min"})
     @MinNumber(-360)
     @MaxNumber(360)
-    @DontObfuscate
     @Desc("The maximum angle (to) or set this and min to zero for any angle degrees. Set both to the same non-zero value to force it to that angle only")
     private double max = 0;
 
@@ -38,7 +53,6 @@ public class IrisAxisRotationClamp {
     @DependsOn({"min", "max"})
     @MinNumber(0)
     @MaxNumber(360)
-    @DontObfuscate
     @Desc("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nSetting this to 0 means totally free rotation.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
     private double interval = 0;
 

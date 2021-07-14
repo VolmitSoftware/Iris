@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.google.gson.Gson;
@@ -11,7 +29,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Data
-@DontObfuscate
+
 @NoArgsConstructor
 @Desc("Represents an Iris zone")
 public class IrisFeaturePositional {
@@ -22,17 +40,17 @@ public class IrisFeaturePositional {
     }
 
     @Required
-    @DontObfuscate
+
     @Desc("The x coordinate of this zone")
     private int x;
 
     @Required
-    @DontObfuscate
+
     @Desc("The z coordinate of this zone")
     private int z;
 
     @Required
-    @DontObfuscate
+
     @Desc("The Terrain Feature to apply")
     private IrisFeature feature;
 

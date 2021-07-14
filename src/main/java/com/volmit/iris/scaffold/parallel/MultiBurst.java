@@ -25,16 +25,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MultiBurst {
-    public static final MultiBurst burst = new MultiBurst(Runtime.getRuntime().availableProcessors());
+    public static final MultiBurst burst = new MultiBurst("Iris Burster", 10, Runtime.getRuntime().availableProcessors());
+    public static final MultiBurst burstAux = new MultiBurst("Iris Aux Burster", 8, Runtime.getRuntime().availableProcessors()/2);
     private final ExecutorService service;
     private ExecutorService syncService;
     private int tid;
 
+
     public MultiBurst(int tc) {
+        this("Iris Generator", 6, tc);
+    }
+    public MultiBurst(String name, int priority, int tc) {
         service = Executors.newFixedThreadPool(tc, r -> {
             tid++;
             Thread t = new Thread(r);
-            t.setName("Iris Generator " + tid);
+            t.setName(name + " " + tid);
             t.setPriority(6);
             t.setUncaughtExceptionHandler((et, e) ->
             {

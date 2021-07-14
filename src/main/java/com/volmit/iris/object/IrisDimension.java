@@ -463,6 +463,8 @@ public class IrisDimension extends IrisRegistrant {
         boolean write = false;
         boolean changed = false;
 
+        IO.delete(new File(datapacks, "iris/data/" + getLoadKey()));
+
         for(IrisBiome i : getAllBiomes(data))
         {
             if(i.isCustom())

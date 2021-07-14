@@ -93,6 +93,8 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
+
+
         if(packs.exists())
         {
             for(File i : packs.listFiles())

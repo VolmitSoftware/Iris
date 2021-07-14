@@ -1,14 +1,13 @@
 package com.volmit.iris.scaffold.stream;
 
-public interface ProceduralLayer
-{
-	public long getSeed();
+public interface ProceduralLayer {
+    long getSeed();
 
-	public double getOffsetX();
+    double getOffsetX();
 
-	public double getOffsetY();
+    double getOffsetY();
 
-	public double getOffsetZ();
+    double getOffsetZ();
 
-	public double getZoom();
+    double getZoom();
 }

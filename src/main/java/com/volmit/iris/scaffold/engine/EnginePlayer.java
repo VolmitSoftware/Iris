@@ -18,8 +18,7 @@ public class EnginePlayer {
     private Location lastLocation;
     private long lastSample;
 
-    public EnginePlayer(Engine engine, Player player)
-    {
+    public EnginePlayer(Engine engine, Player player) {
         this.engine = engine;
         this.player = player;
         lastLocation = player.getLocation().clone();
@@ -27,15 +26,12 @@ public class EnginePlayer {
         sample();
     }
 
-    public void tick()
-    {
+    public void tick() {
         sample();
 
         J.a(() -> {
-            if(region != null)
-            {
-                for(IrisEffect j : region.getEffects())
-                {
+            if (region != null) {
+                for (IrisEffect j : region.getEffects()) {
                     try {
                         j.apply(player, getEngine());
                     } catch (Throwable e) {
@@ -44,10 +40,8 @@ public class EnginePlayer {
                 }
             }
 
-            if(biome != null)
-            {
-                for(IrisEffect j : biome.getEffects())
-                {
+            if (biome != null) {
+                for (IrisEffect j : biome.getEffects()) {
                     try {
                         j.apply(player, getEngine());
                     } catch (Throwable e) {
@@ -58,24 +52,18 @@ public class EnginePlayer {
         });
     }
 
-    public long ticksSinceLastSample()
-    {
+    public long ticksSinceLastSample() {
         return M.ms() - lastSample;
     }
 
     public void sample() {
-        try
-        {
-            if(ticksSinceLastSample() > 55 && player.getLocation().distanceSquared(lastLocation) > 9 * 9)
-            {
+        try {
+            if (ticksSinceLastSample() > 55 && player.getLocation().distanceSquared(lastLocation) > 9 * 9) {
                 lastLocation = player.getLocation().clone();
                 lastSample = M.ms();
                 sampleBiomeRegion();
             }
-        }
-
-        catch(Throwable ew)
-        {
+        } catch (Throwable ew) {
 
         }
     }

@@ -81,18 +81,15 @@ public interface ParallaxAccess {
     default void maxMin(int x, int z, int value) {
         ParallaxChunkMeta meat = getMetaRW(x, z);
 
-        if(value > meat.getMaxObject())
-        {
+        if (value > meat.getMaxObject()) {
             meat.setMaxObject(value);
         }
 
-        if(meat.getMinObject() <=-1)
-        {
+        if (meat.getMinObject() <= -1) {
             meat.setMinObject(value);
         }
 
-        if(value < meat.getMinObject())
-        {
+        if (value < meat.getMinObject()) {
             meat.setMinObject(value);
         }
     }
@@ -105,44 +102,43 @@ public interface ParallaxAccess {
         getMetaRW(x, z).setFeatureGenerated(v);
     }
 
-    public Hunk<TileData<? extends TileState>> getTilesR(int x, int z);
+    Hunk<TileData<? extends TileState>> getTilesR(int x, int z);
 
-    public Hunk<TileData<? extends TileState>> getTilesRW(int x, int z);
+    Hunk<TileData<? extends TileState>> getTilesRW(int x, int z);
 
-    public Hunk<BlockData> getBlocksR(int x, int z);
+    Hunk<BlockData> getBlocksR(int x, int z);
 
-    public Hunk<BlockData> getBlocksRW(int x, int z);
+    Hunk<BlockData> getBlocksRW(int x, int z);
 
-    public Hunk<String> getObjectsR(int x, int z);
+    Hunk<String> getObjectsR(int x, int z);
 
-    public Hunk<String> getObjectsRW(int x, int z);
+    Hunk<String> getObjectsRW(int x, int z);
 
-    public Hunk<String> getEntitiesRW(int x, int z);
+    Hunk<String> getEntitiesRW(int x, int z);
 
-    public Hunk<String> getEntitiesR(int x, int z);
+    Hunk<String> getEntitiesR(int x, int z);
 
-    public Hunk<Boolean> getUpdatesR(int x, int z);
+    Hunk<Boolean> getUpdatesR(int x, int z);
 
-    public Hunk<Boolean> getUpdatesRW(int x, int z);
+    Hunk<Boolean> getUpdatesRW(int x, int z);
 
-    public ParallaxChunkMeta getMetaR(int x, int z);
+    ParallaxChunkMeta getMetaR(int x, int z);
 
-    public ParallaxChunkMeta getMetaRW(int x, int z);
+    ParallaxChunkMeta getMetaRW(int x, int z);
 
-    public void cleanup(long regionIdle, long chunkIdle);
+    void cleanup(long regionIdle, long chunkIdle);
 
-    public void cleanup();
+    void cleanup();
 
-    public void saveAll();
+    void saveAll();
 
-    public void saveAllNOW();
+    void saveAllNOW();
 
-    public int getRegionCount();
+    int getRegionCount();
 
-    public int getChunkCount();
+    int getChunkCount();
 
-    public default void delete(int x, int z)
-    {
+    default void delete(int x, int z) {
         getUpdatesRW(x, z).empty(false);
         getBlocksRW(x, z).empty(null);
         getTilesRW(x, z).empty(null);

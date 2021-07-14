@@ -10,8 +10,7 @@ import org.bukkit.World;
 import java.io.File;
 
 @Data
-public class EngineTarget
-{
+public class EngineTarget {
     private final MultiBurst burster;
     private final IrisDimension dimension;
     private World world;
@@ -20,8 +19,7 @@ public class EngineTarget
     private final ParallaxWorld parallaxWorld;
     private final boolean inverted;
 
-    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, boolean inverted, int threads)
-    {
+    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, boolean inverted, int threads) {
         this.world = world;
         this.height = height;
         this.dimension = dimension;
@@ -32,13 +30,11 @@ public class EngineTarget
         this.burster = new MultiBurst(threads);
     }
 
-    public void updateWorld(World world)
-    {
+    public void updateWorld(World world) {
         this.world = world;
     }
 
-    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, int threads)
-    {
+    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, int threads) {
         this(world, dimension, data, height, false, threads);
     }
 }

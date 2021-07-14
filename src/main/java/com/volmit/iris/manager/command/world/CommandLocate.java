@@ -12,15 +12,15 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.Arrays;
 
-public class CommandLocate extends MortarCommand implements Listener
-{
+public class CommandLocate extends MortarCommand implements Listener {
     CommandLocate instance;
+
     @EventHandler
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
-        if (IrisWorlds.isIrisWorld(event.getPlayer().getWorld())){
+        if (IrisWorlds.isIrisWorld(event.getPlayer().getWorld())) {
 
             // Make sure the command starts with /locate and does not locate stronghold
-            if (event.getMessage().contains("/locate") && event.getMessage().contains("stronghold")){
+            if (event.getMessage().contains("/locate") && event.getMessage().contains("stronghold")) {
                 return;
             }
             if (event.getMessage().contains("/locate")) {
@@ -31,16 +31,14 @@ public class CommandLocate extends MortarCommand implements Listener
         }
     }
 
-    public CommandLocate()
-    {
+    public CommandLocate() {
         super("locate");
         requiresPermission(Iris.perm);
         this.instance = this;
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args)
-    {
+    public boolean handle(MortarSender sender, String[] args) {
         Bukkit.dispatchCommand(sender, "/ir std goto " + Arrays.toString(args));
         return true;
     }
@@ -51,8 +49,7 @@ public class CommandLocate extends MortarCommand implements Listener
     }
 
     @Override
-    protected String getArgsUsage()
-    {
+    protected String getArgsUsage() {
         return "[biome/region/structure]";
     }
 }

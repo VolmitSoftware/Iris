@@ -15,8 +15,7 @@ public class EngineData {
     private String lastVersion;
     private List<IrisPosition> strongholdPositions;
 
-    public void save(File f)
-    {
+    public void save(File f) {
         try {
             f.getParentFile().mkdirs();
             IO.writeAll(f, new Gson().toJson(this));
@@ -25,16 +24,11 @@ public class EngineData {
         }
     }
 
-    public static EngineData load(File f)
-    {
-        try
-        {
+    public static EngineData load(File f) {
+        try {
             f.getParentFile().mkdirs();
             return new Gson().fromJson(IO.readAll(f), EngineData.class);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
 

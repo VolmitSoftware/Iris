@@ -63,7 +63,7 @@ public enum LightingCategory {
 
                         // Apply sky light to block
                         cube.skyLight.set(x, y & 0xf, z, light);
-                        
+
                         // If opaque at the bottom, reset light to 0 for next block
                         // The block itself is lit
                         if (opaqueFaces.down()) {
@@ -141,21 +141,21 @@ public enum LightingCategory {
 
     /**
      * Gets the name of this type of light, used when logging
-     * 
+     *
      * @return category name
      */
     public abstract String getName();
 
     /**
      * Initializes the lighting in the chunk for this category
-     * 
+     *
      * @param chunk
      */
     public abstract void initialize(LightingChunk chunk);
 
     /**
      * Gets the y-coordinate to start processing from when spreading light around
-     * 
+     *
      * @param chunk
      * @param x
      * @param z
@@ -166,7 +166,7 @@ public enum LightingCategory {
     /**
      * Sets whether this category of light is dirty, indicating this category of light is all good,
      * or that more work is needed spreading light around.
-     * 
+     *
      * @param chunk
      * @param dirty
      */
@@ -175,7 +175,7 @@ public enum LightingCategory {
     /**
      * Gets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
-     * 
+     *
      * @param section
      * @param x
      * @param y
@@ -187,7 +187,7 @@ public enum LightingCategory {
     /**
      * Sets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
-     * 
+     *
      * @param section
      * @param x
      * @param y

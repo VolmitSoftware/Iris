@@ -15,9 +15,10 @@ import org.bukkit.util.BlockVector;
 
 public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
+
     public IrisDepositModifier(Engine engine) {
         super(engine, "Deposit");
-        rng = new RNG(getEngine().getWorld().getSeed()+12938).nextParallelRNG(28348777);
+        rng = new RNG(getEngine().getWorld().getSeed() + 12938).nextParallelRNG(28348777);
     }
 
     @Override
@@ -27,50 +28,40 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z)
-    {
+    public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z) {
         RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
         IrisRegion region = getComplex().getRegionStream().get((x * 16) + 7, (z * 16) + 7);
         IrisBiome biome = getComplex().getTrueBiomeStream().get((x * 16) + 7, (z * 16) + 7);
 
-        for(IrisDepositGenerator k : getDimension().getDeposits())
-        {
+        for (IrisDepositGenerator k : getDimension().getDeposits()) {
             generate(k, terrain, ro, x, z, false);
         }
 
-        for(IrisDepositGenerator k : region.getDeposits())
-        {
-            for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-            {
+        for (IrisDepositGenerator k : region.getDeposits()) {
+            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
                 generate(k, terrain, ro, x, z, false);
             }
         }
 
-        for(IrisDepositGenerator k : biome.getDeposits())
-        {
-            for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-            {
+        for (IrisDepositGenerator k : biome.getDeposits()) {
+            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
                 generate(k, terrain, ro, x, z, false);
             }
         }
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe)
-    {
+    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe) {
         generate(k, data, rng, cx, cz, safe, null);
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he)
-    {
-        for(int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++)
-        {
+    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he) {
+        for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
             IrisObject clump = k.getClump(rng, getData());
 
             int af = (int) Math.ceil(clump.getW() / 2D);
             int bf = (int) Math.floor(16D - (clump.getW() / 2D));
 
-            if(af > bf || af < 0 || bf > 15 || af > 15 || bf < 0)
-            {
+            if (af > bf || af < 0 || bf > 15 || af > 15 || bf < 0) {
                 af = 6;
                 bf = 9;
             }
@@ -81,8 +72,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     getComplex().getHeightStream().get((cx << 4) + x, (cz << 4) + z)
             ))) - 7;
 
-            if(height <= 0)
-            {
+            if (height <= 0) {
                 return;
             }
 
@@ -90,33 +80,29 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             // TODO: WARNING HEIGHT
             int a = Math.min(height, Math.min(256, k.getMaxHeight()));
 
-            if(i >= a)
-            {
+            if (i >= a) {
                 return;
             }
 
             int h = rng.i(i, a);
 
-            if(h > k.getMaxHeight() || h < k.getMinHeight() || h > height - 2)
-            {
+            if (h > k.getMaxHeight() || h < k.getMinHeight() || h > height - 2) {
                 return;
             }
 
-            for(BlockVector j : clump.getBlocks().keySet())
-            {
+            for (BlockVector j : clump.getBlocks().keySet()) {
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + h;
                 int nz = j.getBlockZ() + z;
 
-                if(ny > height || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15)
-                {
+                if (ny > height || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15) {
                     continue;
                 }
 
                 boolean allow = false;
 
                 BlockData b = data.get(nx, ny, nz);
-                if(b != null) {
+                if (b != null) {
                     for (BlockData f : getDimension().getRockPalette().getBlockData(getData())) {
                         if (f.getMaterial().equals(b.getMaterial())) {
                             allow = true;
@@ -125,8 +111,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     }
                 }
 
-                if(allow)
-                {
+                if (allow) {
                     data.set(nx, ny, nz, clump.getBlocks().get(j));
                 }
             }

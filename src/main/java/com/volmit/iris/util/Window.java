@@ -3,71 +3,70 @@ package com.volmit.iris.util;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-public interface Window
-{
-	public Window setDecorator(WindowDecorator decorator);
+public interface Window {
+    Window setDecorator(WindowDecorator decorator);
 
-	public WindowDecorator getDecorator();
+    WindowDecorator getDecorator();
 
-	public WindowResolution getResolution();
+    WindowResolution getResolution();
 
-	public Window setResolution(WindowResolution resolution);
+    Window setResolution(WindowResolution resolution);
 
-	public Window clearElements();
+    Window clearElements();
 
-	public Window close();
+    Window close();
 
-	public Window open();
+    Window open();
 
-	public Window callClosed();
+    Window callClosed();
 
-	public Window updateInventory();
+    Window updateInventory();
 
-	public Window setVisible(boolean visible);
+    Window setVisible(boolean visible);
 
-	public ItemStack computeItemStack(int viewportSlot);
+    ItemStack computeItemStack(int viewportSlot);
 
-	public int getLayoutRow(int viewportSlottedPosition);
+    int getLayoutRow(int viewportSlottedPosition);
 
-	public int getLayoutPosition(int viewportSlottedPosition);
+    int getLayoutPosition(int viewportSlottedPosition);
 
-	public int getRealLayoutPosition(int viewportSlottedPosition);
+    int getRealLayoutPosition(int viewportSlottedPosition);
 
-	public int getRealPosition(int position, int row);
+    int getRealPosition(int position, int row);
 
-	public int getRow(int realPosition);
+    int getRow(int realPosition);
 
-	public int getPosition(int realPosition);
+    int getPosition(int realPosition);
 
-	public boolean isVisible();
+    boolean isVisible();
 
-	public int getViewportPosition();
+    int getViewportPosition();
 
-	public int getViewportSlots();
+    int getViewportSlots();
 
-	public Window setViewportPosition(int position);
+    Window setViewportPosition(int position);
 
-	public int getMaxViewportPosition();
+    int getMaxViewportPosition();
 
-	public Window scroll(int direction);
+    Window scroll(int direction);
 
-	public int getViewportHeight();
+    int getViewportHeight();
 
-	public Window setViewportHeight(int height);
+    Window setViewportHeight(int height);
 
-	public String getTitle();
+    String getTitle();
 
-	public Window setTitle(String title);
+    Window setTitle(String title);
 
-	public boolean hasElement(int position, int row);
+    boolean hasElement(int position, int row);
 
-	public Window setElement(int position, int row, Element e);
+    Window setElement(int position, int row, Element e);
 
-	public Element getElement(int position, int row);
+    Element getElement(int position, int row);
 
-	public Player getViewer();
+    Player getViewer();
 
-	public Window reopen();
+    Window reopen();
 
-	public Window onClosed(Callback<Window> window);
+    Window onClosed(Callback<Window> window);
 }

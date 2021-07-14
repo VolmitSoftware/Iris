@@ -1,11 +1,10 @@
 package com.volmit.iris.scaffold.cache;
 
-public interface Multicache
-{
+public interface Multicache {
     @SuppressWarnings("hiding")
-	public <V> Cache<V> getCache(int id);
+    <V> Cache<V> getCache(int id);
 
     @SuppressWarnings("hiding")
-	public <V> Cache<V> createCache();
+    <V> Cache<V> createCache();
 }
 	

@@ -7,88 +7,83 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisStudio extends MortarCommand
-{
-	@Command
-	private CommandIrisStudioCreate create;
+public class CommandIrisStudio extends MortarCommand {
+    @Command
+    private CommandIrisStudioCreate create;
 
-	@Command
-	private CommandIrisStudioOpen open;
+    @Command
+    private CommandIrisStudioOpen open;
 
-	@Command
-	private CommandIrisStudioSummon summon;
+    @Command
+    private CommandIrisStudioSummon summon;
 
-	@Command
-	private CommandIrisStudioClose close;
+    @Command
+    private CommandIrisStudioClose close;
 
-	@Command
-	private CommandIrisStudioPackage pkg;
+    @Command
+    private CommandIrisStudioPackage pkg;
 
-	@Command
-	private CommandIrisStudioUpdate update;
+    @Command
+    private CommandIrisStudioUpdate update;
 
-	@Command
-	private CommandIrisStudioGoto got0;
+    @Command
+    private CommandIrisStudioGoto got0;
 
-	@Command
-	private CommandIrisStudioEditBiome ebiome;
+    @Command
+    private CommandIrisStudioEditBiome ebiome;
 
-	@Command
-	private CommandIrisStudioHotload hotload;
+    @Command
+    private CommandIrisStudioHotload hotload;
 
-	@Command
-	private CommandIrisStudioExplorer exp;
+    @Command
+    private CommandIrisStudioExplorer exp;
 
-	@Command
-	private CommandIrisStudioBeautify beautify;
+    @Command
+    private CommandIrisStudioBeautify beautify;
 
-	@Command
-	private CommandIrisStudioProfile profile;
+    @Command
+    private CommandIrisStudioProfile profile;
 
-	@Command
-	private CommandIrisStudioExplorerGenerator generator;
+    @Command
+    private CommandIrisStudioExplorerGenerator generator;
 
-	@Command
-	private CommandIrisStudioLoot loot;
+    @Command
+    private CommandIrisStudioLoot loot;
 
-	@Command
-	private CommandIrisStudioTPStudio tps;
+    @Command
+    private CommandIrisStudioTPStudio tps;
 
-	@Command
-	private CommandIrisStudioConvert convert;
+    @Command
+    private CommandIrisStudioConvert convert;
 
-	@Command
-	private CommandIrisStudioMap map;
+    @Command
+    private CommandIrisStudioMap map;
 
-	public CommandIrisStudio()
-	{
-		super("studio", "std", "s");
-		requiresPermission(Iris.perm.studio);
-		setCategory("Studio");
-	}
+    public CommandIrisStudio() {
+        super("studio", "std", "s");
+        requiresPermission(Iris.perm.studio);
+        setCategory("Studio");
+    }
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
+    }
 
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
-			return true;
-		}
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        if (!IrisSettings.get().isStudio()) {
+            sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+            return true;
+        }
 
-		sender.sendMessage("Iris Studio Commands:");
-		printHelp(sender);
-		return true;
-	}
+        sender.sendMessage("Iris Studio Commands:");
+        printHelp(sender);
+        return true;
+    }
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "[subcommand]";
-	}
+    @Override
+    protected String getArgsUsage() {
+        return "[subcommand]";
+    }
 }

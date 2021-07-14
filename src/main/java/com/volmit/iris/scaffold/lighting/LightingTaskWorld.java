@@ -2,11 +2,10 @@ package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import org.bukkit.World;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import org.bukkit.World;
 
 public class LightingTaskWorld implements LightingTask {
     private static final int ASSUMED_CHUNKS_PER_REGION = 34 * 34;
@@ -46,7 +45,7 @@ public class LightingTaskWorld implements LightingTask {
         if (regions == null) {
             return "Reading available regions from world " + getWorld().getName();
         } else {
-            return "Reading available chunks from world " + getWorld().getName() + " (region " + (regionCountLoaded+1) + "/" + regions.getRegionCount() + ")";
+            return "Reading available chunks from world " + getWorld().getName() + " (region " + (regionCountLoaded + 1) + "/" + regions.getRegionCount() + ")";
         }
     }
 
@@ -123,7 +122,7 @@ public class LightingTaskWorld implements LightingTask {
 
             // Reduce count, schedule and clear the buffer
             // Put the coordinates that are available
-            final LongHashSet buffer = new LongHashSet(34*34);
+            final LongHashSet buffer = new LongHashSet(34 * 34);
             if (true) {
                 int dx, dz;
                 for (dx = -1; dx < 33; dx++) {

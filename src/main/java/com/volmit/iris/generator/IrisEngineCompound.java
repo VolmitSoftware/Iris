@@ -14,10 +14,6 @@ import com.volmit.iris.scaffold.parallel.MultiBurst;
 import com.volmit.iris.util.*;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.feature.StructureGenerator;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -27,14 +23,7 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
@@ -65,8 +54,7 @@ public class IrisEngineCompound implements EngineCompound {
     @Setter
     private boolean studio;
 
-    public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads)
-    {
+    public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads) {
         wallClock = new AtomicRollingSequence(32);
         this.rootDimension = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.getName());
@@ -78,58 +66,47 @@ public class IrisEngineCompound implements EngineCompound {
         saveEngineMetadata();
         populators = new KList<>();
 
-        if(rootDimension.getDimensionalComposite().isEmpty())
-        {
+        if (rootDimension.getDimensionalComposite().isEmpty()) {
             burster = null;
             // TODO: WARNING HEIGHT
             engines = new Engine[]{new IrisEngine(new EngineTarget(world, rootDimension, data, 256, maximumThreads), this, 0)};
             defaultEngine = engines[0];
-        }
-
-        else
-        {
+        } else {
             double totalWeight = 0D;
             engines = new Engine[rootDimension.getDimensionalComposite().size()];
             burster = engines.length > 1 ? new MultiBurst(engines.length) : null;
             int threadDist = (Math.max(2, maximumThreads - engines.length)) / engines.length;
 
-            if((threadDist * engines.length) + engines.length > maximumThreads)
-            {
+            if ((threadDist * engines.length) + engines.length > maximumThreads) {
                 Iris.warn("Using " + ((threadDist * engines.length) + engines.length) + " threads instead of the configured " + maximumThreads + " maximum thread count due to the requirements of this dimension!");
             }
 
-            for(IrisDimensionIndex i : rootDimension.getDimensionalComposite())
-            {
+            for (IrisDimensionIndex i : rootDimension.getDimensionalComposite()) {
                 totalWeight += i.getWeight();
             }
 
             int buf = 0;
 
-            for(int i = 0; i < engines.length; i++)
-            {
+            for (int i = 0; i < engines.length; i++) {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
                 IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
                 // TODO: WARNING HEIGHT
-                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int)Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
+                engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int) Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);
                 buf += engines[i].getHeight();
 
-                if(index.isPrimary())
-                {
+                if (index.isPrimary()) {
                     defaultEngine = engines[i];
                 }
             }
 
-            if(defaultEngine == null)
-            {
+            if (defaultEngine == null) {
                 defaultEngine = engines[0];
             }
         }
 
-        for(Engine i : engines)
-        {
-            if(i instanceof BlockPopulator)
-            {
+        for (Engine i : engines) {
+            if (i instanceof BlockPopulator) {
                 populators.add((BlockPopulator) i);
             }
         }
@@ -137,40 +114,33 @@ public class IrisEngineCompound implements EngineCompound {
         Iris.instance.registerListener(this);
     }
 
-    public List<IrisPosition> getStrongholdPositions()
-    {
+    public List<IrisPosition> getStrongholdPositions() {
         return engineMetadata.getStrongholdPositions();
     }
 
     @EventHandler
-    public void on(WorldSaveEvent e)
-    {
-        if(world != null &&e.getWorld().equals(world))
-        {
+    public void on(WorldSaveEvent e) {
+        if (world != null && e.getWorld().equals(world)) {
             save();
         }
     }
 
-    public void printMetrics(CommandSender sender)
-    {
+    public void printMetrics(CommandSender sender) {
         KMap<String, Double> totals = new KMap<>();
         KMap<String, Double> weights = new KMap<>();
         double masterWallClock = wallClock.getAverage();
 
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             Engine e = getEngine(i);
             KMap<String, Double> timings = e.getMetrics().pull();
             double totalWeight = 0;
             double wallClock = e.getMetrics().getTotal().getAverage();
 
-            for(double j : timings.values())
-            {
+            for (double j : timings.values()) {
                 totalWeight += j;
             }
 
-            for(String j : timings.k())
-            {
+            for (String j : timings.k()) {
                 weights.put(e.getName() + "[" + e.getIndex() + "]." + j, (wallClock / totalWeight) * timings.get(j));
             }
 
@@ -179,44 +149,38 @@ public class IrisEngineCompound implements EngineCompound {
 
         double mtotals = 0;
 
-        for(double i : totals.values())
-        {
-            mtotals+=i;
+        for (double i : totals.values()) {
+            mtotals += i;
         }
 
-        for(String i : totals.k())
-        {
+        for (String i : totals.k()) {
             totals.put(i, (masterWallClock / mtotals) * totals.get(i));
         }
 
         double v = 0;
 
-        for(double i : weights.values())
-        {
-            v+=i;
+        for (double i : weights.values()) {
+            v += i;
         }
 
-        for(String i : weights.k())
-        {
+        for (String i : weights.k()) {
             weights.put(i, weights.get(i) / v);
         }
 
         sender.sendMessage("Total: " + C.BOLD + C.WHITE + Form.duration(masterWallClock, 0));
 
-        for(String i : totals.k())
-        {
-            sender.sendMessage("  Engine " + C.UNDERLINE + C.GREEN + i + C.RESET + ": " + C.BOLD + C.WHITE +  Form.duration(totals.get(i), 0));
+        for (String i : totals.k()) {
+            sender.sendMessage("  Engine " + C.UNDERLINE + C.GREEN + i + C.RESET + ": " + C.BOLD + C.WHITE + Form.duration(totals.get(i), 0));
         }
 
         sender.sendMessage("Details: ");
 
-        for(String i : weights.sortKNumber().reverse())
-        {
-            String befb = C.UNDERLINE +""+ C.GREEN + "" + i.split("\\Q[\\E")[0] + C.RESET + C.GRAY + "[";
-            String num = C.GOLD + i.split("\\Q[\\E")[1].split("]")[0] + C.RESET + C.GRAY +  "].";
-            String afb = C.ITALIC +""+ C.AQUA + i.split("\\Q]\\E")[1].substring(1) + C.RESET + C.GRAY;
+        for (String i : weights.sortKNumber().reverse()) {
+            String befb = C.UNDERLINE + "" + C.GREEN + "" + i.split("\\Q[\\E")[0] + C.RESET + C.GRAY + "[";
+            String num = C.GOLD + i.split("\\Q[\\E")[1].split("]")[0] + C.RESET + C.GRAY + "].";
+            String afb = C.ITALIC + "" + C.AQUA + i.split("\\Q]\\E")[1].substring(1) + C.RESET + C.GRAY;
 
-            sender.sendMessage("  " + befb + num + afb + ": " + C.BOLD + C.WHITE +  Form.pc(weights.get(i), 0));
+            sender.sendMessage("  " + befb + num + afb + ": " + C.BOLD + C.WHITE + Form.pc(weights.get(i), 0));
         }
     }
 
@@ -225,30 +189,23 @@ public class IrisEngineCompound implements EngineCompound {
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes)
-    {
+    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes) {
         recycle();
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        if(engines.length == 1 && !getEngine(0).getTarget().isInverted())
-        {
+        if (engines.length == 1 && !getEngine(0).getTarget().isInverted()) {
             engines[0].generate(x, z, blocks, biomes);
-        }
-
-        else
-        {
+        } else {
             int i;
             int offset = 0;
 
-            for(i = 0; i < engines.length; i++)
-            {
+            for (i = 0; i < engines.length; i++) {
                 Engine engine = engines[i];
                 int doffset = offset;
                 int height = engine.getTarget().getHeight();
                 Hunk<BlockData> cblock = Hunk.newArrayHunk(16, height, 16);
                 Hunk<Biome> cbiome = Hunk.newArrayHunk(16, height, 16);
 
-                if(engine.getTarget().isInverted())
-                {
+                if (engine.getTarget().isInverted()) {
                     cblock = cblock.invertY();
                     cbiome = cbiome.invertY();
                 }
@@ -301,8 +258,7 @@ public class IrisEngineCompound implements EngineCompound {
 
     @Override
     public void hotload() {
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).hotload();
         }
     }

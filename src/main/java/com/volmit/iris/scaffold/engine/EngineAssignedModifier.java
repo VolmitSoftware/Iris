@@ -2,10 +2,8 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 
-public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent implements EngineModifier<T>
-{
-    public EngineAssignedModifier(Engine engine, String name)
-    {
+public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent implements EngineModifier<T> {
+    public EngineAssignedModifier(Engine engine, String name) {
         super(engine, name);
     }
 

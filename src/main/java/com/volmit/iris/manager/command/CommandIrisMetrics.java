@@ -3,64 +3,54 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.MortarCommand;
+import com.volmit.iris.util.MortarSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-public class CommandIrisMetrics extends MortarCommand
-{
-	public CommandIrisMetrics()
-	{
-		super("metrics", "stats", "mt");
-		setDescription("Get timings for this world");
-		requiresPermission(Iris.perm.studio);
-		setCategory("Metrics");
-	}
+public class CommandIrisMetrics extends MortarCommand {
+    public CommandIrisMetrics() {
+        super("metrics", "stats", "mt");
+        setDescription("Get timings for this world");
+        requiresPermission(Iris.perm.studio);
+        setCategory("Metrics");
+    }
 
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		if(sender.isPlayer())
-		{
-			Player p = sender.player();
-			World world = p.getWorld();
-			if(!IrisWorlds.isIrisWorld(world))
-			{
-				sender.sendMessage("You must be in an iris world.");
-				return true;
-			}
+    }
 
-			IrisAccess g = IrisWorlds.access(world);
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        if (sender.isPlayer()) {
+            Player p = sender.player();
+            World world = p.getWorld();
+            if (!IrisWorlds.isIrisWorld(world)) {
+                sender.sendMessage("You must be in an iris world.");
+                return true;
+            }
 
-			try
-			{
-				g.printMetrics(sender);
-			}
+            IrisAccess g = IrisWorlds.access(world);
 
-			catch(Throwable e)
-			{
-				sender.sendMessage("You must be in an iris world.");
-			}
+            try {
+                g.printMetrics(sender);
+            } catch (Throwable e) {
+                sender.sendMessage("You must be in an iris world.");
+            }
 
-			return true;
-		}
+            return true;
+        } else {
+            sender.sendMessage("Players only.");
+        }
 
-		else
-		{
-			sender.sendMessage("Players only.");
-		}
+        return true;
+    }
 
-		return true;
-	}
-
-	@Override
-	protected String getArgsUsage()
-	{
-		return "";
-	}
+    @Override
+    protected String getArgsUsage() {
+        return "";
+    }
 }

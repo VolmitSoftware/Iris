@@ -12,13 +12,12 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Represents a position")
 @Data
-public class IrisPosition2D
-{
-	@DontObfuscate
-	@Desc("The x position")
-	private int x = 0;
+public class IrisPosition2D {
+    @DontObfuscate
+    @Desc("The x position")
+    private int x = 0;
 
-	@DontObfuscate
-	@Desc("The z position")
-	private int z = 0;
+    @DontObfuscate
+    @Desc("The z position")
+    private int z = 0;
 }

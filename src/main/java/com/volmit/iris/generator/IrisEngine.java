@@ -2,7 +2,6 @@ package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.J;
@@ -19,8 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
 
-public class IrisEngine extends BlockPopulator implements Engine
-{
+public class IrisEngine extends BlockPopulator implements Engine {
     @Getter
     private final EngineCompound compound;
 
@@ -54,8 +52,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     private int cacheId;
     private final int art;
 
-    public IrisEngine(EngineTarget target, EngineCompound compound, int index)
-    {
+    public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
         this.target = target;
@@ -72,8 +69,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public void close()
-    {
+    public void close() {
         J.car(art);
         closed = true;
         getWorldManager().close();
@@ -102,11 +98,10 @@ public class IrisEngine extends BlockPopulator implements Engine
 
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
-        try
-        {
+        try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<BlockData> blocks = vblocks.synchronize().listen((xx,y,zz,t) -> catchBlockUpdates(x+xx,y+getMinHeight(),z+zz, t));
-            getFramework().getEngineParallax().generateParallaxArea(x>>4, z>>4);
+            Hunk<BlockData> blocks = vblocks.synchronize().listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
+            getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
             getFramework().getBiomeActuator().actuate(x, z, vbiomes);
             getFramework().getTerrainActuator().actuate(x, z, blocks);
             getFramework().getCaveModifier().modify(x, z, blocks);
@@ -116,18 +111,14 @@ public class IrisEngine extends BlockPopulator implements Engine
             getFramework().getEngineParallax().insertParallax(x, z, blocks);
             getFramework().getDepositModifier().modify(x, z, blocks);
             getMetrics().getTotal().put(p.getMilliseconds());
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             fail("Failed to generate " + x + ", " + z, e);
         }
     }
 
     @Override
     public IrisBiome getFocus() {
-        if(getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty())
-        {
+        if (getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
             return null;
         }
 
@@ -135,8 +126,7 @@ public class IrisEngine extends BlockPopulator implements Engine
     }
 
     @Override
-    public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c)
-    {
+    public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c) {
         getWorldManager().spawnInitialEntities(c);
         updateChunk(c);
         placeTiles(c);

@@ -24,7 +24,7 @@ public class LightingChunkNeighboring {
 
     /**
      * Gets whether all 4 chunk neighbors are accessible
-     * 
+     *
      * @return True if all neighbors are accessible
      */
     public boolean hasAll() {
@@ -49,10 +49,10 @@ public class LightingChunkNeighboring {
 
     /**
      * Gets a relative neighboring chunk, and then a vertical cube in that chunk, if possible.
-     * 
+     *
      * @param deltaChunkX
      * @param deltaChunkZ
-     * @param cy Cube absolute y-coordinate
+     * @param cy          Cube absolute y-coordinate
      * @return cube, null if the chunk or cube is not available
      */
     public LightingCube getCube(int deltaChunkX, int deltaChunkZ, int cy) {

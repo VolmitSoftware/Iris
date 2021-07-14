@@ -2,53 +2,52 @@ package com.volmit.iris.util;
 
 import org.bukkit.inventory.ItemStack;
 
-public interface Element
-{
-	public MaterialBlock getMaterial();
+public interface Element {
+    MaterialBlock getMaterial();
 
-	public Element setMaterial(MaterialBlock b);
+    Element setMaterial(MaterialBlock b);
 
-	public boolean isEnchanted();
+    boolean isEnchanted();
 
-	public Element setEnchanted(boolean enchanted);
+    Element setEnchanted(boolean enchanted);
 
-	public String getId();
+    String getId();
 
-	public String getName();
+    String getName();
 
-	public Element setProgress(double progress);
+    Element setProgress(double progress);
 
-	public double getProgress();
+    double getProgress();
 
-	public short getEffectiveDurability();
+    short getEffectiveDurability();
 
-	public Element setCount(int c);
+    Element setCount(int c);
 
-	public int getCount();
+    int getCount();
 
-	public ItemStack computeItemStack();
+    ItemStack computeItemStack();
 
-	public Element setBackground(boolean bg);
+    Element setBackground(boolean bg);
 
-	public boolean isBackgrond();
+    boolean isBackgrond();
 
-	public Element setName(String name);
+    Element setName(String name);
 
-	public Element addLore(String loreLine);
+    Element addLore(String loreLine);
 
-	public KList<String> getLore();
+    KList<String> getLore();
 
-	public Element call(ElementEvent event, Element context);
+    Element call(ElementEvent event, Element context);
 
-	public Element onLeftClick(Callback<Element> clicked);
+    Element onLeftClick(Callback<Element> clicked);
 
-	public Element onRightClick(Callback<Element> clicked);
+    Element onRightClick(Callback<Element> clicked);
 
-	public Element onShiftLeftClick(Callback<Element> clicked);
+    Element onShiftLeftClick(Callback<Element> clicked);
 
-	public Element onShiftRightClick(Callback<Element> clicked);
+    Element onShiftRightClick(Callback<Element> clicked);
 
-	public Element onDraggedInto(Callback<Element> into);
+    Element onDraggedInto(Callback<Element> into);
 
-	public Element onOtherDraggedInto(Callback<Element> other);
+    Element onOtherDraggedInto(Callback<Element> other);
 }

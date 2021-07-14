@@ -16,93 +16,73 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CommandIrisStudioGoto extends MortarCommand
-{
-	public CommandIrisStudioGoto()
-	{
-		super("goto", "find", "g", "tp");
-		setDescription("Find any region or biome");
-		requiresPermission(Iris.perm.studio);
-		setCategory("World");
-	}
+public class CommandIrisStudioGoto extends MortarCommand {
+    public CommandIrisStudioGoto() {
+        super("goto", "find", "g", "tp");
+        setDescription("Find any region or biome");
+        requiresPermission(Iris.perm.studio);
+        setCategory("World");
+    }
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
-		if(args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld()))
-		{
-			IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
-			if (data == null){
-				sender.sendMessage("Issue when loading tab completions. No data found (?)");
-			} else {
-				list.add(data.getBiomeLoader().getPossibleKeys());
-				list.add(data.getRegionLoader().getPossibleKeys());
-				//TODO: Remove comment here -> list.add(data.getObjectLoader().getPossibleKeys());
-			}
-		}
-	}
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+        if (args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            if (data == null) {
+                sender.sendMessage("Issue when loading tab completions. No data found (?)");
+            } else {
+                list.add(data.getBiomeLoader().getPossibleKeys());
+                list.add(data.getRegionLoader().getPossibleKeys());
+                //TODO: Remove comment here -> list.add(data.getObjectLoader().getPossibleKeys());
+            }
+        }
+    }
 
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		try
-		{
-			if(args.length < 1)
-			{
-				sender.sendMessage("/iris std goto " + getArgsUsage());
-				return true;
-			}
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        try {
+            if (args.length < 1) {
+                sender.sendMessage("/iris std goto " + getArgsUsage());
+                return true;
+            }
 
-			if(sender.isPlayer())
-			{
-				Player p = sender.player();
-				World world = p.getWorld();
+            if (sender.isPlayer()) {
+                Player p = sender.player();
+                World world = p.getWorld();
 
-				if(!IrisWorlds.isIrisWorld(world))
-				{
-					sender.sendMessage("You must be in an iris world.");
-					return true;
-				}
+                if (!IrisWorlds.isIrisWorld(world)) {
+                    sender.sendMessage("You must be in an iris world.");
+                    return true;
+                }
 
-				IrisAccess g = IrisWorlds.access(world);
-				IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
-				IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
-				IrisObject o = IrisDataManager.loadAnyObject(args[0]);
+                IrisAccess g = IrisWorlds.access(world);
+                IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
+                IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
+                IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 
-				if(b != null)
-				{
-					J.a(() -> {
-						Location l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+                if (b != null) {
+                    J.a(() -> {
+                        Location l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-						if(l == null)
-						{
-							sender.sendMessage("Couldn't find " + b.getName() + ".");
-						}
+                        if (l == null) {
+                            sender.sendMessage("Couldn't find " + b.getName() + ".");
+                        } else {
+                            sender.sendMessage("Found " + b.getName() + "!");
+                            J.s(() -> sender.player().teleport(l));
+                        }
+                    });
+                } else if (r != null) {
+                    J.a(() -> {
+                        Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-						else
-						{
-							sender.sendMessage("Found " + b.getName() + "!");
-							J.s(() -> sender.player().teleport(l));
-						}
-					});
-				}
-
-				else if(r != null)
-				{
-					J.a(() -> {
-						Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
-
-						if(l == null)
-						{
-							sender.sendMessage("Couldn't find " + r.getName() + ".");
-						}
-
-						else
-						{
-							sender.sendMessage("Found " + r.getName() + "!");
-							J.s(() -> sender.player().teleport(l));
-						}
-					});
-				}
+                        if (l == null) {
+                            sender.sendMessage("Couldn't find " + r.getName() + ".");
+                        } else {
+                            sender.sendMessage("Found " + r.getName() + "!");
+                            J.s(() -> sender.player().teleport(l));
+                        }
+                    });
+                }
 				/* TODO: Fix this shit
 				else if (o != null)
 				{
@@ -126,50 +106,42 @@ public class CommandIrisStudioGoto extends MortarCommand
 					});
 				}*/
 
-				else
-				{
-					sender.sendMessage(args[0] + " is not a biome or region in this dimension. (Biome teleportation works best!");
-				}
+                else {
+                    sender.sendMessage(args[0] + " is not a biome or region in this dimension. (Biome teleportation works best!");
+                }
 
-				return true;
-			}
+                return true;
+            } else {
+                sender.sendMessage("Players only.");
+            }
+        } catch (Throwable e) {
+            Iris.error("Failed goto!");
+            e.printStackTrace();
+            sender.sendMessage("We cant seem to aquire a lock on the biome cache. Please report the error in the console to our github. Thanks!");
+        }
 
-			else
-			{
-				sender.sendMessage("Players only.");
-			}
-		}
+        return true;
+    }
 
-		catch(Throwable e)
-		{
-			Iris.error("Failed goto!");
-			e.printStackTrace();
-			sender.sendMessage("We cant seem to aquire a lock on the biome cache. Please report the error in the console to our github. Thanks!");
-		}
+    @Override
+    protected String getArgsUsage() {
+        return "[biome/region]";
+    }
 
-		return true;
-	}
+    private List<File> listf(String directoryName) {
+        File directory = new File(directoryName);
+        List<File> files = new ArrayList<>();
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "[biome/region]";
-	}
-
-	private List<File> listf(String directoryName) {
-		File directory = new File(directoryName);
-		List<File> files = new ArrayList<>();
-
-		// Get all files from a directory.
-		File[] fList = directory.listFiles();
-		if(fList != null)
-			for (File file : fList) {
-				if (file.isFile()) {
-					files.add(file);
-				} else if (file.isDirectory()) {
-					files.addAll(listf(file.getAbsolutePath()));
-				}
-			}
-		return files;
-	}
+        // Get all files from a directory.
+        File[] fList = directory.listFiles();
+        if (fList != null)
+            for (File file : fList) {
+                if (file.isFile()) {
+                    files.add(file);
+                } else if (file.isDirectory()) {
+                    files.addAll(listf(file.getAbsolutePath()));
+                }
+            }
+        return files;
+    }
 }

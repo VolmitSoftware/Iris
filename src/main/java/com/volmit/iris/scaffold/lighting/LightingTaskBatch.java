@@ -6,6 +6,9 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.volmit.iris.Iris;
+import org.bukkit.Chunk;
+import org.bukkit.World;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
@@ -14,17 +17,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
-import com.volmit.iris.Iris;
-import org.bukkit.Chunk;
-import org.bukkit.World;
-
 /**
  * Contains all the chunk coordinates that have to be fixed,
  * and handles the full process of this fixing.
  * It is literally a batch of chunks being processed.
  */
 public class LightingTaskBatch implements LightingTask {
-    private static boolean DEBUG_LOG = false; // logs performance stats
+    private static final boolean DEBUG_LOG = false; // logs performance stats
     public final World world;
     private final Object chunks_lock = new Object();
     private final int[] region_y_coords;
@@ -79,7 +78,7 @@ public class LightingTaskBatch implements LightingTask {
      * Gets the X and Z-coordinates of all the chunk columns to process.
      * The coordinates are combined into a single Long, which can be decoded
      * using {@link MathUtil#longHashMsw(long)} for X and {@link MathUtil#longHashLsw(long) for Z.
-     * 
+     *
      * @return chunk coordinates
      */
     public long[] getChunks() {
@@ -102,7 +101,7 @@ public class LightingTaskBatch implements LightingTask {
     /**
      * Gets the Y-coordinates of all the regions to look for chunk data. A region stores 32 chunk
      * slices vertically, and goes up/down 512 blocks every coordinate increase/decrease.
-     * 
+     *
      * @return region Y-coordinates
      */
     public int[] getRegionYCoordinates() {
@@ -176,7 +175,7 @@ public class LightingTaskBatch implements LightingTask {
         BatchChunkInfo chunk = this.getAverageChunk();
         if (chunk != null) {
             String postfix = " chunks near " +
-                    "x=" + (chunk.cx*16) + " z=" + (chunk.cz*16);
+                    "x=" + (chunk.cx * 16) + " z=" + (chunk.cz * 16);
             if (this.stage == Stage.LOADING) {
                 synchronized (this.chunks_lock) {
                     if (this.chunks != null) {
@@ -212,7 +211,7 @@ public class LightingTaskBatch implements LightingTask {
     private String getShortStatus() {
         BatchChunkInfo chunk = this.getAverageChunk();
         if (chunk != null) {
-            return "[x=" + (chunk.cx*16) + " z=" + (chunk.cz*16) + " count=" + chunk.count + "]";
+            return "[x=" + (chunk.cx * 16) + " z=" + (chunk.cz * 16) + " count=" + chunk.count + "]";
         } else {
             return "[Unknown]";
         }
@@ -356,7 +355,7 @@ public class LightingTaskBatch implements LightingTask {
             int failed_chunk_count = 0;
 
             LightingChunk[] new_chunks = this.chunks;
-            for (int i = new_chunks.length-1; i >= 0; i--) {
+            for (int i = new_chunks.length - 1; i >= 0; i--) {
                 LightingChunk lc = new_chunks[i];
                 if (lc.forcedChunk.getChunkAsync().isCompletedExceptionally()) {
                     failed_chunk_avg_x += lc.chunkX;
@@ -417,7 +416,7 @@ public class LightingTaskBatch implements LightingTask {
         this.stage = Stage.APPLYING;
         try {
             CompletableFuture<Void> future = apply();
-            int max_num_of_waits = (5*120);
+            int max_num_of_waits = (5 * 120);
             while (true) {
                 if (--max_num_of_waits == 0) {
                     Iris.error("Failed to apply lighting data for " + getShortStatus() + ": Timeout");
@@ -558,7 +557,7 @@ public class LightingTaskBatch implements LightingTask {
         return !this.options.getLoadedChunksOnly() && !this.options.getDebugMakeCorrupted();
     }
 
-    private static enum Stage {
+    private enum Stage {
         LOADING, FIXING, APPLYING
     }
 }

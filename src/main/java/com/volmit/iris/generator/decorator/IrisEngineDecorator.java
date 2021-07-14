@@ -5,11 +5,11 @@ import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDecorator;
 import com.volmit.iris.scaffold.cache.Cache;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedComponent;
 import com.volmit.iris.scaffold.engine.EngineDecorator;
+import com.volmit.iris.util.KList;
+import com.volmit.iris.util.RNG;
 import lombok.Getter;
 
 public abstract class IrisEngineDecorator extends EngineAssignedComponent implements EngineDecorator {
@@ -26,28 +26,21 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
         this.rng = new RNG(getSeed() + 29356788 - (part.ordinal() * 10439677));
     }
 
-    protected IrisDecorator getDecorator(IrisBiome biome, double realX, double realZ)
-    {
+    protected IrisDecorator getDecorator(IrisBiome biome, double realX, double realZ) {
         KList<IrisDecorator> v = new KList<>();
-        RNG rng = new RNG(Cache.key((int)realX, (int)realZ));
+        RNG rng = new RNG(Cache.key((int) realX, (int) realZ));
 
-        for(IrisDecorator i : biome.getDecorators())
-        {
-            try
-            {
-                if(i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null)
-                {
+        for (IrisDecorator i : biome.getDecorators()) {
+            try {
+                if (i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null) {
                     v.add(i);
                 }
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 Iris.error("PART OF: " + biome.getLoadFile().getAbsolutePath() + " HAS AN INVALID DECORATOR near 'partOf'!!!");
             }
         }
 
-        if(v.isNotEmpty()) {
+        if (v.isNotEmpty()) {
             return v.get(rng.nextInt(v.size()));
         }
 

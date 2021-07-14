@@ -7,56 +7,50 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisJigsaw extends MortarCommand
-{
-	@Command
-	private CommandIrisJigsawNew create;
+public class CommandIrisJigsaw extends MortarCommand {
+    @Command
+    private CommandIrisJigsawNew create;
 
-	@Command
-	private CommandIrisJigsawEdit edit;
+    @Command
+    private CommandIrisJigsawEdit edit;
 
-	@Command
-	private CommandIrisJigsawSave save;
+    @Command
+    private CommandIrisJigsawSave save;
 
-	@Command
-	private CommandIrisJigsawPlace place;
+    @Command
+    private CommandIrisJigsawPlace place;
 
-	public CommandIrisJigsaw()
-	{
-		super("jigsaw", "jig", "jsw", "j");
-		requiresPermission(Iris.perm);
-		setCategory("Jigsaw");
-		setDescription("Iris jigsaw commands");
-	}
+    public CommandIrisJigsaw() {
+        super("jigsaw", "jig", "jsw", "j");
+        requiresPermission(Iris.perm);
+        setCategory("Jigsaw");
+        setDescription("Iris jigsaw commands");
+    }
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
+    }
 
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
-			return true;
-		}
-		
-		if(!sender.isPlayer())
-		{
-			sender.sendMessage("Ingame only");
-			return true;
-		}
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        if (!IrisSettings.get().isStudio()) {
+            sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
+            return true;
+        }
 
-		sender.sendMessage("Iris Jigsaw Commands:");
-		printHelp(sender);
-		return true;
-	}
+        if (!sender.isPlayer()) {
+            sender.sendMessage("Ingame only");
+            return true;
+        }
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "";
-	}
+        sender.sendMessage("Iris Jigsaw Commands:");
+        printHelp(sender);
+        return true;
+    }
+
+    @Override
+    protected String getArgsUsage() {
+        return "";
+    }
 }

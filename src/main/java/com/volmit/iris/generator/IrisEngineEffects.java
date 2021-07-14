@@ -15,8 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 public class IrisEngineEffects extends EngineAssignedComponent implements EngineEffects {
-    private KMap<UUID, EnginePlayer> players;
-    private Semaphore limit;
+    private final KMap<UUID, EnginePlayer> players;
+    private final Semaphore limit;
 
     public IrisEngineEffects(Engine engine) {
         super(engine, "FX");
@@ -30,28 +30,20 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
 
         if (pr == null) return; //Fix for paper returning a world with a null playerlist
 
-        for(Player i : pr)
-        {
+        for (Player i : pr) {
             Location l = i.getLocation();
             boolean pcc = players.containsKey(i.getUniqueId());
-            if(getEngine().contains(l))
-            {
-                if(!pcc)
-                {
+            if (getEngine().contains(l)) {
+                if (!pcc) {
                     players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));
                 }
-            }
-
-            else if(pcc)
-            {
+            } else if (pcc) {
                 players.remove(i.getUniqueId());
             }
         }
 
-        for(UUID i : players.k())
-        {
-            if(!pr.contains(players.get(i).getPlayer()))
-            {
+        for (UUID i : players.k()) {
+            if (!pr.contains(players.get(i).getPlayer())) {
                 players.remove(i);
             }
         }
@@ -59,17 +51,14 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
 
     @Override
     public void tickRandomPlayer() {
-        if(limit.tryAcquire())
-        {
-            if(M.r(0.02))
-            {
+        if (limit.tryAcquire()) {
+            if (M.r(0.02)) {
                 updatePlayerMap();
                 limit.release();
                 return;
             }
 
-            if(players.isEmpty())
-            {
+            if (players.isEmpty()) {
                 limit.release();
                 return;
             }
@@ -78,8 +67,7 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
             int max = players.size();
             PrecisionStopwatch p = new PrecisionStopwatch();
 
-            while(max-- > 0 && M.ms() - p.getMilliseconds() < limitms)
-            {
+            while (max-- > 0 && M.ms() - p.getMilliseconds() < limitms) {
                 players.v().getRandom().tick();
             }
 

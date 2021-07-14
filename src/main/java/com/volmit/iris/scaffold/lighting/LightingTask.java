@@ -24,7 +24,7 @@ public interface LightingTask {
 
     /**
      * Gets a descriptive status of the current task being processed
-     * 
+     *
      * @return status
      */
     String getStatus();
@@ -32,7 +32,7 @@ public interface LightingTask {
     /**
      * Gets the timestamp (milliseconds since epoch) when this task was first started.
      * If 0 is returned, then the task wasn't started yet.
-     * 
+     *
      * @return time this task was started
      */
     long getTimeStarted();
@@ -49,7 +49,7 @@ public interface LightingTask {
 
     /**
      * Whether this task can be saved to PendingLight.dat
-     * 
+     *
      * @return True if it can be saved
      */
     boolean canSave();

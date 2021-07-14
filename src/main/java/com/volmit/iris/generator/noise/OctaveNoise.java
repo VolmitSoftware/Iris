@@ -1,6 +1,5 @@
 package com.volmit.iris.generator.noise;
 
-public interface OctaveNoise 
-{
-	public void setOctaves(int o);
+public interface OctaveNoise {
+    void setOctaves(int o);
 }

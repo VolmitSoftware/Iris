@@ -1,14 +1,8 @@
 package com.volmit.iris.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.cache.AtomicCache;
-import com.volmit.iris.util.ArrayType;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.DontObfuscate;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RegistryListLoot;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -43,18 +37,15 @@ public class IrisObjectLoot {
 
     private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();
 
-    public KList<BlockData> getFilter(IrisDataManager rdata)
-    {
+    public KList<BlockData> getFilter(IrisDataManager rdata) {
         return filterCache.aquire(() ->
         {
             KList<BlockData> b = new KList<>();
 
-            for(IrisBlockData i : filter)
-            {
+            for (IrisBlockData i : filter) {
                 BlockData bx = i.getBlockData(rdata);
 
-                if(bx != null)
-                {
+                if (bx != null) {
                     b.add(bx);
                 }
             }

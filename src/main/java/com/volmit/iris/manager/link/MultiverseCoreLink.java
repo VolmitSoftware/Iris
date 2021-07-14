@@ -11,151 +11,114 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-public class MultiverseCoreLink
-{
-	private final KMap<String, String> worldNameTypes = new KMap<>();
+public class MultiverseCoreLink {
+    private final KMap<String, String> worldNameTypes = new KMap<>();
 
-	public MultiverseCoreLink()
-	{
+    public MultiverseCoreLink() {
 
-	}
+    }
 
-	public boolean addWorld(String worldName, IrisDimension dim, String seed)
-	{
-		if(!supported())
-		{
-			return false;
-		}
+    public boolean addWorld(String worldName, IrisDimension dim, String seed) {
+        if (!supported()) {
+            return false;
+        }
 
-		try
-		{
-			Plugin p = getMultiverse();
-			Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-			Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
+        try {
+            Plugin p = getMultiverse();
+            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
+            Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
 
-					String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
-			boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, false, "Iris", false);
-			saveConfig();
-			return b;
-		}
+                    String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
+            boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, false, "Iris", false);
+            saveConfig();
+            return b;
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
 
-		catch(Throwable e)
-		{
-			e.printStackTrace();
-		}
+        return false;
+    }
 
-		return false;
-	}
+    @SuppressWarnings("unchecked")
+    public Map<String, ?> getList() {
+        try {
+            Plugin p = getMultiverse();
+            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
+            Field f = mvWorldManager.getClass().getDeclaredField("worldsFromTheConfig");
+            f.setAccessible(true);
+            return (Map<String, ?>) f.get(mvWorldManager);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
 
-	@SuppressWarnings("unchecked")
-	public Map<String, ?> getList()
-	{
-		try
-		{
-			Plugin p = getMultiverse();
-			Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-			Field f = mvWorldManager.getClass().getDeclaredField("worldsFromTheConfig");
-			f.setAccessible(true);
-			return (Map<String, ?>) f.get(mvWorldManager);
-		}
+        return null;
+    }
 
-		catch(Throwable e)
-		{
-			e.printStackTrace();
-		}
+    public void removeFromConfig(World world) {
+        if (!supported()) {
+            return;
+        }
 
-		return null;
-	}
+        getList().remove(world.getName());
+        saveConfig();
+    }
 
-	public void removeFromConfig(World world)
-	{
-		if(!supported())
-		{
-			return;
-		}
+    public void removeFromConfig(String world) {
+        if (!supported()) {
+            return;
+        }
 
-		getList().remove(world.getName());
-		saveConfig();
-	}
+        getList().remove(world);
+        saveConfig();
+    }
 
-	public void removeFromConfig(String world)
-	{
-		if(!supported())
-		{
-			return;
-		}
+    public void saveConfig() {
+        try {
+            Plugin p = getMultiverse();
+            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
+            mvWorldManager.getClass().getDeclaredMethod("saveWorldsConfig").invoke(mvWorldManager);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
 
-		getList().remove(world);
-		saveConfig();
-	}
+    public void assignWorldType(String worldName, String type) {
+        worldNameTypes.put(worldName, type);
+    }
 
-	public void saveConfig()
-	{
-		try
-		{
-			Plugin p = getMultiverse();
-			Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-			mvWorldManager.getClass().getDeclaredMethod("saveWorldsConfig").invoke(mvWorldManager);
-		}
+    public String getWorldNameType(String worldName, String defaultType) {
+        try {
+            String t = worldNameTypes.get(worldName);
+            return t == null ? defaultType : t;
+        } catch (Throwable e) {
+            return defaultType;
+        }
+    }
 
-		catch(Throwable e)
-		{
-			e.printStackTrace();
-		}
-	}
+    public boolean supported() {
+        return getMultiverse() != null;
+    }
 
-	public void assignWorldType(String worldName, String type)
-	{
-		worldNameTypes.put(worldName, type);
-	}
+    public Plugin getMultiverse() {
+        Plugin p = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
 
-	public String getWorldNameType(String worldName, String defaultType)
-	{
-		try
-		{
-			String t = worldNameTypes.get(worldName);
-			return t == null ? defaultType : t;
-		}
+        return p;
+    }
 
-		catch(Throwable e)
-		{
-			return defaultType;
-		}
-	}
+    public String envName(World.Environment environment) {
+        if (environment == null) {
+            return "normal";
+        }
 
-	public boolean supported()
-	{
-		return getMultiverse() != null;
-	}
+        switch (environment) {
+            case NORMAL:
+                return "normal";
+            case NETHER:
+                return "nether";
+            case THE_END:
+                return "end";
+        }
 
-	public Plugin getMultiverse()
-	{
-		Plugin p = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
-
-		if(p == null)
-		{
-			return null;
-		}
-
-		return p;
-	}
-
-	public String envName(World.Environment environment) {
-		if(environment == null)
-		{
-			return "normal";
-		}
-
-		switch(environment)
-		{
-			case NORMAL:
-				return "normal";
-			case NETHER:
-				return "nether";
-			case THE_END:
-				return "end";
-		}
-
-		return environment.toString().toLowerCase();
-	}
+        return environment.toString().toLowerCase();
+    }
 }

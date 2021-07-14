@@ -73,13 +73,12 @@ public class IrisFeature {
 
 
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
-    public double getActualRadius()
-    {
-        return actualRadius.aquire(() -> IrisInterpolation.getRealRadius(getInterpolator(),getInterpolationRadius()));
+
+    public double getActualRadius() {
+        return actualRadius.aquire(() -> IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius()));
     }
 
-    public static IrisFeature read(DataInputStream s) throws IOException
-    {
+    public static IrisFeature read(DataInputStream s) throws IOException {
         return new Gson().fromJson(s.readUTF(), IrisFeature.class);
     }
 

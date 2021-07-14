@@ -9,11 +9,11 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
 
 public interface LootProvider {
-    public void scramble(Inventory inventory, RNG rng);
+    void scramble(Inventory inventory, RNG rng);
 
-    public void injectTables(KList<IrisLootTable> list, IrisLootReference r);
+    void injectTables(KList<IrisLootTable> list, IrisLootReference r);
 
-    public KList<IrisLootTable> getLootTables(RNG rng, Block b);
+    KList<IrisLootTable> getLootTables(RNG rng, Block b);
 
-    public void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf);
+    void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf);
 }

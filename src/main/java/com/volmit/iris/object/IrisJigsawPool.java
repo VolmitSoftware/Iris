@@ -14,12 +14,11 @@ import lombok.experimental.Accessors;
 @Desc("Represents a structure piece pool")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisJigsawPool extends IrisRegistrant
-{
-	@RegistryListJigsawPiece
-	@Required
-	@DontObfuscate
-	@ArrayType(min = 1,type = String.class)
-	@Desc("A list of structure piece pools")
-	private KList<String> pieces = new KList<>();
+public class IrisJigsawPool extends IrisRegistrant {
+    @RegistryListJigsawPiece
+    @Required
+    @DontObfuscate
+    @ArrayType(min = 1, type = String.class)
+    @Desc("A list of structure piece pools")
+    private KList<String> pieces = new KList<>();
 }

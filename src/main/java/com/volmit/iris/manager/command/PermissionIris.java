@@ -3,31 +3,26 @@ package com.volmit.iris.manager.command;
 import com.volmit.iris.util.MortarPermission;
 import com.volmit.iris.util.Permission;
 
-public class PermissionIris extends MortarPermission
-{
-	@Permission
-	public PermissionIrisStudio studio;
-	
-	public PermissionIris()
-	{
-		super();
-	}
+public class PermissionIris extends MortarPermission {
+    @Permission
+    public PermissionIrisStudio studio;
 
-	@Override
-	protected String getNode()
-	{
-		return "iris";
-	}
+    public PermissionIris() {
+        super();
+    }
 
-	@Override
-	public String getDescription()
-	{
-		return "Iris Permissions";
-	}
+    @Override
+    protected String getNode() {
+        return "iris";
+    }
 
-	@Override
-	public boolean isDefault()
-	{
-		return false;
-	}
+    @Override
+    public String getDescription() {
+        return "Iris Permissions";
+    }
+
+    @Override
+    public boolean isDefault() {
+        return false;
+    }
 }

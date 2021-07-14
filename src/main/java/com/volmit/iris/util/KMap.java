@@ -7,419 +7,351 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("hiding")
-public class KMap<K, V> extends ConcurrentHashMap<K, V>
-{
-	private static final long serialVersionUID = 7288942695300448163L;
+public class KMap<K, V> extends ConcurrentHashMap<K, V> {
+    private static final long serialVersionUID = 7288942695300448163L;
 
-	public KMap()
-	{
-		super();
-	}
+    public KMap() {
+        super();
+    }
 
-	public KMap(Map<K, V> gMap)
-	{
-		this();
-		put(gMap);
-	}
+    public KMap(Map<K, V> gMap) {
+        this();
+        put(gMap);
+    }
 
-	/**
-	 * Puts a value into a map-value-list based on the key such that if GMap<K,
-	 * GList<S>> where V is GList<S>
-	 *
-	 * @param <S>
-	 *            the list type in the value type
-	 * @param k
-	 *            the key to look for
-	 * @param vs
-	 *            the values to put into the list of the given key
-	 * @return the same list (builder)
-	 */
-	@SuppressWarnings("unchecked")
-	public <S> KMap<K, V> putValueList(K k, S... vs)
-	{
-		try
-		{
-			KMap<K, KList<S>> s = (KMap<K, KList<S>>) this;
+    /**
+     * Puts a value into a map-value-list based on the key such that if GMap<K,
+     * GList<S>> where V is GList<S>
+     *
+     * @param <S> the list type in the value type
+     * @param k   the key to look for
+     * @param vs  the values to put into the list of the given key
+     * @return the same list (builder)
+     */
+    @SuppressWarnings("unchecked")
+    public <S> KMap<K, V> putValueList(K k, S... vs) {
+        try {
+            KMap<K, KList<S>> s = (KMap<K, KList<S>>) this;
 
-			if(!s.containsKey(k))
-			{
-				s.put(k, new KList<S>());
-			}
+            if (!s.containsKey(k)) {
+                s.put(k, new KList<S>());
+            }
 
-			s.get(k).add(vs);
-		}
+            s.get(k).add(vs);
+        } catch (Throwable e) {
 
-		catch(Throwable e)
-		{
+        }
 
-		}
+        return this;
+    }
 
-		return this;
-	}
+    /**
+     * Returns a sorted list of keys from this map, based on the sorting order of
+     * the values.
+     *
+     * @return the value-sorted key list
+     */
+    public KList<K> sortK() {
+        KList<K> k = new KList<K>();
+        KList<V> v = v();
 
-	/**
-	 * Returns a sorted list of keys from this map, based on the sorting order of
-	 * the values.
-	 *
-	 * @return the value-sorted key list
-	 */
-	public KList<K> sortK()
-	{
-		KList<K> k = new KList<K>();
-		KList<V> v = v();
+        Collections.sort(v, new Comparator<V>() {
+            @Override
+            public int compare(V v, V t1) {
+                return v.toString().compareTo(t1.toString());
+            }
+        });
 
-		Collections.sort(v, new Comparator<V>()
-		{
-			@Override
-			public int compare(V v, V t1)
-			{
-				return v.toString().compareTo(t1.toString());
-			}
-		});
+        for (V i : v) {
+            for (K j : k()) {
+                if (get(j).equals(i)) {
+                    k.add(j);
+                }
+            }
+        }
 
-		for(V i : v)
-		{
-			for(K j : k())
-			{
-				if(get(j).equals(i))
-				{
-					k.add(j);
-				}
-			}
-		}
+        k.dedupe();
+        return k;
+    }
 
-		k.dedupe();
-		return k;
-	}
+    /**
+     * Returns a sorted list of keys from this map, based on the sorting order of
+     * the values. Sorting is based on numerical values
+     *
+     * @return the value-sorted key list
+     */
+    public KList<K> sortKNumber() {
+        KList<K> k = new KList<K>();
+        KList<V> v = v();
 
-	/**
-	 * Returns a sorted list of keys from this map, based on the sorting order of
-	 * the values. Sorting is based on numerical values
-	 *
-	 * @return the value-sorted key list
-	 */
-	public KList<K> sortKNumber()
-	{
-		KList<K> k = new KList<K>();
-		KList<V> v = v();
+        Collections.sort(v, new Comparator<V>() {
+            @Override
+            public int compare(V v, V t1) {
+                Number n1 = (Number) v;
+                Number n2 = (Number) t1;
 
-		Collections.sort(v, new Comparator<V>()
-		{
-			@Override
-			public int compare(V v, V t1)
-			{
-				Number n1 = (Number) v;
-				Number n2 = (Number) t1;
+                return (int) ((n1.doubleValue() - n2.doubleValue()) * 1000);
+            }
+        });
 
-				return (int) ((n1.doubleValue() - n2.doubleValue()) * 1000);
-			}
-		});
+        for (V i : v) {
+            for (K j : k()) {
+                if (get(j).equals(i)) {
+                    k.add(j);
+                }
+            }
+        }
 
-		for(V i : v)
-		{
-			for(K j : k())
-			{
-				if(get(j).equals(i))
-				{
-					k.add(j);
-				}
-			}
-		}
+        k.dedupe();
+        return k;
+    }
 
-		k.dedupe();
-		return k;
-	}
+    /**
+     * Put another map's values into this map
+     *
+     * @param m the map to insert
+     * @return this map (builder)
+     */
+    public KMap<K, V> put(Map<K, V> m) {
+        putAll(m);
+        return this;
+    }
 
-	/**
-	 * Put another map's values into this map
-	 *
-	 * @param m
-	 *            the map to insert
-	 * @return this map (builder)
-	 */
-	public KMap<K, V> put(Map<K, V> m)
-	{
-		putAll(m);
-		return this;
-	}
+    /**
+     * Return a copy of this map
+     *
+     * @return the copied map
+     */
+    public KMap<K, V> copy() {
+        return new KMap<K, V>(this);
+    }
 
-	/**
-	 * Return a copy of this map
-	 *
-	 * @return the copied map
-	 */
-	public KMap<K, V> copy()
-	{
-		return new KMap<K, V>(this);
-	}
+    /**
+     * Loop through each keyvalue set (copy of it) with the map parameter
+     *
+     * @param f the function
+     * @return the same gmap
+     */
+    public KMap<K, V> rewrite(Consumer3<K, V, KMap<K, V>> f) {
+        KMap<K, V> m = copy();
 
-	/**
-	 * Loop through each keyvalue set (copy of it) with the map parameter
-	 *
-	 * @param f
-	 *            the function
-	 * @return the same gmap
-	 */
-	public KMap<K, V> rewrite(Consumer3<K, V, KMap<K, V>> f)
-	{
-		KMap<K, V> m = copy();
+        for (K i : m.k()) {
+            f.accept(i, get(i), this);
+        }
 
-		for(K i : m.k())
-		{
-			f.accept(i, get(i), this);
-		}
+        return this;
+    }
 
-		return this;
-	}
+    /**
+     * Loop through each keyvalue set (copy of it)
+     *
+     * @param f the function
+     * @return the same gmap
+     */
+    public KMap<K, V> each(Consumer2<K, V> f) {
+        for (K i : k()) {
+            f.accept(i, get(i));
+        }
 
-	/**
-	 * Loop through each keyvalue set (copy of it)
-	 *
-	 * @param f
-	 *            the function
-	 * @return the same gmap
-	 */
-	public KMap<K, V> each(Consumer2<K, V> f)
-	{
-		for(K i : k())
-		{
-			f.accept(i, get(i));
-		}
+        return this;
+    }
 
-		return this;
-	}
+    /**
+     * Flip the hashmap and flatten the value list even if there are multiple keys
+     *
+     * @return the flipped and flattened hashmap
+     */
+    public KMap<V, K> flipFlatten() {
+        KMap<V, KList<K>> f = flip();
+        KMap<V, K> m = new KMap<>();
 
-	/**
-	 * Flip the hashmap and flatten the value list even if there are multiple keys
-	 *
-	 * @return the flipped and flattened hashmap
-	 */
-	public KMap<V, K> flipFlatten()
-	{
-		KMap<V, KList<K>> f = flip();
-		KMap<V, K> m = new KMap<>();
+        for (V i : f.k()) {
+            m.putNonNull(i, m.isEmpty() ? null : m.get(0));
+        }
 
-		for(V i : f.k())
-		{
-			m.putNonNull(i, m.isEmpty() ? null : m.get(0));
-		}
+        return m;
+    }
 
-		return m;
-	}
+    /**
+     * Flip the hashmap so keys are now list-keys in the value position
+     *
+     * @return the flipped hashmap
+     */
+    public KMap<V, KList<K>> flip() {
+        KMap<V, KList<K>> flipped = new KMap<V, KList<K>>();
 
-	/**
-	 * Flip the hashmap so keys are now list-keys in the value position
-	 *
-	 * @return the flipped hashmap
-	 */
-	public KMap<V, KList<K>> flip()
-	{
-		KMap<V, KList<K>> flipped = new KMap<V, KList<K>>();
+        for (K i : keySet()) {
+            if (i == null) {
+                continue;
+            }
 
-		for(K i : keySet())
-		{
-			if(i == null)
-			{
-				continue;
-			}
+            if (!flipped.containsKey(get(i))) {
+                flipped.put(get(i), new KList<K>());
+            }
 
-			if(!flipped.containsKey(get(i)))
-			{
-				flipped.put(get(i), new KList<K>());
-			}
+            flipped.get(get(i)).add(i);
+        }
 
-			flipped.get(get(i)).add(i);
-		}
+        return flipped;
+    }
 
-		return flipped;
-	}
+    /**
+     * Sort values based on the keys sorting order
+     *
+     * @return the values (sorted)
+     */
+    public KList<V> sortV() {
+        KList<V> v = new KList<V>();
+        KList<K> k = k();
 
-	/**
-	 * Sort values based on the keys sorting order
-	 *
-	 * @return the values (sorted)
-	 */
-	public KList<V> sortV()
-	{
-		KList<V> v = new KList<V>();
-		KList<K> k = k();
+        Collections.sort(k, new Comparator<K>() {
+            @Override
+            public int compare(K v, K t1) {
+                return v.toString().compareTo(t1.toString());
+            }
+        });
 
-		Collections.sort(k, new Comparator<K>()
-		{
-			@Override
-			public int compare(K v, K t1)
-			{
-				return v.toString().compareTo(t1.toString());
-			}
-		});
+        for (K i : k) {
+            for (V j : v()) {
+                if (get(i).equals(j)) {
+                    v.add(j);
+                }
+            }
+        }
 
-		for(K i : k)
-		{
-			for(V j : v())
-			{
-				if(get(i).equals(j))
-				{
-					v.add(j);
-				}
-			}
-		}
+        v.dedupe();
+        return v;
+    }
 
-		v.dedupe();
-		return v;
-	}
+    public KList<V> sortVNoDedupe() {
+        KList<V> v = new KList<V>();
+        KList<K> k = k();
 
-	public KList<V> sortVNoDedupe()
-	{
-		KList<V> v = new KList<V>();
-		KList<K> k = k();
+        Collections.sort(k, new Comparator<K>() {
+            @Override
+            public int compare(K v, K t1) {
+                return v.toString().compareTo(t1.toString());
+            }
+        });
 
-		Collections.sort(k, new Comparator<K>()
-		{
-			@Override
-			public int compare(K v, K t1)
-			{
-				return v.toString().compareTo(t1.toString());
-			}
-		});
+        for (K i : k) {
+            for (V j : v()) {
+                if (get(i).equals(j)) {
+                    v.add(j);
+                }
+            }
+        }
 
-		for(K i : k)
-		{
-			for(V j : v())
-			{
-				if(get(i).equals(j))
-				{
-					v.add(j);
-				}
-			}
-		}
+        return v;
+    }
 
-		return v;
-	}
+    /**
+     * Get a copy of this maps keys
+     *
+     * @return the keys
+     */
+    public KList<K> k() {
+        KList<K> k = new KList<K>();
+        Enumeration<K> kk = keys();
 
-	/**
-	 * Get a copy of this maps keys
-	 *
-	 * @return the keys
-	 */
-	public KList<K> k()
-	{
-		KList<K> k = new KList<K>();
-		Enumeration<K> kk = keys();
+        while (kk.hasMoreElements()) {
+            K kkk = kk.nextElement();
+            k.add(kkk);
+        }
 
-		while(kk.hasMoreElements())
-		{
-			K kkk = kk.nextElement();
-			k.add(kkk);
-		}
+        return k;
+    }
 
-		return k;
-	}
+    /**
+     * Get a copy of this maps values
+     *
+     * @return the values
+     */
+    public KList<V> v() {
+        return new KList<V>(values());
+    }
 
-	/**
-	 * Get a copy of this maps values
-	 *
-	 * @return the values
-	 */
-	public KList<V> v()
-	{
-		return new KList<V>(values());
-	}
+    /**
+     * Still works as it normally should except it returns itself (builder)
+     *
+     * @param key   the key
+     * @param value the value (single only supported)
+     * @return
+     */
+    public KMap<K, V> qput(K key, V value) {
+        super.put(key, value);
+        return this;
+    }
 
-	/**
-	 * Still works as it normally should except it returns itself (builder)
-	 *
-	 * @param key
-	 *            the key
-	 * @param value
-	 *            the value (single only supported)
-	 * @return
-	 */
-	public KMap<K, V> qput(K key, V value)
-	{
-		super.put(key, value);
-		return this;
-	}
+    /**
+     * Works just like put, except it wont put anything unless the key and value are
+     * nonnull
+     *
+     * @param key   the nonnull key
+     * @param value the nonnull value
+     * @return the same map
+     */
+    public KMap<K, V> putNonNull(K key, V value) {
+        if (key != null || value != null) {
+            put(key, value);
+        }
 
-	/**
-	 * Works just like put, except it wont put anything unless the key and value are
-	 * nonnull
-	 *
-	 * @param key
-	 *            the nonnull key
-	 * @param value
-	 *            the nonnull value
-	 * @return the same map
-	 */
-	public KMap<K, V> putNonNull(K key, V value)
-	{
-		if(key != null || value != null)
-		{
-			put(key, value);
-		}
+        return this;
+    }
 
-		return this;
-	}
+    public V putThen(K key, V valueIfKeyNotPresent) {
+        if (!containsKey(key)) {
+            put(key, valueIfKeyNotPresent);
+        }
 
-	public V putThen(K key, V valueIfKeyNotPresent)
-	{
-		if(!containsKey(key))
-		{
-			put(key, valueIfKeyNotPresent);
-		}
+        return get(key);
+    }
 
-		return get(key);
-	}
+    /**
+     * Clear this map and return it
+     *
+     * @return the cleared map
+     */
+    public KMap<K, V> qclear() {
+        super.clear();
+        return this;
+    }
 
-	/**
-	 * Clear this map and return it
-	 *
-	 * @return the cleared map
-	 */
-	public KMap<K, V> qclear()
-	{
-		super.clear();
-		return this;
-	}
+    /**
+     * Convert this map to keypairs
+     *
+     * @return the keypair list
+     */
+    public KList<KeyPair<K, V>> keypair() {
+        KList<KeyPair<K, V>> g = new KList<>();
+        each((k, v) -> g.add(new KeyPair<K, V>(k, v)));
+        return g;
+    }
 
-	/**
-	 * Convert this map to keypairs
-	 *
-	 * @return the keypair list
-	 */
-	public KList<KeyPair<K, V>> keypair()
-	{
-		KList<KeyPair<K, V>> g = new KList<>();
-		each((k, v) -> g.add(new KeyPair<K, V>(k, v)));
-		return g;
-	}
+    /**
+     * Create a keypair queue
+     *
+     * @return the queue
+     */
+    public Queue<KeyPair<K, V>> enqueue() {
+        return Queue.create(keypair());
+    }
 
-	/**
-	 * Create a keypair queue
-	 *
-	 * @return the queue
-	 */
-	public Queue<KeyPair<K, V>> enqueue()
-	{
-		return Queue.create(keypair());
-	}
+    /**
+     * Create a key queue
+     *
+     * @return the queue
+     */
+    public Queue<K> enqueueKeys() {
+        return Queue.create(k());
+    }
 
-	/**
-	 * Create a key queue
-	 *
-	 * @return the queue
-	 */
-	public Queue<K> enqueueKeys()
-	{
-		return Queue.create(k());
-	}
-
-	/**
-	 * Create a value queue
-	 *
-	 * @return the queue
-	 */
-	public Queue<V> enqueueValues()
-	{
-		return Queue.create(v());
-	}
+    /**
+     * Create a value queue
+     *
+     * @return the queue
+     */
+    public Queue<V> enqueueValues() {
+        return Queue.create(v());
+    }
 }

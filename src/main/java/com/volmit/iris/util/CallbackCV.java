@@ -1,6 +1,5 @@
 package com.volmit.iris.util;
 
-public interface CallbackCV<T>
-{
-	public void run(T t);
+public interface CallbackCV<T> {
+    void run(T t);
 }

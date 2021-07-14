@@ -1,12 +1,11 @@
 package com.volmit.iris.scaffold.lighting;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.bukkit.World;
-
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import org.bukkit.World;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Shortly remembers the forced chunks it has kept loaded from a previous operation.
@@ -67,8 +66,8 @@ public class LightingForcedChunkCache {
             if (o instanceof Key) {
                 Key other = (Key) o;
                 return other.x == this.x &&
-                       other.z == this.z &&
-                       other.world == this.world;
+                        other.z == this.z &&
+                        other.world == this.world;
             } else {
                 return false;
             }

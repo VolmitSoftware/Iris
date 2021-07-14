@@ -13,6 +13,6 @@ public class BlockFaceSetSection {
     }
 
     public BlockFaceSet get(int x, int y, int z) {
-        return BlockFaceSet.byMask((int) _maskData[(y << 8) | (z << 4) | x]);
+        return BlockFaceSet.byMask(_maskData[(y << 8) | (z << 4) | x]);
     }
 }

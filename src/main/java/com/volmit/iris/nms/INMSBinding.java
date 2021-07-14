@@ -5,30 +5,28 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 
-public interface INMSBinding
-{
-	public Object getBiomeBaseFromId(int id);
+public interface INMSBinding {
+    Object getBiomeBaseFromId(int id);
 
-	public int getTrueBiomeBaseId(Object biomeBase);
+    int getTrueBiomeBaseId(Object biomeBase);
 
-	public Object getTrueBiomeBase(Location location);
+    Object getTrueBiomeBase(Location location);
 
-	public String getTrueBiomeBaseKey(Location location);
+    String getTrueBiomeBaseKey(Location location);
 
-	public Object getCustomBiomeBaseFor(String mckey);
+    Object getCustomBiomeBaseFor(String mckey);
 
-	public String getKeyForBiomeBase(Object biomeBase);
+    String getKeyForBiomeBase(Object biomeBase);
 
-	public Object getBiomeBase(World world, Biome biome);
+    Object getBiomeBase(World world, Biome biome);
 
-	public Object getBiomeBase(Object registry, Biome biome);
+    Object getBiomeBase(Object registry, Biome biome);
 
-	public boolean isBukkit();
+    boolean isBukkit();
 
     int getBiomeId(Biome biome);
 
-    default World createWorld(WorldCreator c)
-	{
-		return c.createWorld();
-	}
+    default World createWorld(WorldCreator c) {
+        return c.createWorld();
+    }
 }

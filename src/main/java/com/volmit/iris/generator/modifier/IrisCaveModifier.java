@@ -12,8 +12,7 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.function.Function;
 
-public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
-{
+public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
     public static final BlockData CAVE_AIR = B.get("CAVE_AIR");
     public static final BlockData AIR = B.get("AIR");
     private static final KList<CaveResult> EMPTY = new KList<>();
@@ -28,31 +27,24 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
 
     @Override
     public void onModify(int x, int z, Hunk<BlockData> a) {
-        if(!getDimension().isCaves())
-        {
+        if (!getDimension().isCaves()) {
             return;
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        for(int i = 0; i < a.getWidth(); i++)
-        {
-            for(int j = 0; j < a.getDepth(); j++)
-            {
+        for (int i = 0; i < a.getWidth(); i++) {
+            for (int j = 0; j < a.getDepth(); j++) {
                 KList<CaveResult> caves = genCaves(x + i, z + j, i, j, a);
-                int he = (int) Math.round(getComplex().getHeightStream().get(x+i, z+j));
-                if(caves != null && caves.isNotEmpty())
-                {
+                int he = (int) Math.round(getComplex().getHeightStream().get(x + i, z + j));
+                if (caves != null && caves.isNotEmpty()) {
                     IrisBiome cave = getComplex().getCaveBiomeStream().get(x + i, z + j);
 
-                    if(cave == null)
-                    {
+                    if (cave == null) {
                         continue;
                     }
 
-                    for(CaveResult cl : caves)
-                    {
-                        if(cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0)
-                        {
+                    for (CaveResult cl : caves) {
+                        if (cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0) {
                             continue;
                         }
 
@@ -61,13 +53,11 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                                 he - cl.getCeiling(),
                                 he - cl.getCeiling(), getData(), getComplex());
 
-                        for(int g = 0; g < floor.size(); g++)
-                        {
+                        for (int g = 0; g < floor.size(); g++) {
                             a.set(i, cl.getFloor() - g, j, floor.get(g));
                         }
 
-                        for(int g = ceiling.size() - 1; g > 0; g--)
-                        {
+                        for (int g = ceiling.size() - 1; g > 0; g--) {
                             a.set(i, cl.getCeiling() + g, j, ceiling.get(g));
                         }
                     }
@@ -78,10 +68,8 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 
-    public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data)
-    {
-        if(!getDimension().isCaves())
-        {
+    public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data) {
+        if (!getDimension().isCaves()) {
             return EMPTY;
         }
 
@@ -90,8 +78,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         gg.setCellularReturnType(FastNoiseDouble.CellularReturnType.Distance2Sub);
         gg.setCellularDistanceFunction(FastNoiseDouble.CellularDistanceFunction.Natural);
 
-        for(int i = 0; i < getDimension().getCaveLayers().size(); i++)
-        {
+        for (int i = 0; i < getDimension().getCaveLayers().size(); i++) {
             IrisCaveLayer layer = getDimension().getCaveLayers().get(i);
             generateCave(result, wxx, wzz, x, z, data, layer, i);
         }
@@ -99,23 +86,17 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         return result;
     }
 
-    public void generateCave(KList<CaveResult> result, double wxx, double wzz, int x, int z, Hunk<BlockData> data, IrisCaveLayer layer, int seed)
-    {
+    public void generateCave(KList<CaveResult> result, double wxx, double wzz, int x, int z, Hunk<BlockData> data, IrisCaveLayer layer, int seed) {
         double scale = layer.getCaveZoom();
         Function<Integer, BlockData> fluid = (height) ->
         {
-            if(!layer.getFluid().hasFluid(getData()))
-            {
+            if (!layer.getFluid().hasFluid(getData())) {
                 return CAVE_AIR;
             }
 
-            if(layer.getFluid().isInverseHeight() && height >= layer.getFluid().getFluidHeight())
-            {
+            if (layer.getFluid().isInverseHeight() && height >= layer.getFluid().getFluidHeight()) {
                 return layer.getFluid().getFluid(getData());
-            }
-
-            else if(!layer.getFluid().isInverseHeight() && height <= layer.getFluid().getFluidHeight())
-            {
+            } else if (!layer.getFluid().isInverseHeight() && height <= layer.getFluid().getFluidHeight()) {
                 return layer.getFluid().getFluid(getData());
             }
 
@@ -130,8 +111,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         double distanceTake = 0.0022 * baseWidth;
         double caveHeightNoise = layer.getVerticalSlope().get(rng, wxx, wzz);
 
-        if(caveHeightNoise > 259 || caveHeightNoise < -1)
-        {
+        if (caveHeightNoise > 259 || caveHeightNoise < -1) {
             return;
         }
 
@@ -139,62 +119,48 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         int ceiling = -256;
         int floor = 512;
 
-        for(double tunnelHeight = 1; tunnelHeight <= baseWidth; tunnelHeight++)
-        {
+        for (double tunnelHeight = 1; tunnelHeight <= baseWidth; tunnelHeight++) {
             double distance = (gg.GetCellular(((wx + (10000 * seed)) / layer.getCaveZoom()), ((wz - (10000 * seed)) / layer.getCaveZoom())) + 1D) / 2D;
-            if(distance < distanceCheck - (tunnelHeight * distanceTake))
-            {
+            if (distance < distanceCheck - (tunnelHeight * distanceTake)) {
                 int caveHeight = (int) Math.round(caveHeightNoise);
                 int pu = (int) (caveHeight + tunnelHeight);
                 int pd = (int) (caveHeight - tunnelHeight);
 
-                if(pd > surface + 1)
-                {
+                if (pd > surface + 1) {
                     continue;
                 }
 
-                if(!layer.isCanBreakSurface() && pu > surface - 3)
-                {
+                if (!layer.isCanBreakSurface() && pu > surface - 3) {
                     continue;
                 }
 
-                if((pu > 255 && pd > 255) || (pu < 0 && pd < 0))
-                {
+                if ((pu > 255 && pd > 255) || (pu < 0 && pd < 0)) {
                     continue;
                 }
 
-                if(data == null)
-                {
+                if (data == null) {
                     ceiling = Math.max(pu, ceiling);
                     floor = Math.min(pu, floor);
                     ceiling = Math.max(pd, ceiling);
                     floor = Math.min(pd, floor);
 
-                    if(tunnelHeight == 1)
-                    {
+                    if (tunnelHeight == 1) {
                         ceiling = Math.max(caveHeight, ceiling);
                         floor = Math.min(caveHeight, floor);
                     }
-                }
-
-                else
-                {
-                    if(dig(x, pu, z, data, fluid))
-                    {
+                } else {
+                    if (dig(x, pu, z, data, fluid)) {
                         ceiling = Math.max(pu, ceiling);
                         floor = Math.min(pu, floor);
                     }
 
-                    if(dig(x, pd, z, data, fluid))
-                    {
+                    if (dig(x, pd, z, data, fluid)) {
                         ceiling = Math.max(pd, ceiling);
                         floor = Math.min(pd, floor);
                     }
 
-                    if(tunnelHeight == 1)
-                    {
-                        if(dig(x, caveHeight, z, data, fluid))
-                        {
+                    if (tunnelHeight == 1) {
+                        if (dig(x, caveHeight, z, data, fluid)) {
                             ceiling = Math.max(caveHeight, ceiling);
                             floor = Math.min(caveHeight, floor);
                         }
@@ -203,27 +169,23 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
             }
         }
 
-        if(floor >= 0 && ceiling <= 255)
-        {
+        if (floor >= 0 && ceiling <= 255) {
             result.add(new CaveResult(floor, ceiling));
         }
     }
 
-    private Material mat(int x, int y, int z, Hunk<BlockData> data)
-    {
-        BlockData d = data.get(Math.max(x, 0),Math.max(y, 0),Math.max(z,0));
+    private Material mat(int x, int y, int z, Hunk<BlockData> data) {
+        BlockData d = data.get(Math.max(x, 0), Math.max(y, 0), Math.max(z, 0));
 
-        if(d != null)
-        {
+        if (d != null) {
             return d.getMaterial();
         }
 
         return Material.CAVE_AIR;
     }
 
-    public boolean dig(int x, int y, int z, Hunk<BlockData> data, Function<Integer, BlockData> caveFluid)
-    {
-        Material a = mat(x,y,z, data);
+    public boolean dig(int x, int y, int z, Hunk<BlockData> data, Function<Integer, BlockData> caveFluid) {
+        Material a = mat(x, y, z, data);
         Material c = mat(x, y + 1, z, data);
         Material d = mat(x, y + 2, z, data);
         Material e = mat(x, y + 3, z, data);
@@ -231,8 +193,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         BlockData b = caveFluid.apply(y);
         BlockData b2 = caveFluid.apply(y + 1);
 
-        if(can(a) && canAir(c, b) && canAir(f, b) && canWater(d) && canWater(e))
-        {
+        if (can(a) && canAir(c, b) && canAir(f, b) && canWater(d) && canWater(e)) {
             data.set(x, y, z, b);
             data.set(x, y + 1, z, b2);
             return true;
@@ -241,8 +202,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
         return false;
     }
 
-    public boolean canAir(Material m, BlockData caveFluid)
-    {
+    public boolean canAir(Material m, BlockData caveFluid) {
         return (B.isSolid(m) ||
                 (B.isDecorant(m.createBlockData())) || m.equals(Material.AIR)
                 || m.equals(caveFluid.getMaterial()) ||
@@ -250,13 +210,11 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData>
                 && !m.equals(Material.BEDROCK);
     }
 
-    public boolean canWater(Material m)
-    {
+    public boolean canWater(Material m) {
         return !m.equals(Material.WATER);
     }
 
-    public boolean can(Material m)
-    {
+    public boolean can(Material m) {
         return B.isSolid(m) && !m.equals(Material.BEDROCK);
     }
 }

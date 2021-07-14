@@ -52,8 +52,7 @@ public class IrisEngineFramework implements EngineFramework {
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
 
-    public IrisEngineFramework(Engine engine)
-    {
+    public IrisEngineFramework(Engine engine) {
         this.engine = engine;
         this.complex = new IrisComplex(getEngine());
         this.engineParallax = new IrisEngineParallax(getEngine());
@@ -70,27 +69,21 @@ public class IrisEngineFramework implements EngineFramework {
 
     @Override
     public synchronized void recycle() {
-        if(!cleanLatch.flip())
-        {
+        if (!cleanLatch.flip()) {
             return;
         }
 
-        if (cleaning.get())
-        {
+        if (cleaning.get()) {
             cleanLatch.flipDown();
             return;
         }
 
         cleaning.set(true);
 
-        try
-        {
+        try {
             getEngine().getParallax().cleanup();
             getData().getObjectLoader().clean();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("Cleanup failed!");
             e.printStackTrace();
         }
@@ -99,8 +92,7 @@ public class IrisEngineFramework implements EngineFramework {
     }
 
     @Override
-    public void close()
-    {
+    public void close() {
         getEngineParallax().close();
         getTerrainActuator().close();
         getDecorantActuator().close();

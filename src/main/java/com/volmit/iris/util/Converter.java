@@ -2,11 +2,10 @@ package com.volmit.iris.util;
 
 import java.io.File;
 
-public interface Converter
-{
-	public String getInExtension();
+public interface Converter {
+    String getInExtension();
 
-	public String getOutExtension();
+    String getOutExtension();
 
-	public void convert(File in, File out);
+    void convert(File in, File out);
 }

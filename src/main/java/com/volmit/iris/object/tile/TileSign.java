@@ -1,7 +1,7 @@
 package com.volmit.iris.object.tile;
 
-import lombok.Data;
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
+import lombok.Data;
 import org.bukkit.DyeColor;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;

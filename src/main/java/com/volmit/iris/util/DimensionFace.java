@@ -5,20 +5,19 @@ package com.volmit.iris.util;
  *
  * @author cyberpwn
  */
-public enum DimensionFace
-{
-	/**
-	 * The X dimension (width)
-	 */
-	X,
+public enum DimensionFace {
+    /**
+     * The X dimension (width)
+     */
+    X,
 
-	/**
-	 * The Y dimension (height)
-	 */
-	Y,
+    /**
+     * The Y dimension (height)
+     */
+    Y,
 
-	/**
-	 * The Z dimension (depth)
-	 */
-	Z
+    /**
+     * The Z dimension (depth)
+     */
+    Z
 }

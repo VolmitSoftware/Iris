@@ -1,6 +1,5 @@
 package com.volmit.iris.scaffold;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
@@ -10,8 +9,7 @@ import org.bukkit.WorldCreator;
 
 import java.io.File;
 
-public class IrisWorldCreator
-{
+public class IrisWorldCreator {
     private String name;
     private boolean studio = false;
     private String dimensionName = null;
@@ -19,57 +17,48 @@ public class IrisWorldCreator
     private int maxHeight = 256;
     private int minHeight = 0;
 
-    public IrisWorldCreator()
-    {
+    public IrisWorldCreator() {
 
     }
 
-    public IrisWorldCreator dimension(String loadKey)
-    {
+    public IrisWorldCreator dimension(String loadKey) {
         this.dimensionName = loadKey;
         return this;
     }
 
-    public IrisWorldCreator height(int maxHeight)
-    {
+    public IrisWorldCreator height(int maxHeight) {
         this.maxHeight = maxHeight;
         this.minHeight = 0;
         return this;
     }
 
-    public IrisWorldCreator height(int minHeight, int maxHeight)
-    {
+    public IrisWorldCreator height(int minHeight, int maxHeight) {
         this.maxHeight = maxHeight;
         this.minHeight = minHeight;
         return this;
     }
 
-    public IrisWorldCreator name(String name)
-    {
+    public IrisWorldCreator name(String name) {
         this.name = name;
         return this;
     }
 
-    public IrisWorldCreator seed(long seed)
-    {
+    public IrisWorldCreator seed(long seed) {
         this.seed = seed;
         return this;
     }
 
-    public IrisWorldCreator studioMode()
-    {
+    public IrisWorldCreator studioMode() {
         this.studio = true;
         return this;
     }
 
-    public IrisWorldCreator productionMode()
-    {
+    public IrisWorldCreator productionMode() {
         this.studio = false;
         return this;
     }
 
-    public WorldCreator create()
-    {
+    public WorldCreator create() {
         EngineCompositeGenerator g = new EngineCompositeGenerator(dimensionName, !studio);
         g.initialize(new FakeWorld(name, minHeight, maxHeight, seed, new File(name), findEnvironment()));
 
@@ -81,13 +70,9 @@ public class IrisWorldCreator
 
     private World.Environment findEnvironment() {
         IrisDimension dim = IrisDataManager.loadAnyDimension(dimensionName);
-        if(dim == null || dim.getEnvironment() == null)
-        {
+        if (dim == null || dim.getEnvironment() == null) {
             return World.Environment.NORMAL;
-        }
-
-        else
-        {
+        } else {
             return dim.getEnvironment();
         }
     }

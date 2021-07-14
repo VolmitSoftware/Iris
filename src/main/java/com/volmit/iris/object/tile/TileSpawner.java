@@ -1,8 +1,8 @@
 package com.volmit.iris.object.tile;
 
-import lombok.Data;
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
 import com.volmit.iris.scaffold.data.nbt.tag.ListTag;
+import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.block.data.BlockData;

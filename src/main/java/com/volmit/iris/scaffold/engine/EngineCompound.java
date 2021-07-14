@@ -19,52 +19,46 @@ import org.bukkit.generator.BlockPopulator;
 
 import java.util.List;
 
-public interface EngineCompound extends Listener, Hotloadable, DataProvider
-{
-    public IrisDimension getRootDimension();
+public interface EngineCompound extends Listener, Hotloadable, DataProvider {
+    IrisDimension getRootDimension();
 
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
+    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
 
-    public World getWorld();
+    World getWorld();
 
-    public List<IrisPosition> getStrongholdPositions();
+    List<IrisPosition> getStrongholdPositions();
 
-    public void printMetrics(CommandSender sender);
+    void printMetrics(CommandSender sender);
 
-    public int getSize();
+    int getSize();
 
-    public default int getHeight()
-    {
+    default int getHeight() {
         // TODO: WARNING HEIGHT
         return 256;
     }
 
-    public Engine getEngine(int index);
+    Engine getEngine(int index);
 
-    public MultiBurst getBurster();
+    MultiBurst getBurster();
 
-    public EngineData getEngineMetadata();
+    EngineData getEngineMetadata();
 
-    public void saveEngineMetadata();
+    void saveEngineMetadata();
 
-    public KList<BlockPopulator> getPopulators();
+    KList<BlockPopulator> getPopulators();
 
-    default Engine getEngineForHeight(int height)
-    {
-        if(getSize() == 1)
-        {
+    default Engine getEngineForHeight(int height) {
+        if (getSize() == 1) {
             return getEngine(0);
         }
 
         int buf = 0;
 
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             Engine e = getEngine(i);
             buf += e.getHeight();
 
-            if(buf >= height)
-            {
+            if (buf >= height) {
                 return e;
             }
         }
@@ -72,101 +66,81 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider
         return getEngine(getSize() - 1);
     }
 
-    public default void recycle()
-    {
-        for(int i = 0; i < getSize(); i++)
-        {
+    default void recycle() {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).recycle();
         }
     }
 
-    public default void save()
-    {
+    default void save() {
         saveEngineMetadata();
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).save();
         }
     }
 
-    public default void saveNOW()
-    {
+    default void saveNOW() {
         saveEngineMetadata();
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).saveNow();
         }
     }
 
-    public IrisDataManager getData(int height);
+    IrisDataManager getData(int height);
 
-    public default IrisDataManager getData()
-    {
+    default IrisDataManager getData() {
         return getData(0);
     }
 
-    public default void close()
-    {
-        for(int i = 0; i < getSize(); i++)
-        {
+    default void close() {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).close();
         }
     }
 
-    public boolean isFailing();
+    boolean isFailing();
 
-    public int getThreadCount();
+    int getThreadCount();
 
-    public boolean isStudio();
+    boolean isStudio();
 
-    public void setStudio(boolean std);
+    void setStudio(boolean std);
 
-    public default void clean()
-    {
-        for(int i = 0; i < getSize(); i++)
-        {
+    default void clean() {
+        for (int i = 0; i < getSize(); i++) {
             getEngine(i).clean();
         }
     }
 
-    public Engine getDefaultEngine();
+    Engine getDefaultEngine();
 
-    public default KList<IrisBiome> getAllBiomes()
-    {
+    default KList<IrisBiome> getAllBiomes() {
         KMap<String, IrisBiome> v = new KMap<>();
 
         IrisDimension dim = getRootDimension();
         dim.getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i));
 
-       try
-       {
-           dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
-       }
+        try {
+            dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
+        } catch (Throwable e) {
 
-       catch(Throwable e)
-       {
-
-       }
+        }
 
         return v.v();
     }
 
     void updateWorld(World world);
 
-    default int getLowestBedrock()
-    {
+    default int getLowestBedrock() {
         int f = Integer.MAX_VALUE;
 
-        for(int i = 0; i < getSize(); i++)
-        {
+        for (int i = 0; i < getSize(); i++) {
             Engine e = getEngine(i);
 
-            if(e.getDimension().isBedrock())
-            {
-                int m = ((IrisTerrainActuator)e.getFramework().getTerrainActuator()).getLastBedrock();
+            if (e.getDimension().isBedrock()) {
+                int m = ((IrisTerrainActuator) e.getFramework().getTerrainActuator()).getLastBedrock();
 
-                if(f > m)
-                {
+                if (f > m) {
                     f = m;
                 }
             }

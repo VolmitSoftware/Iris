@@ -18,8 +18,7 @@ public class EngineMetrics {
     private final AtomicRollingSequence ravine;
     private final AtomicRollingSequence deposit;
 
-    public EngineMetrics(int mem)
-    {
+    public EngineMetrics(int mem) {
         this.total = new AtomicRollingSequence(mem);
         this.terrain = new AtomicRollingSequence(mem);
         this.biome = new AtomicRollingSequence(mem);

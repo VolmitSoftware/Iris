@@ -6,37 +6,35 @@ import com.volmit.iris.scaffold.data.DataProvider;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-public interface EngineFramework extends DataProvider
-{
-    public Engine getEngine();
+public interface EngineFramework extends DataProvider {
+    Engine getEngine();
 
-    public IrisComplex getComplex();
-    
-    public EngineParallaxManager getEngineParallax();
+    IrisComplex getComplex();
+
+    EngineParallaxManager getEngineParallax();
 
     default IrisDataManager getData() {
         return getComplex().getData();
     }
 
-    default void recycle()
-    {
+    default void recycle() {
         getEngine().getParallax().cleanup();
         getData().getObjectLoader().clean();
     }
 
-    public EngineActuator<BlockData> getTerrainActuator();
+    EngineActuator<BlockData> getTerrainActuator();
 
-    public EngineActuator<BlockData> getDecorantActuator();
+    EngineActuator<BlockData> getDecorantActuator();
 
-    public EngineActuator<Biome> getBiomeActuator();
+    EngineActuator<Biome> getBiomeActuator();
 
-    public EngineModifier<BlockData> getCaveModifier();
+    EngineModifier<BlockData> getCaveModifier();
 
-    public EngineModifier<BlockData> getRavineModifier();
+    EngineModifier<BlockData> getRavineModifier();
 
-    public EngineModifier<BlockData> getDepositModifier();
+    EngineModifier<BlockData> getDepositModifier();
 
-    public EngineModifier<BlockData> getPostModifier();
+    EngineModifier<BlockData> getPostModifier();
 
     void close();
 }

@@ -13,23 +13,20 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Represents a range")
 @Data
-public class IrisRange
-{
-	@DontObfuscate
-	@Desc("The minimum value")
-	private double min = 16;
+public class IrisRange {
+    @DontObfuscate
+    @Desc("The minimum value")
+    private double min = 16;
 
-	@DontObfuscate
-	@Desc("The maximum value")
-	private double max = 32;
+    @DontObfuscate
+    @Desc("The maximum value")
+    private double max = 32;
 
-	public double get(RNG rng)
-	{
-		if(min == max)
-		{
-			return min;
-		}
+    public double get(RNG rng) {
+        if (min == max) {
+            return min;
+        }
 
-		return rng.d(min, max);
-	}
+        return rng.d(min, max);
+    }
 }

@@ -1,12 +1,12 @@
 package com.volmit.iris.scaffold.lighting;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.bergerkiller.bukkit.common.collections.BlockFaceSet;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.ChunkSection;
 import com.bergerkiller.generated.net.minecraft.server.NibbleArrayHandle;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A single 16x16x16 cube of stored block information
@@ -79,7 +79,7 @@ public class LightingCube {
                 for (y = 0; y < 16; y++) {
                     info = chunkSection.getBlockData(x, y, z);
                     blockEmission = info.getEmission();
-                    opacity = info.getOpacity(owner.world, worldX+x, worldY+y, worldZ+z);
+                    opacity = info.getOpacity(owner.world, worldX + x, worldY + y, worldZ + z);
                     if (opacity >= 0xf) {
                         opacity = 0xf;
                         opaqueFaces = BlockFaceSet.ALL;
@@ -87,7 +87,7 @@ public class LightingCube {
                         if (opacity < 0) {
                             opacity = 0;
                         }
-                        opaqueFaces = info.getOpaqueFaces(owner.world, worldX+x, worldY+y, worldZ+z);
+                        opaqueFaces = info.getOpaqueFaces(owner.world, worldX + x, worldY + y, worldZ + z);
                     }
 
                     this.opacity.set(x, y, z, opacity);
@@ -101,10 +101,10 @@ public class LightingCube {
 
     /**
      * Gets the opaque faces of a block
-     * 
-     * @param x        - coordinate
-     * @param y        - coordinate
-     * @param z        - coordinate
+     *
+     * @param x - coordinate
+     * @param y - coordinate
+     * @param z - coordinate
      * @return opaque face set
      */
     public BlockFaceSet getOpaqueFaces(int x, int y, int z) {
@@ -116,20 +116,20 @@ public class LightingCube {
      * If possibly more, also check opaque faces, and then return the
      * higher light value if all these tests pass.
      * The x/y/z coordinates are allowed to check neighboring cubes.
-     * 
+     *
      * @param category
      * @param old_light
      * @param faceMask
-     * @param x The X-coordinate of the block (-1 to 16)
-     * @param y The Y-coordinate of the block (-1 to 16)
-     * @param z The Z-coordinate of the block (-1 to 16)
+     * @param x         The X-coordinate of the block (-1 to 16)
+     * @param y         The Y-coordinate of the block (-1 to 16)
+     * @param z         The Z-coordinate of the block (-1 to 16)
      * @return higher light level if propagated, otherwise the old light value
      */
     public int getLightIfHigherNeighbor(LightingCategory category, int old_light, int faceMask, int x, int y, int z) {
         if ((x & OOC | y & OOC | z & OOC) == 0) {
             return this.getLightIfHigher(category, old_light, faceMask, x, y, z);
         } else {
-            LightingCube neigh = this.neighbors.get(x>>4, y>>4, z>>4);
+            LightingCube neigh = this.neighbors.get(x >> 4, y >> 4, z >> 4);
             if (neigh != null) {
                 return neigh.getLightIfHigher(category, old_light, faceMask, x & 0xf, y & 0xf, z & 0xf);
             } else {
@@ -143,13 +143,13 @@ public class LightingCube {
      * If possibly more, also check opaque faces, and then return the
      * higher light value if all these tests pass.
      * Requires the x/y/z coordinates to lay within this cube.
-     * 
-     * @param category Category of light to check
+     *
+     * @param category  Category of light to check
      * @param old_light Previous light value
-     * @param faceMask The BlockFaceSet mask indicating the light-traveling direction
-     * @param x The X-coordinate of the block (0 to 15)
-     * @param y The Y-coordinate of the block (0 to 15)
-     * @param z The Z-coordinate of the block (0 to 15)
+     * @param faceMask  The BlockFaceSet mask indicating the light-traveling direction
+     * @param x         The X-coordinate of the block (0 to 15)
+     * @param y         The Y-coordinate of the block (0 to 15)
+     * @param z         The Z-coordinate of the block (0 to 15)
      * @return higher light level if propagated, otherwise the old light value
      */
     public int getLightIfHigher(LightingCategory category, int old_light, int faceMask, int x, int y, int z) {
@@ -161,7 +161,7 @@ public class LightingCube {
     /**
      * Called during initialization of block light to spread the light emitted by a block
      * to all neighboring blocks.
-     * 
+     *
      * @param x The X-coordinate of the block (0 to 15)
      * @param y The Y-coordinate of the block (0 to 15)
      * @param z The Z-coordinate of the block (0 to 15)
@@ -172,22 +172,22 @@ public class LightingCube {
             return; // Skip if neighbouring blocks won't receive light from it
         }
         if (x >= 1 && z >= 1 && x <= 14 && z <= 14) {
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_EAST,  x-1, y, z);
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_WEST,  x+1, y, z);
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_SOUTH, x, y, z-1);
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_NORTH, x, y, z+1);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_EAST, x - 1, y, z);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_WEST, x + 1, y, z);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_SOUTH, x, y, z - 1);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_NORTH, x, y, z + 1);
         } else {
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_EAST,  x-1, y, z);
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_WEST,  x+1, y, z);
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_SOUTH, x, y, z-1);
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_NORTH, x, y, z+1);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_EAST, x - 1, y, z);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_WEST, x + 1, y, z);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_SOUTH, x, y, z - 1);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_NORTH, x, y, z + 1);
         }
         if (y >= 1 && y <= 14) {
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_UP,    x, y-1, z);
-            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_DOWN,  x, y+1, z);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_UP, x, y - 1, z);
+            trySpreadBlockLightWithin(emitted, BlockFaceSet.MASK_DOWN, x, y + 1, z);
         } else {
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_UP,   x, y-1, z);
-            trySpreadBlockLight(emitted, BlockFaceSet.MASK_DOWN, x, y+1, z);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_UP, x, y - 1, z);
+            trySpreadBlockLight(emitted, BlockFaceSet.MASK_DOWN, x, y + 1, z);
         }
     }
 
@@ -195,18 +195,18 @@ public class LightingCube {
      * Tries to spread block light from an emitting block to one of the 6 sites.
      * The block being spread to is allowed to be outside of the bounds of this cube,
      * in which case neighboring cubes are spread to instead.
-     * 
-     * @param emitted The light that is emitted by the block
+     *
+     * @param emitted  The light that is emitted by the block
      * @param faceMask The BlockFaceSet mask indicating the light-traveling direction
-     * @param x The X-coordinate of the block to spread to (-1 to 16)
-     * @param y The Y-coordinate of the block to spread to (-1 to 16)
-     * @param z The Z-coordinate of the block to spread to (-1 to 16)
+     * @param x        The X-coordinate of the block to spread to (-1 to 16)
+     * @param y        The Y-coordinate of the block to spread to (-1 to 16)
+     * @param z        The Z-coordinate of the block to spread to (-1 to 16)
      */
     public void trySpreadBlockLight(int emitted, int faceMask, int x, int y, int z) {
         if ((x & OOC | y & OOC | z & OOC) == 0) {
             this.trySpreadBlockLightWithin(emitted, faceMask, x, y, z);
         } else {
-            LightingCube neigh = this.neighbors.get(x>>4, y>>4, z>>4);
+            LightingCube neigh = this.neighbors.get(x >> 4, y >> 4, z >> 4);
             if (neigh != null) {
                 neigh.trySpreadBlockLightWithin(emitted, faceMask, x & 0xf, y & 0xf, z & 0xf);
             }
@@ -216,16 +216,16 @@ public class LightingCube {
     /**
      * Tries to spread block light from an emitting block to one of the 6 sides.
      * Assumes that the block being spread to is within this cube.
-     * 
-     * @param emitted The light that is emitted by the block
+     *
+     * @param emitted  The light that is emitted by the block
      * @param faceMask The BlockFaceSet mask indicating the light-traveling direction
-     * @param x The X-coordinate of the block to spread to (0 to 15)
-     * @param y The Y-coordinate of the block to spread to (0 to 15)
-     * @param z The Z-coordinate of the block to spread to (0 to 15)
+     * @param x        The X-coordinate of the block to spread to (0 to 15)
+     * @param y        The Y-coordinate of the block to spread to (0 to 15)
+     * @param z        The Z-coordinate of the block to spread to (0 to 15)
      */
     public void trySpreadBlockLightWithin(int emitted, int faceMask, int x, int y, int z) {
         if (!this.getOpaqueFaces(x, y, z).get(faceMask)) {
-            int new_level = emitted - Math.max(1,  this.opacity.get(x, y, z));
+            int new_level = emitted - Math.max(1, this.opacity.get(x, y, z));
             if (new_level > this.blockLight.get(x, y, z)) {
                 this.blockLight.set(x, y, z, new_level);
             }

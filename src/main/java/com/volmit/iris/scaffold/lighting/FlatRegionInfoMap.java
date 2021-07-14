@@ -1,16 +1,15 @@
 package com.volmit.iris.scaffold.lighting;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import org.bukkit.Chunk;
-import org.bukkit.World;
-
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import org.bukkit.Chunk;
+import org.bukkit.World;
+
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.IntStream;
 
 /**
  * A map of region information
@@ -46,7 +45,7 @@ public class FlatRegionInfoMap {
 
     /**
      * Gets whether a chunk exists
-     * 
+     *
      * @param cx
      * @param cz
      * @return True if the chunk exists
@@ -58,7 +57,7 @@ public class FlatRegionInfoMap {
 
     /**
      * Gets whether a chunk, and all its 8 neighbours, exist
-     * 
+     *
      * @param cx
      * @param cz
      * @return True if the chunk and all its neighbours exist
@@ -89,7 +88,7 @@ public class FlatRegionInfoMap {
     /**
      * Computes all the region Y-coordinates used by a region and its neighbouring 8 regions.
      * The returned array is sorted in increasing order and is distinct (no duplicate values).
-     * 
+     *
      * @param region
      * @return region and neighbouring regions' Y-coordinates
      */
@@ -116,7 +115,7 @@ public class FlatRegionInfoMap {
     /**
      * Creates a region information mapping of all existing chunks of a world
      * that are currently loaded. No further loading is required.
-     * 
+     *
      * @param world
      * @return region info map
      */
@@ -151,7 +150,7 @@ public class FlatRegionInfoMap {
 
     /**
      * Creates a region information mapping of all existing chunks of a world
-     * 
+     *
      * @param world
      * @return region info map
      */

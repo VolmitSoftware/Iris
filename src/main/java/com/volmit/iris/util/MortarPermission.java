@@ -1,98 +1,76 @@
 package com.volmit.iris.util;
 
+import org.bukkit.command.CommandSender;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 
-import org.bukkit.command.CommandSender;
+public abstract class MortarPermission {
+    private MortarPermission parent;
 
-public abstract class MortarPermission
-{
-	private MortarPermission parent;
+    public MortarPermission() {
+        for (Field i : getClass().getDeclaredFields()) {
+            if (i.isAnnotationPresent(Permission.class)) {
+                try {
+                    MortarPermission px = (MortarPermission) i.getType().getConstructor().newInstance();
+                    px.setParent(this);
+                    i.set(Modifier.isStatic(i.getModifiers()) ? null : this, px);
+                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
-	public MortarPermission()
-	{
-		for(Field i : getClass().getDeclaredFields())
-		{
-			if(i.isAnnotationPresent(Permission.class))
-			{
-				try
-				{
-					MortarPermission px = (MortarPermission) i.getType().getConstructor().newInstance();
-					px.setParent(this);
-					i.set(Modifier.isStatic(i.getModifiers()) ? null : this, px);
-				}
+    public KList<MortarPermission> getChildren() {
+        KList<MortarPermission> p = new KList<>();
 
-				catch(IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+        for (Field i : getClass().getDeclaredFields()) {
+            if (i.isAnnotationPresent(Permission.class)) {
+                try {
+                    p.add((MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this));
+                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-	public KList<MortarPermission> getChildren()
-	{
-		KList<MortarPermission> p = new KList<>();
+        return p;
+    }
 
-		for(Field i : getClass().getDeclaredFields())
-		{
-			if(i.isAnnotationPresent(Permission.class))
-			{
-				try
-				{
-					p.add((MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this));
-				}
+    public String getFullNode() {
+        if (hasParent()) {
+            return getParent().getFullNode() + "." + getNode();
+        }
 
-				catch(IllegalArgumentException | IllegalAccessException | SecurityException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
+        return getNode();
+    }
 
-		return p;
-	}
+    protected abstract String getNode();
 
-	public String getFullNode()
-	{
-		if(hasParent())
-		{
-			return getParent().getFullNode() + "." + getNode();
-		}
+    public abstract String getDescription();
 
-		return getNode();
-	}
+    public abstract boolean isDefault();
 
-	protected abstract String getNode();
+    @Override
+    public String toString() {
+        return getFullNode();
+    }
 
-	public abstract String getDescription();
+    public boolean hasParent() {
+        return getParent() != null;
+    }
 
-	public abstract boolean isDefault();
+    public MortarPermission getParent() {
+        return parent;
+    }
 
-	@Override
-	public String toString()
-	{
-		return getFullNode();
-	}
+    public void setParent(MortarPermission parent) {
+        this.parent = parent;
+    }
 
-	public boolean hasParent()
-	{
-		return getParent() != null;
-	}
-
-	public MortarPermission getParent()
-	{
-		return parent;
-	}
-
-	public void setParent(MortarPermission parent)
-	{
-		this.parent = parent;
-	}
-
-	public boolean has(CommandSender sender)
-	{
-		return sender.hasPermission(getFullNode());
-	}
+    public boolean has(CommandSender sender) {
+        return sender.hasPermission(getFullNode());
+    }
 }

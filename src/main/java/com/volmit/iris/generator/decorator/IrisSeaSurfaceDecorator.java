@@ -8,8 +8,7 @@ import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 
-public class IrisSeaSurfaceDecorator extends IrisEngineDecorator
-{
+public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
     public IrisSeaSurfaceDecorator(Engine engine) {
         super(engine, "Sea Surface", DecorationPart.SEA_SURFACE);
     }
@@ -18,30 +17,22 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
 
-        if(decorator != null)
-        {
-            if(!decorator.isStacking())
-            {
-                if(height >= 0 || height < getEngine().getHeight())
-                {
-                    data.set(x, getDimension().getFluidHeight()+1, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+        if (decorator != null) {
+            if (!decorator.isStacking()) {
+                if (height >= 0 || height < getEngine().getHeight()) {
+                    data.set(x, getDimension().getFluidHeight() + 1, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
                 }
-            }
-
-            else
-            {
+            } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
 
                 BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                 BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
-                for(int i = 0; i < stack; i++)
-                {
-                    if(height - i < 0 || height - i > getEngine().getHeight())
-                    {
+                for (int i = 0; i < stack; i++) {
+                    if (height - i < 0 || height - i > getEngine().getHeight()) {
                         continue;
                     }
 
-                    double threshold = ((double)i) / (stack - 1);
+                    double threshold = ((double) i) / (stack - 1);
                     data.set(x, getDimension().getFluidHeight() + 1 + i, z, threshold >= decorator.getTopThreshold() ? top : fill);
                 }
             }

@@ -1,7 +1,7 @@
 package com.volmit.iris.object.tile;
 
-import com.volmit.iris.util.KList;
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
+import com.volmit.iris.util.KList;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -13,7 +13,7 @@ import java.io.IOException;
 
 public interface TileData<T extends TileState> extends Cloneable {
 
-    public static final KList<TileData<? extends TileState>> registry = setup();
+    KList<TileData<? extends TileState>> registry = setup();
 
     static KList<TileData<? extends TileState>> setup() {
         KList<TileData<? extends TileState>> registry = new KList<>();
@@ -25,29 +25,24 @@ public interface TileData<T extends TileState> extends Cloneable {
         return registry;
     }
 
-    public static TileData<? extends TileState> read(DataInputStream s) throws Throwable {
+    static TileData<? extends TileState> read(DataInputStream s) throws Throwable {
         int id = s.readShort();
         TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
         d.fromBinary(s);
         return d;
     }
 
-    public static void setTileState(Block block, TileData<? extends TileState> data)
-    {
-        if(data.isApplicable(block.getBlockData()))
-        {
+    static void setTileState(Block block, TileData<? extends TileState> data) {
+        if (data.isApplicable(block.getBlockData())) {
             data.toBukkitTry(block.getState());
         }
     }
 
-    public static TileData<? extends TileState> getTileState(Block block)
-    {
-        for(TileData<? extends TileState> i : registry)
-        {
+    static TileData<? extends TileState> getTileState(Block block) {
+        for (TileData<? extends TileState> i : registry) {
             BlockData data = block.getBlockData();
 
-            if(i.isApplicable(data))
-            {
+            if (i.isApplicable(data)) {
                 try {
                     TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
                     s.fromBukkitTry(block.getState());
@@ -61,49 +56,41 @@ public interface TileData<T extends TileState> extends Cloneable {
         return null;
     }
 
-    public String getTileId();
+    String getTileId();
 
-    public boolean isApplicable(BlockData data);
+    boolean isApplicable(BlockData data);
 
-    public void toBukkit(T t);
+    void toBukkit(T t);
 
-    public void fromBukkit(T t);
+    void fromBukkit(T t);
 
-    public default boolean toBukkitTry(BlockState t)
-    {
+    default boolean toBukkitTry(BlockState t) {
         try {
             toBukkit((T) t);
             return true;
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
 
         return false;
     }
 
-    public default boolean fromBukkitTry(BlockState t)
-    {
+    default boolean fromBukkitTry(BlockState t) {
         try {
             fromBukkit((T) t);
             return true;
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
 
         return false;
     }
 
-    public TileData<T> clone();
+    TileData<T> clone();
 
-    public void toBinary(DataOutputStream out) throws IOException;
+    void toBinary(DataOutputStream out) throws IOException;
 
-    public void toNBT(CompoundTag tag);
+    void toNBT(CompoundTag tag);
 
-    public void fromBinary(DataInputStream in) throws IOException;
+    void fromBinary(DataInputStream in) throws IOException;
 }

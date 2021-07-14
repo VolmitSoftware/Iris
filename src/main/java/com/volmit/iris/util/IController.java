@@ -2,23 +2,22 @@ package com.volmit.iris.util;
 
 import org.bukkit.event.Listener;
 
-public interface IController extends Listener
-{
-	public String getName();
+public interface IController extends Listener {
+    String getName();
 
-	public void start();
+    void start();
 
-	public void stop();
+    void stop();
 
-	public void tick();
+    void tick();
 
-	public int getTickInterval();
+    int getTickInterval();
 
-	public void l(Object l);
+    void l(Object l);
 
-	public void w(Object l);
+    void w(Object l);
 
-	public void f(Object l);
+    void f(Object l);
 
-	public void v(Object l);
+    void v(Object l);
 }

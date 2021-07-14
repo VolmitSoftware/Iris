@@ -19,8 +19,7 @@ public class IrisFeaturePotential {
     @Desc("")
     private IrisFeature zone = new IrisFeature();
 
-    public boolean hasZone(RNG rng, int cx, int cz)
-    {
+    public boolean hasZone(RNG rng, int cx, int cz) {
         return rng.nextInt(rarity) == 0;
     }
 }

@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.wrappers.ChunkSection;
 import com.bergerkiller.bukkit.common.wrappers.HeightMap;
 import com.bergerkiller.bukkit.common.wrappers.IntHashMap;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
-
 import com.volmit.iris.Iris;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -60,7 +59,7 @@ public class LightingChunk {
     /**
      * Gets all the sections inside this chunk.
      * Elements are never null.
-     * 
+     *
      * @return sections
      */
     public Collection<LightingCube> getSections() {
@@ -70,9 +69,9 @@ public class LightingChunk {
     /**
      * Efficiently iterates the vertical cubes of a chunk, only
      * querying the lookup table every 16 blocks
-     * 
+     *
      * @param previous The previous cube we iterated
-     * @param y Block y-coordinate
+     * @param y        Block y-coordinate
      * @return the cube at the Block y-coordinate, or null if this cube does not exist
      */
     public LightingCube nextCube(LightingCube previous, int y) {
@@ -118,13 +117,13 @@ public class LightingChunk {
     public void detectCubeNeighbors() {
         for (LightingCube cube : this.sections.values()) {
             // Neighbors above and below
-            cube.neighbors.set(0,  1, 0, this.sections.get(cube.cy + 1));
+            cube.neighbors.set(0, 1, 0, this.sections.get(cube.cy + 1));
             cube.neighbors.set(0, -1, 0, this.sections.get(cube.cy - 1));
             // Neighbors in neighboring chunks
-            cube.neighbors.set(-1, 0,  0, this.neighbors.getCube(-1,  0, cube.cy));
-            cube.neighbors.set( 1, 0,  0, this.neighbors.getCube( 1,  0, cube.cy));
-            cube.neighbors.set( 0, 0, -1, this.neighbors.getCube( 0, -1, cube.cy));
-            cube.neighbors.set( 0, 0,  1, this.neighbors.getCube( 0,  1, cube.cy));
+            cube.neighbors.set(-1, 0, 0, this.neighbors.getCube(-1, 0, cube.cy));
+            cube.neighbors.set(1, 0, 0, this.neighbors.getCube(1, 0, cube.cy));
+            cube.neighbors.set(0, 0, -1, this.neighbors.getCube(0, -1, cube.cy));
+            cube.neighbors.set(0, 0, 1, this.neighbors.getCube(0, 1, cube.cy));
         }
     }
 
@@ -162,7 +161,7 @@ public class LightingChunk {
         this.maxY = 0;
         if (!lightingChunkSectionList.isEmpty()) {
             this.minY = lightingChunkSectionList.get(0).cy << 4;
-            this.maxY = (lightingChunkSectionList.get(lightingChunkSectionList.size()-1).cy << 4) + 15;
+            this.maxY = (lightingChunkSectionList.get(lightingChunkSectionList.size() - 1).cy << 4) + 15;
         }
 
         // Initialize and then load sky light heightmap information
@@ -273,8 +272,7 @@ public class LightingChunk {
         return isSkyLightDirty || isBlockLightDirty;
     }
 
-    public void forceSpreadBlocks()
-    {
+    public void forceSpreadBlocks() {
         spread(LightingCategory.BLOCK);
     }
 
@@ -415,7 +413,7 @@ public class LightingChunk {
      *
      * @param chunk to save to
      * @return completable future completed when the chunk is saved,
-     *         with value True passed when saving occurred, False otherwise
+     * with value True passed when saving occurred, False otherwise
      */
     @SuppressWarnings("unchecked")
     public CompletableFuture<Boolean> saveToChunk(Chunk chunk) {

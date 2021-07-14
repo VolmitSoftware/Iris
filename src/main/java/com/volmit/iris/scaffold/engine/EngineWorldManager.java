@@ -5,19 +5,18 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
-public interface EngineWorldManager
-{
-    public void close();
+public interface EngineWorldManager {
+    void close();
 
-    public void onEntitySpawn(EntitySpawnEvent e);
+    void onEntitySpawn(EntitySpawnEvent e);
 
-    public void onTick();
+    void onTick();
 
-    public void onSave();
+    void onSave();
 
-    public void spawnInitialEntities(Chunk chunk);
+    void spawnInitialEntities(Chunk chunk);
 
-    public void onBlockBreak(BlockBreakEvent e);
+    void onBlockBreak(BlockBreakEvent e);
 
-    public void onBlockPlace(BlockPlaceEvent e);
+    void onBlockPlace(BlockPlaceEvent e);
 }

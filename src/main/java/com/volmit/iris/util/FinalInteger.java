@@ -5,32 +5,26 @@ package com.volmit.iris.util;
  *
  * @author cyberpwn
  */
-public class FinalInteger extends Wrapper<Integer>
-{
-	public FinalInteger(Integer t)
-	{
-		super(t);
-	}
+public class FinalInteger extends Wrapper<Integer> {
+    public FinalInteger(Integer t) {
+        super(t);
+    }
 
-	/**
-	 * Add to this value
-	 *
-	 * @param i
-	 *            the number to add to this value (value = value + i)
-	 */
-	public void add(int i)
-	{
-		set(get() + i);
-	}
+    /**
+     * Add to this value
+     *
+     * @param i the number to add to this value (value = value + i)
+     */
+    public void add(int i) {
+        set(get() + i);
+    }
 
-	/**
-	 * Subtract from this value
-	 *
-	 * @param i
-	 *            the number to subtract from this value (value = value - i)
-	 */
-	public void sub(int i)
-	{
-		set(get() - i);
-	}
+    /**
+     * Subtract from this value
+     *
+     * @param i the number to subtract from this value (value = value - i)
+     */
+    public void sub(int i) {
+        set(get() - i);
+    }
 }

@@ -1,6 +1,5 @@
 package com.volmit.iris.scaffold.engine;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.Renderer;
 import com.volmit.iris.object.*;
@@ -25,160 +24,140 @@ import java.awt.*;
 import java.util.Arrays;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
-    public void close();
+    void close();
 
-    public boolean isClosed();
+    boolean isClosed();
 
-    public EngineWorldManager getWorldManager();
+    EngineWorldManager getWorldManager();
 
-    public void setParallelism(int parallelism);
+    void setParallelism(int parallelism);
 
-    public int getParallelism();
+    int getParallelism();
 
-    public EngineTarget getTarget();
+    EngineTarget getTarget();
 
-    public EngineFramework getFramework();
+    EngineFramework getFramework();
 
-    public void setMinHeight(int min);
+    void setMinHeight(int min);
 
-    public void recycle();
+    void recycle();
 
-    public int getIndex();
+    int getIndex();
 
-    public int getMinHeight();
+    int getMinHeight();
 
-    public double modifyX(double x);
+    double modifyX(double x);
 
-    public double modifyZ(double z);
+    double modifyZ(double z);
 
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
+    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes);
 
-    public EngineMetrics getMetrics();
+    EngineMetrics getMetrics();
 
-    default void save()
-    {
-       getParallax().saveAll();
+    default void save() {
+        getParallax().saveAll();
     }
 
-    default void saveNow()
-    {
+    default void saveNow() {
         getParallax().saveAllNOW();
     }
 
-    default String getName()
-    {
+    default String getName() {
         return getDimension().getName();
     }
 
-    public default int getHeight()
-    {
+    default int getHeight() {
         return getTarget().getHeight();
     }
 
-    public default IrisDataManager getData()
-    {
+    default IrisDataManager getData() {
         return getTarget().getData();
     }
 
-    public default World getWorld()
-    {
+    default World getWorld() {
         return getTarget().getWorld();
     }
 
-    public default IrisDimension getDimension()
-    {
+    default IrisDimension getDimension() {
         return getTarget().getDimension();
     }
 
-    public default ParallaxAccess getParallax()
-    {
+    default ParallaxAccess getParallax() {
         return getTarget().getParallaxWorld();
     }
 
-    public default Color draw(double x, double z)
-    {
-        IrisRegion region = getRegion((int)x, (int)z);
-        IrisBiome biome = getSurfaceBiome((int)x, (int)z);
+    default Color draw(double x, double z) {
+        IrisRegion region = getRegion((int) x, (int) z);
+        IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
         double heightFactor = M.lerpInverse(0, getHeight(), height);
         IrisColor irc = region.getColor();
         IrisColor ibc = biome.getColor();
         Color rc = irc != null ? irc.getColor() : Color.GREEN.darker();
         Color bc = ibc != null ? ibc.getColor() : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
-        Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float)heightFactor));
+        Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));
 
         return f;
     }
 
     @Override
-    public default IrisRegion getRegion(int x, int z) {
+    default IrisRegion getRegion(int x, int z) {
         return getFramework().getComplex().getRegionStream().get(x, z);
     }
 
     @Override
-    public default ParallaxAccess getParallaxAccess()
-    {
+    default ParallaxAccess getParallaxAccess() {
         return getParallax();
     }
 
     @Override
-    public default IrisBiome getCaveBiome(int x, int z)
-    {
+    default IrisBiome getCaveBiome(int x, int z) {
         return getFramework().getComplex().getCaveBiomeStream().get(x, z);
     }
 
     @Override
-    public default IrisBiome getSurfaceBiome(int x, int z)
-    {
+    default IrisBiome getSurfaceBiome(int x, int z) {
         return getFramework().getComplex().getTrueBiomeStream().get(x, z);
     }
 
     @Override
-    public default int getHeight(int x, int z)
-    {
+    default int getHeight(int x, int z) {
         return getFramework().getEngineParallax().getHighest(x, z, true);
     }
 
     @Override
-    public default void catchBlockUpdates(int x, int y, int z, BlockData data) {
-        if(data == null)
-        {
+    default void catchBlockUpdates(int x, int y, int z, BlockData data) {
+        if (data == null) {
             return;
         }
 
-        if(B.isUpdatable(data))
-        {
-            synchronized (getParallax())
-            {
-                getParallax().updateBlock(x,y,z);
-                getParallax().getMetaRW(x>>4, z>>4).setUpdates(true);
+        if (B.isUpdatable(data)) {
+            synchronized (getParallax()) {
+                getParallax().updateBlock(x, y, z);
+                getParallax().getMetaRW(x >> 4, z >> 4).setUpdates(true);
             }
         }
     }
 
-    public default void placeTiles(Chunk c) {
+    default void placeTiles(Chunk c) {
 
     }
 
     @Override
-    public default void updateChunk(Chunk c)
-    {
+    default void updateChunk(Chunk c) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        if(getParallax().getMetaR(c.getX(), c.getZ()).isUpdates())
-        {
+        if (getParallax().getMetaR(c.getX(), c.getZ()).isUpdates()) {
             Hunk<Boolean> b = getParallax().getUpdatesR(c.getX(), c.getZ());
 
-            b.iterateSync((x,y,z,v) -> {
+            b.iterateSync((x, y, z, v) -> {
 
-                if(v != null && v)
-                {
+                if (v != null && v) {
                     int vx = x & 15;
                     int vz = z & 15;
-                    update(x,y,z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
 
-                    if(vx > 0 && vx < 15 && vz > 0 && vz < 15)
-                    {
-                        updateLighting(x,y,z,c);
+                    if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
+                        updateLighting(x, y, z, c);
                     }
                 }
             });
@@ -187,51 +166,41 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         getMetrics().getUpdates().put(p.getMilliseconds());
     }
 
-    public default void updateLighting(int x, int y, int z, Chunk c)
-    {
-        Block block = c.getBlock(x,y,z);
+    default void updateLighting(int x, int y, int z, Chunk c) {
+        Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
 
-        if(B.isLit(data))
-        {
+        if (B.isLit(data)) {
             try {
                 block.setType(Material.AIR, false);
                 block.setBlockData(data, true);
-            } catch (Exception e){
+            } catch (Exception e) {
                 // Issue when adding block data. Suppress massive warnings and stack-traces to console.
             }
         }
     }
 
     @Override
-    public default void update(int x, int y, int z, Chunk c, RNG rf)
-    {
-        Block block = c.getBlock(x,y,z);
+    default void update(int x, int y, int z, Chunk c, RNG rf) {
+        Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
 
-        if(B.isStorage(data))
-        {
+        if (B.isStorage(data)) {
             RNG rx = rf.nextParallelRNG(BlockPosition.toLong(x, y, z));
             InventorySlotType slot = null;
 
-            if(B.isStorageChest(data))
-            {
+            if (B.isStorageChest(data)) {
                 slot = InventorySlotType.STORAGE;
             }
 
-            if(slot != null)
-            {
+            if (slot != null) {
                 KList<IrisLootTable> tables = getLootTables(rx, block);
                 InventorySlotType slott = slot;
 
-                try
-                {
+                try {
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(false, m.getInventory(), rx, tables, slott, x, y, z, 15);
-                }
-
-                catch(Throwable ignored)
-                {
+                } catch (Throwable ignored) {
 
                 }
             }
@@ -239,23 +208,19 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    public default void scramble(Inventory inventory, RNG rng)
-    {
+    default void scramble(Inventory inventory, RNG rng) {
         org.bukkit.inventory.ItemStack[] items = inventory.getContents();
         org.bukkit.inventory.ItemStack[] nitems = new org.bukkit.inventory.ItemStack[inventory.getSize()];
         System.arraycopy(items, 0, nitems, 0, items.length);
         boolean packedFull = false;
 
-        splitting: for(int i = 0; i < nitems.length; i++)
-        {
+        splitting:
+        for (int i = 0; i < nitems.length; i++) {
             ItemStack is = nitems[i];
 
-            if(is != null && is.getAmount() > 1 && !packedFull)
-            {
-                for(int j = 0; j < nitems.length; j++)
-                {
-                    if(nitems[j] == null)
-                    {
+            if (is != null && is.getAmount() > 1 && !packedFull) {
+                for (int j = 0; j < nitems.length; j++) {
+                    if (nitems[j] == null) {
                         int take = rng.nextInt(is.getAmount());
                         take = take == 0 ? 1 : take;
                         is.setAmount(is.getAmount() - take);
@@ -269,16 +234,11 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             }
         }
 
-        for(int i = 0; i < 4; i++)
-        {
-            try
-            {
+        for (int i = 0; i < 4; i++) {
+            try {
                 Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
                 break;
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
 
             }
         }
@@ -287,10 +247,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    public default void injectTables(KList<IrisLootTable> list, IrisLootReference r)
-    {
-        if(r.getMode().equals(LootMode.CLEAR) || r.getMode().equals(LootMode.REPLACE))
-        {
+    default void injectTables(KList<IrisLootTable> list, IrisLootReference r) {
+        if (r.getMode().equals(LootMode.CLEAR) || r.getMode().equals(LootMode.REPLACE)) {
             list.clear();
         }
 
@@ -298,16 +256,14 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    public default KList<IrisLootTable> getLootTables(RNG rng, Block b)
-    {
+    default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
         int rz = b.getZ();
         double he = getFramework().getComplex().getHeightStream().get(rx, rz);
         PlacedObject po = getFramework().getEngine().getObjectPlacement(rx, b.getY(), rz);
         if (po != null && po.getPlacement() != null) {
 
-            if(B.isStorageChest(b.getBlockData()))
-            {
+            if (B.isStorageChest(b.getBlockData())) {
                 IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
                 if (table != null) {
                     return new KList<>(table);
@@ -324,17 +280,14 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         injectTables(tables, biomeSurface.getLoot());
         injectTables(tables, biomeUnder.getLoot());
 
-        if(tables.isNotEmpty())
-        {
+        if (tables.isNotEmpty()) {
             int target = (int) Math.round(tables.size() * multiplier);
 
-            while(tables.size() < target && tables.isNotEmpty())
-            {
+            while (tables.size() < target && tables.isNotEmpty()) {
                 tables.add(tables.get(rng.i(tables.size() - 1)));
             }
 
-            while(tables.size() > target && tables.isNotEmpty())
-            {
+            while (tables.size() > target && tables.isNotEmpty()) {
                 tables.remove(rng.i(tables.size() - 1));
             }
         }
@@ -343,56 +296,47 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    public default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf)
-    {
+    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf) {
         KList<ItemStack> items = new KList<>();
 
         int b = 4;
-        for(IrisLootTable i : tables)
-        {
+        for (IrisLootTable i : tables) {
             b++;
             items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }
 
-        for(ItemStack i : items)
-        {
+        for (ItemStack i : items) {
             inv.addItem(i);
         }
 
         scramble(inv, rng);
     }
 
-    public default int getMaxHeight()
-    {
+    default int getMaxHeight() {
         return getHeight() + getMinHeight();
     }
 
-    public EngineEffects getEffects();
+    EngineEffects getEffects();
 
-    public EngineCompound getCompound();
+    EngineCompound getCompound();
 
-    public default boolean isStudio()
-    {
+    default boolean isStudio() {
         return getCompound().isStudio();
     }
 
-    public default void clean()
-    {
+    default void clean() {
         MultiBurst.burst.lazy(() -> getParallax().cleanup());
     }
 
-    default IrisBiome getBiome(Location l)
-    {
+    default IrisBiome getBiome(Location l) {
         return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default IrisRegion getRegion(Location l)
-    {
+    default IrisRegion getRegion(Location l) {
         return getRegion(l.getBlockX(), l.getBlockZ());
     }
 
-    default boolean contains(Location l)
-    {
+    default boolean contains(Location l) {
         return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
     }
 

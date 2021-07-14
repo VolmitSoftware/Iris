@@ -2,10 +2,8 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 
-public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent implements EngineActuator<T>
-{
-    public EngineAssignedActuator(Engine engine, String name)
-    {
+public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent implements EngineActuator<T> {
+    public EngineAssignedActuator(Engine engine, String name) {
         super(engine, name);
     }
 

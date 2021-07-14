@@ -1,9 +1,8 @@
 package com.volmit.iris.manager.gui;
 
-import java.awt.Color;
+import java.awt.*;
 
 @FunctionalInterface
-public interface Renderer
-{
-	public Color draw(double x, double z);
+public interface Renderer {
+    Color draw(double x, double z);
 }

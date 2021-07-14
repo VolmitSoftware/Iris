@@ -32,12 +32,7 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -51,11 +46,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private int generated = 0;
     private int lgenerated = 0;
     private final KMap<Long, PregeneratedData> chunkCache;
-    private ChronoLatch hotloadcd;
-    private AtomicBoolean fake;
+    private final ChronoLatch hotloadcd;
+    private final AtomicBoolean fake;
     @Getter
     private double generatedPerSecond = 0;
-    private int art;
+    private final int art;
     private ReactiveFolder hotloader = null;
 
     public EngineCompositeGenerator() {
@@ -75,10 +70,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
-                if(compound != null)
-                {
-                    for(BlockPopulator i : compound.getPopulators())
-                    {
+                if (compound != null) {
+                    for (BlockPopulator i : compound.getPopulators()) {
                         i.populate(world, random, chunk);
                     }
                 }
@@ -86,24 +79,17 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         });
     }
 
-    public void hotload()
-    {
-        if(isStudio())
-        {
+    public void hotload() {
+        if (isStudio()) {
             Iris.proj.updateWorkspace();
             getData().dump();
             J.s(() -> {
-                try
-                {
-                    for(Player i : getTarget().getWorld().getPlayers())
-                    {
+                try {
+                    for (Player i : getTarget().getWorld().getPlayers()) {
                         new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
                         i.playSound(i.getLocation(), Sound.ITEM_BOTTLE_FILL, 1f, 1.25f);
                     }
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
 
                 }
             });
@@ -111,34 +97,26 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
     }
 
-    public void tick()
-    {
-        if(isClosed())
-        {
+    public void tick() {
+        if (isClosed()) {
             return;
         }
 
-        if(!initialized.get())
-        {
+        if (!initialized.get()) {
             return;
         }
 
-        try
-        {
+        try {
             if (hotloader != null) {
                 J.a(() -> hotloader.check());
                 getComposite().clean();
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
 
-        if(M.ms() - mst > 1000)
-        {
-            generatedPerSecond = (double)(generated - lgenerated) / ((double)(M.ms() - mst) / 1000D);
+        if (M.ms() - mst > 1000) {
+            generatedPerSecond = (double) (generated - lgenerated) / ((double) (M.ms() - mst) / 1000D);
             mst = M.ms();
             lgenerated = generated;
         }
@@ -153,8 +131,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         if (query == null) {
             File iris = new File(world.getWorldFolder(), "iris");
 
-            if(iris.exists() && iris.isDirectory())
-            {
+            if (iris.exists() && iris.isDirectory()) {
                 searching:
                 for (File i : iris.listFiles()) {
                     // Look for v1 location
@@ -189,13 +166,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
             dim = IrisDataManager.loadAnyDimension(query);
 
-            if(dim == null)
-            {
+            if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + query);
-            }
-
-            else
-            {
+            } else {
                 Iris.info("Download pack: " + query);
             }
         }
@@ -209,8 +182,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.getWorldFolder());
                 dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
-                if(dim == null)
-                {
+                if (dim == null) {
                     throw new RuntimeException("Cannot find dimension: " + query);
                 }
             }
@@ -224,10 +196,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         IrisDimension dim = null;
 
         if (query == null) {
-            File iris = new File(world +"/iris");
+            File iris = new File(world + "/iris");
 
-            if(iris.exists() && iris.isDirectory())
-            {
+            if (iris.exists() && iris.isDirectory()) {
                 for (File i : Objects.requireNonNull(iris.listFiles())) {
                     // Look for v1 location
                     if (i.isDirectory() && i.getName().equals("dimensions")) {
@@ -261,13 +232,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
             dim = IrisDataManager.loadAnyDimension(query);
 
-            if(dim == null)
-            {
+            if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + query);
-            }
-
-            else
-            {
+            } else {
                 Iris.info("Download pack: " + query);
             }
         }
@@ -281,8 +248,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), new File(world));
                 dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
-                if(dim == null)
-                {
+                if (dim == null) {
                     throw new RuntimeException("Cannot find dimension: " + query);
                 }
             }
@@ -294,15 +260,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public synchronized void initialize(World world) {
-        if(!(world instanceof FakeWorld) && fake.get() && this.compound != null)
-        {
+        if (!(world instanceof FakeWorld) && fake.get() && this.compound != null) {
             fake.set(false);
             this.compound.updateWorld(world);
             getTarget().updateWorld(world);
             placeStrongholds(world);
 
-            for(int i = 0; i < getComposite().getSize(); i++)
-            {
+            for (int i = 0; i < getComposite().getSize(); i++) {
                 getComposite().getEngine(i).getTarget().updateWorld(world);
             }
 
@@ -313,8 +277,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             return;
         }
 
-        try
-        {
+        try {
             initialized.set(true);
             IrisDimension dim = getDimension(world);
             IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
@@ -323,10 +286,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.clear();
             populators.addAll(compound.getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
         }
@@ -334,91 +294,91 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     /**
      * Place strongholds in the world
+     *
      * @param world
      */
     public void placeStrongholds(World world) {
         EngineData metadata = getComposite().getEngineMetadata();
         // TODO: In nms class, not here. Also it doesnt work
-        if(metadata.getStrongholdPositions() == null || metadata.getStrongholdPositions().size() == 0)
-        {
+        if (metadata.getStrongholdPositions() == null || metadata.getStrongholdPositions().size() == 0) {
 
-                List<IrisPosition> strongholds = new ArrayList<>();
-                Object nmsWorld = new V(world).invoke("getHandle");
-                Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
-                Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
-                try {
-                    Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
-                    Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
-                    Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
-                    Constructor bpCon = clazzBP.getConstructor(int.class, int.class, int.class);
+            List<IrisPosition> strongholds = new ArrayList<>();
+            Object nmsWorld = new V(world).invoke("getHandle");
+            Object chunkProvider = new V(nmsWorld).invoke("getChunkProvider");
+            Object chunkGenerator = new V(chunkProvider).invoke("getChunkGenerator");
+            try {
+                Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
+                Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
+                Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
+                Constructor bpCon = clazzBP.getConstructor(int.class, int.class, int.class);
 
-                    //By default, we place 9 strongholds. One near 0,0 and 8 all around it at about 10_000 blocks out
-                    int coords[][] = {{0, 0}, {7000, -7000}, {10000, 0}, {7000, 7000}, {0, 10000}, {-7000, 7000}, {-10000, 0}, {-7000, -7000}, {0, -10000}};
+                //By default, we place 9 strongholds. One near 0,0 and 8 all around it at about 10_000 blocks out
+                int[][] coords = {{0, 0}, {7000, -7000}, {10000, 0}, {7000, 7000}, {0, 10000}, {-7000, 7000}, {-10000, 0}, {-7000, -7000}, {0, -10000}};
 
-                    //Set of stronghold locations so we don't place 2 strongholds at the same location
-                    Set<Long> existing = new ConcurrentSet<>();
-                    Set<CompletableFuture<Object>> futures = new HashSet<>();
-                    for (int[] currCoords : coords) {
-                        //Create a NMS BlockPosition
-                        Object blockPosToTest = bpCon.newInstance(currCoords[0], 0, currCoords[1]);
-                        //Create a CompletableFuture so we can track once the sync code is complete
+                //Set of stronghold locations so we don't place 2 strongholds at the same location
+                Set<Long> existing = new ConcurrentSet<>();
+                Set<CompletableFuture<Object>> futures = new HashSet<>();
+                for (int[] currCoords : coords) {
+                    //Create a NMS BlockPosition
+                    Object blockPosToTest = bpCon.newInstance(currCoords[0], 0, currCoords[1]);
+                    //Create a CompletableFuture so we can track once the sync code is complete
 
-                        CompletableFuture<Object> future = new CompletableFuture<>();
-                        futures.add(future);
+                    CompletableFuture<Object> future = new CompletableFuture<>();
+                    futures.add(future);
 
-                        //We have to run this code synchronously because it uses NMS
-                        J.s(() -> {
-                            try {
-                                Object o = getBP(clazz, clazzSG, clazzBP, nmsWorld, blockPosToTest, chunkGenerator);
-                                future.complete(o);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                future.complete(e);
+                    //We have to run this code synchronously because it uses NMS
+                    J.s(() -> {
+                        try {
+                            Object o = getBP(clazz, clazzSG, clazzBP, nmsWorld, blockPosToTest, chunkGenerator);
+                            future.complete(o);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            future.complete(e);
+                        }
+                    });
+                }
+
+                CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
+                all.thenAccept((_void) -> { //Once all futures for all 9 strongholds have completed
+                    for (CompletableFuture<Object> future : futures) {
+                        try {
+                            Object pos = future.getNow(null);
+                            if (pos != null) {
+                                IrisPosition ipos = new IrisPosition((int) new V(pos, false).invoke("getX"), (int) new V(pos,
+                                        false).invoke("getY"), (int) new V(pos, false).invoke("getZ"));
+                                long xz = (((long) ipos.getX()) << 32) | (ipos.getZ() & 0xffffffffL);
+                                if (existing.contains(xz)) return; //Make sure we don't double up on stronghold locs
+                                existing.add(xz);
+                                strongholds.add(ipos);
+
                             }
-                        });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
-                    CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
-                    all.thenAccept((_void) -> { //Once all futures for all 9 strongholds have completed
-                        for (CompletableFuture<Object> future : futures) {
-                            try {
-                                Object pos = future.getNow(null);
-                                if (pos != null) {
-                                    IrisPosition ipos = new IrisPosition((int) new V(pos, false).invoke("getX"), (int) new V(pos,
-                                            false).invoke("getY"), (int) new V(pos, false).invoke("getZ"));
-                                    long xz = (((long)ipos.getX()) << 32) | (ipos.getZ() & 0xffffffffL);
-                                    if (existing.contains(xz)) return; //Make sure we don't double up on stronghold locs
-                                    existing.add(xz);
-                                    strongholds.add(ipos);
-
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        StringBuilder positions = new StringBuilder();
-                        for (IrisPosition pos : strongholds){
-                            positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
-                        }
-                        Iris.info("Strongholds (" + strongholds.size() + ") found at [" + positions + "]");
-
-                        metadata.setStrongholdPositions(strongholds);
-                        getComposite().saveEngineMetadata();
-                    });
-
-                } catch (Exception e) {
-                    strongholds.add( new IrisPosition(1337, 32, -1337) );
-                    metadata.setStrongholdPositions(strongholds);
-                    Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
-                    Iris.warn("  -> Setting default stronghold position");
-                    e.printStackTrace();
                     StringBuilder positions = new StringBuilder();
-                    for (IrisPosition pos : strongholds){
+                    for (IrisPosition pos : strongholds) {
                         positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
                     }
-                    Iris.info("Strongholds (" + metadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
+                    Iris.info("Strongholds (" + strongholds.size() + ") found at [" + positions + "]");
+
+                    metadata.setStrongholdPositions(strongholds);
+                    getComposite().saveEngineMetadata();
+                });
+
+            } catch (Exception e) {
+                strongholds.add(new IrisPosition(1337, 32, -1337));
+                metadata.setStrongholdPositions(strongholds);
+                Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
+                Iris.warn("  -> Setting default stronghold position");
+                e.printStackTrace();
+                StringBuilder positions = new StringBuilder();
+                for (IrisPosition pos : strongholds) {
+                    positions.append("(").append(pos.getX()).append(",").append(pos.getY()).append(",").append(pos.getZ()).append(") ");
                 }
+                Iris.info("Strongholds (" + metadata.getStrongholdPositions().size() + ") found at [" + positions + "]");
+            }
 
         }
     }
@@ -465,17 +425,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return tc.getRaw();
     }
 
-    public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst)
-    {
+    public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst) {
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
 
-        for(int i = 0; i < 32; i++)
-        {
+        for (int i = 0; i < 32; i++) {
             int ii = i;
-            for(int j = 0; j < 32; j++)
-            {
+            for (int j = 0; j < 32; j++) {
                 int jj = j;
                 e.queue(() -> directWriteChunk(w, ii + mcaox, jj + mcaoz, writer));
             }
@@ -484,8 +441,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         e.complete();
     }
 
-    public void directWriteChunk(World w, int x, int z, DirectWorldWriter writer)
-    {
+    public void directWriteChunk(World w, int x, int z, DirectWorldWriter writer) {
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.scaffold.data.mca.Chunk cc = writer.getChunk(x, z);
@@ -527,30 +483,27 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBlock(int x, int y, int z, BlockData blockData) {
-                int xx = (x+ox)&15;
-                int zz = (z+oz)&15;
+                int xx = (x + ox) & 15;
+                int zz = (z + oz) & 15;
 
-                if(y > 255 || y < 0)
-                {
+                if (y > 255 || y < 0) {
                     return;
                 }
 
-                cc.setBlockStateAt(xx, y, zz, writer.getCompound(blockData), false);
+                cc.setBlockStateAt(xx, y, zz, DirectWorldWriter.getCompound(blockData), false);
             }
 
             @Override
             public BlockData getBlockData(int x, int y, int z) {
-                if(y > getMaxHeight())
-                {
+                if (y > getMaxHeight()) {
                     y = getMaxHeight();
                 }
 
-                if(y < 0)
-                {
+                if (y < 0) {
                     y = 0;
                 }
 
-                return writer.getBlockData(cc.getBlockStateAt((x+ox)&15, y, (z+oz)&15));
+                return DirectWorldWriter.getBlockData(cc.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));
             }
 
             @Override
@@ -607,33 +560,27 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }).run();
     }
 
-    public Chunk generatePaper(World world, int x, int z)
-    {
+    public Chunk generatePaper(World world, int x, int z) {
         precache(world, x, z);
         Chunk c = PaperLib.getChunkAtAsync(world, x, z, true).join();
         chunkCache.remove(Cache.key(x, z));
         return c;
     }
 
-    public void precache(World world, int x, int z)
-    {
-        synchronized (this)
-        {
+    public void precache(World world, int x, int z) {
+        synchronized (this) {
             initialize(world);
         }
 
-        synchronized (chunkCache)
-        {
-            if(chunkCache.containsKey(Cache.key(x, z)))
-            {
+        synchronized (chunkCache) {
+            if (chunkCache.containsKey(Cache.key(x, z))) {
                 return;
             }
         }
 
-        PregeneratedData data = new PregeneratedData(getComposite().getHeight()-1);
+        PregeneratedData data = new PregeneratedData(getComposite().getHeight() - 1);
         compound.generate(x * 16, z * 16, data.getBlocks(), data.getPost(), data.getBiomes());
-        synchronized (chunkCache)
-        {
+        synchronized (chunkCache) {
             chunkCache.put(Cache.key(x, z), data);
         }
     }
@@ -643,20 +590,16 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return chunkCache.size();
     }
 
-    public int getCachedChunks()
-    {
+    public int getCachedChunks() {
         return chunkCache.size();
     }
 
-    public Runnable generateChunkRawData(World world, int x, int z, TerrainChunk tc)
-    {
+    public Runnable generateChunkRawData(World world, int x, int z, TerrainChunk tc) {
         initialize(world);
 
-        synchronized (chunkCache)
-        {
+        synchronized (chunkCache) {
             long g = Cache.key(x, z);
-            if(chunkCache.containsKey(g))
-            {
+            if (chunkCache.containsKey(g)) {
                 generated++;
                 return chunkCache.remove(g).inject(tc);
             }
@@ -668,7 +611,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         compound.generate(x * 16, z * 16, blocks, post, biomes);
         generated++;
 
-        return () -> blocks.insertSoftly(0,0,0, post, (b) -> b == null || B.isAirOrFluid(b));
+        return () -> blocks.insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
     }
 
     @Override
@@ -752,7 +695,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public IrisBiome getBiome(int x, int y, int z) {
         // TODO: REMOVE GET ABS BIOME OR THIS ONE
-        return getEngineAccess(y).getBiome(x, y-getComposite().getEngineForHeight(y).getMinHeight(), z);
+        return getEngineAccess(y).getBiome(x, y - getComposite().getEngineForHeight(y).getMinHeight(), z);
     }
 
     @Override
@@ -767,7 +710,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public IrisDataManager getData() {
-        if (getCompound() == null){
+        if (getCompound() == null) {
             return null;
         }
         return getComposite().getData();
@@ -790,8 +733,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void clearRegeneratedLists(int x, int z) {
-        for(int i = 0; i < getComposite().getSize(); i++)
-        {
+        for (int i = 0; i < getComposite().getSize(); i++) {
             getComposite().getEngine(i).getParallax().delete(x, z);
         }
     }
@@ -800,8 +742,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public void regenerate(int x, int z) {
 
         clearRegeneratedLists(x, z);
-        int xx = x*16;
-        int zz = z*16;
+        int xx = x * 16;
+        int zz = z * 16;
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
             @Override
             public void setRaw(ChunkData data) {
@@ -840,15 +782,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBlock(int x, int y, int z, BlockData blockData) {
-                if(!getBlockData(x,y,z).matches(blockData))
-                {
-                    Iris.edit.set(compound.getWorld(), x+xx, y, z+zz, blockData);
+                if (!getBlockData(x, y, z).matches(blockData)) {
+                    Iris.edit.set(compound.getWorld(), x + xx, y, z + zz, blockData);
                 }
             }
 
             @Override
             public BlockData getBlockData(int x, int y, int z) {
-                return Iris.edit.get(compound.getWorld(), x+xx, y, z+zz);
+                return Iris.edit.get(compound.getWorld(), x + xx, y, z + zz);
             }
 
             @Override
@@ -925,12 +866,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public boolean isClosed() {
-        try
-        {
+        try {
             return getComposite().getEngine(0).isClosed();
-        }
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             return false;
         }
     }
@@ -939,7 +877,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineTarget getTarget() {
         try {
             return getComposite().getEngine(0).getTarget();
-        } catch (NullPointerException e){
+        } catch (NullPointerException e) {
             Iris.info("Failed to get composite engine. Please re-create the world in case you notice issues");
             return null;
         }
@@ -952,8 +890,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public boolean isFailing() {
-        if(getComposite() == null)
-        {
+        if (getComposite() == null) {
             return false;
         }
 
@@ -970,24 +907,16 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public KList<IrisBiome> getAllBiomes(String worldName) {
-        if(getComposite() != null)
-        {
+        if (getComposite() != null) {
             return getComposite().getAllBiomes();
-        }
-
-        else
-        {
+        } else {
             KMap<String, IrisBiome> v = new KMap<>();
             IrisDimension dim = getDimension(worldName);
             dim.getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i));
 
-            try
-            {
+            try {
                 dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
 
             }
 

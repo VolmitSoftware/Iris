@@ -14,7 +14,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
-public class IrisWorldManager  extends EngineAssignedWorldManager {
+public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean spawnable;
 
     public IrisWorldManager(Engine engine) {
@@ -36,13 +36,12 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
     public void spawnInitialEntities(Chunk c) {
         RNG rng = new RNG(Cache.key(c));
 
-        getEngine().getParallaxAccess().getEntitiesR(c.getX(), c.getZ()).iterateSync((x,y,z,e) -> {
-            if(e != null)
-            {
+        getEngine().getParallaxAccess().getEntitiesR(c.getX(), c.getZ()).iterateSync((x, y, z, e) -> {
+            if (e != null) {
                 IrisEntity en = getData().getEntityLoader().load(e);
 
-                if(en != null){
-                    en.spawn(getEngine(), new Location(c.getWorld(), x+(c.getX()<<4),y,z+(c.getZ()<<4)));
+                if (en != null) {
+                    en.spawn(getEngine(), new Location(c.getWorld(), x + (c.getX() << 4), y, z + (c.getZ() << 4)));
                 }
             }
         });
@@ -61,17 +60,13 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
     }
 
     @Override
-    public void onEntitySpawn(EntitySpawnEvent e)
-    {
-        if(getTarget().getWorld() == null || !getTarget().getWorld().equals(e.getEntity().getWorld()))
-        {
+    public void onEntitySpawn(EntitySpawnEvent e) {
+        if (getTarget().getWorld() == null || !getTarget().getWorld().equals(e.getEntity().getWorld())) {
             return;
         }
 
-        try
-        {
-            if(!IrisSettings.get().getGenerator().isSystemEntitySpawnOverrides())
-            {
+        try {
+            if (!IrisSettings.get().getGenerator().isSystemEntitySpawnOverrides()) {
                 return;
             }
 
@@ -81,14 +76,12 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
 
             J.a(() ->
             {
-                if(spawnable)
-                {
+                if (spawnable) {
                     IrisDimension dim = getDimension();
                     IrisRegion region = getEngine().getRegion(x, z);
                     IrisBiome above = getEngine().getSurfaceBiome(x, z);
                     IrisBiome bbelow = getEngine().getBiome(x, y, z);
-                    if(above.getLoadKey().equals(bbelow.getLoadKey()))
-                    {
+                    if (above.getLoadKey().equals(bbelow.getLoadKey())) {
                         bbelow = null;
                     }
 
@@ -96,54 +89,40 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
 
                     J.s(() ->
                     {
-                        if(below != null)
-                        {
-                            if(trySpawn(below.getEntitySpawnOverrides(), e))
-                            {
+                        if (below != null) {
+                            if (trySpawn(below.getEntitySpawnOverrides(), e)) {
                                 return;
                             }
                         }
 
-                        if(trySpawn(above.getEntitySpawnOverrides(), e))
-                        {
+                        if (trySpawn(above.getEntitySpawnOverrides(), e)) {
                             return;
                         }
 
-                        if(trySpawn(region.getEntitySpawnOverrides(), e))
-                        {
+                        if (trySpawn(region.getEntitySpawnOverrides(), e)) {
                             return;
                         }
 
-                        if(trySpawn(dim.getEntitySpawnOverrides(), e))
-                        {
+                        if (trySpawn(dim.getEntitySpawnOverrides(), e)) {
                             return;
                         }
                     });
                 }
             });
-        }
-
-        catch(Throwable xe)
-        {
+        } catch (Throwable xe) {
 
         }
     }
 
-    private boolean trySpawn(KList<IrisEntitySpawnOverride> s, EntitySpawnEvent e)
-    {
-        for(IrisEntitySpawnOverride i : s)
-        {
+    private boolean trySpawn(KList<IrisEntitySpawnOverride> s, EntitySpawnEvent e) {
+        for (IrisEntitySpawnOverride i : s) {
             spawnable = false;
 
-            if(i.on(getEngine(), e.getLocation(), e.getEntityType(), e) != null)
-            {
+            if (i.on(getEngine(), e.getLocation(), e.getEntityType(), e) != null) {
                 e.setCancelled(true);
                 e.getEntity().remove();
                 return true;
-            }
-
-            else
-            {
+            } else {
                 spawnable = true;
             }
         }
@@ -151,10 +130,8 @@ public class IrisWorldManager  extends EngineAssignedWorldManager {
         return false;
     }
 
-    private void trySpawn(KList<IrisEntityInitialSpawn> s, Chunk c, RNG rng)
-    {
-        for(IrisEntityInitialSpawn i : s)
-        {
+    private void trySpawn(KList<IrisEntityInitialSpawn> s, Chunk c, RNG rng) {
+        for (IrisEntityInitialSpawn i : s) {
             i.spawn(getEngine(), c, rng);
         }
     }

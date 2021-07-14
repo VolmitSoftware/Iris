@@ -1,26 +1,25 @@
 package com.volmit.iris.manager.edit;
 
-import java.io.Closeable;
-
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-public interface BlockEditor extends Closeable
-{
-	public long last();
+import java.io.Closeable;
 
-	public void set(int x, int y, int z, BlockData d);
+public interface BlockEditor extends Closeable {
+    long last();
 
-	public BlockData get(int x, int y, int z);
-	
-	public void setBiome(int x, int z, Biome b);
+    void set(int x, int y, int z, BlockData d);
 
-	public void setBiome(int x, int y, int z, Biome b);
+    BlockData get(int x, int y, int z);
 
-	@Override
-	public void close();
+    void setBiome(int x, int z, Biome b);
 
-	public Biome getBiome(int x, int y, int z);
+    void setBiome(int x, int y, int z, Biome b);
 
-	public Biome getBiome(int x, int z);
+    @Override
+    void close();
+
+    Biome getBiome(int x, int y, int z);
+
+    Biome getBiome(int x, int z);
 }

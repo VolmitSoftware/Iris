@@ -2,10 +2,8 @@ package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 
-public abstract class EngineAssignedBiModifier<A, B> extends EngineAssignedComponent implements EngineBiModifier<A, B>
-{
-    public EngineAssignedBiModifier(Engine engine, String name)
-    {
+public abstract class EngineAssignedBiModifier<A, B> extends EngineAssignedComponent implements EngineBiModifier<A, B> {
+    public EngineAssignedBiModifier(Engine engine, String name) {
         super(engine, name);
     }
 

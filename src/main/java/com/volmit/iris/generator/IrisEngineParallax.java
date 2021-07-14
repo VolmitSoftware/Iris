@@ -11,8 +11,7 @@ public class IrisEngineParallax implements EngineParallaxManager {
     @Getter
     private final int parallaxSize;
 
-    public IrisEngineParallax(Engine engine)
-    {
+    public IrisEngineParallax(Engine engine) {
         this.engine = engine;
         parallaxSize = computeParallaxSize();
     }

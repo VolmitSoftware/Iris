@@ -9,8 +9,7 @@ public class EngineAssignedComponent implements EngineComponent {
     private final RollingSequence metrics;
     private final String name;
 
-    public EngineAssignedComponent(Engine engine, String name)
-    {
+    public EngineAssignedComponent(Engine engine, String name) {
         this.engine = engine;
         this.metrics = new RollingSequence(16);
         this.name = name;

@@ -17,16 +17,15 @@ import lombok.experimental.Accessors;
 @Desc("Represents a jigsaw structure placer")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisJigsawStructurePlacement extends IrisRegistrant
-{
-	@RegistryListJigsaw
-	@Required
-	@DontObfuscate
-	@Desc("The structure to place")
-	private String structure;
+public class IrisJigsawStructurePlacement extends IrisRegistrant {
+    @RegistryListJigsaw
+    @Required
+    @DontObfuscate
+    @Desc("The structure to place")
+    private String structure;
 
-	@DontObfuscate
-	@Required
-	@Desc("The 1 in X chance rarity")
-	private int rarity = 100;
+    @DontObfuscate
+    @Required
+    @Desc("The 1 in X chance rarity")
+    private int rarity = 100;
 }

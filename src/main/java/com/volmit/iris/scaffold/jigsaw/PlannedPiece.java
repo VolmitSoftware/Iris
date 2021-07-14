@@ -1,18 +1,12 @@
 package com.volmit.iris.scaffold.jigsaw;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.generator.IrisEngine;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.*;
 import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
-import com.volmit.iris.util.AxisAlignedBB;
-import com.volmit.iris.util.BlockPosition;
-import com.volmit.iris.util.IObjectPlacer;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.*;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -36,18 +30,16 @@ public class PlannedPiece {
     private AxisAlignedBB box;
     private PlannedStructure structure;
 
-    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece)
-    {
-        this(structure, position, piece, 0,0,0);
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece) {
+        this(structure, position, piece, 0, 0, 0);
     }
 
-    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz)
-    {
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz) {
         this.structure = structure;
         this.position = position;
         rotationKey = (rz * 100) + (rx * 10) + ry;
         this.data = piece.getLoader();
-        this.rotation = IrisObjectRotation.of(rx*90D, ry*90D, rz*90D);
+        this.rotation = IrisObjectRotation.of(rx * 90D, ry * 90D, rz * 90D);
         this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
@@ -55,21 +47,17 @@ public class PlannedPiece {
         this.connected = new KList<>();
     }
 
-    public void setPosition(IrisPosition p)
-    {
+    public void setPosition(IrisPosition p) {
         this.position = p;
         box = null;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return piece.getLoadKey() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")[rot:" + rotationKey + "]";
     }
 
-    public AxisAlignedBB getBox()
-    {
-        if(box != null)
-        {
+    public AxisAlignedBB getBox() {
+        if (box != null) {
             return box;
         }
 
@@ -78,34 +66,27 @@ public class PlannedPiece {
         return box;
     }
 
-    public boolean contains(IrisPosition p)
-    {
+    public boolean contains(IrisPosition p) {
         return getBox().contains(p);
     }
 
-    public boolean collidesWith(PlannedPiece p)
-    {
+    public boolean collidesWith(PlannedPiece p) {
         return getBox().intersects(p.getBox());
     }
 
-    public KList<IrisJigsawPieceConnector> getAvailableConnectors()
-    {
-        if(connected.isEmpty())
-        {
+    public KList<IrisJigsawPieceConnector> getAvailableConnectors() {
+        if (connected.isEmpty()) {
             return piece.getConnectors().copy();
         }
 
-        if(connected.size() == piece.getConnectors().size())
-        {
+        if (connected.size() == piece.getConnectors().size()) {
             return new KList<>();
         }
 
         KList<IrisJigsawPieceConnector> c = new KList<>();
 
-        for(IrisJigsawPieceConnector i : piece.getConnectors())
-        {
-            if(!connected.contains(i))
-            {
+        for (IrisJigsawPieceConnector i : piece.getConnectors()) {
+            if (!connected.contains(i)) {
                 c.add(i);
             }
         }
@@ -113,23 +94,19 @@ public class PlannedPiece {
         return c;
     }
 
-    public boolean connect(IrisJigsawPieceConnector c)
-    {
-        if(piece.getConnectors().contains(c))
-        {
+    public boolean connect(IrisJigsawPieceConnector c) {
+        if (piece.getConnectors().contains(c)) {
             return connected.addIfMissing(c);
         }
 
         return false;
     }
 
-    public IrisPosition getWorldPosition(IrisJigsawPieceConnector c)
-    {
+    public IrisPosition getWorldPosition(IrisJigsawPieceConnector c) {
         return getWorldPosition(c.getPosition());
     }
 
-    public IrisPosition getWorldPosition(IrisPosition position)
-    {
+    public IrisPosition getWorldPosition(IrisPosition position) {
         return this.position.add(position).add(new IrisPosition(object.getCenter()));
     }
 
@@ -144,13 +121,14 @@ public class PlannedPiece {
         if (a != null) {
             minY = a.getCompound().getDefaultEngine().getMinHeight();
 
-            if (!a.getCompound().getRootDimension().isBedrock()) minY--; //If the dimension has no bedrock, allow it to go a block lower
+            if (!a.getCompound().getRootDimension().isBedrock())
+                minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
 
         getPiece().getPlacementOptions().getRotation().setEnabled(false);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);
-        getObject().place(position.getX()+getObject().getCenter().getBlockX(), position.getY()+getObject().getCenter().getBlockY(), position.getZ()+getObject().getCenter().getBlockZ(), new IObjectPlacer() {
+        getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z) {
                 return position.getY();
@@ -177,14 +155,14 @@ public class PlannedPiece {
                     if (table == null) return;
                     Engine engine = a.getCompound().getEngineForHeight(y);
                     engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
-                           rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
+                            rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
                             new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
                 }
             }
 
             @Override
             public BlockData get(int x, int y, int z) {
-                return world.getBlockAt(x,y,z).getBlockData();
+                return world.getBlockAt(x, y, z).getBlockData();
             }
 
             @Override
@@ -194,7 +172,7 @@ public class PlannedPiece {
 
             @Override
             public boolean isSolid(int x, int y, int z) {
-                return world.getBlockAt(x,y,z).getType().isSolid();
+                return world.getBlockAt(x, y, z).getType().isSolid();
             }
 
             @Override
@@ -214,7 +192,7 @@ public class PlannedPiece {
 
             @Override
             public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx,yy,zz).getState();
+                BlockState state = world.getBlockAt(xx, yy, zz).getState();
                 tile.toBukkitTry(state);
                 state.update();
             }

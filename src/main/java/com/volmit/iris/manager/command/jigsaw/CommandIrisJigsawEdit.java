@@ -11,59 +11,51 @@ import com.volmit.iris.util.MortarSender;
 
 import java.io.File;
 
-public class CommandIrisJigsawEdit extends MortarCommand
-{
-	public CommandIrisJigsawEdit()
-	{
-		super("edit", "e", "*");
-		requiresPermission(Iris.perm);
-		setCategory("Jigsaw");
-		setDescription("Edit an existing Jigsaw piece");
-	}
+public class CommandIrisJigsawEdit extends MortarCommand {
+    public CommandIrisJigsawEdit() {
+        super("edit", "e", "*");
+        requiresPermission(Iris.perm);
+        setCategory("Jigsaw");
+        setDescription("Edit an existing Jigsaw piece");
+    }
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
+    }
 
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
-			return true;
-		}
-		
-		if(!sender.isPlayer())
-		{
-			sender.sendMessage("Ingame only");
-			return true;
-		}
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        if (!IrisSettings.get().isStudio()) {
+            sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
+            return true;
+        }
 
-		if(args.length < 1)
-		{
-			sender.sendMessage(getArgsUsage());
-			return true;
-		}
+        if (!sender.isPlayer()) {
+            sender.sendMessage("Ingame only");
+            return true;
+        }
 
-		IrisJigsawPiece piece = IrisDataManager.loadAnyJigsawPiece(args[0]);
+        if (args.length < 1) {
+            sender.sendMessage(getArgsUsage());
+            return true;
+        }
 
-		if(piece != null)
-		{
-			File dest = piece.getLoadFile();
-			new JigsawEditor(sender.player(), piece, IrisDataManager.loadAnyObject(piece.getObject()), dest);
-			return true;
-		}
+        IrisJigsawPiece piece = IrisDataManager.loadAnyJigsawPiece(args[0]);
 
-		sender.sendMessage("Failed to find existing jigsaw piece: " + args[0]);
+        if (piece != null) {
+            File dest = piece.getLoadFile();
+            new JigsawEditor(sender.player(), piece, IrisDataManager.loadAnyObject(piece.getObject()), dest);
+            return true;
+        }
 
-		return true;
-	}
+        sender.sendMessage("Failed to find existing jigsaw piece: " + args[0]);
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "<name>";
-	}
+        return true;
+    }
+
+    @Override
+    protected String getArgsUsage() {
+        return "<name>";
+    }
 }

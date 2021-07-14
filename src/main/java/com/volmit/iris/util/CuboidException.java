@@ -5,12 +5,10 @@ package com.volmit.iris.util;
  *
  * @author cyberpwn
  */
-public class CuboidException extends Exception
-{
-	public CuboidException(String string)
-	{
-		super(string);
-	}
+public class CuboidException extends Exception {
+    public CuboidException(String string) {
+        super(string);
+    }
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 }

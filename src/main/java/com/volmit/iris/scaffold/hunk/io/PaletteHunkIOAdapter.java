@@ -18,9 +18,8 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         AtomicInteger nonNull = new AtomicInteger(0);
         DataPalette<T> palette = new DataPalette<T>();
 
-        t.iterateSync((x,y,z,w) -> {
-            if(w != null)
-            {
+        t.iterateSync((x, y, z, w) -> {
+            if (w != null) {
                 palette.getIndex(w);
                 nonNull.getAndAdd(1);
             }
@@ -29,19 +28,14 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         palette.write(this, dos);
         dos.writeInt(nonNull.get() + Integer.MIN_VALUE);
         AtomicBoolean failure = new AtomicBoolean(false);
-        t.iterateSync((x,y,z,w) -> {
-            if(w != null)
-            {
-                try
-                {
+        t.iterateSync((x, y, z, w) -> {
+            if (w != null) {
+                try {
                     dos.writeShort(x + Short.MIN_VALUE);
                     dos.writeShort(y + Short.MIN_VALUE);
                     dos.writeShort(z + Short.MIN_VALUE);
                     dos.writeShort(palette.getIndex(w) + Short.MIN_VALUE);
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     e.printStackTrace();
                     failure.set(true);
                 }
@@ -52,7 +46,7 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
     }
 
     @Override
-    public Hunk<T> read(Function3<Integer,Integer,Integer,Hunk<T>> factory, InputStream in) throws IOException {
+    public Hunk<T> read(Function3<Integer, Integer, Integer, Hunk<T>> factory, InputStream in) throws IOException {
         DataInputStream din = new DataInputStream(in);
         int w = din.readShort() - Short.MIN_VALUE;
         int h = din.readShort() - Short.MIN_VALUE;
@@ -61,22 +55,19 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         int e = din.readInt() - Integer.MIN_VALUE;
         Hunk<T> t = factory.apply(w, h, d);
 
-        for(int i = 0; i < e; i++)
-        {
+        for (int i = 0; i < e; i++) {
             int x = din.readShort() - Short.MIN_VALUE;
             int y = din.readShort() - Short.MIN_VALUE;
             int z = din.readShort() - Short.MIN_VALUE;
             int vf = din.readShort() - Short.MIN_VALUE;
 
             T v = null;
-            if( palette.getPalette().hasIndex(vf))
-            {
+            if (palette.getPalette().hasIndex(vf)) {
                 v = palette.getPalette().get(vf);
             }
 
-            if(v != null)
-            {
-                t.setRaw(x,y,z, v);
+            if (v != null) {
+                t.setRaw(x, y, z, v);
             }
         }
 

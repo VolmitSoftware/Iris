@@ -81,28 +81,25 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
      * Verifies the chunk correctly has all the parallax objects it should.
      * This method should not have to be written but why not.
      * Thread Safe, Designed to run async
+     *
      * @param c the bukkit chunk
      */
-    default int repairChunk(Chunk c)
-    {
+    default int repairChunk(Chunk c) {
         ParallaxChunkMeta m = getParallaxAccess().getMetaR(c.getX(), c.getZ());
         Hunk<String> o = getParallaxAccess().getObjectsR(c.getX(), c.getZ());
         Hunk<BlockData> b = getParallaxAccess().getBlocksR(c.getX(), c.getZ());
         ChunkSnapshot snapshot = c.getChunkSnapshot(false, false, false);
         KList<Runnable> queue = new KList<>();
 
-        o.iterateSync((x,y,z,s) -> {
-            if(s != null)
-            {
+        o.iterateSync((x, y, z, s) -> {
+            if (s != null) {
 
-                BlockData bd = b.get(x,y,z);
-                if(bd != null)
-                {
-                    BlockData bdx = snapshot.getBlockData(x,y,z);
+                BlockData bd = b.get(x, y, z);
+                if (bd != null) {
+                    BlockData bdx = snapshot.getBlockData(x, y, z);
 
-                    if(!bdx.getMaterial().equals(bd.getMaterial()))
-                    {
-                        queue.add(() -> c.getBlock(x,y,z).setBlockData(bd, false));
+                    if (!bdx.getMaterial().equals(bd.getMaterial())) {
+                        queue.add(() -> c.getBlock(x, y, z).setBlockData(bd, false));
                     }
                 }
             }
@@ -114,16 +111,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             bx.set(true);
         });
 
-        while(!bx.get())
-        {
+        while (!bx.get()) {
             J.sleep(50);
         }
 
         return queue.size();
     }
 
-    default void insertTileEntities(int x, int z, Consumer4<Integer, Integer, Integer, TileData<? extends TileState>> consumer)
-    {
+    default void insertTileEntities(int x, int z, Consumer4<Integer, Integer, Integer, TileData<? extends TileState>> consumer) {
         ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(x >> 4, z >> 4);
 
         if (meta.isTilesGenerated()) {
@@ -132,10 +127,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         meta.setTilesGenerated(true);
 
-        getParallaxAccess().getTilesRW(x>>4, z>>4).iterateSync((a,b,c,d) -> {
-            if(d != null)
-            {
-                consumer.accept(a,b,c,d);
+        getParallaxAccess().getTilesRW(x >> 4, z >> 4).iterateSync((a, b, c, d) -> {
+            if (d != null) {
+                consumer.accept(a, b, c, d);
             }
         });
     }
@@ -155,9 +149,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 return;
             }
 
-            getParallaxAccess().getBlocksR(x>>4,z>>4).iterateSync((a,b,c,d) -> {
-                if(d != null)
-                {
+            getParallaxAccess().getBlocksR(x >> 4, z >> 4).iterateSync((a, b, c, d) -> {
+                if (d != null) {
                     data.set(a, b, c, d);
                 }
             });
@@ -185,21 +178,15 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             for (j = -s; j <= s; j++) {
                 ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
-                try
-                {
-                    synchronized (m.getFeatures())
-                    {
-                        for(IrisFeaturePositional k : m.getFeatures())
-                        {
+                try {
+                    synchronized (m.getFeatures()) {
+                        for (IrisFeaturePositional k : m.getFeatures()) {
                             if (k.shouldFilter(x, z)) {
                                 f.accept(k);
                             }
                         }
                     }
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     e.printStackTrace();
                     Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
                 }
@@ -207,24 +194,22 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void generateParallaxArea(int x, int z)
-    {
-        try
-        {
+    default void generateParallaxArea(int x, int z) {
+        try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
             int s = (int) Math.ceil(getParallaxSize() / 2D);
-            int i,j;
+            int i, j;
             KList<Runnable> after = new KList<>();
             int bs = (int) Math.pow((s * 2) + 1, 2);
             BurstExecutor burst = MultiBurst.burst.burst(bs);
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
-                    int xx = i +x;
-                    int zz = j +z;
+                    int xx = i + x;
+                    int zz = j + z;
                     int xxx = xx << 4;
                     int zzz = zz << 4;
-                    if (!getParallaxAccess().isFeatureGenerated(xx, zz)){
+                    if (!getParallaxAccess().isFeatureGenerated(xx, zz)) {
                         burst.queue(() -> {
                             getParallaxAccess().setFeatureGenerated(xx, zz);
                             RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
@@ -244,9 +229,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (j = -s; j <= s; j++) {
                     int jj = j;
                     burst.queue(() -> {
-                        KList<Runnable> a = generateParallaxVacuumLayer(ii +x, jj +z);
-                        synchronized (a)
-                        {
+                        KList<Runnable> a = generateParallaxVacuumLayer(ii + x, jj + z);
+                        synchronized (a) {
                             after.addAll(a);
                         }
                     });
@@ -260,7 +244,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 int ii = i;
                 for (j = -s; j <= s; j++) {
                     int jj = j;
-                    burst.queue(() -> generateParallaxLayer(ii +x, jj +z));
+                    burst.queue(() -> generateParallaxLayer(ii + x, jj + z));
                 }
             }
 
@@ -269,94 +253,77 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("Failed to generate parallax in " + x + " " + z);
             e.printStackTrace();
         }
     }
 
-    default KList<Runnable> generateParallaxVacuumLayer(int x, int z)
-    {
+    default KList<Runnable> generateParallaxVacuumLayer(int x, int z) {
         KList<Runnable> after = new KList<>();
-        if(getParallaxAccess().isParallaxGenerated(x, z))
-        {
+        if (getParallaxAccess().isParallaxGenerated(x, z)) {
             return after;
         }
-        int xx = x<<4;
-        int zz = z<<4;
+        int xx = x << 4;
+        int zz = z << 4;
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-        IrisRegion region = getComplex().getRegionStream().get(xx+8, zz+8);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
+        IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
         after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
         generateParallaxSurface(rng, x, z, biome, region, true);
         generateParallaxMutations(rng, x, z, true);
         return after;
     }
 
-    default void generateParallaxLayer(int x, int z, boolean force)
-    {
-        if(!force && getParallaxAccess().isParallaxGenerated(x, z))
-        {
+    default void generateParallaxLayer(int x, int z, boolean force) {
+        if (!force && getParallaxAccess().isParallaxGenerated(x, z)) {
             return;
         }
 
-        int xx = x<<4;
-        int zz = z<<4;
+        int xx = x << 4;
+        int zz = z << 4;
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx+8, zz+8);
-        IrisRegion region = getComplex().getRegionStream().get(xx+8,zz+8);
-        generateParallaxSurface(rng, x, z, biome,  region,false);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+        IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
+        generateParallaxSurface(rng, x, z, biome, region, false);
         generateParallaxMutations(rng, x, z, false);
     }
 
-    default void generateParallaxFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome)
-    {
-        for(IrisFeaturePotential i : getEngine().getDimension().getFeatures())
-        {
+    default void generateParallaxFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
+        for (IrisFeaturePotential i : getEngine().getDimension().getFeatures()) {
             placeZone(rng, cx, cz, i);
         }
 
-        for(IrisFeaturePotential i : region.getFeatures())
-        {
+        for (IrisFeaturePotential i : region.getFeatures()) {
             placeZone(rng, cx, cz, i);
         }
 
-        for(IrisFeaturePotential i : biome.getFeatures())
-        {
+        for (IrisFeaturePotential i : biome.getFeatures()) {
             placeZone(rng, cx, cz, i);
         }
     }
 
-    default void placeZone(RNG rng, int cx, int cz, IrisFeaturePotential i)
-    {
-        if(i.hasZone(rng, cx, cz))
-        {
-            getParallaxAccess().getMetaRW(cx, cz).getFeatures().add(new IrisFeaturePositional((cx << 4) + rng.nextInt(16), (cz << 4)+ rng.nextInt(16), i.getZone()));
+    default void placeZone(RNG rng, int cx, int cz, IrisFeaturePotential i) {
+        if (i.hasZone(rng, cx, cz)) {
+            getParallaxAccess().getMetaRW(cx, cz).getFeatures().add(new IrisFeaturePositional((cx << 4) + rng.nextInt(16), (cz << 4) + rng.nextInt(16), i.getZone()));
         }
     }
 
-    default void generateParallaxLayer(int x, int z)
-    {
+    default void generateParallaxLayer(int x, int z) {
         generateParallaxLayer(x, z, false);
     }
 
-    default KList<Runnable> placeStructure(IrisPosition position, IrisJigsawStructure structure, RNG rng)
-    {
+    default KList<Runnable> placeStructure(IrisPosition position, IrisJigsawStructure structure, RNG rng) {
         KList<Runnable> placeAfter = new KList<>();
 
-        if (structure == null){
+        if (structure == null) {
             return null;
         }
 
-        if(structure.getFeature() != null)
-        {
-            if(structure.getFeature().getBlockRadius() == 32)
-            {
-                structure.getFeature().setBlockRadius((double)structure.getMaxDimension()/3);
+        if (structure.getFeature() != null) {
+            if (structure.getFeature().getBlockRadius() == 32) {
+                structure.getFeature().setBlockRadius((double) structure.getMaxDimension() / 3);
             }
 
             getParallaxAccess().getMetaRW(position.getX() >> 4, position.getZ() >> 4).getFeatures()
@@ -371,12 +338,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         KList<Runnable> placeAfter = new KList<>();
         boolean placed = false;
 
-        if(getEngine().getDimension().getStronghold() != null)
-        {
+        if (getEngine().getDimension().getStronghold() != null) {
             List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
 
-            if(poss != null)
-            {
+            if (poss != null) {
                 for (IrisPosition pos : poss) {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
@@ -387,13 +352,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        if(!placed)
-        {
-            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures())
-            {
-                if(rng.nextInt(i.getRarity()) == 0)
-                {
-                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+        if (!placed) {
+            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
+                if (rng.nextInt(i.getRarity()) == 0) {
+                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     placeAfter.addAll(placeStructure(position, structure, rng));
                     placed = true;
@@ -401,13 +363,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        if(!placed)
-        {
-            for (IrisJigsawStructurePlacement i : region.getJigsawStructures())
-            {
-                if(rng.nextInt(i.getRarity()) == 0)
-                {
-                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+        if (!placed) {
+            for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
+                if (rng.nextInt(i.getRarity()) == 0) {
+                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     placeAfter.addAll(placeStructure(position, structure, rng));
                     placed = true;
@@ -415,13 +374,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        if(!placed)
-        {
-            for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures())
-            {
-                if(rng.nextInt(i.getRarity()) == 0)
-                {
-                    IrisPosition position = new IrisPosition((x<<4) + rng.nextInt(15),0,(z<<4) + rng.nextInt(15));
+        if (!placed) {
+            for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures()) {
+                if (rng.nextInt(i.getRarity()) == 0) {
+                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     placeAfter.addAll(placeStructure(position, structure, rng));
                     placed = true;
@@ -434,18 +390,15 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean vacuum) {
 
-        for (IrisObjectPlacement i : biome.getSurfaceObjects())
-        {
-            if(i.isVacuum() != vacuum)
-            {
+        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
+            if (i.isVacuum() != vacuum) {
                 continue;
             }
 
-            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x<<4, z<<4)))
-            {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
                 try {
                     place(rng, x << 4, z << 4, i);
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
@@ -454,18 +407,15 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        for (IrisObjectPlacement i : region.getSurfaceObjects())
-        {
-            if(i.isVacuum() != vacuum)
-            {
+        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
+            if (i.isVacuum() != vacuum) {
                 continue;
             }
 
-            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x<<4, z<<4)))
-            {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
                 try {
                     place(rng, x << 4, z << 4, i);
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
@@ -476,29 +426,23 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void generateParallaxMutations(RNG rng, int x, int z, boolean vacuum) {
-        if(getEngine().getDimension().getMutations().isEmpty())
-        {
+        if (getEngine().getDimension().getMutations().isEmpty()) {
             return;
         }
 
-        searching: for(IrisBiomeMutation k : getEngine().getDimension().getMutations())
-        {
-            for(int l = 0; l < k.getChecks(); l++)
-            {
+        searching:
+        for (IrisBiomeMutation k : getEngine().getDimension().getMutations()) {
+            for (int l = 0; l < k.getChecks(); l++) {
                 IrisBiome sa = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
                 IrisBiome sb = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
 
-                if(sa.getLoadKey().equals(sb.getLoadKey()))
-                {
+                if (sa.getLoadKey().equals(sb.getLoadKey())) {
                     continue;
                 }
 
-                if(k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey()))
-                {
-                    for(IrisObjectPlacement m : k.getObjects())
-                    {
-                        if(m.isVacuum() != vacuum)
-                        {
+                if (k.getRealSideA(this).contains(sa.getLoadKey()) && k.getRealSideB(this).contains(sb.getLoadKey())) {
+                    for (IrisObjectPlacement m : k.getObjects()) {
+                        if (m.isVacuum() != vacuum) {
                             continue;
                         }
 
@@ -511,13 +455,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void place(RNG rng, int x, int z, IrisObjectPlacement objectPlacement)
-    {
-        place(rng, x,-1, z, objectPlacement);
+    default void place(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
+        place(rng, x, -1, z, objectPlacement);
     }
 
-    default void placePiece(RNG rng, int xx, int forceY, int zz, IrisObject v, IrisObjectPlacement p)
-    {
+    default void placePiece(RNG rng, int xx, int forceY, int zz, IrisObject v, IrisObjectPlacement p) {
         int id = rng.i(0, Integer.MAX_VALUE);
         int maxf = 10000;
         AtomicBoolean pl = new AtomicBoolean(false);
@@ -528,36 +470,33 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int yf = b.getY();
             int zf = b.getZ();
             getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
-            ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
+            ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf >> 4, zf >> 4);
             meta.setObjects(true);
             meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
             meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
 
         }, null, getData());
 
-        if(p.isVacuum())
-        {
+        if (p.isVacuum()) {
             double a = Math.max(v.getW(), v.getD());
             IrisFeature f = new IrisFeature();
-            f.setConvergeToHeight(h-(v.getH() >> 1));
+            f.setConvergeToHeight(h - (v.getH() >> 1));
             f.setBlockRadius(a);
-            f.setInterpolationRadius(a/4);
+            f.setInterpolationRadius(a / 4);
             f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
             f.setStrength(1D);
-            getParallaxAccess().getMetaRW(xx>>4, zz>>4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
+            getParallaxAccess().getMetaRW(xx >> 4, zz >> 4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
         }
     }
 
-    default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement)
-    {
-        for(int i = 0; i < objectPlacement.getDensity(); i++)
-        {
+    default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement) {
+        for (int i = 0; i < objectPlacement.getDensity(); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
-            if (v == null){
+            if (v == null) {
                 return;
             }
-            int xx = rng.i(x, x+16);
-            int zz = rng.i(z, z+16);
+            int xx = rng.i(x, x + 16);
+            int zz = rng.i(z, z + 16);
             int id = rng.i(0, Integer.MAX_VALUE);
             int maxf = 10000;
             AtomicBoolean pl = new AtomicBoolean(false);
@@ -568,29 +507,27 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 int yf = b.getY();
                 int zf = b.getZ();
                 getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
-                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf>>4, zf>>4);
+                ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(xf >> 4, zf >> 4);
                 meta.setObjects(true);
                 meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
                 meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
 
             }, null, getData());
 
-            if(objectPlacement.isVacuum())
-            {
+            if (objectPlacement.isVacuum()) {
                 double a = Math.max(v.getW(), v.getD());
                 IrisFeature f = new IrisFeature();
-                f.setConvergeToHeight(h-(v.getH() >> 1));
+                f.setConvergeToHeight(h - (v.getH() >> 1));
                 f.setBlockRadius(a);
-                f.setInterpolationRadius(a/4);
+                f.setInterpolationRadius(a / 4);
                 f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
                 f.setStrength(1D);
-                getParallaxAccess().getMetaRW(xx>>4, zz>>4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
+                getParallaxAccess().getMetaRW(xx >> 4, zz >> 4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
         }
     }
 
-    default void updateParallaxChunkObjectData(int minY, int maxY, int x, int z, IrisObject v)
-    {
+    default void updateParallaxChunkObjectData(int minY, int maxY, int x, int z, IrisObject v) {
         ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(x >> 4, z >> 4);
         meta.setObjects(true);
         meta.setMaxObject(Math.max(maxY, meta.getMaxObject()));
@@ -611,13 +548,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         for (IrisBiome i : b) {
             for (IrisObjectPlacement j : i.getObjects()) {
-                if(j.getScale().canScaleBeyond())
-                {
+                if (j.getScale().canScaleBeyond()) {
                     scalars.put(j.getScale(), j.getPlace());
-                }
-
-                else
-                {
+                } else {
                     objects.addAll(j.getPlace());
                 }
             }
@@ -627,40 +560,28 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        for (IrisRegion i : r)
-        {
+        for (IrisRegion i : r) {
             for (IrisObjectPlacement j : i.getObjects()) {
-                if(j.getScale().canScaleBeyond())
-                {
+                if (j.getScale().canScaleBeyond()) {
                     scalars.put(j.getScale(), j.getPlace());
-                }
-
-                else
-                {
+                } else {
                     objects.addAll(j.getPlace());
                 }
             }
 
-            for(IrisJigsawStructurePlacement j : i.getJigsawStructures())
-            {
+            for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
             }
         }
 
-        for(IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures())
-        {
+        for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
             jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
         }
 
-        if(getEngine().getDimension().getStronghold() != null)
-        {
-            try
-            {
+        if (getEngine().getDimension().getStronghold() != null) {
+            try {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 Iris.error("THIS IS THE ONE");
                 e.printStackTrace();
             }
@@ -669,14 +590,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
         BurstExecutor e = MultiBurst.burst.burst(objects.size());
         KMap<String, BlockVector> sizeCache = new KMap<>();
-        for(String i : objects)
-        {
+        for (String i : objects) {
             e.queue(() -> {
-                try
-                {
-                    BlockVector bv = sizeCache.compute(i, (k,v) -> {
-                        if(v != null)
-                        {
+                try {
+                    BlockVector bv = sizeCache.compute(i, (k, v) -> {
+                        if (v != null) {
                             return v;
                         }
 
@@ -689,42 +607,32 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         return null;
                     });
 
-                    if(bv == null)
-                    {
+                    if (bv == null) {
                         throw new RuntimeException();
                     }
 
                     warn(i, bv);
 
-                    synchronized (xg)
-                    {
+                    synchronized (xg) {
                         xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
                     }
 
-                    synchronized (zg)
-                    {
+                    synchronized (zg) {
                         zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
                     }
-                }
-
-                catch(Throwable ignored)
-                {
+                } catch (Throwable ignored) {
 
                 }
             });
         }
 
-        for(IrisObjectScale i : scalars.keySet())
-        {
+        for (IrisObjectScale i : scalars.keySet()) {
             double ms = i.getMaximumScale();
-            for(String j : scalars.get(i))
-            {
+            for (String j : scalars.get(i)) {
                 e.queue(() -> {
-                    try
-                    {
-                        BlockVector bv = sizeCache.compute(j, (k,v) -> {
-                            if(v != null)
-                            {
+                    try {
+                        BlockVector bv = sizeCache.compute(j, (k, v) -> {
+                            if (v != null) {
                                 return v;
                             }
 
@@ -737,26 +645,20 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                             return null;
                         });
 
-                        if(bv == null)
-                        {
+                        if (bv == null) {
                             throw new RuntimeException();
                         }
 
                         warnScaled(j, bv, ms);
 
-                        synchronized (xg)
-                        {
+                        synchronized (xg) {
                             xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
                         }
 
-                        synchronized (zg)
-                        {
-                            zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ()* ms), zg.get()));
+                        synchronized (zg) {
+                            zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
                         }
-                    }
-
-                    catch(Throwable ignored)
-                    {
+                    } catch (Throwable ignored) {
 
                     }
                 });
@@ -768,27 +670,22 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int x = xg.get();
         int z = zg.get();
 
-        for(IrisDepositGenerator i : getEngine().getDimension().getDeposits())
-        {
+        for (IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
             int max = i.getMaxDimension();
             x = Math.max(max, x);
             z = Math.max(max, z);
         }
 
-        for(IrisRegion v : r)
-        {
-            for(IrisDepositGenerator i : v.getDeposits())
-            {
+        for (IrisRegion v : r) {
+            for (IrisDepositGenerator i : v.getDeposits()) {
                 int max = i.getMaxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
             }
         }
 
-        for(IrisBiome v : b)
-        {
-            for(IrisDepositGenerator i : v.getDeposits())
-            {
+        for (IrisBiome v : b) {
+            for (IrisDepositGenerator i : v.getDeposits()) {
                 int max = i.getMaxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
@@ -810,37 +707,31 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return x;
     }
 
-    default int computeFeatureRange()
-    {
+    default int computeFeatureRange() {
         int m = 0;
 
-        for(IrisFeaturePotential i : getAllFeatures())
-        {
+        for (IrisFeaturePotential i : getAllFeatures()) {
             m = Math.max(m, i.getZone().getRealSize());
         }
 
         return m;
     }
 
-    default void warn(String ob, BlockVector bv)
-    {
-        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128)
-        {
-            Iris.warn("Object " + ob + " has a large size (" + bv.toString() + ") and may increase memory usage!");
+    default void warn(String ob, BlockVector bv) {
+        if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
+            Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage!");
         }
     }
 
-    default void warnScaled(String ob, BlockVector bv, double ms)
-    {
-        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128)
-        {
-            Iris.warn("Object " + ob + " has a large size (" + bv.toString() + ") and may increase memory usage! (Object scaled up to "+Form.pc(ms, 2)+")");
+    default void warnScaled(String ob, BlockVector bv, double ms) {
+        if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
+            Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
         }
     }
 
     @Override
     default int getHighest(int x, int z) {
-        return getHighest(x,z,false);
+        return getHighest(x, z, false);
     }
 
     @Override
@@ -848,27 +739,25 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return ignoreFluid ? trueHeight(x, z) : Math.max(trueHeight(x, z), getEngine().getDimension().getFluidHeight());
     }
 
-    default int trueHeight(int x, int z)
-    {
+    default int trueHeight(int x, int z) {
         return getComplex().getTrueHeightStream().get(x, z);
     }
 
     @Override
     default void set(int x, int y, int z, BlockData d) {
-        getParallaxAccess().setBlock(x,y,z,d);
+        getParallaxAccess().setBlock(x, y, z, d);
     }
 
     @Override
     default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
-        getParallaxAccess().setTile(x,y,z,d);
+        getParallaxAccess().setTile(x, y, z, d);
     }
 
     @Override
     default BlockData get(int x, int y, int z) {
-        BlockData block = getParallaxAccess().getBlock(x,y,z);
+        BlockData block = getParallaxAccess().getBlock(x, y, z);
 
-        if(block == null)
-        {
+        if (block == null) {
             return AIR;
         }
 
@@ -882,7 +771,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     @Override
     default boolean isSolid(int x, int y, int z) {
-        return B.isSolid(get(x,y,z));
+        return B.isSolid(get(x, y, z));
     }
 
     @Override
@@ -900,8 +789,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return getEngine().getDimension().isDebugSmartBore();
     }
 
-    default void close()
-    {
+    default void close() {
 
     }
 }

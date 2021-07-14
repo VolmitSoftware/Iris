@@ -9,56 +9,47 @@ import com.volmit.iris.util.MortarSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-public class CommandIrisStudioHotload extends MortarCommand
-{
-	public CommandIrisStudioHotload()
-	{
-		super("hotload", "hot", "h", "reload");
-		setDescription("Force a hotload");
-		requiresPermission(Iris.perm.studio);
-		setCategory("World");
-	}
+public class CommandIrisStudioHotload extends MortarCommand {
+    public CommandIrisStudioHotload() {
+        super("hotload", "hot", "h", "reload");
+        setDescription("Force a hotload");
+        requiresPermission(Iris.perm.studio);
+        setCategory("World");
+    }
 
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		if(!IrisSettings.get().isStudio())
-		{
-			sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
-			return true;
-		}
+    }
 
-		if(sender.isPlayer())
-		{
-			Player p = sender.player();
-			World world = p.getWorld();
-			if(!IrisWorlds.isIrisWorld(world))
-			{
-				sender.sendMessage("You must be in an iris world.");
-				return true;
-			}
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        if (!IrisSettings.get().isStudio()) {
+            sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
+            return true;
+        }
 
-			IrisWorlds.access(world).hotload();
-			sender.sendMessage("Hotloaded!");
-			return true;
-		}
+        if (sender.isPlayer()) {
+            Player p = sender.player();
+            World world = p.getWorld();
+            if (!IrisWorlds.isIrisWorld(world)) {
+                sender.sendMessage("You must be in an iris world.");
+                return true;
+            }
 
-		else
-		{
-			sender.sendMessage("Players only.");
-		}
+            IrisWorlds.access(world).hotload();
+            sender.sendMessage("Hotloaded!");
+            return true;
+        } else {
+            sender.sendMessage("Players only.");
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "";
-	}
+    @Override
+    protected String getArgsUsage() {
+        return "";
+    }
 }

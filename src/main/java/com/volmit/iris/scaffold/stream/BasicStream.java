@@ -1,17 +1,14 @@
 package com.volmit.iris.scaffold.stream;
 
-public abstract class BasicStream<T> extends BasicLayer implements ProceduralStream<T>
-{
+public abstract class BasicStream<T> extends BasicLayer implements ProceduralStream<T> {
     private final ProceduralStream<T> source;
 
-    public BasicStream(ProceduralStream<T> source)
-    {
+    public BasicStream(ProceduralStream<T> source) {
         super();
         this.source = source;
     }
 
-    public BasicStream()
-    {
+    public BasicStream() {
         this(null);
     }
 

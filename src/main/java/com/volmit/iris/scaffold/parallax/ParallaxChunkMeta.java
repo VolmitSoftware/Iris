@@ -25,7 +25,7 @@ public class ParallaxChunkMeta {
 
         @Override
         public ParallaxChunkMeta read(DataInputStream din) throws IOException {
-           return new Gson().fromJson(din.readUTF(), ParallaxChunkMeta.class);
+            return new Gson().fromJson(din.readUTF(), ParallaxChunkMeta.class);
         }
     };
 
@@ -40,8 +40,7 @@ public class ParallaxChunkMeta {
     private int count;
     private CopyOnWriteArrayList<IrisFeaturePositional> features;
 
-    public ParallaxChunkMeta()
-    {
+    public ParallaxChunkMeta() {
         this(false, false, false, false, false, false, -1, -1, 0, new CopyOnWriteArrayList<>());
     }
 }

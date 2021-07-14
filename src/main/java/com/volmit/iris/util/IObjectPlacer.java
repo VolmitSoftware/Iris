@@ -4,25 +4,24 @@ import com.volmit.iris.object.tile.TileData;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-public interface IObjectPlacer
-{
-	public int getHighest(int x, int z);
+public interface IObjectPlacer {
+    int getHighest(int x, int z);
 
-	public int getHighest(int x, int z, boolean ignoreFluid);
+    int getHighest(int x, int z, boolean ignoreFluid);
 
-	public void set(int x, int y, int z, BlockData d);
+    void set(int x, int y, int z, BlockData d);
 
-	public BlockData get(int x, int y, int z);
+    BlockData get(int x, int y, int z);
 
-	public boolean isPreventingDecay();
+    boolean isPreventingDecay();
 
-	public boolean isSolid(int x, int y, int z);
+    boolean isSolid(int x, int y, int z);
 
-	public boolean isUnderwater(int x, int z);
+    boolean isUnderwater(int x, int z);
 
-	public int getFluidHeight();
+    int getFluidHeight();
 
-	public boolean isDebugSmartBore();
+    boolean isDebugSmartBore();
 
     void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile);
 }

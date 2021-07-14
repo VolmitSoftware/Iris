@@ -16,17 +16,14 @@ public class DustRevealer {
     private final String key;
     private final KList<BlockPosition> hits;
 
-    public static void spawn(Block block, MortarSender sender)
-    {
+    public static void spawn(Block block, MortarSender sender) {
         World world = block.getWorld();
         IrisAccess access = IrisWorlds.access(world);
 
-        if(access != null)
-        {
+        if (access != null) {
             ParallaxAccess a = access.getEngineAccess(block.getY()).getParallaxAccess();
 
-            if(a.getObject(block.getX(), block.getY(), block.getZ()) != null)
-            {
+            if (a.getObject(block.getX(), block.getY(), block.getZ()) != null) {
                 sender.sendMessage("Found object " + a.getObject(block.getX(), block.getY(), block.getZ()));
                 J.a(() -> {
                     new DustRevealer(a, world, new BlockPosition(block.getX(), block.getY(), block.getZ()), a.getObject(block.getX(), block.getY(), block.getZ()), new KList<>());
@@ -64,27 +61,23 @@ public class DustRevealer {
                     is(new BlockPosition(block.getX(), block.getY() + 1, block.getZ() + 1));
                     is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() - 1));
                     is(new BlockPosition(block.getX(), block.getY() - 1, block.getZ() + 1));
-                    is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() - 1));
-                    is(new BlockPosition(block.getX()-1, block.getY() + 1, block.getZ() + 1));
-                    is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() - 1));
-                    is(new BlockPosition(block.getX()-1, block.getY() - 1, block.getZ() + 1));
-                    is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() - 1));
-                    is(new BlockPosition(block.getX()+1, block.getY() + 1, block.getZ() + 1));
-                    is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() - 1));
-                    is(new BlockPosition(block.getX()+1, block.getY() - 1, block.getZ() + 1));
-                }
-
-                catch(Throwable e)
-                {
+                    is(new BlockPosition(block.getX() - 1, block.getY() + 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX() - 1, block.getY() + 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX() - 1, block.getY() - 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX() - 1, block.getY() - 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY() + 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY() + 1, block.getZ() + 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() - 1));
+                    is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() + 1));
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
             });
-        }, RNG.r.i(3,6));
+        }, RNG.r.i(3, 6));
     }
 
     private boolean is(BlockPosition a) {
-        if(isValidTry(a) && parallax.getObject(a.getX(), a.getY(), a.getZ()) != null && parallax.getObject(a.getX(), a.getY(), a.getZ()).equals(key))
-        {
+        if (isValidTry(a) && parallax.getObject(a.getX(), a.getY(), a.getZ()) != null && parallax.getObject(a.getX(), a.getY(), a.getZ()).equals(key)) {
             hits.add(a);
             new DustRevealer(parallax, world, a, key, hits);
             return true;
@@ -93,8 +86,7 @@ public class DustRevealer {
         return false;
     }
 
-    private boolean isValidTry(BlockPosition b)
-    {
+    private boolean isValidTry(BlockPosition b) {
         return !hits.contains(b);
     }
 }

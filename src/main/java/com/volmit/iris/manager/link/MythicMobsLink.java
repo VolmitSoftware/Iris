@@ -1,64 +1,48 @@
 package com.volmit.iris.manager.link;
 
+import com.volmit.iris.util.KList;
+import io.lumine.xikage.mythicmobs.MythicMobs;
+import io.lumine.xikage.mythicmobs.mobs.MythicMob;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
-import com.volmit.iris.util.KList;
+public class MythicMobsLink {
+    public MythicMobsLink() {
 
-import io.lumine.xikage.mythicmobs.MythicMobs;
-import io.lumine.xikage.mythicmobs.mobs.MythicMob;
+    }
 
-public class MythicMobsLink
-{
-	public MythicMobsLink()
-	{
+    public boolean supported() {
+        return getMythicMobs() != null;
+    }
 
-	}
+    public Entity spawn(String name, Location a) {
+        if (!supported()) {
+            return null;
+        }
 
-	public boolean supported()
-	{
-		return getMythicMobs() != null;
-	}
+        MythicMobs m = (MythicMobs) getMythicMobs();
+        return m.getMobManager().spawnMob(name, a).getEntity().getBukkitEntity();
+    }
 
-	public Entity spawn(String name, Location a)
-	{
-		if(!supported())
-		{
-			return null;
-		}
+    public String[] getMythicMobTypes() {
+        KList<String> v = new KList<>();
 
-		MythicMobs m = (MythicMobs) getMythicMobs();
-		return m.getMobManager().spawnMob(name, a).getEntity().getBukkitEntity();
-	}
+        if (supported()) {
+            MythicMobs m = (MythicMobs) getMythicMobs();
 
-	public String[] getMythicMobTypes()
-	{
-		KList<String> v = new KList<>();
+            for (MythicMob i : m.getMobManager().getMobTypes()) {
+                v.add(i.getInternalName());
+            }
+        }
 
-		if(supported())
-		{
-			MythicMobs m = (MythicMobs) getMythicMobs();
+        return v.toArray(new String[v.size()]);
+    }
 
-			for(MythicMob i : m.getMobManager().getMobTypes())
-			{
-				v.add(i.getInternalName());
-			}
-		}
+    public Plugin getMythicMobs() {
+        Plugin p = Bukkit.getPluginManager().getPlugin("MythicMobs");
 
-		return v.toArray(new String[v.size()]);
-	}
-
-	public Plugin getMythicMobs()
-	{
-		Plugin p = Bukkit.getPluginManager().getPlugin("MythicMobs");
-
-		if(p == null)
-		{
-			return null;
-		}
-
-		return p;
-	}
+        return p;
+    }
 }

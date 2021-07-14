@@ -6,11 +6,10 @@ import lombok.Data;
 import java.io.File;
 
 @Data
-public class IrisRegistrant
-{
-	private transient IrisDataManager loader;
+public class IrisRegistrant {
+    private transient IrisDataManager loader;
 
-	private transient String loadKey;
+    private transient String loadKey;
 
-	private transient File loadFile;
+    private transient File loadFile;
 }

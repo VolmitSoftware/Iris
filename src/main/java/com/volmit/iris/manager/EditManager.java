@@ -1,5 +1,13 @@
 package com.volmit.iris.manager;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.IrisSettings;
+import com.volmit.iris.manager.edit.BlockEditor;
+import com.volmit.iris.manager.edit.BukkitBlockEditor;
+import com.volmit.iris.manager.edit.WEBlockEditor;
+import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.M;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -8,114 +16,79 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.manager.edit.BlockEditor;
-import com.volmit.iris.manager.edit.BukkitBlockEditor;
-import com.volmit.iris.manager.edit.WEBlockEditor;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.M;
+public class EditManager implements Listener {
+    private final KMap<World, BlockEditor> editors;
 
-import io.papermc.lib.PaperLib;
+    public EditManager() {
+        this.editors = new KMap<>();
+        Iris.instance.registerListener(this);
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 0);
+    }
 
-public class EditManager implements Listener
-{
-	private KMap<World, BlockEditor> editors;
+    public BlockData get(World world, int x, int y, int z) {
+        return open(world).get(x, y, z);
+    }
 
-	public EditManager()
-	{
-		this.editors = new KMap<>();
-		Iris.instance.registerListener(this);
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 0);
-	}
+    public void set(World world, int x, int y, int z, BlockData d) {
+        open(world).set(x, y, z, d);
+    }
 
-	public BlockData get(World world, int x, int y, int z)
-	{
-		return open(world).get(x, y, z);
-	}
+    public void setBiome(World world, int x, int y, int z, Biome d) {
+        open(world).setBiome(x, y, z, d);
+    }
 
-	public void set(World world, int x, int y, int z, BlockData d)
-	{
-		open(world).set(x, y, z, d);
-	}
+    public void setBiome(World world, int x, int z, Biome d) {
+        open(world).setBiome(x, z, d);
+    }
 
-	public void setBiome(World world, int x, int y, int z, Biome d)
-	{
-		open(world).setBiome(x, y, z, d);
-	}
+    public Biome getBiome(World world, int x, int y, int z) {
+        return open(world).getBiome(x, y, z);
+    }
 
-	public void setBiome(World world, int x, int z, Biome d)
-	{
-		open(world).setBiome(x, z, d);
-	}
+    public Biome getBiome(World world, int x, int z) {
+        return open(world).getBiome(x, z);
+    }
 
-	public Biome getBiome(World world, int x, int y, int z)
-	{
-		return open(world).getBiome(x, y, z);
-	}
+    @EventHandler
+    public void on(WorldUnloadEvent e) {
+        if (editors.containsKey(e.getWorld())) {
+            editors.remove(e.getWorld()).close();
+        }
+    }
 
-	public Biome getBiome(World world, int x, int z)
-	{
-		return open(world).getBiome(x, z);
-	}
+    public void update() {
+        for (World i : editors.k()) {
+            if (M.ms() - editors.get(i).last() > 1000) {
+                editors.remove(i).close();
+            }
+        }
+    }
 
-	@EventHandler
-	public void on(WorldUnloadEvent e)
-	{
-		if(editors.containsKey(e.getWorld()))
-		{
-			editors.remove(e.getWorld()).close();
-		}
-	}
+    public void flushNow() {
+        for (World i : editors.k()) {
+            editors.remove(i).close();
+        }
+    }
 
-	public void update()
-	{
-		for(World i : editors.k())
-		{
-			if(M.ms() - editors.get(i).last() > 1000)
-			{
-				editors.remove(i).close();
-			}
-		}
-	}
+    public BlockEditor open(World world) {
+        if (editors.containsKey(world)) {
+            return editors.get(world);
+        }
 
-	public void flushNow()
-	{
-		for(World i : editors.k())
-		{
-			editors.remove(i).close();
-		}
-	}
+        BlockEditor e = null;
 
-	public BlockEditor open(World world)
-	{
-		if(editors.containsKey(world))
-		{
-			return editors.get(world);
-		}
+        if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().getGeneral().isIgnoreWorldEdit()) {
+            try {
+                e = new WEBlockEditor(world);
+            } catch (Throwable ex) {
+                e = new BukkitBlockEditor(world);
+            }
+        } else {
+            e = new BukkitBlockEditor(world);
+        }
 
-		BlockEditor e = null;
+        editors.put(world, e);
 
-		if(Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().getGeneral().isIgnoreWorldEdit())
-		{
-			try
-			{
-				e = new WEBlockEditor(world);
-			}
-
-			catch(Throwable ex)
-			{
-				e = new BukkitBlockEditor(world);
-			}
-		}
-
-		else
-		{
-			e = new BukkitBlockEditor(world);
-		}
-
-		editors.put(world, e);
-
-		return e;
-	}
+        return e;
+    }
 }

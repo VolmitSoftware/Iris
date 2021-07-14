@@ -15,8 +15,7 @@ import java.io.IOException;
 @NoArgsConstructor
 @Desc("Represents an Iris zone")
 public class IrisFeaturePositional {
-    public IrisFeaturePositional(int x, int z, IrisFeature feature)
-    {
+    public IrisFeaturePositional(int x, int z, IrisFeature feature) {
         this.x = x;
         this.z = z;
         this.feature = feature;
@@ -40,8 +39,7 @@ public class IrisFeaturePositional {
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
     private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
 
-    public static IrisFeaturePositional read(DataInputStream s) throws IOException
-    {
+    public static IrisFeaturePositional read(DataInputStream s) throws IOException {
         return new Gson().fromJson(s.readUTF(), IrisFeaturePositional.class);
     }
 
@@ -49,60 +47,45 @@ public class IrisFeaturePositional {
         s.writeUTF(new Gson().toJson(this));
     }
 
-    public boolean shouldFilter(double x, double z)
-    {
+    public boolean shouldFilter(double x, double z) {
         double actualRadius = getFeature().getActualRadius();
         double dist2 = distance2(x, z);
 
-        if(getFeature().isInvertZone()) {
+        if (getFeature().isInvertZone()) {
             if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2)) {
                 return false;
             }
         }
 
-        if(dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2))
-        {
-            return false;
-        }
-
-        return true;
+        return !(dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2));
     }
 
-    public double getStrength(double x, double z)
-    {
+    public double getStrength(double x, double z) {
         double actualRadius = getFeature().getActualRadius();
         double dist2 = distance2(x, z);
 
-        if(getFeature().isInvertZone())
-        {
-            if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2))
-            {
+        if (getFeature().isInvertZone()) {
+            if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2)) {
                 return 0;
             }
 
             NoiseProvider d = provider.aquire(this::getNoiseProvider);
-            double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int)x, (int)z, getFeature().getInterpolationRadius(), d);
+            double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int) x, (int) z, getFeature().getInterpolationRadius(), d);
 
-            if(s <= 0)
-            {
+            if (s <= 0) {
                 return 0;
             }
 
             return getFeature().getStrength() * s;
-        }
-
-        else
-        {
-            if(dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2))
-            {
+        } else {
+            if (dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2)) {
                 return 0;
             }
 
             NoiseProvider d = provider.aquire(this::getNoiseProvider);
-            double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int)x, (int)z, getFeature().getInterpolationRadius(), d);
+            double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int) x, (int) z, getFeature().getInterpolationRadius(), d);
 
-            if(s <= 0)
-            {
+            if (s <= 0) {
                 return 0;
             }
 
@@ -110,10 +93,8 @@ public class IrisFeaturePositional {
         }
     }
 
-    public double getObjectChanceModifier(double x, double z)
-    {
-        if(getFeature().getObjectChance()>=1)
-        {
+    public double getObjectChanceModifier(double x, double z) {
+        if (getFeature().getObjectChance() >= 1) {
             return getFeature().getObjectChance();
         }
 
@@ -123,15 +104,13 @@ public class IrisFeaturePositional {
     public double filter(double x, double z, double noise) {
         double s = getStrength(x, z);
 
-        if(s <= 0)
-        {
+        if (s <= 0) {
             return noise;
         }
 
         double fx = noise;
 
-        if(getFeature().getConvergeToHeight() >= 0)
-        {
+        if (getFeature().getConvergeToHeight() >= 0) {
             fx = getFeature().getConvergeToHeight();
         }
 
@@ -150,13 +129,9 @@ public class IrisFeaturePositional {
     }
 
     private NoiseProvider getNoiseProvider() {
-        if(getFeature().isInvertZone())
-        {
+        if (getFeature().isInvertZone()) {
             return (x, z) -> distance(x, z) > getFeature().getBlockRadius() ? 1D : 0D;
-        }
-
-        else
-        {
+        } else {
             return (x, z) -> distance(x, z) < getFeature().getBlockRadius() ? 1D : 0D;
         }
     }

@@ -7,8 +7,7 @@ import java.awt.image.BufferedImage;
 
 @Builder
 @Data
-public class TileRender
-{
+public class TileRender {
     private BufferedImage image;
     private int quality;
 }

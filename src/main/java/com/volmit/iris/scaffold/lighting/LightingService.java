@@ -9,7 +9,10 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.volmit.iris.Iris;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -25,7 +28,7 @@ public class LightingService extends AsyncTask {
     private static boolean pendingFileInUse = false;
     private static LightingTask currentTask;
     private static boolean paused = false;
-    private static boolean lowOnMemory = false;
+    private static final boolean lowOnMemory = false;
 
     /**
      * Gets whether this service is currently processing something
@@ -57,7 +60,7 @@ public class LightingService extends AsyncTask {
 
     /**
      * Gets whether execution is paused, and pending tasks are not being processed
-     * 
+     *
      * @return True if paused
      */
     public static boolean isPaused() {
@@ -66,7 +69,7 @@ public class LightingService extends AsyncTask {
 
     /**
      * Sets whether execution is paused.
-     * 
+     *
      * @param pause state to set to
      */
     public static void setPaused(boolean pause) {
@@ -77,7 +80,7 @@ public class LightingService extends AsyncTask {
 
     /**
      * Gets the status of the currently processed task
-     * 
+     *
      * @return current task status
      */
     public static String getCurrentStatus() {
@@ -94,7 +97,7 @@ public class LightingService extends AsyncTask {
     /**
      * Gets the time the currently processing task was started. If no task is being processed,
      * an empty result is returned. If processing didn't start yet, the value will be 0.
-     * 
+     *
      * @return time when the current task was started
      */
     public static java.util.OptionalLong getCurrentStartTime() {
@@ -163,7 +166,7 @@ public class LightingService extends AsyncTask {
         // In that case, be sure to only schedule chunks that actually exist
         // This prevents generating new chunks as part of this command
         LongHashSet chunks = args.getChunks();
-        if (chunks.size() <= (34*34)) {
+        if (chunks.size() <= (34 * 34)) {
 
             LongHashSet chunks_filtered = new LongHashSet(chunks.size());
             Set<IntVector2> region_coords_filtered = new HashSet<IntVector2>();
@@ -501,7 +504,7 @@ public class LightingService extends AsyncTask {
 
         /**
          * Sets the world itself. Automatically updates the world name.
-         * 
+         *
          * @param world
          * @return these arguments
          */
@@ -514,7 +517,7 @@ public class LightingService extends AsyncTask {
         /**
          * Sets the world name to perform operations on.
          * If the world by this name does not exist, the world is null.
-         * 
+         *
          * @param worldName
          * @return these arguments
          */
@@ -546,13 +549,13 @@ public class LightingService extends AsyncTask {
 
         public ScheduleArguments setChunksAround(Location location, int radius) {
             this.setWorld(location.getWorld());
-            return this.setChunksAround(location.getBlockX()>>4, location.getBlockZ()>>4, radius);
+            return this.setChunksAround(location.getBlockX() >> 4, location.getBlockZ() >> 4, radius);
         }
 
         public ScheduleArguments setChunksAround(int middleX, int middleZ, int radius) {
             this.setRadius(radius);
 
-            LongHashSet chunks_hashset = new LongHashSet((2*radius)*(2*radius));
+            LongHashSet chunks_hashset = new LongHashSet((2 * radius) * (2 * radius));
             for (int a = -radius; a <= radius; a++) {
                 for (int b = -radius; b <= radius; b++) {
                     int cx = middleX + a;
@@ -567,7 +570,7 @@ public class LightingService extends AsyncTask {
          * Sets the chunks to a cuboid area of chunks.
          * Make sure the minimum chunk coordinates are less or equal to
          * the maximum chunk coordinates.
-         * 
+         *
          * @param minChunkX Minimum chunk x-coordinate (inclusive)
          * @param minChunkZ Minimum chunk z-coordinate (inclusive)
          * @param maxChunkX Maximum chunk x-coordinate (inclusive)
@@ -609,7 +612,7 @@ public class LightingService extends AsyncTask {
 
         /**
          * Parses the arguments specified in a command
-         * 
+         *
          * @param sender
          * @return false if the input is incorrect and operations may not proceed
          * @throws NoPermissionException
@@ -620,11 +623,10 @@ public class LightingService extends AsyncTask {
 
         /**
          * Creates a new ScheduleArguments instance ready to be configured
-         * 
+         *
          * @return args
          */
-        public static ScheduleArguments create()
-        {
+        public static ScheduleArguments create() {
             return new ScheduleArguments();
         }
     }

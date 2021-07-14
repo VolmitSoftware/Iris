@@ -5,26 +5,23 @@ import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;
 
-public class CommandIrisRegen extends MortarCommand
-{
-	public CommandIrisRegen()
-	{
-		super("regen");
-		setDescription("Regenerate chunks around you (iris worlds only)");
-		requiresPermission(Iris.perm.studio);
-		setCategory("Regen");
-	}
+public class CommandIrisRegen extends MortarCommand {
+    public CommandIrisRegen() {
+        super("regen");
+        setDescription("Regenerate chunks around you (iris worlds only)");
+        requiresPermission(Iris.perm.studio);
+        setCategory("Regen");
+    }
 
-	@Override
-	public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    @Override
+    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
 
-	}
+    }
 
-	@Override
-	public boolean handle(MortarSender sender, String[] args)
-	{
-		sender.sendMessage("Iris' /regen command is currently disabled due to maintenance. Apologies.");
-		return true;
+    @Override
+    public boolean handle(MortarSender sender, String[] args) {
+        sender.sendMessage("Iris' /regen command is currently disabled due to maintenance. Apologies.");
+        return true;
 		/* This is commented yes
 		try
 		{
@@ -67,11 +64,10 @@ public class CommandIrisRegen extends MortarCommand
 
 		return true;
 		*/
-	}
+    }
 
-	@Override
-	protected String getArgsUsage()
-	{
-		return "[size]";
-	}
+    @Override
+    protected String getArgsUsage() {
+        return "[size]";
+    }
 }

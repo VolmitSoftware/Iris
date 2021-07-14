@@ -26,7 +26,7 @@ public class LightingCubeNeighboring {
 
     /**
      * Gets whether all 6 cube neighbors are accessible
-     * 
+     *
      * @return True if all neighbors are accessible
      */
     public boolean hasAll() {
@@ -56,7 +56,7 @@ public class LightingCubeNeighboring {
      * @param deltaCubeX
      * @param deltaCubeY
      * @param deltaCubeZ
-     * @param neighbor to set to, is allowed to be null to set to 'none'
+     * @param neighbor   to set to, is allowed to be null to set to 'none'
      */
     public void set(int deltaCubeX, int deltaCubeY, int deltaCubeZ, LightingCube neighbor) {
         values[getIndexByCube(deltaCubeX, deltaCubeY, deltaCubeZ)] = neighbor;

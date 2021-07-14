@@ -4,8 +4,8 @@ import java.util.Random;
 
 public class WeightedRandom<T> {
 
-    private KList<KeyPair<T, Integer>> weightedObjects = new KList<>();
-    private Random random;
+    private final KList<KeyPair<T, Integer>> weightedObjects = new KList<>();
+    private final Random random;
     private int totalWeight = 0;
 
     public WeightedRandom(Random random) {

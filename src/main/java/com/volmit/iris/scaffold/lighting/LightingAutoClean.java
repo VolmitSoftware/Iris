@@ -1,26 +1,25 @@
 package com.volmit.iris.scaffold.lighting;
 
-import java.util.HashMap;
-
-import com.volmit.iris.Iris;
-import org.bukkit.World;
-
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.volmit.iris.Iris;
+import org.bukkit.World;
+
+import java.util.HashMap;
 
 /**
  * Handles the automatic cleanup of chunk lighting when chunks are generated
  */
 public class LightingAutoClean {
-    private static HashMap<World, LongHashSet> queues = new HashMap<World, LongHashSet>();
+    private static final HashMap<World, LongHashSet> queues = new HashMap<World, LongHashSet>();
     private static Task autoCleanTask = null;
 
     /**
      * Checks all neighbouring chunks to see if they are fully surrounded by chunks (now), and
      * schedules lighting repairs. This function only does anything when automatic cleaning is activated.
-     * 
-     * @param world the chunk is in
+     *
+     * @param world  the chunk is in
      * @param chunkX coordinate
      * @param chunkZ coordinate
      */

@@ -32,8 +32,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private String name = "A Biome";
 
     @DontObfuscate
+    @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")
-    private IrisBiomeCustom custom;
+    private KList<IrisBiomeCustom> customDerivitives;
 
     @DontObfuscate
     @Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")
@@ -201,7 +202,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public boolean isCustom()
     {
-        return getCustom() != null;
+        return getCustomDerivitives() != null && getCustomDerivitives().isNotEmpty();
     }
 
     public double getGenLinkMax(String loadKey) {
@@ -535,6 +536,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return biomeSkyScatter.get(getBiomeGenerator(rng).fit(0, biomeSkyScatter.size() - 1, x, y, z));
     }
 
+    public IrisBiomeCustom getCustomBiome(RNG rng, double x, double y, double z) {
+        if (customDerivitives.size() == 1) {
+            return customDerivitives.get(0);
+        }
+
+        return customDerivitives.get(getBiomeGenerator(rng).fit(0, customDerivitives.size() - 1, x, y, z));
+    }
+
     public KList<IrisBiome> getRealChildren(DataProvider g) {
         return realChildren.aquire(() ->
         {
@@ -564,6 +573,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return new KList<String>(m);
     }
 
+    //TODO: Test
     public Biome getGroundBiome(RNG rng, double x, double y, double z) {
         if (biomeScatter.isEmpty()) {
             return getDerivative();

@@ -468,19 +468,23 @@ public class IrisDimension extends IrisRegistrant {
             if(i.isCustom())
             {
                 write = true;
-                File output = new File(datapacks, "iris/data/" + getLoadKey() + "/worldgen/biome/" + i.getCustom().getId() + ".json");
 
-                if(!output.exists())
+                for(IrisBiomeCustom j : i.getCustomDerivitives())
                 {
-                    changed = true;
-                }
+                    File output = new File(datapacks, "iris/data/" + getLoadKey() + "/worldgen/biome/" + j.getId() + ".json");
 
-                Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
-                output.getParentFile().mkdirs();
-                try {
-                    IO.writeAll(output, i.getCustom().generateJson());
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    if(!output.exists())
+                    {
+                        changed = true;
+                    }
+
+                    Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
+                    output.getParentFile().mkdirs();
+                    try {
+                        IO.writeAll(output, j.generateJson());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

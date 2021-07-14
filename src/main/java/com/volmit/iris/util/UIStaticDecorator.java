@@ -20,6 +20,7 @@ package com.volmit.iris.util;
 
 import org.bukkit.Material;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class UIStaticDecorator implements WindowDecorator {
     private final Element element;
 

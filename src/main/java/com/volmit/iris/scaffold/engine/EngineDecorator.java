@@ -30,6 +30,7 @@ public interface EngineDecorator extends EngineComponent {
         decorate(x, z, realX, realX, realX, realZ, realZ, realZ, data, biome, height, max);
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     default boolean canGoOn(BlockData decorant, BlockData atop) {
         if (atop == null || B.isAir(atop)) {
             return false;

@@ -113,9 +113,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         IrisColor ibc = biome.getColor();
         Color rc = irc != null ? irc.getColor() : Color.GREEN.darker();
         Color bc = ibc != null ? ibc.getColor() : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
-        Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));
 
-        return f;
+        return IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));
     }
 
     @Override
@@ -213,11 +212,10 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
             if (slot != null) {
                 KList<IrisLootTable> tables = getLootTables(rx, block);
-                InventorySlotType slott = slot;
 
                 try {
                     InventoryHolder m = (InventoryHolder) block.getState();
-                    addItems(false, m.getInventory(), rx, tables, slott, x, y, z, 15);
+                    addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
                 } catch (Throwable ignored) {
 
                 }
@@ -256,7 +254,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             try {
                 Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
                 break;
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         }

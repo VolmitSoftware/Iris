@@ -52,7 +52,7 @@ public class EnginePlayer {
                 for (IrisEffect j : region.getEffects()) {
                     try {
                         j.apply(player, getEngine());
-                    } catch (Throwable e) {
+                    } catch (Throwable ignored) {
 
                     }
                 }
@@ -62,7 +62,7 @@ public class EnginePlayer {
                 for (IrisEffect j : biome.getEffects()) {
                     try {
                         j.apply(player, getEngine());
-                    } catch (Throwable e) {
+                    } catch (Throwable ignored) {
 
                     }
                 }
@@ -81,7 +81,7 @@ public class EnginePlayer {
                 lastSample = M.ms();
                 sampleBiomeRegion();
             }
-        } catch (Throwable ew) {
+        } catch (Throwable ignored) {
 
         }
     }

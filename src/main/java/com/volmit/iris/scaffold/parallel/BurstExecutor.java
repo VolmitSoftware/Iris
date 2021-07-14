@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+@SuppressWarnings("ALL")
 public class BurstExecutor {
     private final ExecutorService executor;
     private final KList<CompletableFuture<Void>> futures;
@@ -33,6 +34,7 @@ public class BurstExecutor {
         futures = new KList<CompletableFuture<Void>>(burstSizeEstimate);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public CompletableFuture<Void> queue(Runnable r) {
         synchronized (futures) {
             CompletableFuture<Void> c = CompletableFuture.runAsync(r, executor);
@@ -70,7 +72,7 @@ public class BurstExecutor {
             }
 
             try {
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).get();
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
                 futures.clear();
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();

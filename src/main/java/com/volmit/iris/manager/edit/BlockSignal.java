@@ -28,6 +28,7 @@ import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+@SuppressWarnings("InstantiationOfUtilityClass")
 public class BlockSignal {
     public static void of(Block block, int ticks) {
         new BlockSignal(block, ticks);

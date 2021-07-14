@@ -60,6 +60,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
 
         int h = getFramework().getEngineParallax().trueHeight(x, z);

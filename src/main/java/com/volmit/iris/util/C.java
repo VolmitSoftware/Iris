@@ -245,11 +245,12 @@ public enum C {
     private final char code;
     private final boolean isFormat;
     private final String toString;
-    private final static Map<Integer, C> BY_ID = new HashMap<Integer, C>();
-    private final static Map<Character, C> BY_CHAR = new HashMap<Character, C>();
-    private final static Map<DyeColor, C> dyeChatMap = new HashMap<DyeColor, C>();
-    private final static Map<C, String> chatHexMap = new HashMap<C, String>();
-    private final static Map<DyeColor, String> dyeHexMap = new HashMap<DyeColor, String>();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final static Map<Integer, C> BY_ID = new HashMap<>();
+    private final static Map<Character, C> BY_CHAR = new HashMap<>();
+    private final static Map<DyeColor, C> dyeChatMap = new HashMap<>();
+    private final static Map<C, String> chatHexMap = new HashMap<>();
+    private final static Map<DyeColor, String> dyeHexMap = new HashMap<>();
 
     static {
         chatHexMap.put(C.BLACK, "#000");
@@ -334,7 +335,6 @@ public enum C {
     /**
      * get the dye color for the chatcolor
      *
-     * @return
      */
     public DyeColor dye() {
         return chatToDye(chatColor());
@@ -424,9 +424,9 @@ public enum C {
     }
 
     public static DyeColor chatToDye(ChatColor color) {
-        for (DyeColor i : dyeChatMap.keySet()) {
-            if (dyeChatMap.get(i).toString().equals(color.toString())) {
-                return i;
+        for (Map.Entry<DyeColor, C> entry : dyeChatMap.entrySet()) {
+            if (entry.getValue().toString().equals(color.toString())) {
+                return entry.getKey();
             }
         }
 
@@ -455,7 +455,7 @@ public enum C {
             hex = hex.substring(1);
         }
 
-        if (hex.indexOf("x") != -1) {
+        if (hex.contains("x")) {
             hex = hex.substring(hex.indexOf("x"));
         }
 
@@ -509,7 +509,6 @@ public enum C {
     /**
      * Get the ChatColor enum instance instead of C
      *
-     * @return
      */
     public ChatColor chatColor() {
         return ChatColor.getByChar(code);
@@ -551,105 +550,43 @@ public enum C {
     }
 
     public byte getMeta() {
-        switch (this) {
-            case AQUA:
-                return 11;
-            case BLACK:
-                return 0;
-            case BLUE:
-                return 9;
-            case BOLD:
-                return -1;
-            case DARK_AQUA:
-                return 9;
-            case DARK_BLUE:
-                return 1;
-            case DARK_GRAY:
-                return 8;
-            case DARK_GREEN:
-                return 2;
-            case DARK_PURPLE:
-                return 5;
-            case DARK_RED:
-                return 4;
-            case GOLD:
-                return 6;
-            case GRAY:
-                return 7;
-            case GREEN:
-                return 10;
-            case ITALIC:
-                return -1;
-            case LIGHT_PURPLE:
-                return 13;
-            case MAGIC:
-                return -1;
-            case RED:
-                return 12;
-            case RESET:
-                return -1;
-            case STRIKETHROUGH:
-                return -1;
-            case UNDERLINE:
-                return -1;
-            case WHITE:
-                return 15;
-            case YELLOW:
-                return 14;
-            default:
-                return -1;
-        }
+        return switch (this) {
+            case AQUA -> (byte)11;
+            case BLACK -> (byte)0;
+            case BLUE, DARK_AQUA -> (byte)9;
+            case BOLD, UNDERLINE, STRIKETHROUGH, RESET, MAGIC, ITALIC -> (byte)-1;
+            case DARK_BLUE -> (byte)1;
+            case DARK_GRAY -> (byte)8;
+            case DARK_GREEN -> (byte)2;
+            case DARK_PURPLE -> (byte)5;
+            case DARK_RED -> (byte)4;
+            case GOLD -> (byte)6;
+            case GRAY -> (byte)7;
+            case GREEN -> (byte)10;
+            case LIGHT_PURPLE -> (byte)13;
+            case RED -> (byte)12;
+            case WHITE -> (byte)15;
+            case YELLOW -> (byte)14;
+        };
     }
 
     public byte getItemMeta() {
-        switch (this) {
-            case AQUA:
-                return 9;
-            case BLACK:
-                return 15;
-            case BLUE:
-                return 3;
-            case BOLD:
-                return -1;
-            case DARK_AQUA:
-                return 9;
-            case DARK_BLUE:
-                return 11;
-            case DARK_GRAY:
-                return 7;
-            case DARK_GREEN:
-                return 13;
-            case DARK_PURPLE:
-                return 10;
-            case DARK_RED:
-                return 14;
-            case GOLD:
-                return 4;
-            case GRAY:
-                return 8;
-            case GREEN:
-                return 5;
-            case ITALIC:
-                return -1;
-            case LIGHT_PURPLE:
-                return 2;
-            case MAGIC:
-                return -1;
-            case RED:
-                return 14;
-            case RESET:
-                return -1;
-            case STRIKETHROUGH:
-                return -1;
-            case UNDERLINE:
-                return -1;
-            case WHITE:
-                return 0;
-            case YELLOW:
-                return 4;
-            default:
-                return -1;
-        }
+        return switch (this) {
+            case AQUA, DARK_AQUA -> (byte)9;
+            case BLACK -> (byte)15;
+            case BLUE -> (byte)3;
+            case BOLD, UNDERLINE, RESET, STRIKETHROUGH, MAGIC, ITALIC -> (byte)-1;
+            case DARK_BLUE -> (byte)11;
+            case DARK_GRAY -> (byte)7;
+            case DARK_GREEN -> (byte)13;
+            case DARK_PURPLE -> (byte)10;
+            case DARK_RED, RED -> (byte)14;
+            case GOLD, YELLOW -> (byte)4;
+            case GRAY -> (byte)8;
+            case GREEN -> (byte)5;
+            case LIGHT_PURPLE -> (byte)2;
+            case WHITE -> (byte)0;
+        };
     }
 
     public static C randomColor() {
@@ -663,7 +600,7 @@ public enum C {
      * @return Any remaining ChatColors to pass onto the next line.
      */
     public static String getLastColors(String input) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         int length = input.length();
 
         // Search backwards from the end as it is faster
@@ -674,7 +611,7 @@ public enum C {
                 C color = getByChar(c);
 
                 if (color != null) {
-                    result = color + result;
+                    result.insert(0, color);
 
                     // Once we find a color or reset we can stop searching
                     if (color.isColor() || color.equals(RESET)) {
@@ -684,7 +621,7 @@ public enum C {
             }
         }
 
-        return result;
+        return result.toString();
     }
 
     static {

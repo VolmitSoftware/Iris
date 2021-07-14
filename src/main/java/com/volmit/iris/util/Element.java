@@ -20,6 +20,7 @@ package com.volmit.iris.util;
 
 import org.bukkit.inventory.ItemStack;
 
+@SuppressWarnings("ALL")
 public interface Element {
     MaterialBlock getMaterial();
 

@@ -36,7 +36,7 @@ public class JarScanner {
      */
     public JarScanner(File jar, String superPackage) {
         this.jar = jar;
-        this.classes = new KSet<Class<?>>();
+        this.classes = new KSet<>();
         this.superPackage = superPackage;
     }
 

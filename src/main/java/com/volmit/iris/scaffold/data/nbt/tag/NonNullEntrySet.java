@@ -18,6 +18,8 @@
 
 package com.volmit.iris.scaffold.data.nbt.tag;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.Set;
  * A decorator for the Set returned by CompoundTag#entrySet()
  * that disallows setting null values.
  */
+@SuppressWarnings("ClassCanBeRecord")
 class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
 
     private final Set<Map.Entry<K, V>> set;
@@ -61,7 +64,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
+    public <T> T[] toArray(@NotNull T[] a) {
         return set.toArray(a);
     }
 
@@ -76,22 +79,22 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public boolean containsAll(Collection<?> c) {
+    public boolean containsAll(@NotNull Collection<?> c) {
         return set.containsAll(c);
     }
 
     @Override
-    public boolean addAll(Collection<? extends Map.Entry<K, V>> c) {
+    public boolean addAll(@NotNull Collection<? extends Map.Entry<K, V>> c) {
         return set.addAll(c);
     }
 
     @Override
-    public boolean retainAll(Collection<?> c) {
+    public boolean retainAll(@NotNull Collection<?> c) {
         return set.retainAll(c);
     }
 
     @Override
-    public boolean removeAll(Collection<?> c) {
+    public boolean removeAll(@NotNull Collection<?> c) {
         return set.removeAll(c);
     }
 
@@ -145,6 +148,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
             return entry.setValue(value);
         }
 
+        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
         @Override
         public boolean equals(Object o) {
             return entry.equals(o);

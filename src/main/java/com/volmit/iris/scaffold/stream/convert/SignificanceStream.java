@@ -50,9 +50,9 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
     @Override
     public K get(double x, double z) {
         KList<T> ke = new KList<>(8);
-        KList<Double> va = new KList<Double>(8);
+        KList<Double> va = new KList<>(8);
 
-        double m = (360 / checks);
+        double m = (360d / checks);
         double v = 0;
 
         for (int i = 0; i < 360; i += m) {
@@ -75,7 +75,7 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
             va.set(i, va.get(i) / v);
         }
 
-        return (K) new ArraySignificance<T>(ke, va);
+        return (K) new ArraySignificance<>(ke, va);
     }
 
     @Override

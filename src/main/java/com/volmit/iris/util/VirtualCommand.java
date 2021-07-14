@@ -44,7 +44,7 @@ public class VirtualCommand {
 
     public VirtualCommand(ICommand command, String tag) {
         this.command = command;
-        children = new KMap<KList<String>, VirtualCommand>();
+        children = new KMap<>();
         this.tag = tag;
 
         for (Field i : command.getClass().getDeclaredFields()) {
@@ -117,7 +117,7 @@ public class VirtualCommand {
             return true;
         }
 
-        return command.handle(vs, chain.toArray(new String[chain.size()]));
+        return command.handle(vs, chain.toArray(new String[0]));
     }
 
     public KList<String> hitTab(CommandSender sender, KList<String> chain, String label) {
@@ -156,9 +156,10 @@ public class VirtualCommand {
             return null;
         }
 
-        return command.handleTab(vs, chain.toArray(new String[chain.size()]));
+        return command.handleTab(vs, chain.toArray(new String[0]));
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean checkPermissions(CommandSender sender, ICommand command2) {
         boolean failed = false;
 

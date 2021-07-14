@@ -47,7 +47,7 @@ public class IrisLock {
         }
         try {
             lock.unlock();
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
     }

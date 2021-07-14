@@ -74,6 +74,7 @@ import java.util.Map;
  * @author JSON.org
  * @version 2015-07-22
  */
+@SuppressWarnings("ALL")
 public class JSONArray implements Iterable<Object> {
 
     /**
@@ -870,6 +871,7 @@ public class JSONArray implements Iterable<Object> {
      * @param other The other JSONArray
      * @return true if they are equal
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean similar(Object other) {
         if (!(other instanceof JSONArray)) {
             return false;

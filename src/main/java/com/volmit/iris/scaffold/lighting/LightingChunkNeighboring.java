@@ -57,8 +57,6 @@ public class LightingChunkNeighboring {
     /**
      * Gets the neighbor representing the given relative chunk
      *
-     * @param deltaChunkX
-     * @param deltaChunkZ
      * @return neighbor
      */
     public LightingChunk get(int deltaChunkX, int deltaChunkZ) {
@@ -68,8 +66,6 @@ public class LightingChunkNeighboring {
     /**
      * Gets a relative neighboring chunk, and then a vertical cube in that chunk, if possible.
      *
-     * @param deltaChunkX
-     * @param deltaChunkZ
      * @param cy          Cube absolute y-coordinate
      * @return cube, null if the chunk or cube is not available
      */
@@ -81,8 +77,6 @@ public class LightingChunkNeighboring {
     /**
      * Sets the neighbor representing the given relative chunk
      *
-     * @param deltaChunkX
-     * @param deltaChunkZ
      * @param neighbor    to set to
      */
     public void set(int deltaChunkX, int deltaChunkZ, LightingChunk neighbor) {

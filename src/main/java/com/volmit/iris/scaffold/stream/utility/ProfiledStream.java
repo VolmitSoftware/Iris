@@ -60,7 +60,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
         }
 
         return t;
@@ -72,7 +72,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, y, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
         }
 
         return t;
@@ -113,8 +113,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
     }
 
     private static ProfiledTail getTail(ProceduralStream<?> t) {
-        if (t instanceof ProfiledStream) {
-            ProfiledStream<?> s = ((ProfiledStream<?>) t);
+        if (t instanceof ProfiledStream<?> s) {
 
             return new ProfiledTail(s.getId(), s.getMetrics(), s.getClass().getSimpleName().replaceAll("\\QStream\\E", ""));
         }

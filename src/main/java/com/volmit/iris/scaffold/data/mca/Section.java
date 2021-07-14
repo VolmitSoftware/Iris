@@ -105,10 +105,11 @@ public class Section {
         return null;
     }
 
+    @SuppressWarnings("ClassCanBeRecord")
     private static class PaletteIndex {
 
-        CompoundTag data;
-        int index;
+        final CompoundTag data;
+        final int index;
 
         PaletteIndex(CompoundTag data, int index) {
             this.data = data;
@@ -139,7 +140,7 @@ public class Section {
             int index = getBlockIndex(blockX, blockY, blockZ);
             int paletteIndex = getPaletteIndex(index);
             return palette.get(paletteIndex);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

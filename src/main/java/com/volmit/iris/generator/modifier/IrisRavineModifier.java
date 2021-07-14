@@ -27,6 +27,7 @@ import com.volmit.iris.util.*;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+@SuppressWarnings("ALL")
 public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData CAVE_AIR = B.get("CAVE_AIR");
     private static final BlockData LAVA = B.get("LAVA");
@@ -70,7 +71,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
 
     private final float[] ravineCache = new float[1024];
 
-    private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, int n3, int n4, double d4, RNG bbx, Hunk<BlockData> terrain) {
+    private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, @SuppressWarnings("SameParameterValue") int n3, @SuppressWarnings("SameParameterValue") int n4, @SuppressWarnings("SameParameterValue") double d4, RNG bbx, Hunk<BlockData> terrain) {
         int n5;
         RNG random = new RNG(seed);
         double x = tx * 16 + 8;
@@ -214,7 +215,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
         }
     }
 
-    private BlockPosition cSet(BlockPosition bb, double var0, double var2, double var4) {
+    private BlockPosition cSet(BlockPosition bb, double var0, @SuppressWarnings("SameParameterValue") double var2, double var4) {
         bb.setX(MathHelper.floor(var0));
         bb.setY(MathHelper.floor(var2));
         bb.setZ(MathHelper.floor(var4));

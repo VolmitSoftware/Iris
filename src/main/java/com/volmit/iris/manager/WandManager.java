@@ -127,7 +127,7 @@ public class WandManager implements Listener {
                             }
 
                             Location lv = new Location(d[0].getWorld(), j, k, l).clone().add(0.5, 0.5, 0.5).clone().add(push);
-                            Color color = Color.getHSBColor((float) (0.5f + (Math.sin((j + k + l + (p.getTicksLived() / 2)) / 20f) / 2)), 1, 1);
+                            Color color = Color.getHSBColor((float) (0.5f + (Math.sin((j + k + l + (p.getTicksLived() / 2f)) / 20f) / 2)), 1, 1);
                             int r = color.getRed();
                             int g = color.getGreen();
                             int b = color.getBlue();

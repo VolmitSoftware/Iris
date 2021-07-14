@@ -25,6 +25,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.type.Jigsaw;
 import org.bukkit.util.Vector;
 
+import java.util.Map;
+
 /**
  * Directions
  *
@@ -47,35 +49,15 @@ public enum IrisDirection {
     private final CuboidDirection f;
 
     public static IrisDirection getDirection(BlockFace f) {
-        switch (f) {
-            case DOWN:
-                return DOWN_NEGATIVE_Y;
-            case EAST:
-            case EAST_NORTH_EAST:
-            case EAST_SOUTH_EAST:
-                return EAST_POSITIVE_X;
-            case NORTH:
-            case NORTH_NORTH_WEST:
-            case NORTH_EAST:
-            case NORTH_NORTH_EAST:
-            case NORTH_WEST:
-                return NORTH_NEGATIVE_Z;
-            case SELF:
-            case UP:
-                return UP_POSITIVE_Y;
-            case SOUTH:
-            case SOUTH_EAST:
-            case SOUTH_SOUTH_EAST:
-            case SOUTH_SOUTH_WEST:
-            case SOUTH_WEST:
-                return SOUTH_POSITIVE_Z;
-            case WEST:
-            case WEST_NORTH_WEST:
-            case WEST_SOUTH_WEST:
-                return WEST_NEGATIVE_X;
-        }
+        return switch (f) {
+            case DOWN -> DOWN_NEGATIVE_Y;
+            case EAST, EAST_NORTH_EAST, EAST_SOUTH_EAST -> EAST_POSITIVE_X;
+            case NORTH, NORTH_NORTH_WEST, NORTH_EAST, NORTH_NORTH_EAST, NORTH_WEST -> NORTH_NEGATIVE_Z;
+            case SELF, UP -> UP_POSITIVE_Y;
+            case SOUTH, SOUTH_EAST, SOUTH_SOUTH_EAST, SOUTH_SOUTH_WEST, SOUTH_WEST -> SOUTH_POSITIVE_Z;
+            case WEST, WEST_NORTH_WEST, WEST_SOUTH_WEST -> WEST_NEGATIVE_X;
+        };
 
-        return DOWN_NEGATIVE_Y;
     }
 
     public static IrisDirection fromJigsawBlock(String direction) {
@@ -90,46 +72,26 @@ public enum IrisDirection {
     }
 
     public static IrisDirection getDirection(Jigsaw.Orientation orientation) {
-        switch (orientation) {
-            case DOWN_EAST:
-            case UP_EAST:
-            case EAST_UP:
-                return EAST_POSITIVE_X;
-            case DOWN_NORTH:
-            case UP_NORTH:
-            case NORTH_UP:
-                return NORTH_NEGATIVE_Z;
-            case DOWN_SOUTH:
-            case UP_SOUTH:
-            case SOUTH_UP:
-                return SOUTH_POSITIVE_Z;
-            case DOWN_WEST:
-            case UP_WEST:
-            case WEST_UP:
-                return WEST_NEGATIVE_X;
-        }
+        return switch (orientation) {
+            case DOWN_EAST, UP_EAST, EAST_UP -> EAST_POSITIVE_X;
+            case DOWN_NORTH, UP_NORTH, NORTH_UP -> NORTH_NEGATIVE_Z;
+            case DOWN_SOUTH, UP_SOUTH, SOUTH_UP -> SOUTH_POSITIVE_Z;
+            case DOWN_WEST, UP_WEST, WEST_UP -> WEST_NEGATIVE_X;
+        };
 
-        return null;
     }
 
     @Override
     public String toString() {
-        switch (this) {
-            case DOWN_NEGATIVE_Y:
-                return "Down";
-            case EAST_POSITIVE_X:
-                return "East";
-            case NORTH_NEGATIVE_Z:
-                return "North";
-            case SOUTH_POSITIVE_Z:
-                return "South";
-            case UP_POSITIVE_Y:
-                return "Up";
-            case WEST_NEGATIVE_X:
-                return "West";
-        }
+        return switch (this) {
+            case DOWN_NEGATIVE_Y -> "Down";
+            case EAST_POSITIVE_X -> "East";
+            case NORTH_NEGATIVE_Z -> "North";
+            case SOUTH_POSITIVE_Z -> "South";
+            case UP_POSITIVE_Y -> "Up";
+            case WEST_NEGATIVE_X -> "West";
+        };
 
-        return "?";
     }
 
     public boolean isVertical() {
@@ -209,9 +171,10 @@ public enum IrisDirection {
     public Vector angle(Vector initial, IrisDirection d) {
         calculatePermutations();
 
-        for (GBiset<IrisDirection, IrisDirection> i : permute.keySet()) {
+        for (Map.Entry<GBiset<IrisDirection, IrisDirection>, DOP> entry : permute.entrySet()) {
+            GBiset<IrisDirection, IrisDirection> i = entry.getKey();
             if (i.getA().equals(this) && i.getB().equals(d)) {
-                return permute.get(i).op(initial);
+                return entry.getValue().op(initial);
             }
         }
 
@@ -334,11 +297,11 @@ public enum IrisDirection {
             return;
         }
 
-        permute = new KMap<GBiset<IrisDirection, IrisDirection>, DOP>();
+        permute = new KMap<>();
 
         for (IrisDirection i : udnews()) {
             for (IrisDirection j : udnews()) {
-                GBiset<IrisDirection, IrisDirection> b = new GBiset<IrisDirection, IrisDirection>(i, j);
+                GBiset<IrisDirection, IrisDirection> b = new GBiset<>(i, j);
 
                 if (i.equals(j)) {
                     permute.put(b, new DOP("DIRECT") {
@@ -418,37 +381,23 @@ public enum IrisDirection {
     }
 
     public BlockFace getFace() {
-        switch (this) {
-            case DOWN_NEGATIVE_Y:
-                return BlockFace.DOWN;
-            case EAST_POSITIVE_X:
-                return BlockFace.EAST;
-            case NORTH_NEGATIVE_Z:
-                return BlockFace.NORTH;
-            case SOUTH_POSITIVE_Z:
-                return BlockFace.SOUTH;
-            case UP_POSITIVE_Y:
-                return BlockFace.UP;
-            case WEST_NEGATIVE_X:
-                return BlockFace.WEST;
-        }
+        return switch (this) {
+            case DOWN_NEGATIVE_Y -> BlockFace.DOWN;
+            case EAST_POSITIVE_X -> BlockFace.EAST;
+            case NORTH_NEGATIVE_Z -> BlockFace.NORTH;
+            case SOUTH_POSITIVE_Z -> BlockFace.SOUTH;
+            case UP_POSITIVE_Y -> BlockFace.UP;
+            case WEST_NEGATIVE_X -> BlockFace.WEST;
+        };
 
-        return null;
     }
 
     public Axis getAxis() {
-        switch (this) {
-            case DOWN_NEGATIVE_Y:
-            case UP_POSITIVE_Y:
-                return Axis.Y;
-            case EAST_POSITIVE_X:
-            case WEST_NEGATIVE_X:
-                return Axis.X;
-            case NORTH_NEGATIVE_Z:
-            case SOUTH_POSITIVE_Z:
-                return Axis.Z;
-        }
+        return switch (this) {
+            case DOWN_NEGATIVE_Y, UP_POSITIVE_Y -> Axis.Y;
+            case EAST_POSITIVE_X, WEST_NEGATIVE_X -> Axis.X;
+            case NORTH_NEGATIVE_Z, SOUTH_POSITIVE_Z -> Axis.Z;
+        };
 
-        return null;
     }
 }

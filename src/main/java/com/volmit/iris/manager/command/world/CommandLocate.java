@@ -31,7 +31,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import java.util.Arrays;
 
 public class CommandLocate extends MortarCommand implements Listener {
-    CommandLocate instance;
+    final CommandLocate instance;
 
     @EventHandler
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {

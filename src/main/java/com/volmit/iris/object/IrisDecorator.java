@@ -83,7 +83,7 @@ public class IrisDecorator {
 
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
-    private KList<IrisBlockData> topPalette = new KList<IrisBlockData>();
+    private KList<IrisBlockData> topPalette = new KList<>();
 
     @DependsOn("topPalette")
     @MinNumber(0.01)
@@ -107,9 +107,7 @@ public class IrisDecorator {
 
     public CNG getHeightGenerator(RNG rng, IrisDataManager data) {
         return heightGenerator.aquire(() ->
-        {
-            return heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin));
-        });
+                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin)));
     }
 
     public CNG getGenerator(RNG rng, IrisDataManager data) {
@@ -223,6 +221,7 @@ public class IrisDecorator {
         });
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isStacking() {
         return getStackMax() > 1;
     }

@@ -28,7 +28,6 @@ import com.volmit.iris.object.IrisObject;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class SKConversion {
@@ -48,8 +47,6 @@ public class SKConversion {
             }
 
             o.write(out);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

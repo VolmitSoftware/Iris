@@ -23,6 +23,7 @@ import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
+@SuppressWarnings("ALL")
 public class MCAFile {
 
     /**
@@ -80,7 +81,7 @@ public class MCAFile {
             raf.seek(4096 + i * 4);
             int timestamp = raf.readInt();
             Chunk chunk = new Chunk(timestamp);
-            raf.seek(4096 * offset + 4); //+4: skip data size
+            raf.seek(4096L * offset + 4); //+4: skip data size
             chunk.deserialize(raf, loadFlags);
             chunks[i] = chunk;
         }
@@ -131,7 +132,7 @@ public class MCAFile {
                 if (chunk == null) {
                     continue;
                 }
-                raf.seek(4096 * globalOffset);
+                raf.seek(4096L * globalOffset);
                 lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz);
 
                 if (lastWritten == 0) {
@@ -142,14 +143,14 @@ public class MCAFile {
 
                 int sectors = (lastWritten >> 12) + (lastWritten % 4096 == 0 ? 0 : 1);
 
-                raf.seek(index * 4);
+                raf.seek(index * 4L);
                 raf.writeByte(globalOffset >>> 16);
                 raf.writeByte(globalOffset >> 8 & 0xFF);
                 raf.writeByte(globalOffset & 0xFF);
                 raf.writeByte(sectors);
 
                 // write timestamp
-                raf.seek(index * 4 + 4096);
+                raf.seek(index * 4L + 4096);
                 raf.writeInt(changeLastUpdate ? timestamp : chunk.getLastMCAUpdate());
 
                 globalOffset += sectors;
@@ -158,7 +159,7 @@ public class MCAFile {
 
         // padding
         if (lastWritten % 4096 != 0) {
-            raf.seek(globalOffset * 4096 - 1);
+            raf.seek(globalOffset * 4096L - 1);
             raf.write(0);
         }
         return chunksWritten;

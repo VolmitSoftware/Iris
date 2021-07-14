@@ -29,6 +29,9 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Map;
+
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -77,8 +80,8 @@ public class IrisBlockData extends IrisRegistrant {
 
         KList<String> r = new KList<>();
 
-        for (String i : data.keySet()) {
-            r.add(i + "=" + filter(data.get(i).toString()));
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            r.add(entry.getKey() + "=" + filter(entry.getValue().toString()));
         }
 
         return "[" + r.toString(",") + "]";
@@ -194,13 +197,13 @@ public class IrisBlockData extends IrisRegistrant {
 
         try {
             return Integer.valueOf(string);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
         try {
             return Double.valueOf(string).intValue();
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

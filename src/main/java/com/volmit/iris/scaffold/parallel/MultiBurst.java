@@ -23,30 +23,26 @@ import com.volmit.iris.util.KList;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 public class MultiBurst {
-    public static MultiBurst burst = new MultiBurst(Runtime.getRuntime().availableProcessors());
+    public static final MultiBurst burst = new MultiBurst(Runtime.getRuntime().availableProcessors());
     private final ExecutorService service;
     private ExecutorService syncService;
     private int tid;
 
     public MultiBurst(int tc) {
-        service = Executors.newFixedThreadPool(tc, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                tid++;
-                Thread t = new Thread(r);
-                t.setName("Iris Generator " + tid);
-                t.setPriority(6);
-                t.setUncaughtExceptionHandler((et, e) ->
-                {
-                    Iris.info("Exception encountered in " + et.getName());
-                    e.printStackTrace();
-                });
+        service = Executors.newFixedThreadPool(tc, r -> {
+            tid++;
+            Thread t = new Thread(r);
+            t.setName("Iris Generator " + tid);
+            t.setPriority(6);
+            t.setUncaughtExceptionHandler((et, e) ->
+            {
+                Iris.info("Exception encountered in " + et.getName());
+                e.printStackTrace();
+            });
 
-                return t;
-            }
+            return t;
         });
     }
 

@@ -21,6 +21,7 @@ package com.volmit.iris.scaffold.stream.interpolation;
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class InterpolatorFactory<T> {
     private final ProceduralStream<T> stream;
 
@@ -29,7 +30,7 @@ public class InterpolatorFactory<T> {
     }
 
     public InterpolatingStream<T> with(InterpolationMethod t, int rx) {
-        return new InterpolatingStream<T>(stream, rx, t);
+        return new InterpolatingStream<>(stream, rx, t);
     }
 
     public TrilinearStream<T> trilinear(int rx, int ry, int rz) {

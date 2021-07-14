@@ -45,14 +45,11 @@ public class TaskExecutor {
                 return t;
             });
         } else if (threadLimit > 1) {
-            final ForkJoinWorkerThreadFactory factory = new ForkJoinWorkerThreadFactory() {
-                @Override
-                public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-                    final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                    worker.setName(name + " " + xc++);
-                    worker.setPriority(priority);
-                    return worker;
-                }
+            final ForkJoinWorkerThreadFactory factory = pool -> {
+                final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                worker.setName(name + " " + xc++);
+                worker.setPriority(priority);
+                return worker;
             };
 
             service = new ForkJoinPool(threadLimit, factory, null, false);
@@ -120,8 +117,9 @@ public class TaskExecutor {
             waiting:
             while (true) {
                 try {
+                    //noinspection BusyWait
                     Thread.sleep(0);
-                } catch (InterruptedException e1) {
+                } catch (InterruptedException ignored) {
 
                 }
 
@@ -150,6 +148,7 @@ public class TaskExecutor {
         }
     }
 
+    @SuppressWarnings("ClassCanBeRecord")
     @ToString
     public static class TaskResult {
         public TaskResult(double timeElapsed, int tasksExecuted, int tasksFailed, int tasksCompleted) {

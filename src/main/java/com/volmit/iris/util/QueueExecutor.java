@@ -23,7 +23,7 @@ public class QueueExecutor extends Looper {
     private boolean shutdown;
 
     public QueueExecutor() {
-        queue = new ShurikenQueue<Runnable>();
+        queue = new ShurikenQueue<>();
         shutdown = false;
     }
 

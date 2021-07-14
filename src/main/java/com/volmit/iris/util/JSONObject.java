@@ -79,6 +79,7 @@ import java.util.Map.Entry;
  * @author JSON.org
  * @version 2015-07-22
  */
+@SuppressWarnings("ALL")
 public class JSONObject {
     /**
      * JSONObject.NULL is equivalent to the value that JavaScript calls null,
@@ -1299,6 +1300,7 @@ public class JSONObject {
      * @param other The other JSONObject
      * @return true if they are equal
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean similar(Object other) {
         try {
             if (!(other instanceof JSONObject)) {

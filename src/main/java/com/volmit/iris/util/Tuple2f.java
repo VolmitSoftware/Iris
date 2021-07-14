@@ -313,9 +313,7 @@ public abstract class Tuple2f implements java.io.Serializable, Cloneable {
         try {
             Tuple2f t2 = (Tuple2f) t1;
             return (this.x == t2.x && this.y == t2.y);
-        } catch (NullPointerException e2) {
-            return false;
-        } catch (ClassCastException e1) {
+        } catch (NullPointerException | ClassCastException e2) {
             return false;
         }
 
@@ -365,19 +363,11 @@ public abstract class Tuple2f implements java.io.Serializable, Cloneable {
     public final void clamp(float min, float max, Tuple2f t) {
         if (t.x > max) {
             x = max;
-        } else if (t.x < min) {
-            x = min;
-        } else {
-            x = t.x;
-        }
+        } else x = Math.max(t.x, min);
 
         if (t.y > max) {
             y = max;
-        } else if (t.y < min) {
-            y = min;
-        } else {
-            y = t.y;
-        }
+        } else y = Math.max(t.y, min);
 
     }
 
@@ -390,17 +380,9 @@ public abstract class Tuple2f implements java.io.Serializable, Cloneable {
      * @param t   the source tuple, which will not be modified
      */
     public final void clampMin(float min, Tuple2f t) {
-        if (t.x < min) {
-            x = min;
-        } else {
-            x = t.x;
-        }
+        x = Math.max(t.x, min);
 
-        if (t.y < min) {
-            y = min;
-        } else {
-            y = t.y;
-        }
+        y = Math.max(t.y, min);
 
     }
 
@@ -413,17 +395,9 @@ public abstract class Tuple2f implements java.io.Serializable, Cloneable {
      * @param t   the source tuple, which will not be modified
      */
     public final void clampMax(float max, Tuple2f t) {
-        if (t.x > max) {
-            x = max;
-        } else {
-            x = t.x;
-        }
+        x = Math.min(t.x, max);
 
-        if (t.y > max) {
-            y = max;
-        } else {
-            y = t.y;
-        }
+        y = Math.min(t.y, max);
 
     }
 

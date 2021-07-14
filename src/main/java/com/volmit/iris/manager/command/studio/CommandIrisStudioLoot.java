@@ -90,7 +90,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
 
             boolean fast = ffast;
             boolean add = fadd;
-            O<Integer> ta = new O<Integer>();
+            O<Integer> ta = new O<>();
             ta.set(-1);
 
             ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->

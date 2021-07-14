@@ -29,6 +29,7 @@ import java.io.*;
  * @author JSON.org
  * @version 2014-05-03
  */
+@SuppressWarnings("ALL")
 public class JSONTokener {
 
     private long character;

@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.util.BlockVector;
 
+@SuppressWarnings("ALL")
 @Data
 public class PlannedPiece {
     private IrisPosition position;

@@ -138,7 +138,7 @@ public class IrisNoiseGenerator {
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {
-        KList<IrisNoiseGenerator> g = new KList<IrisNoiseGenerator>();
+        KList<IrisNoiseGenerator> g = new KList<>();
 
         g.add(this);
 

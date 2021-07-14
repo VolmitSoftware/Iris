@@ -18,8 +18,8 @@
 
 package com.volmit.iris.util;
 
-/**
- * Changes : Neil Wightman - Support 19133 Tag_Int_Array tag
+/*
+  Changes : Neil Wightman - Support 19133 Tag_Int_Array tag
  */
 
 /**
@@ -110,34 +110,21 @@ public final class NBTUtils {
      * @throws IllegalArgumentException if the tag type is invalid.
      */
     public static Class<? extends Tag> getTypeClass(int type) {
-        switch (type) {
-            case NBTConstants.TYPE_END:
-                return EndTag.class;
-            case NBTConstants.TYPE_BYTE:
-                return ByteTag.class;
-            case NBTConstants.TYPE_SHORT:
-                return ShortTag.class;
-            case NBTConstants.TYPE_INT:
-                return IntTag.class;
-            case NBTConstants.TYPE_LONG:
-                return LongTag.class;
-            case NBTConstants.TYPE_FLOAT:
-                return FloatTag.class;
-            case NBTConstants.TYPE_DOUBLE:
-                return DoubleTag.class;
-            case NBTConstants.TYPE_BYTE_ARRAY:
-                return ByteArrayTag.class;
-            case NBTConstants.TYPE_STRING:
-                return StringTag.class;
-            case NBTConstants.TYPE_LIST:
-                return ListTag.class;
-            case NBTConstants.TYPE_COMPOUND:
-                return CompoundTag.class;
-            case NBTConstants.TYPE_INT_ARRAY:
-                return IntArrayTag.class;
-            default:
-                throw new IllegalArgumentException("Invalid tag type : " + type + ".");
-        }
+        return switch (type) {
+            case NBTConstants.TYPE_END -> EndTag.class;
+            case NBTConstants.TYPE_BYTE -> ByteTag.class;
+            case NBTConstants.TYPE_SHORT -> ShortTag.class;
+            case NBTConstants.TYPE_INT -> IntTag.class;
+            case NBTConstants.TYPE_LONG -> LongTag.class;
+            case NBTConstants.TYPE_FLOAT -> FloatTag.class;
+            case NBTConstants.TYPE_DOUBLE -> DoubleTag.class;
+            case NBTConstants.TYPE_BYTE_ARRAY -> ByteArrayTag.class;
+            case NBTConstants.TYPE_STRING -> StringTag.class;
+            case NBTConstants.TYPE_LIST -> ListTag.class;
+            case NBTConstants.TYPE_COMPOUND -> CompoundTag.class;
+            case NBTConstants.TYPE_INT_ARRAY -> IntArrayTag.class;
+            default -> throw new IllegalArgumentException("Invalid tag type : " + type + ".");
+        };
     }
 
     /**

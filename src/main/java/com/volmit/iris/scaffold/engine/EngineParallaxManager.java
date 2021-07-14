@@ -41,6 +41,7 @@ import org.bukkit.util.Consumer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -212,6 +213,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     default void generateParallaxArea(int x, int z) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -644,9 +646,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             });
         }
 
-        for (IrisObjectScale i : scalars.keySet()) {
-            double ms = i.getMaximumScale();
-            for (String j : scalars.get(i)) {
+        for (Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
+            double ms = entry.getKey().getMaximumScale();
+            for (String j : entry.getValue()) {
                 e.queue(() -> {
                     try {
                         BlockVector bv = sizeCache.compute(j, (k, v) -> {

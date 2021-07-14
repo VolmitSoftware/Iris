@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+@SuppressWarnings("EmptyMethod")
 public class Spiraler {
     int x, z, dx, dz, sizeX, sizeZ, t, maxI, i;
     int ox, oz;

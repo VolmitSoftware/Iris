@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+@SuppressWarnings("ALL")
 public class CDou {
     private double number;
     private final double max;

@@ -20,6 +20,7 @@ package com.volmit.iris.scaffold.hunk.view;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class ReadOnlyHunk<T> implements Hunk<T> {
     private final Hunk<T> src;
 

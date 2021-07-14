@@ -140,7 +140,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
 
         try {
             dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

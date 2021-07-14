@@ -66,7 +66,7 @@ public class CNG {
     }
 
     public ProceduralStream<Double> stream(double min, double max) {
-        return new FittedStream<Double>(stream(), min, max);
+        return new FittedStream<>(stream(), min, max);
     }
 
     public static CNG signature(RNG rng) {
@@ -304,7 +304,7 @@ public class CNG {
 
         try {
             return v.get(fit(0, v.size() - 1, dim));
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

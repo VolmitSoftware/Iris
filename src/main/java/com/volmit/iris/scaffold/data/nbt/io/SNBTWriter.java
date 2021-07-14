@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 /**
  * SNBTWriter creates an SNBT String.
  */
+@SuppressWarnings("ClassCanBeRecord")
 public final class SNBTWriter implements MaxDepthIO {
 
     private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("[a-zA-Z_.+\\-]+");

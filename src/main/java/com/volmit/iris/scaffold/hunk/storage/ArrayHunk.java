@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.util.Arrays;
 
+@SuppressWarnings("Lombok")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class ArrayHunk<T> extends StorageHunk<T> implements Hunk<T> {

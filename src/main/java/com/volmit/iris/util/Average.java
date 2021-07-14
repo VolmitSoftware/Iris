@@ -26,7 +26,7 @@ package com.volmit.iris.util;
  * @author cyberpwn
  */
 public class Average {
-    protected double[] values;
+    protected final double[] values;
     private double average;
     private double lastSum;
     private boolean dirty;

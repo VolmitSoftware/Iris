@@ -45,7 +45,7 @@ public class RNG extends Random {
      * @param seed the seed (string)
      */
     public RNG(String seed) {
-        this(UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits() + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() + (seed.length() * 32564));
+        this(UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits() + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() + (seed.length() * 32564L));
     }
 
     public RNG nextParallelRNG(int signature) {

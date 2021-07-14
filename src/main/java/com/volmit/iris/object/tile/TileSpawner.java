@@ -57,6 +57,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
 
     @Override
     public TileSpawner clone() {
+        TileSpawner tileSpawner = (TileSpawner) super.clone();
         TileSpawner ts = new TileSpawner();
         ts.setEntityType(getEntityType());
         return ts;
@@ -75,7 +76,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
 
     @Override
     public void toNBT(CompoundTag tag) {
-        ListTag<CompoundTag> potentials = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
+        @SuppressWarnings("unchecked") ListTag<CompoundTag> potentials = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
         CompoundTag t = new CompoundTag();
         CompoundTag ent = new CompoundTag();
         ent.putString("id", entityType.getKey().toString());

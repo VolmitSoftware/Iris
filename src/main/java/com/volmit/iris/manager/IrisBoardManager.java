@@ -35,8 +35,8 @@ public class IrisBoardManager implements BoardProvider, Listener {
 
     private final BoardManager manager;
     private String mem = "...";
-    public RollingSequence hits = new RollingSequence(20);
-    public RollingSequence tp = new RollingSequence(100);
+    public final RollingSequence hits = new RollingSequence(20);
+    public final RollingSequence tp = new RollingSequence(100);
     private final ChronoLatch cl = new ChronoLatch(1000);
 
 
@@ -105,9 +105,9 @@ public class IrisBoardManager implements BoardProvider, Listener {
             parallaxRegions += g.getCompound().getEngine(i).getParallax().getRegionCount();
             parallaxChunks += g.getCompound().getEngine(i).getParallax().getChunkCount();
             loadedObjects += g.getCompound().getData().getObjectLoader().getSize();
-            memoryGuess += g.getCompound().getData().getObjectLoader().getTotalStorage() * 225;
-            memoryGuess += parallaxChunks * 3500;
-            memoryGuess += parallaxRegions * 1700000;
+            memoryGuess += g.getCompound().getData().getObjectLoader().getTotalStorage() * 225L;
+            memoryGuess += parallaxChunks * 3500L;
+            memoryGuess += parallaxRegions * 1700000L;
         }
 
         tp.put(0); // TODO: CHUNK SPEED

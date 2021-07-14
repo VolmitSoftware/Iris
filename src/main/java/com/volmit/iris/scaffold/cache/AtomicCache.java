@@ -68,6 +68,7 @@ public class AtomicCache<T> {
 
         if (this.t != null && M.ms() - a > 1000) {
             if (this.t != null) {
+                //noinspection NonAtomicOperationOnVolatileField
                 validations++;
             }
 
@@ -100,6 +101,7 @@ public class AtomicCache<T> {
         }
 
         if (M.ms() - a > 1000) {
+            //noinspection NonAtomicOperationOnVolatileField
             validations++;
             return this.t;
         }

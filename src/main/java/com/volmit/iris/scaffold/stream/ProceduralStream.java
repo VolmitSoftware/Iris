@@ -30,6 +30,7 @@ import com.volmit.iris.util.*;
 import java.util.List;
 import java.util.function.Function;
 
+@SuppressWarnings("ALL")
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f) {
         try {

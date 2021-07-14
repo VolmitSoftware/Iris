@@ -124,8 +124,7 @@ public class IrisLoot {
             ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
             ItemMeta m = is.getItemMeta();
 
-            if (getType().getMaxDurability() > 0 && m instanceof Damageable) {
-                Damageable d = (Damageable) m;
+            if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                 int max = getType().getMaxDurability();
                 d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
             }
@@ -186,7 +185,7 @@ public class IrisLoot {
 
             is.setItemMeta(m);
             return is;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -208,8 +207,7 @@ public class IrisLoot {
                 ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
                 ItemMeta m = is.getItemMeta();
 
-                if (getType().getMaxDurability() > 0 && m instanceof Damageable) {
-                    Damageable d = (Damageable) m;
+                if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                     int max = getType().getMaxDurability();
                     d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
                 }
@@ -261,7 +259,7 @@ public class IrisLoot {
                 m.setLore(lore);
                 is.setItemMeta(m);
                 return is;
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         }

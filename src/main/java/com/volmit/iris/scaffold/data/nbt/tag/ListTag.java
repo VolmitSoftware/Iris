@@ -31,6 +31,7 @@ import java.util.function.Consumer;
  * The type of an empty untyped {@link ListTag} can be set by using any of the {@code add()}
  * methods or any of the {@code as...List()} methods.
  */
+@SuppressWarnings("ALL")
 public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<T>, Comparable<ListTag<T>>, MaxDepthIO {
 
     public static final byte ID = 9;
@@ -68,7 +69,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
      * @param initialCapacity The initial capacity of the returned List
      * @return An instance of {@link List} with an initial capacity of 3
      */
-    private static <T> List<T> createEmptyValue(int initialCapacity) {
+    private static <T> List<T> createEmptyValue(@SuppressWarnings("SameParameterValue") int initialCapacity) {
         return new KList<>(initialCapacity);
     }
 

@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@SuppressWarnings("ALL")
 public class KList<T> extends ArrayList<T> implements List<T> {
     private static final long serialVersionUID = -2892550695744823337L;
 
@@ -108,7 +109,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param f   the function
      * @return the new map
      */
-    @SuppressWarnings("hiding")
     public <V> KMap<T, V> asKeys(Function<T, V> f) {
         KMap<T, V> m = new KMap<T, V>();
         forEach((i) -> m.putNonNull(i, f.apply(i)));
@@ -249,7 +249,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         StringBuilder b = new StringBuilder();
 
         for (String i : toStringList()) {
-            b.append(split + i);
+            b.append(split).append(i);
         }
 
         return b.substring(split.length());
@@ -272,7 +272,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param converter the converter that converts the forign type into this list type
      * @return this list (builder)
      */
-    @SuppressWarnings("hiding")
     public <V> KList<T> addFrom(List<V> v, Function<V, T> converter) {
         v.forEach((g) -> add(converter.apply(g)));
         return this;
@@ -286,7 +285,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param converter
      * @return
      */
-    @SuppressWarnings("hiding")
     public <V> KList<V> convert(Function<T, V> converter) {
         KList<V> v = new KList<V>();
         forEach((t) -> v.addNonNull(converter.apply(t)));

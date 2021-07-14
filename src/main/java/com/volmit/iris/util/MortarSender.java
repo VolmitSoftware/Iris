@@ -107,47 +107,49 @@ public class MortarSender implements CommandSender {
     }
 
     @Override
-    public boolean isPermissionSet(String name) {
+    public boolean isPermissionSet(@NotNull String name) {
         return s.isPermissionSet(name);
     }
 
     @Override
-    public boolean isPermissionSet(Permission perm) {
+    public boolean isPermissionSet(@NotNull Permission perm) {
         return s.isPermissionSet(perm);
     }
 
     @Override
-    public boolean hasPermission(String name) {
+    public boolean hasPermission(@NotNull String name) {
         return s.hasPermission(name);
     }
 
     @Override
-    public boolean hasPermission(Permission perm) {
+    public boolean hasPermission(@NotNull Permission perm) {
         return s.hasPermission(perm);
     }
 
+    @NotNull
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value) {
         return s.addAttachment(plugin, name, value);
     }
 
+    @NotNull
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin) {
         return s.addAttachment(plugin);
     }
 
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value, int ticks) {
         return s.addAttachment(plugin, name, value, ticks);
     }
 
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, int ticks) {
         return s.addAttachment(plugin, ticks);
     }
 
     @Override
-    public void removeAttachment(PermissionAttachment attachment) {
+    public void removeAttachment(@NotNull PermissionAttachment attachment) {
         s.removeAttachment(attachment);
     }
 
@@ -156,6 +158,7 @@ public class MortarSender implements CommandSender {
         s.recalculatePermissions();
     }
 
+    @NotNull
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
         return s.getEffectivePermissions();
@@ -176,7 +179,7 @@ public class MortarSender implements CommandSender {
     }
 
     @Override
-    public void sendMessage(String message) {
+    public void sendMessage(@NotNull String message) {
         s.sendMessage(C.translateAlternateColorCodes('&', getTag()) + message);
     }
 
@@ -196,16 +199,19 @@ public class MortarSender implements CommandSender {
         sendMessage(messages);
     }
 
+    @NotNull
     @Override
     public Server getServer() {
         return s.getServer();
     }
 
+    @NotNull
     @Override
     public String getName() {
         return s.getName();
     }
 
+    @NotNull
     @Override
     public Spigot spigot() {
         return s.spigot();

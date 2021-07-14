@@ -26,6 +26,7 @@ import lombok.EqualsAndHashCode;
 
 import java.util.Map;
 
+@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {

@@ -53,8 +53,7 @@ public class BlockPosition {
             return false;
         }
 
-        if (o instanceof BlockPosition) {
-            BlockPosition ot = (BlockPosition) o;
+        if (o instanceof BlockPosition ot) {
 
             return ot.x == x && ot.y == y && ot.z == z;
         }
@@ -85,7 +84,7 @@ public class BlockPosition {
     public static long toLong(int x, int y, int z) {
         long var3 = 0L;
         var3 |= (x & m4) << m3;
-        var3 |= (y & m5) << 0L;
+        var3 |= (y & m5);
         var3 |= (z & m6) << m2;
         return var3;
     }

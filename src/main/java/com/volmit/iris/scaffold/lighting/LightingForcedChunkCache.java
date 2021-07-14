@@ -30,7 +30,7 @@ import java.util.Map;
  * Reduces chunk unloading-loading grind.
  */
 public class LightingForcedChunkCache {
-    private static final Map<Key, ForcedChunk> _cache = new HashMap<Key, ForcedChunk>();
+    private static final Map<Key, ForcedChunk> _cache = new HashMap<>();
 
     public static ForcedChunk get(World world, int x, int z) {
         ForcedChunk cached;
@@ -63,6 +63,7 @@ public class LightingForcedChunkCache {
         }
     }
 
+    @SuppressWarnings("ClassCanBeRecord")
     private static final class Key {
         public final World world;
         public final int x;
@@ -81,8 +82,7 @@ public class LightingForcedChunkCache {
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof Key) {
-                Key other = (Key) o;
+            if (o instanceof Key other) {
                 return other.x == this.x &&
                         other.z == this.z &&
                         other.world == this.world;

@@ -66,6 +66,7 @@ public class StringPointer {
         throw parseException("missing end quote");
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean nextArrayElement() {
         skipWhitespace();
         if (hasNext() && currentChar() == ',') {

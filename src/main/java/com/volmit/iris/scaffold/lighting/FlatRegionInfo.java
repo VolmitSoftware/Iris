@@ -150,7 +150,6 @@ public class FlatRegionInfo {
      * Adds another Region Y-coordinate to the list.
      * The set of chunks and other properties are copied.
      *
-     * @param ry
      * @return new flat region info object with updated ry
      */
     public FlatRegionInfo addRegionYCoordinate(int ry) {

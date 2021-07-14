@@ -52,7 +52,7 @@ public class WeightMap<T> extends KMap<T, Double> {
         }
 
         modified = false;
-        Shrinkwrap<Double> s = new Shrinkwrap<Double>(0D);
+        Shrinkwrap<Double> s = new Shrinkwrap<>(0D);
         forEachKey(Integer.MAX_VALUE, (d) -> s.set(s.get() + 1));
         lastWeight = s.get();
 

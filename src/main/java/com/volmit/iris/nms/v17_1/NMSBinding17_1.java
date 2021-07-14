@@ -102,6 +102,7 @@ public class NMSBinding17_1 implements INMSBinding {
         return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Override
     public String getKeyForBiomeBase(Object biomeBase) {
         return getCustomBiomeRegistry().c((BiomeBase) biomeBase).get().a().toString();
@@ -125,6 +126,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Method f = from.getClass().getDeclaredMethod(name, classify(par));
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.invoke(from, par);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -137,6 +139,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Method f = from.getDeclaredMethod(name, classify(par));
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.invoke(null, par);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -149,6 +152,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Field f = from.getClass().getDeclaredField(name);
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.get(from);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -161,6 +165,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Field f = t.getDeclaredField(name);
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.get(null);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -176,11 +181,13 @@ public class NMSBinding17_1 implements INMSBinding {
         if (v != null) {
             return v;
         }
+        //noinspection unchecked
         v = org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
+            //noinspection unchecked
             return org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
@@ -204,7 +211,7 @@ public class NMSBinding17_1 implements INMSBinding {
     @Override
     public int countCustomBiomes() {
         AtomicInteger a = new AtomicInteger(0);
-        getCustomBiomeRegistry().d().stream().forEach((i) -> {
+        getCustomBiomeRegistry().d().forEach((i) -> {
             MinecraftKey k = i.getKey().a();
 
             if (k.getNamespace().equals("minecraft")) {

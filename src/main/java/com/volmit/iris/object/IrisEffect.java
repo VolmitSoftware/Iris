@@ -190,7 +190,7 @@ public class IrisEffect {
                         return t;
                     }
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
 
@@ -212,9 +212,7 @@ public class IrisEffect {
         if (sound != null) {
             Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
 
-            J.s(() -> {
-                p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch));
-            });
+            J.s(() -> p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
         }
 
         if (particleEffect != null) {
@@ -223,23 +221,19 @@ public class IrisEffect {
             part.setY(Math.round(g.getHeight(part.getBlockX(), part.getBlockZ())) + 1);
             part.add(RNG.r.d(), 0, RNG.r.d());
             if (extra != 0) {
-                J.s(() -> {
-                    p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
-                            part.getZ(),
-                            particleCount,
-                            randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
-                            randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
-                            randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
-                            extra);
-                });
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
+                        part.getZ(),
+                        particleCount,
+                        randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+                        randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+                        randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
+                        extra));
             } else {
-                J.s(() -> {
-                    p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
-                            particleCount,
-                            randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
-                            randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
-                            randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ);
-                });
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
+                        particleCount,
+                        randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+                        randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+                        randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ));
             }
         }
 
@@ -250,18 +244,14 @@ public class IrisEffect {
                     return;
                 }
 
-                J.s(() -> {
-                    p.removePotionEffect(getRealType());
-                });
+                J.s(() -> p.removePotionEffect(getRealType()));
             }
 
-            J.s(() -> {
-                p.addPotionEffect(new PotionEffect(getRealType(),
-                        RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
-                                Math.max(potionTicksMax, potionTicksMin)),
-                        getPotionStrength(),
-                        true, false, false));
-            });
+            J.s(() -> p.addPotionEffect(new PotionEffect(getRealType(),
+                    RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
+                            Math.max(potionTicksMax, potionTicksMin)),
+                    getPotionStrength(),
+                    true, false, false)));
         }
     }
 }

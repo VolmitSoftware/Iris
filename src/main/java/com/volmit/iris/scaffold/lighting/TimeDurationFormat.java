@@ -38,7 +38,6 @@ public class TimeDurationFormat {
      * Creates a new time duration format. The format accepts the same formatting
      * tokens as the Date formatter does.
      *
-     * @param format
      * @throws IllegalArgumentException if the input format is invalid
      */
     public TimeDurationFormat(String format) {
@@ -53,7 +52,6 @@ public class TimeDurationFormat {
     /**
      * Formats the duration
      *
-     * @param durationMillis
      * @return formatted string
      */
     public String format(long durationMillis) {

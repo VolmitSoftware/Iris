@@ -30,7 +30,6 @@ import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -53,7 +52,7 @@ public class ProjectManager {
                     if (m != null) {
                         try {
                             IO.copyFile(m, ignore);
-                        } catch (IOException e) {
+                        } catch (IOException ignored) {
 
                         }
                     }
@@ -63,7 +62,8 @@ public class ProjectManager {
     }
 
     public static int countUniqueDimensions() {
-        int vv = counter.aquire(() -> {
+
+        return counter.aquire(() -> {
             int v = 0;
 
             try {
@@ -82,8 +82,6 @@ public class ProjectManager {
 
             return v;
         });
-
-        return vv;
     }
 
     public IrisDimension installIntoWorld(MortarSender sender, String type, File folder) {
@@ -106,7 +104,7 @@ public class ProjectManager {
 
             try {
                 FileUtils.copyDirectory(f, irispack);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
 
             }
         }
@@ -192,12 +190,13 @@ public class ProjectManager {
         } catch (Throwable e) {
             e.printStackTrace();
             sender.sendMessage(
-                    "Issue when unpacking. Please check/do the following:" +
-                            "\n1. Do you have a functioning internet connection?" +
-                            "\n2. Did the download corrupt?" +
-                            "\n3. Try deleting the */plugins/iris/packs folder and re-download." +
-                            "\n4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld" +
-                            "\n5. Contact support (if all other options do not help)"
+                    """
+                            Issue when unpacking. Please check/do the following:
+                            1. Do you have a functioning internet connection?
+                            2. Did the download corrupt?
+                            3. Try deleting the */plugins/iris/packs folder and re-download.
+                            4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld
+                            5. Contact support (if all other options do not help)"""
             );
         }
         File dir = null;
@@ -352,12 +351,7 @@ public class ProjectManager {
         }
 
         try {
-            FileUtils.copyDirectory(importPack, newPack, new FileFilter() {
-                @Override
-                public boolean accept(File pathname) {
-                    return !pathname.getAbsolutePath().contains(".git");
-                }
-            }, false);
+            FileUtils.copyDirectory(importPack, newPack, pathname -> !pathname.getAbsolutePath().contains(".git"), false);
         } catch (IOException e) {
             e.printStackTrace();
         }

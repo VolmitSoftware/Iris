@@ -24,6 +24,7 @@ import org.bukkit.Material;
 
 import java.awt.image.BufferedImage;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class IrisRenderer {
     private final Renderer renderer;
 

@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.AtomicDoubleArray;
  * @author cyberpwn
  */
 public class AtomicAverage {
-    protected AtomicDoubleArray values;
+    protected final AtomicDoubleArray values;
     private double average;
     private double lastSum;
     private boolean dirty;
@@ -71,7 +71,7 @@ public class AtomicAverage {
             lastSum = (lastSum - current) + i;
             values.set(cursor, i);
             cursor = cursor + 1 < size() ? cursor + 1 : 0;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
     }

@@ -65,7 +65,7 @@ public class IrisColor {
                 String v = (hex.startsWith("#") ? hex : "#" + hex).trim();
                 try {
                     return Color.decode(v);
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
 
                 }
             }
@@ -89,8 +89,8 @@ public class IrisColor {
         int g = 0;
         int b = 0;
 
-        for (int i = 0; i < c.length; i++) {
-            int rgb = c[i].getRGB();
+        for (Color value : c) {
+            int rgb = value.getRGB();
             int a1 = (rgb >> 24 & 0xff);
             int r1 = ((rgb & 0xff0000) >> 16);
             int g1 = ((rgb & 0xff00) >> 8);

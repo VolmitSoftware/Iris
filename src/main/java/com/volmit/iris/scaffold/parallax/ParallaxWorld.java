@@ -30,6 +30,7 @@ import org.bukkit.block.data.BlockData;
 import java.io.File;
 import java.io.IOException;
 
+@SuppressWarnings("ALL")
 public class ParallaxWorld implements ParallaxAccess {
     private final KMap<Long, ParallaxRegion> loadedRegions;
     private final KList<Long> save;

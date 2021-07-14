@@ -37,7 +37,7 @@ public class IrisBlockDrops {
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The blocks that drop loot")
-    private KList<IrisBlockData> blocks = new KList<IrisBlockData>();
+    private KList<IrisBlockData> blocks = new KList<>();
 
 
     @Desc("If exact blocks is set to true, minecraft:barrel[axis=x] will only drop for that axis. When exact is false (default) any barrel will drop the defined drops.")

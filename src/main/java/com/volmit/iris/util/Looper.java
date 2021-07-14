@@ -21,6 +21,7 @@ package com.volmit.iris.util;
 import com.volmit.iris.Iris;
 
 public abstract class Looper extends Thread {
+    @SuppressWarnings("BusyWait")
     public void run() {
         while (!interrupted()) {
             try {
@@ -30,6 +31,7 @@ public abstract class Looper extends Thread {
                     break;
                 }
 
+                //noinspection BusyWait
                 Thread.sleep(m);
             } catch (InterruptedException e) {
                 break;

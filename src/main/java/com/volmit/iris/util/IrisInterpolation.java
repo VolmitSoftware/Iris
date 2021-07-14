@@ -848,8 +848,6 @@ public class IrisInterpolation {
             return getStarcast(x, z, h, 9D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
         } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_12)) {
             return getStarcast(x, z, h, 12D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
-        } else if (method.equals(InterpolationMethod.BICUBIC)) {
-            return getBicubicNoise(x, z, h, n);
         } else if (method.equals(InterpolationMethod.BILINEAR_BEZIER)) {
             return getBilinearBezierNoise(x, z, h, n);
         } else if (method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_2)) {

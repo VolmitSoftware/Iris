@@ -35,7 +35,7 @@ import java.util.function.Function;
 @AllArgsConstructor
 @Data
 public class ParallaxChunkMeta {
-    public static final Function<CompoundTag, HunkIOAdapter<ParallaxChunkMeta>> adapter = (c) -> new PaletteHunkIOAdapter<ParallaxChunkMeta>() {
+    public static final Function<CompoundTag, HunkIOAdapter<ParallaxChunkMeta>> adapter = (c) -> new PaletteHunkIOAdapter<>() {
         @Override
         public void write(ParallaxChunkMeta parallaxChunkMeta, DataOutputStream dos) throws IOException {
             dos.writeUTF(new Gson().toJson(parallaxChunkMeta));

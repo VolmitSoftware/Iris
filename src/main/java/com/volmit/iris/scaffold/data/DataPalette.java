@@ -58,8 +58,8 @@ public class DataPalette<T> {
         synchronized (palette) {
             dos.writeShort(getPalette().size() + Short.MIN_VALUE);
 
-            for (int i = 0; i < palette.size(); i++) {
-                adapter.write(palette.get(i), dos);
+            for (T t : palette) {
+                adapter.write(t, dos);
             }
         }
     }

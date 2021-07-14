@@ -99,7 +99,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
         }
 
         KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[v.size()]);
+        possibleKeys = v.toArray(new String[0]);
         return possibleKeys;
     }
 
@@ -140,8 +140,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
         String key = name + "-" + cname;
 
         if (loadCache.containsKey(key)) {
-            T t = loadCache.get(key);
-            return t;
+            return loadCache.get(key);
         }
 
         lock.lock();

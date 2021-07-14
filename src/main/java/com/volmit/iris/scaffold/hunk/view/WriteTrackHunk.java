@@ -22,6 +22,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class WriteTrackHunk<T> implements Hunk<T> {
     private final Hunk<T> src;
     private final AtomicBoolean b;

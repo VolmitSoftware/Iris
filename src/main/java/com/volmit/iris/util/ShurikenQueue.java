@@ -81,7 +81,7 @@ public class ShurikenQueue<T> implements Queue<T> {
 
     @Override
     public ShurikenQueue<T> clear() {
-        queue = new KList<T>();
+        queue = new KList<>();
         return this;
     }
 

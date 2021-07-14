@@ -30,7 +30,7 @@ import java.util.HashMap;
  * Handles the automatic cleanup of chunk lighting when chunks are generated
  */
 public class LightingAutoClean {
-    private static final HashMap<World, LongHashSet> queues = new HashMap<World, LongHashSet>();
+    private static final HashMap<World, LongHashSet> queues = new HashMap<>();
     private static Task autoCleanTask = null;
 
     /**

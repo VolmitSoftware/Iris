@@ -30,21 +30,8 @@ public class CitizensLink {
         return getCitizens() != null;
     }
 
-    // public Entity spawn(EntityType type, String npcType, Location a)
-    // {
-    // if(!supported())
-    // {
-    // return null;
-    // }
-    //
-    // NPC npc = CitizensAPI.getNPCRegistry().createNPC(type, "");
-    // npc.spawn(a);
-    // return npc.getEntity();
-    // }
-
     public Plugin getCitizens() {
-        Plugin p = Bukkit.getPluginManager().getPlugin("Citizens");
 
-        return p;
+        return Bukkit.getPluginManager().getPlugin("Citizens");
     }
 }

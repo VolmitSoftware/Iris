@@ -21,6 +21,7 @@ package com.volmit.iris.scaffold.hunk.view;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Consumer4;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class ListeningHunk<T> implements Hunk<T> {
     private final Hunk<T> src;
     private final Consumer4<Integer, Integer, Integer, T> listener;

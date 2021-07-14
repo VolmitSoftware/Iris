@@ -67,6 +67,7 @@ public abstract class Tag<T> implements Cloneable {
         temp.put("\t", "\\\\t");
         temp.put("\r", "\\\\r");
         temp.put("\"", "\\\\\"");
+        //noinspection Java9CollectionFactory
         ESCAPE_CHARACTERS = Collections.unmodifiableMap(temp);
     }
 
@@ -190,7 +191,6 @@ public abstract class Tag<T> implements Cloneable {
      *
      * @return A clone of this Tag.
      */
-    @SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
     public abstract Tag<T> clone();
 
     /**
@@ -202,7 +202,8 @@ public abstract class Tag<T> implements Cloneable {
      *                the end of the string.
      * @return The escaped string.
      */
-    protected static String escapeString(String s, boolean lenient) {
+    @SuppressWarnings("StringBufferMayBeStringBuilder")
+    protected static String escapeString(String s, @SuppressWarnings("SameParameterValue") boolean lenient) {
         StringBuffer sb = new StringBuffer();
         Matcher m = ESCAPE_PATTERN.matcher(s);
         while (m.find()) {

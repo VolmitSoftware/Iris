@@ -23,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class BukkitBlockEditor implements BlockEditor {
     private final World world;
 

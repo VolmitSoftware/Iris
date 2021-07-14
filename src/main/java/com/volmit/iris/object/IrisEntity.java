@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
+@SuppressWarnings("ALL")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -286,7 +287,7 @@ public class IrisEntity extends IrisRegistrant {
             J.s(() -> ae.set(doSpawn(at)));
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
-            while (ae == null) {
+            while (ae.get() == null) {
                 J.sleep(3);
             }
 

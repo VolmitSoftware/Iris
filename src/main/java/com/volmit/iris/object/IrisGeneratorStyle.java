@@ -62,7 +62,7 @@ public class IrisGeneratorStyle {
     @Desc("The exponent")
     private double exponent = 1;
 
-    private final transient AtomicCache<CNG> cng = new AtomicCache<CNG>();
+    private final transient AtomicCache<CNG> cng = new AtomicCache<>();
 
     public IrisGeneratorStyle(NoiseStyle s) {
         this.style = s;
@@ -87,6 +87,7 @@ public class IrisGeneratorStyle {
         });
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isFlat() {
         return style.equals(NoiseStyle.FLAT);
     }

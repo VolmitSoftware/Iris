@@ -177,9 +177,7 @@ public class IrisObjectPlacement {
 
     public CNG getSurfaceWarp(RNG rng) {
         return surfaceWarp.aquire(() ->
-        {
-            return getWarp().create(rng);
-        });
+                getWarp().create(rng));
     }
 
     public double warp(RNG rng, double x, double y, double z) {
@@ -212,10 +210,10 @@ public class IrisObjectPlacement {
 
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
-    private class TableCache {
-        transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
-        transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
-        transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
+    private static class TableCache {
+        final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
+        final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
+        final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
     }
 
     private TableCache getCache(IrisDataManager manager) {

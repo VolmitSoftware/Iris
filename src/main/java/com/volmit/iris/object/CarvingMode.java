@@ -34,10 +34,12 @@ public enum CarvingMode {
 
     ANYWHERE;
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean supportsCarving() {
         return this.equals(ANYWHERE) || this.equals(CARVING_ONLY);
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean supportsSurface() {
         return this.equals(ANYWHERE) || this.equals(SURFACE_ONLY);
     }

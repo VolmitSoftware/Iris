@@ -34,7 +34,7 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
         dos.writeShort(t.getHeight() + Short.MIN_VALUE);
         dos.writeShort(t.getDepth() + Short.MIN_VALUE);
         AtomicInteger nonNull = new AtomicInteger(0);
-        DataPalette<T> palette = new DataPalette<T>();
+        DataPalette<T> palette = new DataPalette<>();
 
         t.iterateSync((x, y, z, w) -> {
             if (w != null) {

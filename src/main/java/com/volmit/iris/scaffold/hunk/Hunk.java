@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+@SuppressWarnings("ALL")
 public interface Hunk<T> {
     /**
      * Create a hunk view from a source hunk. This view reads and writes through to
@@ -248,11 +249,11 @@ public interface Hunk<T> {
     }
 
     default int getMax2DParallelism() {
-        return (int) Math.pow(getMinimumDimension() / 2, 2);
+        return (int) Math.pow(getMinimumDimension() / 2f, 2);
     }
 
     default int getMax3DParallelism() {
-        return (int) Math.pow(getMinimumDimension() / 2, 3);
+        return (int) Math.pow(getMinimumDimension() / 2f, 3);
     }
 
     default int filterDimension(int dim) {

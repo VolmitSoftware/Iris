@@ -90,8 +90,6 @@ public class M {
      * @param b  the second point (1, 0)
      * @param c  the third point (0, 1)
      * @param d  the fourth point (1, 1)
-     * @param tx the x
-     * @param ty the y
      * @return the bilerped value
      */
     public static double bilerp(double a, double b, double c, double d, double x, double y) {
@@ -138,6 +136,7 @@ public class M {
      * @return true if true
      */
     public static boolean r(Double d) {
+        //noinspection ReplaceNullCheck
         if (d == null) {
             return Math.random() < 0.5;
         }
@@ -252,7 +251,6 @@ public class M {
     /**
      * Biggest number
      *
-     * @param numbers the numbers
      * @return the biggest one
      */
     @SuppressWarnings("unchecked")
@@ -323,7 +321,7 @@ public class M {
         ScriptEngineManager mgr = new ScriptEngineManager();
         ScriptEngine scriptEngine = mgr.getEngineByName("JavaScript");
 
-        return Double.valueOf(scriptEngine.eval(expression).toString());
+        return Double.parseDouble(scriptEngine.eval(expression).toString());
     }
 
     /**

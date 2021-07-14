@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+@SuppressWarnings("EmptyMethod")
 public class DirectWorldWriter {
     private final File worldFolder;
     private final Map<Long, MCAFile> writeBuffer;
@@ -156,7 +157,7 @@ public class DirectWorldWriter {
             }
 
             return getBlockData(tag);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
         return B.get("AIR");

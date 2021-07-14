@@ -129,7 +129,7 @@ public enum NMSVersion {
         try {
             Class.forName("org.bukkit.craftbukkit.v" + v + ".CraftWorld");
             return true;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

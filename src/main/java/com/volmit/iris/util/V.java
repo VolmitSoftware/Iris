@@ -100,14 +100,14 @@ public class V {
     }
 
     public Object invoke(String method, Object... parameters) {
-        KList<Class<?>> par = new KList<Class<?>>();
+        KList<Class<?>> par = new KList<>();
 
         for (Object i : parameters) {
             par.add(i.getClass());
         }
 
         try {
-            return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()]))).invoke(o, parameters);
+            return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[0])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[0]))).invoke(o, parameters);
         } catch (Throwable e) {
             if (!suppress) {
                 e.printStackTrace();

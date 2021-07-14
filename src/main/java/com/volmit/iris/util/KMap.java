@@ -24,7 +24,7 @@ import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("hiding")
+@SuppressWarnings("ALL")
 public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     private static final long serialVersionUID = 7288942695300448163L;
 

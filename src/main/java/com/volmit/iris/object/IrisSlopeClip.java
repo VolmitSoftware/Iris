@@ -46,6 +46,7 @@ public class IrisSlopeClip {
         return minimumSlope <= 0 && maximumSlope >= 10;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isValid(double slope) {
         if (isDefault()) {
             return true;

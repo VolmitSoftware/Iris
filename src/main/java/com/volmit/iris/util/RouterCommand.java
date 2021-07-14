@@ -21,6 +21,7 @@ package com.volmit.iris.util;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Assistive command router
@@ -44,19 +45,21 @@ public class RouterCommand extends org.bukkit.command.Command {
         this.ex = ex;
     }
 
+    @NotNull
     @Override
-    public Command setUsage(String u) {
+    public Command setUsage(@NotNull String u) {
         this.usage = u;
         return this;
     }
 
+    @NotNull
     @Override
     public String getUsage() {
         return usage;
     }
 
     @Override
-    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
+    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         return ex.onCommand(sender, this, commandLabel, args);
     }
 }

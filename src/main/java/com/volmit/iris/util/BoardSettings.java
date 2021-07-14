@@ -22,6 +22,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 
+@SuppressWarnings("ClassCanBeRecord")
 @Getter
 @Builder
 public class BoardSettings {

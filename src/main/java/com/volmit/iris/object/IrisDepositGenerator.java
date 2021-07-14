@@ -75,7 +75,7 @@ public class IrisDepositGenerator {
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this deposit generator")
-    private KList<IrisBlockData> palette = new KList<IrisBlockData>();
+    private KList<IrisBlockData> palette = new KList<>();
 
     @MinNumber(1)
     @MaxNumber(64)

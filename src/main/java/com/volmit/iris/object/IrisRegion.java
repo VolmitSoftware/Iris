@@ -29,6 +29,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -81,7 +82,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
-    private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
+    private KList<IrisObjectPlacement> objects = new KList<>();
 
     @MinNumber(0)
     @Desc("The min shore height")
@@ -311,7 +312,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public KList<String> getRidgeBiomeKeys() {
         return cacheRidge.aquire(() ->
         {
-            KList<String> cacheRidge = new KList<String>();
+            KList<String> cacheRidge = new KList<>();
             ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
 
             return cacheRidge;
@@ -321,7 +322,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public KList<String> getSpotBiomeKeys() {
         return cacheSpot.aquire(() ->
         {
-            KList<String> cacheSpot = new KList<String>();
+            KList<String> cacheSpot = new KList<>();
             spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
             return cacheSpot;
         });
@@ -329,9 +330,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public CNG getShoreHeightGenerator() {
         return shoreHeightGenerator.aquire(() ->
-        {
-            return CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612)));
-        });
+                CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));
     }
 
     public double getShoreHeight(double x, double z) {

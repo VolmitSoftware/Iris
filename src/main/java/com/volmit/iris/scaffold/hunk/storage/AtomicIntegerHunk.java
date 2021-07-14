@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
+@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class AtomicIntegerHunk extends StorageHunk<Integer> implements Hunk<Integer> {

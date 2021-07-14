@@ -23,7 +23,7 @@ A clear and concise description of what you expected to happen.
 **Screenshots or Video Recordings**
 If applicable, add screenshots or video recordings to help explain your problem.
 
-**Server and Plugin Informations**
+**Server and Plugin Information**
  - Installed plugins:
  - Iris Version:
  - Server Platform and Version [eg: PaperSpigot 1.16.3 #240]:

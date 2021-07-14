@@ -67,12 +67,13 @@ public class LightingTaskWorld implements LightingTask {
         }
     }
 
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     @Override
     public void process() {
         // Load regions on the main thread
         // TODO: Can use main thread executor instead
         this.timeStarted = System.currentTimeMillis();
-        final CompletableFuture<Void> regionsLoadedFuture = new CompletableFuture<Void>();
+        final CompletableFuture<Void> regionsLoadedFuture = new CompletableFuture<>();
         CommonUtil.nextTick(() -> {
             try {
                 if (this.options.getLoadedChunksOnly()) {

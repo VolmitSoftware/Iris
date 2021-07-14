@@ -59,7 +59,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     ((Bisected) bd).setHalf(Bisected.Half.TOP);
                     try {
                         data.set(x, height + 2, z, bd);
-                    } catch (Throwable e) {
+                    } catch (Throwable ignored) {
 
                     }
                     bd = bd.clone();

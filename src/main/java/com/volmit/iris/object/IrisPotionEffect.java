@@ -83,7 +83,7 @@ public class IrisPotionEffect {
                         return t;
                     }
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
 

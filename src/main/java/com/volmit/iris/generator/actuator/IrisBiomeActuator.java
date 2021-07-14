@@ -43,16 +43,14 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
     private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {
         try {
-            if (h instanceof BiomeGridHunkView) {
-                BiomeGridHunkView hh = (BiomeGridHunkView) h;
+            if (h instanceof BiomeGridHunkView hh) {
                 ChunkGenerator.BiomeGrid g = hh.getChunk();
                 if (g instanceof TerrainChunk) {
                     ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
-                    return true;
                 } else {
                     hh.forceBiomeBaseInto(x, y, z, bb);
-                    return true;
                 }
+                return true;
             }
         } catch (Throwable e) {
             e.printStackTrace();

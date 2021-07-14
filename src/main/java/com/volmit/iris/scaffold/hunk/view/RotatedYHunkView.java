@@ -33,8 +33,8 @@ public class RotatedYHunkView<T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        int xc = (int) Math.round(cos * (getWidth() / 2) + sin * (getDepth() / 2));
-        int zc = (int) Math.round(-sin * (getWidth() / 2) + cos * (getDepth() / 2));
+        int xc = (int) Math.round(cos * (getWidth() / 2f) + sin * (getDepth() / 2f));
+        int zc = (int) Math.round(-sin * (getWidth() / 2f) + cos * (getDepth() / 2f));
         src.setIfExists((int)
                         Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
                 y,
@@ -43,8 +43,8 @@ public class RotatedYHunkView<T> implements Hunk<T> {
 
     @Override
     public T getRaw(int x, int y, int z) {
-        int xc = (int) Math.round(cos * (getWidth() / 2) + sin * (getDepth() / 2));
-        int zc = (int) Math.round(-sin * (getWidth() / 2) + cos * (getDepth() / 2));
+        int xc = (int) Math.round(cos * (getWidth() / 2f) + sin * (getDepth() / 2f));
+        int zc = (int) Math.round(-sin * (getWidth() / 2f) + cos * (getDepth() / 2f));
         return src.getIfExists(
                 (int) Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
                 y,

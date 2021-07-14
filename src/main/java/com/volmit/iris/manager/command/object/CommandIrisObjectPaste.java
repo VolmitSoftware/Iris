@@ -79,6 +79,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
         for (String i : args) {
             if (i.equalsIgnoreCase("-edit")) {
                 intoWand = true;
+                break;
             }
         }
 

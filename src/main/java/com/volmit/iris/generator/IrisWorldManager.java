@@ -127,7 +127,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     });
                 }
             });
-        } catch (Throwable xe) {
+        } catch (Throwable ignored) {
 
         }
     }

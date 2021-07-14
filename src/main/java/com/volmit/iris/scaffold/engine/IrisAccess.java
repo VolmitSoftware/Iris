@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+@SuppressWarnings("EmptyMethod")
 public interface IrisAccess extends Hotloadable, DataProvider {
 
     void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst);

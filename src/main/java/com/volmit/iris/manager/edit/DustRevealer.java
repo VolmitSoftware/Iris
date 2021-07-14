@@ -26,6 +26,7 @@ import lombok.Data;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+@SuppressWarnings("ALL")
 @Data
 public class DustRevealer {
     private final ParallaxAccess parallax;

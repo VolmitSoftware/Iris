@@ -20,6 +20,7 @@ package com.volmit.iris.scaffold.hunk.view;
 
 import com.volmit.iris.scaffold.hunk.Hunk;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class DriftHunkView<T> implements Hunk<T> {
     private final int ox;
     private final int oy;

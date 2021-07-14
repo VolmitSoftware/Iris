@@ -40,14 +40,14 @@ public interface Interpolated<T> {
 
     default InterpolatorFactory<T> interpolate() {
         if (this instanceof ProceduralStream) {
-            return new InterpolatorFactory<T>((ProceduralStream<T>) this);
+            return new InterpolatorFactory<>((ProceduralStream<T>) this);
         }
 
         return null;
     }
 
     static <T> Interpolated<T> of(Function<T, Double> a, Function<Double, T> b) {
-        return new Interpolated<T>() {
+        return new Interpolated<>() {
             @Override
             public double toDouble(T t) {
                 return a.apply(t);

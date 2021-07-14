@@ -62,7 +62,6 @@ public class WEBlockEditor implements BlockEditor {
     @Override
     public void close() {
         es.close();
-        return;
     }
 
     @Override

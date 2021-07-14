@@ -57,10 +57,9 @@ public class ChunkPosition {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof ChunkPosition)) {
+        if (!(obj instanceof ChunkPosition other)) {
             return false;
         }
-        ChunkPosition other = (ChunkPosition) obj;
         return x == other.x && z == other.z;
     }
 

@@ -140,7 +140,7 @@ public class B {
             BlockData bx = Bukkit.createBlockData(ix);
             blockDataCache.put(ix, bx);
             return bx;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -151,7 +151,7 @@ public class B {
         try {
             BlockData bd = Material.valueOf(i).createBlockData();
             blockDataCache.put(ix, bd);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -485,7 +485,7 @@ public class B {
 
 
     public static String[] getBlockTypes() {
-        KList<String> bt = new KList<String>();
+        KList<String> bt = new KList<>();
 
         for (Material i : Material.values()) {
             if (i.isBlock()) {
@@ -503,17 +503,17 @@ public class B {
             }
         }
 
-        return bt.toArray(new String[bt.size()]);
+        return bt.toArray(new String[0]);
     }
 
     public static String[] getItemTypes() {
-        KList<String> bt = new KList<String>();
+        KList<String> bt = new KList<>();
 
         for (Material i : Material.values()) {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
         }
 
-        return bt.toArray(new String[bt.size()]);
+        return bt.toArray(new String[0]);
     }
 }

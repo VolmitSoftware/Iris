@@ -190,47 +190,29 @@ public class IrisObjectRotation {
     }
 
     public BlockFace faceForAxis(Axis axis) {
-        switch (axis) {
-            case X:
-                return BlockFace.EAST;
-            case Y:
-                return BlockFace.UP;
-            case Z:
-                return BlockFace.NORTH;
-        }
+        return switch (axis) {
+            case X -> BlockFace.EAST;
+            case Y -> BlockFace.UP;
+            case Z -> BlockFace.NORTH;
+        };
 
-        return BlockFace.NORTH;
     }
 
     public Axis axisFor(BlockFace f) {
-        switch (f) {
-            case NORTH:
-            case SOUTH:
-                return Axis.Z;
-            case EAST:
-            case WEST:
-                return Axis.X;
-            case UP:
-            case DOWN:
-                return Axis.Y;
-        }
+        return switch (f) {
+            case NORTH, SOUTH -> Axis.Z;
+            case EAST, WEST -> Axis.X;
+            default -> Axis.Y;
+        };
 
-        return Axis.Y;
     }
 
     public Axis axisFor2D(BlockFace f) {
-        switch (f) {
-            case NORTH:
-            case SOUTH:
-                return Axis.Z;
-            case EAST:
-            case WEST:
-            case UP:
-            case DOWN:
-                return Axis.X;
-        }
+        return switch (f) {
+            case EAST, WEST, UP, DOWN -> Axis.X;
+            default -> Axis.Z;
+        };
 
-        return Axis.Z;
     }
 
     public BlockData rotate(BlockData dd, int spinxx, int spinyy, int spinzz) {
@@ -244,8 +226,7 @@ public class IrisObjectRotation {
                 return d;
             }
 
-            if (d instanceof Directional) {
-                Directional g = ((Directional) d);
+            if (d instanceof Directional g) {
                 BlockFace f = g.getFacing();
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
                 bv = rotate(bv.clone(), spinx, spiny, spinz);
@@ -256,8 +237,7 @@ public class IrisObjectRotation {
                 } else if (!g.getMaterial().isSolid()) {
                     d = null;
                 }
-            } else if (d instanceof Rotatable) {
-                Rotatable g = ((Rotatable) d);
+            } else if (d instanceof Rotatable g) {
                 BlockFace f = g.getRotation();
 
                 BlockVector bv = new BlockVector(f.getModX(), 0, f.getModZ());
@@ -275,9 +255,8 @@ public class IrisObjectRotation {
                 if (!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a)) {
                     ((Orientable) d).setAxis(a);
                 }
-            } else if (d instanceof MultipleFacing) {
+            } else if (d instanceof MultipleFacing g) {
                 List<BlockFace> faces = new KList<>();
-                MultipleFacing g = (MultipleFacing) d;
 
                 for (BlockFace i : g.getFaces()) {
                     BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
@@ -296,9 +275,8 @@ public class IrisObjectRotation {
                 for (BlockFace i : faces) {
                     g.setFace(i, true);
                 }
-            } else if (d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable) {
+            } else if (d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable g) {
                 //TODO: Fucks up logs
-                Orientable g = ((Orientable) d);
                 BlockFace f = faceForAxis(g.getAxis());
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
                 bv = rotate(bv.clone(), spinx, spiny, spinz);
@@ -306,7 +284,7 @@ public class IrisObjectRotation {
                 Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
                 ((Orientable) d).setAxis(a);
             }
-        } catch (Throwable throwable) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -431,6 +409,7 @@ public class IrisObjectRotation {
         return enabled && zAxis.isEnabled();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean canRotate() {
         return canRotateX() || canRotateY() || canRotateZ();
     }

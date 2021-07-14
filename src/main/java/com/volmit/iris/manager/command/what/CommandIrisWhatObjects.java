@@ -54,6 +54,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
 
     }
 
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     @Override
     public boolean handle(MortarSender sender, String[] args) {
         if (sender.isPlayer()) {
@@ -78,7 +79,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
                     int cz = l.getChunk().getZ();
                     new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
 
@@ -218,6 +219,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
 
                 objects.compute(n1, (k1, v1) ->
                 {
+                    //noinspection ReplaceNullCheck
                     if (v1 == null) {
                         return new KMap<>();
                     }

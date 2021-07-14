@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 
 import java.awt.*;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -166,15 +167,15 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
-    private KList<IrisBiomePaletteLayer> seaLayers = new KList<IrisBiomePaletteLayer>();
+    private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
 
     @ArrayType(min = 1, type = IrisDecorator.class)
     @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-    private KList<IrisDecorator> decorators = new KList<IrisDecorator>();
+    private KList<IrisDecorator> decorators = new KList<>();
 
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this biome")
-    private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
+    private KList<IrisObjectPlacement> objects = new KList<>();
 
     @Required
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
@@ -307,9 +308,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getBiomeGenerator(RNG random) {
         return biomeGenerator.aquire(() ->
-        {
-            return biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()));
-        });
+                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())));
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
@@ -403,7 +402,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         for (int i = 0; i < maxDepth; i++) {
             int offset = (255 - height) - i;
             int index = offset % data.size();
-            real.add(data.get(index < 0 ? 0 : index));
+            real.add(data.get(Math.max(index, 0)));
         }
 
         return real;
@@ -521,6 +520,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return isSea() || isLake() || isRiver();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isShore() {
         if (inferredType == null) {
             return false;
@@ -569,12 +569,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         if (limit > 0) {
             for (String i : getChildren()) {
                 IrisBiome b = g.getData().getBiomeLoader().load(i);
-                int l = limit;
-                m.addAll(b.getAllChildren(g, l));
+                m.addAll(b.getAllChildren(g, limit));
             }
         }
 
-        return new KList<String>(m);
+        return new KList<>(m);
     }
 
     //TODO: Test

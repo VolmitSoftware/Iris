@@ -27,6 +27,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+@SuppressWarnings("ALL")
 public class IrisWorlds {
     private static final KMap<String, IrisAccess> provisioned = new KMap<>();
 

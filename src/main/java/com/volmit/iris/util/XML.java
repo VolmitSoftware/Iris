@@ -93,23 +93,12 @@ public class XML {
         for (int i = 0, length = string.length(); i < length; i++) {
             char c = string.charAt(i);
             switch (c) {
-                case '&':
-                    sb.append("&amp;");
-                    break;
-                case '<':
-                    sb.append("&lt;");
-                    break;
-                case '>':
-                    sb.append("&gt;");
-                    break;
-                case '"':
-                    sb.append("&quot;");
-                    break;
-                case '\'':
-                    sb.append("&apos;");
-                    break;
-                default:
-                    sb.append(c);
+                case '&' -> sb.append("&amp;");
+                case '<' -> sb.append("&lt;");
+                case '>' -> sb.append("&gt;");
+                case '"' -> sb.append("&quot;");
+                case '\'' -> sb.append("&apos;");
+                default -> sb.append(c);
             }
         }
         return sb.toString();
@@ -120,7 +109,6 @@ public class XML {
      * allowed in tagNames and attributes.
      *
      * @param string A string.
-     * @throws JSONException
      */
     public static void noSpace(String string) throws JSONException {
         int i, length = string.length();
@@ -141,7 +129,6 @@ public class XML {
      * @param context The JSONObject that will include the new material.
      * @param name    The tag name.
      * @return true if the close tag is processed.
-     * @throws JSONException
      */
     private static boolean parse(XMLTokener x, JSONObject context, String name) throws JSONException {
         char c;
@@ -340,7 +327,7 @@ public class XML {
                 if (value.toString().equals(string)) {
                     return value;
                 }
-            } catch (Exception ignoreAlso) {
+            } catch (Exception ignored) {
             }
         }
         return string;
@@ -359,7 +346,6 @@ public class XML {
      *
      * @param string The source string.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(String string) throws JSONException {
         JSONObject jo = new JSONObject();
@@ -375,7 +361,6 @@ public class XML {
      *
      * @param object A JSONObject.
      * @return A string.
-     * @throws JSONException
      */
     public static String toString(Object object) throws JSONException {
         return toString(object, null);
@@ -387,7 +372,6 @@ public class XML {
      * @param object  A JSONObject.
      * @param tagName The optional name of the enclosing tag.
      * @return A string.
-     * @throws JSONException
      */
     public static String toString(Object object, String tagName) throws JSONException {
         StringBuilder sb = new StringBuilder();

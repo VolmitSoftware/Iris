@@ -47,7 +47,7 @@ public class CommandIrisFix extends MortarCommand {
                 return true;
             }
 
-            int viewDistance = args.length > 0 ? Integer.valueOf(args[0]) : -1;
+            int viewDistance = args.length > 0 ? Integer.parseInt(args[0]) : -1;
             if (viewDistance <= 1) {
                 J.a(() -> {
                     int fixed = a.getCompound().getDefaultEngine().getFramework().getEngineParallax().repairChunk(sender.player().getLocation().getChunk());

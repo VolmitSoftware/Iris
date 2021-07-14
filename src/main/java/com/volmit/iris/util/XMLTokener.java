@@ -35,7 +35,7 @@ public class XMLTokener extends JSONTokener {
     public static final java.util.HashMap<String, Character> entity;
 
     static {
-        entity = new java.util.HashMap<String, Character>(8);
+        entity = new java.util.HashMap<>(8);
         entity.put("amp", XML.AMP);
         entity.put("apos", XML.APOS);
         entity.put("gt", XML.GT);
@@ -83,7 +83,6 @@ public class XMLTokener extends JSONTokener {
      *
      * @return A string, or a '<' Character, or null if there is no more source
      * text.
-     * @throws JSONException
      */
     public Object nextContent() throws JSONException {
         char c;
@@ -187,17 +186,10 @@ public class XMLTokener extends JSONTokener {
                         return Boolean.TRUE;
                     }
                     switch (c) {
-                        case 0:
-                        case '<':
-                        case '>':
-                        case '/':
-                        case '=':
-                        case '!':
-                        case '?':
-                        case '"':
-                        case '\'':
+                        case 0, '<', '>', '/', '=', '!', '?', '"', '\'' -> {
                             back();
                             return Boolean.TRUE;
+                        }
                     }
                 }
         }
@@ -291,7 +283,6 @@ public class XMLTokener extends JSONTokener {
      * are left at the end of the source with a result of false.
      *
      * @param to A string to skip past.
-     * @throws JSONException
      */
     public boolean skipPast(String to) throws JSONException {
         boolean b;

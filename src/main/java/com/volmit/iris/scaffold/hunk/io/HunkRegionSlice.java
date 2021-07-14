@@ -100,7 +100,7 @@ public class HunkRegionSlice<T> {
 
             try {
                 lock.withNasty(i.getX(), i.getZ(), () -> save.remove(i));
-            } catch (Throwable ef) {
+            } catch (Throwable ignored) {
 
             }
         }

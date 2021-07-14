@@ -167,8 +167,6 @@ public class IrisCompat {
             }
         } catch (JsonSyntaxException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            throw e;
         }
 
         return def;

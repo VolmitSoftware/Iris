@@ -34,6 +34,7 @@ import org.bukkit.World;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -157,7 +158,7 @@ public class LightingChunk {
                     .map(WorldUtil::regionToChunkIndex)
                     .flatMap(base_cy -> IntStream.range(base_cy, base_cy + WorldUtil.CHUNKS_PER_REGION_AXIS))
                     .mapToObj(cy -> WorldUtil.getSection(chunk, cy))
-                    .filter(section -> section != null)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             // Then process all the gathered chunk sections into a LightingChunkSection in parallel
@@ -168,7 +169,7 @@ public class LightingChunk {
         }
 
         // Add to mapping
-        this.sections = new IntHashMap<LightingCube>();
+        this.sections = new IntHashMap<>();
         for (LightingCube lightingChunkSection : lightingChunkSectionList) {
             this.sections.put(lightingChunkSection.cy, lightingChunkSection);
         }
@@ -397,11 +398,10 @@ public class LightingChunk {
             } else if (++loops > 100) {
                 lasterrx += this.chunkX << 4;
                 lasterrz += this.chunkZ << 4;
-                StringBuilder msg = new StringBuilder();
-                msg.append("Failed to fix all " + category.getName() + " lighting at [");
-                msg.append(lasterrx).append('/').append(lasterry);
-                msg.append('/').append(lasterrz).append(']');
-                Iris.warn(msg.toString());
+                String msg = "Failed to fix all " + category.getName() + " lighting at [" +
+                        lasterrx + '/' + lasterry +
+                        '/' + lasterrz + ']';
+                Iris.warn(msg);
                 break;
             }
         }
@@ -457,7 +457,7 @@ public class LightingChunk {
 
             try {
                 for (CompletableFuture<Boolean> future : futures) {
-                    if (future.get().booleanValue()) {
+                    if (future.get()) {
                         ChunkHandle.fromBukkit(chunk).markDirty();
                         return Boolean.TRUE;
                     }

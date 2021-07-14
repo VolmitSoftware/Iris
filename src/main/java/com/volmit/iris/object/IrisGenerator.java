@@ -30,6 +30,7 @@ import lombok.experimental.Accessors;
 
 import java.util.List;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -96,7 +97,7 @@ public class IrisGenerator extends IrisRegistrant {
 
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
     @Desc("The list of noise gens this gen contains.")
-    private KList<IrisNoiseGenerator> composite = new KList<IrisNoiseGenerator>();
+    private KList<IrisNoiseGenerator> composite = new KList<>();
 
 
     @Desc("The noise gen for cliff height.")

@@ -113,12 +113,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
                 in.setFunction(i);
                 in.setHorizontalScale(8);
 
-                NoiseProvider np = new NoiseProvider() {
-                    @Override
-                    public double noise(double x, double z) {
-                        return Math.random();
-                    }
-                };
+                NoiseProvider np = (x, z) -> Math.random();
 
                 for (int j = 0; j < 3000; j++) {
                     in.interpolate(j, -j, np);

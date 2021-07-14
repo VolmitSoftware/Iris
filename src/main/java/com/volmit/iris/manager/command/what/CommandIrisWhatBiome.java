@@ -63,7 +63,7 @@ public class CommandIrisWhatBiome extends MortarCommand {
                 if (p.getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
                     try {
                         sender.sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(p.getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(p.getLocation())) + ")");
-                    } catch (Throwable ex) {
+                    } catch (Throwable ignored) {
 
                     }
                 }

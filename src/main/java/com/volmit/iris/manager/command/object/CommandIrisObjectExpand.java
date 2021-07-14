@@ -59,7 +59,7 @@ public class CommandIrisObjectExpand extends MortarCommand {
             return true;
         }
 
-        int amt = args.length == 1 ? Integer.valueOf(args[0]) : 1;
+        int amt = args.length == 1 ? Integer.parseInt(args[0]) : 1;
         Location[] b = WandManager.getCuboid(p.getInventory().getItemInMainHand());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();

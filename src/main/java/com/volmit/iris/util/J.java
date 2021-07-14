@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@SuppressWarnings("ALL")
 public class J {
     private static int tid = 0;
     private static final ExecutorService e = Executors.newCachedThreadPool(new ThreadFactory() {

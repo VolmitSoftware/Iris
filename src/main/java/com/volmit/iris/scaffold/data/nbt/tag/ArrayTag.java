@@ -54,7 +54,7 @@ public abstract class ArrayTag<T> extends Tag<T> {
         return arrayToString("", "");
     }
 
-    protected String arrayToString(String prefix, String suffix) {
+    protected String arrayToString(@SuppressWarnings("SameParameterValue") String prefix, @SuppressWarnings("SameParameterValue") String suffix) {
         StringBuilder sb = new StringBuilder("[").append(prefix).append("".equals(prefix) ? "" : ";");
         for (int i = 0; i < length(); i++) {
             sb.append(i == 0 ? "" : ",").append(Array.get(getValue(), i)).append(suffix);

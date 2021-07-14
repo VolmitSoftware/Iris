@@ -41,14 +41,15 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.Callable;
 
+@SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
     public static KList<GroupedExecutor> executors = new KList<>();
     public static Iris instance;
@@ -142,7 +143,7 @@ public class Iris extends VolmitPlugin implements Listener {
         if (tc <= 0) {
             int p = Runtime.getRuntime().availableProcessors();
 
-            return p > 16 ? 16 : p < 4 ? 4 : p;
+            return p > 16 ? 16 : Math.max(p, 4);
         }
 
         return tc;
@@ -153,7 +154,7 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 15;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -165,7 +166,7 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 14;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -177,7 +178,7 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 15;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -287,19 +288,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(() -> {
                 Metrics m = new Metrics(Iris.instance, 8757);
 
-                m.addCustomChart(new Metrics.SingleLineChart("custom_dimensions", new Callable<Integer>() {
-                    @Override
-                    public Integer call() throws Exception {
-                        return ProjectManager.countUniqueDimensions();
-                    }
-                }));
+                m.addCustomChart(new Metrics.SingleLineChart("custom_dimensions", ProjectManager::countUniqueDimensions));
 
-                m.addCustomChart(new Metrics.SimplePie("using_custom_dimensions", new Callable<String>() {
-                    @Override
-                    public String call() throws Exception {
-                        return ProjectManager.countUniqueDimensions() > 0 ? "Active Projects" : "No Projects";
-                    }
-                }));
+                m.addCustomChart(new Metrics.SimplePie("using_custom_dimensions", () -> ProjectManager.countUniqueDimensions() > 0 ? "Active Projects" : "No Projects"));
             });
         }
     }
@@ -319,7 +310,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
 
     @Override
-    public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+    public ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, String id) {
         String dimension = IrisSettings.get().getGenerator().getDefaultWorldType();
 
         if (id != null && !id.isEmpty()) {

@@ -45,8 +45,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 
+@SuppressWarnings("EmptyMethod")
 public abstract class VolmitPlugin extends JavaPlugin implements Listener {
-    public static boolean bad = false;
+    public static final boolean bad = false;
     private KMap<KList<String>, VirtualCommand> commands;
     private KList<MortarCommand> commandCache;
     private KList<MortarPermission> permissionCache;
@@ -70,14 +71,17 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
             Field pluginsField = Bukkit.getPluginManager().getClass().getDeclaredField("plugins");
             pluginsField.setAccessible(true);
+            //noinspection unchecked
             plugins = (List<Plugin>) pluginsField.get(getServer().getPluginManager());
             Field lookupNamesField = Bukkit.getPluginManager().getClass().getDeclaredField("lookupNames");
             lookupNamesField.setAccessible(true);
+            //noinspection unchecked
             names = (Map<String, Plugin>) lookupNamesField.get(getServer().getPluginManager());
 
             try {
                 Field listenersField = Bukkit.getPluginManager().getClass().getDeclaredField("listeners");
                 listenersField.setAccessible(true);
+                //noinspection unchecked
                 listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(getServer().getPluginManager());
             } catch (Throwable ignored) {
 
@@ -88,9 +92,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             commandMap = (SimpleCommandMap) commandMapField.get(getServer().getPluginManager());
             Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
             knownCommandsField.setAccessible(true);
+            //noinspection unchecked
             commands = (Map<String, Command>) knownCommandsField.get(commandMap);
 
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -106,8 +111,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
         for (Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, Command> entry = it.next();
-            if (entry.getValue() instanceof PluginCommand) {
-                PluginCommand c = (PluginCommand) entry.getValue();
+            if (entry.getValue() instanceof PluginCommand c) {
                 if (c.getPlugin() == plugin) {
                     c.unregister(commandMap);
                     it.remove();
@@ -163,7 +167,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         registerCommands();
         registerControllers();
         Bukkit.getScheduler().scheduleSyncRepeatingTask(this, this::tickControllers, 0, 0);
-        J.a(() -> outputInfo());
+        J.a(this::outputInfo);
         registerListener(this);
         start();
     }
@@ -183,7 +187,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             outputPluginInfo();
             outputCommandInfo();
             outputPermissionInfo();
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
     }
@@ -199,7 +203,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void chain(MortarPermission i, FileConfiguration fc) {
-        KList<String> ff = new KList<String>();
+        KList<String> ff = new KList<>();
 
         for (MortarPermission j : i.getChildren()) {
             ff.add(j.getFullNode());
@@ -264,7 +268,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         for (org.bukkit.permissions.Permission i : computePermissions()) {
             try {
                 Bukkit.getPluginManager().addPermission(i);
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         }
@@ -482,7 +486,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String alias, @NotNull String[] args) {
-        KList<String> chain = new KList<String>();
+        KList<String> chain = new KList<>();
 
         for (String i : args) {
             if (i.trim().isEmpty()) {
@@ -509,12 +513,12 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String[] args) {
         if (bad) {
             return false;
         }
 
-        KList<String> chain = new KList<String>();
+        KList<String> chain = new KList<>();
         chain.add(args);
 
         for (KList<String> i : commands.k()) {
@@ -619,7 +623,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         for (VirtualCommand i : commands.v()) {
             try {
                 unregisterCommand(i.getCommand());
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         }
@@ -652,13 +656,13 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public File getDataFile(String... strings) {
-        File f = new File(getDataFolder(), new KList<String>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
         f.getParentFile().mkdirs();
         return f;
     }
 
     public File getDataFileList(String pre, String[] strings) {
-        KList<String> v = new KList<String>(strings);
+        KList<String> v = new KList<>(strings);
         v.add(0, pre);
         File f = new File(getDataFolder(), v.toString(File.separator));
         f.getParentFile().mkdirs();
@@ -670,7 +674,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return super.getDataFolder();
         }
 
-        File f = new File(getDataFolder(), new KList<String>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
         f.mkdirs();
 
         return f;

@@ -60,24 +60,28 @@ public class CommandIrisCreate extends MortarCommand {
 
         String pre = split[0].toLowerCase();
 
-        if (pre.equals("type")) {
-            for (String s : Iris.proj.getListing(true).keySet()) {
-                list.add("type=" + s);
+        switch (pre) {
+            case "type" -> {
+                for (String s : Iris.proj.getListing(true).keySet()) {
+                    list.add("type=" + s);
+                }
+                if (!list.contains("type=overworld")) {
+                    list.contains("type=overworld");
+                }
             }
-            if (!list.contains("type=overworld")) {
-                list.contains("type=overworld");
+            case "seed" -> {
+                list.add("seed=1337");
+                list.add("seed=" + new Random().nextInt());
+                list.add("seed=random");
             }
-        } else if (pre.equals("seed")) {
-            list.add("seed=1337");
-            list.add("seed=" + new Random().nextInt());
-            list.add("seed=random");
-        } else if (pre.equals("pregen")) {
-            list.add("500");
-            list.add("1000");
-            list.add("2000");
-            list.add("5k");
-            list.add("10k");
-            list.add("25k");
+            case "pregen" -> {
+                list.add("500");
+                list.add("1000");
+                list.add("2000");
+                list.add("5k");
+                list.add("10k");
+                list.add("25k");
+            }
         }
     }
 
@@ -129,13 +133,13 @@ public class CommandIrisCreate extends MortarCommand {
             sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
             sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
 
-            O<Boolean> b = new O<Boolean>();
+            O<Boolean> b = new O<>();
             b.set(true);
 
             if (sender.isPlayer()) {
                 try {
                     sender.player().teleport(world.get().getSpawnLocation());
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
 
                 }
             }
@@ -148,9 +152,7 @@ public class CommandIrisCreate extends MortarCommand {
                 sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
                 new Pregenerator(world.get(), size, () ->
-                {
-                    b.set(true);
-                });
+                        b.set(true));
             }
 
             World ww = world.get();

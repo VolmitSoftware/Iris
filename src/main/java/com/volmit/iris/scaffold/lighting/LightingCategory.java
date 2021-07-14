@@ -167,16 +167,12 @@ public enum LightingCategory {
     /**
      * Initializes the lighting in the chunk for this category
      *
-     * @param chunk
      */
     public abstract void initialize(LightingChunk chunk);
 
     /**
      * Gets the y-coordinate to start processing from when spreading light around
      *
-     * @param chunk
-     * @param x
-     * @param z
      * @return start y-coordinate
      */
     public abstract int getStartY(LightingChunk chunk, int x, int z);
@@ -185,8 +181,6 @@ public enum LightingCategory {
      * Sets whether this category of light is dirty, indicating this category of light is all good,
      * or that more work is needed spreading light around.
      *
-     * @param chunk
-     * @param dirty
      */
     public abstract void setDirty(LightingChunk chunk, boolean dirty);
 
@@ -194,10 +188,6 @@ public enum LightingCategory {
      * Gets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
      *
-     * @param section
-     * @param x
-     * @param y
-     * @param z
      * @return light level
      */
     public abstract int get(LightingCube section, int x, int y, int z);
@@ -206,11 +196,6 @@ public enum LightingCategory {
      * Sets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
      *
-     * @param section
-     * @param x
-     * @param y
-     * @param z
-     * @param level
      */
     public abstract void set(LightingCube section, int x, int y, int z, int level);
 }

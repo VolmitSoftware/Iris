@@ -47,7 +47,7 @@ public abstract class MortarCommand implements ICommand {
     public MortarCommand(String node, String... nodes) {
         category = "";
         this.node = node;
-        this.nodes = new KList<String>(nodes);
+        this.nodes = new KList<>(nodes);
         requiredPermissions = new KList<>();
         children = buildChildren();
         description = "No Description";
@@ -83,7 +83,6 @@ public abstract class MortarCommand implements ICommand {
         for (MortarCommand i : getChildren()) {
             for (String j : i.getRequiredPermissions()) {
                 if (!sender.hasPermission(j)) {
-                    continue;
                 }
             }
 
@@ -132,16 +131,16 @@ public abstract class MortarCommand implements ICommand {
         if (a.length > past) {
             int p = past;
 
-            String m = "";
+            StringBuilder m = new StringBuilder();
 
             for (String i : a) {
                 p--;
                 if (p < 0) {
-                    m += i + ", ";
+                    m.append(i).append(", ");
                 }
             }
 
-            if (!m.trim().isEmpty()) {
+            if (!m.toString().trim().isEmpty()) {
                 sender.sendMessage("Parameters Ignored: " + m);
             }
         }

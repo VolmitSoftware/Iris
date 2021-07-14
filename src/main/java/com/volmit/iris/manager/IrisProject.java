@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 
+@SuppressWarnings("ALL")
 @Data
 public class IrisProject {
     private File path;
@@ -122,21 +123,18 @@ public class IrisProject {
     }
 
     private KList<Report> scanForErrors(IrisBiome biome, IrisObjectPlacement i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     private KList<Report> scanForErrors(IrisBiome biome, IrisBiomePaletteLayer i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     private KList<Report> scanForErrorsSeaLayers(IrisBiome biome, IrisBiomePaletteLayer i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     public boolean isOpen() {

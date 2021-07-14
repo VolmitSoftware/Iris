@@ -139,8 +139,8 @@ public class NibbleArray implements Writable {
     public String toBitsString(ByteOrder byteOrder) {
         StringJoiner joiner = new StringJoiner(" ");
 
-        for (int i = 0; i < data.length; i++) {
-            joiner.add(binaryString(data[i], byteOrder));
+        for (byte datum : data) {
+            joiner.add(binaryString(datum, byteOrder));
         }
 
         return joiner.toString();

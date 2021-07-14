@@ -36,7 +36,7 @@ public abstract class GListAdapter<FROM, TO> {
      * @return the to list
      */
     public List<TO> adapt(List<FROM> from) {
-        List<TO> adapted = new KList<TO>();
+        List<TO> adapted = new KList<>();
 
         for (FROM i : from) {
             TO t = onAdapt(i);

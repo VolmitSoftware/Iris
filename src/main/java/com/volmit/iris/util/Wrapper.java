@@ -49,11 +49,10 @@ public class Wrapper<T> {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof Wrapper)) {
+        if (!(obj instanceof Wrapper<?> other)) {
             return false;
         }
 
-        Wrapper<?> other = (Wrapper<?>) obj;
         if (t == null) {
             return other.t == null;
         } else return t.equals(other.t);

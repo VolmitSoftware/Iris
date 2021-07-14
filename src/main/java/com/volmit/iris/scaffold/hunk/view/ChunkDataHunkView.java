@@ -22,6 +22,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class ChunkDataHunkView implements Hunk<BlockData> {
     private final ChunkData chunk;
 

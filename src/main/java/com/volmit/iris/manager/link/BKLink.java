@@ -40,8 +40,7 @@ public class BKLink {
     }
 
     public Plugin getBK() {
-        Plugin p = Bukkit.getPluginManager().getPlugin("BKCommonLib");
 
-        return p;
+        return Bukkit.getPluginManager().getPlugin("BKCommonLib");
     }
 }

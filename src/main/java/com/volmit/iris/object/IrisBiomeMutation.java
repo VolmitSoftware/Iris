@@ -60,7 +60,7 @@ public class IrisBiomeMutation {
     @RegistryListObject
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this biome mutation")
-    private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
+    private KList<IrisObjectPlacement> objects = new KList<>();
 
     private final transient AtomicCache<KList<String>> sideACache = new AtomicCache<>();
     private final transient AtomicCache<KList<String>> sideBCache = new AtomicCache<>();
@@ -77,24 +77,26 @@ public class IrisBiomeMutation {
         KSet<String> r = new KSet<>();
 
         for (String i : s) {
-            String q = i;
 
-            if (q.startsWith("^")) {
-                r.addAll(xg.getData().getRegionLoader().load(q.substring(1)).getLandBiomes());
-                continue;
-            } else if (q.startsWith("*")) {
-                String name = q.substring(1);
+            if (i.startsWith("^")) {
+                r.addAll(xg.getData().getRegionLoader().load(i.substring(1)).getLandBiomes());
+            } else if (i.startsWith("*")) {
+                String name = i.substring(1);
                 r.addAll(xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7));
-            } else if (q.startsWith("!")) {
-                r.remove(q.substring(1));
-            } else if (q.startsWith("!*")) {
-                String name = q.substring(2);
-                r.removeAll(xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7));
+            } else if (i.startsWith("!")) {
+                r.remove(i.substring(1));
+            } else if (i.startsWith("!*")) {
+                String name = i.substring(2);
+
+                for(String g : xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7))
+                {
+                    r.remove(g);
+                }
             } else {
-                r.add(q);
+                r.add(i);
             }
         }
 
-        return new KList<String>(r);
+        return new KList<>(r);
     }
 }

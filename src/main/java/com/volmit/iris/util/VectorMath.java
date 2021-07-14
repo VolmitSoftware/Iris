@@ -32,16 +32,12 @@ import org.bukkit.util.Vector;
  */
 public class VectorMath {
     public static Vector scaleStatic(Axis x, Vector v, double amt) {
-        switch (x) {
-            case X:
-                return scaleX(v, amt);
-            case Y:
-                return scaleY(v, amt);
-            case Z:
-                return scaleZ(v, amt);
-        }
+        return switch (x) {
+            case X -> scaleX(v, amt);
+            case Y -> scaleY(v, amt);
+            case Z -> scaleZ(v, amt);
+        };
 
-        return null;
     }
 
     public static Vector scaleX(Vector v, double amt) {
@@ -227,7 +223,7 @@ public class VectorMath {
     }
 
     private static double round(double value, int precision) {
-        return Double.valueOf(Form.f(value, precision));
+        return Double.parseDouble(Form.f(value, precision));
     }
 
     public static Vector clip(Vector v, int decimals) {
@@ -247,9 +243,10 @@ public class VectorMath {
         u = axis.getX();
         v = axis.getY();
         w = axis.getZ();
-        double xPrime = u * (u * x + v * y + w * z) * (1d - Math.cos(theta)) + x * Math.cos(theta) + (-w * y + v * z) * Math.sin(theta);
-        double yPrime = v * (u * x + v * y + w * z) * (1d - Math.cos(theta)) + y * Math.cos(theta) + (w * x - u * z) * Math.sin(theta);
-        double zPrime = w * (u * x + v * y + w * z) * (1d - Math.cos(theta)) + z * Math.cos(theta) + (-v * x + u * y) * Math.sin(theta);
+        double f = u * x + v * y + w * z;
+        double xPrime = u * (f) * (1d - Math.cos(theta)) + x * Math.cos(theta) + (-w * y + v * z) * Math.sin(theta);
+        double yPrime = v * (f) * (1d - Math.cos(theta)) + y * Math.cos(theta) + (w * x - u * z) * Math.sin(theta);
+        double zPrime = w * (f) * (1d - Math.cos(theta)) + z * Math.cos(theta) + (-v * x + u * y) * Math.sin(theta);
 
         return clip(new Vector(xPrime, yPrime, zPrime), 4);
     }
@@ -262,7 +259,7 @@ public class VectorMath {
      * @return multiple faces, or one if the face is already simple
      */
     public static KList<BlockFace> split(BlockFace f) {
-        KList<BlockFace> faces = new KList<BlockFace>();
+        KList<BlockFace> faces = new KList<>();
 
         switch (f) {
             case DOWN:
@@ -441,7 +438,7 @@ public class VectorMath {
      * @return the shifted vectors
      */
     public static KList<Vector> shift(Vector vector, KList<Vector> vectors) {
-        return new KList<Vector>(new GListAdapter<Vector, Vector>() {
+        return new KList<>(new GListAdapter<Vector, Vector>() {
             @Override
             public Vector onAdapt(Vector from) {
                 return from.add(vector);

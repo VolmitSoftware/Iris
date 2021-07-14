@@ -24,6 +24,7 @@ import com.volmit.iris.util.KMap;
 import java.util.*;
 import java.util.function.BiConsumer;
 
+@SuppressWarnings("ALL")
 public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Map.Entry<String, Tag<?>>>, Comparable<CompoundTag>, MaxDepthIO {
 
     public static final byte ID = 10;

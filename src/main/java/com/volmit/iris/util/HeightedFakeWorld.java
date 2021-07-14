@@ -42,7 +42,7 @@ import java.io.File;
 import java.util.*;
 import java.util.function.Predicate;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "ClassCanBeRecord", "unchecked"})
 public class HeightedFakeWorld implements World {
     private final int height;
 
@@ -51,10 +51,11 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void sendPluginMessage(Plugin source, String channel, byte[] message) {
+    public void sendPluginMessage(@NotNull Plugin source, @NotNull String channel, @NotNull byte[] message) {
 
     }
 
+    @NotNull
     @Override
     public Set<String> getListeningPluginChannels() {
 
@@ -62,35 +63,38 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
+    public void setMetadata(@NotNull String metadataKey, @NotNull MetadataValue newMetadataValue) {
 
     }
 
+    @NotNull
     @Override
-    public List<MetadataValue> getMetadata(String metadataKey) {
+    public List<MetadataValue> getMetadata(@NotNull String metadataKey) {
 
         return null;
     }
 
     @Override
-    public boolean hasMetadata(String metadataKey) {
+    public boolean hasMetadata(@NotNull String metadataKey) {
 
         return false;
     }
 
     @Override
-    public void removeMetadata(String metadataKey, Plugin owningPlugin) {
+    public void removeMetadata(@NotNull String metadataKey, @NotNull Plugin owningPlugin) {
 
     }
 
+    @NotNull
     @Override
     public Block getBlockAt(int x, int y, int z) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Block getBlockAt(Location location) {
+    public Block getBlockAt(@NotNull Location location) {
 
         return null;
     }
@@ -102,71 +106,79 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public int getHighestBlockYAt(Location location) {
+    public int getHighestBlockYAt(@NotNull Location location) {
 
         return 0;
     }
 
+    @NotNull
     @Override
     public Block getHighestBlockAt(int x, int z) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Block getHighestBlockAt(Location location) {
+    public Block getHighestBlockAt(@NotNull Location location) {
 
         return null;
     }
 
     @Override
-    public int getHighestBlockYAt(int x, int z, HeightMap heightMap) {
+    public int getHighestBlockYAt(int x, int z, @NotNull HeightMap heightMap) {
 
         return 0;
     }
 
     @Override
-    public int getHighestBlockYAt(Location location, HeightMap heightMap) {
+    public int getHighestBlockYAt(@NotNull Location location, @NotNull HeightMap heightMap) {
 
         return 0;
     }
 
+    @NotNull
     @Override
-    public Block getHighestBlockAt(int x, int z, HeightMap heightMap) {
+    public Block getHighestBlockAt(int x, int z, @NotNull HeightMap heightMap) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Block getHighestBlockAt(Location location, HeightMap heightMap) {
+    public Block getHighestBlockAt(@NotNull Location location, @NotNull HeightMap heightMap) {
 
         return null;
     }
 
+    @NotNull
     @Override
     public Chunk getChunkAt(int x, int z) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Chunk getChunkAt(Location location) {
+    public Chunk getChunkAt(@NotNull Location location) {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Chunk getChunkAt(@NotNull Block block) {
 
         return null;
     }
 
     @Override
-    public Chunk getChunkAt(Block block) {
-
-        return null;
-    }
-
-    @Override
-    public boolean isChunkLoaded(Chunk chunk) {
+    public boolean isChunkLoaded(@NotNull Chunk chunk) {
 
         return false;
     }
 
+    @NotNull
     @Override
     public Chunk[] getLoadedChunks() {
 
@@ -174,7 +186,7 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void loadChunk(Chunk chunk) {
+    public void loadChunk(@NotNull Chunk chunk) {
 
     }
 
@@ -208,7 +220,7 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public boolean unloadChunk(Chunk chunk) {
+    public boolean unloadChunk(@NotNull Chunk chunk) {
 
         return false;
     }
@@ -254,6 +266,7 @@ public class HeightedFakeWorld implements World {
 
     }
 
+    @NotNull
     @Override
     public Collection<Chunk> getForceLoadedChunks() {
 
@@ -261,36 +274,39 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public boolean addPluginChunkTicket(int x, int z, Plugin plugin) {
+    public boolean addPluginChunkTicket(int x, int z, @NotNull Plugin plugin) {
 
         return false;
     }
 
     @Override
-    public boolean removePluginChunkTicket(int x, int z, Plugin plugin) {
+    public boolean removePluginChunkTicket(int x, int z, @NotNull Plugin plugin) {
 
         return false;
     }
 
     @Override
-    public void removePluginChunkTickets(Plugin plugin) {
+    public void removePluginChunkTickets(@NotNull Plugin plugin) {
 
     }
 
+    @NotNull
     @Override
     public Collection<Plugin> getPluginChunkTickets(int x, int z) {
 
         return null;
     }
 
+    @NotNull
     @Override
     public Map<Plugin, Collection<Chunk>> getPluginChunkTickets() {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Item dropItem(Location location, ItemStack item) {
+    public Item dropItem(@NotNull Location location, @NotNull ItemStack item) {
 
         return null;
     }
@@ -301,8 +317,9 @@ public class HeightedFakeWorld implements World {
         return null;
     }
 
+    @NotNull
     @Override
-    public Item dropItemNaturally(Location location, ItemStack item) {
+    public Item dropItemNaturally(@NotNull Location location, @NotNull ItemStack item) {
 
         return null;
     }
@@ -313,168 +330,186 @@ public class HeightedFakeWorld implements World {
         return null;
     }
 
+    @NotNull
     @Override
-    public Arrow spawnArrow(Location location, Vector direction, float speed, float spread) {
+    public Arrow spawnArrow(@NotNull Location location, @NotNull Vector direction, float speed, float spread) {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public <T extends AbstractArrow> T spawnArrow(@NotNull Location location, @NotNull Vector direction, float speed, float spread, @NotNull Class<T> clazz) {
 
         return null;
     }
 
     @Override
-    public <T extends AbstractArrow> T spawnArrow(Location location, Vector direction, float speed, float spread, Class<T> clazz) {
-
-        return null;
-    }
-
-    @Override
-    public boolean generateTree(Location location, TreeType type) {
+    public boolean generateTree(@NotNull Location location, @NotNull TreeType type) {
 
         return false;
     }
 
     @Override
-    public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+    public boolean generateTree(@NotNull Location loc, @NotNull TreeType type, @NotNull BlockChangeDelegate delegate) {
 
         return false;
     }
 
+    @NotNull
     @Override
-    public Entity spawnEntity(Location loc, EntityType type) {
+    public Entity spawnEntity(@NotNull Location loc, @NotNull EntityType type) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public LightningStrike strikeLightning(Location loc) {
+    public LightningStrike strikeLightning(@NotNull Location loc) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public LightningStrike strikeLightningEffect(Location loc) {
+    public LightningStrike strikeLightningEffect(@NotNull Location loc) {
 
         return null;
     }
 
+    @NotNull
     @Override
     public List<Entity> getEntities() {
 
         return null;
     }
 
+    @NotNull
     @Override
     public List<LivingEntity> getLivingEntities() {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public <T extends Entity> Collection<T> getEntitiesByClass(@SuppressWarnings("unchecked") Class<T>... classes) {
+    public <T extends Entity> Collection<T> getEntitiesByClass(@NotNull Class<T>... classes) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public <T extends Entity> Collection<T> getEntitiesByClass(Class<T> cls) {
+    public <T extends Entity> Collection<T> getEntitiesByClass(@NotNull Class<T> cls) {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Collection<Entity> getEntitiesByClasses(Class<?>... classes) {
+    public Collection<Entity> getEntitiesByClasses(@NotNull Class<?>... classes) {
 
         return null;
     }
 
+    @NotNull
     @Override
     public List<Player> getPlayers() {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public Collection<Entity> getNearbyEntities(Location location, double x, double y, double z) {
+    public Collection<Entity> getNearbyEntities(@NotNull Location location, double x, double y, double z) {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Collection<Entity> getNearbyEntities(@NotNull Location location, double x, double y, double z, Predicate<Entity> filter) {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Collection<Entity> getNearbyEntities(@NotNull BoundingBox boundingBox) {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Collection<Entity> getNearbyEntities(@NotNull BoundingBox boundingBox, Predicate<Entity> filter) {
 
         return null;
     }
 
     @Override
-    public Collection<Entity> getNearbyEntities(Location location, double x, double y, double z, Predicate<Entity> filter) {
+    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance) {
 
         return null;
     }
 
     @Override
-    public Collection<Entity> getNearbyEntities(BoundingBox boundingBox) {
+    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize) {
 
         return null;
     }
 
     @Override
-    public Collection<Entity> getNearbyEntities(BoundingBox boundingBox, Predicate<Entity> filter) {
+    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, Predicate<Entity> filter) {
 
         return null;
     }
 
     @Override
-    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance) {
+    public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize, Predicate<Entity> filter) {
 
         return null;
     }
 
     @Override
-    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, double raySize) {
+    public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance) {
 
         return null;
     }
 
     @Override
-    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, Predicate<Entity> filter) {
+    public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode) {
 
         return null;
     }
 
     @Override
-    public RayTraceResult rayTraceEntities(Location start, Vector direction, double maxDistance, double raySize, Predicate<Entity> filter) {
+    public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks) {
 
         return null;
     }
 
     @Override
-    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance) {
+    public RayTraceResult rayTrace(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks, double raySize, Predicate<Entity> filter) {
 
         return null;
     }
 
-    @Override
-    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode) {
-
-        return null;
-    }
-
-    @Override
-    public RayTraceResult rayTraceBlocks(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks) {
-
-        return null;
-    }
-
-    @Override
-    public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks, double raySize, Predicate<Entity> filter) {
-
-        return null;
-    }
-
+    @NotNull
     @Override
     public String getName() {
 
         return null;
     }
 
+    @NotNull
     @Override
     public UUID getUID() {
 
         return null;
     }
 
+    @NotNull
     @Override
     public Location getSpawnLocation() {
 
@@ -482,7 +517,7 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public boolean setSpawnLocation(Location location) {
+    public boolean setSpawnLocation(@NotNull Location location) {
 
         return false;
     }
@@ -609,29 +644,30 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public boolean createExplosion(Location loc, float power) {
+    public boolean createExplosion(@NotNull Location loc, float power) {
 
         return false;
     }
 
     @Override
-    public boolean createExplosion(Location loc, float power, boolean setFire) {
+    public boolean createExplosion(@NotNull Location loc, float power, boolean setFire) {
 
         return false;
     }
 
     @Override
-    public boolean createExplosion(Location loc, float power, boolean setFire, boolean breakBlocks) {
+    public boolean createExplosion(@NotNull Location loc, float power, boolean setFire, boolean breakBlocks) {
 
         return false;
     }
 
     @Override
-    public boolean createExplosion(Location loc, float power, boolean setFire, boolean breakBlocks, Entity source) {
+    public boolean createExplosion(@NotNull Location loc, float power, boolean setFire, boolean breakBlocks, Entity source) {
 
         return false;
     }
 
+    @NotNull
     @Override
     public Environment getEnvironment() {
 
@@ -666,62 +702,69 @@ public class HeightedFakeWorld implements World {
 
     }
 
+    @NotNull
     @Override
     public List<BlockPopulator> getPopulators() {
 
         return null;
     }
 
+    @NotNull
     @Override
-    public <T extends Entity> T spawn(Location location, Class<T> clazz) throws IllegalArgumentException {
+    public <T extends Entity> T spawn(@NotNull Location location, @NotNull Class<T> clazz) throws IllegalArgumentException {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public <T extends Entity> T spawn(@NotNull Location location, @NotNull Class<T> clazz, Consumer<T> function) throws IllegalArgumentException {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull MaterialData data) throws IllegalArgumentException {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull BlockData data) throws IllegalArgumentException {
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public FallingBlock spawnFallingBlock(@NotNull Location location, @NotNull Material material, byte data) throws IllegalArgumentException {
 
         return null;
     }
 
     @Override
-    public <T extends Entity> T spawn(Location location, Class<T> clazz, Consumer<T> function) throws IllegalArgumentException {
-
-        return null;
-    }
-
-    @Override
-    public FallingBlock spawnFallingBlock(Location location, MaterialData data) throws IllegalArgumentException {
-
-        return null;
-    }
-
-    @Override
-    public FallingBlock spawnFallingBlock(Location location, BlockData data) throws IllegalArgumentException {
-
-        return null;
-    }
-
-    @Override
-    public FallingBlock spawnFallingBlock(Location location, Material material, byte data) throws IllegalArgumentException {
-
-        return null;
-    }
-
-    @Override
-    public void playEffect(Location location, Effect effect, int data) {
+    public void playEffect(@NotNull Location location, @NotNull Effect effect, int data) {
 
     }
 
     @Override
-    public void playEffect(Location location, Effect effect, int data, int radius) {
+    public void playEffect(@NotNull Location location, @NotNull Effect effect, int data, int radius) {
 
     }
 
     @Override
-    public <T> void playEffect(Location location, Effect effect, T data) {
+    public <T> void playEffect(@NotNull Location location, @NotNull Effect effect, T data) {
 
     }
 
     @Override
-    public <T> void playEffect(Location location, Effect effect, T data, int radius) {
+    public <T> void playEffect(@NotNull Location location, @NotNull Effect effect, T data, int radius) {
 
     }
 
+    @NotNull
     @Override
     public ChunkSnapshot getEmptyChunkSnapshot(int x, int z, boolean includeBiome, boolean includeBiomeTemp) {
 
@@ -745,12 +788,14 @@ public class HeightedFakeWorld implements World {
         return false;
     }
 
+    @NotNull
     @Override
     public Biome getBiome(int x, int z) {
 
         return null;
     }
 
+    @NotNull
     @Override
     public Biome getBiome(int x, int y, int z) {
 
@@ -758,12 +803,12 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void setBiome(int x, int z, Biome bio) {
+    public void setBiome(int x, int z, @NotNull Biome bio) {
 
     }
 
     @Override
-    public void setBiome(int x, int y, int z, Biome bio) {
+    public void setBiome(int x, int y, int z, @NotNull Biome bio) {
 
     }
 
@@ -831,16 +876,18 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void setDifficulty(Difficulty difficulty) {
+    public void setDifficulty(@NotNull Difficulty difficulty) {
 
     }
 
+    @NotNull
     @Override
     public Difficulty getDifficulty() {
 
         return null;
     }
 
+    @NotNull
     @Override
     public File getWorldFolder() {
 
@@ -981,25 +1028,26 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void playSound(Location location, Sound sound, float volume, float pitch) {
+    public void playSound(@NotNull Location location, @NotNull Sound sound, float volume, float pitch) {
 
     }
 
     @Override
-    public void playSound(Location location, String sound, float volume, float pitch) {
+    public void playSound(@NotNull Location location, @NotNull String sound, float volume, float pitch) {
 
     }
 
     @Override
-    public void playSound(Location location, Sound sound, SoundCategory category, float volume, float pitch) {
+    public void playSound(@NotNull Location location, @NotNull Sound sound, @NotNull SoundCategory category, float volume, float pitch) {
 
     }
 
     @Override
-    public void playSound(Location location, String sound, SoundCategory category, float volume, float pitch) {
+    public void playSound(@NotNull Location location, @NotNull String sound, @NotNull SoundCategory category, float volume, float pitch) {
 
     }
 
+    @NotNull
     @Override
     public String[] getGameRules() {
 
@@ -1013,35 +1061,36 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public boolean setGameRuleValue(String rule, String value) {
+    public boolean setGameRuleValue(@NotNull String rule, @NotNull String value) {
 
         return false;
     }
 
     @Override
-    public boolean isGameRule(String rule) {
+    public boolean isGameRule(@NotNull String rule) {
 
         return false;
     }
 
     @Override
-    public <T> T getGameRuleValue(GameRule<T> rule) {
+    public <T> T getGameRuleValue(@NotNull GameRule<T> rule) {
 
         return null;
     }
 
     @Override
-    public <T> T getGameRuleDefault(GameRule<T> rule) {
+    public <T> T getGameRuleDefault(@NotNull GameRule<T> rule) {
 
         return null;
     }
 
     @Override
-    public <T> boolean setGameRule(GameRule<T> rule, T newValue) {
+    public <T> boolean setGameRule(@NotNull GameRule<T> rule, @NotNull T newValue) {
 
         return false;
     }
 
+    @NotNull
     @Override
     public WorldBorder getWorldBorder() {
 
@@ -1049,77 +1098,77 @@ public class HeightedFakeWorld implements World {
     }
 
     @Override
-    public void spawnParticle(Particle particle, Location location, int count) {
+    public void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count) {
 
     }
 
     @Override
-    public void spawnParticle(Particle particle, double x, double y, double z, int count) {
+    public void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, Location location, int count, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, T data) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, T data) {
 
     }
 
     @Override
-    public void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ) {
+    public void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, double offsetX, double offsetY, double offsetZ) {
 
     }
 
     @Override
-    public void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ) {
+    public void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, double offsetX, double offsetY, double offsetZ, T data) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, T data) {
 
     }
 
     @Override
-    public void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ, double extra) {
+    public void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, double offsetX, double offsetY, double offsetZ, double extra) {
 
     }
 
     @Override
-    public void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra) {
+    public void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ, double extra, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, double offsetX, double offsetY, double offsetZ, double extra, T data) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data) {
+    public <T> void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, Location location, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
+    public <T> void spawnParticle(@NotNull Particle particle, @NotNull Location location, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
 
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
+    public <T> void spawnParticle(@NotNull Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
 
     }
 
     @Override
-    public Location locateNearestStructure(Location origin, StructureType structureType, int radius, boolean findUnexplored) {
+    public Location locateNearestStructure(@NotNull Location origin, @NotNull StructureType structureType, int radius, boolean findUnexplored) {
         return null;
     }
 
@@ -1128,16 +1177,18 @@ public class HeightedFakeWorld implements World {
         return 0;
     }
 
+    @NotNull
     @Override
     public Spigot spigot() {
         return null;
     }
 
     @Override
-    public Raid locateNearestRaid(Location location, int radius) {
+    public Raid locateNearestRaid(@NotNull Location location, int radius) {
         return null;
     }
 
+    @NotNull
     @Override
     public List<Raid> getRaids() {
         return null;

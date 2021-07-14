@@ -36,6 +36,7 @@ import org.bukkit.block.data.BlockData;
 import java.io.File;
 import java.io.IOException;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
@@ -483,12 +484,14 @@ public class IrisDimension extends IrisRegistrant {
         if (write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
             try {
-                IO.writeAll(mcm, "{\n" +
-                        "    \"pack\": {\n" +
-                        "        \"description\": \"Iris Data Pack. This pack contains all installed Iris Packs' resources.\",\n" +
-                        "        \"pack_format\": 7\n" +
-                        "    }\n" +
-                        "}\n");
+                IO.writeAll(mcm, """
+                        {
+                            "pack": {
+                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
+                                "pack_format": 7
+                            }
+                        }
+                        """);
             } catch (IOException e) {
                 e.printStackTrace();
             }

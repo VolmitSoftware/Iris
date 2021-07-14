@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
  * @author Missionary (missionarymc@gmail.com)
  * @since 3/29/2018
  */
+@SuppressWarnings("ClassCanBeRecord")
 public class BoardEntry {
 
     @Getter

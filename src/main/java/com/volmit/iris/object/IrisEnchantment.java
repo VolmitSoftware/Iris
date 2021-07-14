@@ -63,7 +63,7 @@ public class IrisEnchantment {
                 }
                 meta.addEnchant(getEnchant(), getLevel(rng), true);
             }
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
     }

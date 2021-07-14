@@ -39,7 +39,6 @@ public class JSONML {
      * @param ja        The JSONArray that is containing the current tag or null if we
      *                  are at the outermost level.
      * @return A JSONArray if the value is the outermost tag, otherwise null.
-     * @throws JSONException
      */
     private static Object parse(XMLTokener x, boolean arrayForm, JSONArray ja) throws JSONException {
         String attribute;
@@ -231,7 +230,6 @@ public class JSONML {
      *
      * @param string The source string.
      * @return A JSONArray containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONArray toJSONArray(String string) throws JSONException {
         return toJSONArray(new XMLTokener(string));
@@ -248,7 +246,6 @@ public class JSONML {
      *
      * @param x An XMLTokener.
      * @return A JSONArray containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONArray toJSONArray(XMLTokener x) throws JSONException {
         return (JSONArray) parse(x, true, null);
@@ -266,7 +263,6 @@ public class JSONML {
      *
      * @param x An XMLTokener of the XML source text.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(XMLTokener x) throws JSONException {
         return (JSONObject) parse(x, false, null);
@@ -284,7 +280,6 @@ public class JSONML {
      *
      * @param string The XML source text.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(String string) throws JSONException {
         return toJSONObject(new XMLTokener(string));
@@ -295,7 +290,6 @@ public class JSONML {
      *
      * @param ja A JSONArray.
      * @return An XML string.
-     * @throws JSONException
      */
     public static String toString(JSONArray ja) throws JSONException {
         int i;
@@ -346,7 +340,6 @@ public class JSONML {
         length = ja.length();
         if (i >= length) {
             sb.append('/');
-            sb.append('>');
         } else {
             sb.append('>');
             do {
@@ -367,8 +360,8 @@ public class JSONML {
             sb.append('<');
             sb.append('/');
             sb.append(tagName);
-            sb.append('>');
         }
+        sb.append('>');
         return sb.toString();
     }
 
@@ -380,7 +373,6 @@ public class JSONML {
      *
      * @param jo A JSONObject.
      * @return An XML string.
-     * @throws JSONException
      */
     public static String toString(JSONObject jo) throws JSONException {
         StringBuilder sb = new StringBuilder();
@@ -428,7 +420,6 @@ public class JSONML {
         ja = jo.optJSONArray("childNodes");
         if (ja == null) {
             sb.append('/');
-            sb.append('>');
         } else {
             sb.append('>');
             length = ja.length();
@@ -449,8 +440,8 @@ public class JSONML {
             sb.append('<');
             sb.append('/');
             sb.append(tagName);
-            sb.append('>');
         }
+        sb.append('>');
         return sb.toString();
     }
 }

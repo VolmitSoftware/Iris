@@ -135,9 +135,6 @@ public class LightingCube {
      * higher light value if all these tests pass.
      * The x/y/z coordinates are allowed to check neighboring cubes.
      *
-     * @param category
-     * @param old_light
-     * @param faceMask
      * @param x         The X-coordinate of the block (-1 to 16)
      * @param y         The Y-coordinate of the block (-1 to 16)
      * @param z         The Z-coordinate of the block (-1 to 16)
@@ -308,7 +305,7 @@ public class LightingCube {
                 }
             }
         } catch (Throwable t) {
-            CompletableFuture<Boolean> exceptionally = new CompletableFuture<Boolean>();
+            CompletableFuture<Boolean> exceptionally = new CompletableFuture<>();
             exceptionally.completeExceptionally(t);
             return exceptionally;
         }

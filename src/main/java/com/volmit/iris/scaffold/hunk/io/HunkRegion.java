@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+@SuppressWarnings("SynchronizeOnNonFinalField")
 public class HunkRegion {
     private final File folder;
     private CompoundTag compound;
@@ -63,7 +64,7 @@ public class HunkRegion {
         Map<String, Tag> v = readTag.getValue();
 
         if (!(v instanceof KMap)) {
-            return new CompoundTag(readTag.getName(), new KMap<String, Tag>(v));
+            return new CompoundTag(readTag.getName(), new KMap<>(v));
         }
 
         return readTag;

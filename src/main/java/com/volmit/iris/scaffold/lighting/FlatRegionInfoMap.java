@@ -64,8 +64,6 @@ public class FlatRegionInfoMap {
     /**
      * Gets whether a chunk exists
      *
-     * @param cx
-     * @param cz
      * @return True if the chunk exists
      */
     public boolean containsChunk(int cx, int cz) {
@@ -76,8 +74,6 @@ public class FlatRegionInfoMap {
     /**
      * Gets whether a chunk, and all its 8 neighbours, exist
      *
-     * @param cx
-     * @param cz
      * @return True if the chunk and all its neighbours exist
      */
     public boolean containsChunkAndNeighbours(int cx, int cz) {
@@ -107,7 +103,6 @@ public class FlatRegionInfoMap {
      * Computes all the region Y-coordinates used by a region and its neighbouring 8 regions.
      * The returned array is sorted in increasing order and is distinct (no duplicate values).
      *
-     * @param region
      * @return region and neighbouring regions' Y-coordinates
      */
     public int[] getRegionYCoordinatesSelfAndNeighbours(FlatRegionInfo region) {
@@ -134,11 +129,10 @@ public class FlatRegionInfoMap {
      * Creates a region information mapping of all existing chunks of a world
      * that are currently loaded. No further loading is required.
      *
-     * @param world
      * @return region info map
      */
     public static FlatRegionInfoMap createLoaded(World world) {
-        LongHashMap<FlatRegionInfo> regions = new LongHashMap<FlatRegionInfo>();
+        LongHashMap<FlatRegionInfo> regions = new LongHashMap<>();
         for (Chunk chunk : world.getLoadedChunks()) {
             int rx = WorldUtil.chunkToRegionIndex(chunk.getX());
             int rz = WorldUtil.chunkToRegionIndex(chunk.getZ());
@@ -151,7 +145,7 @@ public class FlatRegionInfoMap {
 
             // Refresh y-coordinates
             for (Integer y_coord : WorldUtil.getLoadedSectionCoordinates(chunk)) {
-                new_info = new_info.addRegionYCoordinate(WorldUtil.chunkToRegionIndex(y_coord.intValue()));
+                new_info = new_info.addRegionYCoordinate(WorldUtil.chunkToRegionIndex(y_coord));
             }
 
             // Add chunk to region bitset
@@ -169,11 +163,10 @@ public class FlatRegionInfoMap {
     /**
      * Creates a region information mapping of all existing chunks of a world
      *
-     * @param world
      * @return region info map
      */
     public static FlatRegionInfoMap create(World world) {
-        LongHashMap<FlatRegionInfo> regions = new LongHashMap<FlatRegionInfo>();
+        LongHashMap<FlatRegionInfo> regions = new LongHashMap<>();
 
         // Obtain the region coordinates in 3d space (vertical too!)
         Set<IntVector3> regionCoordinates = WorldUtil.getWorldRegions3(world);

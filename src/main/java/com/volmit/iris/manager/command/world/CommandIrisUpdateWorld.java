@@ -48,6 +48,7 @@ public class CommandIrisUpdateWorld extends MortarCommand {
         for (String i : args) {
             if (i.equalsIgnoreCase("--fresh-download")) {
                 fresh = true;
+                break;
             }
         }
 

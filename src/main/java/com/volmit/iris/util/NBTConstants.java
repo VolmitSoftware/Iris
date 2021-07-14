@@ -21,8 +21,8 @@ package com.volmit.iris.util;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Changes : Neil Wightman - Support 19133 Tag_Int_Array tag
+/*
+  Changes : Neil Wightman - Support 19133 Tag_Int_Array tag
  */
 
 /**

@@ -118,9 +118,8 @@ public class MultiverseCoreLink {
     }
 
     public Plugin getMultiverse() {
-        Plugin p = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
 
-        return p;
+        return Bukkit.getPluginManager().getPlugin("Multiverse-Core");
     }
 
     public String envName(World.Environment environment) {
@@ -128,15 +127,12 @@ public class MultiverseCoreLink {
             return "normal";
         }
 
-        switch (environment) {
-            case NORMAL:
-                return "normal";
-            case NETHER:
-                return "nether";
-            case THE_END:
-                return "end";
-        }
+        return switch (environment) {
+            case NORMAL -> "normal";
+            case NETHER -> "nether";
+            case THE_END -> "end";
+            default -> environment.toString().toLowerCase();
+        };
 
-        return environment.toString().toLowerCase();
     }
 }

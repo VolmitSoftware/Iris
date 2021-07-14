@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+@SuppressWarnings("ALL")
 public interface Queue<T> {
     Queue<T> queue(T t);
 

@@ -29,7 +29,7 @@ public abstract class Controller implements IController {
         tickRate = -1;
     }
 
-    protected void setTickRate(int rate) {
+    protected void setTickRate(@SuppressWarnings("SameParameterValue") int rate) {
         this.tickRate = rate;
     }
 

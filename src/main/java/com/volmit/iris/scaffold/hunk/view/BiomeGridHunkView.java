@@ -25,6 +25,7 @@ import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class BiomeGridHunkView implements Hunk<Biome> {
     @Getter
     private final BiomeGrid chunk;

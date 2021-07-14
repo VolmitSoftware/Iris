@@ -36,6 +36,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
+@SuppressWarnings("ALL")
 public class LightingService extends AsyncTask {
     private static final Set<RecipientWhenDone> recipientsForDone = new HashSet<RecipientWhenDone>();
     private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();

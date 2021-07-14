@@ -23,6 +23,7 @@ import com.volmit.iris.scaffold.hunk.Hunk;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class ChunkBiomeHunkView implements Hunk<Biome> {
     private final Chunk chunk;
 

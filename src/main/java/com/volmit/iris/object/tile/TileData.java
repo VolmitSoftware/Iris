@@ -29,6 +29,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@SuppressWarnings("ALL")
 public interface TileData<T extends TileState> extends Cloneable {
 
     KList<TileData<? extends TileState>> registry = setup();
@@ -45,7 +46,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     static TileData<? extends TileState> read(DataInputStream s) throws Throwable {
         int id = s.readShort();
-        TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
+        @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
         d.fromBinary(s);
         return d;
     }
@@ -62,7 +63,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
             if (i.isApplicable(data)) {
                 try {
-                    TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
+                    @SuppressWarnings("unchecked") TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
                     s.fromBukkitTry(block.getState());
                     return s;
                 } catch (Throwable e) {
@@ -84,6 +85,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     default boolean toBukkitTry(BlockState t) {
         try {
+            //noinspection unchecked
             toBukkit((T) t);
             return true;
         } catch (Throwable e) {
@@ -95,6 +97,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     default boolean fromBukkitTry(BlockState t) {
         try {
+            //noinspection unchecked
             fromBukkit((T) t);
             return true;
         } catch (Throwable e) {

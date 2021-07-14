@@ -33,7 +33,6 @@ public class ForceDoubleStream extends BasicStream<Double> {
         return t;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Double fromDouble(double d) {
         return d;

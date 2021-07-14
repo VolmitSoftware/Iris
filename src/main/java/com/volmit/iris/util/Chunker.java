@@ -45,14 +45,14 @@ public class Chunker<T> {
 
     public void execute(Consumer<T> consumer, Callback<Double> progress, int progressInterval) {
         ChronoLatch cl = new ChronoLatch(progressInterval);
-        Contained<Integer> consumed = new Contained<Integer>(0);
+        Contained<Integer> consumed = new Contained<>(0);
         executor = Executors.newFixedThreadPool(threads);
         int length = q.size();
         int remaining = length;
 
         while (remaining > 0) {
             int at = remaining;
-            remaining -= (remaining > workload ? workload : remaining);
+            remaining -= (Math.min(remaining, workload));
             int to = remaining;
 
             executor.submit(() ->

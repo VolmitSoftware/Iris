@@ -25,6 +25,7 @@ import lombok.Data;
 import java.io.File;
 import java.io.IOException;
 
+@SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
@@ -43,6 +44,7 @@ public class IrisSettings {
         return getStudio().isStudio();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isUseServerLaunchedGuis() {
         return getGui().isUseServerLaunchedGuis();
     }

@@ -38,12 +38,10 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -214,7 +212,7 @@ public class IrisObject extends IrisRegistrant {
         center = new BlockVector(w / 2, h / 2, d / 2);
     }
 
-    @SuppressWarnings("resource")
+    @SuppressWarnings({"resource", "RedundantSuppression"})
     public static BlockVector sampleSize(File file) throws IOException {
         FileInputStream in = new FileInputStream(file);
         DataInputStream din = new DataInputStream(in);
@@ -811,23 +809,24 @@ public class IrisObject extends IrisRegistrant {
         if (getD() == 2) {
             center = center.setZ(center.getBlockZ() + 0.5);
         }
-        HashMap<BlockVector, BlockData> placeBlock = new HashMap();
+        @SuppressWarnings({"unchecked", "rawtypes"}) HashMap<BlockVector, BlockData> placeBlock = new HashMap();
 
         IrisObject oo = new IrisObject((int) Math.ceil((w * scale) + (scale * 2)), (int) Math.ceil((h * scale) + (scale * 2)), (int) Math.ceil((d * scale) + (scale * 2)));
 
-        for (BlockVector i : blocks.keySet()) {
-            BlockData bd = blocks.get(i);
-            placeBlock.put(i.clone().add(HALF).subtract(center)
+        for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
+            BlockData bd = entry.getValue();
+            placeBlock.put(entry.getKey().clone().add(HALF).subtract(center)
                     .multiply(scale).toBlockVector(), bd);
         }
 
-        for (BlockVector v : placeBlock.keySet()) {
+        for (Map.Entry<BlockVector, BlockData> entry : placeBlock.entrySet()) {
+            BlockVector v = entry.getKey();
             if (scale > 1) {
                 for (BlockVector vec : blocksBetweenTwoPoints(v.clone().add(center), v.clone().add(center).add(sm1))) {
-                    oo.getBlocks().put(vec, placeBlock.get(v));
+                    oo.getBlocks().put(vec, entry.getValue());
                 }
             } else {
-                oo.setUnsigned(v.getBlockX(), v.getBlockY(), v.getBlockZ(), placeBlock.get(v));
+                oo.setUnsigned(v.getBlockX(), v.getBlockY(), v.getBlockZ(), entry.getValue());
             }
         }
 
@@ -943,14 +942,14 @@ public class IrisObject extends IrisRegistrant {
 
         double d = Double.MAX_VALUE;
 
-        for (BlockVector i : blocks.keySet()) {
-            BlockData dat = blocks.get(i);
+        for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
+            BlockData dat = entry.getValue();
 
             if (dat.getMaterial().isAir()) {
                 continue;
             }
 
-            double dx = i.distanceSquared(vv);
+            double dx = entry.getKey().distanceSquared(vv);
 
             if (dx < d) {
                 d = dx;

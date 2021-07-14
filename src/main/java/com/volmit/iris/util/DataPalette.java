@@ -37,9 +37,9 @@ public abstract class DataPalette<T> implements Writable {
         getPaletteId(defaultValue);
     }
 
-    public abstract T readType(DataInputStream i) throws IOException;
+    public abstract T readType(DataInputStream i);
 
-    public abstract void writeType(T t, DataOutputStream o) throws IOException;
+    public abstract void writeType(T t, DataOutputStream o);
 
     @Override
     public void write(DataOutputStream o) throws IOException {

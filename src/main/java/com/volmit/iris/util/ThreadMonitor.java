@@ -47,6 +47,7 @@ public class ThreadMonitor extends Thread {
     public void run() {
         while (running) {
             try {
+                //noinspection BusyWait
                 Thread.sleep(0);
                 State s = monitor.getState();
                 if (lastState != s) {

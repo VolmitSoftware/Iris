@@ -41,7 +41,7 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
     public IrisEngineDecorator(Engine engine, String name, DecorationPart part) {
         super(engine, name + " Decorator");
         this.part = part;
-        this.rng = new RNG(getSeed() + 29356788 - (part.ordinal() * 10439677));
+        this.rng = new RNG(getSeed() + 29356788 - (part.ordinal() * 10439677L));
     }
 
     protected IrisDecorator getDecorator(IrisBiome biome, double realX, double realZ) {

@@ -29,6 +29,7 @@ import org.bukkit.util.BlockVector;
 
 import java.io.IOException;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

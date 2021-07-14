@@ -20,9 +20,12 @@ package com.volmit.iris.util;
 
 import lombok.Value;
 
+@SuppressWarnings("ClassCanBeRecord")
 @Value
 public class CarveResult {
+    @SuppressWarnings("RedundantModifiersValueLombok")
     private final int surface;
+    @SuppressWarnings("RedundantModifiersValueLombok")
     private final int ceiling;
 
     public int getHeight() {

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util;
 
-@SuppressWarnings("hiding")
+@SuppressWarnings({"hiding", "RedundantSuppression"})
 @FunctionalInterface
 public interface Consumer2<A, B> {
     void accept(A a, B b);

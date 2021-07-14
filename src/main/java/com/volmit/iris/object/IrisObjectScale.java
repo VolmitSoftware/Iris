@@ -31,6 +31,10 @@ public class IrisObjectScale {
     @Desc("The maximum height for placement (top of object)")
     private double maximumScale = 1;
 
+    @DontObfuscate
+    @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
+    private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
+
     private final transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
             = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
@@ -68,7 +72,7 @@ public class IrisObjectScale {
 
             KList<IrisObject> c = new KList<>();
             for (double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
-                c.add(origin.scaled(i));
+                c.add(origin.scaled(i, getInterpolation()));
             }
 
             return c;

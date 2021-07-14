@@ -774,7 +774,7 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
-    public IrisObject scaled(double scale) {
+    public IrisObject scaled(double scale, IrisObjectPlacementScaleInterpolator interpolation) {
         Vector sm1 = new Vector(scale - 1, scale - 1, scale - 1);
         scale = Math.max(0.001, Math.min(50, scale));
         if (scale < 1) {
@@ -814,7 +814,12 @@ public class IrisObject extends IrisRegistrant {
         }
 
         if (scale > 1) {
-            // oo.trihermite((int) Math.round(scale));
+            switch(interpolation)
+            {
+                case TRILINEAR -> oo.trilinear((int) Math.round(scale));
+                case TRICUBIC -> oo.tricubic((int) Math.round(scale));
+                case TRIHERMITE -> oo.trihermite((int) Math.round(scale));
+            }
         }
 
         return oo;

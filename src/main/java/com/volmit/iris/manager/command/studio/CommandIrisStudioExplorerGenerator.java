@@ -30,7 +30,7 @@ import com.volmit.iris.util.RNG;
 
 public class CommandIrisStudioExplorerGenerator extends MortarCommand {
     public CommandIrisStudioExplorerGenerator() {
-        super("generator", "gen", "g");
+        super("generator", "gen");
         setDescription("Preview created noise noises generators");
         requiresPermission(Iris.perm.studio);
         setCategory("World");

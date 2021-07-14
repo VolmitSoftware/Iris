@@ -71,21 +71,24 @@ public class Iris extends VolmitPlugin implements Listener {
         boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
         File dpacks = null;
+       File props = new File("server.properties");
 
-        look: for(File i : new File(".").listFiles())
-        {
-            if(i.isDirectory())
-            {
-                for(File j : i.listFiles())
-                {
-                    if(j.isDirectory() && j.getName().equals("datapacks"))
-                    {
-                        dpacks = j;
-                        break look;
-                    }
-                }
-            }
-        }
+       if(props.exists())
+       {
+           try {
+               KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
+
+               for(String i : m) {
+                   if (i.trim().startsWith("level-name="))
+                   {
+                       dpacks = new File(i.trim().split("\\Q\\E")[1] + "/datapacks");
+                       break;
+                   }
+               }
+           } catch (IOException e) {
+               e.printStackTrace();
+           }
+       }
 
         if(dpacks == null)
         {

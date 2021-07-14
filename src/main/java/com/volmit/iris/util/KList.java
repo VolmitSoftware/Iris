@@ -703,6 +703,21 @@ public class KList<T> extends ArrayList<T> implements List<T>
 		return get(M.irand(0, last()));
 	}
 
+	public T getRandom(RNG rng)
+	{
+		if(isEmpty())
+		{
+			return null;
+		}
+
+		if(size() == 1)
+		{
+			return get(0);
+		}
+
+		return get(rng.i(0, last()));
+	}
+
 	public KList<T> qdel(T t)
 	{
 		remove(t);

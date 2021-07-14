@@ -6,7 +6,6 @@ import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisNoiseGenerator;
 import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -31,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -40,12 +38,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
     private EngineCompound compound = null;
@@ -494,7 +488,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     {
         int ox = x << 4;
         int oz = z << 4;
-        net.querz.mca.Chunk cc = writer.getChunk(x, z);
+        com.volmit.iris.scaffold.data.mca.Chunk cc = writer.getChunk(x, z);
         generateChunkRawData(w, x, z, new TerrainChunk() {
             @Override
             public void setRaw(ChunkData data) {

@@ -21,6 +21,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Consumer;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -551,7 +552,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     {
         for(int i = 0; i < objectPlacement.getDensity(); i++)
         {
-            IrisObject v = objectPlacement.getObject(getComplex(), rng);
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null){
                 return;
             }
@@ -604,12 +605,21 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         zg.set(0);
         int jig = 0;
         KSet<String> objects = new KSet<>();
+        KMap<IrisObjectScale, KList<String>> scalars = new KMap<>();
         KList<IrisRegion> r = getAllRegions();
         KList<IrisBiome> b = getAllBiomes();
 
         for (IrisBiome i : b) {
             for (IrisObjectPlacement j : i.getObjects()) {
-                objects.addAll(j.getPlace());
+                if(j.getScale().canScaleBeyond())
+                {
+                    scalars.put(j.getScale(), j.getPlace());
+                }
+
+                else
+                {
+                    objects.addAll(j.getPlace());
+                }
             }
 
             for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
@@ -619,6 +629,18 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         for (IrisRegion i : r)
         {
+            for (IrisObjectPlacement j : i.getObjects()) {
+                if(j.getScale().canScaleBeyond())
+                {
+                    scalars.put(j.getScale(), j.getPlace());
+                }
+
+                else
+                {
+                    objects.addAll(j.getPlace());
+                }
+            }
+
             for(IrisJigsawStructurePlacement j : i.getJigsawStructures())
             {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
@@ -646,12 +668,32 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
         BurstExecutor e = MultiBurst.burst.burst(objects.size());
+        KMap<String, BlockVector> sizeCache = new KMap<>();
         for(String i : objects)
         {
             e.queue(() -> {
                 try
                 {
-                    BlockVector bv = IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
+                    BlockVector bv = sizeCache.compute(i, (k,v) -> {
+                        if(v != null)
+                        {
+                            return v;
+                        }
+
+                        try {
+                            return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
+                        }
+
+                        return null;
+                    });
+
+                    if(bv == null)
+                    {
+                        throw new RuntimeException();
+                    }
+
                     warn(i, bv);
 
                     synchronized (xg)
@@ -670,6 +712,55 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                 }
             });
+        }
+
+        for(IrisObjectScale i : scalars.keySet())
+        {
+            double ms = i.getMaximumScale();
+            for(String j : scalars.get(i))
+            {
+                e.queue(() -> {
+                    try
+                    {
+                        BlockVector bv = sizeCache.compute(j, (k,v) -> {
+                            if(v != null)
+                            {
+                                return v;
+                            }
+
+                            try {
+                                return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
+                            } catch (IOException ioException) {
+                                ioException.printStackTrace();
+                            }
+
+                            return null;
+                        });
+
+                        if(bv == null)
+                        {
+                            throw new RuntimeException();
+                        }
+
+                        warnScaled(j, bv, ms);
+
+                        synchronized (xg)
+                        {
+                            xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
+                        }
+
+                        synchronized (zg)
+                        {
+                            zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ()* ms), zg.get()));
+                        }
+                    }
+
+                    catch(Throwable ignored)
+                    {
+
+                    }
+                });
+            }
         }
 
         e.complete();
@@ -736,6 +827,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128)
         {
             Iris.warn("Object " + ob + " has a large size (" + bv.toString() + ") and may increase memory usage!");
+        }
+    }
+
+    default void warnScaled(String ob, BlockVector bv, double ms)
+    {
+        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128)
+        {
+            Iris.warn("Object " + ob + " has a large size (" + bv.toString() + ") and may increase memory usage! (Object scaled up to "+Form.pc(ms, 2)+")");
         }
     }
 

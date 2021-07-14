@@ -15,7 +15,7 @@ public class CommandIrisPregen extends MortarCommand
 {
 	public CommandIrisPregen()
 	{
-		super("pregen");
+		super("pregen", "preg", "p");
 		setDescription(
 				"Pregen this world with optional parameters: " +
 				"\n'1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks." +

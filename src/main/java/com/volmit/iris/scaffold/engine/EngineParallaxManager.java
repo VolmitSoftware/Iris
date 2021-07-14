@@ -242,33 +242,38 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             burst.complete();
-            burst = MultiBurst.burst.burst(bs);
 
-            for (i = -s; i <= s; i++) {
-                int ii = i;
-                for (j = -s; j <= s; j++) {
-                    int jj = j;
-                    burst.queue(() -> {
-                        KList<Runnable> a = generateParallaxVacuumLayer(ii + x, jj + z);
-                        synchronized (a) {
-                            after.addAll(a);
-                        }
-                    });
+            if(getEngine().getDimension().isPlaceObjects())
+            {
+                burst = MultiBurst.burst.burst(bs);
+
+                for (i = -s; i <= s; i++) {
+                    int ii = i;
+                    for (j = -s; j <= s; j++) {
+                        int jj = j;
+                        burst.queue(() -> {
+                            KList<Runnable> a = generateParallaxVacuumLayer(ii + x, jj + z);
+                            synchronized (a) {
+                                after.addAll(a);
+                            }
+                        });
+                    }
                 }
+
+                burst.complete();
+                burst = MultiBurst.burst.burst(bs);
+
+                for (i = -s; i <= s; i++) {
+                    int ii = i;
+                    for (j = -s; j <= s; j++) {
+                        int jj = j;
+                        burst.queue(() -> generateParallaxLayer(ii + x, jj + z));
+                    }
+                }
+
+                burst.complete();
             }
 
-            burst.complete();
-            burst = MultiBurst.burst.burst(bs);
-
-            for (i = -s; i <= s; i++) {
-                int ii = i;
-                for (j = -s; j <= s; j++) {
-                    int jj = j;
-                    burst.queue(() -> generateParallaxLayer(ii + x, jj + z));
-                }
-            }
-
-            burst.complete();
             MultiBurst.burst.burst(after);
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
@@ -284,14 +289,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         if (getParallaxAccess().isParallaxGenerated(x, z)) {
             return after;
         }
-        int xx = x << 4;
-        int zz = z << 4;
-        RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
-        IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
-        after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
-        generateParallaxSurface(rng, x, z, biome, region, true);
-        generateParallaxMutations(rng, x, z, true);
+
+        if(getEngine().getDimension().isPlaceObjects())
+        {
+            int xx = x << 4;
+            int zz = z << 4;
+            RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+            IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
+            IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+            after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
+            generateParallaxSurface(rng, x, z, biome, region, true);
+            generateParallaxMutations(rng, x, z, true);
+        }
+
         return after;
     }
 
@@ -356,51 +366,55 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         KList<Runnable> placeAfter = new KList<>();
-        boolean placed = false;
 
-        if (getEngine().getDimension().getStronghold() != null) {
-            List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
+        if(getEngine().getDimension().isPlaceObjects())
+        {
+            boolean placed = false;
 
-            if (poss != null) {
-                for (IrisPosition pos : poss) {
-                    if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
-                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
-                        placeAfter.addAll(placeStructure(pos, structure, rng));
+            if (getEngine().getDimension().getStronghold() != null) {
+                List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
+
+                if (poss != null) {
+                    for (IrisPosition pos : poss) {
+                        if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
+                            IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
+                            placeAfter.addAll(placeStructure(pos, structure, rng));
+                            placed = true;
+                        }
+                    }
+                }
+            }
+
+            if (!placed) {
+                for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
+                    if (rng.nextInt(i.getRarity()) == 0) {
+                        IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        placeAfter.addAll(placeStructure(position, structure, rng));
                         placed = true;
                     }
                 }
             }
-        }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeAfter.addAll(placeStructure(position, structure, rng));
-                    placed = true;
+            if (!placed) {
+                for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
+                    if (rng.nextInt(i.getRarity()) == 0) {
+                        IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        placeAfter.addAll(placeStructure(position, structure, rng));
+                        placed = true;
+                    }
                 }
             }
-        }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeAfter.addAll(placeStructure(position, structure, rng));
-                    placed = true;
-                }
-            }
-        }
-
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeAfter.addAll(placeStructure(position, structure, rng));
-                    placed = true;
+            if (!placed) {
+                for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures()) {
+                    if (rng.nextInt(i.getRarity()) == 0) {
+                        IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        placeAfter.addAll(placeStructure(position, structure, rng));
+                        placed = true;
+                    }
                 }
             }
         }
@@ -563,101 +577,68 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int jig = 0;
         KSet<String> objects = new KSet<>();
         KMap<IrisObjectScale, KList<String>> scalars = new KMap<>();
-        KList<IrisRegion> r = getAllRegions();
-        KList<IrisBiome> b = getAllBiomes();
+        int x = xg.get();
+        int z = zg.get();
 
-        for (IrisBiome i : b) {
-            for (IrisObjectPlacement j : i.getObjects()) {
-                if (j.getScale().canScaleBeyond()) {
-                    scalars.put(j.getScale(), j.getPlace());
-                } else {
-                    objects.addAll(j.getPlace());
+        if(getEngine().getDimension().isPlaceObjects())
+        {
+            KList<IrisRegion> r = getAllRegions();
+            KList<IrisBiome> b = getAllBiomes();
+
+            for (IrisBiome i : b) {
+                for (IrisObjectPlacement j : i.getObjects()) {
+                    if (j.getScale().canScaleBeyond()) {
+                        scalars.put(j.getScale(), j.getPlace());
+                    } else {
+                        objects.addAll(j.getPlace());
+                    }
+                }
+
+                for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
+                    jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
             }
 
-            for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
-                jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
-            }
-        }
+            for (IrisRegion i : r) {
+                for (IrisObjectPlacement j : i.getObjects()) {
+                    if (j.getScale().canScaleBeyond()) {
+                        scalars.put(j.getScale(), j.getPlace());
+                    } else {
+                        objects.addAll(j.getPlace());
+                    }
+                }
 
-        for (IrisRegion i : r) {
-            for (IrisObjectPlacement j : i.getObjects()) {
-                if (j.getScale().canScaleBeyond()) {
-                    scalars.put(j.getScale(), j.getPlace());
-                } else {
-                    objects.addAll(j.getPlace());
+                for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
+                    jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
             }
 
-            for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
+            for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
             }
-        }
 
-        for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
-            jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
-        }
-
-        if (getEngine().getDimension().getStronghold() != null) {
-            try {
-                jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
-            } catch (Throwable e) {
-                Iris.error("THIS IS THE ONE");
-                e.printStackTrace();
-            }
-        }
-
-        Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
-        BurstExecutor e = MultiBurst.burst.burst(objects.size());
-        KMap<String, BlockVector> sizeCache = new KMap<>();
-        for (String i : objects) {
-            e.queue(() -> {
+            if (getEngine().getDimension().getStronghold() != null) {
                 try {
-                    BlockVector bv = sizeCache.compute(i, (k, v) -> {
-                        if (v != null) {
-                            return v;
-                        }
-
-                        try {
-                            return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
-                        } catch (IOException ioException) {
-                            ioException.printStackTrace();
-                        }
-
-                        return null;
-                    });
-
-                    if (bv == null) {
-                        throw new RuntimeException();
-                    }
-
-                    warn(i, bv);
-
-                    synchronized (xg) {
-                        xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
-                    }
-
-                    synchronized (zg) {
-                        zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
-                    }
-                } catch (Throwable ignored) {
-
+                    jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
+                } catch (Throwable e) {
+                    Iris.error("THIS IS THE ONE");
+                    e.printStackTrace();
                 }
-            });
-        }
+            }
 
-        for (Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
-            double ms = entry.getKey().getMaximumScale();
-            for (String j : entry.getValue()) {
+            Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
+            BurstExecutor e = MultiBurst.burst.burst(objects.size());
+            KMap<String, BlockVector> sizeCache = new KMap<>();
+            for (String i : objects) {
                 e.queue(() -> {
                     try {
-                        BlockVector bv = sizeCache.compute(j, (k, v) -> {
+                        BlockVector bv = sizeCache.compute(i, (k, v) -> {
                             if (v != null) {
                                 return v;
                             }
 
                             try {
-                                return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
+                                return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
                             }
@@ -669,46 +650,85 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                             throw new RuntimeException();
                         }
 
-                        warnScaled(j, bv, ms);
+                        warn(i, bv);
 
                         synchronized (xg) {
-                            xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
+                            xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
                         }
 
                         synchronized (zg) {
-                            zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
+                            zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
                         }
                     } catch (Throwable ignored) {
 
                     }
                 });
             }
-        }
 
-        e.complete();
+            for (Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
+                double ms = entry.getKey().getMaximumScale();
+                for (String j : entry.getValue()) {
+                    e.queue(() -> {
+                        try {
+                            BlockVector bv = sizeCache.compute(j, (k, v) -> {
+                                if (v != null) {
+                                    return v;
+                                }
 
-        int x = xg.get();
-        int z = zg.get();
+                                try {
+                                    return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
+                                } catch (IOException ioException) {
+                                    ioException.printStackTrace();
+                                }
 
-        for (IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
-            int max = i.getMaxDimension();
-            x = Math.max(max, x);
-            z = Math.max(max, z);
-        }
+                                return null;
+                            });
 
-        for (IrisRegion v : r) {
-            for (IrisDepositGenerator i : v.getDeposits()) {
+                            if (bv == null) {
+                                throw new RuntimeException();
+                            }
+
+                            warnScaled(j, bv, ms);
+
+                            synchronized (xg) {
+                                xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
+                            }
+
+                            synchronized (zg) {
+                                zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
+                            }
+                        } catch (Throwable ignored) {
+
+                        }
+                    });
+                }
+            }
+
+            e.complete();
+
+            x = xg.get();
+            z = zg.get();
+
+            for (IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
                 int max = i.getMaxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
             }
-        }
 
-        for (IrisBiome v : b) {
-            for (IrisDepositGenerator i : v.getDeposits()) {
-                int max = i.getMaxDimension();
-                x = Math.max(max, x);
-                z = Math.max(max, z);
+            for (IrisRegion v : r) {
+                for (IrisDepositGenerator i : v.getDeposits()) {
+                    int max = i.getMaxDimension();
+                    x = Math.max(max, x);
+                    z = Math.max(max, z);
+                }
+            }
+
+            for (IrisBiome v : b) {
+                for (IrisDepositGenerator i : v.getDeposits()) {
+                    int max = i.getMaxDimension();
+                    x = Math.max(max, x);
+                    z = Math.max(max, z);
+                }
             }
         }
 

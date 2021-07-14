@@ -1,16 +1,15 @@
 package com.volmit.iris.manager;
 
 import com.google.gson.Gson;
-import com.minelazz.epicworldgenerator.structures.StructureObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.object.*;
 import com.volmit.iris.pregen.DirectWorldWriter;
 import com.volmit.iris.util.*;
-import net.querz.nbt.io.NBTUtil;
-import net.querz.nbt.io.NamedTag;
-import net.querz.nbt.tag.CompoundTag;
-import net.querz.nbt.tag.IntTag;
-import net.querz.nbt.tag.ListTag;
+import com.volmit.iris.scaffold.data.nbt.io.NBTUtil;
+import com.volmit.iris.scaffold.data.nbt.io.NamedTag;
+import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
+import com.volmit.iris.scaffold.data.nbt.tag.IntTag;
+import com.volmit.iris.scaffold.data.nbt.tag.ListTag;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -80,35 +79,6 @@ public class ConversionManager
 				}
 			});
 		}, 5);
-
-		converters.add(new Converter()
-		{
-			@Override
-			public String getOutExtension()
-			{
-				return "iob";
-			}
-
-			@Override
-			public String getInExtension()
-			{
-				return "ewg";
-			}
-
-			@Override
-			public void convert(File in, File out)
-			{
-				try
-				{
-					StructureObject.convert(in).write(out);
-				}
-
-				catch(ClassNotFoundException | IOException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		});
 	}
 
 	private String toPoolName(String poolReference)

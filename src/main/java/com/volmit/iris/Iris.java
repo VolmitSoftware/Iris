@@ -81,7 +81,7 @@ public class Iris extends VolmitPlugin implements Listener {
                for(String i : m) {
                    if (i.trim().startsWith("level-name="))
                    {
-                       dpacks = new File(i.trim().split("\\Q\\E")[1] + "/datapacks");
+                       dpacks = new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
                        break;
                    }
                }

@@ -72,12 +72,12 @@ public class IrisBiomeCustom {
         effects.put("water_color", parseColor(getWaterColor()));
         effects.put("water_fog_color", parseColor(getWaterFogColor()));
 
-        if(getGrassColor() != null)
+        if(!getGrassColor().isEmpty())
         {
             effects.put("grass_color", parseColor(getGrassColor()));
         }
 
-        if(getFoliageColor() != null)
+        if(!getFoliageColor().isEmpty())
         {
             effects.put("foliage_color", parseColor(getFoliageColor()));
         }

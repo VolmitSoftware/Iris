@@ -1,12 +1,21 @@
 package com.volmit.iris.nms.v17_1;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMSBinding;
 import com.volmit.iris.util.KMap;
 import net.minecraft.core.IRegistry;
+import net.minecraft.core.IRegistryWritable;
+import net.minecraft.data.worldgen.biome.BiomeRegistry;
+import net.minecraft.resources.MinecraftKey;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.level.biome.BiomeBase;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -14,6 +23,41 @@ import java.lang.reflect.Method;
 public class NMSBinding17_1 implements INMSBinding
 {
 	private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
+
+	private IRegistryWritable<BiomeBase> getCustomBiomeRegistry()
+	{
+		return ((CraftServer)Bukkit.getServer()).getHandle().getServer().getCustomRegistry().b(IRegistry.aO);
+	}
+
+	@Override
+	public Object getBiomeBaseFromId(int id) {
+		return getCustomBiomeRegistry().fromId(id);
+	}
+
+	@Override
+	public int getTrueBiomeBaseId(Object biomeBase) {
+		return getCustomBiomeRegistry().getId((BiomeBase)biomeBase);
+	}
+
+	@Override
+	public Object getTrueBiomeBase(Location location) {
+		return ((CraftWorld)location.getWorld()).getHandle().getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+	}
+
+	@Override
+	public String getTrueBiomeBaseKey(Location location) {
+		return getKeyForBiomeBase(getTrueBiomeBase(location));
+	}
+
+	@Override
+	public Object getCustomBiomeBaseFor(String mckey) {
+		return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
+	}
+
+	@Override
+	public String getKeyForBiomeBase(Object biomeBase) {
+		return getCustomBiomeRegistry().c((BiomeBase)biomeBase).get().a().toString();
+	}
 
 	@Override
 	public Object getBiomeBase(World world, Biome biome)

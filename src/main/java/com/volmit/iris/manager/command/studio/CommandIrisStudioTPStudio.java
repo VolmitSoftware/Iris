@@ -27,7 +27,7 @@ import org.bukkit.GameMode;
 
 public class CommandIrisStudioTPStudio extends MortarCommand {
     public CommandIrisStudioTPStudio() {
-        super("tps", "stp", "tpstudio");
+        super("tps", "stp", "tpstudio", "tp");
         requiresPermission(Iris.perm.studio);
         setDescription("Go to the spawn of the currently open studio world.");
         setCategory("Studio");

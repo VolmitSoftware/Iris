@@ -22,8 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.manager.gui.IrisVision;
 import com.volmit.iris.map.MapVision;
 import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.FakeEngine;
 import com.volmit.iris.util.FakeWorld;
@@ -105,6 +107,14 @@ public class CommandIrisStudioMap extends MortarCommand
             FakeWorld world = new FakeWorld(dim.getName(), 0, 256, seed, new File(dim.getName()), dim.getEnvironment());
             FakeEngine engine = new FakeEngine(dim, world);
             complex = new IrisComplex(engine, true);
+        } else if (Iris.proj.isProjectOpen()) {
+            IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
+            complex = g.getCompound().getDefaultEngine().getFramework().getComplex();
+            sender.sendMessage("Opening map for existing studio world!");
+        } else {
+            sender.sendMessage("Open this in a studio world or do /iris studio map [pack]");
+            return true;
+        }
 
         try {
             IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
@@ -115,15 +125,7 @@ public class CommandIrisStudioMap extends MortarCommand
             IrisAccess g = IrisWorlds.access(sender.player().getWorld());
             IrisVision.launch(g, 0);
             sender.sendMessage("Opening Map!");
-        } else if (Iris.proj.isProjectOpen()) {
-            IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
-            complex = g.getCompound().getDefaultEngine().getFramework().getComplex();
-            sender.sendMessage("Opening map for existing studio world!");
-        } else {
-            sender.sendMessage("Open this in a studio world or do /iris studio map [pack]");
-            return true;
         }
-
         MapVision map = new MapVision(complex);
         map.open();
         return true;

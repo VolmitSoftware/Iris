@@ -116,16 +116,6 @@ public class CommandIrisStudioMap extends MortarCommand
             return true;
         }
 
-        try {
-            IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
-            IrisVision.launch(g, 0);
-            sender.sendMessage("Opening Map!");
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            IrisAccess g = IrisWorlds.access(sender.player().getWorld());
-            IrisVision.launch(g, 0);
-            sender.sendMessage("Opening Map!");
-        }
         MapVision map = new MapVision(complex);
         map.open();
         return true;

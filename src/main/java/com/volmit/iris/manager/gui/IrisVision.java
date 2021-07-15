@@ -61,7 +61,7 @@ public class IrisVision extends JPanel implements MouseWheelListener {
     private final KMap<BlockPosition, BufferedImage> fastpositions = new KMap<>();
     private final KSet<BlockPosition> working = new KSet<>();
     private final KSet<BlockPosition> workingfast = new KSet<>();
-    private final ExecutorService e = Executors.newFixedThreadPool(8, r -> {
+    private final ExecutorService e = Executors.newFixedThreadPool(24, r -> {
         tid++;
         Thread t = new Thread(r);
         t.setName("Iris HD Renderer " + tid);

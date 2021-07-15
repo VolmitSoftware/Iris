@@ -3,6 +3,7 @@ package com.volmit.iris.map;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,27 +50,25 @@ public class Tile {
 
     /**
      * Render the tile
-     * @param complex The world complex
      * @param type The type of render
      * @return True when rendered
      */
-    public boolean render(IrisComplex complex, RenderType type) {
+    public boolean render(Engine engine, RenderType type) {
         BufferedImage newImage = new BufferedImage(128, 128, BufferedImage.TYPE_INT_RGB);
+        BiFunction<Integer, Integer, Integer> colorFunction = (integer, integer2) -> Color.black.getRGB();
 
-        BiFunction<Integer, Integer, Integer> getColor;
-        if (type == RenderType.BIOME_LAND) {
-            getColor = (x, z) -> complex.getLandBiomeStream().get(x, z).getColor().getRGB();
-        } else if (type == RenderType.REGION) {
-            getColor = (x, z) -> complex.getRegionStream().get(x, z).getColor(complex).getRGB();
-        } else if (type == RenderType.HEIGHT) {
-            getColor = (x, z) -> Color.getHSBColor(complex.getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
-        } else {
-            getColor = (x, z) -> complex.getCaveBiomeStream().get(x, z).getColor().getRGB();
+        switch (type) {
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getFramework().getComplex().getTrueBiomeStream().get(x, z).getColor(engine, type).getRGB();
+            case BIOME_LAND -> colorFunction = (x, z) -> engine.getFramework().getComplex().getLandBiomeStream().get(x, z).getColor(engine, type).getRGB();
+            case BIOME_SEA -> colorFunction = (x, z) -> engine.getFramework().getComplex().getSeaBiomeStream().get(x, z).getColor(engine, type).getRGB();
+            case REGION -> colorFunction = (x, z) -> engine.getFramework().getComplex().getRegionStream().get(x, z).getColor(engine.getFramework().getComplex(), type).getRGB();
+            case CAVE_LAND -> colorFunction = (x, z) -> engine.getFramework().getComplex().getCaveBiomeStream().get(x, z).getColor(engine, type).getRGB();
+            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(engine.getFramework().getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
         for (int i = 0; i < 128; i++) {
             for (int j = 0; j < 128; j++) {
-                newImage.setRGB(i, j, getColor.apply(translate(x, i), translate(y, j)));
+                newImage.setRGB(i, j, colorFunction.apply(translate(x, i), translate(y, j)));
             }
         }
         image = newImage;

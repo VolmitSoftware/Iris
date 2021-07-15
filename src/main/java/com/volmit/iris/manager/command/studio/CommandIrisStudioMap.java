@@ -21,11 +21,13 @@ package com.volmit.iris.manager.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.IrisComplex;
+import com.volmit.iris.generator.IrisEngine;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.IrisVision;
 import com.volmit.iris.map.MapVision;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.scaffold.IrisWorlds;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.FakeEngine;
 import com.volmit.iris.util.FakeWorld;
@@ -66,58 +68,18 @@ public class CommandIrisStudioMap extends MortarCommand
             return true;
         }
 
-        IrisComplex complex;
+        Engine fe;
 
-        if (args.length > 0) {
-            String type = "";
-            long seed = 1337;
-            for(String i : args)
-            {
-                if (i.contains("=")) {
-                    type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
-                    seed = i.startsWith("seed=") ? Long.valueOf(i.split("\\Q=\\E")[1]) : seed;
-                } else {
-                    if (type.equals("")) {
-                        type = i;
-                    } else if (seed == 1337) {
-                        seed = Long.valueOf(i);
-                    }
-                }
-            }
-
-            if (type.equals("")) {
-                sender.sendMessage("Open this in a studio world or do /iris studio map [pack]");
-                return true;
-            }
-
-            IrisDimension dim = IrisDataManager.loadAnyDimension(type);
-
-            if (dim == null) {
-                sender.sendMessage("Can't find dimension: " + type);
-                return true;
-            }
-
-            if (dim.getEnvironment() == null) {
-                dim.setEnvironment(World.Environment.NORMAL);
-            }
-
-            //Setup the fake world and engine objects so we can get an IrisComplex for the terrain they will
-            //generate without actually generating any of it
-            sender.sendMessage("Preparing map...");
-            FakeWorld world = new FakeWorld(dim.getName(), 0, 256, seed, new File(dim.getName()), dim.getEnvironment());
-            FakeEngine engine = new FakeEngine(dim, world);
-            complex = new IrisComplex(engine, true);
-        } else if (Iris.proj.isProjectOpen()) {
+        try {
             IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
-            complex = g.getCompound().getDefaultEngine().getFramework().getComplex();
-            sender.sendMessage("Opening map for existing studio world!");
-        } else {
-            sender.sendMessage("Open this in a studio world or do /iris studio map [pack]");
-            return true;
+            IrisVision.launch(g, 0);
+            sender.sendMessage("Opening Map!");
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            IrisAccess g = IrisWorlds.access(sender.player().getWorld());
+            IrisVision.launch(g, 0);
+            sender.sendMessage("Opening Map!");
         }
-
-        MapVision map = new MapVision(complex);
-        map.open();
         return true;
     }
 

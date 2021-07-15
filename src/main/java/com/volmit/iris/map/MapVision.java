@@ -2,29 +2,19 @@ package com.volmit.iris.map;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.util.RollingSequence;
+import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.scaffold.engine.Engine;
+import com.volmit.iris.util.*;
 import io.netty.util.internal.ConcurrentSet;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Point;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
+import javax.swing.*;
+import javax.swing.event.MouseInputListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
@@ -48,8 +38,9 @@ public class MapVision extends JPanel {
     private static final int DEF_HEIGHT = 820;
 
 
-    private IrisComplex complex;
-    private RenderType currentType = RenderType.BIOME_LAND;
+    private final Engine engine;
+    private final IrisComplex complex;
+    private RenderType currentType = RenderType.BIOME;
 
     private int mouseX; //The current mouse coords
     private int mouseY;
@@ -61,36 +52,48 @@ public class MapVision extends JPanel {
     private int offsetY;
     private int lastTileWidth;
 
+    private boolean help = true;
+    private boolean helpIgnored = false;
     private boolean dirty = true; //Whether to repaint textures
     private double scale = 1;
-    private boolean realname = false;
+    private boolean shift = false;
+    private boolean alt = false;
 
-    private KMap<Integer, Tile> tiles = new KMap<>();
+    private final KMap<Integer, Tile> tiles = new KMap<>();
 
-    private Set<Tile> visibleTiles = new ConcurrentSet<>();     //Tiles that are visible on screen
-    private Set<Tile> halfDirtyTiles = new ConcurrentSet<>();   //Tiles that should be drawn next draw
+    private final Set<Tile> visibleTiles = new ConcurrentSet<>();     //Tiles that are visible on screen
+    private final Set<Tile> halfDirtyTiles = new ConcurrentSet<>();   //Tiles that should be drawn next draw
 
     private short[][] spiral; //See #generateSpiral
+    // TODO, Why not use spiraler?
 
     private final Color overlay = new Color(80, 80, 80);
     private final Font overlayFont = new Font("Arial", Font.BOLD, 16);
 
-    private RollingSequence roll = new RollingSequence(50);
+    private final RollingSequence roll = new RollingSequence(50);
 
     private boolean debug = false;
-    private int[] debugBorder = new int[] {-5, -3, 6, 4};
+    private final int[] debugBorder = new int[]{-5, -3, 6, 4};
 
     private boolean recalculating;
 
     // IrisComplex is the main class I need for a biome map. You can make one from an Engine object,
     // which does need a FakeWorld object in it for the seed
-    public MapVision(IrisComplex worldComplex)
-    {
-        this.complex = worldComplex;
+    public MapVision(Engine ee) {
+        this.engine = ee;
+        this.complex = engine.getFramework().getComplex();
         this.setBackground(Color.BLACK);
         this.setVisible(true);
         roll.put(1);
         generateSpiral(64);
+        J.a(() -> {
+            J.sleep(10000);
+
+            if (!helpIgnored && help) {
+                help = false;
+                dirty = true;
+            }
+        });
 
         addMouseWheelListener((mouseWheelEvent) -> {
             double oldScale = this.scale;
@@ -109,19 +112,61 @@ public class MapVision extends JPanel {
             repaint();
             softRecalculate();
         });
-        addMouseMotionListener(new MouseMotionListener()
-        {
+        addMouseListener(new MouseInputListener() {
             @Override
-            public void mouseMoved(MouseEvent e)
-            {
-                Point cp = e.getPoint();
-                mouseX = cp.x;
-                mouseY = cp.y;
+            public void mouseClicked(MouseEvent e) {
+                if(shift)
+                {
+                    teleport();
+                }
+
+                else if (alt)
+                {
+                    vscode();
+                }
             }
 
             @Override
-            public void mouseDragged(MouseEvent e)
-            {
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+
+            }
+        });
+        addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                Point cp = e.getPoint();
+                mouseX = cp.x;
+                mouseY = cp.y;
+                dirty = true;
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
                 Point cp = e.getPoint();
                 draggedOffsetX -= (mouseX - cp.x) / scale;
                 draggedOffsetY -= (mouseY - cp.y) / scale;
@@ -133,6 +178,66 @@ public class MapVision extends JPanel {
         });
         recalculate(); //Setup
 
+    }
+
+    private void vscode() {
+        int windowOffsetX = getWidth() / 2;
+        int windowOffsetY = getHeight() / 2;
+        int x = (int) ((mouseX - windowOffsetX) - (draggedOffsetX)) << 2;
+        int y = (int) ((mouseY - windowOffsetY) - (draggedOffsetY)) << 2;
+        switch (currentType)
+        {
+            case BIOME, HEIGHT -> {
+                try {
+                    File f = complex.getTrueBiomeStream().get(x,y).getLoadFile();
+                    Desktop.getDesktop().open(f);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+            case BIOME_LAND -> {
+                try {
+                    File f = complex.getLandBiomeStream().get(x,y).getLoadFile();
+                    Desktop.getDesktop().open(f);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+            case BIOME_SEA -> {
+                try {
+                    File f = complex.getSeaBiomeStream().get(x,y).getLoadFile();
+                    Desktop.getDesktop().open(f);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+            case REGION -> {
+                try {
+                    File f = complex.getRegionStream().get(x,y).getLoadFile();
+                    Desktop.getDesktop().open(f);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+            case CAVE_LAND -> {
+                try {
+                    File f = complex.getCaveBiomeStream().get(x,y).getLoadFile();
+                    Desktop.getDesktop().open(f);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                }
+            }
+        }
+    }
+
+    private void teleport() {
+        int windowOffsetX = getWidth() / 2;
+        int windowOffsetY = getHeight() / 2;
+        int x = (int) ((mouseX - windowOffsetX) - (draggedOffsetX)) << 2;
+        int y = (int) ((mouseY - windowOffsetY) - (draggedOffsetY)) << 2;
+    }
+
+    public void redrawAll() {
     }
 
     /**
@@ -159,38 +264,114 @@ public class MapVision extends JPanel {
             }
 
             @Override
-            public void componentShown(ComponentEvent e) {           }
+            public void componentShown(ComponentEvent e) {
+            }
 
             @Override
-            public void componentHidden(ComponentEvent e) { }
+            public void componentHidden(ComponentEvent e) {
+            }
         });
         frame.addKeyListener(new KeyListener() {
             @Override
-            public void keyTyped(KeyEvent e) { }
+            public void keyTyped(KeyEvent e) {
+                int currentMode = currentType.ordinal();
+
+                if (e.getKeyCode() == KeyEvent.VK_M) {
+                    dirty = true;
+                    currentType = RenderType.values()[(currentMode+1) % RenderType.values().length];
+                    forceRecalculate();
+                    return;
+                }
+
+                for(RenderType i : RenderType.values())
+                {
+                    if (e.getKeyChar() == String.valueOf(i.ordinal()).charAt(0)) {
+                        if(i.ordinal() != currentMode)
+                        {
+                            dirty = true;
+                            currentType = i;
+                            forceRecalculate();
+                            return;
+                        }
+                    }
+                }
+
+                if (e.getKeyCode() == KeyEvent.VK_R) {
+                    dirty = true;
+                    forceRecalculate();
+                    return;
+                }
+
+                if (e.getKeyCode() == KeyEvent.VK_EQUALS) {
+                    double oldScale = MapVision.this.scale;
+                    MapVision.this.scale = Math.min(4, Math.max(scale - 0.2, 1));
+                    double wx = getWidth() / 2;
+                    double hy = getHeight() / 2;
+                    double xScale = (mouseX - wx) / wx;
+                    double yScale = (mouseY - hy) / hy;
+                    dirty = true;
+                    repaint();
+                    softRecalculate();
+                    return;
+                }
+                if (e.getKeyCode() == KeyEvent.VK_MINUS) {
+                    double oldScale = MapVision.this.scale;
+                    MapVision.this.scale = Math.min(4, Math.max(scale + 0.2, 1));
+                    double wx = getWidth() / 2;
+                    double hy = getHeight() / 2;
+                    double xScale = (mouseX - wx) / wx;
+                    double yScale = (mouseY - hy) / hy;
+                    dirty = true;
+                    repaint();
+                    softRecalculate();
+                    return;
+                }
+            }
 
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_SHIFT)
-                    realname = true;
-                else if (e.getKeyCode() == KeyEvent.VK_ALT) debug = !debug;
-                else if (e.getKeyCode() == KeyEvent.VK_R) {
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    shift = true;
                     dirty = true;
-                    repaint();
+                } else if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+                    dirty = true;
+                    debug = true;
+                } else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+                    help = true;
+                    helpIgnored = true;
+                    dirty = true;
+                }else if (e.getKeyCode() == KeyEvent.VK_ALT) {
+                    alt = true;
+                    dirty = true;
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_SHIFT)
-                    realname = false;
+
+                if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+                    debug = false;
+                    dirty = true;
+                } else if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    shift = false;
+                    dirty = true;
+                } else if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+                    help = false;
+                    helpIgnored = true;
+                    dirty = true;
+                }else if (e.getKeyCode() == KeyEvent.VK_ALT) {
+                    alt = false;
+                    dirty = true;
+                }
             }
         });
         File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 
-        if(file != null) {
+        if (file != null) {
             try {
                 frame.setIconImage(ImageIO.read(file));
-            } catch(IOException ignored) { }
+            } catch (IOException ignored) {
+            }
         }
 
         frame.setVisible(true);
@@ -224,7 +405,7 @@ public class MapVision extends JPanel {
         //If we should do a full repaint of the entire frame. Only done when the zoom level changes, etc
         if (dirty) {
             super.paint(gx); //Clear the frame first
-            for (Iterator<Tile> iterator = visibleTiles.iterator(); iterator.hasNext();) {
+            for (Iterator<Tile> iterator = visibleTiles.iterator(); iterator.hasNext(); ) {
                 Tile tile = iterator.next();
                 drawTile(gx, tile);
             }
@@ -232,7 +413,7 @@ public class MapVision extends JPanel {
         } else {
             //Loop through all the tiles that haven't been drawn last draw and draw them
             //This saves us having to do a FULL redraw when only 1 new tile has been added
-            for (Iterator<Tile> iterator = halfDirtyTiles.iterator(); iterator.hasNext();) {
+            for (Iterator<Tile> iterator = halfDirtyTiles.iterator(); iterator.hasNext(); ) {
                 Tile tile = iterator.next();
                 drawTile(gx, tile);
                 iterator.remove();
@@ -240,29 +421,53 @@ public class MapVision extends JPanel {
         }
 
         gx.setColor(overlay);
-        gx.fillRect(getWidth() - 400, 4, 396, 27);
+        gx.fillRect(getWidth() - 400, 4, 396, 27 + (20 * (shift ? 2 : 1)));
         gx.setColor(Color.WHITE);
         //int x = (int) (((int) ((mouseX - windowOffsetX)) << 2) + (draggedOffsetX * scale));
         //int y = (int) (((int) ((mouseY - windowOffsetY)) << 2) + (draggedOffsetY * scale));
-        int x = (int) (((int) ((mouseX - windowOffsetX))) - (draggedOffsetX)) << 2;
-        int y = (int) (((int) ((mouseY - windowOffsetY))) - (draggedOffsetY)) << 2;
-        String text = " [" + x+ ", " + y + "]";
-        if (realname)
-            text = complex.getLandBiomeStream().get(x, y).getLoadKey().toUpperCase() + text;
-        else
-            text = complex.getLandBiomeStream().get(x, y).getName().toUpperCase() + text;
-        gx.setFont(overlayFont);
-        gx.drawString(text, getWidth() - 400 + 6, 23);
+        int x = (int) ((mouseX - windowOffsetX) - (draggedOffsetX)) << 2;
+        int y = (int) ((mouseY - windowOffsetY) - (draggedOffsetY)) << 2;
 
-        if (debug) {
+        gx.setFont(overlayFont);
+        IrisBiome biome = complex.getLandBiomeStream().get(x, y);
+        int gg = 23;
+        gx.drawString(biome.getName().toUpperCase() + " [" + x + ", " + y + "]", getWidth() - 400 + 6, gg += 20);
+
+        if (shift) {
+            IrisRegion region = complex.getRegionStream().get(x, y);
+            gx.drawString("Region: " + region.getName(), getWidth() - 400 + 6, gg += 20);
+        }
+
+
+        if (help) {
+            gx.setColor(overlay);
+            gx.fillRect(10, 10, 470, 25 + (20 * (7 + (RenderType.values().length))));
+            gx.setColor(Color.WHITE);
+            int ggx = 25;
+
+            gx.drawString("/ to show this help screen", 20, ggx += 20);
+            gx.drawString("R to repaint the screen", 20, ggx += 20);
+            gx.drawString("+/- to Change Zoom", 20, ggx += 20);
+            gx.drawString("M to cycle render modes", 20, ggx += 20);
+
+            int ff = 0;
+            for (RenderType i : RenderType.values()) {
+                ff++;
+                gx.drawString(ff + " to view " + Form.capitalizeWords(i.name().toLowerCase().replaceAll("\\Q_\\E", " ")), 20, ggx += 20);
+            }
+
+            gx.drawString("Shift for additional biome details (at cursor)", 20, ggx += 20);
+            gx.drawString("Shift + Click to teleport to location", 20, ggx += 20);
+            gx.drawString("Alt + Click to open biome in VSCode", 20, ggx += 20);
+        } else if (debug) {
             gx.setColor(Color.RED);
             int xx = (int) Math.round((debugBorder[0] << TILE_SIZE_R) / scale + offsetX);
             int yy = (int) Math.round((debugBorder[1] << TILE_SIZE_R) / scale + offsetY);
             int xx2 = (int) Math.round((debugBorder[2] << TILE_SIZE_R) / scale + offsetX);
             int yy2 = (int) Math.round((debugBorder[3] << TILE_SIZE_R) / scale + offsetY);
             gx.drawRect(xx, yy, xx2, yy2);
-            gx.drawRect(xx-1, yy-1, xx2+1, yy2+1);
-            gx.drawRect(xx-2, yy-2, xx2+2, yy2+2);
+            gx.drawRect(xx - 1, yy - 1, xx2 + 1, yy2 + 1);
+            gx.drawRect(xx - 2, yy - 2, xx2 + 2, yy2 + 2);
 
 
             gx.setColor(overlay);
@@ -276,9 +481,9 @@ public class MapVision extends JPanel {
             gx.drawString("Tiles (Visible)" + visibleTiles.size(), 20, 125);
             gx.drawString("Tiles (Total)  " + tiles.size(), 20, 145);
 
-            x = (int) (((int) ((mouseX - windowOffsetX))) + (-draggedOffsetX * scale)) >> TILE_SIZE_R;
-            y = (int) (((int) ((mouseY - windowOffsetY))) + (-draggedOffsetY * scale)) >> TILE_SIZE_R;
-            Tile t = getTile((short)x, (short)y);
+            x = (int) ((mouseX - windowOffsetX) + (-draggedOffsetX * scale)) >> TILE_SIZE_R;
+            y = (int) ((mouseY - windowOffsetY) + (-draggedOffsetY * scale)) >> TILE_SIZE_R;
+            Tile t = getTile((short) x, (short) y);
             boolean b1 = t != null;
             boolean b2 = b1 && visibleTiles.contains(t);
             gx.drawString("Cursor Tile [" + x + ", " + y + "]", 20, 165);
@@ -305,16 +510,13 @@ public class MapVision extends JPanel {
 
         int size = (int) (TILE_SIZE / scale);
         int off = (int) Math.round((TILE_SIZE % scale));
-        gx.drawImage(tile.getImage(), x, y, size + off, size + off,null);
+        gx.drawImage(tile.getImage(), x, y, size + off, size + off, null);
     }
 
-    private Runnable sleepTask = new Runnable() {
-        @Override
-        public void run() {
-            double t = Math.max(Math.min(roll.getAverage(), 1000), 30);
-            J.sleep((long) t);
-            repaint();
-        }
+    private final Runnable sleepTask = () -> {
+        double t = Math.max(Math.min(roll.getAverage(), 100), 5);
+        J.sleep((long) t);
+        repaint();
     };
 
     /**
@@ -323,7 +525,7 @@ public class MapVision extends JPanel {
     public void softRecalculate() {
         short x = (short) (((-draggedOffsetX * scale)) / TILE_SIZE * scale);
         short y = (short) (((-draggedOffsetY * scale)) / TILE_SIZE * scale);
-        int xTiles = (((int)(getWidth() * scale) >> TILE_SIZE_R)) / 2 + 1;
+        int xTiles = (((int) (getWidth() * scale) >> TILE_SIZE_R)) / 2 + 1;
 
         if (centerTileX != x || centerTileY != y || xTiles != lastTileWidth) {
             recalculate();
@@ -331,6 +533,12 @@ public class MapVision extends JPanel {
 
         centerTileX = x;
         centerTileY = y;
+    }
+
+    public void forceRecalculate()
+    {
+        dirty = true;
+        tiles.clear();
     }
 
     /**
@@ -348,7 +556,7 @@ public class MapVision extends JPanel {
         int W = getWidth();
         int H = getHeight();
 
-        if (W == 0|| H == 0) { //The window hasn't fully opened yet; assume defaults
+        if (W == 0 || H == 0) { //The window hasn't fully opened yet; assume defaults
             W = DEF_WIDTH;
             H = DEF_HEIGHT;
         }
@@ -360,9 +568,9 @@ public class MapVision extends JPanel {
         //Iris.info("Width is " + W + ", " + H);
 
         int woh = Math.max(W, H);
-        int newSize = ((int)(woh * scale) >> TILE_SIZE_R) + 1;
-        int checkSizeX =  (((int)(W * scale) >> TILE_SIZE_R)) / 2;
-        int checkSizeY = (((int)(H * scale) >> TILE_SIZE_R)) / 2;
+        int newSize = ((int) (woh * scale) >> TILE_SIZE_R) + 1;
+        int checkSizeX = (((int) (W * scale) >> TILE_SIZE_R)) / 2;
+        int checkSizeY = (((int) (H * scale) >> TILE_SIZE_R)) / 2;
         lastTileWidth = checkSizeX;
         generateSpiral(newSize);
 
@@ -376,8 +584,8 @@ public class MapVision extends JPanel {
         }
 
         for (short[] coords : spiral) { //Start from the center of the spiral and work outwards to find new tiles to queue
-            short x = (short)(coords[0] + centerTileX);
-            short y = (short)(coords[1] + centerTileY);
+            short x = (short) (coords[0] + centerTileX);
+            short y = (short) (coords[1] + centerTileY);
 
             //When it goes offscreen, don't queue the tile by continuing
             if (x > checkSizeX + centerTileX || x < -checkSizeX + centerTileX - 1) {
@@ -397,9 +605,7 @@ public class MapVision extends JPanel {
                 Tile t = tiles.get(id);
                 toRemove.remove(t); //Make sure this tile isn't removed
 
-                if (!visibleTiles.contains(t)) {
-                    visibleTiles.add(t); //Make sure it's visible again if it isn't
-                }
+                visibleTiles.add(t); //Make sure it's visible again if it isn't
             }
         }
 
@@ -411,6 +617,7 @@ public class MapVision extends JPanel {
 
     /**
      * Queue a tile for creation
+     *
      * @param tileX X tile coord
      * @param tileY Y tile coord
      */
@@ -449,7 +656,7 @@ public class MapVision extends JPanel {
             @Override
             public void run() {
                 Tile tile = new Tile(tileX, tileY);
-                tile.render(complex, currentType);
+                tile.render(engine, currentType);
                 tiles.put(getTileId(tileX, tileY), tile);
                 visibleTiles.add(tile);
                 //dirty = true; //Disabled marking as dirty so a redraw of the entire map isn't needed
@@ -484,6 +691,7 @@ public class MapVision extends JPanel {
 
     /**
      * Get a tile based on the X and Z coords of the tile
+     *
      * @param tileX X Coord
      * @param tileY Y Coord
      * @return
@@ -495,6 +703,7 @@ public class MapVision extends JPanel {
 
     /**
      * Get an integer that represents a tile's location
+     *
      * @param tileX X Coord
      * @param tileY Y Coord
      * @return
@@ -505,16 +714,18 @@ public class MapVision extends JPanel {
 
     /**
      * Converts an integer representing a tiles location back into 2 shorts
+     *
      * @param id The tile integer
      * @return
      */
     public short[] getTileCoords(int id) {
-        return new short[] {(short)(id >> 16), (short) id};
+        return new short[]{(short) (id >> 16), (short) id};
     }
 
     /**
      * Generates a 2D array of relative tile locations. This is so we know what order
      * to search for new tiles in a nice, spiral way
+     *
      * @param size Size of the array
      */
     public void generateSpiral(int size) {
@@ -528,30 +739,34 @@ public class MapVision extends JPanel {
         int c = 0; // count
 
         // starting point
-        x = ((int)(size/2.0))-1;
-        y = ((int)(size/2.0))-1;
+        x = ((int) (size / 2.0)) - 1;
+        y = ((int) (size / 2.0)) - 1;
         int offset = (size / 2) - 1;
 
-        for (int k=1; k<=(size-1); k++)
-        {
-            for (int j=0; j<(k<(size-1)?2:3); j++)
-            {
-                for (int i=0; i<s; i++)
-                {
+        for (int k = 1; k <= (size - 1); k++) {
+            for (int j = 0; j < (k < (size - 1) ? 2 : 3); j++) {
+                for (int i = 0; i < s; i++) {
                     short[] coords = {(short) (x - offset), (short) (y - offset)};
                     newSpiral[c] = coords;
                     c++;
                     //Iris.info("Spiral " + coords[0] + ", " + coords[1]); //Testing
 
-                    switch (d)
-                    {
-                        case 0: y = y + 1; break;
-                        case 1: x = x + 1; break;
-                        case 2: y = y - 1; break;
-                        case 3: x = x - 1; break;
+                    switch (d) {
+                        case 0:
+                            y = y + 1;
+                            break;
+                        case 1:
+                            x = x + 1;
+                            break;
+                        case 2:
+                            y = y - 1;
+                            break;
+                        case 3:
+                            x = x - 1;
+                            break;
                     }
                 }
-                d = (d+1)%4;
+                d = (d + 1) % 4;
             }
             s = s + 1;
         }
@@ -573,7 +788,7 @@ public class MapVision extends JPanel {
         return t;
     });*/
 
-    private ThreadFactory factory = new ThreadFactory() {
+    private final ThreadFactory factory = new ThreadFactory() {
         @Override
         public Thread newThread(@NotNull Runnable r) {
             threadId++;

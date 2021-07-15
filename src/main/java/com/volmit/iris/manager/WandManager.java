@@ -61,8 +61,8 @@ public class WandManager implements Listener {
                 Location[] d = getCuboid(p.getInventory().getItemInMainHand());
                 draw(d, p);
             }
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
     }
 
@@ -164,8 +164,8 @@ public class WandManager implements Listener {
 
                 }
             }
-        } catch (Throwable ignored) {
-
+        } catch (Throwable xx) {
+            Iris.reportError(xx);
         }
     }
 
@@ -194,6 +194,7 @@ public class WandManager implements Listener {
             return s;
         } catch (Throwable e) {
             e.printStackTrace();
+            Iris.reportError(e);
         }
 
         return null;
@@ -205,6 +206,7 @@ public class WandManager implements Listener {
             String[] g = f[0].split("\\Q,\\E");
             return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
         } catch (Throwable e) {
+            Iris.reportError(e);
             return null;
         }
     }

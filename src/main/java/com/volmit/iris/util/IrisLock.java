@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import lombok.Data;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,7 +48,8 @@ public class IrisLock {
         }
         try {
             lock.unlock();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }

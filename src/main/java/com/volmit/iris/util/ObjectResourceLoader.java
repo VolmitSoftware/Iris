@@ -116,6 +116,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             lock.unlock();
             return t;
         } catch (Throwable e) {
+            Iris.reportError(e);
             lock.unlock();
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;

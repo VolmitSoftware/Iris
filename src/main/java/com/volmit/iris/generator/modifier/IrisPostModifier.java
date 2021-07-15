@@ -18,6 +18,7 @@
 
 package com.volmit.iris.generator.modifier;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineAssignedModifier;
@@ -345,7 +346,8 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                                         Slab slab = (Slab) d.clone();
                                         slab.setType(Slab.Type.TOP);
                                         setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
-                                    } catch (Throwable ignored) {
+                                    } catch (Throwable e) {
+                                        Iris.reportError(e);
                                         try {
                                             Slab slab = (Slab) d.clone();
 
@@ -353,8 +355,8 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                                                 slab.setType(Slab.Type.TOP);
                                                 setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
                                             }
-                                        } catch (Throwable ignored2) {
-
+                                        } catch (Throwable ee) {
+                                            Iris.reportError(ee);
                                         }
                                     }
                                 }

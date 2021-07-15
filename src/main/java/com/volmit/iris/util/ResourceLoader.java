@@ -117,7 +117,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
             t.setLoader(manager);
             lock.unlock();
             return t;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             lock.unlock();
             failLoad(j, e);
             return null;

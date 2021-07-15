@@ -73,7 +73,7 @@ public class B {
             Material mm = Material.valueOf(bx);
             materialCache.put(bx, mm);
             return mm;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             nullMaterialCache.add(bx);
             return null;
         }
@@ -108,7 +108,7 @@ public class B {
             }
 
             return bdx;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             Iris.warn("Unknown Block Data '" + bdxf + "'");
         }
 
@@ -140,7 +140,7 @@ public class B {
             BlockData bx = Bukkit.createBlockData(ix);
             blockDataCache.put(ix, bx);
             return bx;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -151,7 +151,7 @@ public class B {
         try {
             BlockData bd = Material.valueOf(i).createBlockData();
             blockDataCache.put(ix, bd);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 

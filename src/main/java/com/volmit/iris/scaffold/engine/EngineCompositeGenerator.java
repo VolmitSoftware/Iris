@@ -109,7 +109,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
                         i.playSound(i.getLocation(), Sound.ITEM_BOTTLE_FILL, 1f, 1.25f);
                     }
-                } catch (Throwable ignored) {
+                } catch (Throwable e) {Iris.reportError(e);
 
                 }
             });
@@ -131,7 +131,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 J.a(() -> hotloader.check());
                 getComposite().clean();
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -306,7 +306,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.clear();
             populators.addAll(compound.getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
             Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
         }
@@ -350,7 +350,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         try {
                             Object o = getBP(clazz, clazzSG, clazzBP, nmsWorld, blockPosToTest, chunkGenerator);
                             future.complete(o);
-                        } catch (Exception e) {
+                        } catch (Exception e) {Iris.reportError(e);
                             e.printStackTrace();
                             future.complete(e);
                         }
@@ -371,7 +371,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                                 strongholds.add(ipos);
 
                             }
-                        } catch (Exception e) {
+                        } catch (Exception e) {Iris.reportError(e);
                             e.printStackTrace();
                         }
                     }
@@ -386,7 +386,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     getComposite().saveEngineMetadata();
                 });
 
-            } catch (Exception e) {
+            } catch (Exception e) {Iris.reportError(e);
                 strongholds.add(new IrisPosition(1337, 32, -1337));
                 metadata.setStrongholdPositions(strongholds);
                 Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
@@ -907,7 +907,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public boolean isClosed() {
         try {
             return getComposite().getEngine(0).isClosed();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             return false;
         }
     }
@@ -916,7 +916,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineTarget getTarget() {
         try {
             return getComposite().getEngine(0).getTarget();
-        } catch (NullPointerException e) {
+        } catch (NullPointerException e) {Iris.reportError(e);
             Iris.info("Failed to get composite engine. Please re-create the world in case you notice issues");
             return null;
         }
@@ -955,7 +955,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             try {
                 dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
-            } catch (Throwable ignored) {
+            } catch (Throwable ignored) {Iris.reportError(ignored);
 
             }
 

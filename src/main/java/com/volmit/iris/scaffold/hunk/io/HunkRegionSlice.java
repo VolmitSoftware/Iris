@@ -100,7 +100,7 @@ public class HunkRegionSlice<T> {
 
             try {
                 lock.withNasty(i.getX(), i.getZ(), () -> save.remove(i));
-            } catch (Throwable ignored) {
+            } catch (Throwable eer) {Iris.reportError(eer);
 
             }
         }
@@ -128,7 +128,7 @@ public class HunkRegionSlice<T> {
 
             try {
                 return adapter.read(factory, (ByteArrayTag) t);
-            } catch (IOException xe) {
+            } catch (IOException xe) {Iris.reportError(xe);
                 e.set(xe);
             }
 
@@ -166,7 +166,7 @@ public class HunkRegionSlice<T> {
     public void save(Hunk<T> region, int x, int z) {
         try {
             lock.withIO(x, z, () -> write(region, x, z));
-        } catch (IOException e) {
+        } catch (IOException e) {Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -209,7 +209,7 @@ public class HunkRegionSlice<T> {
             if (contains(x, z)) {
                 try {
                     v = read(x, z);
-                } catch (IOException e) {
+                } catch (IOException e) {Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

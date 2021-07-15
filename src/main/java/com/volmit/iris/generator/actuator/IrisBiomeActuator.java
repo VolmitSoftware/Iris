@@ -18,6 +18,7 @@
 
 package com.volmit.iris.generator.actuator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisBiomeCustom;
@@ -54,6 +55,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
             }
         } catch (Throwable e) {
             e.printStackTrace();
+            Iris.reportError(e);
         }
 
         return false;
@@ -82,6 +84,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                             injectBiome(h, xf, i, zf, biomeBase);
                         }
                     } catch (Throwable e) {
+                        Iris.reportError(e);
                         e.printStackTrace();
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
                         for (int i = 0; i < h.getHeight(); i++) {

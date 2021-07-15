@@ -19,6 +19,7 @@
 package com.volmit.iris.util;
 
 import com.google.common.util.concurrent.AtomicDoubleArray;
+import com.volmit.iris.Iris;
 
 /**
  * Provides an incredibly fast averaging object. It swaps values from a sum
@@ -71,7 +72,8 @@ public class AtomicAverage {
             lastSum = (lastSum - current) + i;
             values.set(cursor, i);
             cursor = cursor + 1 < size() ? cursor + 1 : 0;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }

@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.ChunkSection;
 import com.bergerkiller.generated.net.minecraft.server.NibbleArrayHandle;
+import com.volmit.iris.Iris;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -305,6 +306,7 @@ public class LightingCube {
                 }
             }
         } catch (Throwable t) {
+            Iris.reportError(t);
             CompletableFuture<Boolean> exceptionally = new CompletableFuture<>();
             exceptionally.completeExceptionally(t);
             return exceptionally;

@@ -24,6 +24,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisObject;
 
 import java.io.File;
@@ -48,6 +49,7 @@ public class SKConversion {
 
             o.write(out);
         } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }

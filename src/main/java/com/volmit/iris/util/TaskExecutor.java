@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -191,8 +192,9 @@ public class TaskExecutor {
                 try {
                     task.run();
                     state = TaskState.COMPLETED;
-                } catch (Throwable ex) {
+                } catch (Throwable ex) {Iris.reportError(ex);
                     ex.printStackTrace();
+                    Iris.reportError(ex);
                     state = TaskState.FAILED;
                 }
             });

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.actuator.IrisTerrainActuator;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
@@ -141,6 +142,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
         try {
             dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
         } catch (Throwable ignored) {
+            Iris.reportError(ignored);
 
         }
 

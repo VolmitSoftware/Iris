@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,6 +65,7 @@ public class JarScanner {
                         Class<?> clazz = Class.forName(c);
                         classes.add(clazz);
                     } catch (ClassNotFoundException e) {
+                        Iris.reportError(e);
                         e.printStackTrace();
                     }
                 }

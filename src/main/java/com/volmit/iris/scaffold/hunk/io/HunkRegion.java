@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.hunk.io;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.*;
 
 import java.io.File;
@@ -50,7 +51,8 @@ public class HunkRegion {
                 NBTInputStream in = new NBTInputStream(new FileInputStream(f));
                 compound = fix((CompoundTag) in.readTag());
                 in.close();
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
         }

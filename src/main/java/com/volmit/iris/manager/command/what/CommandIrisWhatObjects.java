@@ -79,8 +79,8 @@ public class CommandIrisWhatObjects extends MortarCommand {
                     int cz = l.getChunk().getZ();
                     new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
                 }
-            } catch (Throwable ignored) {
-
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
 
             new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + bx, z + bz))).drain();
@@ -111,15 +111,15 @@ public class CommandIrisWhatObjects extends MortarCommand {
                             size += i.length();
                         }
                     }
-                } catch (Throwable ignored) {
-
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                 }
 
                 try {
                     FileTime creationTime = (FileTime) Files.getAttribute(world.getWorldFolder().toPath(), "creationTime");
                     age = hrf(Duration.of(M.ms() - creationTime.toMillis(), ChronoUnit.MILLIS));
-                } catch (IOException ignored) {
-
+                } catch (IOException e) {
+                    Iris.reportError(e);
                 }
 
                 KList<String> biomes = new KList<>();
@@ -181,6 +181,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
                 sender.sendMessage("Reported to: " + ff.getPath());
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
+                Iris.reportError(e);
             }
 
             return true;
@@ -211,8 +212,8 @@ public class CommandIrisWhatObjects extends MortarCommand {
                     BlockVector sz = IrisObject.sampleSize(ff);
                     nn3 = i + ": size=[" + sz.getBlockX() + "," + sz.getBlockY() + "," + sz.getBlockZ() + "] location=[" + ff.getPath() + "]";
                     stop.add(i);
-                } catch (Throwable ignored) {
-
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                 }
 
                 String n3 = nn3;

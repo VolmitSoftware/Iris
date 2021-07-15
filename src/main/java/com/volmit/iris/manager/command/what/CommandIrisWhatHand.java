@@ -54,6 +54,7 @@ public class CommandIrisWhatHand extends MortarCommand {
                     sender.sendMessage("Please hold a block/item");
                 }
             } catch (Throwable e) {
+                Iris.reportError(e);
                 Material bd = p.getInventory().getItemInMainHand().getType();
                 if (!bd.equals(Material.AIR)) {
                     sender.sendMessage("Material: " + C.GREEN + bd.name());

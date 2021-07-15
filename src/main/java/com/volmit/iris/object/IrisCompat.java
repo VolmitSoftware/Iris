@@ -20,6 +20,7 @@ package com.volmit.iris.object;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.*;
 import lombok.Data;
 import org.bukkit.Material;
@@ -167,6 +168,7 @@ public class IrisCompat {
             }
         } catch (JsonSyntaxException e) {
             e.printStackTrace();
+            Iris.reportError(e);
         }
 
         return def;

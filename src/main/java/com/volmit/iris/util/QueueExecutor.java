@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 public class QueueExecutor extends Looper {
     private final Queue<Runnable> queue;
     private boolean shutdown;
@@ -37,6 +39,7 @@ public class QueueExecutor extends Looper {
             try {
                 queue.next().run();
             } catch (Throwable e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         }

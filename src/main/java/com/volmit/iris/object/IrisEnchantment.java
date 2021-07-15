@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,7 +64,8 @@ public class IrisEnchantment {
                 }
                 meta.addEnchant(getEnchant(), getLevel(rng), true);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }
@@ -74,7 +76,7 @@ public class IrisEnchantment {
                 try {
                     return (Enchantment) i.get(null);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();
+                    e.printStackTrace();Iris.reportError(e);
                 }
             }
         }

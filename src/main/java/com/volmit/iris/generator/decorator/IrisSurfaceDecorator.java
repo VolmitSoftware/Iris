@@ -18,6 +18,7 @@
 
 package com.volmit.iris.generator.decorator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.DecorationPart;
 import com.volmit.iris.object.InferredType;
 import com.volmit.iris.object.IrisBiome;
@@ -59,8 +60,8 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     ((Bisected) bd).setHalf(Bisected.Half.TOP);
                     try {
                         data.set(x, height + 2, z, bd);
-                    } catch (Throwable ignored) {
-
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
                     }
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);

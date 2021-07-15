@@ -56,6 +56,7 @@ public class CommandIrisMetrics extends MortarCommand {
             try {
                 g.printMetrics(sender);
             } catch (Throwable e) {
+                Iris.reportError(e);
                 sender.sendMessage("You must be in an iris world.");
             }
 

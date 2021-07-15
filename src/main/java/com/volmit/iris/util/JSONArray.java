@@ -19,6 +19,8 @@
 package com.volmit.iris.util;
 
 
+import com.volmit.iris.Iris;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -222,6 +224,7 @@ public class JSONArray implements Iterable<Object> {
         try {
             return object instanceof Number ? ((Number) object).doubleValue() : Double.parseDouble((String) object);
         } catch (Exception e) {
+            Iris.reportError(e);
             throw new JSONException("JSONArray[" + index + "] is not a number.");
         }
     }
@@ -258,7 +261,7 @@ public class JSONArray implements Iterable<Object> {
         Object object = this.get(index);
         try {
             return new BigDecimal(object.toString());
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             throw new JSONException("JSONArray[" + index + "] could not convert to BigDecimal.");
         }
     }
@@ -275,7 +278,7 @@ public class JSONArray implements Iterable<Object> {
         Object object = this.get(index);
         try {
             return new BigInteger(object.toString());
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             throw new JSONException("JSONArray[" + index + "] could not convert to BigInteger.");
         }
     }
@@ -291,7 +294,7 @@ public class JSONArray implements Iterable<Object> {
         Object object = this.get(index);
         try {
             return object instanceof Number ? ((Number) object).intValue() : Integer.parseInt((String) object);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             throw new JSONException("JSONArray[" + index + "] is not a number.");
         }
     }
@@ -340,7 +343,7 @@ public class JSONArray implements Iterable<Object> {
         Object object = this.get(index);
         try {
             return object instanceof Number ? ((Number) object).longValue() : Long.parseLong((String) object);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             throw new JSONException("JSONArray[" + index + "] is not a number.");
         }
     }
@@ -435,7 +438,7 @@ public class JSONArray implements Iterable<Object> {
     public boolean optBoolean(int index, boolean defaultValue) {
         try {
             return this.getBoolean(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -464,7 +467,7 @@ public class JSONArray implements Iterable<Object> {
     public double optDouble(int index, double defaultValue) {
         try {
             return this.getDouble(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -493,7 +496,7 @@ public class JSONArray implements Iterable<Object> {
     public int optInt(int index, int defaultValue) {
         try {
             return this.getInt(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -531,9 +534,9 @@ public class JSONArray implements Iterable<Object> {
                 return myE;
             }
             return Enum.valueOf(clazz, val.toString());
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {Iris.reportError(e);
             return defaultValue;
-        } catch (NullPointerException e) {
+        } catch (NullPointerException e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -550,7 +553,7 @@ public class JSONArray implements Iterable<Object> {
     public BigInteger optBigInteger(int index, BigInteger defaultValue) {
         try {
             return this.getBigInteger(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -567,7 +570,7 @@ public class JSONArray implements Iterable<Object> {
     public BigDecimal optBigDecimal(int index, BigDecimal defaultValue) {
         try {
             return this.getBigDecimal(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -621,7 +624,7 @@ public class JSONArray implements Iterable<Object> {
     public long optLong(int index, long defaultValue) {
         try {
             return this.getLong(index);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return defaultValue;
         }
     }
@@ -934,7 +937,7 @@ public class JSONArray implements Iterable<Object> {
     public String toString() {
         try {
             return this.toString(0);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return null;
         }
     }

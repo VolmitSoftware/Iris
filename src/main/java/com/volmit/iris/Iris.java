@@ -43,11 +43,9 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.util.Date;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -102,6 +100,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     }
                 }
             } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         }
@@ -154,8 +153,8 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 15;
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return false;
@@ -166,8 +165,8 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 14;
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return false;
@@ -178,8 +177,8 @@ public class Iris extends VolmitPlugin implements Listener {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
 
             return v >= 15;
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return false;
@@ -205,7 +204,7 @@ public class Iris extends VolmitPlugin implements Listener {
         try {
             compat = IrisCompat.configured(getDataFile("compat.json"));
         } catch (IOException e) {
-            // Do nothing. Everything continues properly but the exception is still there.
+            Iris.reportError(e);
         }
         proj = new ProjectManager();
         convert = new ConversionManager();
@@ -278,6 +277,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     Iris.syncJobs.next().run();
                 } catch (Throwable e) {
                     e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }
@@ -332,6 +332,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Bukkit.getConsoleSender().sendMessage(msg);
         } catch (Throwable e) {
             System.out.println("[Iris]: " + string);
+            Iris.reportError(e);
         }
     }
 
@@ -347,8 +348,8 @@ public class Iris extends VolmitPlugin implements Listener {
                     fileOutputStream.write(dataBuffer, 0, bytesRead);
                     Iris.verbose("Aquiring " + name);
                 }
-            } catch (IOException ignored) {
-
+            } catch (IOException e) {
+                Iris.reportError(e);
             }
         }
 
@@ -365,14 +366,14 @@ public class Iris extends VolmitPlugin implements Listener {
             while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
                 fileOutputStream.write(dataBuffer, 0, bytesRead);
             }
-        } catch (IOException ignored) {
-
+        } catch (IOException e) {
+            Iris.reportError(e);
         }
 
         try {
             return IO.readAll(f);
-        } catch (IOException ignored) {
-
+        } catch (IOException e) {
+            Iris.reportError(e);
         }
 
         return "";
@@ -390,6 +391,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            Iris.reportError(e);
         }
 
         return f;
@@ -403,6 +405,15 @@ public class Iris extends VolmitPlugin implements Listener {
         msg(C.RED + string);
     }
 
+    public static void debug(String string) {
+        if(!IrisSettings.get().getGeneral().isDebug())
+        {
+            return;
+        }
+
+        msg( C.LIGHT_PURPLE+ "" + C.BOLD+ string);
+    }
+
     public static void verbose(String string) {
         try {
             if (IrisSettings.get().getGeneral().isVerbose()) {
@@ -410,6 +421,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         } catch (Throwable e) {
             msg(C.GRAY + string);
+            Iris.reportError(e);
         }
     }
 
@@ -473,6 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 object.run();
             } catch (Throwable e) {
                 e.printStackTrace();
+                Iris.reportError(e);
             }
         }, RNG.r.i(100, 1200));
     }
@@ -502,5 +515,33 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public boolean isMCA() {
         return IrisSettings.get().getGenerator().isMcaPregenerator();
+    }
+
+    public static synchronized void reportError(Throwable e)
+    {
+        if(IrisSettings.get().getGeneral().isDebug())
+        {
+            String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
+
+            if(e.getCause() != null)
+            {
+                n += "-" + e.getCause().getStackTrace()[0].getClassName() + "-" + e.getCause().getStackTrace()[0].getLineNumber();
+            }
+
+            File f = instance.getDataFile("debug", "caught-exceptions", n + ".txt");
+
+            if(!f.exists())
+            {
+                J.attempt(() -> {
+                    PrintWriter pw = new PrintWriter(f);
+                    pw.println("Thread: " + Thread.currentThread().getName());
+                    pw.println("First: " + new Date(M.ms()));
+                    e.printStackTrace(pw);
+                    pw.close();
+                });
+            }
+
+            Iris.debug("Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
+        }
     }
 }

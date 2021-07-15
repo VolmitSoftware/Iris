@@ -36,7 +36,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         try {
             return of(f, Interpolated.DOUBLE);
         } catch (IncompatibleClassChangeError e) {
-            Iris.warn(f.toString());
+            Iris.warn(f.toString());Iris.reportError(e);
             e.printStackTrace();
             return null;
         }

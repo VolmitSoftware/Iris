@@ -43,7 +43,7 @@ public class INMS {
 
         try {
             return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             Iris.error("Failed to determine server nms version!");
             e.printStackTrace();
         }
@@ -61,7 +61,7 @@ public class INMS {
                 Iris.info("Craftbukkit " + code + " <-> " + b.getClass().getSimpleName() + " Successfully Bound");
 
                 return b;
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 e.printStackTrace();
             }
         }

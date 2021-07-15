@@ -117,7 +117,7 @@ public class IrisBiomeCustom {
         String v = (c.startsWith("#") ? c : "#" + c).trim();
         try {
             return Color.decode(v).getRGB();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             Iris.error("Error Parsing '''color''', (" + c + ")");
         }
 

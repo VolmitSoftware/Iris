@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.data.nbt.io;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.data.io.MaxDepthIO;
 import com.volmit.iris.scaffold.data.nbt.tag.*;
 
@@ -86,24 +87,25 @@ public final class SNBTParser implements MaxDepthIO {
             try {
                 return new ByteTag(Byte.parseByte(s.substring(0, s.length() - 1)));
             } catch (NumberFormatException ex) {
+                Iris.reportError(ex);
                 throw ptr.parseException("byte not in range: \"" + s.substring(0, s.length() - 1) + "\"");
             }
         } else if (SHORT_LITERAL_PATTERN.matcher(s).matches()) {
             try {
                 return new ShortTag(Short.parseShort(s.substring(0, s.length() - 1)));
-            } catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {Iris.reportError(ex);
                 throw ptr.parseException("short not in range: \"" + s.substring(0, s.length() - 1) + "\"");
             }
         } else if (LONG_LITERAL_PATTERN.matcher(s).matches()) {
             try {
                 return new LongTag(Long.parseLong(s.substring(0, s.length() - 1)));
-            } catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {Iris.reportError(ex);
                 throw ptr.parseException("long not in range: \"" + s.substring(0, s.length() - 1) + "\"");
             }
         } else if (INT_LITERAL_PATTERN.matcher(s).matches()) {
             try {
                 return new IntTag(Integer.parseInt(s));
-            } catch (NumberFormatException ex) {
+            } catch (NumberFormatException ex) {Iris.reportError(ex);
                 throw ptr.parseException("int not in range: \"" + s.substring(0, s.length() - 1) + "\"");
             }
         } else if (DOUBLE_LITERAL_PATTERN.matcher(s).matches()) {
@@ -150,7 +152,7 @@ public final class SNBTParser implements MaxDepthIO {
             Tag<?> element = parseAnything(decrementMaxDepth(maxDepth));
             try {
                 list.addUnchecked(element);
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalArgumentException ex) {Iris.reportError(ex);
                 throw ptr.parseException(ex.getMessage());
             }
             if (!ptr.nextArrayElement()) {
@@ -185,7 +187,7 @@ public final class SNBTParser implements MaxDepthIO {
             if (NUMBER_PATTERN.matcher(s).matches()) {
                 try {
                     byteList.add(Byte.parseByte(s));
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {Iris.reportError(ex);
                     throw ptr.parseException("byte not in range: \"" + s + "\"");
                 }
             } else {
@@ -211,7 +213,7 @@ public final class SNBTParser implements MaxDepthIO {
             if (NUMBER_PATTERN.matcher(s).matches()) {
                 try {
                     intList.add(Integer.parseInt(s));
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {Iris.reportError(ex);
                     throw ptr.parseException("int not in range: \"" + s + "\"");
                 }
             } else {
@@ -233,7 +235,7 @@ public final class SNBTParser implements MaxDepthIO {
             if (NUMBER_PATTERN.matcher(s).matches()) {
                 try {
                     longList.add(Long.parseLong(s));
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {Iris.reportError(ex);
                     throw ptr.parseException("long not in range: \"" + s + "\"");
                 }
             } else {

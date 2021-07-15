@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,7 +131,8 @@ public enum NMSVersion {
         try {
             Class.forName("org.bukkit.craftbukkit.v" + v + ".CraftWorld");
             return true;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 

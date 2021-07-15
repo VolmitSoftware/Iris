@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
@@ -117,6 +118,7 @@ public class ParallaxRegion extends HunkRegion {
                 try {
                     meta = metaAdapter.read((x, y, z) -> Hunk.newArrayHunk(32, 1, 32), (ByteArrayTag) t);
                 } catch (IOException e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -143,7 +145,7 @@ public class ParallaxRegion extends HunkRegion {
             try {
                 getCompound().getValue().put("meta", meta.writeByteArrayTag(metaAdapter, "meta"));
                 dirtyMeta = false;
-            } catch (IOException e) {
+            } catch (IOException e) {Iris.reportError(e);
                 e.printStackTrace();
             }
         }

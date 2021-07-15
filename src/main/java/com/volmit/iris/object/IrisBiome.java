@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
@@ -350,6 +351,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
                 } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -389,7 +391,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             for (int j = 0; j < d; j++) {
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
-                } catch (Throwable e) {
+                } catch (Throwable e) {Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -444,7 +446,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
                 try {
                     data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom(), rdata));
-                } catch (Throwable e) {
+                } catch (Throwable e) {Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

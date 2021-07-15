@@ -412,7 +412,7 @@ public class LightingService extends AsyncTask {
         while (paused) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException e) {Iris.reportError(e);
                 e.printStackTrace();
             }
             synchronized (tasks) {
@@ -468,7 +468,7 @@ public class LightingService extends AsyncTask {
             // Process the task
             try {
                 currentTask.process();
-            } catch (Throwable t) {
+            } catch (Throwable t) {Iris.reportError(t);
                 t.printStackTrace();
                 Iris.error("Failed to process task: " + currentTask.getStatus());
             }

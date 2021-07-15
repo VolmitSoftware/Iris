@@ -77,6 +77,7 @@ public class CommandIrisStudioBeautify extends MortarCommand {
             try {
                 IO.writeAll(clean, new JSONObject(IO.readAll(clean)).toString(4));
             } catch (Throwable e) {
+                Iris.reportError(e);
                 Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
             }
 

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.parallel;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.IORunnable;
 import com.volmit.iris.util.NastyRunnable;
@@ -81,7 +82,8 @@ public class GridLock {
     public boolean tryLock(int x, int z, long timeout) {
         try {
             return locks.get(x, 0, z).tryLock(timeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException e) {
+            Iris.reportError(e);
         }
 
         return false;

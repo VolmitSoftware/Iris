@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestInputStream;
@@ -95,6 +97,7 @@ public class IO {
             MessageDigest d = MessageDigest.getInstance("SHA-256");
             return bytesToHex(d.digest(b.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -108,7 +111,7 @@ public class IO {
             fullTransfer(din, new VoidOutputStream(), 8192);
             din.close();
             return bytesToHex(din.getMessageDigest().digest());
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -304,7 +307,7 @@ public class IO {
                     v.accept(in);
                 }
             }
-        } catch (Exception ex) {
+        } catch (Exception ex) {Iris.reportError(ex);
             x = ex.getCause();
         } finally {
             file.close();
@@ -326,7 +329,7 @@ public class IO {
         FileReader fr;
         try {
             fr = new FileReader(f);
-        } catch (IOException e) {
+        } catch (IOException e) {Iris.reportError(e);
             throw e;
         }
         BufferedReader bu = new BufferedReader(fr);
@@ -481,7 +484,7 @@ public class IO {
             if (input != null) {
                 input.close();
             }
-        } catch (IOException ioe) {
+        } catch (IOException e) {Iris.reportError(e);
             // ignore
         }
     }
@@ -499,7 +502,7 @@ public class IO {
             if (output != null) {
                 output.close();
             }
-        } catch (IOException ioe) {
+        } catch (IOException e) {Iris.reportError(e);
             // ignore
         }
     }
@@ -517,7 +520,7 @@ public class IO {
             if (input != null) {
                 input.close();
             }
-        } catch (IOException ioe) {
+        } catch (IOException e) {Iris.reportError(e);
             // ignore
         }
     }
@@ -535,7 +538,7 @@ public class IO {
             if (output != null) {
                 output.close();
             }
-        } catch (IOException ioe) {
+        } catch (IOException e) {Iris.reportError(e);
             // ignore
         }
     }

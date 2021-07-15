@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object.tile;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
 import com.volmit.iris.util.KList;
 import org.bukkit.block.Block;
@@ -67,6 +68,7 @@ public interface TileData<T extends TileState> extends Cloneable {
                     s.fromBukkitTry(block.getState());
                     return s;
                 } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -88,7 +90,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             toBukkit((T) t);
             return true;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -100,7 +102,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             fromBukkit((T) t);
             return true;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 

@@ -139,8 +139,8 @@ public class CommandIrisCreate extends MortarCommand {
             if (sender.isPlayer()) {
                 try {
                     sender.player().teleport(world.get().getSpawnLocation());
-                } catch (Throwable ignored) {
-
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                 }
             }
 

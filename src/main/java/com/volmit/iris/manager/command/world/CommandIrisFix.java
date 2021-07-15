@@ -61,6 +61,7 @@ public class CommandIrisFix extends MortarCommand {
                 });
             }
         } catch (Throwable e) {
+            Iris.reportError(e);
             sender.sendMessage("Not a valid Iris World (or bad argument)");
         }
 

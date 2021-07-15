@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.Renderer;
 import com.volmit.iris.object.*;
@@ -192,6 +193,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                 block.setType(Material.AIR, false);
                 block.setBlockData(data, true);
             } catch (Exception e) {
+                Iris.reportError(e);
                 // Issue when adding block data. Suppress massive warnings and stack-traces to console.
             }
         }
@@ -216,7 +218,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                 try {
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
-                } catch (Throwable ignored) {
+                } catch (Throwable e) {Iris.reportError(e);
 
                 }
             }
@@ -254,7 +256,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             try {
                 Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
                 break;
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {Iris.reportError(e);
 
             }
         }

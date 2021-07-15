@@ -18,6 +18,7 @@
 
 package com.volmit.iris.manager.link;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.util.KMap;
 import org.bukkit.Bukkit;
@@ -51,6 +52,7 @@ public class MultiverseCoreLink {
             saveConfig();
             return b;
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -65,7 +67,7 @@ public class MultiverseCoreLink {
             Field f = mvWorldManager.getClass().getDeclaredField("worldsFromTheConfig");
             f.setAccessible(true);
             return (Map<String, ?>) f.get(mvWorldManager);
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -95,7 +97,7 @@ public class MultiverseCoreLink {
             Plugin p = getMultiverse();
             Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
             mvWorldManager.getClass().getDeclaredMethod("saveWorldsConfig").invoke(mvWorldManager);
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -108,7 +110,7 @@ public class MultiverseCoreLink {
         try {
             String t = worldNameTypes.get(worldName);
             return t == null ? defaultType : t;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             return defaultType;
         }
     }

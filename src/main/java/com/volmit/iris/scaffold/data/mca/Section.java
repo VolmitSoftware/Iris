@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.data.mca;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.data.nbt.tag.ByteArrayTag;
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
 import com.volmit.iris.scaffold.data.nbt.tag.ListTag;
@@ -141,6 +142,7 @@ public class Section {
             int paletteIndex = getPaletteIndex(index);
             return palette.get(paletteIndex);
         } catch (Throwable ignored) {
+            Iris.reportError(ignored);
 
         }
 

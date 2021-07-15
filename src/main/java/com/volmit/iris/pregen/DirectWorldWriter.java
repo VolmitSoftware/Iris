@@ -70,7 +70,7 @@ public class DirectWorldWriter {
 
                     MCAUtil.write(writeBuffer.get(i), f, true);
                     writeBuffer.remove(i);
-                } catch (Throwable e) {
+                } catch (Throwable e) {Iris.reportError(e);
                     e.printStackTrace();
                 }
             });
@@ -158,7 +158,7 @@ public class DirectWorldWriter {
             }
 
             return getBlockData(tag);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
         return B.get("AIR");

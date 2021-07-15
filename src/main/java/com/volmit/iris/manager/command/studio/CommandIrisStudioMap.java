@@ -58,6 +58,7 @@ public class CommandIrisStudioMap extends MortarCommand {
             IrisVision.launch(g, 0);
             sender.sendMessage("Opening Map!");
         } catch (Throwable e) {
+            Iris.reportError(e);
             IrisAccess g = IrisWorlds.access(sender.player().getWorld());
             IrisVision.launch(g, 0);
             sender.sendMessage("Opening Map!");

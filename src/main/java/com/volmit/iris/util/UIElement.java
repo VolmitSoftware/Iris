@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -159,9 +160,10 @@ public class UIElement implements Element {
                     return this;
                 }
             }
-        } catch (NullPointerException ignored) {
+        } catch (NullPointerException e) {
+            Iris.reportError(e);
 
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -211,7 +213,7 @@ public class UIElement implements Element {
 
             is.setItemMeta(im);
             return is;
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
 

@@ -65,6 +65,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
             try {
                 Iris.proj.getActiveProject().getActiveProvider().getCompound().getEngine(p.getLocation().getBlockY()).addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
             } catch (Throwable e) {
+                Iris.reportError(e);
                 sender.sendMessage("You can only use /iris loot in a studio world of iris.");
                 return true;
             }

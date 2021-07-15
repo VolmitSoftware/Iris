@@ -58,7 +58,7 @@ public class J {
                 g.run();
                 return true;
             }
-        } catch (NullPointerException e) {
+        } catch (NullPointerException e) {Iris.reportError(e);
             // TODO: Fix this because this is just a suppression for an NPE on g
             return false;
         }
@@ -70,7 +70,7 @@ public class J {
         e.submit(() -> {
             try {
                 a.run();
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 System.out.println("Failed to run async task");
                 e.printStackTrace();
             }
@@ -81,7 +81,7 @@ public class J {
         e.submit(() -> {
             try {
                 a.run();
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 System.out.println("Failed to run async task");
                 e.printStackTrace();
             }
@@ -99,7 +99,7 @@ public class J {
     public static <R> R attemptResult(NastyFuture<R> r, R onError) {
         try {
             return r.run();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -109,7 +109,7 @@ public class J {
     public static <T, R> R attemptFunction(NastyFunction<T, R> r, T param, R onError) {
         try {
             return r.run(param);
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -127,7 +127,7 @@ public class J {
     public static Throwable attemptCatch(NastyRunnable r) {
         try {
             r.run();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             return e;
         }
 
@@ -137,7 +137,7 @@ public class J {
     public static <T> T attempt(Supplier<T> t, T i) {
         try {
             return t.get();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             return i;
         }
     }

@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 /**
  * A 4 element tuple represented by double precision floating point
  * x,y,z,w coordinates.
@@ -369,6 +371,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
             return (this.x == t1.x && this.y == t1.y && this.z == t1.z
                     && this.w == t1.w);
         } catch (NullPointerException e2) {
+            Iris.reportError(e2);
             return false;
         }
     }
@@ -388,6 +391,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
             return (this.x == t2.x && this.y == t2.y &&
                     this.z == t2.z && this.w == t2.w);
         } catch (NullPointerException | ClassCastException e2) {
+            Iris.reportError(e2);
             return false;
         }
     }
@@ -709,7 +713,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
         // Since there are no arrays we can just use Object.clone()
         try {
             return super.clone();
-        } catch (CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException e) {Iris.reportError(e);
             // this shouldn't happen, since we are Cloneable
             throw new InternalError();
         }

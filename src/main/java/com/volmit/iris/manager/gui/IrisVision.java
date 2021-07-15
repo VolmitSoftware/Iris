@@ -285,7 +285,7 @@ public class IrisVision extends JPanel implements MouseWheelListener {
         if (file != null) {
             try {
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException ignored) {
+            } catch (IOException e) {Iris.reportError(e);
 
             }
         }

@@ -58,13 +58,14 @@ public class CommandIrisWhatBiome extends MortarCommand {
                 sender.sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
 
             } catch (Throwable e) {
+                Iris.reportError(e);
                 sender.sendMessage("Non-Iris Biome: " + p.getLocation().getBlock().getBiome().name());
 
                 if (p.getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
                     try {
                         sender.sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(p.getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(p.getLocation())) + ")");
-                    } catch (Throwable ignored) {
-
+                    } catch (Throwable ee) {
+                        Iris.reportError(ee);
                     }
                 }
             }

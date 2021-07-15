@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -111,6 +113,7 @@ public class Violator {
                 f.setAccessible(true);
                 p(id(c, null) + "." + name, f);
             } catch (NoSuchFieldException e) {
+                Iris.reportError(e);
                 Class s = c.getSuperclass();
                 if (null == s) {
                     throw e;
@@ -131,7 +134,7 @@ public class Violator {
                 Field f = c.getDeclaredField(name);
                 f.setAccessible(true);
                 p(id(c, null) + "." + name, f);
-            } catch (NoSuchFieldException e) {
+            } catch (NoSuchFieldException e) {Iris.reportError(e);
                 Class s = c.getSuperclass();
                 if (null == s) {
                     throw e;
@@ -176,7 +179,7 @@ public class Violator {
         try {
             Constructor<?> co = getConstructor(c, cv.toArray(new Class<?>[0]));
             return (T) co.newInstance(parameters);
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             e.printStackTrace();
         }
 

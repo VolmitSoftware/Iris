@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import org.bukkit.Sound;
 
@@ -188,6 +189,7 @@ public abstract class MortarCommand implements ICommand {
 
                     p.add(pc);
                 } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

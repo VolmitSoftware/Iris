@@ -18,6 +18,7 @@
 
 package com.volmit.iris.generator.noise;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import com.volmit.iris.scaffold.stream.arithmetic.FittedStream;
 import com.volmit.iris.scaffold.stream.sources.CNGStream;
@@ -304,8 +305,8 @@ public class CNG {
 
         try {
             return v.get(fit(0, v.size() - 1, dim));
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return v.get(0);

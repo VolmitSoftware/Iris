@@ -239,7 +239,7 @@ public class IrisObject extends IrisRegistrant {
             for (int i = 0; i < size; i++) {
                 getStates().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
     }
@@ -319,7 +319,7 @@ public class IrisObject extends IrisRegistrant {
         try {
             read(fin);
             fin.close();
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             fin.close();
             fin = new FileInputStream(file);
             readLegacy(fin);
@@ -572,7 +572,7 @@ public class IrisObject extends IrisRegistrant {
             try {
                 d = getBlocks().get(g);
                 tile = getStates().get(g);
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
                 d = AIR;
             }
@@ -665,7 +665,7 @@ public class IrisObject extends IrisRegistrant {
 
                 try {
                     d = getBlocks().get(g);
-                } catch (Throwable e) {
+                } catch (Throwable e) {Iris.reportError(e);
                     Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
                     d = AIR;
                 }

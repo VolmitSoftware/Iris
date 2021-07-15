@@ -29,7 +29,7 @@ import lombok.experimental.Accessors;
 
 import java.awt.*;
 
-@Deprecated(forRemoval = true)
+@Deprecated()
 @Accessors(chain = true)
 @NoArgsConstructor
 @Desc("Represents a color")

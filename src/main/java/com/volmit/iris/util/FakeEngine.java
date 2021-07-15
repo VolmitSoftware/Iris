@@ -1,8 +1,8 @@
 package com.volmit.iris.util;
 
+import com.volmit.iris.generator.IrisEngineFramework;
 import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.EngineCompound;
 import com.volmit.iris.scaffold.engine.EngineEffects;
@@ -20,8 +20,20 @@ import org.bukkit.block.data.BlockData;
 
 public class FakeEngine implements Engine {
 
+
+    @Getter
+    private double maxBiomeObjectDensity;
+
+    @Getter
+    private double maxBiomeLayerDensity;
+
+    @Getter
+    private double maxBiomeDecoratorDensity;
+
     @Getter
     private IrisDimension dimension;
+
+    private EngineFramework framework;
 
     @Getter
     private World world;
@@ -29,6 +41,38 @@ public class FakeEngine implements Engine {
     public FakeEngine(IrisDimension dimension, FakeWorld world) {
         this.dimension = dimension;
         this.world = world;
+        computeBiomeMaxes();
+        this.framework = new IrisEngineFramework(this);
+    }
+
+    private void computeBiomeMaxes() {
+        for(IrisBiome i : getDimension().getAllBiomes(this))
+        {
+            double density = 0;
+
+            for(IrisObjectPlacement j : i.getObjects())
+            {
+                density += j.getDensity() * j.getChance();
+            }
+
+            maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
+            density = 0;
+
+            for(IrisDecorator j : i.getDecorators())
+            {
+                density += Math.max(j.getStackMax(), 1) * j.getChance();
+            }
+
+            maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
+            density = 0;
+
+            for(IrisBiomePaletteLayer j : i.getLayers())
+            {
+                density++;
+            }
+
+            maxBiomeLayerDensity = Math.max(maxBiomeLayerDensity, density);
+        }
     }
 
     @Override

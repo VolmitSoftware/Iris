@@ -21,6 +21,7 @@ package com.volmit.iris.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.map.RenderType;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.util.*;
@@ -514,8 +515,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         return b.v();
     }
 
-    public Color getColor(DataProvider dataProvider) {
-
+    public Color getColor(DataProvider dataProvider, RenderType type) {
         return this.cacheColor.aquire(() -> {
             if (this.color == null) {
                 Random rand = new Random(getName().hashCode() + getAllBiomeIds().hashCode());

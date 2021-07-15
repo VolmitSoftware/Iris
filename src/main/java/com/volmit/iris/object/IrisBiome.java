@@ -20,10 +20,13 @@ package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
+import com.volmit.iris.generator.IrisEngine;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.map.RenderType;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.scaffold.data.DataProvider;
+import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
@@ -195,6 +198,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
     private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
+    private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
+    private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
+    private final transient AtomicCache<Color> cacheColorLayerLoad = new AtomicCache<>();
+    private final transient AtomicCache<Color> cacheColorDepositLoad = new AtomicCache<>();
     private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
     private final transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
     private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
@@ -599,28 +606,61 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return getLayers().get(0).get(rng, x, 0, z, idm);
     }
 
-    public Color getColor() {
-        return this.cacheColor.aquire(() -> {
-            if (this.color == null) {
-                RandomColor randomColor = new RandomColor(getName().hashCode());
-                if (this.getVanillaDerivative() == null) {
-                    Iris.warn("No vanilla biome found for " + getName());
-                    return new Color(randomColor.randomColor());
-                }
-                RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
-                RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
-                RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(this.getVanillaDerivative());
-                int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? RandomColor.SaturationType.MONOCHROME : sat, lum);
+    public Color getColor(Engine engine, RenderType type) {
+        switch (type) {
+            case BIOME, HEIGHT, CAVE_LAND, REGION, BIOME_SEA, BIOME_LAND -> {
+                return this.cacheColor.aquire(() -> {
+                    if (this.color == null) {
+                        RandomColor randomColor = new RandomColor(getName().hashCode());
+                        if (this.getVanillaDerivative() == null) {
+                            Iris.warn("No vanilla biome found for " + getName());
+                            return new Color(randomColor.randomColor());
+                        }
+                        RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
+                        RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
+                        RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(this.getVanillaDerivative());
+                        int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? RandomColor.SaturationType.MONOCHROME : sat, lum);
 
-                return new Color(newColorI);
-            }
+                        return new Color(newColorI);
+                    }
 
-            try {
-                return Color.decode(this.color);
-            } catch (NumberFormatException e) {
-                Iris.warn("Could not parse color \"" + this.color + "\" for biome " + getName());
-                return new Color(new RandomColor(getName().hashCode()).randomColor());
+                    try {
+                        return Color.decode(this.color);
+                    } catch (NumberFormatException e) {
+                        Iris.warn("Could not parse color \"" + this.color + "\" for biome " + getName());
+                        return new Color(new RandomColor(getName().hashCode()).randomColor());
+                    }
+                });
             }
-        });
+            case OBJECT_LOAD -> {
+                return cacheColorObjectDensity.aquire(() -> {
+                    double density = 0;
+
+                    for(IrisObjectPlacement i : getObjects())
+                    {
+                        density += i.getDensity() * i.getChance();
+                    }
+
+                    return Color.getHSBColor(0.225f, (float) (density / engine.getMaxBiomeObjectDensity()), 1f);
+                });
+            }
+            case DECORATOR_LOAD -> {
+                return cacheColorDecoratorLoad.aquire(() -> {
+                    double density = 0;
+
+                    for(IrisDecorator i : getDecorators())
+                    {
+                        density += i.getChance() * Math.min(1, i.getStackMax()) * 256;
+                    }
+
+                    return Color.getHSBColor(0.41f, (float) (density / engine.getMaxBiomeDecoratorDensity()), 1f);
+                });
+            }
+            case LAYER_LOAD -> {
+                return cacheColorLayerLoad.aquire(() -> Color.getHSBColor(0.625f, (float) (getLayers().size() / engine.getMaxBiomeLayerDensity()), 1f));
+            }
+        }
+
+        return Color.black;
     }
 }

@@ -19,7 +19,7 @@
 package com.volmit.iris.generator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.engine.*;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.J;
@@ -70,6 +70,15 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private int cacheId;
     private final int art;
 
+    @Getter
+    private double maxBiomeObjectDensity;
+
+    @Getter
+    private double maxBiomeLayerDensity;
+
+    @Getter
+    private double maxBiomeDecoratorDensity;
+
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
@@ -84,6 +93,37 @@ public class IrisEngine extends BlockPopulator implements Engine {
         cacheId = RNG.r.nextInt();
         effects = new IrisEngineEffects(this);
         art = J.ar(effects::tickRandomPlayer, 0);
+        J.a(this::computeBiomeMaxes);
+    }
+
+    private void computeBiomeMaxes() {
+        for(IrisBiome i : getDimension().getAllBiomes(this))
+        {
+            double density = 0;
+
+            for(IrisObjectPlacement j : i.getObjects())
+            {
+                density += j.getDensity() * j.getChance();
+            }
+
+            maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
+            density = 0;
+
+            for(IrisDecorator j : i.getDecorators())
+            {
+                density += Math.max(j.getStackMax(), 1) * j.getChance();
+            }
+
+            maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
+            density = 0;
+
+            for(IrisBiomePaletteLayer j : i.getLayers())
+            {
+                density++;
+            }
+
+            maxBiomeLayerDensity = Math.max(maxBiomeLayerDensity, density);
+        }
     }
 
     @Override

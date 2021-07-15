@@ -21,6 +21,7 @@ package com.volmit.iris.scaffold.engine;
 import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.manager.gui.Renderer;
+import com.volmit.iris.map.RenderType;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.DataProvider;
@@ -44,6 +45,12 @@ import java.util.Arrays;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     void close();
+
+    double getMaxBiomeObjectDensity();
+
+    double getMaxBiomeDecoratorDensity();
+
+    double getMaxBiomeLayerDensity();
 
     boolean isClosed();
 
@@ -110,8 +117,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
         double heightFactor = M.lerpInverse(0, getHeight(), height);
-        Color irc = region.getColor(this.getFramework().getComplex());
-        Color ibc = biome.getColor();
+        Color irc = region.getColor(this.getFramework().getComplex(), RenderType.BIOME);
+        Color ibc = biome.getColor(this, RenderType.BIOME);
         Color rc = irc != null ? irc : Color.GREEN.darker();
         Color bc = ibc != null ? ibc : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
         Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));

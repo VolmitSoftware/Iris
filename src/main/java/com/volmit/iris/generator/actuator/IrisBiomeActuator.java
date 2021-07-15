@@ -62,47 +62,40 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int zf, hh;
-        BurstExecutor burst = MultiBurst.burst.burst(h.getWidth() * h.getDepth());
+        int zf;
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {
-                int xxf = xf;
-                int zzf = zf;
 
-                burst.queue(() -> {
-                    IrisBiome ib = getComplex().getTrueBiomeStream().get(modX(xxf + x), modZ(zzf + z));
+                IrisBiome ib = getComplex().getTrueBiomeStream().get(modX(xf + x), modZ(zf + z));
 
-                    if (ib.isCustom()) {
-                        try {
-                            IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                            Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
+                if (ib.isCustom()) {
+                    try {
+                        IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
+                        Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
 
-                            if (!injectBiome(h, x, 0, z, biomeBase)) {
-                                throw new RuntimeException("Cant inject biome!");
-                            }
-
-                            for (int i = 0; i < h.getHeight(); i++) {
-                                injectBiome(h, xxf, i, zzf, biomeBase);
-                            }
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                            Biome v = ib.getSkyBiome(rng, x, 0, z);
-                            for (int i = 0; i < h.getHeight(); i++) {
-                                h.set(xxf, i, zzf, v);
-                            }
+                        if (!injectBiome(h, x, 0, z, biomeBase)) {
+                            throw new RuntimeException("Cant inject biome!");
                         }
-                    } else {
+
+                        for (int i = 0; i < h.getHeight(); i++) {
+                            injectBiome(h, xf, i, zf, biomeBase);
+                        }
+                    } catch (Throwable e) {
+                        e.printStackTrace();
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
                         for (int i = 0; i < h.getHeight(); i++) {
-                            h.set(xxf, i, zzf, v);
+                            h.set(xf, i, zf, v);
                         }
                     }
-                });
+                } else {
+                    Biome v = ib.getSkyBiome(rng, x, 0, z);
+                    for (int i = 0; i < h.getHeight(); i++) {
+                        h.set(xf, i, zf, v);
+                    }
+                }
             }
         }
-
-        burst.complete();
 
         getEngine().getMetrics().getBiome().put(p.getMilliseconds());
     }

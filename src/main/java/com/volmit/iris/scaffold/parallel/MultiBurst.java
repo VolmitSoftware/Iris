@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 
 public class MultiBurst {
     public static final MultiBurst burst = new MultiBurst("Iris Burster", 10, Runtime.getRuntime().availableProcessors());
-    public static final MultiBurst burstAux = new MultiBurst("Iris Aux Burster", 8, Runtime.getRuntime().availableProcessors()/2);
     private final ExecutorService service;
     private ExecutorService syncService;
     private int tid;

@@ -90,7 +90,7 @@ public class HunkRegionSlice<T> {
     }
 
     public synchronized void save() {
-        BurstExecutor e = MultiBurst.burstAux.burst();
+        BurstExecutor e = MultiBurst.burst.burst();
         for (ChunkPosition i : save.copy()) {
             if (i == null) {
                 continue;

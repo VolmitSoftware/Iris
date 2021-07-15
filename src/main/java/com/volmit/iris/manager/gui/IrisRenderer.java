@@ -18,22 +18,36 @@
 
 package com.volmit.iris.manager.gui;
 
+import com.volmit.iris.map.RenderType;
 import com.volmit.iris.scaffold.engine.Engine;
 import com.volmit.iris.util.IrisInterpolation;
 import org.bukkit.Material;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.function.BiFunction;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class IrisRenderer {
-    private final Renderer renderer;
+    private final Engine renderer;
 
-    public IrisRenderer(Renderer renderer) {
+    public IrisRenderer(Engine renderer) {
         this.renderer = renderer;
     }
 
-    public BufferedImage render(double sx, double sz, double size, int resolution) {
+    public BufferedImage render(double sx, double sz, double size, int resolution, RenderType currentType) {
         BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
+        BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
+
+        switch (currentType) {
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getTrueBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_LAND -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getLandBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_SEA -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getSeaBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case REGION -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getRegionStream().get(x, z).getColor(renderer.getFramework().getComplex(), currentType).getRGB();
+            case CAVE_LAND -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(renderer.getFramework().getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+        }
+
         double x, z;
         int i, j;
         for (i = 0; i < resolution; i++) {
@@ -41,7 +55,7 @@ public class IrisRenderer {
 
             for (j = 0; j < resolution; j++) {
                 z = IrisInterpolation.lerp(sz, sz + size, (double) j / (double) (resolution));
-                image.setRGB(i, j, renderer.draw(x, z).getRGB());
+                image.setRGB(i, j, colorFunction.apply(x, z));
             }
         }
 

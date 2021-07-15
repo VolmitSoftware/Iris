@@ -54,10 +54,11 @@ public class MapVision extends JPanel {
 
     private boolean help = true;
     private boolean helpIgnored = false;
-    private boolean dirty = true; //Whether to repaint textures
-    private double scale = 1;
     private boolean shift = false;
     private boolean alt = false;
+
+    private boolean dirty = true; //Whether to repaint textures
+    private double scale = 1;
 
     private final KMap<Integer, Tile> tiles = new KMap<>();
 

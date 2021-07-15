@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -373,6 +374,7 @@ public enum C {
         try {
             return BY_CHAR.get(code);
         } catch (Exception e) {
+            Iris.reportError(e);
             return C.WHITE;
         }
     }
@@ -390,7 +392,7 @@ public enum C {
             Validate.isTrue(code.length() > 0, "Code must have at least one char");
 
             return BY_CHAR.get(code.charAt(0));
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             return C.WHITE;
         }
     }

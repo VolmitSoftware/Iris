@@ -18,6 +18,7 @@
 
 package com.volmit.iris.generator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.*;
 import com.volmit.iris.scaffold.cache.Cache;
@@ -127,8 +128,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     });
                 }
             });
-        } catch (Throwable ignored) {
-
+        } catch (Throwable ee) {
+            Iris.reportError(ee);
         }
     }
 

@@ -193,6 +193,7 @@ public class IrisDataManager {
                 }
             }
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 

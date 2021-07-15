@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 /**
  * A generic 2-element tuple that is represented by double-precision
  * floating point x,y coordinates.
@@ -294,6 +296,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
         try {
             return (this.x == t1.x && this.y == t1.y);
         } catch (NullPointerException e2) {
+            Iris.reportError(e2);
             return false;
         }
 
@@ -312,6 +315,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
             Tuple2d t2 = (Tuple2d) t1;
             return (this.x == t2.x && this.y == t2.y);
         } catch (NullPointerException | ClassCastException e2) {
+            Iris.reportError(e2);
             return false;
         }
 
@@ -504,7 +508,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
         // Since there are no arrays we can just use Object.clone()
         try {
             return super.clone();
-        } catch (CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException e) {Iris.reportError(e);
             // this shouldn't happen, since we are Cloneable
             throw new InternalError();
         }

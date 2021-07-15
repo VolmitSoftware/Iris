@@ -267,7 +267,7 @@ public class Pregenerator implements Listener {
         try {
             Files.move(from.toPath(), to.toPath());
             return true;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -275,7 +275,7 @@ public class Pregenerator implements Listener {
             IO.copyFile(from, to);
             from.delete();
             return true;
-        } catch (IOException ignored) {
+        } catch (IOException e) {Iris.reportError(e);
 
         }
 
@@ -348,7 +348,7 @@ public class Pregenerator implements Listener {
 
                     try {
                         q.pop().run();
-                    } catch (Throwable ignored) {
+                    } catch (Throwable e) {Iris.reportError(e);
 
                     }
                 }
@@ -511,7 +511,7 @@ public class Pregenerator implements Listener {
             while (order.isNotEmpty()) {
                 try {
                     order.pop().run();
-                } catch (Throwable ignored) {
+                } catch (Throwable e) {Iris.reportError(e);
 
                 }
             }
@@ -580,7 +580,7 @@ public class Pregenerator implements Listener {
             if (file != null) {
                 try {
                     frame.setIconImage(ImageIO.read(file));
-                } catch (IOException ignored) {
+                } catch (IOException ignored) {Iris.reportError(ignored);
 
                 }
             }

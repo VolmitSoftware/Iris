@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Color;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
@@ -175,6 +176,7 @@ public enum ParticleType {
         try {
             return ParticleType.valueOf(particleName.toUpperCase());
         } catch (IllegalArgumentException e) {
+            Iris.reportError(e);
             for (ParticleType particle : values()) {
                 if (particle.getName().equalsIgnoreCase(particleName)) {
                     return particle;

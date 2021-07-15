@@ -21,6 +21,7 @@ package com.volmit.iris.util;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.volmit.iris.Iris;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -132,7 +133,8 @@ public class MetricsLite {
                     Check out https://bStats.org/ to learn more :)""").copyDefaults(true);
             try {
                 config.save(configFile);
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                Iris.reportError(e);
             }
         }
 
@@ -150,7 +152,7 @@ public class MetricsLite {
                     service.getField("B_STATS_VERSION"); // Our identifier :)
                     found = true; // We aren't the first
                     break;
-                } catch (NoSuchFieldException ignored) {
+                } catch (NoSuchFieldException e) {Iris.reportError(e);
                 }
             }
             // Register our service
@@ -230,7 +232,7 @@ public class MetricsLite {
             // org.bukkit.Bukkit.getOnlinePlayers()Ljava/util/Collection;
             Method onlinePlayersMethod = Class.forName("org.bukkit.Server").getMethod("getOnlinePlayers");
             playerAmount = onlinePlayersMethod.getReturnType().equals(Collection.class) ? ((Collection<?>) onlinePlayersMethod.invoke(Bukkit.getServer())).size() : ((Player[]) onlinePlayersMethod.invoke(Bukkit.getServer())).length;
-        } catch (Exception e) {
+        } catch (Exception e) {Iris.reportError(e);
             playerAmount = Bukkit.getOnlinePlayers().size(); // Just use the new method if the Reflection failed
         }
         int onlineMode = Bukkit.getOnlineMode() ? 1 : 0;
@@ -289,7 +291,7 @@ public class MetricsLite {
                                     JsonObject object = new JsonParser().parse(jsonString).getAsJsonObject();
                                     pluginData.add(object);
                                 }
-                            } catch (ClassNotFoundException e) {
+                            } catch (ClassNotFoundException e) {Iris.reportError(e);
                                 // minecraft version 1.14+
                                 if (logFailedRequests) {
                                     this.plugin.getLogger().log(Level.SEVERE, "Encountered unexpected exception ", e);
@@ -297,9 +299,10 @@ public class MetricsLite {
                             }
                         }
                     } catch (NullPointerException | NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+                        Iris.reportError(ignored);
                     }
                 }
-            } catch (NoSuchFieldException ignored) {
+            } catch (NoSuchFieldException e) {Iris.reportError(e);
             }
         }
 
@@ -311,7 +314,7 @@ public class MetricsLite {
             try {
                 // Send the data
                 sendData(plugin, data);
-            } catch (Exception e) {
+            } catch (Exception e) {Iris.reportError(e);
                 // Something went wrong! :(
                 if (logFailedRequests) {
                     plugin.getLogger().log(Level.WARNING, "Could not submit plugin stats of " + plugin.getName(), e);

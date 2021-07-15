@@ -58,7 +58,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private ChunkData createChunkData(int maxHeight) {
         try {
             return Bukkit.createChunkData(new HeightedFakeWorld(maxHeight));
-        } catch (Throwable e) {
+        } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
         }
 

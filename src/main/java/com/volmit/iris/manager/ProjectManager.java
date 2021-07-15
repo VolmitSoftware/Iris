@@ -52,8 +52,8 @@ public class ProjectManager {
                     if (m != null) {
                         try {
                             IO.copyFile(m, ignore);
-                        } catch (IOException ignored) {
-
+                        } catch (IOException e) {
+                            Iris.reportError(e);
                         }
                     }
                 }
@@ -72,12 +72,12 @@ public class ProjectManager {
                         if (i.isDirectory() && i.list().length > 0 && !Iris.proj.getListing(true).containsKey(i.getName())) {
                             v++;
                         }
-                    } catch (Throwable ignored) {
-
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
                     }
                 }
-            } catch (Throwable ignored) {
-
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
 
             return v;
@@ -104,8 +104,8 @@ public class ProjectManager {
 
             try {
                 FileUtils.copyDirectory(f, irispack);
-            } catch (IOException ignored) {
-
+            } catch (IOException e) {
+                Iris.reportError(e);
             }
         }
 
@@ -121,12 +121,14 @@ public class ProjectManager {
                         FileUtils.copyFile(i, new File(irispack, i.getName()));
                     } catch (IOException e) {
                         e.printStackTrace();
+                        Iris.reportError(e);
                     }
                 } else {
                     try {
                         FileUtils.copyDirectory(i, new File(irispack, i.getName()));
                     } catch (IOException e) {
                         e.printStackTrace();
+                        Iris.reportError(e);
                     }
                 }
             }
@@ -168,6 +170,7 @@ public class ProjectManager {
             branch = nodes.length > 2 ? nodes[2] : branch;
             download(sender, repo, branch, trim, forceOverwrite);
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             sender.sendMessage("Failed to download '" + key + "' from " + url + ".");
         }
@@ -188,6 +191,7 @@ public class ProjectManager {
         try {
             ZipUtil.unpack(zip, work);
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             sender.sendMessage(
                     """
@@ -210,6 +214,7 @@ public class ProjectManager {
         try {
             dir = zipFiles.length == 1 && zipFiles[0].isDirectory() ? zipFiles[0] : null;
         } catch (NullPointerException e) {
+            Iris.reportError(e);
             sender.sendMessage("Error when finding home directory. Are there any non-text characters in the file name?");
             return;
         }
@@ -307,6 +312,7 @@ public class ProjectManager {
                 }
             });
         } catch (Exception e) {
+            Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");
             e.printStackTrace();
         }
@@ -353,6 +359,7 @@ public class ProjectManager {
         try {
             FileUtils.copyDirectory(importPack, newPack, pathname -> !pathname.getAbsolutePath().contains(".git"), false);
         } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -363,6 +370,7 @@ public class ProjectManager {
         try {
             FileUtils.copyFile(dimFile, newDimFile);
         } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -376,6 +384,7 @@ public class ProjectManager {
                 IO.writeAll(newDimFile, json.toString(4));
             }
         } catch (JSONException | IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -384,6 +393,7 @@ public class ProjectManager {
             JSONObject ws = p.createCodeWorkspaceConfig();
             IO.writeAll(getWorkspaceFile(newName, newName + ".code-workspace"), ws.toString(0));
         } catch (JSONException | IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }

@@ -19,6 +19,8 @@
 package com.volmit.iris.util;
 
 
+import com.volmit.iris.Iris;
+
 import java.util.Iterator;
 
 /**
@@ -322,12 +324,13 @@ public class XML {
                 }
             }
         } catch (Exception ignore) {
+            Iris.reportError(ignore);
             try {
                 Double value = new Double(string);
                 if (value.toString().equals(string)) {
                     return value;
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {Iris.reportError(e);
             }
         }
         return string;

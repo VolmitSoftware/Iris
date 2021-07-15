@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.hunk.io;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.tile.TileData;
 import org.bukkit.block.TileState;
 
@@ -35,8 +36,9 @@ public class TileDataHunkIOAdapter extends PaletteHunkIOAdapter<TileData<? exten
     public TileData<? extends TileState> read(DataInputStream din) throws IOException {
         try {
             return TileData.read(din);
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
             throw new IOException();
         }
     }

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Bukkit;
 
 import java.util.Optional;
@@ -66,6 +67,7 @@ public final class FastReflection {
         try {
             return Optional.of(Class.forName(className));
         } catch (ClassNotFoundException e) {
+            Iris.reportError(e);
             return Optional.empty();
         }
     }

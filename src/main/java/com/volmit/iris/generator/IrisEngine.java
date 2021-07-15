@@ -130,6 +130,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             getFramework().getDepositModifier().modify(x, z, blocks);
             getMetrics().getTotal().put(p.getMilliseconds());
         } catch (Throwable e) {
+            Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
         }
     }

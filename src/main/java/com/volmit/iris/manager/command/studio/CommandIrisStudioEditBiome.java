@@ -60,6 +60,7 @@ public class CommandIrisStudioEditBiome extends MortarCommand {
                 File f = Iris.proj.getActiveProject().getActiveProvider().getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ()).getLoadFile();
                 Desktop.getDesktop().open(f);
             } catch (Throwable e) {
+                Iris.reportError(e);
                 sender.sendMessage("Cant find the file. Are you in an Iris Studio world?");
             }
 

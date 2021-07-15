@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.stream.utility;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.stream.BasicStream;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 import com.volmit.iris.util.Form;
@@ -60,7 +61,8 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return t;
@@ -72,7 +74,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, y, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
         }
 
         return t;

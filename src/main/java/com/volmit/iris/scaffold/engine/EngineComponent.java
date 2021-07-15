@@ -38,7 +38,7 @@ public interface EngineComponent {
             if (this instanceof Listener) {
                 Iris.instance.unregisterListener((Listener) this);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
     }

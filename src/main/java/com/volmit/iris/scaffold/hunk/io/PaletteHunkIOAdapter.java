@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.hunk.io;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.data.DataPalette;
 import com.volmit.iris.scaffold.hunk.Hunk;
 import com.volmit.iris.util.Function3;
@@ -54,6 +55,7 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
                     dos.writeShort(z + Short.MIN_VALUE);
                     dos.writeShort(palette.getIndex(w) + Short.MIN_VALUE);
                 } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                     failure.set(true);
                 }

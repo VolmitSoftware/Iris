@@ -74,7 +74,7 @@ public class JigsawEditor implements Listener {
         if (e.getPlayer().equals(player)) {
             try {
                 target = player.getTargetBlockExact(7).getLocation();
-            } catch (Throwable ex) {
+            } catch (Throwable ex) {Iris.reportError(ex);
                 target = player.getLocation();
                 return;
             }
@@ -141,7 +141,7 @@ public class JigsawEditor implements Listener {
         exit();
         try {
             IO.writeAll(targetSaveLocation, new JSONObject(new Gson().toJson(piece)).toString(4));
-        } catch (IOException e) {
+        } catch (IOException e) {Iris.reportError(e);
             e.printStackTrace();
         }
     }

@@ -241,6 +241,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
             try {
                 IO.writeAll(report, v.toString("\n"));
             } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
 

@@ -105,6 +105,15 @@ public class CommandIrisStudioMap extends MortarCommand
             FakeWorld world = new FakeWorld(dim.getName(), 0, 256, seed, new File(dim.getName()), dim.getEnvironment());
             FakeEngine engine = new FakeEngine(dim, world);
             complex = new IrisComplex(engine, true);
+
+        try {
+            IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();
+            IrisVision.launch(g, 0);
+            sender.sendMessage("Opening Map!");
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            IrisAccess g = IrisWorlds.access(sender.player().getWorld());
+            IrisVision.launch(g, 0);
             sender.sendMessage("Opening Map!");
         } else if (Iris.proj.isProjectOpen()) {
             IrisAccess g = Iris.proj.getActiveProject().getActiveProvider();

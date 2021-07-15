@@ -462,7 +462,7 @@ public class LightingChunk {
                         return Boolean.TRUE;
                     }
                 }
-            } catch (Throwable t) {
+            } catch (Throwable t) {Iris.reportError(t);
                 t.printStackTrace();
             }
 

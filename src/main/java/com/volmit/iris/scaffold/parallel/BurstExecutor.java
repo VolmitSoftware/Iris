@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.parallel;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.KList;
 
 import java.util.concurrent.CompletableFuture;
@@ -76,6 +77,7 @@ public class BurstExecutor {
                 futures.clear();
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
+                Iris.reportError(e);
             }
         }
     }

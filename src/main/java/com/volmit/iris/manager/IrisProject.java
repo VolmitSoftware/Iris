@@ -217,6 +217,7 @@ public class IrisProject {
                     try {
                         IO.writeAll(ff, createCodeWorkspaceConfig());
                     } catch (IOException e1) {
+                        Iris.reportError(e1);
                         e1.printStackTrace();
                     }
                     sender.sendMessage("Updating Workspace...");
@@ -224,6 +225,7 @@ public class IrisProject {
                     sender.sendMessage("Workspace Updated");
                 }
             } catch (Throwable e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         });
@@ -337,11 +339,13 @@ public class IrisProject {
             Iris.info("Building Workspace: " + ws.getPath() + " took " + Form.duration(p.getMilliseconds(), 2));
             return true;
         } catch (Throwable e) {
+            Iris.reportError(e);
             Iris.warn("Project invalid: " + ws.getAbsolutePath() + " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
             ws.delete();
             try {
                 IO.writeAll(ws, createCodeWorkspaceConfig());
             } catch (IOException e1) {
+                Iris.reportError(e1);
                 e1.printStackTrace();
             }
         }
@@ -503,8 +507,8 @@ public class IrisProject {
                     ggg.set(0);
                     sender.sendMessage("Wrote another " + g + " Objects");
                 }
-            } catch (Throwable ignored) {
-
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
         })));
 
@@ -521,8 +525,8 @@ public class IrisProject {
                     ggg.set(0);
                     sender.sendMessage("Wrote another " + g + " Objects");
                 }
-            } catch (Throwable ignored) {
-
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
         })));
 
@@ -591,6 +595,7 @@ public class IrisProject {
             sender.sendMessage("Package Compiled!");
             return p;
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
         sender.sendMessage("Failed!");

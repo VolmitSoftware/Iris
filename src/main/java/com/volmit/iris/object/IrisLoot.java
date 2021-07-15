@@ -185,7 +185,7 @@ public class IrisLoot {
 
             is.setItemMeta(m);
             return is;
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
@@ -259,7 +259,7 @@ public class IrisLoot {
                 m.setLore(lore);
                 is.setItemMeta(m);
                 return is;
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {Iris.reportError(e);
 
             }
         }

@@ -36,8 +36,6 @@ public class IrisSettings {
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
-
-
     public int configurationVersion = 3;
 
     public boolean isStudio() {
@@ -55,44 +53,28 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsCache {
-
         public int streamingCacheSize = 8192;
     }
 
     @Data
     public static class IrisSettingsConcurrency {
-
         public int threadCount = -1;
     }
 
     @Data
     public static class IrisSettingsParallax {
-
         public int parallaxRegionEvictionMS = 15000;
-
-
         public int parallaxChunkEvictionMS = 5000;
     }
 
     @Data
     public static class IrisSettingsGeneral {
-
-
         public boolean commandSounds = true;
-
-
+        public boolean debug = false;
         public boolean verbose = false;
-
-
         public boolean ignoreWorldEdit = false;
-
-
         public boolean disableNMS = false;
-
-
         public boolean pluginMetrics = true;
-
-
         public boolean splashLogoStartup = true;
     }
 
@@ -100,11 +82,7 @@ public class IrisSettings {
     public static class IrisSettingsGUI {
 
         public boolean useServerLaunchedGuis = true;
-
-
         public boolean maximumPregenGuiFPS = false;
-
-
         public boolean localPregenGui = true;
     }
 
@@ -112,34 +90,18 @@ public class IrisSettings {
     public static class IrisSettingsGenerator {
 
         public String defaultWorldType = "overworld";
-
-
         public boolean mcaPregenerator = false;
-
-
         public boolean systemEffects = true;
-
-
         public boolean systemEntitySpawnOverrides = true;
-
-
         public boolean systemEntityInitialSpawns = true;
-
-
         public int maxBiomeChildDepth = 5;
 
     }
 
     @Data
     public static class IrisSettingsStudio {
-
-
         public boolean studio = true;
-
-
         public boolean openVSCode = true;
-
-
         public boolean disableTimeAndWeather = true;
     }
 
@@ -160,6 +122,7 @@ public class IrisSettings {
                     IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
                 } catch (JSONException | IOException e) {
                     e.printStackTrace();
+                    Iris.reportError(e);
                 }
             } else {
                 try {
@@ -193,9 +156,11 @@ public class IrisSettings {
                                     Iris.info("Updated Configuration Files");
                                 } catch (Throwable e) {
                                     e.printStackTrace();
+                                    Iris.reportError(e);
                                 }
                             }
                         } catch (Throwable ee) {
+                            Iris.reportError(ee);
                             Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
                             Iris.warn("Attempting to fix configuration while retaining valid in-memory settings...");
 
@@ -203,12 +168,14 @@ public class IrisSettings {
                                 IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
                                 Iris.info("Configuration Fixed!");
                             } catch (IOException e) {
+                                Iris.reportError(e);
                                 e.printStackTrace();
                                 Iris.error("ERROR! CONFIGURATION IMPOSSIBLE TO READ! Using an unmodifiable configuration from memory. Please delete the settings.json at some point to try to restore configurability!");
                             }
                         }
                     });
                 } catch (Throwable ee) {
+                    Iris.reportError(ee);
                     Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
                     Iris.warn("Attempting to fix configuration while retaining valid in-memory settings...");
 
@@ -216,6 +183,7 @@ public class IrisSettings {
                         IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
                         Iris.info("Configuration Fixed!");
                     } catch (IOException e) {
+                        Iris.reportError(e);
                         e.printStackTrace();
                         Iris.error("ERROR! CONFIGURATION IMPOSSIBLE TO READ! Using an unmodifiable configuration from memory. Please delete the settings.json at some point to try to restore configurability!");
                     }
@@ -226,6 +194,7 @@ public class IrisSettings {
                 try {
                     IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
                 } catch (JSONException | IOException e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

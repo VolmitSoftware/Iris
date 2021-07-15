@@ -46,6 +46,7 @@ public class CommandIrisWhatBlock extends MortarCommand {
             try {
                 bd = p.getTargetBlockExact(128, FluidCollisionMode.NEVER).getBlockData();
             } catch (NullPointerException e) {
+                Iris.reportError(e);
                 sender.sendMessage("Please look at any block, not at the sky");
                 bd = null;
             }

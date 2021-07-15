@@ -383,6 +383,7 @@ public class SchemaBuilder {
                                 j.put("description", dd == null ? ("No Description for " + name) : dd.value());
                                 a.put(j);
                             } catch (Throwable e) {
+                                Iris.reportError(e);
                                 e.printStackTrace();
                             }
                         } else {
@@ -697,6 +698,7 @@ public class SchemaBuilder {
                                             j.put("description", dd == null ? ("No Description for " + name) : dd.value());
                                             a.put(j);
                                         } catch (Throwable e) {
+                                            Iris.reportError(e);
                                             e.printStackTrace();
                                         }
                                     } else {
@@ -746,8 +748,8 @@ public class SchemaBuilder {
                     d.add("* Default Value is " + value);
                 }
             }
-        } catch (Throwable ignored) {
-
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         description.forEach((g) -> d.add(g.trim()));

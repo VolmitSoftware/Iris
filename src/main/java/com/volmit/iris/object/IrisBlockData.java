@@ -197,13 +197,13 @@ public class IrisBlockData extends IrisRegistrant {
 
         try {
             return Integer.valueOf(string);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 
         try {
             return Double.valueOf(string).intValue();
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 

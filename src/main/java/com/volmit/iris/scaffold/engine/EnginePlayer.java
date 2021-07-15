@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisEffect;
 import com.volmit.iris.object.IrisRegion;
@@ -52,7 +53,8 @@ public class EnginePlayer {
                 for (IrisEffect j : region.getEffects()) {
                     try {
                         j.apply(player, getEngine());
-                    } catch (Throwable ignored) {
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
 
                     }
                 }
@@ -62,7 +64,7 @@ public class EnginePlayer {
                 for (IrisEffect j : biome.getEffects()) {
                     try {
                         j.apply(player, getEngine());
-                    } catch (Throwable ignored) {
+                    } catch (Throwable e) {Iris.reportError(e);
 
                     }
                 }
@@ -81,7 +83,7 @@ public class EnginePlayer {
                 lastSample = M.ms();
                 sampleBiomeRegion();
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
     }

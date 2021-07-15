@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Particle;
@@ -74,6 +75,7 @@ interface ParticleSender {
             try {
                 return Particle.valueOf(particle.toString());
             } catch (IllegalArgumentException e) {
+                Iris.reportError(e);
                 return null;
             }
         }

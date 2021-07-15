@@ -19,6 +19,7 @@
 package com.volmit.iris.scaffold.engine;
 
 import com.google.gson.Gson;
+import com.volmit.iris.Iris;
 import com.volmit.iris.object.IrisPosition;
 import com.volmit.iris.util.IO;
 import lombok.Data;
@@ -38,6 +39,7 @@ public class EngineData {
             f.getParentFile().mkdirs();
             IO.writeAll(f, new Gson().toJson(this));
         } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -46,7 +48,7 @@ public class EngineData {
         try {
             f.getParentFile().mkdirs();
             return new Gson().fromJson(IO.readAll(f), EngineData.class);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {Iris.reportError(e);
 
         }
 

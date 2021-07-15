@@ -54,6 +54,7 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
                     v.add(i);
                 }
             } catch (Throwable e) {
+                Iris.reportError(e);
                 Iris.error("PART OF: " + biome.getLoadFile().getAbsolutePath() + " HAS AN INVALID DECORATOR near 'partOf'!!!");
             }
         }

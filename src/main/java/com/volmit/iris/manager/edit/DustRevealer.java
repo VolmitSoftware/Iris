@@ -18,6 +18,7 @@
 
 package com.volmit.iris.manager.edit;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.IrisWorlds;
 import com.volmit.iris.scaffold.engine.IrisAccess;
 import com.volmit.iris.scaffold.parallax.ParallaxAccess;
@@ -89,6 +90,7 @@ public class DustRevealer {
                     is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() - 1));
                     is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() + 1));
                 } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             });

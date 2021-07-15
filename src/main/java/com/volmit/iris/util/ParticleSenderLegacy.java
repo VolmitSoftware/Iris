@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
 import org.bukkit.Color;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -129,6 +130,7 @@ class ParticleSenderLegacy implements ParticleSender {
                 SEND_PACKET.invoke(playerConnection, packet);
             }
         } catch (ReflectiveOperationException e) {
+            Iris.reportError(e);
             throw new RuntimeException(e);
         }
     }
@@ -146,7 +148,7 @@ class ParticleSenderLegacy implements ParticleSender {
 
         try {
             return getEnumParticle(particle);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {Iris.reportError(e);
             return null;
         }
     }

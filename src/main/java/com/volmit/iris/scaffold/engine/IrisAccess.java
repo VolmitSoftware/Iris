@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisRegion;
@@ -129,11 +130,12 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                             tries.getAndIncrement();
                         } catch (Throwable ex) {
+                            Iris.reportError(ex);
                             ex.printStackTrace();
                             return;
                         }
                     }
-                } catch (Throwable e) {
+                } catch (Throwable e) {Iris.reportError(e);
                     e.printStackTrace();
                 }
             });
@@ -193,7 +195,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
                         }
 
                         tries.getAndIncrement();
-                    } catch (Throwable xe) {
+                    } catch (Throwable xe) {Iris.reportError(xe);
                         xe.printStackTrace();
                         return;
                     }

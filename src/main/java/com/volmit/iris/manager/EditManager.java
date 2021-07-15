@@ -99,6 +99,7 @@ public class EditManager implements Listener {
             try {
                 e = new WEBlockEditor(world);
             } catch (Throwable ex) {
+                Iris.reportError(ex);
                 e = new BukkitBlockEditor(world);
             }
         } else {

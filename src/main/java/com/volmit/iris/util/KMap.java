@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -57,6 +59,7 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
 
             s.get(k).add(vs);
         } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 

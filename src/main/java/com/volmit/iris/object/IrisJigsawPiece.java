@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
@@ -63,6 +64,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
                 BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
                 return Math.max(v.getBlockX(), v.getBlockZ());
             } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
 
@@ -75,7 +77,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
             try {
                 BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
                 return Math.max(Math.max(v.getBlockX(), v.getBlockZ()), v.getBlockY());
-            } catch (IOException e) {
+            } catch (IOException e) {Iris.reportError(e);
                 e.printStackTrace();
             }
 

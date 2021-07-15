@@ -133,6 +133,7 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 sender.sendMessage("Players only.");
             }
         } catch (Throwable e) {
+            Iris.reportError(e);
             Iris.error("Failed goto!");
             e.printStackTrace();
             sender.sendMessage("We cant seem to aquire a lock on the biome cache. Please report the error in the console to our github. Thanks!");

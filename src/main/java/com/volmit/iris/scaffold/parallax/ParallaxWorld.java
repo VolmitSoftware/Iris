@@ -18,6 +18,7 @@
 
 package com.volmit.iris.scaffold.parallax;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.object.tile.TileData;
 import com.volmit.iris.scaffold.hunk.Hunk;
@@ -56,7 +57,8 @@ public class ParallaxWorld implements ParallaxAccess {
             for (ParallaxRegion i : loadedRegions.values()) {
                 m += i.getChunkCount();
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -75,7 +77,7 @@ public class ParallaxWorld implements ParallaxAccess {
     public void save(ParallaxRegion region) {
         try {
             region.save();
-        } catch (IOException e) {
+        } catch (IOException e) {Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -220,7 +222,7 @@ public class ParallaxWorld implements ParallaxAccess {
                         cc += i.cleanup(c);
                     }
                 }
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 e.printStackTrace();
             }
         });

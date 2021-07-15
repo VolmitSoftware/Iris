@@ -19,6 +19,8 @@
 package com.volmit.iris.util;
 
 
+import com.volmit.iris.Iris;
+
 import java.io.*;
 
 /**
@@ -140,8 +142,9 @@ public class JSONTokener {
         } else {
             try {
                 c = this.reader.read();
-            } catch (IOException exception) {
-                throw new JSONException(exception);
+            } catch (IOException e) {
+                Iris.reportError(e);
+                throw new JSONException(e);
             }
 
             if (c <= 0) { // End of stream
@@ -395,8 +398,8 @@ public class JSONTokener {
                     return c;
                 }
             } while (c != to);
-        } catch (IOException exception) {
-            throw new JSONException(exception);
+        } catch (IOException e) {Iris.reportError(e);
+            throw new JSONException(e);
         }
         this.back();
         return c;

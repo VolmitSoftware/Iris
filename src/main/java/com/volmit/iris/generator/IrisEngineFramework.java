@@ -102,6 +102,7 @@ public class IrisEngineFramework implements EngineFramework {
             getEngine().getParallax().cleanup();
             getData().getObjectLoader().clean();
         } catch (Throwable e) {
+            Iris.reportError(e);
             Iris.error("Cleanup failed!");
             e.printStackTrace();
         }

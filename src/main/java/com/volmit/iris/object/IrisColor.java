@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.MaxNumber;
@@ -66,7 +67,8 @@ public class IrisColor {
                 String v = (hex.startsWith("#") ? hex : "#" + hex).trim();
                 try {
                     return Color.decode(v);
-                } catch (Throwable ignored) {
+                } catch (Throwable e) {
+                    Iris.reportError(e);
 
                 }
             }

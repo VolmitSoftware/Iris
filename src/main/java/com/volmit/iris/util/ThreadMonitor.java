@@ -60,7 +60,7 @@ public class ThreadMonitor extends Thread {
                 if (cl.flip()) {
                     Iris.info("Cycles: " + Form.f(cycles) + " (" + Form.duration(sq.getAverage(), 2) + ")");
                 }
-            } catch (Throwable e) {
+            } catch (Throwable e) {Iris.reportError(e);
                 running = false;
                 break;
             }

@@ -190,7 +190,7 @@ public class IrisEffect {
                         return t;
                     }
                 }
-            } catch (Throwable ignored) {
+            } catch (Throwable e) {Iris.reportError(e);
 
             }
 

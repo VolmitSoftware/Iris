@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util;
 
+import com.volmit.iris.Iris;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -87,6 +89,7 @@ public class GroupedExecutor {
             try {
                 r.run();
             } catch (Throwable e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
 

@@ -196,6 +196,7 @@ public class ConversionManager {
                 }
             } catch (Throwable e) {
                 e.printStackTrace();
+                Iris.reportError(e);
             }
         });
 
@@ -204,6 +205,7 @@ public class ConversionManager {
                 IO.writeAll(new File(destPools, i + ".json"), new JSONObject(new Gson().toJson(pools.get(i))).toString(4));
             } catch (IOException e) {
                 e.printStackTrace();
+                Iris.reportError(e);
             }
         }
 

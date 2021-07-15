@@ -18,6 +18,7 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.KList;
 import lombok.AllArgsConstructor;
@@ -284,7 +285,8 @@ public class IrisObjectRotation {
                 Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
                 ((Orientable) d).setAxis(a);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 

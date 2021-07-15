@@ -20,6 +20,7 @@ package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.volmit.iris.Iris;
 import org.bukkit.World;
 
 import java.util.concurrent.CompletableFuture;
@@ -90,6 +91,7 @@ public class LightingTaskWorld implements LightingTask {
                 }
                 regionsLoadedFuture.complete(null);
             } catch (Throwable ex) {
+                Iris.reportError(ex);
                 regionsLoadedFuture.completeExceptionally(ex);
             }
         });
@@ -97,9 +99,9 @@ public class LightingTaskWorld implements LightingTask {
         // Wait until region list is loaded synchronously
         try {
             regionsLoadedFuture.get();
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException ex) {Iris.reportError(ex);
             // Ignore
-        } catch (ExecutionException ex) {
+        } catch (ExecutionException ex) {Iris.reportError(ex);
             throw new RuntimeException("Failed to load regions", ex.getCause());
         }
 

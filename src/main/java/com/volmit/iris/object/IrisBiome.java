@@ -109,7 +109,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
 
     @Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
-    private IrisColor color = null;
+    private String color = null;
 
     @Required
 
@@ -194,7 +194,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
     private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
-    private final transient AtomicCache<Color> cacheColor = new AtomicCache<>(true);
+    private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
     private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
     private final transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
     private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
@@ -597,5 +597,30 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         return getLayers().get(0).get(rng, x, 0, z, idm);
+    }
+
+    public Color getColor() {
+        return this.cacheColor.aquire(() -> {
+            if (this.color == null) {
+                RandomColor randomColor = new RandomColor(getName().hashCode());
+                if (this.getVanillaDerivative() == null) {
+                    Iris.warn("No vanilla biome found for " + getName());
+                    return new Color(randomColor.randomColor());
+                }
+                RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
+                RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
+                RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(this.getVanillaDerivative());
+                int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? RandomColor.SaturationType.MONOCHROME : sat, lum);
+
+                return new Color(newColorI);
+            }
+
+            try {
+                return Color.decode(this.color);
+            } catch (NumberFormatException e) {
+                Iris.warn("Could not parse color \"" + this.color + "\" for biome " + getName());
+                return new Color(new RandomColor(getName().hashCode()).randomColor());
+            }
+        });
     }
 }

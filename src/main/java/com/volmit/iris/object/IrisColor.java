@@ -29,6 +29,7 @@ import lombok.experimental.Accessors;
 
 import java.awt.*;
 
+@Deprecated(forRemoval = true)
 @Accessors(chain = true)
 @NoArgsConstructor
 @Desc("Represents a color")
@@ -104,5 +105,18 @@ public class IrisColor {
         }
 
         return new Color(a << 24 | r << 16 | g << 8 | b);
+    }
+
+    public int getAsRGB() {
+        if (hex != null) {
+            try {
+                if (hex.startsWith("#")) hex = hex.substring(1);
+                return Integer.parseInt(hex, 16);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        return red << 16 | green << 8 | blue;
     }
 }

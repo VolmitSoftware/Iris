@@ -96,6 +96,10 @@ public class IrisComplex implements DataProvider {
     }
 
     public IrisComplex(Engine engine) {
+        this(engine, false);
+    }
+
+    public IrisComplex(Engine engine, boolean simple) {
         int cacheSize = IrisSettings.get().getCache().getStreamingCacheSize();
         this.rng = new RNG(engine.getWorld().getSeed());
         this.data = engine.getData();

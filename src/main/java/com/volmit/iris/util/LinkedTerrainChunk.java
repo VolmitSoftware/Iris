@@ -1,6 +1,26 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.nms.BiomeBaseInjector;
+import com.volmit.iris.nms.INMS;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -8,6 +28,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("deprecation")
 public class LinkedTerrainChunk implements TerrainChunk {
@@ -45,6 +66,12 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
+    public BiomeBaseInjector getBiomeBaseInjector() {
+        return (x, y, z, bb) -> INMS.get().forceBiomeInto(x, y, z, bb, storage);
+    }
+
+    @NotNull
+    @Override
     public Biome getBiome(int x, int z) {
         if (storage != null) {
             return storage.getBiome(x, z);
@@ -57,6 +84,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         return biome3D.getBiome(x, 0, z);
     }
 
+    @NotNull
     @Override
     public Biome getBiome(int x, int y, int z) {
         if (storage != null) {
@@ -85,8 +113,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         biome3D.setBiome(x, 0, z, bio);
     }
 
-    public BiomeGrid getRawBiome()
-    {
+    public BiomeGrid getRawBiome() {
         return storage;
     }
 
@@ -120,6 +147,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         rawChunkData.setBlock(x, y, z, blockData);
     }
 
+    @NotNull
     @Override
     public BlockData getBlockData(int x, int y, int z) {
         return rawChunkData.getBlockData(x, y, z);
@@ -127,39 +155,41 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Deprecated
     @Override
-    public void setBlock(int x, int y, int z, Material material) {
+    public void setBlock(int x, int y, int z, @NotNull Material material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public void setBlock(int x, int y, int z, MaterialData material) {
+    public void setBlock(int x, int y, int z, @NotNull MaterialData material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Deprecated
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, blockData);
     }
 
+    @NotNull
     @Deprecated
     @Override
     public Material getType(int x, int y, int z) {
         return rawChunkData.getType(x, y, z);
     }
 
+    @NotNull
     @Deprecated
     @Override
     public MaterialData getTypeAndData(int x, int y, int z) {

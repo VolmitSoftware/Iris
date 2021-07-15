@@ -1,29 +1,23 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
-
-/*
-Copyright (c) 2002 JSON.org
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-The Software shall be used for Good, not Evil.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
 
 import java.util.Iterator;
 
@@ -99,23 +93,12 @@ public class XML {
         for (int i = 0, length = string.length(); i < length; i++) {
             char c = string.charAt(i);
             switch (c) {
-                case '&':
-                    sb.append("&amp;");
-                    break;
-                case '<':
-                    sb.append("&lt;");
-                    break;
-                case '>':
-                    sb.append("&gt;");
-                    break;
-                case '"':
-                    sb.append("&quot;");
-                    break;
-                case '\'':
-                    sb.append("&apos;");
-                    break;
-                default:
-                    sb.append(c);
+                case '&' -> sb.append("&amp;");
+                case '<' -> sb.append("&lt;");
+                case '>' -> sb.append("&gt;");
+                case '"' -> sb.append("&quot;");
+                case '\'' -> sb.append("&apos;");
+                default -> sb.append(c);
             }
         }
         return sb.toString();
@@ -126,7 +109,6 @@ public class XML {
      * allowed in tagNames and attributes.
      *
      * @param string A string.
-     * @throws JSONException
      */
     public static void noSpace(String string) throws JSONException {
         int i, length = string.length();
@@ -147,7 +129,6 @@ public class XML {
      * @param context The JSONObject that will include the new material.
      * @param name    The tag name.
      * @return true if the close tag is processed.
-     * @throws JSONException
      */
     private static boolean parse(XMLTokener x, JSONObject context, String name) throws JSONException {
         char c;
@@ -346,7 +327,7 @@ public class XML {
                 if (value.toString().equals(string)) {
                     return value;
                 }
-            } catch (Exception ignoreAlso) {
+            } catch (Exception ignored) {
             }
         }
         return string;
@@ -365,7 +346,6 @@ public class XML {
      *
      * @param string The source string.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(String string) throws JSONException {
         JSONObject jo = new JSONObject();
@@ -381,7 +361,6 @@ public class XML {
      *
      * @param object A JSONObject.
      * @return A string.
-     * @throws JSONException
      */
     public static String toString(Object object) throws JSONException {
         return toString(object, null);
@@ -393,7 +372,6 @@ public class XML {
      * @param object  A JSONObject.
      * @param tagName The optional name of the enclosing tag.
      * @return A string.
-     * @throws JSONException
      */
     public static String toString(Object object, String tagName) throws JSONException {
         StringBuilder sb = new StringBuilder();

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.io.*;
@@ -9,9 +27,9 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
+@SuppressWarnings("ALL")
 public class IO {
     /**
      * The Unix directory separator character.
@@ -51,7 +69,7 @@ public class IO {
         IO.fullTransfer(gzi, boas, 256);
         gzi.close();
 
-        return boas.toString(StandardCharsets.UTF_8);
+        return boas.toString();
     }
 
     public static byte[] sdecompress(String compressed) throws IOException {
@@ -114,7 +132,6 @@ public class IO {
      *
      * @param in     the input
      * @param out    the output
-     * @param amount the buffer and size to use
      * @return the actual transfered amount
      * @throws IOException shit happens
      */
@@ -313,30 +330,30 @@ public class IO {
             throw e;
         }
         BufferedReader bu = new BufferedReader(fr);
-        String c = "";
+        StringBuilder c = new StringBuilder();
         String l = "";
 
         while ((l = bu.readLine()) != null) {
-            c += l + "\n";
+            c.append(l).append("\n");
         }
 
         bu.close();
 
-        return c;
+        return c.toString();
     }
 
     public static String readAll(InputStream in) throws IOException {
         BufferedReader bu = new BufferedReader(new InputStreamReader(in));
-        String c = "";
+        StringBuilder c = new StringBuilder();
         String l = "";
 
         while ((l = bu.readLine()) != null) {
-            c += l + "\n";
+            c.append(l).append("\n");
         }
 
         bu.close();
 
-        return c;
+        return c.toString();
     }
 
     /**
@@ -368,7 +385,6 @@ public class IO {
      * @throws NullPointerException if source or destination is null
      * @throws IOException          if source or destination is invalid
      * @throws IOException          if an IO error occurs during copying
-     * @see #copyFileToDirectory
      */
     public static void copyFile(File srcFile, File destFile) throws IOException {
         copyFile(srcFile, destFile, true);
@@ -389,7 +405,6 @@ public class IO {
      * @throws NullPointerException if source or destination is null
      * @throws IOException          if source or destination is invalid
      * @throws IOException          if an IO error occurs during copying
-     * @see #copyFileToDirectory
      */
     public static void copyFile(File srcFile, File destFile, boolean preserveFileDate) throws IOException {
         if (srcFile == null) {
@@ -398,7 +413,7 @@ public class IO {
         if (destFile == null) {
             throw new NullPointerException("Destination must not be null");
         }
-        if (srcFile.exists() == false) {
+        if (!srcFile.exists()) {
             throw new FileNotFoundException("Source '" + srcFile + "' does not exist");
         }
         if (srcFile.isDirectory()) {
@@ -407,12 +422,12 @@ public class IO {
         if (srcFile.getCanonicalPath().equals(destFile.getCanonicalPath())) {
             throw new IOException("Source '" + srcFile + "' and destination '" + destFile + "' are the same");
         }
-        if (destFile.getParentFile() != null && destFile.getParentFile().exists() == false) {
-            if (destFile.getParentFile().mkdirs() == false) {
+        if (destFile.getParentFile() != null && !destFile.getParentFile().exists()) {
+            if (!destFile.getParentFile().mkdirs()) {
                 throw new IOException("Destination '" + destFile + "' directory cannot be created");
             }
         }
-        if (destFile.exists() && destFile.canWrite() == false) {
+        if (destFile.exists() && !destFile.canWrite()) {
             throw new IOException("Destination '" + destFile + "' exists but is read-only");
         }
         doCopyFile(srcFile, destFile, preserveFileDate);
@@ -594,11 +609,9 @@ public class IO {
      *
      * @param input the <code>String</code> to convert
      * @return the requested byte array
-     * @throws NullPointerException if the input is null
-     * @throws IOException          if an I/O error occurs (never occurs)
      * @deprecated Use {@link String#getBytes()}
      */
-    public static byte[] toByteArray(String input) throws IOException {
+    public static byte[] toByteArray(String input) {
         return input.getBytes();
     }
 
@@ -731,11 +744,9 @@ public class IO {
      *
      * @param input the byte array to read from
      * @return the requested String
-     * @throws NullPointerException if the input is null
-     * @throws IOException          if an I/O error occurs (never occurs)
      * @deprecated Use {@link String#String(byte[])}
      */
-    public static String toString(byte[] input) throws IOException {
+    public static String toString(byte[] input) {
         return new String(input);
     }
 

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager;
 
 import com.google.gson.Gson;
@@ -28,46 +46,44 @@ public class ConversionManager {
         converters = new KList<>();
 
         J.s(() ->
-        {
-            J.attemptAsync(() ->
-            {
-                if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
-                    converters.add(new Converter() {
-                        @Override
-                        public String getOutExtension() {
-                            return "iob";
-                        }
+                J.attemptAsync(() ->
+                {
+                    if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
+                        converters.add(new Converter() {
+                            @Override
+                            public String getOutExtension() {
+                                return "iob";
+                            }
 
-                        @Override
-                        public String getInExtension() {
-                            return "schem";
-                        }
+                            @Override
+                            public String getInExtension() {
+                                return "schem";
+                            }
 
-                        @Override
-                        public void convert(File in, File out) {
-                            SKConversion.convertSchematic(in, out);
-                        }
-                    });
+                            @Override
+                            public void convert(File in, File out) {
+                                SKConversion.convertSchematic(in, out);
+                            }
+                        });
 
-                    converters.add(new Converter() {
-                        @Override
-                        public String getOutExtension() {
-                            return "iob";
-                        }
+                        converters.add(new Converter() {
+                            @Override
+                            public String getOutExtension() {
+                                return "iob";
+                            }
 
-                        @Override
-                        public String getInExtension() {
-                            return "schematic";
-                        }
+                            @Override
+                            public String getInExtension() {
+                                return "schematic";
+                            }
 
-                        @Override
-                        public void convert(File in, File out) {
-                            SKConversion.convertSchematic(in, out);
-                        }
-                    });
-                }
-            });
-        }, 5);
+                            @Override
+                            public void convert(File in, File out) {
+                                SKConversion.convertSchematic(in, out);
+                            }
+                        });
+                    }
+                }), 5);
     }
 
     private String toPoolName(String poolReference) {
@@ -118,22 +134,22 @@ public class ConversionManager {
 
                 if (compound.containsKey("blocks") && compound.containsKey("palette") && compound.containsKey("size")) {
                     String id = in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0];
-                    ListTag<IntTag> size = (ListTag<IntTag>) compound.getListTag("size");
+                    @SuppressWarnings("unchecked") ListTag<IntTag> size = (ListTag<IntTag>) compound.getListTag("size");
                     int w = size.get(0).asInt();
                     int h = size.get(1).asInt();
                     int d = size.get(2).asInt();
                     KList<BlockData> palette = new KList<>();
-                    ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) compound.getListTag("palette");
+                    @SuppressWarnings("unchecked") ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) compound.getListTag("palette");
                     for (int i = 0; i < paletteList.size(); i++) {
                         CompoundTag cp = paletteList.get(i);
                         palette.add(DirectWorldWriter.getBlockData(cp));
                     }
                     IrisJigsawPiece piece = new IrisJigsawPiece();
                     IrisObject object = new IrisObject(w, h, d);
-                    ListTag<CompoundTag> blockList = (ListTag<CompoundTag>) compound.getListTag("blocks");
+                    @SuppressWarnings("unchecked") ListTag<CompoundTag> blockList = (ListTag<CompoundTag>) compound.getListTag("blocks");
                     for (int i = 0; i < blockList.size(); i++) {
                         CompoundTag cp = blockList.get(i);
-                        ListTag<IntTag> pos = (ListTag<IntTag>) cp.getListTag("pos");
+                        @SuppressWarnings("unchecked") ListTag<IntTag> pos = (ListTag<IntTag>) cp.getListTag("pos");
                         int x = pos.get(0).asInt();
                         int y = pos.get(1).asInt();
                         int z = pos.get(2).asInt();

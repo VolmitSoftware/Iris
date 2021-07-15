@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.pregen;
 
 import com.volmit.iris.Iris;
@@ -21,7 +39,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,6 +46,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,6 +92,7 @@ public class Pregenerator implements Listener {
     private final ChronoLatch latch;
     private IrisAccess access;
     private final KList<ChunkPosition> regionReload;
+    private KList<ChunkPosition> wait = new KList<>();
 
     public Pregenerator(World world, int blockSize, Runnable onComplete) {
         this(world, blockSize);
@@ -137,8 +156,6 @@ public class Pregenerator implements Listener {
             drawMCA(xx, zz, COLOR_MCA_PREPARE);
             if (access != null && generateMCARegion(xx, zz, burst, access, mcaIteration)) {
                 flushWorld();
-            } else {
-                drawMCA(xx, zz, COLOR_MCA_DEFERRED);
             }
         });
 
@@ -163,6 +180,11 @@ public class Pregenerator implements Listener {
                 vmcaz.set(p.getZ());
                 generateDeferedMCARegion(p.getX(), p.getZ(), burst, mcaIteration);
                 flushWorld();
+            }
+
+            while(wait.isNotEmpty())
+            {
+                J.sleep(50);
             }
 
             burst.shutdownNow();
@@ -205,6 +227,7 @@ public class Pregenerator implements Listener {
 
     private boolean generateMCARegion(int x, int z, MultiBurst burst, IrisAccess access, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
         if (!Iris.instance.isMCA()) {
+            generateDeferedMCARegion(x, z, burst, mcaIteration);
             return false;
         }
 
@@ -227,13 +250,10 @@ public class Pregenerator implements Listener {
             }));
             e.complete();
             directWriter.flush();
-            if (!install(mcg, mca)) {
-                drawMCA(x, z, COLOR_MCA_DEFERRED);
-                generated.set(generated.get() - 1024);
-            }
             totalChunks.getAndAdd(1024);
             mcaDefer.add(new ChunkPosition(x, z));
-        } else {
+            install(mcg, mca);
+        } else  {
             totalChunks.getAndAdd(1024);
             mcaDefer.add(new ChunkPosition(x, z));
             e.complete();
@@ -272,49 +292,47 @@ public class Pregenerator implements Listener {
     }
 
     private void generateDeferedMCARegion(int x, int z, MultiBurst burst, Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration) {
-        BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
         if (PaperLib.isPaper()) {
             method.set("PaperAsync (Slow)");
+
+            while(wait.size() > 8192)
+            {
+                J.sleep(25);
+            }
+
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-                e.queue(() -> {
-                    try {
-                        CompletableFuture<Chunk> cc = PaperLib.getChunkAtAsync(world, ii, jj);
-                        draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
-                        cc.join();
-                        draw(ii, jj, COLOR_MCA_GENERATED);
-                        generated.getAndIncrement();
-                        vcax.set(ii);
-                        vcaz.set(jj);
-                    } catch (Throwable ex) {
-                        draw(ii, jj, COLOR_ERROR);
-                        ChunkPosition pos = new ChunkPosition(ii, jj);
-                        errors.add(pos);
-                        totalChunks.addAndGet(1024);
-                        mcaDefer.add(new ChunkPosition(pos.getX() >> 5, pos.getZ() >> 5));
-                        Iris.warn("Hole Detected in Chunk: " + pos.getX() + ", " + pos.getZ() + " (at block " + (pos.getX() << 4) + ", " + lowestBedrock + ", " + (pos.getZ() << 4) + ")");
+                ChunkPosition cx = new ChunkPosition(ii,jj);
+                PaperLib.getChunkAtAsync(world, ii, jj).thenAccept((c) -> {
+                    draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
+                    draw(ii, jj, COLOR_MCA_GENERATED);
+                    generated.getAndIncrement();
+                    vcax.set(ii);
+                    vcaz.set(jj);
+
+                    synchronized (wait)
+                    {
+                        wait.remove(cx);
                     }
                 });
+
+                wait.add(cx);
             });
-            e.complete();
         } else {
             AtomicInteger m = new AtomicInteger();
             method.set("Spigot (Very Slow)");
             KList<Runnable> q = new KList<>();
-            mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-                q.add(() -> {
-                    draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
-                    world.getChunkAt(ii, jj).load(true);
-                    Chunk c = world.getChunkAt(ii, jj);
-                    draw(ii, jj, COLOR_MCA_GENERATED);
-                    checkForError(c);
-                    m.getAndIncrement();
-                    generated.getAndIncrement();
-                    vcax.set(ii);
-                    vcaz.set(jj);
-                });
-            });
+            mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> q.add(() -> {
+                draw(ii, jj, COLOR_MCA_GENERATE_SLOW);
+                world.getChunkAt(ii, jj).load(true);
+                Chunk c = world.getChunkAt(ii, jj);
+                draw(ii, jj, COLOR_MCA_GENERATED);
+                m.getAndIncrement();
+                generated.getAndIncrement();
+                vcax.set(ii);
+                vcaz.set(jj);
+            }));
             ChronoLatch tick = new ChronoLatch(1000);
             new SR(0) {
                 @Override
@@ -330,7 +348,7 @@ public class Pregenerator implements Listener {
 
                     try {
                         q.pop().run();
-                    } catch (Throwable e) {
+                    } catch (Throwable ignored) {
 
                     }
                 }
@@ -338,19 +356,6 @@ public class Pregenerator implements Listener {
 
             while (m.get() < 1024) {
                 J.sleep(25);
-            }
-        }
-    }
-
-    private void checkForError(Chunk c) {
-        if (lowestBedrock >= 0 && lowestBedrock < 256) {
-            if (!c.getBlock(14, lowestBedrock, 14).getType().equals(Material.BEDROCK)) {
-                ChunkPosition pos = new ChunkPosition(c.getX(), c.getZ());
-                errors.add(pos);
-                totalChunks.addAndGet(1024);
-                mcaDefer.add(new ChunkPosition(pos.getX() >> 5, pos.getZ() >> 5));
-                draw(pos.getX(), pos.getZ(), COLOR_ERROR);
-                Iris.warn("Hole Detected in Chunk: " + pos.getX() + ", " + pos.getZ() + " (at block " + (pos.getX() << 4) + ", " + lowestBedrock + ", " + (pos.getZ() << 4) + ")");
             }
         }
     }
@@ -506,18 +511,13 @@ public class Pregenerator implements Listener {
             while (order.isNotEmpty()) {
                 try {
                     order.pop().run();
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
 
                 }
             }
             l.unlock();
 
-            g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), new ImageObserver() {
-                @Override
-                public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
-                    return true;
-                }
-            });
+            g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), (img, infoflags, x, y, width, height) -> true);
 
             g.setColor(Color.WHITE);
             g.setFont(new Font("Hevetica", Font.BOLD, 28));
@@ -557,11 +557,7 @@ public class Pregenerator implements Listener {
         @SuppressWarnings("deprecation")
         private static MCAPregenGui createAndShowGUI(Pregenerator j) throws HeadlessException {
             JFrame frame;
-            try {
-                frame = new JFrame("Pregen View");
-            } catch (HeadlessException e) {
-                throw e;
-            }
+            frame = new JFrame("Pregen View");
             MCAPregenGui nv = new MCAPregenGui();
             frame.addKeyListener(nv);
             nv.l = new ReentrantLock();
@@ -584,7 +580,7 @@ public class Pregenerator implements Listener {
             if (file != null) {
                 try {
                     frame.setIconImage(ImageIO.read(file));
-                } catch (IOException e) {
+                } catch (IOException ignored) {
 
                 }
             }

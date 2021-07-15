@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.stream.convert;
 
 import com.volmit.iris.scaffold.stream.ArraySignificance;
@@ -32,9 +50,9 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
     @Override
     public K get(double x, double z) {
         KList<T> ke = new KList<>(8);
-        KList<Double> va = new KList<Double>(8);
+        KList<Double> va = new KList<>(8);
 
-        double m = (360 / checks);
+        double m = (360d / checks);
         double v = 0;
 
         for (int i = 0; i < 360; i += m) {
@@ -57,7 +75,7 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
             va.set(i, va.get(i) / v);
         }
 
-        return (K) new ArraySignificance<T>(ke, va);
+        return (K) new ArraySignificance<>(ke, va);
     }
 
     @Override

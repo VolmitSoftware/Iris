@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.lang.annotation.Annotation;
@@ -7,7 +25,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Violator {
-    protected static ConcurrentSkipListMap<String, Object> nodes = new ConcurrentSkipListMap<String, Object>();
+    protected static final ConcurrentSkipListMap<String, Object> nodes = new ConcurrentSkipListMap<>();
 
     private static String id(Object o, Object h) {
         if (o instanceof Field) {
@@ -22,34 +40,32 @@ public class Violator {
             return ((Class<?>) o).getCanonicalName();
         }
 
-        if (o instanceof Constructor<?>) {
-            Constructor<?> co = (Constructor<?>) o;
+        if (o instanceof Constructor<?> co) {
 
-            String mx = "";
+            StringBuilder mx = new StringBuilder();
 
             for (Class<?> i : co.getParameterTypes()) {
-                mx += "," + i.getCanonicalName();
+                mx.append(",").append(i.getCanonicalName());
             }
 
-            mx = mx.length() >= 1 ? mx.substring(1) : mx;
+            mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
             return id(co.getDeclaringClass(), null) + "(" + mx + ")";
         }
 
         if (o instanceof Method) {
-            String mx = "";
+            StringBuilder mx = new StringBuilder();
 
             for (Class<?> i : ((Method) o).getParameterTypes()) {
-                mx += "," + i.getCanonicalName();
+                mx.append(",").append(i.getCanonicalName());
             }
 
-            mx = mx.length() >= 1 ? mx.substring(1) : mx;
+            mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
             return id(((Method) o).getDeclaringClass(), null) + "." + ((Method) o).getName() + "(" + mx + ")";
         }
 
-        if (o instanceof Annotation) {
-            Annotation a = (Annotation) o;
+        if (o instanceof Annotation a) {
             return "@" + a.annotationType().getCanonicalName() + "[" + id(h, null) + "]";
         }
 
@@ -60,6 +76,7 @@ public class Violator {
         nodes.put(n, o);
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean h(String n) {
         return nodes.containsKey(n);
     }
@@ -69,13 +86,13 @@ public class Violator {
     }
 
     public static Constructor<?> getConstructor(Class<?> c, Class<?>... params) throws NoSuchMethodException, SecurityException {
-        String mx = "";
+        StringBuilder mx = new StringBuilder();
 
         for (Class<?> i : params) {
-            mx += "," + i.getCanonicalName();
+            mx.append(",").append(i.getCanonicalName());
         }
 
-        mx = mx.length() >= 1 ? mx.substring(1) : mx;
+        mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
 
         if (!h(id(c, null) + "(" + mx + ")")) {
             Constructor<?> co = c.getConstructor(params);
@@ -130,13 +147,13 @@ public class Violator {
 
     public static Method getMethod(Class<?> c, String name, Class<?>... pars) throws Throwable {
         String iv = "";
-        String mx = "";
+        StringBuilder mx = new StringBuilder();
 
         for (Class<?> i : pars) {
-            mx += "," + i.getCanonicalName();
+            mx.append(",").append(i.getCanonicalName());
         }
 
-        mx = mx.length() >= 1 ? mx.substring(1) : mx;
+        mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
         iv = id(c, null) + "." + name + "(" + mx + ")";
 
         if (!h(iv)) {
@@ -150,14 +167,14 @@ public class Violator {
 
     @SuppressWarnings("unchecked")
     public static <T> T construct(Class<?> c, Object... parameters) {
-        KList<Class<?>> cv = new KList<Class<?>>();
+        KList<Class<?>> cv = new KList<>();
 
         for (Object i : parameters) {
             cv.add(i.getClass());
         }
 
         try {
-            Constructor<?> co = getConstructor(c, cv.toArray(new Class<?>[cv.size()]));
+            Constructor<?> co = getConstructor(c, cv.toArray(new Class<?>[0]));
             return (T) co.newInstance(parameters);
         } catch (Exception e) {
             e.printStackTrace();
@@ -168,13 +185,13 @@ public class Violator {
 
     public static Method getDeclaredMethod(Class<?> c, String name, Class<?>... pars) throws Throwable {
         String iv = "";
-        String mx = "";
+        StringBuilder mx = new StringBuilder();
 
         for (Class<?> i : pars) {
-            mx += "," + i.getCanonicalName();
+            mx.append(",").append(i.getCanonicalName());
         }
 
-        mx = mx.length() >= 1 ? mx.substring(1) : mx;
+        mx = new StringBuilder(mx.length() >= 1 ? mx.substring(1) : mx.toString());
         iv = id(c, null) + "." + name + "(" + mx + ")";
 
         if (!h(iv)) {
@@ -187,7 +204,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getAnnotation(Class<?> c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getAnnotation(Class<?> c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + c.getCanonicalName() + "]")) {
             T f = c.getAnnotation(a);
             p(id(f, c), f);
@@ -197,7 +214,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getDeclaredAnnotation(Class<?> c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getDeclaredAnnotation(Class<?> c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + c.getCanonicalName() + "]")) {
             T f = c.getDeclaredAnnotation(a);
             p(id(f, c), f);
@@ -207,7 +224,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getAnnotation(Field c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getAnnotation(Field c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + id(c, null) + "]")) {
             T f = c.getAnnotation(a);
             p(id(f, c), f);
@@ -217,7 +234,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getDeclaredAnnotation(Field c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getDeclaredAnnotation(Field c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + id(c, null) + "]")) {
             T f = c.getDeclaredAnnotation(a);
             p(id(f, c), f);
@@ -227,7 +244,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getAnnotation(Method c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getAnnotation(Method c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + id(c, null) + "]")) {
             T f = c.getAnnotation(a);
             p(id(f, c), f);
@@ -237,7 +254,7 @@ public class Violator {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T getDeclaredAnnotation(Method c, Class<? extends T> a) throws Throwable {
+    public static <T extends Annotation> T getDeclaredAnnotation(Method c, Class<? extends T> a) {
         if (!h("@" + a.getCanonicalName() + "[" + id(c, null) + "]")) {
             T f = c.getDeclaredAnnotation(a);
             p(id(f, c), f);

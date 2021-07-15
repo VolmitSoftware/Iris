@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager.command.world;
 
 import com.volmit.iris.Iris;
@@ -42,24 +60,28 @@ public class CommandIrisCreate extends MortarCommand {
 
         String pre = split[0].toLowerCase();
 
-        if (pre.equals("type")) {
-            for (String s : Iris.proj.getListing(true).keySet()) {
-                list.add("type=" + s);
+        switch (pre) {
+            case "type" -> {
+                for (String s : Iris.proj.getListing(true).keySet()) {
+                    list.add("type=" + s);
+                }
+                if (!list.contains("type=overworld")) {
+                    list.contains("type=overworld");
+                }
             }
-            if (!list.contains("type=overworld")) {
-                list.contains("type=overworld");
+            case "seed" -> {
+                list.add("seed=1337");
+                list.add("seed=" + new Random().nextInt());
+                list.add("seed=random");
             }
-        } else if (pre.equals("seed")) {
-            list.add("seed=1337");
-            list.add("seed=" + new Random().nextInt());
-            list.add("seed=random");
-        } else if (pre.equals("pregen")) {
-            list.add("500");
-            list.add("1000");
-            list.add("2000");
-            list.add("5k");
-            list.add("10k");
-            list.add("25k");
+            case "pregen" -> {
+                list.add("500");
+                list.add("1000");
+                list.add("2000");
+                list.add("5k");
+                list.add("10k");
+                list.add("25k");
+            }
         }
     }
 
@@ -111,13 +133,13 @@ public class CommandIrisCreate extends MortarCommand {
             sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
             sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
 
-            O<Boolean> b = new O<Boolean>();
+            O<Boolean> b = new O<>();
             b.set(true);
 
             if (sender.isPlayer()) {
                 try {
                     sender.player().teleport(world.get().getSpawnLocation());
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
 
                 }
             }
@@ -130,9 +152,7 @@ public class CommandIrisCreate extends MortarCommand {
                 sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
                 new Pregenerator(world.get(), size, () ->
-                {
-                    b.set(true);
-                });
+                        b.set(true));
             }
 
             World ww = world.get();

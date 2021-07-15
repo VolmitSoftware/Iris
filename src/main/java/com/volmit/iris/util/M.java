@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import javax.script.ScriptEngine;
@@ -72,8 +90,6 @@ public class M {
      * @param b  the second point (1, 0)
      * @param c  the third point (0, 1)
      * @param d  the fourth point (1, 1)
-     * @param tx the x
-     * @param ty the y
      * @return the bilerped value
      */
     public static double bilerp(double a, double b, double c, double d, double x, double y) {
@@ -120,6 +136,7 @@ public class M {
      * @return true if true
      */
     public static boolean r(Double d) {
+        //noinspection ReplaceNullCheck
         if (d == null) {
             return Math.random() < 0.5;
         }
@@ -234,7 +251,6 @@ public class M {
     /**
      * Biggest number
      *
-     * @param numbers the numbers
      * @return the biggest one
      */
     @SuppressWarnings("unchecked")
@@ -305,7 +321,7 @@ public class M {
         ScriptEngineManager mgr = new ScriptEngineManager();
         ScriptEngine scriptEngine = mgr.getEngineByName("JavaScript");
 
-        return Double.valueOf(scriptEngine.eval(expression).toString());
+        return Double.parseDouble(scriptEngine.eval(expression).toString());
     }
 
     /**

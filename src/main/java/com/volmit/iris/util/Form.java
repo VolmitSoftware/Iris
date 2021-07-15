@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.math.BigInteger;
@@ -18,7 +36,7 @@ public class Form {
     private static final NavigableMap<BigInteger, String> MAP;
 
     static {
-        MAP = new TreeMap<BigInteger, String>();
+        MAP = new TreeMap<>();
         for (int i = 0; i < NAMES.length; i++) {
             MAP.put(THOUSAND.pow(i + 1), NAMES[i]);
         }
@@ -36,7 +54,6 @@ public class Form {
      * @param smx      the text
      * @param viewport the viewport length
      * @param time     the timeline value
-     * @return
      */
     public static String scroll(String smx, int viewport, long time) {
         String src = Form.repeat(" ", viewport) + smx + Form.repeat(" ", viewport);
@@ -55,19 +72,19 @@ public class Form {
      * @return the capitalized string
      */
     public static String capitalize(String s) {
-        String roll = "";
+        StringBuilder roll = new StringBuilder();
         boolean f = true;
 
         for (Character i : s.trim().toCharArray()) {
             if (f) {
-                roll += Character.toUpperCase(i);
+                roll.append(Character.toUpperCase(i));
                 f = false;
             } else {
-                roll += i;
+                roll.append(i);
             }
         }
 
-        return roll;
+        return roll.toString();
     }
 
     /**
@@ -77,10 +94,10 @@ public class Form {
      * @return the capitalized string
      */
     public static String capitalizeWords(String s) {
-        String rollx = "";
+        StringBuilder rollx = new StringBuilder();
 
         for (String i : s.trim().split(" ")) {
-            rollx += " " + capitalize(i.trim());
+            rollx.append(" ").append(capitalize(i.trim()));
         }
 
         return rollx.substring(1);
@@ -205,7 +222,6 @@ public class Form {
     /**
      * Returns a fancy duration up to Years
      *
-     * @param rollingSequence
      * @param duration        the duration in ms
      * @return the fancy duration
      */
@@ -323,72 +339,33 @@ public class Form {
                 } else {
                     int h = c.get(Calendar.HOUR);
                     h = h == 0 ? 12 : h;
-                    String dow = "Error Day";
-
-                    switch (c.get(Calendar.DAY_OF_WEEK)) {
-                        case Calendar.SUNDAY:
-                            dow = "Sunday";
-                            break;
-                        case Calendar.MONDAY:
-                            dow = "Monday";
-                            break;
-                        case Calendar.TUESDAY:
-                            dow = "Tuesday";
-                            break;
-                        case Calendar.WEDNESDAY:
-                            dow = "Wednesday";
-                            break;
-                        case Calendar.THURSDAY:
-                            dow = "Thursday";
-                            break;
-                        case Calendar.FRIDAY:
-                            dow = "Friday";
-                            break;
-                        case Calendar.SATURDAY:
-                            dow = "Saturday";
-                            break;
-                    }
+                    String dow = switch (c.get(Calendar.DAY_OF_WEEK)) {
+                        case Calendar.SUNDAY -> "Sunday";
+                        case Calendar.MONDAY -> "Monday";
+                        case Calendar.TUESDAY -> "Tuesday";
+                        case Calendar.WEDNESDAY -> "Wednesday";
+                        case Calendar.THURSDAY -> "Thursday";
+                        case Calendar.FRIDAY -> "Friday";
+                        case Calendar.SATURDAY -> "Saturday";
+                        default -> "Error Day";
+                    };
 
                     String monthName = "Error Month";
                     int month = c.get(Calendar.MONTH);
 
                     switch (month) {
-                        case Calendar.JANUARY:
-                            monthName = "Jan";
-                            break;
-                        case Calendar.FEBRUARY:
-                            monthName = "Feb";
-                            break;
-                        case Calendar.MARCH:
-                            monthName = "Mar";
-                            break;
-                        case Calendar.APRIL:
-                            monthName = "Apr";
-                            break;
-                        case Calendar.MAY:
-                            monthName = "May";
-                            break;
-                        case Calendar.JUNE:
-                            monthName = "Jun";
-                            break;
-                        case Calendar.JULY:
-                            monthName = "Jul";
-                            break;
-                        case Calendar.AUGUST:
-                            monthName = "Aug";
-                            break;
-                        case Calendar.SEPTEMBER:
-                            monthName = "Sep";
-                            break;
-                        case Calendar.OCTOBER:
-                            monthName = "Oct";
-                            break;
-                        case Calendar.NOVEMBER:
-                            monthName = "Nov";
-                            break;
-                        case Calendar.DECEMBER:
-                            monthName = "Dec";
-                            break;
+                        case Calendar.JANUARY -> monthName = "Jan";
+                        case Calendar.FEBRUARY -> monthName = "Feb";
+                        case Calendar.MARCH -> monthName = "Mar";
+                        case Calendar.APRIL -> monthName = "Apr";
+                        case Calendar.MAY -> monthName = "May";
+                        case Calendar.JUNE -> monthName = "Jun";
+                        case Calendar.JULY -> monthName = "Jul";
+                        case Calendar.AUGUST -> monthName = "Aug";
+                        case Calendar.SEPTEMBER -> monthName = "Sep";
+                        case Calendar.OCTOBER -> monthName = "Oct";
+                        case Calendar.NOVEMBER -> monthName = "Nov";
+                        case Calendar.DECEMBER -> monthName = "Dec";
                     }
 
                     int dayOfMonth = c.get(Calendar.DAY_OF_MONTH);
@@ -399,72 +376,33 @@ public class Form {
             } else {
                 int h = c.get(Calendar.HOUR);
                 h = h == 0 ? 12 : h;
-                String dow = "Error Day";
-
-                switch (c.get(Calendar.DAY_OF_WEEK)) {
-                    case Calendar.SUNDAY:
-                        dow = "Sunday";
-                        break;
-                    case Calendar.MONDAY:
-                        dow = "Monday";
-                        break;
-                    case Calendar.TUESDAY:
-                        dow = "Tuesday";
-                        break;
-                    case Calendar.WEDNESDAY:
-                        dow = "Wednesday";
-                        break;
-                    case Calendar.THURSDAY:
-                        dow = "Thursday";
-                        break;
-                    case Calendar.FRIDAY:
-                        dow = "Friday";
-                        break;
-                    case Calendar.SATURDAY:
-                        dow = "Saturday";
-                        break;
-                }
+                String dow = switch (c.get(Calendar.DAY_OF_WEEK)) {
+                    case Calendar.SUNDAY -> "Sunday";
+                    case Calendar.MONDAY -> "Monday";
+                    case Calendar.TUESDAY -> "Tuesday";
+                    case Calendar.WEDNESDAY -> "Wednesday";
+                    case Calendar.THURSDAY -> "Thursday";
+                    case Calendar.FRIDAY -> "Friday";
+                    case Calendar.SATURDAY -> "Saturday";
+                    default -> "Error Day";
+                };
 
                 String monthName = "Error Month";
                 int month = c.get(Calendar.MONTH);
 
                 switch (month) {
-                    case Calendar.JANUARY:
-                        monthName = "Jan";
-                        break;
-                    case Calendar.FEBRUARY:
-                        monthName = "Feb";
-                        break;
-                    case Calendar.MARCH:
-                        monthName = "Mar";
-                        break;
-                    case Calendar.APRIL:
-                        monthName = "Apr";
-                        break;
-                    case Calendar.MAY:
-                        monthName = "May";
-                        break;
-                    case Calendar.JUNE:
-                        monthName = "Jun";
-                        break;
-                    case Calendar.JULY:
-                        monthName = "Jul";
-                        break;
-                    case Calendar.AUGUST:
-                        monthName = "Aug";
-                        break;
-                    case Calendar.SEPTEMBER:
-                        monthName = "Sep";
-                        break;
-                    case Calendar.OCTOBER:
-                        monthName = "Oct";
-                        break;
-                    case Calendar.NOVEMBER:
-                        monthName = "Nov";
-                        break;
-                    case Calendar.DECEMBER:
-                        monthName = "Dec";
-                        break;
+                    case Calendar.JANUARY -> monthName = "Jan";
+                    case Calendar.FEBRUARY -> monthName = "Feb";
+                    case Calendar.MARCH -> monthName = "Mar";
+                    case Calendar.APRIL -> monthName = "Apr";
+                    case Calendar.MAY -> monthName = "May";
+                    case Calendar.JUNE -> monthName = "Jun";
+                    case Calendar.JULY -> monthName = "Jul";
+                    case Calendar.AUGUST -> monthName = "Aug";
+                    case Calendar.SEPTEMBER -> monthName = "Sep";
+                    case Calendar.OCTOBER -> monthName = "Oct";
+                    case Calendar.NOVEMBER -> monthName = "Nov";
+                    case Calendar.DECEMBER -> monthName = "Dec";
                 }
 
                 int dayOfMonth = c.get(Calendar.DAY_OF_MONTH);
@@ -484,15 +422,10 @@ public class Form {
      */
     public static String numberSuffix(int i) {
         String[] sufixes = new String[]{"th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"};
-        switch (i % 100) {
-            case 11:
-            case 12:
-            case 13:
-                return i + "th";
-            default:
-                return i + sufixes[i % 10];
-
-        }
+        return switch (i % 100) {
+            case 11, 12, 13 -> i + "th";
+            default -> i + sufixes[i % 10];
+        };
     }
 
     /**
@@ -704,7 +637,7 @@ public class Form {
      * @return the string
      */
     public static String ofSize(long s, int div) {
-        Double d = (double) s;
+        double d = (double) s;
         String sub = "Bytes";
 
         if (d > div - 1) {
@@ -745,7 +678,7 @@ public class Form {
      * @return the string
      */
     public static String ofSize(long s, int div, int dec) {
-        Double d = (double) s;
+        double d = (double) s;
         String sub = "Bytes";
 
         if (d > div - 1) {
@@ -786,7 +719,7 @@ public class Form {
         if (neg) {
             s = -s;
         }
-        Double d = (double) s;
+        double d = (double) s;
         String sub = "Grams";
 
         if (d > div - 1) {
@@ -835,21 +768,21 @@ public class Form {
      * @return the string representation
      */
     public static String cname(String clazz) {
-        String codeName = "";
+        StringBuilder codeName = new StringBuilder();
 
         for (Character i : clazz.toCharArray()) {
             if (Character.isUpperCase(i)) {
-                codeName = codeName + "-" + Character.toLowerCase(i);
+                codeName.append("-").append(Character.toLowerCase(i));
             } else {
-                codeName = codeName + i;
+                codeName.append(i);
             }
         }
 
-        if (codeName.startsWith("-")) {
-            codeName = codeName.substring(1);
+        if (codeName.toString().startsWith("-")) {
+            codeName = new StringBuilder(codeName.substring(1));
         }
 
-        return codeName;
+        return codeName.toString();
     }
 
     /**
@@ -869,7 +802,6 @@ public class Form {
     /**
      * Get a formatted representation of the memory given in kilobytes
      *
-     * @param mb the kilobytes
      * @return the string representation with suffixes
      */
     public static String memx(long kb) {
@@ -1103,7 +1035,6 @@ public class Form {
     /**
      * nanoseconds to seconds (double)
      *
-     * @param ms the nanoseconds
      * @return a formatted string to nanoseconds
      */
     public static String nsMs(long ns) {
@@ -1113,7 +1044,6 @@ public class Form {
     /**
      * nanoseconds to seconds (double) custom decimals
      *
-     * @param ms the nanoseconds
      * @param p  number of decimal points
      * @return a formatted string to nanoseconds
      */
@@ -1124,7 +1054,6 @@ public class Form {
     /**
      * nanoseconds to seconds (double) custom decimals
      *
-     * @param ms the nanoseconds
      * @param p  number of decimal points
      * @return a formatted string to nanoseconds
      */
@@ -1139,7 +1068,7 @@ public class Form {
      * @return the numerals
      */
     public static String toRoman(int num) {
-        LinkedHashMap<String, Integer> roman_numerals = new LinkedHashMap<String, Integer>();
+        LinkedHashMap<String, Integer> roman_numerals = new LinkedHashMap<>();
 
         roman_numerals.put("M", 1000);
         roman_numerals.put("CM", 900);
@@ -1155,16 +1084,16 @@ public class Form {
         roman_numerals.put("IV", 4);
         roman_numerals.put("I", 1);
 
-        String res = "";
+        StringBuilder res = new StringBuilder();
 
         for (Map.Entry<String, Integer> entry : roman_numerals.entrySet()) {
             int matches = num / entry.getValue();
 
-            res += repeat(entry.getKey(), matches);
+            res.append(repeat(entry.getKey(), matches));
             num = num % entry.getValue();
         }
 
-        return res;
+        return res.toString();
     }
 
     /**
@@ -1242,6 +1171,7 @@ public class Form {
      * @param n the amount of times to repeat
      * @return the repeated string
      */
+    @SuppressWarnings("StringRepeatCanBeUsed")
     public static String repeat(String s, int n) {
         if (s == null) {
             return null;

@@ -1,8 +1,27 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.stream.interpolation;
 
 import com.volmit.iris.object.InterpolationMethod;
 import com.volmit.iris.scaffold.stream.ProceduralStream;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class InterpolatorFactory<T> {
     private final ProceduralStream<T> stream;
 
@@ -11,7 +30,7 @@ public class InterpolatorFactory<T> {
     }
 
     public InterpolatingStream<T> with(InterpolationMethod t, int rx) {
-        return new InterpolatingStream<T>(stream, rx, t);
+        return new InterpolatingStream<>(stream, rx, t);
     }
 
     public TrilinearStream<T> trilinear(int rx, int ry, int rz) {

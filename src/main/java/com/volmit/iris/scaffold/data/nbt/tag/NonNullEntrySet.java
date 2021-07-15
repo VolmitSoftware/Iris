@@ -1,4 +1,24 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.data.nbt.tag;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -9,6 +29,7 @@ import java.util.Set;
  * A decorator for the Set returned by CompoundTag#entrySet()
  * that disallows setting null values.
  */
+@SuppressWarnings("ClassCanBeRecord")
 class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
 
     private final Set<Map.Entry<K, V>> set;
@@ -43,7 +64,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
+    public <T> T[] toArray(@NotNull T[] a) {
         return set.toArray(a);
     }
 
@@ -58,22 +79,22 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public boolean containsAll(Collection<?> c) {
+    public boolean containsAll(@NotNull Collection<?> c) {
         return set.containsAll(c);
     }
 
     @Override
-    public boolean addAll(Collection<? extends Map.Entry<K, V>> c) {
+    public boolean addAll(@NotNull Collection<? extends Map.Entry<K, V>> c) {
         return set.addAll(c);
     }
 
     @Override
-    public boolean retainAll(Collection<?> c) {
+    public boolean retainAll(@NotNull Collection<?> c) {
         return set.retainAll(c);
     }
 
     @Override
-    public boolean removeAll(Collection<?> c) {
+    public boolean removeAll(@NotNull Collection<?> c) {
         return set.removeAll(c);
     }
 
@@ -127,6 +148,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
             return entry.setValue(value);
         }
 
+        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
         @Override
         public boolean equals(Object o) {
             return entry.equals(o);

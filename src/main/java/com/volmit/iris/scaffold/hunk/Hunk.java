@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.hunk;
 
 import com.volmit.iris.scaffold.hunk.io.HunkIOAdapter;
@@ -20,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+@SuppressWarnings("ALL")
 public interface Hunk<T> {
     /**
      * Create a hunk view from a source hunk. This view reads and writes through to
@@ -230,11 +249,11 @@ public interface Hunk<T> {
     }
 
     default int getMax2DParallelism() {
-        return (int) Math.pow(getMinimumDimension() / 2, 2);
+        return (int) Math.pow(getMinimumDimension() / 2f, 2);
     }
 
     default int getMax3DParallelism() {
-        return (int) Math.pow(getMinimumDimension() / 2, 3);
+        return (int) Math.pow(getMinimumDimension() / 2f, 3);
     }
 
     default int filterDimension(int dim) {
@@ -730,7 +749,7 @@ public interface Hunk<T> {
             }
         }
 
-	    return this;
+        return this;
     }
 
     default Hunk<T> getSections2D(int sections, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter) {
@@ -758,7 +777,7 @@ public interface Hunk<T> {
             }
         }
 
-	    return this;
+        return this;
     }
 
     default Hunk<T> getSections2DYLimit(int sections, int ymin, int ymax, Consumer5<Integer, Integer, Integer, Hunk<T>, Runnable> v, Consumer4<Integer, Integer, Integer, Hunk<T>> inserter) {

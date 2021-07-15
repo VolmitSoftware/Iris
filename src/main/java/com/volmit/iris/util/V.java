@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.lang.annotation.Annotation;
@@ -82,14 +100,14 @@ public class V {
     }
 
     public Object invoke(String method, Object... parameters) {
-        KList<Class<?>> par = new KList<Class<?>>();
+        KList<Class<?>> par = new KList<>();
 
         for (Object i : parameters) {
             par.add(i.getClass());
         }
 
         try {
-            return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[par.size()]))).invoke(o, parameters);
+            return (local ? Violator.getDeclaredMethod(o.getClass(), method, par.toArray(new Class<?>[0])) : Violator.getMethod(o.getClass(), method, par.toArray(new Class<?>[0]))).invoke(o, parameters);
         } catch (Throwable e) {
             if (!suppress) {
                 e.printStackTrace();

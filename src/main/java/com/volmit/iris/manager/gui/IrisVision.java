@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager.gui;
 
 import com.volmit.iris.Iris;
@@ -14,12 +32,10 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 public class IrisVision extends JPanel implements MouseWheelListener {
     private static final long serialVersionUID = 2094606939770332040L;
@@ -45,38 +61,32 @@ public class IrisVision extends JPanel implements MouseWheelListener {
     private final KMap<BlockPosition, BufferedImage> fastpositions = new KMap<>();
     private final KSet<BlockPosition> working = new KSet<>();
     private final KSet<BlockPosition> workingfast = new KSet<>();
-    private final ExecutorService e = Executors.newFixedThreadPool(8, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            tid++;
-            Thread t = new Thread(r);
-            t.setName("Iris HD Renderer " + tid);
-            t.setPriority(Thread.MIN_PRIORITY);
-            t.setUncaughtExceptionHandler((et, e) ->
-            {
-                Iris.info("Exception encountered in " + et.getName());
-                e.printStackTrace();
-            });
+    private final ExecutorService e = Executors.newFixedThreadPool(8, r -> {
+        tid++;
+        Thread t = new Thread(r);
+        t.setName("Iris HD Renderer " + tid);
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.setUncaughtExceptionHandler((et, e) ->
+        {
+            Iris.info("Exception encountered in " + et.getName());
+            e.printStackTrace();
+        });
 
-            return t;
-        }
+        return t;
     });
 
-    private final ExecutorService eh = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            tid++;
-            Thread t = new Thread(r);
-            t.setName("Iris Renderer " + tid);
-            t.setPriority(Thread.NORM_PRIORITY);
-            t.setUncaughtExceptionHandler((et, e) ->
-            {
-                Iris.info("Exception encountered in " + et.getName());
-                e.printStackTrace();
-            });
+    private final ExecutorService eh = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> {
+        tid++;
+        Thread t = new Thread(r);
+        t.setName("Iris Renderer " + tid);
+        t.setPriority(Thread.NORM_PRIORITY);
+        t.setUncaughtExceptionHandler((et, e) ->
+        {
+            Iris.info("Exception encountered in " + et.getName());
+            e.printStackTrace();
+        });
 
-            return t;
-        }
+        return t;
     });
 
     public IrisVision() {
@@ -223,12 +233,7 @@ public class IrisVision extends JPanel implements MouseWheelListener {
                         BufferedImage t = getTile(gg, iscale, Math.floorDiv((posX / iscale) + i, iscale) * iscale, Math.floorDiv((posZ / iscale) + j, iscale) * iscale, m);
 
                         if (t != null) {
-                            g.drawImage(t, i - ((posX / iscale) % (iscale)), j - ((posZ / iscale) % (iscale)), iscale, iscale, new ImageObserver() {
-                                @Override
-                                public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
-                                    return true;
-                                }
-                            });
+                            g.drawImage(t, i - ((posX / iscale) % (iscale)), j - ((posZ / iscale) % (iscale)), iscale, iscale, (img, infoflags, x, y, width, height) -> true);
                         }
                     }
                 }
@@ -280,7 +285,7 @@ public class IrisVision extends JPanel implements MouseWheelListener {
         if (file != null) {
             try {
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {
+            } catch (IOException ignored) {
 
             }
         }
@@ -288,9 +293,7 @@ public class IrisVision extends JPanel implements MouseWheelListener {
 
     public static void launch(IrisAccess g, int i) {
         J.a(() ->
-        {
-            createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i, g.getCompound().getWorld());
-        });
+                createAndShowGUI((x, z) -> g.getEngineAccess(i).draw(x, z), i, g.getCompound().getWorld()));
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {
@@ -303,6 +306,6 @@ public class IrisVision extends JPanel implements MouseWheelListener {
         positions.clear();
         fastpositions.clear();
         mscale = mscale + ((0.044 * mscale) * notches);
-        mscale = mscale < 0.00001 ? 0.00001 : mscale;
+        mscale = Math.max(mscale, 0.00001);
     }
 }

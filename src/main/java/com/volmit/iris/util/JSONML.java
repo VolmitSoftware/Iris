@@ -1,29 +1,23 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
-
-/*
-Copyright (c) 2008 JSON.org
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-The Software shall be used for Good, not Evil.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
 
 import java.util.Iterator;
 
@@ -45,7 +39,6 @@ public class JSONML {
      * @param ja        The JSONArray that is containing the current tag or null if we
      *                  are at the outermost level.
      * @return A JSONArray if the value is the outermost tag, otherwise null.
-     * @throws JSONException
      */
     private static Object parse(XMLTokener x, boolean arrayForm, JSONArray ja) throws JSONException {
         String attribute;
@@ -237,7 +230,6 @@ public class JSONML {
      *
      * @param string The source string.
      * @return A JSONArray containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONArray toJSONArray(String string) throws JSONException {
         return toJSONArray(new XMLTokener(string));
@@ -254,7 +246,6 @@ public class JSONML {
      *
      * @param x An XMLTokener.
      * @return A JSONArray containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONArray toJSONArray(XMLTokener x) throws JSONException {
         return (JSONArray) parse(x, true, null);
@@ -272,7 +263,6 @@ public class JSONML {
      *
      * @param x An XMLTokener of the XML source text.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(XMLTokener x) throws JSONException {
         return (JSONObject) parse(x, false, null);
@@ -290,7 +280,6 @@ public class JSONML {
      *
      * @param string The XML source text.
      * @return A JSONObject containing the structured data from the XML string.
-     * @throws JSONException
      */
     public static JSONObject toJSONObject(String string) throws JSONException {
         return toJSONObject(new XMLTokener(string));
@@ -301,7 +290,6 @@ public class JSONML {
      *
      * @param ja A JSONArray.
      * @return An XML string.
-     * @throws JSONException
      */
     public static String toString(JSONArray ja) throws JSONException {
         int i;
@@ -352,7 +340,6 @@ public class JSONML {
         length = ja.length();
         if (i >= length) {
             sb.append('/');
-            sb.append('>');
         } else {
             sb.append('>');
             do {
@@ -373,8 +360,8 @@ public class JSONML {
             sb.append('<');
             sb.append('/');
             sb.append(tagName);
-            sb.append('>');
         }
+        sb.append('>');
         return sb.toString();
     }
 
@@ -386,7 +373,6 @@ public class JSONML {
      *
      * @param jo A JSONObject.
      * @return An XML string.
-     * @throws JSONException
      */
     public static String toString(JSONObject jo) throws JSONException {
         StringBuilder sb = new StringBuilder();
@@ -434,7 +420,6 @@ public class JSONML {
         ja = jo.optJSONArray("childNodes");
         if (ja == null) {
             sb.append('/');
-            sb.append('>');
         } else {
             sb.append('>');
             length = ja.length();
@@ -455,8 +440,8 @@ public class JSONML {
             sb.append('<');
             sb.append('/');
             sb.append(tagName);
-            sb.append('>');
         }
+        sb.append('>');
         return sb.toString();
     }
 }

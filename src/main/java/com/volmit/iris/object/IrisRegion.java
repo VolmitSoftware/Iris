@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
@@ -11,10 +29,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
 import java.awt.Color;
 import java.util.Random;
 
+
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,158 +43,134 @@ import java.util.Random;
 public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(2)
     @Required
-    @DontObfuscate
+
     @Desc("The name of the region")
     private String name = "A Region";
 
     @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
-    @DontObfuscate
     @Desc("Jigsaw structures")
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
 
-    @DontObfuscate
+
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
     private KList<IrisFeaturePotential> features = new KList<>();
 
     @ArrayType(min = 1, type = IrisEffect.class)
-    @DontObfuscate
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
     private KList<IrisEffect> effects = new KList<>();
 
-    @DontObfuscate
+
     @Desc("Entity spawns to override or add to this region")
     @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
     private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
-    @DontObfuscate
+
     @Desc("Entity spawns during generation")
     @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
     private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
     @MinNumber(1)
     @MaxNumber(128)
-    @DontObfuscate
     @Desc("The rarity of the region")
     private int rarity = 1;
 
     @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @DontObfuscate
     @Desc("Define custom block drops for this region")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
 
     @MinNumber(0.0001)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("The shore ration (How much percent of land should be a shore)")
     private double shoreRatio = 0.13;
 
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
-    @DontObfuscate
     @Desc("Objects define what schematics (iob files) iris will place in this region")
-    private KList<IrisObjectPlacement> objects = new KList<IrisObjectPlacement>();
+    private KList<IrisObjectPlacement> objects = new KList<>();
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;
 
-    @DontObfuscate
+
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The the max shore height")
     private double shoreHeightMax = 3.2;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("The varience of the shore height")
     private double shoreHeightZoom = 3.14;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large land biomes are in this region")
     private double landBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large shore biomes are in this region")
     private double shoreBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large lake biomes are in this region")
     private double lakeBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large river biomes are in this region")
     private double riverBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large sea biomes are in this region")
     private double seaBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
 
     @MinNumber(0.0001)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
     private double biomeImplosionRatio = 0.4;
 
     @RegistryListBiome
     @Required
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> landBiomes = new KList<>();
 
     @RegistryListBiome
     @Required
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> seaBiomes = new KList<>();
 
     @RegistryListBiome
     @Required
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> shoreBiomes = new KList<>();
 
     @RegistryListBiome
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> riverBiomes = new KList<>();
 
     @RegistryListBiome
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> lakeBiomes = new KList<>();
 
     @RegistryListBiome
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> caveBiomes = new KList<>();
 
     @ArrayType(min = 1, type = IrisRegionRidge.class)
-    @DontObfuscate
     @Desc("Ridge biomes create a vein-like network like rivers through this region")
     private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
 
     @ArrayType(min = 1, type = IrisRegionSpot.class)
-    @DontObfuscate
     @Desc("Spot biomes splotch themselves across this region like lakes")
     private KList<IrisRegionSpot> spotBiomes = new KList<>();
 
@@ -183,43 +178,40 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Define regional deposit generators that add onto the global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
 
-    @DontObfuscate
+
     @Desc("The style of rivers")
     private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
 
-    @DontObfuscate
+
     @Desc("The style of lakes")
     private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
 
-    @DontObfuscate
+
     @Desc("The style of river chances")
     private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
 
-    @DontObfuscate
+
     @Desc("Generate lakes in this region")
     private boolean lakes = true;
 
-    @DontObfuscate
+
     @Desc("Generate rivers in this region")
     private boolean rivers = true;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("Generate lakes in this region")
     private int lakeRarity = 22;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("Generate rivers in this region")
     private int riverRarity = 3;
 
     @MinNumber(0)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("Generate rivers in this region")
     private double riverThickness = 0.1;
 
-    @DontObfuscate
+
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
 
@@ -325,7 +317,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public KList<String> getRidgeBiomeKeys() {
         return cacheRidge.aquire(() ->
         {
-            KList<String> cacheRidge = new KList<String>();
+            KList<String> cacheRidge = new KList<>();
             ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
 
             return cacheRidge;
@@ -335,7 +327,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public KList<String> getSpotBiomeKeys() {
         return cacheSpot.aquire(() ->
         {
-            KList<String> cacheSpot = new KList<String>();
+            KList<String> cacheSpot = new KList<>();
             spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
             return cacheSpot;
         });
@@ -343,9 +335,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public CNG getShoreHeightGenerator() {
         return shoreHeightGenerator.aquire(() ->
-        {
-            return CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612)));
-        });
+                CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));
     }
 
     public double getShoreHeight(double x, double z) {

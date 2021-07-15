@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.util.concurrent.ExecutorService;
@@ -13,7 +31,7 @@ public class GroupedExecutor {
 
     public GroupedExecutor(int threadLimit, int priority, String name) {
         xc = 1;
-        mirror = new KMap<String, Integer>();
+        mirror = new KMap<>();
 
         if (threadLimit == 1) {
             service = Executors.newSingleThreadExecutor((r) ->
@@ -25,14 +43,11 @@ public class GroupedExecutor {
                 return t;
             });
         } else if (threadLimit > 1) {
-            final ForkJoinWorkerThreadFactory factory = new ForkJoinWorkerThreadFactory() {
-                @Override
-                public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-                    final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                    worker.setName(name + " " + xc++);
-                    worker.setPriority(priority);
-                    return worker;
-                }
+            final ForkJoinWorkerThreadFactory factory = pool -> {
+                final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                worker.setName(name + " " + xc++);
+                worker.setPriority(priority);
+                return worker;
             };
 
             service = new ForkJoinPool(threadLimit, factory, null, false);

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
@@ -11,6 +29,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -57,13 +76,7 @@ public class LightingTaskBatch implements LightingTask {
         }
 
         // Sort the array along the axis. This makes chunk loading more efficient.
-        Arrays.sort(coordinates, (a, b) -> {
-            int comp = Integer.compare(a.x, b.x);
-            if (comp == 0) {
-                comp = Integer.compare(a.z, b.z);
-            }
-            return comp;
-        });
+        Arrays.sort(coordinates, Comparator.comparingInt((IntVector2 a) -> a.x).thenComparingInt(a -> a.z));
 
         // Turn back into a long[] array for memory efficiency
         this.chunks_coords = Stream.of(coordinates).mapToLong(c -> MathUtil.longHashToLong(c.x, c.z)).toArray();
@@ -90,7 +103,8 @@ public class LightingTaskBatch implements LightingTask {
                     coords[i] = MathUtil.longHashToLong(chunks[i].chunkX, chunks[i].chunkZ);
                 }
                 return coords;
-            } else if (this.chunks_coords != null) {
+            } else //noinspection ReplaceNullCheck
+                if (this.chunks_coords != null) {
                 return this.chunks_coords;
             } else {
                 return new long[0];
@@ -130,6 +144,7 @@ public class LightingTaskBatch implements LightingTask {
         return this.timeStarted;
     }
 
+    @SuppressWarnings("ClassCanBeRecord")
     private static final class BatchChunkInfo {
         public final int cx;
         public final int cz;
@@ -217,6 +232,7 @@ public class LightingTaskBatch implements LightingTask {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean waitForCheckAborted(CompletableFuture<?> future) {
         while (!aborted) {
             try {
@@ -292,7 +308,7 @@ public class LightingTaskBatch implements LightingTask {
             chunkFutures = new CompletableFuture[this.chunks.length];
         }
         for (int i = 0; i < chunkFutures.length; i++) {
-            chunkFutures[i] = new CompletableFuture<Void>();
+            chunkFutures[i] = new CompletableFuture<>();
         }
 
         // Start loading up to [asyncLoadConcurrency] number of chunks right now
@@ -478,7 +494,7 @@ public class LightingTaskBatch implements LightingTask {
             applyFutures[i] = lc.saveToChunk(bchunk).whenComplete((changed, t) -> {
                 if (t != null) {
                     t.printStackTrace();
-                } else if (changed.booleanValue()) {
+                } else if (changed) {
                     WorldUtil.queueChunkSendLight(world, lc.chunkX, lc.chunkZ);
                 }
 

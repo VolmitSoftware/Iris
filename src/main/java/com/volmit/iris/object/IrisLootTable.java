@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.util.*;
@@ -9,6 +27,7 @@ import lombok.experimental.Accessors;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,26 +38,23 @@ public class IrisLootTable extends IrisRegistrant {
     @Required
 
     @Desc("The name of this loot table")
-    @DontObfuscate
+
     @MinNumber(2)
     private String name = "";
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The rarity as in 1 in X chance")
     private int rarity = 1;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The maximum amount of loot that can be picked in this table at a time.")
     private int maxPicked = 5;
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The minimum amount of loot that can be picked in this table at a time.")
     private int minPicked = 1;
 
-    @DontObfuscate
+
     @Desc("The loot in this table")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> loot = new KList<>();

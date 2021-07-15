@@ -1,5 +1,24 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.pregen;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.scaffold.cache.Cache;
 import com.volmit.iris.scaffold.data.mca.Chunk;
@@ -21,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+@SuppressWarnings("EmptyMethod")
 public class DirectWorldWriter {
     private final File worldFolder;
     private final Map<Long, MCAFile> writeBuffer;
@@ -72,21 +92,20 @@ public class DirectWorldWriter {
             return B.getAir();
         }
 
-        String p = tag.getString("Name");
+        StringBuilder p = new StringBuilder(tag.getString("Name"));
 
         if (tag.containsKey("Properties")) {
             CompoundTag props = tag.getCompoundTag("Properties");
-            p += "[";
-            KList<String> m = new KList<>();
+            p.append('[');
 
             for (String i : props.keySet()) {
-                m.add(i + "=" + props.getString(i));
+                p.append(i).append('=').append(props.getString(i)).append(',');
             }
 
-            p += m.toString(",") + "]";
+            p.deleteCharAt(p.length() - 1).append(']');
         }
 
-        BlockData b = B.getOrNull(p);
+        BlockData b = B.getOrNull(p.toString());
 
         if (b == null) {
             return B.getAir();
@@ -139,7 +158,7 @@ public class DirectWorldWriter {
             }
 
             return getBlockData(tag);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
         return B.get("AIR");
@@ -215,5 +234,22 @@ public class DirectWorldWriter {
         }
 
         return biomeIds;
+    }
+
+    public void verify(int mcaox, int mcaoz) {
+        MCAFile file = getMCA(mcaox, mcaoz);
+
+        for(int i = 0; i < 32; i++)
+        {
+            for(int j = 0; j < 32; j++)
+            {
+                Chunk c = file.getChunk(i, j);
+
+                if(c == null)
+                {
+                    Iris.warn("Chunk " + ((mcaox << 5) + i) + ", " + ((mcaoz << 5) + j) + " is null in MCA File " + mcaox + ", " + mcaoz);
+                }
+            }
+        }
     }
 }

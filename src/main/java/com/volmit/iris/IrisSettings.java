@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris;
 
 import com.google.gson.Gson;
@@ -7,6 +25,7 @@ import lombok.Data;
 import java.io.File;
 import java.io.IOException;
 
+@SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
@@ -18,13 +37,14 @@ public class IrisSettings {
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
 
-    @DontObfuscate
+
     public int configurationVersion = 3;
 
     public boolean isStudio() {
         return getStudio().isStudio();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isUseServerLaunchedGuis() {
         return getGui().isUseServerLaunchedGuis();
     }
@@ -35,77 +55,77 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsCache {
-        @DontObfuscate
+
         public int streamingCacheSize = 8192;
     }
 
     @Data
     public static class IrisSettingsConcurrency {
-        @DontObfuscate
+
         public int threadCount = -1;
     }
 
     @Data
     public static class IrisSettingsParallax {
-        @DontObfuscate
+
         public int parallaxRegionEvictionMS = 15000;
 
-        @DontObfuscate
+
         public int parallaxChunkEvictionMS = 5000;
     }
 
     @Data
     public static class IrisSettingsGeneral {
 
-        @DontObfuscate
+
         public boolean commandSounds = true;
 
-        @DontObfuscate
+
         public boolean verbose = false;
 
-        @DontObfuscate
+
         public boolean ignoreWorldEdit = false;
 
-        @DontObfuscate
+
         public boolean disableNMS = false;
 
-        @DontObfuscate
+
         public boolean pluginMetrics = true;
 
-        @DontObfuscate
+
         public boolean splashLogoStartup = true;
     }
 
     @Data
     public static class IrisSettingsGUI {
-        @DontObfuscate
+
         public boolean useServerLaunchedGuis = true;
 
-        @DontObfuscate
+
         public boolean maximumPregenGuiFPS = false;
 
-        @DontObfuscate
+
         public boolean localPregenGui = true;
     }
 
     @Data
     public static class IrisSettingsGenerator {
-        @DontObfuscate
+
         public String defaultWorldType = "overworld";
 
-        @DontObfuscate
+
         public boolean mcaPregenerator = false;
 
-        @DontObfuscate
+
         public boolean systemEffects = true;
 
-        @DontObfuscate
+
         public boolean systemEntitySpawnOverrides = true;
 
-        @DontObfuscate
+
         public boolean systemEntityInitialSpawns = true;
 
-        @DontObfuscate
+
         public int maxBiomeChildDepth = 5;
 
     }
@@ -113,13 +133,13 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsStudio {
 
-        @DontObfuscate
+
         public boolean studio = true;
 
-        @DontObfuscate
+
         public boolean openVSCode = true;
 
-        @DontObfuscate
+
         public boolean disableTimeAndWeather = true;
     }
 

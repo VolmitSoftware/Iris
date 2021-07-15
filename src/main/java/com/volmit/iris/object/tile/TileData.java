@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object.tile;
 
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
@@ -11,6 +29,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@SuppressWarnings("ALL")
 public interface TileData<T extends TileState> extends Cloneable {
 
     KList<TileData<? extends TileState>> registry = setup();
@@ -27,7 +46,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     static TileData<? extends TileState> read(DataInputStream s) throws Throwable {
         int id = s.readShort();
-        TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
+        @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
         d.fromBinary(s);
         return d;
     }
@@ -44,7 +63,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
             if (i.isApplicable(data)) {
                 try {
-                    TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
+                    @SuppressWarnings("unchecked") TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
                     s.fromBukkitTry(block.getState());
                     return s;
                 } catch (Throwable e) {
@@ -66,6 +85,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     default boolean toBukkitTry(BlockState t) {
         try {
+            //noinspection unchecked
             toBukkit((T) t);
             return true;
         } catch (Throwable e) {
@@ -77,6 +97,7 @@ public interface TileData<T extends TileState> extends Cloneable {
 
     default boolean fromBukkitTry(BlockState t) {
         try {
+            //noinspection unchecked
             fromBukkit((T) t);
             return true;
         } catch (Throwable e) {

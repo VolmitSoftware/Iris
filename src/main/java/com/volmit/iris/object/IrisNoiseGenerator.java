@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.generator.noise.CNG;
@@ -16,68 +34,64 @@ import lombok.experimental.Accessors;
 public class IrisNoiseGenerator {
 
     @MinNumber(0.0001)
-    @DontObfuscate
     @Desc("The coordinate input zoom")
     private double zoom = 1;
 
-    @DontObfuscate
+
     @Desc("Reverse the output. So that noise = -noise + opacity")
     private boolean negative = false;
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The output multiplier")
     private double opacity = 1;
 
-    @DontObfuscate
+
     @Desc("Coordinate offset x")
     private double offsetX = 0;
 
-    @DontObfuscate
+
     @Desc("Height output offset y")
     private double offsetY = 0;
 
-    @DontObfuscate
+
     @Desc("Coordinate offset z")
     private double offsetZ = 0;
 
     @Required
-    @DontObfuscate
+
     @Desc("The seed")
     private long seed = 0;
 
-    @DontObfuscate
+
     @Desc("Apply a parametric curve on the output")
     private boolean parametric = false;
 
-    @DontObfuscate
+
     @Desc("Apply a bezier curve on the output")
     private boolean bezier = false;
 
-    @DontObfuscate
+
     @Desc("Apply a sin-center curve on the output (0, and 1 = 0 and 0.5 = 1.0 using a sinoid shape.)")
     private boolean sinCentered = false;
 
-    @DontObfuscate
+
     @Desc("The exponent noise^EXPONENT")
     private double exponent = 1;
 
-    @DontObfuscate
+
     @Desc("Enable / disable. Outputs offsetY if disabled")
     private boolean enabled = true;
 
     @Required
-    @DontObfuscate
+
     @Desc("The Noise Style")
     private IrisGeneratorStyle style = NoiseStyle.IRIS.style();
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("Multiple octaves for multple generators of changing zooms added together")
     private int octaves = 1;
 
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
-    @DontObfuscate
     @Desc("Apply a child noise generator to fracture the input coordinates of this generator")
     private KList<IrisNoiseGenerator> fracture = new KList<>();
 
@@ -124,7 +138,7 @@ public class IrisNoiseGenerator {
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {
-        KList<IrisNoiseGenerator> g = new KList<IrisNoiseGenerator>();
+        KList<IrisNoiseGenerator> g = new KList<>();
 
         g.add(this);
 

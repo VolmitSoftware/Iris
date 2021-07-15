@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.data.nbt.tag;
 
 import com.volmit.iris.scaffold.data.io.MaxDepthReachedException;
@@ -49,6 +67,7 @@ public abstract class Tag<T> implements Cloneable {
         temp.put("\t", "\\\\t");
         temp.put("\r", "\\\\r");
         temp.put("\"", "\\\\\"");
+        //noinspection Java9CollectionFactory
         ESCAPE_CHARACTERS = Collections.unmodifiableMap(temp);
     }
 
@@ -172,7 +191,6 @@ public abstract class Tag<T> implements Cloneable {
      *
      * @return A clone of this Tag.
      */
-    @SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
     public abstract Tag<T> clone();
 
     /**
@@ -184,7 +202,8 @@ public abstract class Tag<T> implements Cloneable {
      *                the end of the string.
      * @return The escaped string.
      */
-    protected static String escapeString(String s, boolean lenient) {
+    @SuppressWarnings("StringBufferMayBeStringBuilder")
+    protected static String escapeString(String s, @SuppressWarnings("SameParameterValue") boolean lenient) {
         StringBuffer sb = new StringBuffer();
         Matcher m = ESCAPE_PATTERN.matcher(s);
         while (m.find()) {

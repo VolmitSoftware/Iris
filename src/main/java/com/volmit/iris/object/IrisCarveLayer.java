@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.generator.noise.CNG;
@@ -15,31 +33,27 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCarveLayer {
     @Required
-    @DontObfuscate
+
     @Desc("The 4d slope this carve layer follows")
     private IrisGeneratorStyle style = new IrisGeneratorStyle();
 
     @MaxNumber(512)
     @MinNumber(-128)
-    @DontObfuscate
     @Desc("The max height")
     private int maxHeight = 220;
 
     @MinNumber(0.0)
     @MaxNumber(1.0)
-    @DontObfuscate
     @Desc("The full percentage means the 4D opacity of this carver will decay from 100% to 0% at the min & max vertical ranges. Setting the percent to 1.0 will make a very drastic & charp change at the edge of the vertical min & max. Where as 0.15 means only 15% of the vertical range will actually be 100% opacity.")
     private double fullPercent = 0.5;
 
     @MaxNumber(512)
     @MinNumber(-128)
-    @DontObfuscate
     @Desc("The min height")
     private int minHeight = 147;
 
     @MaxNumber(1)
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The threshold used as: \n\ncarved = noise(x,y,z) > threshold")
     private double threshold = 0.5;
 

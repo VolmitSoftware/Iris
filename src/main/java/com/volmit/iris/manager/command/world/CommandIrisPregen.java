@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager.command.world;
 
 import com.volmit.iris.Iris;
@@ -15,10 +33,11 @@ public class CommandIrisPregen extends MortarCommand {
     public CommandIrisPregen() {
         super("pregen", "preg", "p");
         setDescription(
-                "Pregen this world with optional parameters: " +
-                        "\n'1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks." +
-                        "\nIf you are using the console or want to pregen a world you're not in:" +
-                        "\nalso specify the name of the world. E.g. /ir pregen 5k world"
+                """
+                        Pregen this world with optional parameters:\s
+                        '1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks.
+                        If you are using the console or want to pregen a world you're not in:
+                        also specify the name of the world. E.g. /ir pregen 5k world"""
         );
         requiresPermission(Iris.perm.studio);
         setCategory("Pregen");

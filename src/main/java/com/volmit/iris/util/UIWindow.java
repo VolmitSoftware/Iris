@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
@@ -67,54 +85,30 @@ public class UIWindow implements Window, Listener {
 
             switch (e.getAction()) {
                 case CLONE_STACK:
-                    break;
-                case COLLECT_TO_CURSOR:
-                    break;
-                case DROP_ALL_CURSOR:
-                    break;
-                case DROP_ALL_SLOT:
-                    break;
-                case DROP_ONE_CURSOR:
-                    break;
-                case DROP_ONE_SLOT:
-                    break;
-                case HOTBAR_MOVE_AND_READD:
-                    break;
-                case HOTBAR_SWAP:
-                    break;
-                case MOVE_TO_OTHER_INVENTORY:
-                    break;
-                case NOTHING:
-                    break;
-                case PICKUP_ALL:
-                    break;
-                case PICKUP_HALF:
-                    break;
-                case PICKUP_ONE:
-                    break;
-                case PICKUP_SOME:
-                    break;
-                case PLACE_ALL:
-                    break;
-                case PLACE_ONE:
-                    break;
-                case PLACE_SOME:
-                    break;
-                case SWAP_WITH_CURSOR:
-                    break;
                 case UNKNOWN:
+                case SWAP_WITH_CURSOR:
+                case PLACE_SOME:
+                case PLACE_ONE:
+                case PLACE_ALL:
+                case PICKUP_SOME:
+                case PICKUP_ONE:
+                case PICKUP_HALF:
+                case PICKUP_ALL:
+                case NOTHING:
+                case MOVE_TO_OTHER_INVENTORY:
+                case HOTBAR_SWAP:
+                case HOTBAR_MOVE_AND_READD:
+                case DROP_ONE_SLOT:
+                case DROP_ONE_CURSOR:
+                case DROP_ALL_SLOT:
+                case DROP_ALL_CURSOR:
+                case COLLECT_TO_CURSOR:
                     break;
             }
 
             switch (e.getClick()) {
-                case CONTROL_DROP:
-                    break;
-                case CREATIVE:
-                    break;
                 case DOUBLE_CLICK:
                     doubleclicked = true;
-                    break;
-                case DROP:
                     break;
                 case LEFT:
 
@@ -145,10 +139,6 @@ public class UIWindow implements Window, Listener {
                     }
 
                     break;
-                case MIDDLE:
-                    break;
-                case NUMBER_KEY:
-                    break;
                 case RIGHT:
                     if (element != null) {
                         element.call(ElementEvent.RIGHT, element);
@@ -166,14 +156,15 @@ public class UIWindow implements Window, Listener {
                         element.call(ElementEvent.SHIFT_RIGHT, element);
                     }
                     break;
-                case WINDOW_BORDER_LEFT:
-                    break;
-                case WINDOW_BORDER_RIGHT:
-                    break;
-                case UNKNOWN:
-                    break;
                 case SWAP_OFFHAND:
-                    break;
+                case UNKNOWN:
+                case WINDOW_BORDER_RIGHT:
+                case WINDOW_BORDER_LEFT:
+                case NUMBER_KEY:
+                case MIDDLE:
+                case DROP:
+                case CREATIVE:
+                case CONTROL_DROP:
                 default:
                     break;
             }
@@ -396,7 +387,7 @@ public class UIWindow implements Window, Listener {
     }
 
     public Double clip(double value, double min, double max) {
-        return Double.valueOf(Math.min(max, Math.max(min, value)));
+        return Math.min(max, Math.max(min, value));
     }
 
     @Override
@@ -419,7 +410,7 @@ public class UIWindow implements Window, Listener {
     public Window updateInventory() {
         if (isVisible()) {
             ItemStack[] is = inventory.getContents();
-            KSet<ItemStack> isf = new KSet<ItemStack>();
+            @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") KSet<ItemStack> isf = new KSet<>();
 
             for (int i = 0; i < is.length; i++) {
                 ItemStack isc = is[i];

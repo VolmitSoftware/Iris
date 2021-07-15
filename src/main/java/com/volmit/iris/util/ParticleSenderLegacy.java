@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import org.bukkit.Color;
@@ -15,7 +33,7 @@ import java.lang.reflect.Method;
  *
  * @author MrMicky
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "JavaReflectionInvocation"})
 class ParticleSenderLegacy implements ParticleSender {
 
     private static final boolean SERVER_IS_1_8;
@@ -140,20 +158,18 @@ class ParticleSenderLegacy implements ParticleSender {
     private int[] toData(ParticleType particle, Object data) {
         Class<?> dataType = particle.getDataType();
         if (dataType == ItemStack.class) {
-            if (!(data instanceof ItemStack)) {
+            if (!(data instanceof ItemStack itemStack)) {
                 return SERVER_IS_1_8 ? new int[2] : new int[]{1, 0};
             }
 
-            ItemStack itemStack = (ItemStack) data;
             return new int[]{itemStack.getType().getId(), itemStack.getDurability()};
         }
 
         if (dataType == MaterialData.class) {
-            if (!(data instanceof MaterialData)) {
+            if (!(data instanceof MaterialData materialData)) {
                 return SERVER_IS_1_8 ? new int[1] : new int[]{1, 0};
             }
 
-            MaterialData materialData = (MaterialData) data;
             if (SERVER_IS_1_8) {
                 return new int[]{materialData.getItemType().getId() + (materialData.getData() << 12)};
             } else {

@@ -1,9 +1,29 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.IrisSettings;
 import com.volmit.iris.generator.IrisEngineCompound;
 import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.nms.BiomeBaseInjector;
+import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisBiome;
 import com.volmit.iris.object.IrisDimension;
 import com.volmit.iris.object.IrisPosition;
@@ -89,7 +109,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
                         i.playSound(i.getLocation(), Sound.ITEM_BOTTLE_FILL, 1f, 1.25f);
                     }
-                } catch (Throwable e) {
+                } catch (Throwable ignored) {
 
                 }
             });
@@ -111,7 +131,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 J.a(() -> hotloader.check());
                 getComposite().clean();
             }
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -295,7 +315,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     /**
      * Place strongholds in the world
      *
-     * @param world
      */
     public void placeStrongholds(World world) {
         EngineData metadata = getComposite().getEngineMetadata();
@@ -310,7 +329,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 Class<?> clazz = Class.forName("net.minecraft.world.level.chunk.ChunkGenerator");
                 Class<?> clazzSG = Class.forName("net.minecraft.world.level.levelgen.feature.StructureGenerator");
                 Class<?> clazzBP = Class.forName("net.minecraft.core.BlockPosition");
-                Constructor bpCon = clazzBP.getConstructor(int.class, int.class, int.class);
+                @SuppressWarnings("rawtypes") Constructor bpCon = clazzBP.getConstructor(int.class, int.class, int.class);
 
                 //By default, we place 9 strongholds. One near 0,0 and 8 all around it at about 10_000 blocks out
                 int[][] coords = {{0, 0}, {7000, -7000}, {10000, 0}, {7000, 7000}, {0, 10000}, {-7000, 7000}, {-10000, 0}, {-7000, -7000}, {0, -10000}};
@@ -338,7 +357,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     });
                 }
 
-                CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
+                CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
                 all.thenAccept((_void) -> { //Once all futures for all 9 strongholds have completed
                     for (CompletableFuture<Object> future : futures) {
                         try {
@@ -387,7 +406,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     /**
      * Get BlockPosition for nearest stronghold from the provided position
      */
-    private Object getBP(Class<?> clazz, Class<?> clazzSG, Class<?> clazzBP, Object nmsWorld, Object pos, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
+    private Object getBP(Class<?> clazz, Class<?> clazzSG, Class<?> clazzBP, Object nmsWorld, Object pos, Object chunkGenerator) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         final String stronghold = "k"; //1.17_01 mapping
 
         Object structureGeneratorStronghold = clazzSG.getDeclaredField(stronghold).get(null);
@@ -398,14 +417,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 int.class,
                 boolean.class
         );
-        Object nearestPOS = getNearestGeneratedFeature.invoke(chunkGenerator,
+        return getNearestGeneratedFeature.invoke(chunkGenerator,
                 nmsWorld,
                 structureGeneratorStronghold,
                 pos,
                 100,
                 false
         );
-        return nearestPOS;
     }
 
     private File getDataFolder(World world) {
@@ -445,17 +463,26 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.scaffold.data.mca.Chunk cc = writer.getChunk(x, z);
+        BiomeBaseInjector injector = (xx, yy, zz, biomeBase) -> cc.setBiomeAt(ox + xx, yy, oz + zz, INMS.get().getTrueBiomeBaseId(biomeBase));
+        //noinspection deprecation
         generateChunkRawData(w, x, z, new TerrainChunk() {
+            @Override
+            public BiomeBaseInjector getBiomeBaseInjector() {
+                return injector;
+            }
+
             @Override
             public void setRaw(ChunkData data) {
 
             }
 
+            @NotNull
             @Override
             public Biome getBiome(int x, int z) {
                 return Biome.THE_VOID;
             }
 
+            @NotNull
             @Override
             public Biome getBiome(int x, int y, int z) {
                 return Biome.THE_VOID;
@@ -468,7 +495,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public void setBiome(int x, int y, int z, Biome bio) {
-                writer.setBiome((ox + x), y, oz + z, bio);
+                writer.setBiome(ox + x, y, oz + z, bio);
             }
 
             @Override
@@ -493,6 +520,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 cc.setBlockStateAt(xx, y, zz, DirectWorldWriter.getCompound(blockData), false);
             }
 
+            @NotNull
             @Override
             public BlockData getBlockData(int x, int y, int z) {
                 if (y > getMaxHeight()) {
@@ -744,17 +772,27 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         clearRegeneratedLists(x, z);
         int xx = x * 16;
         int zz = z * 16;
+        BiomeBaseInjector inj = (a, b, c, d) -> {
+        };
+        //noinspection deprecation
         generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
+            @Override
+            public BiomeBaseInjector getBiomeBaseInjector() {
+                return inj;
+            }
+
             @Override
             public void setRaw(ChunkData data) {
 
             }
 
+            @NotNull
             @Override
             public Biome getBiome(int x, int z) {
                 return Biome.THE_VOID;
             }
 
+            @NotNull
             @Override
             public Biome getBiome(int x, int y, int z) {
                 return Biome.THE_VOID;
@@ -787,6 +825,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 }
             }
 
+            @NotNull
             @Override
             public BlockData getBlockData(int x, int y, int z) {
                 return Iris.edit.get(compound.getWorld(), x + xx, y, z + zz);
@@ -916,7 +955,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             try {
                 dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
 

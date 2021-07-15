@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.data.mca;
 
 import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
@@ -5,6 +23,7 @@ import com.volmit.iris.scaffold.data.nbt.tag.CompoundTag;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
+@SuppressWarnings("ALL")
 public class MCAFile {
 
     /**
@@ -13,7 +32,7 @@ public class MCAFile {
     public static final int DEFAULT_DATA_VERSION = 1628;
 
     private final int regionX;
-	private final int regionZ;
+    private final int regionZ;
     private Chunk[] chunks;
 
     /**
@@ -62,7 +81,7 @@ public class MCAFile {
             raf.seek(4096 + i * 4);
             int timestamp = raf.readInt();
             Chunk chunk = new Chunk(timestamp);
-            raf.seek(4096 * offset + 4); //+4: skip data size
+            raf.seek(4096L * offset + 4); //+4: skip data size
             chunk.deserialize(raf, loadFlags);
             chunks[i] = chunk;
         }
@@ -113,7 +132,7 @@ public class MCAFile {
                 if (chunk == null) {
                     continue;
                 }
-                raf.seek(4096 * globalOffset);
+                raf.seek(4096L * globalOffset);
                 lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz);
 
                 if (lastWritten == 0) {
@@ -124,14 +143,14 @@ public class MCAFile {
 
                 int sectors = (lastWritten >> 12) + (lastWritten % 4096 == 0 ? 0 : 1);
 
-                raf.seek(index * 4);
+                raf.seek(index * 4L);
                 raf.writeByte(globalOffset >>> 16);
                 raf.writeByte(globalOffset >> 8 & 0xFF);
                 raf.writeByte(globalOffset & 0xFF);
                 raf.writeByte(sectors);
 
                 // write timestamp
-                raf.seek(index * 4 + 4096);
+                raf.seek(index * 4L + 4096);
                 raf.writeInt(changeLastUpdate ? timestamp : chunk.getLastMCAUpdate());
 
                 globalOffset += sectors;
@@ -140,7 +159,7 @@ public class MCAFile {
 
         // padding
         if (lastWritten % 4096 != 0) {
-            raf.seek(globalOffset * 4096 - 1);
+            raf.seek(globalOffset * 4096L - 1);
             raf.write(0);
         }
         return chunksWritten;

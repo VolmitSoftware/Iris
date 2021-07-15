@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import org.bukkit.Color;
@@ -143,19 +161,14 @@ public enum ParticleType {
     }
 
     public Class<?> getDataType() {
-        switch (this) {
-            case ITEM_CRACK:
-                return ItemStack.class;
-            case BLOCK_CRACK:
-            case BLOCK_DUST:
-            case FALLING_DUST:
-                //noinspection deprecation
-                return MaterialData.class;
-            case REDSTONE:
-                return Color.class;
-            default:
-                return Void.class;
-        }
+        return switch (this) {
+            case ITEM_CRACK -> ItemStack.class;
+            case BLOCK_CRACK, BLOCK_DUST, FALLING_DUST ->
+                    //noinspection deprecation
+                    MaterialData.class;
+            case REDSTONE -> Color.class;
+            default -> Void.class;
+        };
     }
 
     public static ParticleType getParticle(String particleName) {

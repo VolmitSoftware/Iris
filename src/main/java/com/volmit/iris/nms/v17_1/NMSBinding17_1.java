@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.nms.v17_1;
 
 import com.volmit.iris.Iris;
@@ -25,8 +43,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private Field biomeStorageCache = null;
 
-    private Object getBiomeStorage(ChunkGenerator.BiomeGrid g)
-    {
+    private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
         try {
             return getFieldForBiomeStorage(g).get(g);
         } catch (IllegalAccessException e) {
@@ -39,8 +56,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private Field getFieldForBiomeStorage(Object storage) {
         Field f = biomeStorageCache;
 
-        if (f != null)
-        {
+        if (f != null) {
             return f;
         }
         try {
@@ -53,7 +69,7 @@ public class NMSBinding17_1 implements INMSBinding {
             Iris.error(storage.getClass().getCanonicalName());
         }
 
-        biomeStorageCache  = f;
+        biomeStorageCache = f;
         return null;
     }
 
@@ -86,6 +102,7 @@ public class NMSBinding17_1 implements INMSBinding {
         return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Override
     public String getKeyForBiomeBase(Object biomeBase) {
         return getCustomBiomeRegistry().c((BiomeBase) biomeBase).get().a().toString();
@@ -109,6 +126,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Method f = from.getClass().getDeclaredMethod(name, classify(par));
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.invoke(from, par);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -121,6 +139,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Method f = from.getDeclaredMethod(name, classify(par));
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.invoke(null, par);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -133,6 +152,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Field f = from.getClass().getDeclaredField(name);
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.get(from);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -145,6 +165,7 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             Field f = t.getDeclaredField(name);
             f.setAccessible(true);
+            //noinspection unchecked
             return (T) f.get(null);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -160,11 +181,13 @@ public class NMSBinding17_1 implements INMSBinding {
         if (v != null) {
             return v;
         }
+        //noinspection unchecked
         v = org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
+            //noinspection unchecked
             return org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
@@ -188,16 +211,15 @@ public class NMSBinding17_1 implements INMSBinding {
     @Override
     public int countCustomBiomes() {
         AtomicInteger a = new AtomicInteger(0);
-        getCustomBiomeRegistry().d().stream().forEach((i) -> {
+        getCustomBiomeRegistry().d().forEach((i) -> {
             MinecraftKey k = i.getKey().a();
 
-            if(k.getNamespace().equals("minecraft"))
-            {
+            if (k.getNamespace().equals("minecraft")) {
                 return;
             }
 
             a.incrementAndGet();
-            Iris.verbose("Custom Biome: " + k.toString());
+            Iris.verbose("Custom Biome: " + k);
         });
 
         return a.get();
@@ -207,7 +229,7 @@ public class NMSBinding17_1 implements INMSBinding {
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
             BiomeStorage s = (BiomeStorage) getFieldForBiomeStorage(chunk).get(chunk);
-            s.setBiome(x,y,z, (BiomeBase) somethingVeryDirty);
+            s.setBiome(x, y, z, (BiomeBase) somethingVeryDirty);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }

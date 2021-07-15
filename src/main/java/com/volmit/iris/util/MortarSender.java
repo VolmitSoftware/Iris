@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import lombok.Getter;
@@ -89,47 +107,49 @@ public class MortarSender implements CommandSender {
     }
 
     @Override
-    public boolean isPermissionSet(String name) {
+    public boolean isPermissionSet(@NotNull String name) {
         return s.isPermissionSet(name);
     }
 
     @Override
-    public boolean isPermissionSet(Permission perm) {
+    public boolean isPermissionSet(@NotNull Permission perm) {
         return s.isPermissionSet(perm);
     }
 
     @Override
-    public boolean hasPermission(String name) {
+    public boolean hasPermission(@NotNull String name) {
         return s.hasPermission(name);
     }
 
     @Override
-    public boolean hasPermission(Permission perm) {
+    public boolean hasPermission(@NotNull Permission perm) {
         return s.hasPermission(perm);
     }
 
+    @NotNull
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value) {
         return s.addAttachment(plugin, name, value);
     }
 
+    @NotNull
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin) {
         return s.addAttachment(plugin);
     }
 
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value, int ticks) {
         return s.addAttachment(plugin, name, value, ticks);
     }
 
     @Override
-    public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
+    public PermissionAttachment addAttachment(@NotNull Plugin plugin, int ticks) {
         return s.addAttachment(plugin, ticks);
     }
 
     @Override
-    public void removeAttachment(PermissionAttachment attachment) {
+    public void removeAttachment(@NotNull PermissionAttachment attachment) {
         s.removeAttachment(attachment);
     }
 
@@ -138,6 +158,7 @@ public class MortarSender implements CommandSender {
         s.recalculatePermissions();
     }
 
+    @NotNull
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
         return s.getEffectivePermissions();
@@ -158,7 +179,7 @@ public class MortarSender implements CommandSender {
     }
 
     @Override
-    public void sendMessage(String message) {
+    public void sendMessage(@NotNull String message) {
         s.sendMessage(C.translateAlternateColorCodes('&', getTag()) + message);
     }
 
@@ -178,16 +199,19 @@ public class MortarSender implements CommandSender {
         sendMessage(messages);
     }
 
+    @NotNull
     @Override
     public Server getServer() {
         return s.getServer();
     }
 
+    @NotNull
     @Override
     public String getName() {
         return s.getName();
     }
 
+    @NotNull
     @Override
     public Spigot spigot() {
         return s.spigot();

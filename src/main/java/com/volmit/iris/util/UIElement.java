@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import org.bukkit.Material;
@@ -35,7 +53,7 @@ public class UIElement implements Element {
     }
 
     public Double clip(double value, double min, double max) {
-        return Double.valueOf(Math.min(max, Math.max(min, value)));
+        return Math.min(max, Math.max(min, value));
     }
 
     @Override
@@ -116,26 +134,32 @@ public class UIElement implements Element {
     public Element call(ElementEvent event, Element context) {
         try {
             switch (event) {
-                case DRAG_INTO:
+                case DRAG_INTO -> {
                     eDraggedInto.run(context);
                     return this;
-                case LEFT:
+                }
+                case LEFT -> {
                     eLeft.run(context);
                     return this;
-                case OTHER_DRAG_INTO:
+                }
+                case OTHER_DRAG_INTO -> {
                     eOtherDraggedInto.run(context);
                     return this;
-                case RIGHT:
+                }
+                case RIGHT -> {
                     eRight.run(context);
                     return this;
-                case SHIFT_LEFT:
+                }
+                case SHIFT_LEFT -> {
                     eShiftLeft.run(context);
                     return this;
-                case SHIFT_RIGHT:
+                }
+                case SHIFT_RIGHT -> {
                     eShiftRight.run(context);
                     return this;
+                }
             }
-        } catch (NullPointerException e) {
+        } catch (NullPointerException ignored) {
 
         } catch (Throwable e) {
             e.printStackTrace();

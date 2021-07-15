@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
@@ -11,6 +29,9 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Map;
+
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,29 +41,28 @@ import org.bukkit.block.data.BlockData;
 public class IrisBlockData extends IrisRegistrant {
     @RegistryListBlockType
     @Required
-    @DontObfuscate
+
     @Desc("The block to use")
     private String block = "air";
 
     @Desc("Debug this block by printing it to the console when it's used")
-    @DontObfuscate
+
     private boolean debug = false;
 
-    @DontObfuscate
+
     @Desc("The resource key. Typically Minecraft")
     private String key = "minecraft";
 
     @MinNumber(1)
     @MaxNumber(1000)
-    @DontObfuscate
     @Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
     private int weight = 1;
 
-    @DontObfuscate
+
     @Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
     private IrisBlockData backup = null;
 
-    @DontObfuscate
+
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
 
@@ -60,8 +80,8 @@ public class IrisBlockData extends IrisRegistrant {
 
         KList<String> r = new KList<>();
 
-        for (String i : data.keySet()) {
-            r.add(i + "=" + filter(data.get(i).toString()));
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            r.add(entry.getKey() + "=" + filter(entry.getValue().toString()));
         }
 
         return "[" + r.toString(",") + "]";
@@ -177,13 +197,13 @@ public class IrisBlockData extends IrisRegistrant {
 
         try {
             return Integer.valueOf(string);
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
         try {
             return Double.valueOf(string).intValue();
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 

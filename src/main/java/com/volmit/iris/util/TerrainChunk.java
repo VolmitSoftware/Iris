@@ -1,10 +1,30 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
+import com.volmit.iris.nms.BiomeBaseInjector;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
+import org.jetbrains.annotations.NotNull;
 
 public interface TerrainChunk extends BiomeGrid, ChunkData {
     static TerrainChunk create(World world) {
@@ -27,6 +47,8 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
         return new LinkedTerrainChunk(grid, maxHeight);
     }
 
+    BiomeBaseInjector getBiomeBaseInjector();
+
     void setRaw(ChunkData data);
 
     /**
@@ -37,6 +59,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @return Biome value
      * @deprecated biomes are now 3-dimensional
      */
+    @NotNull
     @Deprecated
     Biome getBiome(int x, int z);
 
@@ -48,6 +71,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z - 0-15
      * @return Biome value
      */
+    @NotNull
     Biome getBiome(int x, int y, int z);
 
     /**
@@ -59,7 +83,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @deprecated biomes are now 3-dimensional
      */
     @Deprecated
-    void setBiome(int x, int z, Biome bio);
+    void setBiome(int x, int z, @NotNull Biome bio);
 
     /**
      * Set biome at x, z within chunk being generated
@@ -69,7 +93,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z   - 0-15
      * @param bio - Biome value
      */
-    void setBiome(int x, int y, int z, Biome bio);
+    void setBiome(int x, int y, int z, @NotNull Biome bio);
 
     /**
      * Get the maximum height for the chunk.
@@ -91,7 +115,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z         the z location in the chunk from 0-15 inclusive
      * @param blockData the type to set the block to
      */
-    void setBlock(int x, int y, int z, BlockData blockData);
+    void setBlock(int x, int y, int z, @NotNull BlockData blockData);
 
     /**
      * Get the type and data of the block at x, y, z.
@@ -105,6 +129,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @return the data of the block or the BlockData for air if x, y or z are
      * outside the chunk's bounds
      */
+    @NotNull
     BlockData getBlockData(int x, int y, int z);
 
     ChunkData getRaw();

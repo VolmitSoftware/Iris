@@ -1,32 +1,19 @@
 /*
- * $RCSfile$
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
  *
- * Copyright 1997-2008 Sun Microsystems, Inc.  All Rights Reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
- *
- * $Revision: 127 $
- * $Date: 2008-02-28 21:18:51 +0100 (Thu, 28 Feb 2008) $
- * $State$
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 package com.volmit.iris.util;
@@ -387,9 +374,7 @@ public abstract class Tuple4f implements java.io.Serializable, Cloneable {
             Tuple4f t2 = (Tuple4f) t1;
             return (this.x == t2.x && this.y == t2.y &&
                     this.z == t2.z && this.w == t2.w);
-        } catch (NullPointerException e2) {
-            return false;
-        } catch (ClassCastException e1) {
+        } catch (NullPointerException | ClassCastException e2) {
             return false;
         }
     }
@@ -457,35 +442,19 @@ public abstract class Tuple4f implements java.io.Serializable, Cloneable {
     public final void clamp(float min, float max, Tuple4f t) {
         if (t.x > max) {
             x = max;
-        } else if (t.x < min) {
-            x = min;
-        } else {
-            x = t.x;
-        }
+        } else x = Math.max(t.x, min);
 
         if (t.y > max) {
             y = max;
-        } else if (t.y < min) {
-            y = min;
-        } else {
-            y = t.y;
-        }
+        } else y = Math.max(t.y, min);
 
         if (t.z > max) {
             z = max;
-        } else if (t.z < min) {
-            z = min;
-        } else {
-            z = t.z;
-        }
+        } else z = Math.max(t.z, min);
 
         if (t.w > max) {
             w = max;
-        } else if (t.w < min) {
-            w = min;
-        } else {
-            w = t.w;
-        }
+        } else w = Math.max(t.w, min);
 
     }
 
@@ -498,29 +467,13 @@ public abstract class Tuple4f implements java.io.Serializable, Cloneable {
      * @param t   the source tuple, which will not be modified
      */
     public final void clampMin(float min, Tuple4f t) {
-        if (t.x < min) {
-            x = min;
-        } else {
-            x = t.x;
-        }
+        x = Math.max(t.x, min);
 
-        if (t.y < min) {
-            y = min;
-        } else {
-            y = t.y;
-        }
+        y = Math.max(t.y, min);
 
-        if (t.z < min) {
-            z = min;
-        } else {
-            z = t.z;
-        }
+        z = Math.max(t.z, min);
 
-        if (t.w < min) {
-            w = min;
-        } else {
-            w = t.w;
-        }
+        w = Math.max(t.w, min);
 
 
     }
@@ -534,23 +487,11 @@ public abstract class Tuple4f implements java.io.Serializable, Cloneable {
      * @param t   the source tuple, which will not be modified
      */
     public final void clampMax(float max, Tuple4f t) {
-        if (t.x > max) {
-            x = max;
-        } else {
-            x = t.x;
-        }
+        x = Math.min(t.x, max);
 
-        if (t.y > max) {
-            y = max;
-        } else {
-            y = t.y;
-        }
+        y = Math.min(t.y, max);
 
-        if (t.z > max) {
-            z = max;
-        } else {
-            z = t.z;
-        }
+        z = Math.min(t.z, max);
 
         if (t.w > max) {
             w = max;

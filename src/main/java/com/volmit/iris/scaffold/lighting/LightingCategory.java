@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.collections.BlockFaceSet;
@@ -149,16 +167,12 @@ public enum LightingCategory {
     /**
      * Initializes the lighting in the chunk for this category
      *
-     * @param chunk
      */
     public abstract void initialize(LightingChunk chunk);
 
     /**
      * Gets the y-coordinate to start processing from when spreading light around
      *
-     * @param chunk
-     * @param x
-     * @param z
      * @return start y-coordinate
      */
     public abstract int getStartY(LightingChunk chunk, int x, int z);
@@ -167,8 +181,6 @@ public enum LightingCategory {
      * Sets whether this category of light is dirty, indicating this category of light is all good,
      * or that more work is needed spreading light around.
      *
-     * @param chunk
-     * @param dirty
      */
     public abstract void setDirty(LightingChunk chunk, boolean dirty);
 
@@ -176,10 +188,6 @@ public enum LightingCategory {
      * Gets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
      *
-     * @param section
-     * @param x
-     * @param y
-     * @param z
      * @return light level
      */
     public abstract int get(LightingCube section, int x, int y, int z);
@@ -188,11 +196,6 @@ public enum LightingCategory {
      * Sets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
      *
-     * @param section
-     * @param x
-     * @param y
-     * @param z
-     * @param level
      */
     public abstract void set(LightingCube section, int x, int y, int z, int level);
 }

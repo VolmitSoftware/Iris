@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import lombok.Getter;
@@ -27,14 +45,11 @@ public class TaskExecutor {
                 return t;
             });
         } else if (threadLimit > 1) {
-            final ForkJoinWorkerThreadFactory factory = new ForkJoinWorkerThreadFactory() {
-                @Override
-                public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-                    final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                    worker.setName(name + " " + xc++);
-                    worker.setPriority(priority);
-                    return worker;
-                }
+            final ForkJoinWorkerThreadFactory factory = pool -> {
+                final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                worker.setName(name + " " + xc++);
+                worker.setPriority(priority);
+                return worker;
             };
 
             service = new ForkJoinPool(threadLimit, factory, null, false);
@@ -102,8 +117,9 @@ public class TaskExecutor {
             waiting:
             while (true) {
                 try {
+                    //noinspection BusyWait
                     Thread.sleep(0);
-                } catch (InterruptedException e1) {
+                } catch (InterruptedException ignored) {
 
                 }
 
@@ -132,6 +148,7 @@ public class TaskExecutor {
         }
     }
 
+    @SuppressWarnings("ClassCanBeRecord")
     @ToString
     public static class TaskResult {
         public TaskResult(double timeElapsed, int tasksExecuted, int tasksFailed, int tasksCompleted) {

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.generator.modifier;
 
 import com.volmit.iris.object.IrisBiome;
@@ -42,6 +60,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
 
         int h = getFramework().getEngineParallax().trueHeight(x, z);
@@ -322,9 +341,22 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                                 }
 
                                 if (!cancel && isAirOrWater(x, c, z, currentPostX, currentPostZ, currentData)) {
-                                    Slab slab = (Slab) d.clone();
-                                    slab.setType(Slab.Type.TOP);
-                                    setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                    try {
+                                        Slab slab = (Slab) d.clone();
+                                        slab.setType(Slab.Type.TOP);
+                                        setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                    } catch (Throwable ignored) {
+                                        try {
+                                            Slab slab = (Slab) d.clone();
+
+                                            synchronized (slab) {
+                                                slab.setType(Slab.Type.TOP);
+                                                setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                            }
+                                        } catch (Throwable ignored2) {
+
+                                        }
+                                    }
                                 }
                             }
                         }

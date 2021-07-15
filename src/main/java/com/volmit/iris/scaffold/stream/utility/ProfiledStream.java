@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.stream.utility;
 
 import com.volmit.iris.scaffold.stream.BasicStream;
@@ -42,7 +60,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
         }
 
         return t;
@@ -54,7 +72,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, y, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
         }
 
         return t;
@@ -95,8 +113,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
     }
 
     private static ProfiledTail getTail(ProceduralStream<?> t) {
-        if (t instanceof ProfiledStream) {
-            ProfiledStream<?> s = ((ProfiledStream<?>) t);
+        if (t instanceof ProfiledStream<?> s) {
 
             return new ProfiledTail(s.getId(), s.getMetrics(), s.getClass().getSimpleName().replaceAll("\\QStream\\E", ""));
         }

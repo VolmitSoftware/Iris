@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.scaffold.cache.AtomicCache;
@@ -21,24 +39,22 @@ public class IrisEntitySpawnOverride {
 
     @RegistryListEntity
     @Required
-    @DontObfuscate
+
     @Desc("The entity")
     private String entity = "";
 
 
     @Required
-    @DontObfuscate
+
     @Desc("If the following entity type spawns, spawn this entity. Set to unknown for any entity spawn")
     private EntityType trigger = EntityType.UNKNOWN;
 
 
-    @DontObfuscate
     @Desc("If the source is triggered, cancel spawning the original entity instead of ADDING a new entity.")
     private boolean cancelSourceSpawn = false;
 
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The 1 in RARITY chance for this entity to spawn")
     private int rarity = 1;
 

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager;
 
 import com.google.gson.Gson;
@@ -23,6 +41,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 
+@SuppressWarnings("ALL")
 @Data
 public class IrisProject {
     private File path;
@@ -104,21 +123,18 @@ public class IrisProject {
     }
 
     private KList<Report> scanForErrors(IrisBiome biome, IrisObjectPlacement i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     private KList<Report> scanForErrors(IrisBiome biome, IrisBiomePaletteLayer i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     private KList<Report> scanForErrorsSeaLayers(IrisBiome biome, IrisBiomePaletteLayer i) {
-        KList<Report> reports = new KList<>();
 
-        return reports;
+        return new KList<>();
     }
 
     public boolean isOpen() {
@@ -365,16 +381,16 @@ public class IrisProject {
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
         IrisDataManager dm = new IrisDataManager(getPath());
-        schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json"));
-        schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json"));
-        schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json"));
-        schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json"));
-        schemas.put(getSchemaEntry(IrisGenerator.class, dm, "/generators/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawPool.class, dm, "/jigsaw-pools/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json"));
-        schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json"));
-        schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json"));
+        schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json", "/regions/*/*.json", "/regions/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisGenerator.class, dm, "/generators/*.json", "/generators/*/*.json", "/generators/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json", "/jigsaw-pieces/*/*.json", "/jigsaw-pieces/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisJigsawPool.class, dm, "/jigsaw-pools/*.json", "/jigsaw-pools/*/*.json", "/jigsaw-pools/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json", "/jigsaw-structures/*/*/*.json", "/jigsaw-structures/*/*.json"));
+        schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json", "/blocks/*/*.json", "/blocks/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json", "/loot/*/*.json", "/loot/*/*/*.json"));
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 

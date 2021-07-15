@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
@@ -12,6 +30,7 @@ import lombok.experimental.Accessors;
 
 import java.util.List;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,75 +39,67 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant {
     @MinNumber(0.001)
-    @DontObfuscate
     @Desc("The zoom or frequency.")
     private double zoom = 1;
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("The opacity, essentially a multiplier on the output.")
     private double opacity = 1;
 
-    @DontObfuscate
+
     @Desc("Multiply the compsites instead of adding them")
     private boolean multiplicitive = false;
 
     @MinNumber(0.001)
-    @DontObfuscate
     @Desc("The size of the cell fractures")
     private double cellFractureZoom = 1D;
 
     @MinNumber(0)
-    @DontObfuscate
     @Desc("Cell Fracture Coordinate Shuffling")
     private double cellFractureShuffle = 12D;
 
-    @DontObfuscate
+
     @Desc("The height of fracture cells. Set to 0 to disable")
     private double cellFractureHeight = 0D;
 
     @MinNumber(0)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
     private double cellPercentSize = 0.75D;
 
-    @DontObfuscate
+
     @Desc("The offset to shift this noise x")
     private double offsetX = 0;
 
-    @DontObfuscate
+
     @Desc("The offset to shift this noise z")
     private double offsetZ = 0;
 
     @Required
-    @DontObfuscate
+
     @Desc("The seed for this generator")
     private long seed = 1;
 
     @Required
-    @DontObfuscate
+
     @Desc("The interpolator to use when smoothing this generator into other regions & generators")
     private IrisInterpolator interpolator = new IrisInterpolator();
 
     @MinNumber(0)
     @MaxNumber(8192)
-    @DontObfuscate
     @Desc("Cliff Height Max. Disable with 0 for min and max")
     private double cliffHeightMax = 0;
 
     @MinNumber(0)
     @MaxNumber(8192)
-    @DontObfuscate
     @Desc("Cliff Height Min. Disable with 0 for min and max")
     private double cliffHeightMin = 0;
 
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
-    @DontObfuscate
     @Desc("The list of noise gens this gen contains.")
-    private KList<IrisNoiseGenerator> composite = new KList<IrisNoiseGenerator>();
+    private KList<IrisNoiseGenerator> composite = new KList<>();
 
-    @DontObfuscate
+
     @Desc("The noise gen for cliff height.")
     private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 

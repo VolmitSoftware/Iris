@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.manager.gui;
 
 import com.volmit.iris.Iris;
@@ -19,12 +37,16 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
     private static final long serialVersionUID = 2094606939770332040L;
 
     static JComboBox<String> combo;
+    @SuppressWarnings("CanBeFinal")
     RollingSequence r = new RollingSequence(90);
+    @SuppressWarnings("CanBeFinal")
     boolean colorMode = true;
     double scale = 1;
+    @SuppressWarnings("CanBeFinal")
     static boolean hd = false;
     static double ascale = 10;
     CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
+    @SuppressWarnings("CanBeFinal")
     GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY, "Iris Renderer");
     ReentrantLock l = new ReentrantLock();
     int[][] co;
@@ -39,6 +61,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
     double mz = 0;
     static double mxx = 0;
     static double mzz = 0;
+    @SuppressWarnings("CanBeFinal")
     static boolean down = false;
     double lx = Double.MAX_VALUE; //MouseX
     double lz = Double.MAX_VALUE; //MouseY
@@ -136,8 +159,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
         accuracy = down ? accuracy * 4 : accuracy;
         int v = 1000;
 
-        if (g instanceof Graphics2D) {
-            Graphics2D gg = (Graphics2D) g;
+        if (g instanceof Graphics2D gg) {
 
             if (getParent().getWidth() != w || getParent().getHeight() != h) {
                 w = getParent().getWidth();
@@ -232,8 +254,8 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
         JFrame frame = new JFrame("Noise Explorer");
         NoiseExplorer nv = new NoiseExplorer();
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        KList<String> li = new KList<NoiseStyle>(NoiseStyle.values()).toStringList();
-        combo = new JComboBox<String>(li.toArray(new String[li.size()]));
+        KList<String> li = new KList<>(NoiseStyle.values()).toStringList();
+        combo = new JComboBox<>(li.toArray(new String[0]));
         combo.setSelectedItem("STATIC");
         combo.setFocusable(false);
         combo.addActionListener(e -> {
@@ -266,7 +288,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
     }
 
     public static void launch() {
-        EventQueue.invokeLater(() -> createAndShowGUI());
+        EventQueue.invokeLater(NoiseExplorer::createAndShowGUI);
     }
 
     static class HandScrollListener extends MouseAdapter {

@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
@@ -16,6 +34,7 @@ import org.bukkit.World;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -139,7 +158,7 @@ public class LightingChunk {
                     .map(WorldUtil::regionToChunkIndex)
                     .flatMap(base_cy -> IntStream.range(base_cy, base_cy + WorldUtil.CHUNKS_PER_REGION_AXIS))
                     .mapToObj(cy -> WorldUtil.getSection(chunk, cy))
-                    .filter(section -> section != null)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             // Then process all the gathered chunk sections into a LightingChunkSection in parallel
@@ -150,7 +169,7 @@ public class LightingChunk {
         }
 
         // Add to mapping
-        this.sections = new IntHashMap<LightingCube>();
+        this.sections = new IntHashMap<>();
         for (LightingCube lightingChunkSection : lightingChunkSectionList) {
             this.sections.put(lightingChunkSection.cy, lightingChunkSection);
         }
@@ -379,11 +398,10 @@ public class LightingChunk {
             } else if (++loops > 100) {
                 lasterrx += this.chunkX << 4;
                 lasterrz += this.chunkZ << 4;
-                StringBuilder msg = new StringBuilder();
-                msg.append("Failed to fix all " + category.getName() + " lighting at [");
-                msg.append(lasterrx).append('/').append(lasterry);
-                msg.append('/').append(lasterrz).append(']');
-                Iris.warn(msg.toString());
+                String msg = "Failed to fix all " + category.getName() + " lighting at [" +
+                        lasterrx + '/' + lasterry +
+                        '/' + lasterrz + ']';
+                Iris.warn(msg);
                 break;
             }
         }
@@ -439,7 +457,7 @@ public class LightingChunk {
 
             try {
                 for (CompletableFuture<Boolean> future : futures) {
-                    if (future.get().booleanValue()) {
+                    if (future.get()) {
                         ChunkHandle.fromBukkit(chunk).markDirty();
                         return Boolean.TRUE;
                     }

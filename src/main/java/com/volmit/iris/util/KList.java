@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import com.google.common.util.concurrent.AtomicDoubleArray;
@@ -6,6 +24,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@SuppressWarnings("ALL")
 public class KList<T> extends ArrayList<T> implements List<T> {
     private static final long serialVersionUID = -2892550695744823337L;
 
@@ -90,7 +109,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param f   the function
      * @return the new map
      */
-    @SuppressWarnings("hiding")
     public <V> KMap<T, V> asKeys(Function<T, V> f) {
         KMap<T, V> m = new KMap<T, V>();
         forEach((i) -> m.putNonNull(i, f.apply(i)));
@@ -231,7 +249,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         StringBuilder b = new StringBuilder();
 
         for (String i : toStringList()) {
-            b.append(split + i);
+            b.append(split).append(i);
         }
 
         return b.substring(split.length());
@@ -254,7 +272,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param converter the converter that converts the forign type into this list type
      * @return this list (builder)
      */
-    @SuppressWarnings("hiding")
     public <V> KList<T> addFrom(List<V> v, Function<V, T> converter) {
         v.forEach((g) -> add(converter.apply(g)));
         return this;
@@ -268,7 +285,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @param converter
      * @return
      */
-    @SuppressWarnings("hiding")
     public <V> KList<V> convert(Function<T, V> converter) {
         KList<V> v = new KList<V>();
         forEach((t) -> v.addNonNull(converter.apply(t)));

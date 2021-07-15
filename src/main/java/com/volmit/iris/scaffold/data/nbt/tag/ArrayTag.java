@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.data.nbt.tag;
 
 import java.lang.reflect.Array;
@@ -36,7 +54,7 @@ public abstract class ArrayTag<T> extends Tag<T> {
         return arrayToString("", "");
     }
 
-    protected String arrayToString(String prefix, String suffix) {
+    protected String arrayToString(@SuppressWarnings("SameParameterValue") String prefix, @SuppressWarnings("SameParameterValue") String suffix) {
         StringBuilder sb = new StringBuilder("[").append(prefix).append("".equals(prefix) ? "" : ";");
         for (int i = 0; i < length(); i++) {
             sb.append(i == 0 ? "" : ",").append(Array.get(getValue(), i)).append(suffix);

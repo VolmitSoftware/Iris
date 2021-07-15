@@ -1,29 +1,23 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
-
-/*
-Copyright (c) 2002 JSON.org
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-The Software shall be used for Good, not Evil.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
 
 /**
  * The XMLTokener extends the JSONTokener to provide additional methods for the
@@ -41,7 +35,7 @@ public class XMLTokener extends JSONTokener {
     public static final java.util.HashMap<String, Character> entity;
 
     static {
-        entity = new java.util.HashMap<String, Character>(8);
+        entity = new java.util.HashMap<>(8);
         entity.put("amp", XML.AMP);
         entity.put("apos", XML.APOS);
         entity.put("gt", XML.GT);
@@ -89,7 +83,6 @@ public class XMLTokener extends JSONTokener {
      *
      * @return A string, or a '<' Character, or null if there is no more source
      * text.
-     * @throws JSONException
      */
     public Object nextContent() throws JSONException {
         char c;
@@ -193,17 +186,10 @@ public class XMLTokener extends JSONTokener {
                         return Boolean.TRUE;
                     }
                     switch (c) {
-                        case 0:
-                        case '<':
-                        case '>':
-                        case '/':
-                        case '=':
-                        case '!':
-                        case '?':
-                        case '"':
-                        case '\'':
+                        case 0, '<', '>', '/', '=', '!', '?', '"', '\'' -> {
                             back();
                             return Boolean.TRUE;
+                        }
                     }
                 }
         }
@@ -297,7 +283,6 @@ public class XMLTokener extends JSONTokener {
      * are left at the end of the source with a result of false.
      *
      * @param to A string to skip past.
-     * @throws JSONException
      */
     public boolean skipPast(String to) throws JSONException {
         boolean b;

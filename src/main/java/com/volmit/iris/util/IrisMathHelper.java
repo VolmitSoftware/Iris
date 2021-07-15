@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import java.util.Random;
@@ -57,30 +75,21 @@ public class IrisMathHelper {
         if (var0 < var1) {
             return var1;
         }
-        if (var0 > var2) {
-            return var2;
-        }
-        return var0;
+        return Math.min(var0, var2);
     }
 
     public static float a(final float var0, final float var1, final float var2) {
         if (var0 < var1) {
             return var1;
         }
-        if (var0 > var2) {
-            return var2;
-        }
-        return var0;
+        return Math.min(var0, var2);
     }
 
     public static double a(final double var0, final double var2, final double var4) {
         if (var0 < var2) {
             return var2;
         }
-        if (var0 > var4) {
-            return var4;
-        }
-        return var0;
+        return Math.min(var0, var4);
     }
 
     public static double b(final double var0, final double var2, final double var4) {
@@ -100,7 +109,7 @@ public class IrisMathHelper {
         if (var2 < 0.0) {
             var2 = -var2;
         }
-        return (var0 > var2) ? var0 : var2;
+        return Math.max(var0, var2);
     }
 
     public static int a(final int var0, final int var1) {
@@ -242,7 +251,7 @@ public class IrisMathHelper {
     }
 
     public static long c(final int var0, final int var1, final int var2) {
-        long var3 = (long) (var0 * 3129871) ^ var2 * 116129781L ^ (long) var1;
+        long var3 = (long) (var0 * 3129871L) ^ var2 * 116129781L ^ (long) var1;
         var3 = var3 * var3 * 42317861L + var3 * 11L;
         return var3 >> 16;
     }
@@ -322,43 +331,37 @@ public class IrisMathHelper {
         float var9 = 0.0f;
         float var10 = 0.0f;
         switch (var3) {
-            case 0: {
+            case 0 -> {
                 var8 = var2;
                 var9 = var7;
                 var10 = var5;
-                break;
             }
-            case 1: {
+            case 1 -> {
                 var8 = var6;
                 var9 = var2;
                 var10 = var5;
-                break;
             }
-            case 2: {
+            case 2 -> {
                 var8 = var5;
                 var9 = var2;
                 var10 = var7;
-                break;
             }
-            case 3: {
+            case 3 -> {
                 var8 = var5;
                 var9 = var6;
                 var10 = var2;
-                break;
             }
-            case 4: {
+            case 4 -> {
                 var8 = var7;
                 var9 = var5;
                 var10 = var2;
-                break;
             }
-            case 5: {
+            case 5 -> {
                 var8 = var2;
                 var9 = var5;
                 var10 = var6;
-                break;
             }
-            default: {
+            default -> {
                 throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
             }
         }

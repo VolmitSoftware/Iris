@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.collections.BlockFaceSet;
@@ -117,9 +135,6 @@ public class LightingCube {
      * higher light value if all these tests pass.
      * The x/y/z coordinates are allowed to check neighboring cubes.
      *
-     * @param category
-     * @param old_light
-     * @param faceMask
      * @param x         The X-coordinate of the block (-1 to 16)
      * @param y         The Y-coordinate of the block (-1 to 16)
      * @param z         The Z-coordinate of the block (-1 to 16)
@@ -290,7 +305,7 @@ public class LightingCube {
                 }
             }
         } catch (Throwable t) {
-            CompletableFuture<Boolean> exceptionally = new CompletableFuture<Boolean>();
+            CompletableFuture<Boolean> exceptionally = new CompletableFuture<>();
             exceptionally.completeExceptionally(t);
             return exceptionally;
         }

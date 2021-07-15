@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
@@ -25,81 +43,73 @@ import java.awt.*;
 @Desc("Represents a loot entry")
 @Data
 public class IrisLoot {
-    @DontObfuscate
+
     @Desc("The target inventory slot types to fill this loot with")
     private InventorySlotType slotTypes = InventorySlotType.STORAGE;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The sub rarity of this loot. Calculated after this loot table has been picked.")
     private int rarity = 1;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("Minimum amount of this loot")
     private int minAmount = 1;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("Maximum amount of this loot")
     private int maxAmount = 1;
 
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The display name of this item")
     private String displayName = null;
 
     @MinNumber(0)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("Minimum durability percent")
     private double minDurability = 0;
 
     @MinNumber(0)
     @MaxNumber(1)
-    @DontObfuscate
     @Desc("Maximum durability percent")
     private double maxDurability = 1;
 
-    @DontObfuscate
+
     @Desc("Define a custom model identifier 1.14+ only")
     private Integer customModel = null;
 
-    @DontObfuscate
+
     @Desc("Set this to true to prevent it from being broken")
     private boolean unbreakable = false;
 
     @ArrayType(min = 1, type = ItemFlag.class)
-    @DontObfuscate
     @Desc("The item flags to add")
     private KList<ItemFlag> itemFlags = new KList<>();
 
-    @DontObfuscate
+
     @Desc("Apply enchantments to this item")
     @ArrayType(min = 1, type = IrisEnchantment.class)
     private KList<IrisEnchantment> enchantments = new KList<>();
 
-    @DontObfuscate
+
     @Desc("Apply attribute modifiers to this item")
     @ArrayType(min = 1, type = IrisAttributeModifier.class)
     private KList<IrisAttributeModifier> attributes = new KList<>();
 
     @ArrayType(min = 1, type = String.class)
-    @DontObfuscate
     @Desc("Add lore to this item")
     private KList<String> lore = new KList<>();
 
     @RegistryListItemType
     @Required
-    @DontObfuscate
+
     @Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
     private String type = "";
 
-    @DontObfuscate
+
     @Desc("The dye color")
     private DyeColor dyeColor = null;
 
-    @DontObfuscate
+
     @Desc("The leather armor color")
     private String leatherColor = null;
 
@@ -114,8 +124,7 @@ public class IrisLoot {
             ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
             ItemMeta m = is.getItemMeta();
 
-            if (getType().getMaxDurability() > 0 && m instanceof Damageable) {
-                Damageable d = (Damageable) m;
+            if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                 int max = getType().getMaxDurability();
                 d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
             }
@@ -176,7 +185,7 @@ public class IrisLoot {
 
             is.setItemMeta(m);
             return is;
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -198,8 +207,7 @@ public class IrisLoot {
                 ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
                 ItemMeta m = is.getItemMeta();
 
-                if (getType().getMaxDurability() > 0 && m instanceof Damageable) {
-                    Damageable d = (Damageable) m;
+                if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                     int max = getType().getMaxDurability();
                     d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
                 }
@@ -251,7 +259,7 @@ public class IrisLoot {
                 m.setLore(lore);
                 is.setItemMeta(m);
                 return is;
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         }

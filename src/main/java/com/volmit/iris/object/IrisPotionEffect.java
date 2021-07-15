@@ -1,8 +1,29 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.Desc;
+import com.volmit.iris.util.MaxNumber;
+import com.volmit.iris.util.MinNumber;
+import com.volmit.iris.util.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,34 +35,32 @@ import org.bukkit.potion.PotionEffectType;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@DontObfuscate
+
 @Desc("An iris potion effect")
 @Data
 public class IrisPotionEffect {
 
     @Required
-    @DontObfuscate
+
     @Desc("The potion effect to apply in this area")
     private String potionEffect = "";
 
     @Required
     @MinNumber(-1)
     @MaxNumber(1024)
-    @DontObfuscate
     @Desc("The Potion Strength or -1 to disable")
     private int strength = -1;
 
     @Required
     @MinNumber(1)
-    @DontObfuscate
     @Desc("The time the potion will last for")
     private int ticks = 200;
 
-    @DontObfuscate
+
     @Desc("Is the effect ambient")
     private boolean ambient = false;
 
-    @DontObfuscate
+
     @Desc("Is the effect showing particles")
     private boolean particles = true;
 
@@ -64,7 +83,7 @@ public class IrisPotionEffect {
                         return t;
                     }
                 }
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
 

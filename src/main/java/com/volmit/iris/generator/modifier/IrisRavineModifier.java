@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.generator.modifier;
 
 import com.volmit.iris.generator.noise.CNG;
@@ -9,6 +27,7 @@ import com.volmit.iris.util.*;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+@SuppressWarnings("ALL")
 public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData CAVE_AIR = B.get("CAVE_AIR");
     private static final BlockData LAVA = B.get("LAVA");
@@ -52,7 +71,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
 
     private final float[] ravineCache = new float[1024];
 
-    private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, int n3, int n4, double d4, RNG bbx, Hunk<BlockData> terrain) {
+    private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, @SuppressWarnings("SameParameterValue") int n3, @SuppressWarnings("SameParameterValue") int n4, @SuppressWarnings("SameParameterValue") double d4, RNG bbx, Hunk<BlockData> terrain) {
         int n5;
         RNG random = new RNG(seed);
         double x = tx * 16 + 8;
@@ -196,7 +215,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
         }
     }
 
-    private BlockPosition cSet(BlockPosition bb, double var0, double var2, double var4) {
+    private BlockPosition cSet(BlockPosition bb, double var0, @SuppressWarnings("SameParameterValue") double var2, double var4) {
         bb.setX(MathHelper.floor(var0));
         bb.setY(MathHelper.floor(var2));
         bb.setZ(MathHelper.floor(var4));

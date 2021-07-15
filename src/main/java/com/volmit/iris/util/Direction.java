@@ -1,9 +1,29 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util;
 
 import com.volmit.iris.util.Cuboid.CuboidDirection;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
+
+import java.util.Map;
 
 /**
  * Directions
@@ -26,68 +46,28 @@ public enum Direction {
     private final CuboidDirection f;
 
     public static Direction getDirection(BlockFace f) {
-        switch (f) {
-            case DOWN:
-                return D;
-            case EAST:
-                return E;
-            case EAST_NORTH_EAST:
-                return E;
-            case EAST_SOUTH_EAST:
-                return E;
-            case NORTH:
-                return N;
-            case NORTH_EAST:
-                return N;
-            case NORTH_NORTH_EAST:
-                return N;
-            case NORTH_NORTH_WEST:
-                return N;
-            case NORTH_WEST:
-                return N;
-            case SELF:
-                return U;
-            case SOUTH:
-                return S;
-            case SOUTH_EAST:
-                return S;
-            case SOUTH_SOUTH_EAST:
-                return S;
-            case SOUTH_SOUTH_WEST:
-                return S;
-            case SOUTH_WEST:
-                return S;
-            case UP:
-                return U;
-            case WEST:
-                return W;
-            case WEST_NORTH_WEST:
-                return W;
-            case WEST_SOUTH_WEST:
-                return W;
-        }
+        return switch (f) {
+            case DOWN -> D;
+            case EAST, EAST_SOUTH_EAST, EAST_NORTH_EAST -> E;
+            case NORTH, NORTH_WEST, NORTH_NORTH_WEST, NORTH_NORTH_EAST, NORTH_EAST -> N;
+            case SELF, UP -> U;
+            case SOUTH, SOUTH_WEST, SOUTH_SOUTH_WEST, SOUTH_SOUTH_EAST, SOUTH_EAST -> S;
+            case WEST, WEST_SOUTH_WEST, WEST_NORTH_WEST -> W;
+        };
 
-        return D;
     }
 
     @Override
     public String toString() {
-        switch (this) {
-            case D:
-                return "Down";
-            case E:
-                return "East";
-            case N:
-                return "North";
-            case S:
-                return "South";
-            case U:
-                return "Up";
-            case W:
-                return "West";
-        }
+        return switch (this) {
+            case D -> "Down";
+            case E -> "East";
+            case N -> "North";
+            case S -> "South";
+            case U -> "Up";
+            case W -> "West";
+        };
 
-        return "?";
     }
 
     public boolean isVertical() {
@@ -167,9 +147,10 @@ public enum Direction {
     public Vector angle(Vector initial, Direction d) {
         calculatePermutations();
 
-        for (GBiset<Direction, Direction> i : permute.keySet()) {
+        for (Map.Entry<GBiset<Direction, Direction>, DOP> entry : permute.entrySet()) {
+            GBiset<Direction, Direction> i = entry.getKey();
             if (i.getA().equals(this) && i.getB().equals(d)) {
-                return permute.get(i).op(initial);
+                return entry.getValue().op(initial);
             }
         }
 
@@ -292,11 +273,11 @@ public enum Direction {
             return;
         }
 
-        permute = new KMap<GBiset<Direction, Direction>, DOP>();
+        permute = new KMap<>();
 
         for (Direction i : udnews()) {
             for (Direction j : udnews()) {
-                GBiset<Direction, Direction> b = new GBiset<Direction, Direction>(i, j);
+                GBiset<Direction, Direction> b = new GBiset<>(i, j);
 
                 if (i.equals(j)) {
                     permute.put(b, new DOP("DIRECT") {
@@ -376,40 +357,23 @@ public enum Direction {
     }
 
     public BlockFace getFace() {
-        switch (this) {
-            case D:
-                return BlockFace.DOWN;
-            case E:
-                return BlockFace.EAST;
-            case N:
-                return BlockFace.NORTH;
-            case S:
-                return BlockFace.SOUTH;
-            case U:
-                return BlockFace.UP;
-            case W:
-                return BlockFace.WEST;
-        }
+        return switch (this) {
+            case D -> BlockFace.DOWN;
+            case E -> BlockFace.EAST;
+            case N -> BlockFace.NORTH;
+            case S -> BlockFace.SOUTH;
+            case U -> BlockFace.UP;
+            case W -> BlockFace.WEST;
+        };
 
-        return null;
     }
 
     public Axis getAxis() {
-        switch (this) {
-            case D:
-                return Axis.Y;
-            case E:
-                return Axis.X;
-            case N:
-                return Axis.Z;
-            case S:
-                return Axis.Z;
-            case U:
-                return Axis.Y;
-            case W:
-                return Axis.X;
-        }
+        return switch (this) {
+            case D, U -> Axis.Y;
+            case E, W -> Axis.X;
+            case N, S -> Axis.Z;
+        };
 
-        return null;
     }
 }

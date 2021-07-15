@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.object;
 
 import com.volmit.iris.manager.IrisDataManager;
@@ -19,22 +37,22 @@ public class IrisBlockDrops {
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The blocks that drop loot")
-    private KList<IrisBlockData> blocks = new KList<IrisBlockData>();
+    private KList<IrisBlockData> blocks = new KList<>();
 
-    @DontObfuscate
+
     @Desc("If exact blocks is set to true, minecraft:barrel[axis=x] will only drop for that axis. When exact is false (default) any barrel will drop the defined drops.")
     private boolean exactBlocks = false;
 
-    @DontObfuscate
+
     @Desc("Add in specific items to drop")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> drops = new KList<>();
 
-    @DontObfuscate
+
     @Desc("If this is in a biome, setting skipParents to true will ignore the drops in the region and dimension for this block type. The default (false) will allow all three nodes to fire and add to a list of drops.")
     private boolean skipParents = false;
 
-    @DontObfuscate
+
     @Desc("Removes the default vanilla block drops and only drops the given items & any parent loot tables specified for this block type.")
     private boolean replaceVanillaDrops = false;
 
@@ -65,6 +83,8 @@ public class IrisBlockDrops {
         return false;
     }
 
+    // TODO: WARNING USES RNG.R
+    @Deprecated
     public void fillDrops(boolean debug, KList<ItemStack> d) {
         for (IrisLoot i : getDrops()) {
             if (RNG.r.i(1, i.getRarity()) == i.getRarity()) {

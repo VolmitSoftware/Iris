@@ -1,3 +1,21 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.scaffold.lighting;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -46,8 +64,6 @@ public class FlatRegionInfoMap {
     /**
      * Gets whether a chunk exists
      *
-     * @param cx
-     * @param cz
      * @return True if the chunk exists
      */
     public boolean containsChunk(int cx, int cz) {
@@ -58,8 +74,6 @@ public class FlatRegionInfoMap {
     /**
      * Gets whether a chunk, and all its 8 neighbours, exist
      *
-     * @param cx
-     * @param cz
      * @return True if the chunk and all its neighbours exist
      */
     public boolean containsChunkAndNeighbours(int cx, int cz) {
@@ -89,7 +103,6 @@ public class FlatRegionInfoMap {
      * Computes all the region Y-coordinates used by a region and its neighbouring 8 regions.
      * The returned array is sorted in increasing order and is distinct (no duplicate values).
      *
-     * @param region
      * @return region and neighbouring regions' Y-coordinates
      */
     public int[] getRegionYCoordinatesSelfAndNeighbours(FlatRegionInfo region) {
@@ -116,11 +129,10 @@ public class FlatRegionInfoMap {
      * Creates a region information mapping of all existing chunks of a world
      * that are currently loaded. No further loading is required.
      *
-     * @param world
      * @return region info map
      */
     public static FlatRegionInfoMap createLoaded(World world) {
-        LongHashMap<FlatRegionInfo> regions = new LongHashMap<FlatRegionInfo>();
+        LongHashMap<FlatRegionInfo> regions = new LongHashMap<>();
         for (Chunk chunk : world.getLoadedChunks()) {
             int rx = WorldUtil.chunkToRegionIndex(chunk.getX());
             int rz = WorldUtil.chunkToRegionIndex(chunk.getZ());
@@ -133,7 +145,7 @@ public class FlatRegionInfoMap {
 
             // Refresh y-coordinates
             for (Integer y_coord : WorldUtil.getLoadedSectionCoordinates(chunk)) {
-                new_info = new_info.addRegionYCoordinate(WorldUtil.chunkToRegionIndex(y_coord.intValue()));
+                new_info = new_info.addRegionYCoordinate(WorldUtil.chunkToRegionIndex(y_coord));
             }
 
             // Add chunk to region bitset
@@ -151,11 +163,10 @@ public class FlatRegionInfoMap {
     /**
      * Creates a region information mapping of all existing chunks of a world
      *
-     * @param world
      * @return region info map
      */
     public static FlatRegionInfoMap create(World world) {
-        LongHashMap<FlatRegionInfo> regions = new LongHashMap<FlatRegionInfo>();
+        LongHashMap<FlatRegionInfo> regions = new LongHashMap<>();
 
         // Obtain the region coordinates in 3d space (vertical too!)
         Set<IntVector3> regionCoordinates = WorldUtil.getWorldRegions3(world);

@@ -4,42 +4,36 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.KSet;
 import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.util.RandomColor;
 import com.volmit.iris.util.RollingSequence;
 import io.netty.util.internal.ConcurrentSet;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
 
 public class MapVision extends JPanel {
 
@@ -101,15 +95,15 @@ public class MapVision extends JPanel {
         addMouseWheelListener((mouseWheelEvent) -> {
             double oldScale = this.scale;
             this.scale = Math.min(4, Math.max(scale + scale * mouseWheelEvent.getWheelRotation() * 0.2, 1));
-            double wx = getWidth();
-            double hy = getHeight();
-            double xScale = (mouseX - wx) / wx * 0.5;
-            double yScale = (mouseY - hy) / hy * 0.5;
+            double wx = getWidth() / 2;
+            double hy = getHeight() / 2;
+            double xScale = (mouseX - wx) / wx;
+            double yScale = (mouseY - hy) / hy;
 
-            if (mouseWheelEvent.getWheelRotation() > 0) { //Only on zoom in, adjust the position to zoom into
-                this.draggedOffsetX += xScale * (wx / 2) * (oldScale - scale);
-                this.draggedOffsetY += yScale * (hy / 2) * (oldScale - scale);
-            }
+            /*if (mouseWheelEvent.getWheelRotation() > 0) { //Only on zoom in, adjust the position to zoom into
+                this.draggedOffsetX += xScale * (wx) * (oldScale - scale);
+                this.draggedOffsetY += yScale * (hy) * (oldScale - scale);
+            }*/
 
             dirty = true;
             repaint();
@@ -165,7 +159,7 @@ public class MapVision extends JPanel {
             }
 
             @Override
-            public void componentShown(ComponentEvent e) { }
+            public void componentShown(ComponentEvent e) {           }
 
             @Override
             public void componentHidden(ComponentEvent e) { }
@@ -202,6 +196,18 @@ public class MapVision extends JPanel {
         frame.setVisible(true);
         frame.requestFocus();
         frame.toFront();
+        frame.addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+                dirty = true;
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+
+            }
+        });
     }
 
     @Override
@@ -238,8 +244,8 @@ public class MapVision extends JPanel {
         gx.setColor(Color.WHITE);
         //int x = (int) (((int) ((mouseX - windowOffsetX)) << 2) + (draggedOffsetX * scale));
         //int y = (int) (((int) ((mouseY - windowOffsetY)) << 2) + (draggedOffsetY * scale));
-        int x = (int) (((int) ((mouseX - windowOffsetX))) + (-draggedOffsetX * scale)) << 2;
-        int y = (int) (((int) ((mouseY - windowOffsetY))) + (-draggedOffsetY * scale)) << 2;
+        int x = (int) (((int) ((mouseX - windowOffsetX))) - (draggedOffsetX)) << 2;
+        int y = (int) (((int) ((mouseY - windowOffsetY))) - (draggedOffsetY)) << 2;
         String text = " [" + x+ ", " + y + "]";
         if (realname)
             text = complex.getLandBiomeStream().get(x, y).getLoadKey().toUpperCase() + text;
@@ -294,14 +300,12 @@ public class MapVision extends JPanel {
     public void drawTile(Graphics gx, Tile tile) {
         if (gx == null) return;
 
-        int x = (int) Math.round((tile.getX() << TILE_SIZE_R) / scale + offsetX);
-        int y = (int) Math.round((tile.getY() << TILE_SIZE_R) / scale + offsetY);
-        //int x = (int) ((tile.getX() * TILE_SIZE) / scale + offsetX);
-        //int y = (int) ((tile.getY() * TILE_SIZE) / scale + offsetY);
+        int x = (int) Math.floor((tile.getX() << TILE_SIZE_R) / scale + offsetX);
+        int y = (int) Math.floor((tile.getY() << TILE_SIZE_R) / scale + offsetY);
 
         int size = (int) (TILE_SIZE / scale);
-        int off = (int) (TILE_SIZE % scale);
-        gx.drawImage(tile.getImage(), x, y, size, size, null);
+        int off = (int) Math.round((TILE_SIZE % scale));
+        gx.drawImage(tile.getImage(), x, y, size + off, size + off,null);
     }
 
     private Runnable sleepTask = new Runnable() {
@@ -362,16 +366,13 @@ public class MapVision extends JPanel {
         lastTileWidth = checkSizeX;
         generateSpiral(newSize);
 
-        Set<Integer> checked = new HashSet<>();
-        Set<Integer> clone = new HashSet(visibleTiles.stream().map((t) ->
-                getTileId(t.getX(), t.getY()))
-                .collect(Collectors.toSet()));       //Clone the visible tiles
+        Set<Tile> toRemove = new HashSet(visibleTiles);       //Clone the visible tiles
 
         if (debug) { //These are the 4 corners of the red line that shows the visibility check region for tiles
-            debugBorder[0] = -checkSizeX + centerTileX;
-            debugBorder[1] = -checkSizeY + centerTileY;
-            debugBorder[2] = checkSizeX + 1 + centerTileX;
-            debugBorder[3] = checkSizeY + 1 + centerTileY;
+            debugBorder[0] = -checkSizeX + centerTileX - 1;
+            debugBorder[1] = -checkSizeY + centerTileY - 1;
+            debugBorder[2] = checkSizeX + centerTileX;
+            debugBorder[3] = checkSizeY + centerTileY;
         }
 
         for (short[] coords : spiral) { //Start from the center of the spiral and work outwards to find new tiles to queue
@@ -379,10 +380,10 @@ public class MapVision extends JPanel {
             short y = (short)(coords[1] + centerTileY);
 
             //When it goes offscreen, don't queue the tile by continuing
-            if (Math.abs(coords[0]) > checkSizeX + 1) {
+            if (x > checkSizeX + centerTileX || x < -checkSizeX + centerTileX - 1) {
                 continue;
             }
-            if (Math.abs(coords[1]) > checkSizeY + 1) {
+            if (y > checkSizeY + centerTileY || y < -checkSizeY + centerTileY - 1) {
                 continue;
             }
 
@@ -393,13 +394,16 @@ public class MapVision extends JPanel {
                 short[] c = getTileCoords(id);
                 queue(c[0], c[1]); //Queue for creation
             } else {
-                checked.add(id);
+                Tile t = tiles.get(id);
+                toRemove.remove(t); //Make sure this tile isn't removed
+
+                if (!visibleTiles.contains(t)) {
+                    visibleTiles.add(t); //Make sure it's visible again if it isn't
+                }
             }
         }
 
-        clone.removeAll(checked);   //Remove the tiles that we know are onscreen
-
-        queueForRemoval(clone);
+        queueForRemoval(toRemove); //Queue all tiles not on screen for removal
 
         stopwatch.end();
         roll.put(stopwatch.getMillis());
@@ -457,11 +461,9 @@ public class MapVision extends JPanel {
     /**
      * Pend tiles for removal from the screen
      */
-    public void queueForRemoval(Collection<Integer> ids) {
+    public void queueForRemoval(Collection<Tile> tile) {
         J.a(() -> {
-            for (int id : ids) {
-                Tile t = tiles.get(id);
-
+            for (Tile t : tile) {
                 if (t != null) {
                     visibleTiles.remove(t);
                 }
@@ -471,10 +473,9 @@ public class MapVision extends JPanel {
         //TODO Change from using the async task system as it may be putting strain on the server from being called so often
 
         J.a(() -> { //Remove it completely from memory after 5 seconds if it's still not visible
-            for (int id : ids) {
-                Tile t = tiles.get(id);
+            for (Tile t : tile) {
                 if (t != null && !visibleTiles.contains(t)) {
-                    tiles.remove(id);
+                    tiles.remove(t);
                 }
             }
 
@@ -499,7 +500,7 @@ public class MapVision extends JPanel {
      * @return
      */
     public int getTileId(short tileX, short tileY) {
-        return tileX + tileY << 16;
+        return (tileX << 16) | (tileY & 0xFFFF);
     }
 
     /**
@@ -508,7 +509,7 @@ public class MapVision extends JPanel {
      * @return
      */
     public short[] getTileCoords(int id) {
-        return new short[] {(short) (id & 0x0000FFFF), (short) (id >> 16)};
+        return new short[] {(short)(id >> 16), (short) id};
     }
 
     /**
@@ -578,7 +579,7 @@ public class MapVision extends JPanel {
             threadId++;
             Thread t = new Thread(r);
             t.setName("Iris Map Renderer " + threadId);
-            t.setPriority(Thread.MIN_PRIORITY);
+            t.setPriority(4);
             t.setDaemon(true);
             t.setUncaughtExceptionHandler((et, e) ->
             {
@@ -591,7 +592,7 @@ public class MapVision extends JPanel {
     };
 
     //Our thread pool that draws the tiles for us
-    private final ThreadPoolExecutor executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(8, factory);
+    private final ThreadPoolExecutor executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(3, factory);
 
 
 }

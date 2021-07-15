@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.cache.AtomicCache;
@@ -10,6 +11,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.awt.Color;
+import java.util.Random;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -217,7 +221,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     @DontObfuscate
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
-    private IrisColor color = null;
+    private String color = null;
 
     private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
@@ -233,6 +237,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private final transient AtomicCache<CNG> lakeGen = new AtomicCache<>();
     private final transient AtomicCache<CNG> riverGen = new AtomicCache<>();
     private final transient AtomicCache<CNG> riverChanceGen = new AtomicCache<>();
+    private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
 
     public String getName() {
         return name;
@@ -517,5 +522,46 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         }
 
         return b.v();
+    }
+
+    public Color getColor(DataProvider dataProvider) {
+
+        return this.cacheColor.aquire(() -> {
+            if (this.color == null) {
+                Random rand = new Random(getName().hashCode() + getAllBiomeIds().hashCode());
+                RandomColor randomColor = new RandomColor(rand);
+
+                KList<IrisBiome> biomes = getRealLandBiomes(dataProvider);
+
+                while (biomes.size() > 0) {
+                    int index = rand.nextInt(biomes.size());
+                    IrisBiome biome  = biomes.get(index);
+
+                    if (biome.getVanillaDerivative() != null) {
+                        RandomColor.Color col = VanillaBiomeMap.getColorType(biome.getVanillaDerivative());
+                        RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(biome.getVanillaDerivative());
+                        RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(biome.getVanillaDerivative());
+                        int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? RandomColor.SaturationType.MONOCHROME : sat, lum);
+                        return new Color(newColorI);
+                    }
+
+                    biomes.remove(index);
+                }
+
+                Iris.warn("Couldn't find a suitable color for region " + getName());
+                return new Color(new RandomColor(rand).randomColor());
+            }
+
+            try {
+                return Color.decode(this.color);
+            } catch (NumberFormatException e) {
+                Iris.warn("Could not parse color \"" + this.color + "\" for region " + getName());
+                return Color.WHITE;
+            }
+        });
+    }
+
+    public void pickRandomColor(DataProvider data) {
+
     }
 }

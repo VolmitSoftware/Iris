@@ -11,6 +11,7 @@ import lombok.experimental.Accessors;
 
 import java.awt.*;
 
+@Deprecated(forRemoval = true)
 @Accessors(chain = true)
 @NoArgsConstructor
 @Desc("Represents a color")

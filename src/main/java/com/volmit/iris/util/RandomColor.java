@@ -130,6 +130,11 @@ public class RandomColor {
         random.setSeed(seed);
     }
 
+    public RandomColor(Random random) {
+        loadColorBounds();
+        this.random = random;
+    }
+
     private int getColor(int hue, int saturation, int brightness) {
         return java.awt.Color.getHSBColor((float)(hue + hueOffset % 360) / 360, (float)saturation / 100, (float)brightness / 100).getRGB();
     }

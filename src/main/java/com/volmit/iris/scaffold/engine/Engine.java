@@ -91,10 +91,10 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
         double heightFactor = M.lerpInverse(0, getHeight(), height);
-        IrisColor irc = region.getColor();
-        IrisColor ibc = biome.getColor();
-        Color rc = irc != null ? irc.getColor() : Color.GREEN.darker();
-        Color bc = ibc != null ? ibc.getColor() : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
+        Color irc = region.getColor(this.getFramework().getComplex());
+        Color ibc = biome.getColor();
+        Color rc = irc != null ? irc : Color.GREEN.darker();
+        Color bc = ibc != null ? ibc : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
         Color f = IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));
 
         return f;

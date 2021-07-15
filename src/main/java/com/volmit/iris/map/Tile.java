@@ -7,6 +7,7 @@ import com.volmit.iris.scaffold.stream.ProceduralStream;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -55,17 +56,15 @@ public class Tile {
     public boolean render(IrisComplex complex, RenderType type) {
         BufferedImage newImage = new BufferedImage(128, 128, BufferedImage.TYPE_INT_RGB);
 
-        ProceduralStream stream;
         BiFunction<Integer, Integer, Integer> getColor;
         if (type == RenderType.BIOME_LAND) {
-            stream = complex.getLandBiomeStream();
-            getColor = (x, z) -> ((ProceduralStream<IrisBiome>)stream).get(x, z).getColor().getAsRGB();
+            getColor = (x, z) -> complex.getLandBiomeStream().get(x, z).getColor().getRGB();
         } else if (type == RenderType.REGION) {
-            stream = complex.getRegionStream();
-            getColor = (x, z) -> ((ProceduralStream<IrisRegion>)stream).get(x, z).getColor().getColor().getRGB();
+            getColor = (x, z) -> complex.getRegionStream().get(x, z).getColor(complex).getRGB();
+        } else if (type == RenderType.HEIGHT) {
+            getColor = (x, z) -> Color.getHSBColor(complex.getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         } else {
-            stream = complex.getCaveBiomeStream();
-            getColor = (x, z) -> ((ProceduralStream<IrisBiome>)stream).get(x, z).getColor().getAsRGB();
+            getColor = (x, z) -> complex.getCaveBiomeStream().get(x, z).getColor().getRGB();
         }
 
         for (int i = 0; i < 128; i++) {

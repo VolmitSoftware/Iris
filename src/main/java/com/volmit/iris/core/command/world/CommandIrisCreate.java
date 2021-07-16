@@ -118,7 +118,7 @@ public class CommandIrisCreate extends MortarCommand {
         String worldName = args[0];
         String type = IrisSettings.get().getGenerator().getDefaultWorldType();
         long seed = random.nextLong(); //Random seed when creating a world
-        AtomicInteger pregen = new AtomicInteger(256);
+        AtomicInteger pregen = new AtomicInteger(0);
         boolean multiverse = Iris.linkMultiverseCore.supported();
 
         for (String i : args) {

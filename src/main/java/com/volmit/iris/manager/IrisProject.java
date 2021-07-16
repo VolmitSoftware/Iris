@@ -279,11 +279,15 @@ public class IrisProject {
         Iris.linkMultiverseCore.removeFromConfig(world);
 
         done.set(true);
-        sender.sendMessage(C.WHITE + "Generating Complete!");
 
         if (sender.isPlayer()) {
             assert world != null;
             sender.player().teleport(world.getSpawnLocation());
+        }
+
+        else
+        {
+            sender.sendMessage(C.WHITE + "Generating Complete!");
         }
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->

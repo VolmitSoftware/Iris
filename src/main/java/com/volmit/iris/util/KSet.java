@@ -39,4 +39,8 @@ public class KSet<T> extends HashSet<T> {
     public KSet(int initialCapacity) {
         super(initialCapacity);
     }
+
+    public KSet<T> copy() {
+        return new KSet<T>(this);
+    }
 }

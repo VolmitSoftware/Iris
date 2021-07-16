@@ -18,9 +18,11 @@
 
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.manager.IrisDataManager;
 import lombok.Data;
 
+import java.awt.*;
 import java.io.File;
 
 @Data
@@ -30,4 +32,15 @@ public class IrisRegistrant {
     private transient String loadKey;
 
     private transient File loadFile;
+
+    public File openInVSCode()
+    {
+        try {
+            Desktop.getDesktop().open(getLoadFile());
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+
+        return getLoadFile();
+    }
 }

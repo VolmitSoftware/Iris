@@ -43,7 +43,7 @@ public class HunkRegionSlice<T> {
     private final String key;
     private final KMap<ChunkPosition, Hunk<T>> loadedChunks;
     private final KMap<ChunkPosition, Long> lastUse;
-    private final KList<ChunkPosition> save;
+    private final KSet<ChunkPosition> save;
     private final int height;
 
     public HunkRegionSlice(int height, Function3<Integer, Integer, Integer, Hunk<T>> factory, HunkIOAdapter<T> adapter, CompoundTag compound, String key) {
@@ -53,7 +53,7 @@ public class HunkRegionSlice<T> {
         this.factory = factory;
         this.adapter = adapter;
         this.compound = compound;
-        this.save = new KList<>();
+        this.save = new KSet<>();
         this.key = key;
         this.lastUse = new KMap<>();
     }
@@ -246,7 +246,7 @@ public class HunkRegionSlice<T> {
 
     public Hunk<T> getRW(int x, int z) {
         return lock.withResult(x, z, () -> {
-            save.addIfMissing(new ChunkPosition(x, z));
+            save.add(new ChunkPosition(x, z));
             return get(x, z);
         });
     }

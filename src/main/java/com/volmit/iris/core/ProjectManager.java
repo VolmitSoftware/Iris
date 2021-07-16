@@ -281,6 +281,8 @@ public class ProjectManager {
         }
 
         sender.sendMessage("Successfully Aquired " + d.getName());
+        Iris.instance.installDataPacks();
+        Iris.instance.verifyDataPacksPost();
     }
 
     public KMap<String, String> getListing(boolean cached) {

@@ -28,10 +28,13 @@ import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.stream.utility.CachedStream2D;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
@@ -42,6 +45,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;
 import com.volmit.iris.util.plugin.VolmitPlugin;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.GroupedExecutor;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
@@ -51,6 +55,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
@@ -115,7 +120,7 @@ public class Iris extends VolmitPlugin implements Listener {
         return null;
     }
 
-    private void installDataPacks() {
+    public void installDataPacks() {
         Iris.info("Checking Data Packs...");
         boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
@@ -323,6 +328,108 @@ public class Iris extends VolmitPlugin implements Listener {
         return instance.getDataFolder("cache", "temp");
     }
 
+    public void verifyDataPacksPost()
+    {
+        File packs = new File("plugins/Iris/packs");
+        File dpacks = getDatapacksFolder();
+
+        if (dpacks == null) {
+            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
+            return;
+        }
+
+        boolean bad = false;
+        if (packs.exists()) {
+            for (File i : packs.listFiles()) {
+                if (i.isDirectory()) {
+                    Iris.verbose("Checking Pack: " + i.getPath());
+                    IrisDataManager data = new IrisDataManager(i);
+                    File dims = new File(i, "dimensions");
+
+                    if (dims.exists()) {
+                        for (File j : dims.listFiles()) {
+                            if (j.getName().endsWith(".json")) {
+                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+
+                                if(!verifyDataPackInstalled(dim))
+                                {
+                                   bad = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if(bad && INMS.get().supportsDataPacks())
+        {
+            Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
+            Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
+            Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
+
+            for(Player i : Bukkit.getOnlinePlayers())
+            {
+                if(i.isOp() || Iris.perm.has(i))
+                {
+                    VolmitSender sender = new VolmitSender(i, getTag("WARNING"));
+                    sender.sendMessage("There are some Iris Packs that have custom biomes in them");
+                    sender.sendMessage("You need to restart your server to use these packs.");
+                }
+            }
+        }
+    }
+
+    public boolean verifyDataPackInstalled(IrisDimension dimension)
+    {
+        IrisDataManager idm = new IrisDataManager(getDataFolder("packs", dimension.getLoadKey()));
+        KSet<String> keys = new KSet<>();
+        boolean warn = false;
+
+        for(IrisBiome i : dimension.getAllBiomes(() -> idm))
+        {
+            if(i.isCustom())
+            {
+                for(IrisBiomeCustom j : i.getCustomDerivitives())
+                {
+                    keys.add(dimension.getLoadKey() +":"+ j.getId());
+                }
+            }
+        }
+
+        if(!INMS.get().supportsDataPacks())
+        {
+            if(!keys.isEmpty())
+            {
+                Iris.warn("===================================================================================");
+                Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
+                Iris.warn("Your server version does not yet support datapacks for iris.");
+                Iris.warn("The world will generate these biomes as backup biomes.");
+                Iris.warn("====================================================================================");
+            }
+
+            return true;
+        }
+
+        for(String i : keys)
+        {
+            Object o = INMS.get().getCustomBiomeBaseFor(i);
+
+            if(o == null)
+            {
+                Iris.warn("The Biome " + i + " is not registered on the server.");
+                warn = true;
+            }
+        }
+
+        if(warn)
+        {
+            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes, restart your server before generating with this pack!");
+        }
+
+        return !warn;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         return super.onCommand(sender, command, label, args);
@@ -461,6 +568,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void splash() {
+        J.a(this::verifyDataPacksPost, 20);
         if (!IrisSettings.get().getGeneral().isSplashLogoStartup()) {
             return;
         }

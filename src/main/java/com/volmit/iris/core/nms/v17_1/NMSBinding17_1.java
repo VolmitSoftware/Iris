@@ -43,6 +43,11 @@ public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private Field biomeStorageCache = null;
 
+    public boolean supportsDataPacks()
+    {
+        return true;
+    }
+
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
         try {
             return getFieldForBiomeStorage(g).get(g);
@@ -101,7 +106,16 @@ public class NMSBinding17_1 implements INMSBinding {
 
     @Override
     public Object getCustomBiomeBaseFor(String mckey) {
-        return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
+        try {
+            return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
+        }
+
+        catch(Throwable e)
+        {
+            Iris.reportError(e);
+        }
+
+        return null;
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -225,7 +239,7 @@ public class NMSBinding17_1 implements INMSBinding {
             }
 
             a.incrementAndGet();
-            Iris.verbose("Custom Biome: " + k);
+            Iris.debug("Custom Biome: " + k);
         });
 
         return a.get();

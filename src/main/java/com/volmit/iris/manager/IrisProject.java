@@ -176,7 +176,6 @@ public class IrisProject {
             return;
         } else if (sender.isPlayer()) {
             sender.player().setGameMode(GameMode.SPECTATOR);
-            sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
         }
 
         J.attemptAsync(() ->
@@ -191,11 +190,9 @@ public class IrisProject {
                 for (File i : Objects.requireNonNull(f.listFiles())) {
                     if (i.getName().endsWith(".code-workspace")) {
                         foundWork = true;
-                        sender.sendMessage("Updating Workspace...");
                         J.a(() ->
                         {
                             updateWorkspace();
-                            sender.sendMessage("Workspace Updated");
                         });
 
                         if (IrisSettings.get().getStudio().isOpenVSCode()) {
@@ -220,9 +217,7 @@ public class IrisProject {
                         Iris.reportError(e1);
                         e1.printStackTrace();
                     }
-                    sender.sendMessage("Updating Workspace...");
                     updateWorkspace();
-                    sender.sendMessage("Workspace Updated");
                 }
             } catch (Throwable e) {
                 Iris.reportError(e);
@@ -239,7 +234,6 @@ public class IrisProject {
                 .create();
 
         IrisAccess gx = ((IrisAccess) c.generator());
-        sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
         O<Boolean> done = new O<>();
         done.set(false);
         activeProvider = gx;
@@ -247,41 +241,32 @@ public class IrisProject {
         J.a(() ->
         {
             double last = 0;
-            int req = 300;
-            double lpc = 0;
-            boolean fc;
+            int req = 900;
 
-            while (!done.get()) {
-                boolean derp = false;
-
+            while (gx.getGenerated() < req) {
                 assert gx != null;
                 double v = (double) gx.getGenerated() / (double) req;
-                fc = lpc != v;
-                lpc = v;
 
-                if (last > v || v > 1) {
-                    derp = true;
-                    v = last;
-                } else {
-                    last = v;
+                if(sender.isPlayer())
+                {
+                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)"))));
+                    J.sleep(50);
                 }
 
-                if (fc) {
-                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + (derp ? (C.GRAY + " (Waiting on Server...)") : (C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
+                else
+                {
+                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
+                    J.sleep(1000);
                 }
-
-                if (sender.isPlayer()) {
-                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.BLUE + "Creating studio world. Please wait..."));
-                }
-
-                J.sleep(1500);
 
                 if (gx.isFailing()) {
 
                     sender.sendMessage("Generation Failed!");
-                    return;
+                    break;
                 }
             }
+
+            sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
         });
 
         //@builder
@@ -303,8 +288,6 @@ public class IrisProject {
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
         {
-            sender.sendMessage("Hotloading Active! Change any files and watch your changes appear as you load new chunks!");
-
             if (sender.isPlayer()) {
                 sender.player().setGameMode(GameMode.SPECTATOR);
             }

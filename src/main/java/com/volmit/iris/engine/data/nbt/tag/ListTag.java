@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.data.nbt.tag;
 
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 import java.util.*;
 import java.util.function.Consumer;

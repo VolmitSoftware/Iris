@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
+import com.volmit.iris.engine.object.annotations.Desc;
 
 @Desc("Use 3D Interpolation on scaled objects if they are larger than the origin.")
 public enum IrisObjectPlacementScaleInterpolator {

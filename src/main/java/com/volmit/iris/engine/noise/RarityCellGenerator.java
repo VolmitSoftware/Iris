@@ -18,9 +18,9 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.util.IRare;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.RNG;
 
 public class RarityCellGenerator<T extends IRare> extends CellGenerator {
     public RarityCellGenerator(RNG rng) {

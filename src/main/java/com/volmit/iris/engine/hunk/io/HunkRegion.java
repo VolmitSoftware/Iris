@@ -19,7 +19,11 @@
 package com.volmit.iris.engine.hunk.io;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.oldnbt.CompoundTag;
+import com.volmit.iris.util.oldnbt.NBTInputStream;
+import com.volmit.iris.util.oldnbt.NBTOutputStream;
+import com.volmit.iris.util.oldnbt.Tag;
 
 import java.io.File;
 import java.io.FileInputStream;

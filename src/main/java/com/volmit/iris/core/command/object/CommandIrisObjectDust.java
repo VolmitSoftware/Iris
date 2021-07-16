@@ -21,9 +21,9 @@ package com.volmit.iris.core.command.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.WandManager;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 import org.bukkit.Sound;
 
 public class CommandIrisObjectDust extends MortarCommand {

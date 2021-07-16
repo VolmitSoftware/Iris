@@ -20,7 +20,7 @@ package com.volmit.iris.engine.hunk.io;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.function.Function3;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;

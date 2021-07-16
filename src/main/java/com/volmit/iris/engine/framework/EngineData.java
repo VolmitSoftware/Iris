@@ -21,7 +21,7 @@ package com.volmit.iris.engine.framework;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.util.IO;
+import com.volmit.iris.util.io.IO;
 import lombok.Data;
 
 import java.io.File;

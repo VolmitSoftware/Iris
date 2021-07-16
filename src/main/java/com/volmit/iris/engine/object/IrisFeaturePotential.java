@@ -18,10 +18,10 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.engine.object.annotations.Required;
 import lombok.Data;
 
 @Data

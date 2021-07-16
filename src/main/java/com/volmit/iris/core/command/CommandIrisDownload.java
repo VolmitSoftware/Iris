@@ -19,7 +19,11 @@
 package com.volmit.iris.core.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.scheduling.J;
 
 public class CommandIrisDownload extends MortarCommand {
     public CommandIrisDownload() {

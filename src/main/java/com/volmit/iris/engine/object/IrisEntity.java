@@ -20,7 +20,15 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.RegistryListMythical;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

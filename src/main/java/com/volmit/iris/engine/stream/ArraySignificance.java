@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.stream;
 
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 public class ArraySignificance<T> implements Significance<T> {
     private final KList<T> types;

@@ -24,9 +24,9 @@ import com.volmit.iris.core.gui.IrisVision;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 public class CommandIrisStudioMap extends MortarCommand
 {

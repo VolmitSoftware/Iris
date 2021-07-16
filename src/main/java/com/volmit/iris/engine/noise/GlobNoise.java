@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.math.RNG;
 
 public class GlobNoise implements NoiseGenerator {
     private final FastNoiseDouble n;

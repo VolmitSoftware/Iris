@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.hunk.view;
 
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.Consumer4;
+import com.volmit.iris.util.function.Consumer4;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class ListeningHunk<T> implements Hunk<T> {

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.math.RNG;
 
 public class PerlinNoise implements NoiseGenerator, OctaveNoise {
     private final FastNoiseDouble n;

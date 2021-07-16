@@ -25,10 +25,10 @@ import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.HunkRegion;
 import com.volmit.iris.engine.hunk.io.HunkRegionSlice;
 import com.volmit.iris.engine.parallel.GridLock;
-import com.volmit.iris.util.ByteArrayTag;
-import com.volmit.iris.util.CompoundTag;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.Tag;
+import com.volmit.iris.util.oldnbt.ByteArrayTag;
+import com.volmit.iris.util.oldnbt.CompoundTag;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.oldnbt.Tag;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 

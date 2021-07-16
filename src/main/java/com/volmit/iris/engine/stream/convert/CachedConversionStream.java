@@ -20,7 +20,7 @@ package com.volmit.iris.engine.stream.convert;
 
 import com.volmit.iris.engine.stream.BasicLayer;
 import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.collection.KMap;
 
 import java.util.function.Function;
 

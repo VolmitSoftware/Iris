@@ -20,10 +20,10 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.util.C;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 public class CommandIrisStudioCreate extends MortarCommand {
     public CommandIrisStudioCreate() {

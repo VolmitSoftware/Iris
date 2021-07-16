@@ -21,7 +21,14 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.NoiseStyle;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.function.Function2;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.scheduling.GroupedExecutor;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;

@@ -26,8 +26,8 @@ import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedComponent;
 import com.volmit.iris.engine.framework.EngineDecorator;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
 
 public abstract class IrisEngineDecorator extends EngineAssignedComponent implements EngineDecorator {

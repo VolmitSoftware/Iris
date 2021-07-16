@@ -21,9 +21,9 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.IrisWorlds;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 

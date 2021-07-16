@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
+import com.volmit.iris.engine.object.annotations.Desc;
 
 @Desc("An inventory slot type is used to represent a type of slot for items to fit into in any given inventory.")
 public enum InventorySlotType {

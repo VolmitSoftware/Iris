@@ -20,7 +20,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldType;

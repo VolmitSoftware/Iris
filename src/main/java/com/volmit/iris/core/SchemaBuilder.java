@@ -19,7 +19,12 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.*;
+import com.volmit.iris.engine.data.B;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.json.JSONArray;
+import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 

@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
 
 public class VascularNoise implements NoiseGenerator {
     private final FastNoiseDouble n;

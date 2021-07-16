@@ -22,9 +22,9 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedComponent;
 import com.volmit.iris.engine.framework.EngineEffects;
 import com.volmit.iris.engine.framework.EnginePlayer;
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.M;
-import com.volmit.iris.util.PrecisionStopwatch;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 

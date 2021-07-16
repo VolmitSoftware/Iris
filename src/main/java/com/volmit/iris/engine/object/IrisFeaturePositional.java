@@ -20,7 +20,11 @@ package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.util.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.util.function.NoiseProvider;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

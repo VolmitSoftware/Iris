@@ -23,9 +23,9 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 import java.io.File;
 

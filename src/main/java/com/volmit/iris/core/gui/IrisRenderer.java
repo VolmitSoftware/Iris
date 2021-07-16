@@ -19,7 +19,7 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.IrisInterpolation;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import org.bukkit.Material;
 
 import java.awt.*;

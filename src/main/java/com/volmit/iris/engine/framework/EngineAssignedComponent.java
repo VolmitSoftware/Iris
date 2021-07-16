@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.RollingSequence;
+import com.volmit.iris.util.math.RollingSequence;
 import lombok.Data;
 
 @Data

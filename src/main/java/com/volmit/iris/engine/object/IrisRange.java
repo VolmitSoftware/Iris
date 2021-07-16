@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

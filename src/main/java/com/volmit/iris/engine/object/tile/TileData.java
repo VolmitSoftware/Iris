@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.tile;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;

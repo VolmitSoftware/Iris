@@ -26,9 +26,9 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.hunk.view.BiomeGridHunkView;
-import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.TerrainChunk;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 

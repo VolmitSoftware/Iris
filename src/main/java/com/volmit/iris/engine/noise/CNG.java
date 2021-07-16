@@ -19,10 +19,14 @@
 package com.volmit.iris.engine.noise;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.engine.stream.arithmetic.FittedStream;
 import com.volmit.iris.engine.stream.sources.CNGStream;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.function.NoiseInjector;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import lombok.Data;
 
 import java.util.List;

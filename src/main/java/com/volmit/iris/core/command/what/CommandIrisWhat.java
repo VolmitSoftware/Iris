@@ -19,10 +19,10 @@
 package com.volmit.iris.core.command.what;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.Command;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.plugin.Command;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 public class CommandIrisWhat extends MortarCommand {
     @Command

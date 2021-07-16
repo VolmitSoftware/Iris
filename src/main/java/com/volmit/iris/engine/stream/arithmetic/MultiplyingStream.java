@@ -20,8 +20,8 @@ package com.volmit.iris.engine.stream.arithmetic;
 
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.function.Function2;
+import com.volmit.iris.util.function.Function3;
 
 public class MultiplyingStream<T> extends BasicStream<T> {
     private final Function3<Double, Double, Double, Double> add;

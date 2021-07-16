@@ -28,7 +28,7 @@ import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
 import com.volmit.iris.engine.modifier.IrisRavineModifier;
 import com.volmit.iris.engine.framework.*;
-import com.volmit.iris.util.ChronoLatch;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

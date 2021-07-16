@@ -20,7 +20,7 @@ package com.volmit.iris.engine.hunk.view;
 
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.LinkedTerrainChunk;
+import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
 import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;

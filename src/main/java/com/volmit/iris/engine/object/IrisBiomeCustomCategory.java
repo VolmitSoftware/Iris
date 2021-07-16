@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
+import com.volmit.iris.engine.object.annotations.Desc;
 
 @Desc("The custom biome category. Vanilla asks for this, basically what represents your biome closest?")
 public enum IrisBiomeCustomCategory {

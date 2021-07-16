@@ -20,7 +20,12 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 import java.io.File;
 

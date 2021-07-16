@@ -31,7 +31,21 @@ import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.util.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.NastyRunnable;
+import com.volmit.iris.util.io.FileWatcher;
+import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.Metrics;
+import com.volmit.iris.util.plugin.Permission;
+import com.volmit.iris.util.plugin.VolmitPlugin;
+import com.volmit.iris.util.scheduling.GroupedExecutor;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Queue;
+import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -71,7 +85,7 @@ public class Iris extends VolmitPlugin implements Listener {
     @Permission
     public static PermissionIris perm;
 
-    @com.volmit.iris.util.Command
+    @com.volmit.iris.util.plugin.Command
     public CommandIris commandIris;
 
     public Iris() {

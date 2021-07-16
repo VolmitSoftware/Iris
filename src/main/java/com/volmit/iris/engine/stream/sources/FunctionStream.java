@@ -20,8 +20,8 @@ package com.volmit.iris.engine.stream.sources;
 
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.interpolation.Interpolated;
-import com.volmit.iris.util.Function2;
-import com.volmit.iris.util.Function3;
+import com.volmit.iris.util.function.Function2;
+import com.volmit.iris.util.function.Function3;
 
 public class FunctionStream<T> extends BasicStream<T> {
     private final Function2<Double, Double, T> f2;

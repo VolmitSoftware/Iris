@@ -25,9 +25,9 @@ import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.HeightMap;
-import com.volmit.iris.util.PrecisionStopwatch;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.data.HeightMap;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 

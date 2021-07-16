@@ -23,7 +23,7 @@ import com.volmit.iris.engine.data.nbt.tag.ByteArrayTag;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.data.nbt.tag.ListTag;
 import com.volmit.iris.engine.data.nbt.tag.LongArrayTag;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.collection.KMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;

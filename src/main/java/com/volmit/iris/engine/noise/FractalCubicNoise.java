@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.noise;
 
 import com.volmit.iris.engine.noise.FastNoiseDouble.FractalType;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.math.RNG;
 
 public class FractalCubicNoise implements NoiseGenerator {
     private final FastNoiseDouble n;

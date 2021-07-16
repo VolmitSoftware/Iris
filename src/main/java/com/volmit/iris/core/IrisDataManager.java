@@ -20,9 +20,9 @@ package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.util.ObjectResourceLoader;
-import com.volmit.iris.util.RNG;
-import com.volmit.iris.util.ResourceLoader;
+import com.volmit.iris.engine.data.loader.ObjectResourceLoader;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.engine.data.loader.ResourceLoader;
 import lombok.Data;
 
 import java.io.File;

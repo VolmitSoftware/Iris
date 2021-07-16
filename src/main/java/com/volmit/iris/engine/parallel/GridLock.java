@@ -20,8 +20,8 @@ package com.volmit.iris.engine.parallel;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.IORunnable;
-import com.volmit.iris.util.NastyRunnable;
+import com.volmit.iris.util.io.IORunnable;
+import com.volmit.iris.util.function.NastyRunnable;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;

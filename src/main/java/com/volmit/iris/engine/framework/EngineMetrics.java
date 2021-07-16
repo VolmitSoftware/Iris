@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.AtomicRollingSequence;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.atomics.AtomicRollingSequence;
+import com.volmit.iris.util.collection.KMap;
 import lombok.Data;
 
 @Data

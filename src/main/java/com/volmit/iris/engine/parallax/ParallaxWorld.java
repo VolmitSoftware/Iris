@@ -22,9 +22,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 

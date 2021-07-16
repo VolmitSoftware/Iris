@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.v17_1.NMSBinding17_1;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import com.volmit.iris.util.KMap;
+import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;
 
 public class INMS {

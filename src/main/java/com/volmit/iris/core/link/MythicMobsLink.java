@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.link;
 
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 import io.lumine.xikage.mythicmobs.MythicMobs;
 import io.lumine.xikage.mythicmobs.mobs.MythicMob;
 import org.bukkit.Bukkit;

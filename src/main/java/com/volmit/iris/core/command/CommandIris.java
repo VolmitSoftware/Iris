@@ -24,10 +24,10 @@ import com.volmit.iris.core.command.object.CommandIrisObject;
 import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.what.CommandIrisWhat;
 import com.volmit.iris.core.command.world.*;
-import com.volmit.iris.util.Command;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
+import com.volmit.iris.util.plugin.Command;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
 
 public class CommandIris extends MortarCommand {
     @Command

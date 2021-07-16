@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.math.RNG;
 import org.bukkit.Chunk;
 import org.bukkit.block.data.BlockData;
 

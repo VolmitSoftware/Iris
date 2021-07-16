@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.Desc;
+import com.volmit.iris.engine.object.annotations.Desc;
 
 @Desc("Object Place modes are useful for positioning objects just right. The default value is CENTER_HEIGHT.")
 public enum ObjectPlaceMode {

@@ -21,8 +21,8 @@ package com.volmit.iris.engine.stream.interpolation;
 import com.volmit.iris.engine.object.InterpolationMethod;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.util.IrisInterpolation;
-import com.volmit.iris.util.NoiseProvider;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
+import com.volmit.iris.util.function.NoiseProvider;
 
 public class InterpolatingStream<T> extends BasicStream<T> implements Interpolator<T> {
     private final InterpolationMethod type;

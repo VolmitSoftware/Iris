@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.cache;
 
-import com.volmit.iris.util.IrisLock;
-import com.volmit.iris.util.M;
+import com.volmit.iris.util.scheduling.IrisLock;
+import com.volmit.iris.util.math.M;
 
 import java.util.function.Supplier;
 

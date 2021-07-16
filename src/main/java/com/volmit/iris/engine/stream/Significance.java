@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.stream;
 
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 public interface Significance<T> {
     KList<T> getFactorTypes();

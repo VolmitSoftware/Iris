@@ -22,7 +22,7 @@ import com.volmit.iris.engine.stream.ArraySignificance;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.engine.stream.Significance;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 public class SignificanceStream<K extends Significance<T>, T> extends BasicStream<K> {
     private final ProceduralStream<T> stream;

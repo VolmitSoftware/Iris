@@ -23,10 +23,10 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.NoiseExplorer;
 import com.volmit.iris.engine.object.IrisGenerator;
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.MortarCommand;
-import com.volmit.iris.util.MortarSender;
-import com.volmit.iris.util.RNG;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.MortarCommand;
+import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.math.RNG;
 
 public class CommandIrisStudioExplorerGenerator extends MortarCommand {
     public CommandIrisStudioExplorerGenerator() {

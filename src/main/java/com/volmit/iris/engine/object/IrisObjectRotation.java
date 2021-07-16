@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -19,8 +19,8 @@
 package com.volmit.iris.core.edit;
 
 import com.volmit.iris.engine.parallel.MultiBurst;
-import com.volmit.iris.util.J;
-import com.volmit.iris.util.SR;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.SR;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;

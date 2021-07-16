@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.edit;
 
-import com.volmit.iris.util.M;
+import com.volmit.iris.util.math.M;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

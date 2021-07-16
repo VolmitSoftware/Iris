@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.util.Vector2f;
-import com.volmit.iris.util.Vector3f;
+import com.volmit.iris.util.math.Vector2f;
+import com.volmit.iris.util.math.Vector3f;
 
 public class FastNoise {
     public enum NoiseType {

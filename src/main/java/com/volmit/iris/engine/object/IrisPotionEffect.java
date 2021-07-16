@@ -20,10 +20,10 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.util.Desc;
-import com.volmit.iris.util.MaxNumber;
-import com.volmit.iris.util.MinNumber;
-import com.volmit.iris.util.Required;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

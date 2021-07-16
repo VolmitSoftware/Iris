@@ -20,7 +20,8 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
-import com.volmit.iris.util.*;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

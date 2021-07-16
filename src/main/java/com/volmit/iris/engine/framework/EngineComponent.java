@@ -23,7 +23,7 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
-import com.volmit.iris.util.RollingSequence;
+import com.volmit.iris.util.math.RollingSequence;
 import org.bukkit.event.Listener;
 
 public interface EngineComponent {

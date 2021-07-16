@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.parallel;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

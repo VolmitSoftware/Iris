@@ -77,6 +77,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static BKLink linkBK;
     public static MultiverseCoreLink linkMultiverseCore;
     public static MythicMobsLink linkMythicMobs;
+    public static SaplingManager saplingManager;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static boolean customModels = doesSupportCustomModels();
     public static boolean awareEntities = doesSupportAwareness();
@@ -232,6 +233,7 @@ public class Iris extends VolmitPlugin implements Listener {
         linkMultiverseCore = new MultiverseCoreLink();
         linkBK = new BKLink();
         linkMythicMobs = new MythicMobsLink();
+        saplingManager = new SaplingManager();
         edit = new EditManager();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         J.a(() -> IO.delete(getTemp()));

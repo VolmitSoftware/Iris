@@ -79,6 +79,12 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
     private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
+    @Desc("Sapling override settings")
+    private IrisSaplings saplings = new IrisSaplings();
+
+    @Desc("Enable sapling overrides")
+    private boolean useSaplings = false;
+
     @MinNumber(1)
     @MaxNumber(128)
     @Desc("The rarity of the region")

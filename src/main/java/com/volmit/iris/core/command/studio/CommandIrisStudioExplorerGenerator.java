@@ -19,10 +19,10 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.gui.NoiseExplorer;
-import com.volmit.iris.object.IrisGenerator;
+import com.volmit.iris.core.gui.NoiseExplorer;
+import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;

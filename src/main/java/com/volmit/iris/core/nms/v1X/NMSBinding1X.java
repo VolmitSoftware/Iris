@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.nms.v1X;
+package com.volmit.iris.core.nms.v1X;
 
-import com.volmit.iris.nms.INMSBinding;
+import com.volmit.iris.core.nms.INMSBinding;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;

@@ -20,7 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.IO;
 import lombok.Data;
 

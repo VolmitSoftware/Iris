@@ -18,9 +18,9 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.object.InventorySlotType;
-import com.volmit.iris.object.IrisLootReference;
-import com.volmit.iris.object.IrisLootTable;
+import com.volmit.iris.engine.object.InventorySlotType;
+import com.volmit.iris.engine.object.IrisLootReference;
+import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.RNG;
 import org.bukkit.block.Block;

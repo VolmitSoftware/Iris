@@ -19,10 +19,10 @@
 package com.volmit.iris.core.command.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.edit.JigsawEditor;
-import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;
 import com.volmit.iris.util.MortarSender;

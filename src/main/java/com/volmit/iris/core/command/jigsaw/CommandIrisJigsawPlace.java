@@ -19,10 +19,10 @@
 package com.volmit.iris.core.command.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.object.IrisJigsawStructure;
-import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.util.*;
 

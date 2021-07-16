@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.gui.Renderer;
-import com.volmit.iris.gui.RenderType;
-import com.volmit.iris.object.*;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.gui.Renderer;
+import com.volmit.iris.core.gui.RenderType;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;

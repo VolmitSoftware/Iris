@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.util.B;
 import org.bukkit.block.data.BlockData;

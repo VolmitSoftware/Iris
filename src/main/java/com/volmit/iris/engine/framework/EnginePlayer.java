@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisEffect;
-import com.volmit.iris.object.IrisRegion;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisEffect;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.J;
 import com.volmit.iris.util.M;
 import lombok.Data;

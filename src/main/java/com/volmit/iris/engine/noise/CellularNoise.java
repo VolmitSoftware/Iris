@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.generator.noise;
+package com.volmit.iris.engine.noise;
 
 import com.volmit.iris.util.RNG;
 

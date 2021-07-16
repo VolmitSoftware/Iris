@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.nms;
+package com.volmit.iris.core.nms;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.nms.v17_1.NMSBinding17_1;
-import com.volmit.iris.nms.v1X.NMSBinding1X;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.nms.v17_1.NMSBinding17_1;
+import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.KMap;
 import org.bukkit.Bukkit;
 

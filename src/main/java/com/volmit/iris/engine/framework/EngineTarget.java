@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import lombok.Data;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.gui;
+package com.volmit.iris.core.gui;
 
 import java.awt.*;
 

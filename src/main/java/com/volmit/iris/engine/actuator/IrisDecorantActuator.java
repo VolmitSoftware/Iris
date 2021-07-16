@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.generator.actuator;
+package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.generator.decorator.*;
-import com.volmit.iris.object.IrisBiome;
+import com.volmit.iris.engine.decorator.*;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;

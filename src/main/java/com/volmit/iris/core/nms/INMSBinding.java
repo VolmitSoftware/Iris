@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.nms;
+package com.volmit.iris.core.nms;
 
 import org.bukkit.Location;
 import org.bukkit.World;

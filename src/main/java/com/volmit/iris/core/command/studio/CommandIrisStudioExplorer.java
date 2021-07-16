@@ -19,8 +19,8 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.gui.NoiseExplorer;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.gui.NoiseExplorer;
 import com.volmit.iris.util.Command;
 import com.volmit.iris.util.KList;
 import com.volmit.iris.util.MortarCommand;

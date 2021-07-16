@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.nms.v17_1;
+package com.volmit.iris.core.nms.v17_1;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.nms.INMSBinding;
+import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.KMap;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;

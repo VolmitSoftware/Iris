@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisDimension;
+import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.RollingSequence;
 import org.bukkit.event.Listener;

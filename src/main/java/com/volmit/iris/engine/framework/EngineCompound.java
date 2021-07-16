@@ -19,11 +19,11 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.actuator.IrisTerrainActuator;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.engine.actuator.IrisTerrainActuator;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.parallel.MultiBurst;

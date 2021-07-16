@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.*;
-import com.volmit.iris.object.tile.TileData;
+import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;

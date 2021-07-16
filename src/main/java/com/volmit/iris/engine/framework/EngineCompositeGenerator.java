@@ -19,14 +19,14 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
-import com.volmit.iris.generator.IrisEngineCompound;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.nms.BiomeBaseInjector;
-import com.volmit.iris.nms.INMS;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.engine.IrisEngineCompound;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.nms.BiomeBaseInjector;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.cache.Cache;

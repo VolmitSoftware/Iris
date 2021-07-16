@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.generator.decorator;
+package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.object.DecorationPart;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisDecorator;
+import com.volmit.iris.engine.object.DecorationPart;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.hunk.Hunk;

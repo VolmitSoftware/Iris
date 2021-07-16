@@ -19,9 +19,9 @@
 package com.volmit.iris.core.command.what;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisBiome;
-import com.volmit.iris.object.IrisObject;
-import com.volmit.iris.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.util.*;

@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.hunk.io;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.tile.TileData;
+import com.volmit.iris.engine.object.tile.TileData;
 import org.bukkit.block.TileState;
 
 import java.io.DataInputStream;

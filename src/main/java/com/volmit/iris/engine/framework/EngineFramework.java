@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.generator.IrisComplex;
-import com.volmit.iris.manager.IrisDataManager;
+import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.data.DataProvider;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

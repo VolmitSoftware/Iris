@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.data;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.nms.INMS;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.mca.Chunk;
 import com.volmit.iris.engine.data.mca.MCAFile;

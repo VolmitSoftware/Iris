@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.gui;
+package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.object.NoiseStyle;
+import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.*;
 
 import javax.imageio.ImageIO;

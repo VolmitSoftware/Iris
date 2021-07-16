@@ -20,7 +20,7 @@ package com.volmit.iris.core.edit;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.*;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.*;
 import org.bukkit.Location;
 import org.bukkit.Material;

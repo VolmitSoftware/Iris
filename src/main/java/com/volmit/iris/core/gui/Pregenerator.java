@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.gui;
+package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.framework.IrisAccess;

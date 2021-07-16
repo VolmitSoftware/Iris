@@ -103,7 +103,7 @@ public class IrisComplex implements DataProvider {
     }
 
     public IrisComplex(Engine engine, boolean simple) {
-        int cacheSize = 1024;
+        int cacheSize = 1024 * 128;
         this.rng = new RNG(engine.getWorld().getSeed());
         this.data = engine.getData();
         double height = engine.getHeight();
@@ -174,7 +174,7 @@ public class IrisComplex implements DataProvider {
                 Interpolated.of(a -> 0D, a -> focus.getInferredType())) :
                 engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565))
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
-                        .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND);
+                        .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND).cache2D(cacheSize);
         baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
                 Interpolated.of(a -> 0D, a -> focus)) :
                 bridgeStream.convertAware2D((t, x, z) -> t.equals(InferredType.SEA)
@@ -201,19 +201,19 @@ public class IrisComplex implements DataProvider {
         heightFluidStream = heightStream.max(fluidHeight).cache2D(cacheSize);
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
         terrainSurfaceDecoration = trueBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.NONE)).cache2D(cacheSize);
         terrainCeilingDecoration = trueBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING)).cache2D(cacheSize);
         terrainCaveSurfaceDecoration = caveBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.NONE));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.NONE)).cache2D(cacheSize);
         terrainCaveCeilingDecoration = caveBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.CEILING)).cache2D(cacheSize);
         shoreSurfaceDecoration = trueBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SHORE_LINE)).cache2D(cacheSize);
         seaSurfaceDecoration = trueBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_SURFACE)).cache2D(cacheSize);
         seaFloorDecoration = trueBiomeStream
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_FLOOR));
+                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, DecorationPart.SEA_FLOOR)).cache2D(cacheSize);
         trueHeightStream = ProceduralStream.of((x, z) -> {
             int rx = (int) Math.round(engine.modifyX(x));
             int rz = (int) Math.round(engine.modifyZ(z));

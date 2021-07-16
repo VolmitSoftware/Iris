@@ -38,12 +38,15 @@ import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.fakenews.FakeWorld;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import io.netty.util.internal.ConcurrentSet;
 import io.papermc.lib.PaperLib;
 import lombok.Getter;
@@ -453,9 +456,17 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        PrecisionStopwatch ps = PrecisionStopwatch.start();
         TerrainChunk tc = TerrainChunk.create(world, biome);
         generateChunkRawData(world, x, z, tc).run();
         generated++;
+        ps.end();
+
+        if(IrisSettings.get().getGeneral().isDebug())
+        {
+            Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
+        }
+
         return tc.getRaw();
     }
 

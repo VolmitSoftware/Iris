@@ -18,9 +18,11 @@
 
 package com.volmit.iris.engine.data.loader;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.hunk.storage.AtomicDoubleHunk;
 import com.volmit.iris.engine.object.IrisRegistrant;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -31,6 +33,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
 import java.io.File;
@@ -38,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant> {
+    public static final AtomicDouble tlt = new AtomicDouble(0);
     protected File root;
     protected String folderName;
     protected String resourceTypeName;
@@ -64,9 +68,10 @@ public class ResourceLoader<T extends IrisRegistrant> {
         this.root = root;
         this.folderName = folderName;
         loadCache = new KMap<>();
+        Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.WHITE + manager.getDataFolder().getPath());
     }
 
-    public void logLoad(File path) {
+    public void logLoad(File path, T t) {
         loads.getAndIncrement();
 
         if (loads.get() == 1) {
@@ -79,6 +84,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
                 loads.set(0);
             });
         }
+
+        Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> iload " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in " + C.GRAY + t.getLoadFile().getPath() + C.LIGHT_PURPLE + " TLT: " + C.RED + Form.duration(tlt.get(), 2));
     }
 
     public void failLoad(File path, Throwable e) {
@@ -118,13 +125,15 @@ public class ResourceLoader<T extends IrisRegistrant> {
 
     protected T loadFile(File j, String key, String name) {
         try {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
             T t = new Gson().fromJson(IO.readAll(j), objectClass);
             loadCache.put(key, t);
-            logLoad(j);
             t.setLoadKey(name);
             t.setLoadFile(j);
             t.setLoader(manager);
+            logLoad(j, t);
             lock.unlock();
+            tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);

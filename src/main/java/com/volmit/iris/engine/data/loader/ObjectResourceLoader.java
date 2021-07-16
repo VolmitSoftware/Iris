@@ -29,6 +29,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -114,14 +115,16 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     public IrisObject loadFile(File j, String key, String name) {
         lock.lock();
         try {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisObject t = new IrisObject(0, 0, 0);
             t.read(j);
             loadCache.put(key, t);
-            logLoad(j);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
+            logLoad(j, t);
             lock.unlock();
+            tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);

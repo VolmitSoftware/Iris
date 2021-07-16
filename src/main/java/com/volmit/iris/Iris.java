@@ -30,6 +30,7 @@ import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.stream.utility.CachedStream2D;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -233,7 +234,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(this::bstats);
         J.s(this::splash, 20);
         J.sr(this::tickQueue, 0);
-        J.ar(this::checkConfigHotload, 50);
+        J.ar(this::checkConfigHotload, 40);
         PaperLib.suggestPaper(this);
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
@@ -247,6 +248,15 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisSettings.get();
             configWatcher.checkModified();
             Iris.info("Hotloaded settings.json");
+        }
+
+        int ev = CachedStream2D.evictions.get();
+        if(IrisSettings.get().getGeneral().isDebug())
+        {
+            Iris.debug("Cache Hit Ratio: " + C.RED + Form.pc((double)CachedStream2D.cacheHits.get()/ (double)(CachedStream2D.cacheMisses.get() + CachedStream2D.cacheHits.get()), 2) + " " + C.LIGHT_PURPLE + " Evictions: " + C.AQUA + Form.f(ev/2) + "/s" + C.LIGHT_PURPLE + " Cache Size: " + C.RED + Form.f(CachedStream2D.cacheMisses.get() - CachedStream2D.evictions.get()));
+            CachedStream2D.cacheMisses.addAndGet(-CachedStream2D.evictions.get());
+            CachedStream2D.cacheHits.addAndGet(-CachedStream2D.evictions.get());
+            CachedStream2D.evictions.set(0);
         }
     }
 
@@ -424,7 +434,7 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
-        msg(C.LIGHT_PURPLE + "" + C.BOLD + string);
+        msg(C.LIGHT_PURPLE + string);
     }
 
     public static void verbose(String string) {

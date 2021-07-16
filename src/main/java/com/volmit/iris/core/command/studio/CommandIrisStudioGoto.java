@@ -40,7 +40,7 @@ import java.util.List;
 
 public class CommandIrisStudioGoto extends MortarCommand {
     public CommandIrisStudioGoto() {
-        super("goto", "find", "g", "tp");
+        super("goto", "find", "g");
         setDescription("Find any region or biome");
         requiresPermission(Iris.perm.studio);
         setCategory("World");

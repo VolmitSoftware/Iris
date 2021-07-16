@@ -107,7 +107,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 try {
                     for (Player i : getTarget().getWorld().getPlayers()) {
                         new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
-                        i.playSound(i.getLocation(), Sound.ITEM_BOTTLE_FILL, 1f, 1.25f);
+                        i.playSound(i.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.25f);
                     }
                 } catch (Throwable e) {Iris.reportError(e);
 
@@ -306,6 +306,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.clear();
             populators.addAll(compound.getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
+            dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
         } catch (Throwable e) {Iris.reportError(e);
             e.printStackTrace();
             Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());

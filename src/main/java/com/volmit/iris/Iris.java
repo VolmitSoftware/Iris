@@ -82,11 +82,8 @@ public class Iris extends VolmitPlugin implements Listener {
         installDataPacks();
     }
 
-    private void installDataPacks() {
-        Iris.info("Checking Data Packs...");
-        boolean reboot = false;
-        File packs = new File("plugins/Iris/packs");
-        File dpacks = null;
+    public File getDatapacksFolder()
+    {
         File props = new File("server.properties");
 
         if (props.exists()) {
@@ -95,8 +92,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
                 for (String i : m) {
                     if (i.trim().startsWith("level-name=")) {
-                        dpacks = new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
-                        break;
+                        return new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
                     }
                 }
             } catch (IOException e) {
@@ -105,11 +101,19 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         }
 
+        return null;
+    }
+
+    private void installDataPacks() {
+        Iris.info("Checking Data Packs...");
+        boolean reboot = false;
+        File packs = new File("plugins/Iris/packs");
+        File dpacks = getDatapacksFolder();
+
         if (dpacks == null) {
             Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
             return;
         }
-
 
         if (packs.exists()) {
             for (File i : packs.listFiles()) {

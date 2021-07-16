@@ -38,7 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class NoiseExplorer extends JPanel implements MouseWheelListener {
+public class IrisExplorer extends JPanel implements MouseWheelListener {
 
     private static final long serialVersionUID = 2094606939770332040L;
 
@@ -74,7 +74,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
     double t;
     double tz;
 
-    public NoiseExplorer() {
+    public IrisExplorer() {
         addMouseWheelListener(this);
         addMouseMotionListener(new MouseMotionListener() {
             @Override
@@ -237,7 +237,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
 
     private static void createAndShowGUI(Function2<Double, Double, Double> gen, String genName) {
         JFrame frame = new JFrame("Noise Explorer: " + genName);
-        NoiseExplorer nv = new NoiseExplorer();
+        IrisExplorer nv = new IrisExplorer();
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         JLayeredPane pane = new JLayeredPane();
         nv.setSize(new Dimension(1440, 820));
@@ -259,7 +259,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
 
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Noise Explorer");
-        NoiseExplorer nv = new NoiseExplorer();
+        IrisExplorer nv = new IrisExplorer();
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         KList<String> li = new KList<>(NoiseStyle.values()).toStringList();
         combo = new JComboBox<>(li.toArray(new String[0]));
@@ -296,7 +296,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
     }
 
     public static void launch() {
-        EventQueue.invokeLater(NoiseExplorer::createAndShowGUI);
+        EventQueue.invokeLater(IrisExplorer::createAndShowGUI);
     }
 
     static class HandScrollListener extends MouseAdapter {

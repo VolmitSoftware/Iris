@@ -43,6 +43,7 @@ import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
 import javax.imageio.ImageIO;
@@ -248,6 +249,7 @@ public class Pregenerator implements Listener {
         int mcaox = x << 5;
         int mcaoz = z << 5;
         if (isMCAWritable(x, z) && !mca.exists()) {
+            IrisWorlds.evacuate(world, "MCA Pregeneration is ongoing");
             method.set("Direct (Fast)");
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
                 draw(ii, jj, COLOR_MCA_GENERATE);
@@ -259,8 +261,6 @@ public class Pregenerator implements Listener {
             }));
             e.complete();
             directWriter.flush();
-            totalChunks.getAndAdd(1024);
-            mcaDefer.add(new ChunkPosition(x, z));
             install(mcg, mca);
         } else {
             totalChunks.getAndAdd(1024);
@@ -308,8 +308,8 @@ public class Pregenerator implements Listener {
         if (PaperLib.isPaper()) {
             method.set("PaperAsync (Slow)");
 
-            while (wait.size() > 8192) {
-                J.sleep(25);
+            while (wait.size() > 32) {
+                J.sleep(5);
             }
 
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {

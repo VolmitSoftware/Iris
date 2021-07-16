@@ -73,4 +73,19 @@ public class IrisWorlds {
 
         return false;
     }
+
+    public static boolean evacuate(World world, String m) {
+        for (World i : Bukkit.getWorlds()) {
+            if (!i.getName().equals(world.getName())) {
+                for (Player j : world.getPlayers()) {
+                    new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
+                    j.teleport(i.getSpawnLocation());
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

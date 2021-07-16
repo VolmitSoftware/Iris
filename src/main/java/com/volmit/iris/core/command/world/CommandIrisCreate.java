@@ -135,7 +135,7 @@ public class CommandIrisCreate extends MortarCommand {
         Runnable onDone = () -> {
 
             sender.sendMessage(worldName + " Spawn Area generated.");
-            sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
+            sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method to load this world with the Iris Generator on startup.");
             sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
 
             O<Boolean> b = new O<>();
@@ -246,9 +246,18 @@ public class CommandIrisCreate extends MortarCommand {
                 World w = INMS.get().createWorld(wc);
                 world.set(w);
 
-                J.a(() -> {
-                    new Pregenerator(w, pregen.get() * 2);
-                });
+                try
+                {
+                    if(pregen.get() > 0)
+                    {
+                        new Pregenerator(w, pregen.get());
+                    }
+                }
+
+                catch(Throwable e)
+                {
+                    Iris.reportError(e);
+                }
 
                 done.set(true);
             });

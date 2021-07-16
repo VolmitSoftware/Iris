@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         Thank you for taking the time to fill this out!
+        If this does not work for you, feel free to use the [blank](https://github.com/VolmitSoftware/Iris/issues/new) format.
   - type: textarea
     id: how
     attributes:

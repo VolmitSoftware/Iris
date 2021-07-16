@@ -34,7 +34,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("deprecation")
 public class LinkedTerrainChunk implements TerrainChunk {
-    private final Biome[] biome2D;
     private final IrisBiomeStorage biome3D;
     private ChunkData rawChunkData;
     private final BiomeGrid storage;
@@ -46,15 +45,13 @@ public class LinkedTerrainChunk implements TerrainChunk {
     public LinkedTerrainChunk(BiomeGrid storage, ChunkData data) {
         this.storage = storage;
         rawChunkData = data;
-        biome2D = storage != null ? null : Iris.biome3d ? null : new Biome[256];
-        biome3D = storage != null ? null : Iris.biome3d ? new IrisBiomeStorage() : null;
+        biome3D = storage != null ? null : new IrisBiomeStorage();
     }
 
     public LinkedTerrainChunk(BiomeGrid storage, int maxHeight) {
         this.storage = storage;
         rawChunkData = createChunkData(maxHeight);
-        biome2D = storage != null ? null : Iris.biome3d ? null : new Biome[256];
-        biome3D = storage != null ? null : Iris.biome3d ? new IrisBiomeStorage() : null;
+        biome3D = storage != null ? null : new IrisBiomeStorage();
     }
 
     private ChunkData createChunkData(int maxHeight) {
@@ -80,10 +77,6 @@ public class LinkedTerrainChunk implements TerrainChunk {
             return storage.getBiome(x, z);
         }
 
-        if (biome2D != null) {
-            return biome2D[(z << 4) | x];
-        }
-
         return biome3D.getBiome(x, 0, z);
     }
 
@@ -94,10 +87,6 @@ public class LinkedTerrainChunk implements TerrainChunk {
             return storage.getBiome(x, y, z);
         }
 
-        if (biome2D != null) {
-            return biome2D[(z << 4) | x];
-        }
-
         return biome3D.getBiome(x, y, z);
     }
 
@@ -105,11 +94,6 @@ public class LinkedTerrainChunk implements TerrainChunk {
     public void setBiome(int x, int z, Biome bio) {
         if (storage != null) {
             storage.setBiome(x, z, bio);
-            return;
-        }
-
-        if (biome2D != null) {
-            biome2D[(z << 4) | x] = bio;
             return;
         }
 
@@ -124,11 +108,6 @@ public class LinkedTerrainChunk implements TerrainChunk {
     public void setBiome(int x, int y, int z, Biome bio) {
         if (storage != null) {
             storage.setBiome(x, y, z, bio);
-            return;
-        }
-
-        if (biome2D != null) {
-            biome2D[(z << 4) | x] = bio;
             return;
         }
 
@@ -217,13 +196,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public void inject(BiomeGrid biome) {
-        if (biome2D != null) {
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
-                    biome.setBiome(i, j, getBiome(i, j));
-                }
-            }
-        } else if (biome3D != null) {
+        if (biome3D != null) {
             biome3D.inject(biome);
         }
     }

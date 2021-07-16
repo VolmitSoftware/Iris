@@ -75,7 +75,6 @@ public class Iris extends VolmitPlugin implements Listener {
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static boolean customModels = doesSupportCustomModels();
     public static boolean awareEntities = doesSupportAwareness();
-    public static boolean biome3d = doesSupport3DBiomes();
     public static boolean lowMemoryMode = false;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
@@ -476,10 +475,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
         if (lowMemoryMode) {
             Iris.verbose("* Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
-        }
-
-        if (!biome3d) {
-            Iris.verbose("* This version of minecraft does not support 3D biomes (1.15 and up). Iris will generate as normal, but biome colors will not vary underground & in the sky.");
         }
 
         if (!customModels) {

@@ -364,9 +364,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
         if(bad && INMS.get().supportsDataPacks())
         {
+            Iris.error("============================================================================");
             Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
             Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
+            Iris.error("----------------------------------------------------------------------------");
             Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
+            Iris.error("============================================================================");
 
             for(Player i : Bukkit.getOnlinePlayers())
             {

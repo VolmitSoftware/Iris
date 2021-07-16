@@ -124,6 +124,23 @@ public class ResourceLoader<T extends IrisRegistrant> {
         }
     }
 
+    public KList<T> loadAll(KList<String> s)
+    {
+        KList<T> m = new KList<>();
+
+        for(String i : s)
+        {
+            T t = load(i);
+
+            if(t != null)
+            {
+                m.add(t);
+            }
+        }
+
+        return m;
+    }
+
     public T load(String name) {
         return load(name, true);
     }

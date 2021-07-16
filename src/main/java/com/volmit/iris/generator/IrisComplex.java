@@ -128,12 +128,12 @@ public class IrisComplex implements DataProvider {
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883)).stream()
                 .zoom(engine.getDimension().getRegionZoom())
-                .selectRarity(engine.getDimension().getRegions())
+                .selectRarity(engine.getDimension().getRegions(), (i) -> data.getRegionLoader().load(i))
                 .convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
         caveBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(1221)).stream()
                 .zoom(r.getCaveBiomeZoom())
-                .selectRarity(r.getCaveBiomes())
+                .selectRarity(r.getCaveBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .onNull("")
                 .convertCached((s) -> {
                     if (s.isEmpty()) {
@@ -147,7 +147,7 @@ public class IrisComplex implements DataProvider {
         landBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(234234234)).stream()
                 .zoom(r.getLandBiomeZoom())
-                .selectRarity(r.getLandBiomes())
+                .selectRarity(r.getLandBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
                         .setInferredType(InferredType.LAND))
         ).convertAware2D(ProceduralStream::get)
@@ -155,7 +155,7 @@ public class IrisComplex implements DataProvider {
         seaBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(11232323)).stream()
                 .zoom(r.getSeaBiomeZoom())
-                .selectRarity(r.getSeaBiomes())
+                .selectRarity(r.getSeaBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
                         .setInferredType(InferredType.SEA))
         ).convertAware2D(ProceduralStream::get)
@@ -163,7 +163,7 @@ public class IrisComplex implements DataProvider {
         shoreBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(7787845)).stream()
                 .zoom(r.getShoreBiomeZoom())
-                .selectRarity(r.getShoreBiomes())
+                .selectRarity(r.getShoreBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
                         .setInferredType(InferredType.SHORE))
         ).convertAware2D(ProceduralStream::get).cache2D(cacheSize);

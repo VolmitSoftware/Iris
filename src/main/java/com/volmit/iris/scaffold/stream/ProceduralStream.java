@@ -301,8 +301,22 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         }
 
         for (V i : types) {
-			rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
-		}
+            rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
+        }
+
+        return new SelectionStream<V>(this, rarityTypes);
+    }
+
+    default <V> ProceduralStream<V> selectRarity(List<V> types, Function<V, IRare> loader) {
+        KList<V> rarityTypes = new KList<>();
+        int totalRarity = 0;
+        for (V i : types) {
+            totalRarity += IRare.get(loader.apply(i));
+        }
+
+        for (V i : types) {
+            rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
+        }
 
         return new SelectionStream<V>(this, rarityTypes);
     }

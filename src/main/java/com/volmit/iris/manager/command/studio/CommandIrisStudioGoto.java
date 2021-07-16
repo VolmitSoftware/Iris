@@ -76,7 +76,6 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 IrisAccess g = IrisWorlds.access(world);
                 IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
                 IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
-                IrisObject o = IrisDataManager.loadAnyObject(args[0]);
 
                 if (b != null) {
                     J.a(() -> {
@@ -101,28 +100,6 @@ public class CommandIrisStudioGoto extends MortarCommand {
                         }
                     });
                 }
-				/* TODO: Fix this shit
-				else if (o != null)
-				{
-					// Get all object names
-					for (File f : listf( Iris.instance.getDataFolders + "/objects")){
-
-					}
-					J.a(() -> {
-						Location l = g.lookForObject(o, 60000, (v) -> sender.sendMessage(C.BOLD +""+ C.WHITE + o.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
-
-						if(l == null)
-						{
-							sender.sendMessage("Couldn't find " + o.getName() + ".");
-						}
-
-						else
-						{
-							sender.sendMessage("Found " + o.getName() + "!");
-							J.s(() -> sender.player().teleport(l));
-						}
-					});
-				}*/
 
                 else {
                     sender.sendMessage(args[0] + " is not a biome or region in this dimension. (Biome teleportation works best!");

@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -56,13 +56,13 @@ public class CommandLocate extends MortarCommand implements Listener {
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         Bukkit.dispatchCommand(sender, "/ir std goto " + Arrays.toString(args));
         return true;
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 

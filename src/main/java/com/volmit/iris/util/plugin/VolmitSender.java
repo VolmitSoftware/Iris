@@ -39,7 +39,7 @@ import java.util.UUID;
  *
  * @author cyberpwn
  */
-public class MortarSender implements CommandSender {
+public class VolmitSender implements CommandSender {
     private final CommandSender s;
     private String tag;
 
@@ -52,12 +52,12 @@ public class MortarSender implements CommandSender {
      *
      * @param s the command sender
      */
-    public MortarSender(CommandSender s) {
+    public VolmitSender(CommandSender s) {
         tag = "";
         this.s = s;
     }
 
-    public MortarSender(CommandSender s, String tag) {
+    public VolmitSender(CommandSender s, String tag) {
         this.tag = tag;
         this.s = s;
     }

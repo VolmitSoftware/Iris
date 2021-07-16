@@ -36,7 +36,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
@@ -171,13 +171,13 @@ public class IrisProject {
         return collectFiles(path, json);
     }
 
-    public void open(MortarSender sender) {
+    public void open(VolmitSender sender) {
         open(sender, () ->
         {
         });
     }
 
-    public void open(MortarSender sender, Runnable onDone) {
+    public void open(VolmitSender sender, Runnable onDone) {
         if (isOpen()) {
             close();
         }
@@ -253,7 +253,7 @@ public class IrisProject {
         J.a(() ->
         {
             double last = 0;
-            int req = 900;
+            int req = 400;
 
             while (gx.getGenerated() < req) {
                 assert gx != null;
@@ -402,7 +402,7 @@ public class IrisProject {
         return o;
     }
 
-    public File compilePackage(MortarSender sender, boolean obfuscate, boolean minify) {
+    public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {
         String dimm = getName();
         IrisDataManager dm = new IrisDataManager(path);
         IrisDimension dimension = dm.getDimensionLoader().load(dimm);

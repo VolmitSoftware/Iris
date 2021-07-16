@@ -25,7 +25,7 @@ import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 
 import java.io.File;
 
@@ -38,12 +38,12 @@ public class CommandIrisJigsawNew extends MortarCommand {
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (!IrisSettings.get().isStudio()) {
             sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
             return true;

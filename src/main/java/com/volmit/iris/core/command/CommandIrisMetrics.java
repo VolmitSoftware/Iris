@@ -23,7 +23,7 @@ import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -37,12 +37,12 @@ public class CommandIrisMetrics extends MortarCommand {
 
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (sender.isPlayer()) {
             Player p = sender.player();
             World world = p.getWorld();

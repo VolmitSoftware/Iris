@@ -83,7 +83,7 @@ public class VirtualCommand {
     }
 
     public boolean hit(CommandSender sender, KList<String> chain, String label) {
-        MortarSender vs = new MortarSender(sender);
+        VolmitSender vs = new VolmitSender(sender);
         vs.setTag(tag);
 
         if (label != null) {
@@ -126,7 +126,7 @@ public class VirtualCommand {
     }
 
     public KList<String> hitTab(CommandSender sender, KList<String> chain, String label) {
-        MortarSender vs = new MortarSender(sender);
+        VolmitSender vs = new VolmitSender(sender);
         vs.setTag(tag);
 
         if (label != null)

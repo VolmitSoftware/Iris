@@ -25,7 +25,7 @@ import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.World;
@@ -40,7 +40,7 @@ public class DustRevealer {
     private final String key;
     private final KList<BlockPosition> hits;
 
-    public static void spawn(Block block, MortarSender sender) {
+    public static void spawn(Block block, VolmitSender sender) {
         World world = block.getWorld();
         IrisAccess access = IrisWorlds.access(world);
 

@@ -24,7 +24,7 @@ import com.volmit.iris.core.gui.IrisExplorer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 
 public class CommandIrisStudioExplorer extends MortarCommand {
     @Command
@@ -38,12 +38,12 @@ public class CommandIrisStudioExplorer extends MortarCommand {
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (args.length != 0) {
             printHelp(sender);
         } else {

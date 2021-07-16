@@ -28,7 +28,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.zeroturnaround.zip.ZipUtil;
@@ -89,7 +89,7 @@ public class ProjectManager {
         });
     }
 
-    public IrisDimension installIntoWorld(MortarSender sender, String type, File folder) {
+    public IrisDimension installIntoWorld(VolmitSender sender, String type, File folder) {
         sender.sendMessage("Looking for Package: " + type);
         File iris = new File(folder, "iris");
         File irispack = new File(folder, "iris/pack");
@@ -158,11 +158,11 @@ public class ProjectManager {
         return dim;
     }
 
-    public void downloadSearch(MortarSender sender, String key, boolean trim) {
+    public void downloadSearch(VolmitSender sender, String key, boolean trim) {
         downloadSearch(sender, key, trim, false);
     }
 
-    public void downloadSearch(MortarSender sender, String key, boolean trim, boolean forceOverwrite) {
+    public void downloadSearch(VolmitSender sender, String key, boolean trim, boolean forceOverwrite) {
         String url = "?";
 
         try {
@@ -181,11 +181,11 @@ public class ProjectManager {
         }
     }
 
-    public void download(MortarSender sender, String repo, String branch, boolean trim) throws JsonSyntaxException, IOException {
+    public void download(VolmitSender sender, String repo, String branch, boolean trim) throws JsonSyntaxException, IOException {
         download(sender, repo, branch, trim, false);
     }
 
-    public void download(MortarSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException {
+    public void download(VolmitSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException {
         String url = "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
         sender.sendMessage("Downloading " + url);
         File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
@@ -309,7 +309,7 @@ public class ProjectManager {
         return activeProject != null && activeProject.isOpen();
     }
 
-    public void open(MortarSender sender, String dimm) {
+    public void open(VolmitSender sender, String dimm) {
         try {
             open(sender, dimm, () ->
             {
@@ -323,7 +323,7 @@ public class ProjectManager {
         }
     }
 
-    public void open(MortarSender sender, String dimm, Runnable onDone) {
+    public void open(VolmitSender sender, String dimm, Runnable onDone) {
         if (isProjectOpen()) {
             close();
         }
@@ -348,7 +348,7 @@ public class ProjectManager {
         }
     }
 
-    public File compilePackage(MortarSender sender, String d, boolean obfuscate, boolean minify) {
+    public File compilePackage(VolmitSender sender, String d, boolean obfuscate, boolean minify) {
         return new IrisProject(new File(getWorkspaceFolder(), d)).compilePackage(sender, obfuscate, minify);
     }
 
@@ -403,7 +403,7 @@ public class ProjectManager {
         }
     }
 
-    public void create(MortarSender sender, String s, String downloadable) {
+    public void create(VolmitSender sender, String s, String downloadable) {
         boolean shouldDelete = false;
         File importPack = getWorkspaceFolder(downloadable);
 
@@ -435,7 +435,7 @@ public class ProjectManager {
         open(sender, s);
     }
 
-    public void create(MortarSender sender, String s) {
+    public void create(VolmitSender sender, String s) {
         create(sender, s, "example");
     }
 

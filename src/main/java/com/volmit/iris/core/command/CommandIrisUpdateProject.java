@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 
 public class CommandIrisUpdateProject extends MortarCommand {
@@ -34,12 +34,12 @@ public class CommandIrisUpdateProject extends MortarCommand {
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (args.length < 1) {
             sender.sendMessage("/iris update-project " + C.BOLD + "<PROJECT>");
             return true;

@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.Pregenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -44,7 +44,7 @@ public class CommandIrisPregen extends MortarCommand {
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
         list.add("stop");
         list.add("pause");
         list.add("resume");
@@ -62,7 +62,7 @@ public class CommandIrisPregen extends MortarCommand {
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (args.length == 0) {
             sender.sendMessage("/iris pregen <blocks-wide|stop>");
             return true;

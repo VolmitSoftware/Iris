@@ -57,7 +57,7 @@ public abstract class MortarCommand implements ICommand {
     }
 
     @Override
-    public KList<String> handleTab(MortarSender sender, String[] args) {
+    public KList<String> handleTab(VolmitSender sender, String[] args) {
         KList<String> v = new KList<>();
         if (args.length == 0) {
             for (MortarCommand i : getChildren()) {
@@ -78,9 +78,9 @@ public abstract class MortarCommand implements ICommand {
         return v;
     }
 
-    public abstract void addTabOptions(MortarSender sender, String[] args, KList<String> list);
+    public abstract void addTabOptions(VolmitSender sender, String[] args, KList<String> list);
 
-    public void printHelp(MortarSender sender) {
+    public void printHelp(VolmitSender sender) {
         boolean b = false;
 
         for (MortarCommand i : getChildren()) {
@@ -130,7 +130,7 @@ public abstract class MortarCommand implements ICommand {
         requiredPermissions.add(node);
     }
 
-    public void rejectAny(int past, MortarSender sender, String[] a) {
+    public void rejectAny(int past, VolmitSender sender, String[] a) {
         if (a.length > past) {
             int p = past;
 

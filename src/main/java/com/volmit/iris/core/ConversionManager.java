@@ -35,7 +35,7 @@ import com.volmit.iris.util.io.Converter;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.SKConversion;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -99,7 +99,7 @@ public class ConversionManager {
         return poolReference.split("\\Q:\\E")[1];
     }
 
-    public void convertStructures(File in, File out, MortarSender s) {
+    public void convertStructures(File in, File out, VolmitSender s) {
         KMap<String, IrisJigsawPool> pools = new KMap<>();
         KList<File> roots = new KList<>();
         AtomicInteger total = new AtomicInteger(0);
@@ -240,7 +240,7 @@ public class ConversionManager {
         }
     }
 
-    public void check(MortarSender s) {
+    public void check(VolmitSender s) {
         int m = 0;
         Iris.instance.getDataFolder("convert");
 

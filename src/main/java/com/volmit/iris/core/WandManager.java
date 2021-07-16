@@ -25,7 +25,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
@@ -164,7 +164,7 @@ public class WandManager implements Listener {
                 if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
-                    DustRevealer.spawn(e.getClickedBlock(), new MortarSender(e.getPlayer(), Iris.instance.getTag()));
+                    DustRevealer.spawn(e.getClickedBlock(), new VolmitSender(e.getPlayer(), Iris.instance.getTag()));
 
                 }
             }

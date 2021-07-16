@@ -64,7 +64,7 @@ public interface ICommand {
      * @param args   the arguments after this command node
      * @return return true to mark it as handled
      */
-    boolean handle(MortarSender sender, String[] args);
+    boolean handle(VolmitSender sender, String[] args);
 
-    KList<String> handleTab(MortarSender sender, String[] args);
+    KList<String> handleTab(VolmitSender sender, String[] args);
 }

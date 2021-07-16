@@ -25,7 +25,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.MortarCommand;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 
 import java.io.File;
 
@@ -38,12 +38,12 @@ public class CommandIrisStudioBeautify extends MortarCommand {
     }
 
     @Override
-    public void addTabOptions(MortarSender sender, String[] args, KList<String> list) {
+    public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args) {
+    public boolean handle(VolmitSender sender, String[] args) {
         if (!IrisSettings.get().isStudio()) {
             sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
             return true;
@@ -72,7 +72,7 @@ public class CommandIrisStudioBeautify extends MortarCommand {
         return true;
     }
 
-    private int clean(MortarSender s, File clean) {
+    private int clean(VolmitSender s, File clean) {
         int c = 0;
         if (clean.isDirectory()) {
             for (File i : clean.listFiles()) {

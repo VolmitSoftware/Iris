@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.framework.IrisAccessProvider;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -63,7 +63,7 @@ public class IrisWorlds {
         for (World i : Bukkit.getWorlds()) {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
-                    new MortarSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
+                    new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
                     j.teleport(i.getSpawnLocation());
                 }
 

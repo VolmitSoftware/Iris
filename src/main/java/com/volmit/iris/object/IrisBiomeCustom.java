@@ -26,6 +26,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.awt.*;
+import java.util.Locale;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -33,7 +34,6 @@ import java.awt.*;
 @Desc("A custom biome, generated through a datapack")
 @Data
 public class IrisBiomeCustom {
-
     @Required
     @Desc("The resource key of this biome. Just a simple id such as 'plains' or something.")
     private String id = "";
@@ -48,34 +48,37 @@ public class IrisBiomeCustom {
     @Desc("The biome's downfall amount (snow / rain), see preci")
     private double humidity = 0.4;
 
+    @DependsOn("spawnRarity")
+    @ArrayType(min = 1, type = IrisBiomeCustomSpawn.class)
+    @Desc("The biome's mob spawns")
+    private KList<IrisBiomeCustomSpawn> spawns = new KList<>();
 
     @Desc("The biome's downfall type")
     private IrisBiomeCustomPrecipType downfallType = IrisBiomeCustomPrecipType.rain;
 
+    @Desc("Define an ambient particle to be rendered clientside (no server cost!)")
+    private IrisBiomeCustomParticle ambientParticle = null;
 
     @Desc("The biome's category type")
     private IrisBiomeCustomCategory category = IrisBiomeCustomCategory.plains;
 
+    @Desc("The spawn rarity of any defined spawners")
+    private int spawnRarity = -1;
 
     @Desc("The color of the sky, top half of sky. (hex format)")
     private String skyColor = "#79a8e1";
 
-
     @Desc("The color of the fog, bottom half of sky. (hex format)")
     private String fogColor = "#c0d8e1";
-
 
     @Desc("The color of the water (hex format). Leave blank / don't define to not change")
     private String waterColor = "#3f76e4";
 
-
     @Desc("The color of water fog (hex format). Leave blank / don't define to not change")
     private String waterFogColor = "#050533";
 
-
     @Desc("The color of the grass (hex format). Leave blank / don't define to not change")
     private String grassColor = "";
-
 
     @Desc("The color of foliage (hex format). Leave blank / don't define to not change")
     private String foliageColor = "";
@@ -86,6 +89,16 @@ public class IrisBiomeCustom {
         effects.put("fog_color", parseColor(getFogColor()));
         effects.put("water_color", parseColor(getWaterColor()));
         effects.put("water_fog_color", parseColor(getWaterFogColor()));
+
+        if(ambientParticle != null)
+        {
+            JSONObject particle = new JSONObject();
+            JSONObject po = new JSONObject();
+            po.put("type", ambientParticle.getParticle().name().toLowerCase());
+            particle.put("options", po);
+            particle.put("probability", ambientParticle.getRarity());
+            effects.put("particle", particle);
+        }
 
         if (!getGrassColor().isEmpty()) {
             effects.put("grass_color", parseColor(getGrassColor()));
@@ -101,6 +114,7 @@ public class IrisBiomeCustom {
         j.put("scale", 0.05);
         j.put("temperature", getTemperature());
         j.put("downfall", getHumidity());
+        j.put("creature_spawn_probability", getSpawnRarity());
         j.put("precipitation", getDownfallType().toString().toLowerCase());
         j.put("category", getCategory().toString().toLowerCase());
         j.put("effects", effects);
@@ -109,6 +123,35 @@ public class IrisBiomeCustom {
         j.put("spawn_costs", new JSONObject());
         j.put("carvers", new JSONObject());
         j.put("features", new JSONArray());
+
+        if(spawnRarity > 0)
+        {
+            j.put("creature_spawn_probability", spawnRarity);
+        }
+
+        if(getSpawns() != null && getSpawns().isNotEmpty())
+        {
+            JSONObject spawners = new JSONObject();
+            KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
+
+            for(IrisBiomeCustomSpawn i : getSpawns())
+            {
+                JSONArray g = groups.compute(i.getGroup(), (k, v) -> v != null ? v : new JSONArray());
+                JSONObject o = new JSONObject();
+                o.put("type", "minecraft:" + i.getType().name().toLowerCase());
+                o.put("weight", i.getWeight());
+                o.put("minCount", i.getMinCount());
+                o.put("maxCount", i.getMaxCount());
+                g.put(o);
+            }
+
+            for(IrisBiomeCustomSpawnType i : groups.k())
+            {
+                spawners.put(i.name().toLowerCase(Locale.ROOT), groups.get(i));
+            }
+
+            j.put("spawners", spawners);
+        }
 
         return j.toString(4);
     }

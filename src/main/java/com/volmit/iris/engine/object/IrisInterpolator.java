@@ -18,12 +18,12 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.function.NoiseProvider;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

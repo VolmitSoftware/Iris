@@ -20,10 +20,10 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.scheduling.J;
 
 public class CommandIrisStudioPackage extends MortarCommand {
     public CommandIrisStudioPackage() {

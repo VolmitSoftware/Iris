@@ -89,7 +89,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                 listenersField.setAccessible(true);
                 //noinspection unchecked
                 listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(getServer().getPluginManager());
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
 
@@ -101,7 +102,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             //noinspection unchecked
             commands = (Map<String, Command>) knownCommandsField.get(commandMap);
 
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -134,7 +136,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             if (cl instanceof URLClassLoader) {
                 try {
                     ((URLClassLoader) cl).close();
-                } catch (IOException e) {Iris.reportError(e);
+                } catch (IOException e) {
+                    Iris.reportError(e);
 
                 }
             }
@@ -193,7 +196,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             outputPluginInfo();
             outputCommandInfo();
             outputPermissionInfo();
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }
@@ -275,7 +279,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         for (org.bukkit.permissions.Permission i : computePermissions()) {
             try {
                 Bukkit.getPluginManager().addPermission(i);
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
         }
@@ -290,7 +295,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     g.add(toPermission(x));
                     g.addAll(computePermissions(x));
                 } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
-                    Iris.reportError(e);e.printStackTrace();
+                    Iris.reportError(e);
+                    e.printStackTrace();
                 }
             }
         }
@@ -370,7 +376,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                 i.tick();
             } catch (Throwable e) {
                 w("Failed to tick controller " + i.getName());
-                e.printStackTrace();Iris.reportError(e);
+                e.printStackTrace();
+                Iris.reportError(e);
             }
         }
     }
@@ -400,7 +407,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     v("Registered " + pc.getName() + " (" + i.getName() + ")");
                 } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     w("Failed to register controller (field " + i.getName() + ")");
-                    e.printStackTrace();Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }
@@ -425,7 +433,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             v("Started " + pc.getName());
         } catch (Throwable e) {
             w("Failed to start controller " + pc.getName());
-            e.printStackTrace();Iris.reportError(e);
+            e.printStackTrace();
+            Iris.reportError(e);
         }
     }
 
@@ -441,7 +450,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     v("Registered Instance " + i.getName());
                 } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     w("Failed to register instance (field " + i.getName() + ")");
-                    e.printStackTrace();Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }
@@ -459,7 +469,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     v("Unregistered Instance " + i.getName());
                 } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     w("Failed to unregister instance (field " + i.getName() + ")");
-                    e.printStackTrace();Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }
@@ -483,7 +494,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");
                 } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     w("Failed to register command (field " + i.getName() + ")");
-                    e.printStackTrace();Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }
@@ -591,7 +603,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                 }
             }
         } catch (Throwable e) {
-            e.printStackTrace();Iris.reportError(e);
+            e.printStackTrace();
+            Iris.reportError(e);
         }
     }
 
@@ -630,7 +643,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         for (VirtualCommand i : commands.v()) {
             try {
                 unregisterCommand(i.getCommand());
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
         }
@@ -655,7 +669,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                 unregisterListener(i);
                 i.stop();
                 v("Stopped " + i.getName());
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
                 w("Failed to stop controller " + i.getName());
                 e.printStackTrace();
             }

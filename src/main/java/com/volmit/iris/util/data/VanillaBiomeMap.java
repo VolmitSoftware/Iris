@@ -19,16 +19,18 @@
 package com.volmit.iris.util.data;
 
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.inventorygui.RandomColor.Color;
+import com.volmit.iris.util.inventorygui.RandomColor.Luminosity;
+import com.volmit.iris.util.inventorygui.RandomColor.SaturationType;
 import org.bukkit.block.Biome;
-import com.volmit.iris.util.inventorygui.RandomColor.*;
 
 public class VanillaBiomeMap {
 
-    private static KMap<Biome, Integer> BIOME_HEX = new KMap<>();
-    private static KMap<Biome, Color> BIOME_COLOR = new KMap<>();
-    private static KMap<Biome, Luminosity> BIOME_LUMINOSITY = new KMap<>();
-    private static KMap<Biome, SaturationType> BIOME_SATURATION = new KMap<>();
-    private static KMap<Biome, Short> BIOME_IDs = new KMap<>();
+    private static final KMap<Biome, Integer> BIOME_HEX = new KMap<>();
+    private static final KMap<Biome, Color> BIOME_COLOR = new KMap<>();
+    private static final KMap<Biome, Luminosity> BIOME_LUMINOSITY = new KMap<>();
+    private static final KMap<Biome, SaturationType> BIOME_SATURATION = new KMap<>();
+    private static final KMap<Biome, Short> BIOME_IDs = new KMap<>();
 
     private static void add(Biome biome, int color, short id, Color randomColor, Luminosity luminosity, SaturationType saturation) {
         BIOME_HEX.put(biome, color);

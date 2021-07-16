@@ -23,14 +23,13 @@ import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
 import com.volmit.iris.core.command.world.CommandLocate;
 import com.volmit.iris.core.link.BKLink;
-import com.volmit.iris.core.link.CitizensLink;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.IrisCompat;
-import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.object.IrisCompat;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -73,7 +72,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static BKLink linkBK;
     public static MultiverseCoreLink linkMultiverseCore;
     public static MythicMobsLink linkMythicMobs;
-    public static CitizensLink linkCitizens;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static boolean customModels = doesSupportCustomModels();
     public static boolean awareEntities = doesSupportAwareness();
@@ -96,8 +94,7 @@ public class Iris extends VolmitPlugin implements Listener {
         installDataPacks();
     }
 
-    public File getDatapacksFolder()
-    {
+    public File getDatapacksFolder() {
         File props = new File("server.properties");
 
         if (props.exists()) {
@@ -424,12 +421,11 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void debug(String string) {
-        if(!IrisSettings.get().getGeneral().isDebug())
-        {
+        if (!IrisSettings.get().getGeneral().isDebug()) {
             return;
         }
 
-        msg( C.LIGHT_PURPLE+ "" + C.BOLD+ string);
+        msg(C.LIGHT_PURPLE + "" + C.BOLD + string);
     }
 
     public static void verbose(String string) {
@@ -535,21 +531,17 @@ public class Iris extends VolmitPlugin implements Listener {
         return IrisSettings.get().getGenerator().isMcaPregenerator();
     }
 
-    public static synchronized void reportError(Throwable e)
-    {
-        if(IrisSettings.get().getGeneral().isDebug())
-        {
+    public static synchronized void reportError(Throwable e) {
+        if (IrisSettings.get().getGeneral().isDebug()) {
             String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 
-            if(e.getCause() != null)
-            {
+            if (e.getCause() != null) {
                 n += "-" + e.getCause().getStackTrace()[0].getClassName() + "-" + e.getCause().getStackTrace()[0].getLineNumber();
             }
 
             File f = instance.getDataFile("debug", "caught-exceptions", n + ".txt");
 
-            if(!f.exists())
-            {
+            if (!f.exists()) {
                 J.attempt(() -> {
                     PrintWriter pw = new PrintWriter(f);
                     pw.println("Thread: " + Thread.currentThread().getName());

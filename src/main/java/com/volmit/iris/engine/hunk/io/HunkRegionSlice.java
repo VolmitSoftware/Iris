@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.hunk.io;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.GridLock;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -109,7 +109,8 @@ public class HunkRegionSlice<T> {
 
             try {
                 lock.withNasty(i.getX(), i.getZ(), () -> save.remove(i));
-            } catch (Throwable eer) {Iris.reportError(eer);
+            } catch (Throwable eer) {
+                Iris.reportError(eer);
 
             }
         }
@@ -137,7 +138,8 @@ public class HunkRegionSlice<T> {
 
             try {
                 return adapter.read(factory, (ByteArrayTag) t);
-            } catch (IOException xe) {Iris.reportError(xe);
+            } catch (IOException xe) {
+                Iris.reportError(xe);
                 e.set(xe);
             }
 
@@ -175,7 +177,8 @@ public class HunkRegionSlice<T> {
     public void save(Hunk<T> region, int x, int z) {
         try {
             lock.withIO(x, z, () -> write(region, x, z));
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -218,7 +221,8 @@ public class HunkRegionSlice<T> {
             if (contains(x, z)) {
                 try {
                     v = read(x, z);
-                } catch (IOException e) {Iris.reportError(e);
+                } catch (IOException e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

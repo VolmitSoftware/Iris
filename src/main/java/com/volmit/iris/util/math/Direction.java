@@ -18,10 +18,10 @@
 
 package com.volmit.iris.util.math;
 
-import com.volmit.iris.util.data.Cuboid.CuboidDirection;
 import com.volmit.iris.util.collection.GBiset;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.Cuboid.CuboidDirection;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;

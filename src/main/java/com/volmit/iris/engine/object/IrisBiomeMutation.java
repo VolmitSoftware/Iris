@@ -90,8 +90,7 @@ public class IrisBiomeMutation {
             } else if (i.startsWith("!*")) {
                 String name = i.substring(2);
 
-                for(String g : xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7))
-                {
+                for (String g : xg.getData().getBiomeLoader().load(name).getAllChildren(xg, 7)) {
                     r.remove(g);
                 }
             } else {

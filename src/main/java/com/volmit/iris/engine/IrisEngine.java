@@ -19,12 +19,15 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Chunk;
@@ -97,28 +100,24 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     private void computeBiomeMaxes() {
-        for(IrisBiome i : getDimension().getAllBiomes(this))
-        {
+        for (IrisBiome i : getDimension().getAllBiomes(this)) {
             double density = 0;
 
-            for(IrisObjectPlacement j : i.getObjects())
-            {
+            for (IrisObjectPlacement j : i.getObjects()) {
                 density += j.getDensity() * j.getChance();
             }
 
             maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
             density = 0;
 
-            for(IrisDecorator j : i.getDecorators())
-            {
+            for (IrisDecorator j : i.getDecorators()) {
                 density += Math.max(j.getStackMax(), 1) * j.getChance();
             }
 
             maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
             density = 0;
 
-            for(IrisBiomePaletteLayer j : i.getLayers())
-            {
+            for (IrisBiomePaletteLayer j : i.getLayers()) {
                 density++;
             }
 

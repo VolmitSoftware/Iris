@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object.common;
 
-import com.volmit.iris.engine.object.common.CaveResult;
 import com.volmit.iris.util.collection.KList;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;

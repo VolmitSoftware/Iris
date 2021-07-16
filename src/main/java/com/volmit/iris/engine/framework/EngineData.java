@@ -48,7 +48,8 @@ public class EngineData {
         try {
             f.getParentFile().mkdirs();
             return new Gson().fromJson(IO.readAll(f), EngineData.class);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 

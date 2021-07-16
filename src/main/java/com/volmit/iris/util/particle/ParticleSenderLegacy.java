@@ -148,7 +148,8 @@ class ParticleSenderLegacy implements ParticleSender {
 
         try {
             return getEnumParticle(particle);
-        } catch (IllegalArgumentException e) {Iris.reportError(e);
+        } catch (IllegalArgumentException e) {
+            Iris.reportError(e);
             return null;
         }
     }

@@ -95,13 +95,13 @@ public class RandomColor {
         }
     }
 
-    private Random random;
+    private final Random random;
 
-    public static enum SaturationType {
+    public enum SaturationType {
         RANDOM, MONOCHROME, HIGH, LOW, MEDIUM
     }
 
-    public static enum Luminosity {
+    public enum Luminosity {
         BRIGHT, LIGHT, DARK, RANDOM
     }
 
@@ -135,14 +135,14 @@ public class RandomColor {
         }
     }
 
-    private HashMap<String, ColorInfo> colors = new HashMap<>();
+    private final HashMap<String, ColorInfo> colors = new HashMap<>();
 
     public RandomColor() {
         loadColorBounds();
         random = new Random();
     }
 
-    public RandomColor(long seed){
+    public RandomColor(long seed) {
         loadColorBounds();
         random = new Random();
         random.setSeed(seed);
@@ -154,7 +154,7 @@ public class RandomColor {
     }
 
     private int getColor(int hue, int saturation, int brightness) {
-        return java.awt.Color.getHSBColor((float)(hue + hueOffset % 360) / 360, (float)saturation / 100, (float)brightness / 100).getRGB();
+        return java.awt.Color.getHSBColor((float) (hue + hueOffset % 360) / 360, (float) saturation / 100, (float) brightness / 100).getRGB();
     }
 
     public int randomColor() {
@@ -280,7 +280,7 @@ public class RandomColor {
             return 0;
         }
 
-        Range saturationRange =  colorInfo.getSaturationRange();
+        Range saturationRange = colorInfo.getSaturationRange();
 
         int min = saturationRange.start;
         int max = saturationRange.end;
@@ -358,10 +358,10 @@ public class RandomColor {
 
             if (saturation >= s1 && saturation <= s2) {
 
-                float m = (v2 - v1)/(float) (s2 - s1),
-                        b = v1 - m*s1;
+                float m = (v2 - v1) / (float) (s2 - s1),
+                        b = v1 - m * s1;
 
-                return (int) (m*saturation + b);
+                return (int) (m * saturation + b);
             }
 
         }
@@ -372,10 +372,10 @@ public class RandomColor {
     private ColorInfo getColorInfo(int hue) {
         // Maps red colors to make picking hue easier
         if (hue >= 334 && hue <= 360) {
-            hue-= 360;
+            hue -= 360;
         }
 
-        for(String key : colors.keySet()) {
+        for (String key : colors.keySet()) {
             ColorInfo colorInfo = colors.get(key);
             if (colorInfo.getHueRange() != null && colorInfo.getHueRange().contain(hue)) {
                 return colorInfo;
@@ -385,8 +385,8 @@ public class RandomColor {
         return null;
     }
 
-    private int randomWithin (Range range) {
-        return (int) Math.floor(range.start + random.nextDouble()*(range.end + 1 - range.start));
+    private int randomWithin(Range range) {
+        return (int) Math.floor(range.start + random.nextDouble() * (range.end + 1 - range.start));
     }
 
     public void defineColor(String name, Range hueRange, List<Range> lowerBounds) {
@@ -466,7 +466,7 @@ public class RandomColor {
 
         defineColor(
                 Color.GREEN.name(),
-                new Range(63,178),
+                new Range(63, 178),
                 lowerBounds5
         );
 
@@ -520,7 +520,7 @@ public class RandomColor {
         );
     }
 
-    public static enum Color {
+    public enum Color {
         MONOCHROME, RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK
     }
 

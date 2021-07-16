@@ -81,7 +81,8 @@ public class IrisJigsawPiece extends IrisRegistrant {
             try {
                 BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
                 return Math.max(Math.max(v.getBlockX(), v.getBlockZ()), v.getBlockY());
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
 

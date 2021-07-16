@@ -193,7 +193,8 @@ public class IrisEffect {
                         return t;
                     }
                 }
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
 

@@ -156,7 +156,8 @@ public class Metrics {
                     service.getField("B_STATS_VERSION"); // Our identifier :)
                     found = true; // We aren't the first
                     break;
-                } catch (NoSuchFieldException e) {Iris.reportError(e);
+                } catch (NoSuchFieldException e) {
+                    Iris.reportError(e);
                 }
             }
             // Register our service
@@ -255,7 +256,8 @@ public class Metrics {
             playerAmount = onlinePlayersMethod.getReturnType().equals(Collection.class)
                     ? ((Collection<?>) onlinePlayersMethod.invoke(Bukkit.getServer())).size()
                     : ((Player[]) onlinePlayersMethod.invoke(Bukkit.getServer())).length;
-        } catch (Exception e) {Iris.reportError(e);
+        } catch (Exception e) {
+            Iris.reportError(e);
             playerAmount = Bukkit.getOnlinePlayers().size(); // Just use the new method if the Reflection failed
         }
         int onlineMode = Bukkit.getOnlineMode() ? 1 : 0;
@@ -314,7 +316,8 @@ public class Metrics {
                                     JsonObject object = new JsonParser().parse(jsonString).getAsJsonObject();
                                     pluginData.add(object);
                                 }
-                            } catch (ClassNotFoundException e) {Iris.reportError(e);
+                            } catch (ClassNotFoundException e) {
+                                Iris.reportError(e);
                                 // minecraft version 1.14+
 
                                 if (logFailedRequests) {
@@ -326,7 +329,8 @@ public class Metrics {
                         Iris.reportError(ignored);
                     }
                 }
-            } catch (NoSuchFieldException e) {Iris.reportError(e);
+            } catch (NoSuchFieldException e) {
+                Iris.reportError(e);
             }
         }
 
@@ -337,7 +341,8 @@ public class Metrics {
             try {
                 // Send the data
                 sendData(plugin, data);
-            } catch (Exception e) {Iris.reportError(e);
+            } catch (Exception e) {
+                Iris.reportError(e);
                 // Something went wrong! :(
                 if (logFailedRequests) {
                     plugin.getLogger().log(Level.WARNING, "Could not submit plugin stats of " + plugin.getName(), e);
@@ -444,7 +449,8 @@ public class Metrics {
                     return null;
                 }
                 chart.add("data", data);
-            } catch (Throwable t) {Iris.reportError(t);
+            } catch (Throwable t) {
+                Iris.reportError(t);
                 if (logFailedRequests) {
                     Bukkit.getLogger().log(Level.WARNING, "Failed to get data for custom chart with id " + chartId, t);
                 }

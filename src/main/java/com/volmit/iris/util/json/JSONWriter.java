@@ -163,7 +163,8 @@ public class JSONWriter {
         this.pop(mode);
         try {
             this.writer.write(c);
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             throw new JSONException(e);
         }
         this.comma = true;
@@ -216,7 +217,8 @@ public class JSONWriter {
                 this.comma = false;
                 this.mode = 'o';
                 return this;
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
                 throw new JSONException(e);
             }
         }

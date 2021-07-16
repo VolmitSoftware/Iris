@@ -19,9 +19,6 @@
 package com.volmit.iris.util.json;
 
 
-import com.volmit.iris.util.json.JSONException;
-import com.volmit.iris.util.json.JSONTokener;
-
 /**
  * The HTTPTokener extends the JSONTokener to provide additional methods for the
  * parsing of HTTP headers.

@@ -20,11 +20,11 @@ package com.volmit.iris.engine.parallax;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -77,7 +77,8 @@ public class ParallaxWorld implements ParallaxAccess {
     public void save(ParallaxRegion region) {
         try {
             region.save();
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }
@@ -222,7 +223,8 @@ public class ParallaxWorld implements ParallaxAccess {
                         cc += i.cleanup(c);
                     }
                 }
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         });

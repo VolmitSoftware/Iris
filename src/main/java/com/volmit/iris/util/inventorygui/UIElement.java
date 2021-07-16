@@ -19,9 +19,9 @@
 package com.volmit.iris.util.inventorygui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.scheduling.Callback;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.MaterialBlock;
+import com.volmit.iris.util.scheduling.Callback;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -166,7 +166,8 @@ public class UIElement implements Element {
         } catch (NullPointerException e) {
             Iris.reportError(e);
 
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -216,7 +217,8 @@ public class UIElement implements Element {
 
             is.setItemMeta(im);
             return is;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 

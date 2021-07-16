@@ -18,9 +18,9 @@
 
 package com.volmit.iris.engine.stream.interpolation;
 
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 
 public class BiHermiteStream<T> extends BasicStream<T> implements Interpolator<T> {
     private final int rx;

@@ -19,15 +19,15 @@
 package com.volmit.iris.engine.parallax;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.HunkRegion;
 import com.volmit.iris.engine.hunk.io.HunkRegionSlice;
+import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.GridLock;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.oldnbt.CompoundTag;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.Tag;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -145,7 +145,8 @@ public class ParallaxRegion extends HunkRegion {
             try {
                 getCompound().getValue().put("meta", meta.writeByteArrayTag(metaAdapter, "meta"));
                 dirtyMeta = false;
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         }

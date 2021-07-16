@@ -34,6 +34,7 @@ public class MultiBurst {
     public MultiBurst(int tc) {
         this("Iris Generator", 6, tc);
     }
+
     public MultiBurst(String name, int priority, int tc) {
         service = Executors.newFixedThreadPool(tc, r -> {
             tid++;

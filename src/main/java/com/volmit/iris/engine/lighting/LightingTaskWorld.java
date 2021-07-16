@@ -99,9 +99,11 @@ public class LightingTaskWorld implements LightingTask {
         // Wait until region list is loaded synchronously
         try {
             regionsLoadedFuture.get();
-        } catch (InterruptedException ex) {Iris.reportError(ex);
+        } catch (InterruptedException ex) {
+            Iris.reportError(ex);
             // Ignore
-        } catch (ExecutionException ex) {Iris.reportError(ex);
+        } catch (ExecutionException ex) {
+            Iris.reportError(ex);
             throw new RuntimeException("Failed to load regions", ex.getCause());
         }
 

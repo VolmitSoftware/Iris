@@ -19,15 +19,15 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.RenderType;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;
@@ -405,7 +405,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             for (int j = 0; j < d; j++) {
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -460,7 +461,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
                 try {
                     data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom(), rdata));
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
@@ -643,8 +645,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 return cacheColorObjectDensity.aquire(() -> {
                     double density = 0;
 
-                    for(IrisObjectPlacement i : getObjects())
-                    {
+                    for (IrisObjectPlacement i : getObjects()) {
                         density += i.getDensity() * i.getChance();
                     }
 
@@ -655,8 +656,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 return cacheColorDecoratorLoad.aquire(() -> {
                     double density = 0;
 
-                    for(IrisDecorator i : getDecorators())
-                    {
+                    for (IrisDecorator i : getDecorators()) {
                         density += i.getChance() * Math.min(1, i.getStackMax()) * 256;
                     }
 

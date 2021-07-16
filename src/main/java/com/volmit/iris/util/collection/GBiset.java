@@ -74,7 +74,6 @@ public class GBiset<A, B> implements Serializable {
 
     /**
      * Set the second object
-     *
      */
     public void setB(B b) {
         this.b = b;

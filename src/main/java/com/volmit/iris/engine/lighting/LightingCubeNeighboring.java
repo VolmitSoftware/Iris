@@ -68,7 +68,7 @@ public class LightingCubeNeighboring {
     /**
      * Sets the neighbor representing the given relative cube
      *
-     * @param neighbor   to set to, is allowed to be null to set to 'none'
+     * @param neighbor to set to, is allowed to be null to set to 'none'
      */
     public void set(int deltaCubeX, int deltaCubeY, int deltaCubeZ, LightingCube neighbor) {
         values[getIndexByCube(deltaCubeX, deltaCubeY, deltaCubeZ)] = neighbor;

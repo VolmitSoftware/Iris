@@ -18,17 +18,11 @@
 
 package com.volmit.iris.util.fakenews;
 
-import com.volmit.iris.engine.IrisEngineFramework;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineCompound;
-import com.volmit.iris.engine.framework.EngineEffects;
-import com.volmit.iris.engine.framework.EngineFramework;
-import com.volmit.iris.engine.framework.EngineMetrics;
-import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.framework.EngineWorldManager;
+import com.volmit.iris.engine.IrisEngineFramework;
+import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.*;
 import lombok.Getter;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -48,12 +42,12 @@ public class FakeEngine implements Engine {
     private double maxBiomeDecoratorDensity;
 
     @Getter
-    private IrisDimension dimension;
+    private final IrisDimension dimension;
 
-    private EngineFramework framework;
+    private final EngineFramework framework;
 
     @Getter
-    private World world;
+    private final World world;
 
     public FakeEngine(IrisDimension dimension, FakeWorld world) {
         this.dimension = dimension;
@@ -63,28 +57,24 @@ public class FakeEngine implements Engine {
     }
 
     private void computeBiomeMaxes() {
-        for(IrisBiome i : getDimension().getAllBiomes(this))
-        {
+        for (IrisBiome i : getDimension().getAllBiomes(this)) {
             double density = 0;
 
-            for(IrisObjectPlacement j : i.getObjects())
-            {
+            for (IrisObjectPlacement j : i.getObjects()) {
                 density += j.getDensity() * j.getChance();
             }
 
             maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
             density = 0;
 
-            for(IrisDecorator j : i.getDecorators())
-            {
+            for (IrisDecorator j : i.getDecorators()) {
                 density += Math.max(j.getStackMax(), 1) * j.getChance();
             }
 
             maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
             density = 0;
 
-            for(IrisBiomePaletteLayer j : i.getLayers())
-            {
+            for (IrisBiomePaletteLayer j : i.getLayers()) {
                 density++;
             }
 
@@ -93,7 +83,8 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void close() {    }
+    public void close() {
+    }
 
     @Override
     public boolean isClosed() {
@@ -111,7 +102,8 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void setParallelism(int parallelism) { }
+    public void setParallelism(int parallelism) {
+    }
 
     @Override
     public int getParallelism() {
@@ -129,10 +121,12 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void setMinHeight(int min) { }
+    public void setMinHeight(int min) {
+    }
 
     @Override
-    public void recycle() { }
+    public void recycle() {
+    }
 
     @Override
     public int getIndex() {
@@ -160,7 +154,8 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) { }
+    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes) {
+    }
 
     @Override
     public EngineMetrics getMetrics() {
@@ -183,7 +178,8 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void fail(String error, Throwable e) { }
+    public void fail(String error, Throwable e) {
+    }
 
     @Override
     public boolean hasFailed() {
@@ -196,5 +192,6 @@ public class FakeEngine implements Engine {
     }
 
     @Override
-    public void hotload() { }
+    public void hotload() {
+    }
 }

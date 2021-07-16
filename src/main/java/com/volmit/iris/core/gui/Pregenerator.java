@@ -192,8 +192,7 @@ public class Pregenerator implements Listener {
                 flushWorld();
             }
 
-            while(wait.isNotEmpty())
-            {
+            while (wait.isNotEmpty()) {
                 J.sleep(50);
             }
 
@@ -263,7 +262,7 @@ public class Pregenerator implements Listener {
             totalChunks.getAndAdd(1024);
             mcaDefer.add(new ChunkPosition(x, z));
             install(mcg, mca);
-        } else  {
+        } else {
             totalChunks.getAndAdd(1024);
             mcaDefer.add(new ChunkPosition(x, z));
             e.complete();
@@ -277,7 +276,8 @@ public class Pregenerator implements Listener {
         try {
             Files.move(from.toPath(), to.toPath());
             return true;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -285,7 +285,8 @@ public class Pregenerator implements Listener {
             IO.copyFile(from, to);
             from.delete();
             return true;
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
 
         }
 
@@ -307,13 +308,12 @@ public class Pregenerator implements Listener {
         if (PaperLib.isPaper()) {
             method.set("PaperAsync (Slow)");
 
-            while(wait.size() > 8192)
-            {
+            while (wait.size() > 8192) {
                 J.sleep(25);
             }
 
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-                ChunkPosition cx = new ChunkPosition(ii,jj);
+                ChunkPosition cx = new ChunkPosition(ii, jj);
                 PaperLib.getChunkAtAsync(world, ii, jj).thenAccept((c) -> {
                     draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
                     draw(ii, jj, COLOR_MCA_GENERATED);
@@ -321,8 +321,7 @@ public class Pregenerator implements Listener {
                     vcax.set(ii);
                     vcaz.set(jj);
 
-                    synchronized (wait)
-                    {
+                    synchronized (wait) {
                         wait.remove(cx);
                     }
                 });
@@ -358,7 +357,8 @@ public class Pregenerator implements Listener {
 
                     try {
                         q.pop().run();
-                    } catch (Throwable e) {Iris.reportError(e);
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
 
                     }
                 }
@@ -521,7 +521,8 @@ public class Pregenerator implements Listener {
             while (order.isNotEmpty()) {
                 try {
                     order.pop().run();
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
 
                 }
             }
@@ -590,7 +591,8 @@ public class Pregenerator implements Listener {
             if (file != null) {
                 try {
                     frame.setIconImage(ImageIO.read(file));
-                } catch (IOException ignored) {Iris.reportError(ignored);
+                } catch (IOException ignored) {
+                    Iris.reportError(ignored);
 
                 }
             }

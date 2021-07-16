@@ -398,7 +398,8 @@ public class JSONTokener {
                     return c;
                 }
             } while (c != to);
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             throw new JSONException(e);
         }
         this.back();

@@ -106,10 +106,12 @@ public class CommandIrisPregen extends MortarCommand {
             }
             try {
                 new Pregenerator(world, getVal(args[0]) * 2);
-            } catch (NumberFormatException e) {Iris.reportError(e);
+            } catch (NumberFormatException e) {
+                Iris.reportError(e);
                 sender.sendMessage("Invalid argument in command");
                 return true;
-            } catch (NullPointerException e) {Iris.reportError(e);
+            } catch (NullPointerException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
                 sender.sendMessage("No radius specified (check error in console)");
             } catch (HeadlessException e) {
@@ -130,12 +132,15 @@ public class CommandIrisPregen extends MortarCommand {
             World world = Bukkit.getWorld(args[1]);
             try {
                 new Pregenerator(world, getVal(args[0]) * 2);
-            } catch (NumberFormatException e) {Iris.reportError(e);
+            } catch (NumberFormatException e) {
+                Iris.reportError(e);
                 sender.sendMessage("Invalid argument in command");
                 return true;
-            } catch (NullPointerException e) {Iris.reportError(e);
+            } catch (NullPointerException e) {
+                Iris.reportError(e);
                 sender.sendMessage("Not all required parameters specified");
-            } catch (HeadlessException e) {Iris.reportError(e);
+            } catch (HeadlessException e) {
+                Iris.reportError(e);
                 sender.sendMessage("If you are seeing this and are using a hosted server, please turn off 'useServerLaunchedGUIs' in the settings");
             }
 

@@ -128,8 +128,8 @@ public class Board {
             team.setSuffix(entry.getSuffix());
 
             switch (boardSettings.getScoreDirection()) {
-                case ScoreDirection.UP -> objective.getScore(team.getName()).setScore(1 + i);
-                case ScoreDirection.DOWN -> objective.getScore(team.getName()).setScore(15 - i);
+                case UP -> objective.getScore(team.getName()).setScore(1 + i);
+                case DOWN -> objective.getScore(team.getName()).setScore(15 - i);
             }
         }
     }

@@ -18,9 +18,9 @@
 
 package com.volmit.iris.util.inventorygui;
 
-import com.volmit.iris.util.scheduling.Callback;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.MaterialBlock;
+import com.volmit.iris.util.scheduling.Callback;
 import org.bukkit.inventory.ItemStack;
 
 @SuppressWarnings("ALL")

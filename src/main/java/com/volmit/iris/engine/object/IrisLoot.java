@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
@@ -190,7 +190,8 @@ public class IrisLoot {
 
             is.setItemMeta(m);
             return is;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -264,7 +265,8 @@ public class IrisLoot {
                 m.setLore(lore);
                 is.setItemMeta(m);
                 return is;
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
         }

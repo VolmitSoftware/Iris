@@ -195,7 +195,8 @@ public class TaskExecutor {
                 try {
                     task.run();
                     state = TaskState.COMPLETED;
-                } catch (Throwable ex) {Iris.reportError(ex);
+                } catch (Throwable ex) {
+                    Iris.reportError(ex);
                     ex.printStackTrace();
                     Iris.reportError(ex);
                     state = TaskState.FAILED;

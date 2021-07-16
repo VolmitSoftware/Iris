@@ -20,9 +20,9 @@ package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.reflect.V;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
@@ -58,7 +58,8 @@ public class VirtualCommand {
                     ICommand cmd = (ICommand) i.getType().getConstructor().newInstance();
                     new V(command, true, true).set(i.getName(), cmd);
                     children.put(cmd.getAllNodes(), new VirtualCommand(cmd, cc.value().trim().isEmpty() ? tag : cc.value().trim()));
-                } catch (Exception e) {Iris.reportError(e);
+                } catch (Exception e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }

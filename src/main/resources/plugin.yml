@@ -2,11 +2,11 @@ name: ${name}
 version: ${version}
 main: ${main}
 load: STARTUP
-authors: [cyberpwn, NextdoorPsycho]
+authors: [ cyberpwn, NextdoorPsycho ]
 website: volmit.com
 description: More than a Dimenson!
 commands:
   iris:
-    aliases: [ir, irs]
+    aliases: [ ir, irs ]
 api-version: ${apiversion}
 hotload-dependencies: false

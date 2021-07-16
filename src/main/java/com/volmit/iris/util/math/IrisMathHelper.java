@@ -251,7 +251,7 @@ public class IrisMathHelper {
     }
 
     public static long c(final int var0, final int var1, final int var2) {
-        long var3 = (long) (var0 * 3129871L) ^ var2 * 116129781L ^ (long) var1;
+        long var3 = (var0 * 3129871L) ^ var2 * 116129781L ^ (long) var1;
         var3 = var3 * var3 * 42317861L + var3 * 11L;
         return var3 >> 16;
     }

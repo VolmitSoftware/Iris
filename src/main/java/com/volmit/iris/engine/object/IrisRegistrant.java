@@ -33,8 +33,7 @@ public class IrisRegistrant {
 
     private transient File loadFile;
 
-    public File openInVSCode()
-    {
+    public File openInVSCode() {
         try {
             Desktop.getDesktop().open(getLoadFile());
         } catch (Throwable e) {

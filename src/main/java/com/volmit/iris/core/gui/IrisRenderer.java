@@ -62,6 +62,6 @@ public class IrisRenderer {
     }
 
     public void set(double worldX, double worldZ) {
-        ((Engine) renderer).getWorld().getBlockAt((int) worldX, 20, (int) worldZ).setType(Material.DIAMOND_BLOCK);
+        renderer.getWorld().getBlockAt((int) worldX, 20, (int) worldZ).setType(Material.DIAMOND_BLOCK);
     }
 }

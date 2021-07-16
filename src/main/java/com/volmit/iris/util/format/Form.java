@@ -225,7 +225,7 @@ public class Form {
     /**
      * Returns a fancy duration up to Years
      *
-     * @param duration        the duration in ms
+     * @param duration the duration in ms
      * @return the fancy duration
      */
     public static String duration(RollingSequence rollingSequence, long duration) {
@@ -1047,7 +1047,7 @@ public class Form {
     /**
      * nanoseconds to seconds (double) custom decimals
      *
-     * @param p  number of decimal points
+     * @param p number of decimal points
      * @return a formatted string to nanoseconds
      */
     public static String nsMs(long ns, int p) {
@@ -1057,7 +1057,7 @@ public class Form {
     /**
      * nanoseconds to seconds (double) custom decimals
      *
-     * @param p  number of decimal points
+     * @param p number of decimal points
      * @return a formatted string to nanoseconds
      */
     public static String nsMsd(long ns, int p) {

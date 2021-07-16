@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.stream.interpolation;
 
-import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.engine.object.common.CaveResult;
+import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.data.BlockData;

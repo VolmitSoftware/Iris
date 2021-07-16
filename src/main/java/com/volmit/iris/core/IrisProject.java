@@ -20,13 +20,13 @@ package com.volmit.iris.core;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
-import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -259,14 +259,10 @@ public class IrisProject {
                 assert gx != null;
                 double v = (double) gx.getGenerated() / (double) req;
 
-                if(sender.isPlayer())
-                {
+                if (sender.isPlayer()) {
                     sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)"))));
                     J.sleep(50);
-                }
-
-                else
-                {
+                } else {
                     sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
                     J.sleep(1000);
                 }
@@ -295,10 +291,7 @@ public class IrisProject {
         if (sender.isPlayer()) {
             assert world != null;
             sender.player().teleport(world.getSpawnLocation());
-        }
-
-        else
-        {
+        } else {
             sender.sendMessage(C.WHITE + "Generating Complete!");
         }
 

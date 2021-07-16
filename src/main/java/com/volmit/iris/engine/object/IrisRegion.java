@@ -19,11 +19,11 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.RenderType;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;
@@ -37,7 +37,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import java.awt.Color;
+
+import java.awt.*;
 import java.util.Random;
 
 
@@ -532,7 +533,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
                 while (biomes.size() > 0) {
                     int index = rand.nextInt(biomes.size());
-                    IrisBiome biome  = biomes.get(index);
+                    IrisBiome biome = biomes.get(index);
 
                     if (biome.getVanillaDerivative() != null) {
                         RandomColor.Color col = VanillaBiomeMap.getColorType(biome.getVanillaDerivative());

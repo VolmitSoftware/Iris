@@ -20,10 +20,10 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.data.DirectWorldWriter;
-import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
@@ -139,7 +139,8 @@ public interface IrisAccess extends Hotloadable, DataProvider {
                             return;
                         }
                     }
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             });
@@ -199,7 +200,8 @@ public interface IrisAccess extends Hotloadable, DataProvider {
                         }
 
                         tries.getAndIncrement();
-                    } catch (Throwable xe) {Iris.reportError(xe);
+                    } catch (Throwable xe) {
+                        Iris.reportError(xe);
                         xe.printStackTrace();
                         return;
                     }

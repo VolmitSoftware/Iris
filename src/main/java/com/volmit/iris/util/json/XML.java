@@ -330,7 +330,8 @@ public class XML {
                 if (value.toString().equals(string)) {
                     return value;
                 }
-            } catch (Exception e) {Iris.reportError(e);
+            } catch (Exception e) {
+                Iris.reportError(e);
             }
         }
         return string;

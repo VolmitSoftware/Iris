@@ -136,9 +136,9 @@ public class LightingCube {
      * higher light value if all these tests pass.
      * The x/y/z coordinates are allowed to check neighboring cubes.
      *
-     * @param x         The X-coordinate of the block (-1 to 16)
-     * @param y         The Y-coordinate of the block (-1 to 16)
-     * @param z         The Z-coordinate of the block (-1 to 16)
+     * @param x The X-coordinate of the block (-1 to 16)
+     * @param y The Y-coordinate of the block (-1 to 16)
+     * @param z The Z-coordinate of the block (-1 to 16)
      * @return higher light level if propagated, otherwise the old light value
      */
     public int getLightIfHigherNeighbor(LightingCategory category, int old_light, int faceMask, int x, int y, int z) {

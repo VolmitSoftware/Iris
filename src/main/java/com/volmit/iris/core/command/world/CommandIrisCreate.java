@@ -19,14 +19,14 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.gui.Pregenerator;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.core.gui.Pregenerator;
 import com.volmit.iris.engine.IrisWorldCreator;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.MortarCommand;

@@ -19,8 +19,8 @@
 package com.volmit.iris.core.command.what;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.MortarSender;
 

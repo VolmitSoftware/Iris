@@ -335,7 +335,6 @@ public enum C {
 
     /**
      * get the dye color for the chatcolor
-     *
      */
     public DyeColor dye() {
         return chatToDye(chatColor());
@@ -392,7 +391,8 @@ public enum C {
             Validate.isTrue(code.length() > 0, "Code must have at least one char");
 
             return BY_CHAR.get(code.charAt(0));
-        } catch (Exception e) {Iris.reportError(e);
+        } catch (Exception e) {
+            Iris.reportError(e);
             return C.WHITE;
         }
     }
@@ -510,7 +510,6 @@ public enum C {
 
     /**
      * Get the ChatColor enum instance instead of C
-     *
      */
     public ChatColor chatColor() {
         return ChatColor.getByChar(code);
@@ -553,41 +552,41 @@ public enum C {
 
     public byte getMeta() {
         return switch (this) {
-            case AQUA -> (byte)11;
-            case BLACK -> (byte)0;
-            case BLUE, DARK_AQUA -> (byte)9;
-            case BOLD, UNDERLINE, STRIKETHROUGH, RESET, MAGIC, ITALIC -> (byte)-1;
-            case DARK_BLUE -> (byte)1;
-            case DARK_GRAY -> (byte)8;
-            case DARK_GREEN -> (byte)2;
-            case DARK_PURPLE -> (byte)5;
-            case DARK_RED -> (byte)4;
-            case GOLD -> (byte)6;
-            case GRAY -> (byte)7;
-            case GREEN -> (byte)10;
-            case LIGHT_PURPLE -> (byte)13;
-            case RED -> (byte)12;
-            case WHITE -> (byte)15;
-            case YELLOW -> (byte)14;
+            case AQUA -> (byte) 11;
+            case BLACK -> (byte) 0;
+            case BLUE, DARK_AQUA -> (byte) 9;
+            case BOLD, UNDERLINE, STRIKETHROUGH, RESET, MAGIC, ITALIC -> (byte) -1;
+            case DARK_BLUE -> (byte) 1;
+            case DARK_GRAY -> (byte) 8;
+            case DARK_GREEN -> (byte) 2;
+            case DARK_PURPLE -> (byte) 5;
+            case DARK_RED -> (byte) 4;
+            case GOLD -> (byte) 6;
+            case GRAY -> (byte) 7;
+            case GREEN -> (byte) 10;
+            case LIGHT_PURPLE -> (byte) 13;
+            case RED -> (byte) 12;
+            case WHITE -> (byte) 15;
+            case YELLOW -> (byte) 14;
         };
     }
 
     public byte getItemMeta() {
         return switch (this) {
-            case AQUA, DARK_AQUA -> (byte)9;
-            case BLACK -> (byte)15;
-            case BLUE -> (byte)3;
-            case BOLD, UNDERLINE, RESET, STRIKETHROUGH, MAGIC, ITALIC -> (byte)-1;
-            case DARK_BLUE -> (byte)11;
-            case DARK_GRAY -> (byte)7;
-            case DARK_GREEN -> (byte)13;
-            case DARK_PURPLE -> (byte)10;
-            case DARK_RED, RED -> (byte)14;
-            case GOLD, YELLOW -> (byte)4;
-            case GRAY -> (byte)8;
-            case GREEN -> (byte)5;
-            case LIGHT_PURPLE -> (byte)2;
-            case WHITE -> (byte)0;
+            case AQUA, DARK_AQUA -> (byte) 9;
+            case BLACK -> (byte) 15;
+            case BLUE -> (byte) 3;
+            case BOLD, UNDERLINE, RESET, STRIKETHROUGH, MAGIC, ITALIC -> (byte) -1;
+            case DARK_BLUE -> (byte) 11;
+            case DARK_GRAY -> (byte) 7;
+            case DARK_GREEN -> (byte) 13;
+            case DARK_PURPLE -> (byte) 10;
+            case DARK_RED, RED -> (byte) 14;
+            case GOLD, YELLOW -> (byte) 4;
+            case GRAY -> (byte) 8;
+            case GREEN -> (byte) 5;
+            case LIGHT_PURPLE -> (byte) 2;
+            case WHITE -> (byte) 0;
         };
     }
 

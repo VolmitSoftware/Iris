@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;

@@ -22,8 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisEffect;
 import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -64,7 +64,8 @@ public class EnginePlayer {
                 for (IrisEffect j : biome.getEffects()) {
                     try {
                         j.apply(player, getEngine());
-                    } catch (Throwable e) {Iris.reportError(e);
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
 
                     }
                 }
@@ -83,7 +84,8 @@ public class EnginePlayer {
                 lastSample = M.ms();
                 sampleBiomeRegion();
             }
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }

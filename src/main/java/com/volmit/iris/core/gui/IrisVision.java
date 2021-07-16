@@ -20,10 +20,10 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -80,7 +80,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private int h = 0;
     private double lx = 0;
     private double lz = 0;
-    private KList<LivingEntity> lastEntities = new KList<>();
+    private final KList<LivingEntity> lastEntities = new KList<>();
     private double ox = 0;
     private double oz = 0;
     private double hx = 0;
@@ -88,10 +88,10 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private double oxp = 0;
     private double ozp = 0;
     private Engine engine;
-    private KMap<String, Long> notifications = new KMap<>();
+    private final KMap<String, Long> notifications = new KMap<>();
     double tfps = 240D;
     int ltc = 3;
-    private ChronoLatch centities = new ChronoLatch(1000);
+    private final ChronoLatch centities = new ChronoLatch(1000);
     private final RollingSequence rs = new RollingSequence(512);
     private final O<Integer> m = new O<>();
     private int tid = 0;
@@ -175,11 +175,10 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         return colorFunction.apply(wx, wz);
     }
 
-    public void notify(String s)
-    {
+    public void notify(String s) {
         notifications.put(s, M.ms() + 2500);
     }
-    
+
     @Override
     public void keyTyped(KeyEvent e) {
 
@@ -192,12 +191,15 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         }
         if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
             control = true;
-        }if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+        }
+        if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
             debug = true;
-        } if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+        }
+        if (e.getKeyCode() == KeyEvent.VK_SLASH) {
             help = true;
             helpIgnored = true;
-        } if (e.getKeyCode() == KeyEvent.VK_ALT) {
+        }
+        if (e.getKeyCode() == KeyEvent.VK_ALT) {
             alt = true;
         }
     }
@@ -217,7 +219,8 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         if (e.getKeyCode() == KeyEvent.VK_SLASH) {
             help = false;
             helpIgnored = true;
-        } if (e.getKeyCode() == KeyEvent.VK_ALT) {
+        }
+        if (e.getKeyCode() == KeyEvent.VK_ALT) {
             alt = false;
         }
 
@@ -225,19 +228,12 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         if (e.getKeyCode() == KeyEvent.VK_F) {
             follow = !follow;
 
-            if(player != null && follow)
-            {
+            if (player != null && follow) {
                 notify("Following " + player.getName() + ". Press F to disable");
-            }
-
-            else if(follow)
-            {
+            } else if (follow) {
                 notify("Can't follow, no one is in the world");
                 follow = false;
-            }
-
-            else
-            {
+            } else {
                 notify("Follow Off");
             }
 
@@ -253,7 +249,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         if (e.getKeyCode() == KeyEvent.VK_P) {
             lowtile = !lowtile;
             dump();
-            notify("Rendering "+(lowtile ? "Low" : "High")+" Quality Tiles");
+            notify("Rendering " + (lowtile ? "Low" : "High") + " Quality Tiles");
             return;
         }
         if (e.getKeyCode() == KeyEvent.VK_E) {
@@ -284,11 +280,9 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
 
         int currentMode = currentType.ordinal();
 
-        for(RenderType i : RenderType.values())
-        {
-            if (e.getKeyChar() == String.valueOf(i.ordinal()+1).charAt(0)) {
-                if(i.ordinal() != currentMode)
-                {
+        for (RenderType i : RenderType.values()) {
+            if (e.getKeyChar() == String.valueOf(i.ordinal() + 1).charAt(0)) {
+                if (i.ordinal() != currentMode) {
                     currentType = i;
                     dump();
                     notify("Rendering " + Form.capitalizeWords(currentType.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
@@ -298,14 +292,13 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         }
 
         if (e.getKeyCode() == KeyEvent.VK_M) {
-            currentType = RenderType.values()[(currentMode+1) % RenderType.values().length];
+            currentType = RenderType.values()[(currentMode + 1) % RenderType.values().length];
             notify("Rendering " + Form.capitalizeWords(currentType.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
             dump();
         }
     }
 
-    private void dump()
-    {
+    private void dump() {
         positions.clear();
         fastpositions.clear();
     }
@@ -418,17 +411,15 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
             hz += Math.abs(hz - lz) * 0.36;
         }
 
-        if(centities.flip())
-        {
+        if (centities.flip()) {
             J.s(() -> {
-                synchronized (lastEntities)
-                {
+                synchronized (lastEntities) {
                     lastEntities.clear();
                     lastEntities.addAll(world.getEntitiesByClass(LivingEntity.class));
                 }
             });
         }
-        lowq = Math.max(Math.min((int)M.lerp(8, 28, velocity / 1000D), 28), 8);
+        lowq = Math.max(Math.min((int) M.lerp(8, 28, velocity / 1000D), 28), 8);
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Graphics2D g = (Graphics2D) gx;
         w = getWidth();
@@ -495,8 +486,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     }
 
     private void hanleFollow() {
-        if(follow && player != null)
-        {
+        if (follow && player != null) {
             animateTo(player.getLocation().getX(), player.getLocation().getZ());
         }
     }
@@ -504,21 +494,16 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private void renderOverlays(Graphics2D g) {
         renderPlayer(g);
 
-        if(help)
-        {
+        if (help) {
             renderOverlayHelp(g);
-        }
-
-        else if(debug)
-        {
+        } else if (debug) {
             renderOverlayDebug(g);
         }
 
         renderOverlayLegend(g);
 
         renderHoverOverlay(g, shift);
-        if(!notifications.isEmpty())
-        {
+        if (!notifications.isEmpty()) {
             renderNotification(g);
         }
     }
@@ -526,7 +511,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private void renderOverlayLegend(Graphics2D g) {
         KList<String> l = new KList<>();
         l.add("Zoom: " + Form.pc(mscale, 0));
-        l.add("Blocks: " + Form.f((int)mscale * w) + " by " + Form.f((int)mscale * h));
+        l.add("Blocks: " + Form.f((int) mscale * w) + " by " + Form.f((int) mscale * h));
         l.add("BPP: " + Form.f(mscale, 1));
         l.add("Render Mode: " + Form.capitalizeWords(currentType.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
 
@@ -536,10 +521,8 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private void renderNotification(Graphics2D g) {
         drawCardCB(g, notifications.k());
 
-        for(String i : notifications.k())
-        {
-            if(M.ms() > notifications.get(i))
-            {
+        for (String i : notifications.k()) {
+            if (M.ms() > notifications.get(i)) {
                 notifications.remove(i);
             }
         }
@@ -548,47 +531,40 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private void renderPlayer(Graphics2D g) {
         Player b = null;
 
-        for(Player i : world.getPlayers())
-        {
+        for (Player i : world.getPlayers()) {
             b = i;
             renderPosition(g, i.getLocation().getX(), i.getLocation().getZ());
         }
 
-        synchronized (lastEntities)
-        {
+        synchronized (lastEntities) {
             double dist = Double.MAX_VALUE;
             LivingEntity h = null;
 
-            for(LivingEntity i : lastEntities)
-            {
-                if(i instanceof Player)
-                {
+            for (LivingEntity i : lastEntities) {
+                if (i instanceof Player) {
                     continue;
                 }
 
                 renderMobPosition(g, i, i.getLocation().getX(), i.getLocation().getZ());
-                if(shift)
-                {
+                if (shift) {
                     double d = i.getLocation().distanceSquared(new Location(i.getWorld(), getWorldX(hx), i.getLocation().getY(), getWorldZ(hz)));
 
-                    if(d < dist)
-                    {
+                    if (d < dist) {
                         dist = d;
                         h = i;
                     }
                 }
             }
 
-            if(h != null && shift)
-            {
+            if (h != null && shift) {
                 g.setColor(Color.red);
-                g.fillRoundRect((int)getScreenX(h.getLocation().getX()) - 10, (int)getScreenZ(h.getLocation().getZ()) - 10, 20, 20, 20, 20);
+                g.fillRoundRect((int) getScreenX(h.getLocation().getX()) - 10, (int) getScreenZ(h.getLocation().getZ()) - 10, 20, 20, 20, 20);
                 KList<String> k = new KList<>();
                 k.add(Form.capitalizeWords(h.getType().name().toLowerCase(Locale.ROOT).replaceAll("\\Q_\\E", " ")) + h.getEntityId());
 
-                    k.add("Pos: " + h.getLocation().getBlockX() + ", " + h.getLocation().getBlockY() + ", " + h.getLocation().getBlockZ());
-                    k.add("UUID: " + h.getUniqueId().toString());
-                    k.add("HP: " + h.getHealth() + " / " + h.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+                k.add("Pos: " + h.getLocation().getBlockX() + ", " + h.getLocation().getBlockY() + ", " + h.getLocation().getBlockZ());
+                k.add("UUID: " + h.getUniqueId());
+                k.add("HP: " + h.getHealth() + " / " + h.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
 
                 drawCardTR(g, k);
             }
@@ -598,32 +574,26 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     }
 
     private void animateTo(double wx, double wz) {
-        double cx = getWorldX(getWidth()/2);
-        double cz = getWorldZ(getHeight()/2);
+        double cx = getWorldX(getWidth() / 2);
+        double cz = getWorldZ(getHeight() / 2);
         ox += (wx - cx);
         oz += (wz - cz);
     }
 
-    private void renderPosition(Graphics2D g, double x, double z)
-    {
-        if(texture != null)
-        {
-            g.drawImage(texture, (int)getScreenX(x), (int)getScreenZ(z), 66, 66, (img, infoflags, xx, xy, width, height) -> true);
-        }
-
-        else
-        {
+    private void renderPosition(Graphics2D g, double x, double z) {
+        if (texture != null) {
+            g.drawImage(texture, (int) getScreenX(x), (int) getScreenZ(z), 66, 66, (img, infoflags, xx, xy, width, height) -> true);
+        } else {
             g.setColor(Color.darkGray);
-            g.fillRoundRect((int)getScreenX(x) - 15, (int)getScreenZ(z) - 15, 30, 30, 15, 15);
+            g.fillRoundRect((int) getScreenX(x) - 15, (int) getScreenZ(z) - 15, 30, 30, 15, 15);
             g.setColor(Color.cyan.darker().darker());
-            g.fillRoundRect((int)getScreenX(x) - 10, (int)getScreenZ(z) - 10, 20, 20, 10, 10);
+            g.fillRoundRect((int) getScreenX(x) - 10, (int) getScreenZ(z) - 10, 20, 20, 10, 10);
         }
     }
 
-    private void renderMobPosition(Graphics2D g, LivingEntity e, double x, double z)
-    {
+    private void renderMobPosition(Graphics2D g, LivingEntity e, double x, double z) {
         g.setColor(Color.red.darker().darker());
-        g.fillRoundRect((int)getScreenX(x) - 2, (int)getScreenZ(z) - 2, 4, 4, 4, 4);
+        g.fillRoundRect((int) getScreenX(x) - 2, (int) getScreenZ(z) - 2, 4, 4, 4, 4);
     }
 
     private void renderHoverOverlay(Graphics2D g, boolean detailed) {
@@ -632,22 +602,21 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         KList<String> l = new KList<>();
         l.add("Biome: " + biome.getName());
         l.add("Region: " + region.getName() + "(" + region.getLoadKey() + ")");
-        if(detailed)
-        {
-            l.add("Block " + (int)getWorldX(hx) + ", " + (int)getWorldZ(hz));
-            l.add("Chunk " + ((int)getWorldX(hx)>>4) + ", " + ((int)getWorldZ(hz)>>4));
-            l.add("Region " + (((int)getWorldX(hx)>>4)>>5) + ", " + (((int)getWorldZ(hz)>>4)>>5));
+        if (detailed) {
+            l.add("Block " + (int) getWorldX(hx) + ", " + (int) getWorldZ(hz));
+            l.add("Chunk " + ((int) getWorldX(hx) >> 4) + ", " + ((int) getWorldZ(hz) >> 4));
+            l.add("Region " + (((int) getWorldX(hx) >> 4) >> 5) + ", " + (((int) getWorldZ(hz) >> 4) >> 5));
             l.add("Key: " + biome.getLoadKey());
             l.add("File: " + biome.getLoadFile());
         }
 
-        drawCardAt((float)hx, (float)hz, 0, 0, g, l);
+        drawCardAt((float) hx, (float) hz, 0, 0, g, l);
     }
 
     private void renderOverlayDebug(Graphics2D g) {
         KList<String> l = new KList<>();
-        l.add("Velocity: " + (int)velocity);
-        l.add("Center Pos: " + Form.f((int)getWorldX(getWidth()/2)) + ", " + Form.f((int)getWorldZ(getHeight()/2)));
+        l.add("Velocity: " + (int) velocity);
+        l.add("Center Pos: " + Form.f((int) getWorldX(getWidth() / 2)) + ", " + Form.f((int) getWorldZ(getHeight() / 2)));
         drawCardBL(g, l);
     }
 
@@ -674,32 +643,26 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         drawCardTL(g, l);
     }
 
-    private void drawCardTL(Graphics2D g, KList<String> text)
-    {
+    private void drawCardTL(Graphics2D g, KList<String> text) {
         drawCardAt(0, 0, 0, 0, g, text);
     }
 
-    private void drawCardBR(Graphics2D g, KList<String> text)
-    {
+    private void drawCardBR(Graphics2D g, KList<String> text) {
         drawCardAt(getWidth(), getHeight(), 1, 1, g, text);
     }
 
-    private void drawCardBL(Graphics2D g, KList<String> text)
-    {
+    private void drawCardBL(Graphics2D g, KList<String> text) {
         drawCardAt(0, getHeight(), 0, 1, g, text);
     }
 
-    private void drawCardTR(Graphics2D g, KList<String> text)
-    {
+    private void drawCardTR(Graphics2D g, KList<String> text) {
         drawCardAt(getWidth(), 0, 1, 0, g, text);
     }
 
-    private void open()
-    {
+    private void open() {
         IrisComplex complex = engine.getFramework().getComplex();
         File r = null;
-        switch(currentType)
-        {
+        switch (currentType) {
             case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT -> r = complex.getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_LAND -> r = complex.getLandBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_SEA -> r = complex.getSeaBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
@@ -710,41 +673,32 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         notify("Opening " + r.getPath() + " in VSCode");
     }
 
-    private void teleport()
-    {
+    private void teleport() {
         J.s(() -> {
-            if(player != null)
-            {
+            if (player != null) {
                 double h = engine.getFramework().getComplex().getTrueHeightStream().get(getWorldX(hx), getWorldZ(hz));
                 player.teleport(new Location(player.getWorld(), getWorldX(hx), h, getWorldZ(hz)));
-                notify("Teleporting to " + Form.f((int)getWorldX(hx)) +", " + Form.f((int)h) + ", " + Form.f((int)getWorldZ(hz)));
-            }
-
-            else
-            {
+                notify("Teleporting to " + Form.f((int) getWorldX(hx)) + ", " + Form.f((int) h) + ", " + Form.f((int) getWorldZ(hz)));
+            } else {
                 notify("No player in world, can't teleport.");
             }
         });
     }
 
-    private void drawCardCB(Graphics2D g, KList<String> text)
-    {
-        drawCardAt(getWidth()/2, getHeight(), 0.5, 1, g, text);
+    private void drawCardCB(Graphics2D g, KList<String> text) {
+        drawCardAt(getWidth() / 2, getHeight(), 0.5, 1, g, text);
     }
 
-    private void drawCardCT(Graphics2D g, KList<String> text)
-    {
-        drawCardAt(getWidth()/2, 0, 0.5, 0, g, text);
+    private void drawCardCT(Graphics2D g, KList<String> text) {
+        drawCardAt(getWidth() / 2, 0, 0.5, 0, g, text);
     }
 
-    private void drawCardAt(float x, float y, double pushX, double pushZ, Graphics2D g, KList<String> text)
-    {
+    private void drawCardAt(float x, float y, double pushX, double pushZ, Graphics2D g, KList<String> text) {
         g.setFont(new Font("Hevetica", Font.BOLD, 16));
         int h = 0;
         int w = 0;
 
-        for(String i : text)
-        {
+        for (String i : text) {
             h += g.getFontMetrics().getHeight();
             w = Math.max(w, g.getFontMetrics().stringWidth(i));
         }
@@ -752,21 +706,20 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         w += 28;
         h += 28;
 
-        int cw = (int) ((w+26) * pushX);
-        int ch = (int) ((h+26) * pushZ);
+        int cw = (int) ((w + 26) * pushX);
+        int ch = (int) ((h + 26) * pushZ);
 
         g.setColor(Color.darkGray);
-        g.fillRect((int)x + 7 + 2-cw , (int)y + 7 + 2-ch, w + 7, h + 7); // Shadow
+        g.fillRect((int) x + 7 + 2 - cw, (int) y + 7 + 2 - ch, w + 7, h + 7); // Shadow
         g.setColor(Color.gray);
-        g.fillRect((int)x + 7 + 1-cw, (int)y + 7 + 1-ch, w + 7, h + 7); // Shadow
+        g.fillRect((int) x + 7 + 1 - cw, (int) y + 7 + 1 - ch, w + 7, h + 7); // Shadow
         g.setColor(Color.white);
-        g.fillRect((int)x + 7-cw, (int)y + 7-ch, w + 7, h + 7);
+        g.fillRect((int) x + 7 - cw, (int) y + 7 - ch, w + 7, h + 7);
 
         g.setColor(Color.black);
         int m = 0;
-        for(String i : text)
-        {
-            g.drawString(i, x + 14-cw, y + 14 -ch + (++m * g.getFontMetrics().getHeight()));
+        for (String i : text) {
+            g.drawString(i, x + 14 - cw, y + 14 - ch + (++m * g.getFontMetrics().getHeight()));
         }
     }
 
@@ -785,7 +738,8 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
             try {
                 nv.texture = ImageIO.read(file);
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
 
             }
         }
@@ -811,13 +765,9 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if(control)
-        {
+        if (control) {
             teleport();
-        }
-
-        else if(alt)
-        {
+        } else if (alt) {
             open();
         }
     }

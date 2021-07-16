@@ -19,20 +19,20 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.IrisEngineCompound;
+import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
+import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.data.DirectWorldWriter;
-import com.volmit.iris.engine.IrisWorlds;
-import com.volmit.iris.engine.cache.Cache;
-import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -120,7 +120,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
                         i.playSound(i.getLocation(), Sound.BLOCK_COPPER_PLACE, 1f, 1.25f);
                     }
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
 
                 }
             });
@@ -142,7 +143,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 J.a(() -> hotloader.check());
                 getComposite().clean();
             }
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -163,7 +165,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             File iris = new File(world.getWorldFolder(), "iris");
 
             if (iris.exists() && iris.isDirectory()) {
-                searching:
                 for (File i : iris.listFiles()) {
                     // Look for v1 location
                     if (i.isDirectory() && i.getName().equals("dimensions")) {
@@ -318,7 +319,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.addAll(compound.get().getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
             dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             Iris.error("FAILED TO INITIALIZE DIMENSION FROM " + world.toString());
         }
@@ -326,7 +328,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     /**
      * Place strongholds in the world
-     *
      */
     public void placeStrongholds(World world) {
         EngineData metadata = getComposite().getEngineMetadata();
@@ -362,7 +363,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                         try {
                             Object o = getBP(clazz, clazzSG, clazzBP, nmsWorld, blockPosToTest, chunkGenerator);
                             future.complete(o);
-                        } catch (Exception e) {Iris.reportError(e);
+                        } catch (Exception e) {
+                            Iris.reportError(e);
                             e.printStackTrace();
                             future.complete(e);
                         }
@@ -383,7 +385,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                                 strongholds.add(ipos);
 
                             }
-                        } catch (Exception e) {Iris.reportError(e);
+                        } catch (Exception e) {
+                            Iris.reportError(e);
                             e.printStackTrace();
                         }
                     }
@@ -398,7 +401,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     getComposite().saveEngineMetadata();
                 });
 
-            } catch (Exception e) {Iris.reportError(e);
+            } catch (Exception e) {
+                Iris.reportError(e);
                 strongholds.add(new IrisPosition(1337, 32, -1337));
                 metadata.setStrongholdPositions(strongholds);
                 Iris.warn("Couldn't properly find the stronghold position for this world. Is this headless mode? Are you not using 1.16 or higher?");
@@ -917,7 +921,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public boolean isClosed() {
         try {
             return getComposite().getEngine(0).isClosed();
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             return false;
         }
     }
@@ -926,7 +931,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public EngineTarget getTarget() {
         try {
             return getComposite().getEngine(0).getTarget();
-        } catch (NullPointerException e) {Iris.reportError(e);
+        } catch (NullPointerException e) {
+            Iris.reportError(e);
             Iris.info("Failed to get composite engine. Please re-create the world in case you notice issues");
             return null;
         }
@@ -965,7 +971,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             try {
                 dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
-            } catch (Throwable ignored) {Iris.reportError(ignored);
+            } catch (Throwable ignored) {
+                Iris.reportError(ignored);
 
             }
 

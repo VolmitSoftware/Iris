@@ -28,10 +28,8 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.MortarSender;
 
-public class CommandIrisStudioMap extends MortarCommand
-{
-    public CommandIrisStudioMap()
-    {
+public class CommandIrisStudioMap extends MortarCommand {
+    public CommandIrisStudioMap() {
         super("map", "render");
         setDescription("Render a map (gui outside of mc)");
         requiresPermission(Iris.perm.studio);
@@ -44,16 +42,13 @@ public class CommandIrisStudioMap extends MortarCommand
     }
 
     @Override
-    public boolean handle(MortarSender sender, String[] args)
-    {
-        if(!IrisSettings.get().isStudio())
-        {
+    public boolean handle(MortarSender sender, String[] args) {
+        if (!IrisSettings.get().isStudio()) {
             sender.sendMessage("To use Iris Studio, please enable studio in Iris/settings.json");
             return true;
         }
 
-        if(!IrisSettings.get().isUseServerLaunchedGuis())
-        {
+        if (!IrisSettings.get().isUseServerLaunchedGuis()) {
             sender.sendMessage("To use Iris Guis, please enable serverLaunchedGuis in Iris/settings.json");
             return true;
         }
@@ -74,8 +69,7 @@ public class CommandIrisStudioMap extends MortarCommand
     }
 
     @Override
-    protected String getArgsUsage()
-    {
+    protected String getArgsUsage() {
         return "[pack] [seed=1337]";
     }
 }

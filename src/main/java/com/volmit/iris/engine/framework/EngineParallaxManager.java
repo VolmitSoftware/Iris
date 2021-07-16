@@ -19,16 +19,16 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
+import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
 import com.volmit.iris.engine.parallel.BurstExecutor;
@@ -184,7 +184,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             });
 
             getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             Iris.error("Failed to insert parallax at chunk " + (x >> 4) + " " + (z >> 4));
             e.printStackTrace();
         }
@@ -214,7 +215,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                             }
                         }
                     }
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                     Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
                 }
@@ -252,8 +254,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             burst.complete();
 
-            if(getEngine().getDimension().isPlaceObjects())
-            {
+            if (getEngine().getDimension().isPlaceObjects()) {
                 burst = MultiBurst.burst.burst(bs);
 
                 for (i = -s; i <= s; i++) {
@@ -287,7 +288,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             Iris.error("Failed to generate parallax in " + x + " " + z);
             e.printStackTrace();
         }
@@ -299,8 +301,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             return after;
         }
 
-        if(getEngine().getDimension().isPlaceObjects())
-        {
+        if (getEngine().getDimension().isPlaceObjects()) {
             int xx = x << 4;
             int zz = z << 4;
             RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
@@ -376,8 +377,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         KList<Runnable> placeAfter = new KList<>();
 
-        if(getEngine().getDimension().isPlaceObjects())
-        {
+        if (getEngine().getDimension().isPlaceObjects()) {
             boolean placed = false;
 
             if (getEngine().getDimension().getStronghold() != null) {
@@ -441,7 +441,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
                 try {
                     place(rng, x << 4, z << 4, i);
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
@@ -458,7 +459,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
                 try {
                     place(rng, x << 4, z << 4, i);
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
@@ -589,8 +591,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int x = xg.get();
         int z = zg.get();
 
-        if(getEngine().getDimension().isPlaceObjects())
-        {
+        if (getEngine().getDimension().isPlaceObjects()) {
             KList<IrisRegion> r = getAllRegions();
             KList<IrisBiome> b = getAllBiomes();
 
@@ -629,7 +630,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             if (getEngine().getDimension().getStronghold() != null) {
                 try {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     Iris.error("THIS IS THE ONE");
                     e.printStackTrace();
                 }
@@ -648,7 +650,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                             try {
                                 return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
-                            } catch (IOException ex) {Iris.reportError(ex);
+                            } catch (IOException ex) {
+                                Iris.reportError(ex);
                                 ex.printStackTrace();
                             }
 
@@ -668,7 +671,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         synchronized (zg) {
                             zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
                         }
-                    } catch (Throwable ed) {Iris.reportError(ed);
+                    } catch (Throwable ed) {
+                        Iris.reportError(ed);
 
                     }
                 });
@@ -686,7 +690,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                                 try {
                                     return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
-                                } catch (IOException ioException) {Iris.reportError(ioException);
+                                } catch (IOException ioException) {
+                                    Iris.reportError(ioException);
                                     ioException.printStackTrace();
                                 }
 
@@ -706,7 +711,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                             synchronized (zg) {
                                 zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
                             }
-                        } catch (Throwable ee) {Iris.reportError(ee);
+                        } catch (Throwable ee) {
+                            Iris.reportError(ee);
 
                         }
                     });

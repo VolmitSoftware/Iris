@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.math.RollingSequence;
@@ -38,7 +38,8 @@ public interface EngineComponent {
             if (this instanceof Listener) {
                 Iris.instance.unregisterListener((Listener) this);
             }
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }

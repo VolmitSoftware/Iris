@@ -19,8 +19,8 @@
 package com.volmit.iris.core.command.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.util.collection.KList;

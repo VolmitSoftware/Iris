@@ -21,10 +21,10 @@ package com.volmit.iris.engine.stream.utility;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -74,7 +74,8 @@ public class ProfiledStream<T> extends BasicStream<T> {
         T t = getTypedSource().get(x, y, z);
         try {
             metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
         }
 
         return t;

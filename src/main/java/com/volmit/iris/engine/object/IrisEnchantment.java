@@ -80,7 +80,8 @@ public class IrisEnchantment {
                 try {
                     return (Enchantment) i.get(null);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.reportError(e);
                 }
             }
         }

@@ -90,7 +90,8 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             toBukkit((T) t);
             return true;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 
@@ -102,7 +103,8 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             fromBukkit((T) t);
             return true;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
 

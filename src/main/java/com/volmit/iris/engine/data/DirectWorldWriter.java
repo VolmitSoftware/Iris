@@ -69,7 +69,8 @@ public class DirectWorldWriter {
 
                     MCAUtil.write(writeBuffer.get(i), f, true);
                     writeBuffer.remove(i);
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             });
@@ -157,7 +158,8 @@ public class DirectWorldWriter {
             }
 
             return getBlockData(tag);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
         return B.get("AIR");
@@ -238,14 +240,11 @@ public class DirectWorldWriter {
     public void verify(int mcaox, int mcaoz) {
         MCAFile file = getMCA(mcaox, mcaoz);
 
-        for(int i = 0; i < 32; i++)
-        {
-            for(int j = 0; j < 32; j++)
-            {
+        for (int i = 0; i < 32; i++) {
+            for (int j = 0; j < 32; j++) {
                 Chunk c = file.getChunk(i, j);
 
-                if(c == null)
-                {
+                if (c == null) {
                     Iris.warn("Chunk " + ((mcaox << 5) + i) + ", " + ((mcaoz << 5) + j) + " is null in MCA File " + mcaox + ", " + mcaoz);
                 }
             }

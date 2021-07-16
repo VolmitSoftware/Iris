@@ -39,7 +39,7 @@ registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/MCServer/plugins');
 def registerCustomOutputTask(name, path) {
     tasks.register('build' + name, Copy) {
         group('development')
-        outputs.upToDateWhen{false}
+        outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
         from(file('build/libs/Iris-' + version + '-all.jar'))
         into(file(path))

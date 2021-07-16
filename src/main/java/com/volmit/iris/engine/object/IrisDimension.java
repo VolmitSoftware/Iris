@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.IO;
@@ -478,7 +478,8 @@ public class IrisDimension extends IrisRegistrant {
                     output.getParentFile().mkdirs();
                     try {
                         IO.writeAll(output, j.generateJson());
-                    } catch (IOException e) {Iris.reportError(e);
+                    } catch (IOException e) {
+                        Iris.reportError(e);
                         e.printStackTrace();
                     }
                 }
@@ -496,7 +497,8 @@ public class IrisDimension extends IrisRegistrant {
                             }
                         }
                         """);
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
                 e.printStackTrace();
             }
             Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());

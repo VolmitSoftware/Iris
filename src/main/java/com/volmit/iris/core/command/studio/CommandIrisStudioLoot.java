@@ -20,10 +20,10 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.InventorySlotType;
+import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.MortarCommand;

@@ -20,13 +20,13 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.gui.Renderer;
 import com.volmit.iris.core.gui.RenderType;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.core.gui.Renderer;
 import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -231,7 +231,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                 try {
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
 
                 }
             }
@@ -269,7 +270,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             try {
                 Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
                 break;
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
 
             }
         }

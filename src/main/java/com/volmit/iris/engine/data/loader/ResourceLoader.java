@@ -126,23 +126,21 @@ public class ResourceLoader<T extends IrisRegistrant> {
             t.setLoader(manager);
             lock.unlock();
             return t;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             lock.unlock();
             failLoad(j, e);
             return null;
         }
     }
 
-    public KList<T> loadAll(KList<String> s)
-    {
+    public KList<T> loadAll(KList<String> s) {
         KList<T> m = new KList<>();
 
-        for(String i : s)
-        {
+        for (String i : s) {
             T t = load(i);
 
-            if(t != null)
-            {
+            if (t != null) {
                 m.add(t);
             }
         }

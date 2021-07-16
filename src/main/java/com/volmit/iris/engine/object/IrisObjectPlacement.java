@@ -19,11 +19,11 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;

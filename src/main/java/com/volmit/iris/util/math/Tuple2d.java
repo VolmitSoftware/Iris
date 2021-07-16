@@ -508,7 +508,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
         // Since there are no arrays we can just use Object.clone()
         try {
             return super.clone();
-        } catch (CloneNotSupportedException e) {Iris.reportError(e);
+        } catch (CloneNotSupportedException e) {
+            Iris.reportError(e);
             // this shouldn't happen, since we are Cloneable
             throw new InternalError();
         }

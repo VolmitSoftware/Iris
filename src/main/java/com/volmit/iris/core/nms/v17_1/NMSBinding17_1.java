@@ -46,7 +46,8 @@ public class NMSBinding17_1 implements INMSBinding {
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
         try {
             return getFieldForBiomeStorage(g).get(g);
-        } catch (IllegalAccessException e) {Iris.reportError(e);
+        } catch (IllegalAccessException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -64,7 +65,8 @@ public class NMSBinding17_1 implements INMSBinding {
             f = storage.getClass().getDeclaredField("biome");
             f.setAccessible(true);
             return f;
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             Iris.error(storage.getClass().getCanonicalName());
         }
@@ -128,7 +130,8 @@ public class NMSBinding17_1 implements INMSBinding {
             f.setAccessible(true);
             //noinspection unchecked
             return (T) f.invoke(from, par);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -141,7 +144,8 @@ public class NMSBinding17_1 implements INMSBinding {
             f.setAccessible(true);
             //noinspection unchecked
             return (T) f.invoke(null, par);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -154,7 +158,8 @@ public class NMSBinding17_1 implements INMSBinding {
             f.setAccessible(true);
             //noinspection unchecked
             return (T) f.get(from);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -167,7 +172,8 @@ public class NMSBinding17_1 implements INMSBinding {
             f.setAccessible(true);
             //noinspection unchecked
             return (T) f.get(null);
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -230,7 +236,8 @@ public class NMSBinding17_1 implements INMSBinding {
         try {
             BiomeStorage s = (BiomeStorage) getFieldForBiomeStorage(chunk).get(chunk);
             s.setBiome(x, y, z, (BiomeBase) somethingVeryDirty);
-        } catch (IllegalAccessException e) {Iris.reportError(e);
+        } catch (IllegalAccessException e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }

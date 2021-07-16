@@ -19,7 +19,6 @@
 package com.volmit.iris.util.fakenews;
 
 import lombok.Setter;
-import org.bukkit.HeightMap;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;

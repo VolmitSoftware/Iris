@@ -166,7 +166,6 @@ public enum LightingCategory {
 
     /**
      * Initializes the lighting in the chunk for this category
-     *
      */
     public abstract void initialize(LightingChunk chunk);
 
@@ -180,7 +179,6 @@ public enum LightingCategory {
     /**
      * Sets whether this category of light is dirty, indicating this category of light is all good,
      * or that more work is needed spreading light around.
-     *
      */
     public abstract void setDirty(LightingChunk chunk, boolean dirty);
 
@@ -195,7 +193,6 @@ public enum LightingCategory {
     /**
      * Sets the light level in a section at the coordinates specified.
      * No bounds checking is performed.
-     *
      */
     public abstract void set(LightingCube section, int x, int y, int z, int level);
 }

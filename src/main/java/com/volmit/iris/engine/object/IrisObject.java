@@ -20,18 +20,18 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.common.CarveResult;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
-import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.ChunkPosition;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -249,7 +249,8 @@ public class IrisObject extends IrisRegistrant {
             for (int i = 0; i < size; i++) {
                 getStates().put(new BlockVector(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
             }
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
 
         }
     }
@@ -329,7 +330,8 @@ public class IrisObject extends IrisRegistrant {
         try {
             read(fin);
             fin.close();
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             fin.close();
             fin = new FileInputStream(file);
             readLegacy(fin);
@@ -582,7 +584,8 @@ public class IrisObject extends IrisRegistrant {
             try {
                 d = getBlocks().get(g);
                 tile = getStates().get(g);
-            } catch (Throwable e) {Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.reportError(e);
                 Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
                 d = AIR;
             }
@@ -675,7 +678,8 @@ public class IrisObject extends IrisRegistrant {
 
                 try {
                     d = getBlocks().get(g);
-                } catch (Throwable e) {Iris.reportError(e);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
                     Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
                     d = AIR;
                 }

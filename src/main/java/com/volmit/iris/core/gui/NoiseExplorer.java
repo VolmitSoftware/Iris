@@ -32,7 +32,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import java.awt.Dimension;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -250,7 +249,8 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
         if (file != null) {
             try {
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
             }
         }
         frame.setSize(1440, 820);
@@ -283,7 +283,8 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener {
         if (file != null) {
             try {
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {Iris.reportError(e);
+            } catch (IOException e) {
+                Iris.reportError(e);
             }
         }
         frame.setSize(1440, 820);

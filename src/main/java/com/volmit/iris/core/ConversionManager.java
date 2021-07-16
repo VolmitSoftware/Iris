@@ -20,13 +20,13 @@ package com.volmit.iris.core;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.data.nbt.io.NBTUtil;
 import com.volmit.iris.engine.data.nbt.io.NamedTag;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.data.nbt.tag.IntTag;
 import com.volmit.iris.engine.data.nbt.tag.ListTag;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;

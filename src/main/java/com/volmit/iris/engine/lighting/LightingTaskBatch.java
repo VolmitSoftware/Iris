@@ -105,10 +105,10 @@ public class LightingTaskBatch implements LightingTask {
                 return coords;
             } else //noinspection ReplaceNullCheck
                 if (this.chunks_coords != null) {
-                return this.chunks_coords;
-            } else {
-                return new long[0];
-            }
+                    return this.chunks_coords;
+                } else {
+                    return new long[0];
+                }
         }
     }
 
@@ -240,7 +240,8 @@ public class LightingTaskBatch implements LightingTask {
                 return true;
             } catch (InterruptedException | TimeoutException e1) {
                 Iris.reportError(e1);
-            } catch (ExecutionException ex) {Iris.reportError(ex);
+            } catch (ExecutionException ex) {
+                Iris.reportError(ex);
                 ex.printStackTrace();
                 Iris.error("Error while processing");
                 return false;
@@ -441,15 +442,18 @@ public class LightingTaskBatch implements LightingTask {
                 try {
                     future.get(200, TimeUnit.MILLISECONDS);
                     break;
-                } catch (TimeoutException e) {Iris.reportError(e);
+                } catch (TimeoutException e) {
+                    Iris.reportError(e);
                     if (this.aborted) {
                         return;
                     }
                 }
             }
-        } catch (InterruptedException e) {Iris.reportError(e);
+        } catch (InterruptedException e) {
+            Iris.reportError(e);
             // Ignore
-        } catch (ExecutionException e) {Iris.reportError(e);
+        } catch (ExecutionException e) {
+            Iris.reportError(e);
             e.printStackTrace();
             Iris.error("Failed to apply lighting data for " + getShortStatus());
 

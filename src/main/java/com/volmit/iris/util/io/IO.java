@@ -111,7 +111,8 @@ public class IO {
             fullTransfer(din, new VoidOutputStream(), 8192);
             din.close();
             return bytesToHex(din.getMessageDigest().digest());
-        } catch (Throwable e) {Iris.reportError(e);
+        } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
 
@@ -133,8 +134,8 @@ public class IO {
      * Transfers the length of the buffer amount of data from the input stream to
      * the output stream
      *
-     * @param in     the input
-     * @param out    the output
+     * @param in  the input
+     * @param out the output
      * @return the actual transfered amount
      * @throws IOException shit happens
      */
@@ -307,7 +308,8 @@ public class IO {
                     v.accept(in);
                 }
             }
-        } catch (Exception ex) {Iris.reportError(ex);
+        } catch (Exception ex) {
+            Iris.reportError(ex);
             x = ex.getCause();
         } finally {
             file.close();
@@ -329,7 +331,8 @@ public class IO {
         FileReader fr;
         try {
             fr = new FileReader(f);
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             throw e;
         }
         BufferedReader bu = new BufferedReader(fr);
@@ -484,7 +487,8 @@ public class IO {
             if (input != null) {
                 input.close();
             }
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             // ignore
         }
     }
@@ -502,7 +506,8 @@ public class IO {
             if (output != null) {
                 output.close();
             }
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             // ignore
         }
     }
@@ -520,7 +525,8 @@ public class IO {
             if (input != null) {
                 input.close();
             }
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             // ignore
         }
     }
@@ -538,7 +544,8 @@ public class IO {
             if (output != null) {
                 output.close();
             }
-        } catch (IOException e) {Iris.reportError(e);
+        } catch (IOException e) {
+            Iris.reportError(e);
             // ignore
         }
     }

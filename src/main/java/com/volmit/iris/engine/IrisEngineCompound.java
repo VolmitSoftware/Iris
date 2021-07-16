@@ -20,14 +20,14 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisDimensionIndex;
-import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineCompound;
 import com.volmit.iris.engine.framework.EngineData;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisDimensionIndex;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;

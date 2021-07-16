@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.engine.interpolation;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 

@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;

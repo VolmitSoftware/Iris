@@ -20,7 +20,6 @@ package com.volmit.iris.engine.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.engine.object.InterpolationMethod;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
@@ -355,16 +354,21 @@ public class IrisInterpolation {
         //@done
     }
 
-    public static double getTrilinear(int x, int y, int z, double rad, NoiseProvider3 n) {
-        int fx = (int) Math.floor(x / rad);
-        int fy = (int) Math.floor(y / rad);
-        int fz = (int) Math.floor(z / rad);
-        int x1 = (int) Math.round(fx * rad);
-        int y1 = (int) Math.round(fy * rad);
-        int z1 = (int) Math.round(fz * rad);
-        int x2 = (int) Math.round((fx + 1) * rad);
-        int y2 = (int) Math.round((fy + 1) * rad);
-        int z2 = (int) Math.round((fz + 1) * rad);
+    public static double getTrilinear(int x, int y, int z, double rad, NoiseProvider3 n)
+    {
+        return getTrilinear(x,y,z,rad,rad,rad,n);
+    }
+
+    public static double getTrilinear(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
+        int fx = (int) Math.floor(x / radx);
+        int fy = (int) Math.floor(y / rady);
+        int fz = (int) Math.floor(z / radz);
+        int x1 = (int) Math.round(fx * radx);
+        int y1 = (int) Math.round(fy * rady);
+        int z1 = (int) Math.round(fz * radz);
+        int x2 = (int) Math.round((fx + 1) * radx);
+        int y2 = (int) Math.round((fy + 1) * rady);
+        int z2 = (int) Math.round((fz + 1) * radz);
         double px = rangeScale(0, 1, x1, x2, x);
         double py = rangeScale(0, 1, y1, y2, y);
         double pz = rangeScale(0, 1, z1, z2, z);
@@ -383,21 +387,25 @@ public class IrisInterpolation {
     }
 
     public static double getTricubic(int x, int y, int z, double rad, NoiseProvider3 n) {
-        int fx = (int) Math.floor(x / rad);
-        int fy = (int) Math.floor(y / rad);
-        int fz = (int) Math.floor(z / rad);
-        int x0 = (int) Math.round((fx - 1) * rad);
-        int y0 = (int) Math.round((fy - 1) * rad);
-        int z0 = (int) Math.round((fz - 1) * rad);
-        int x1 = (int) Math.round(fx * rad);
-        int y1 = (int) Math.round(fy * rad);
-        int z1 = (int) Math.round(fz * rad);
-        int x2 = (int) Math.round((fx + 1) * rad);
-        int y2 = (int) Math.round((fy + 1) * rad);
-        int z2 = (int) Math.round((fz + 1) * rad);
-        int x3 = (int) Math.round((fx + 2) * rad);
-        int y3 = (int) Math.round((fy + 2) * rad);
-        int z3 = (int) Math.round((fz + 2) * rad);
+        return getTricubic(x,y,z,rad,rad,rad,n);
+    }
+
+    public static double getTricubic(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
+        int fx = (int) Math.floor(x / radx);
+        int fy = (int) Math.floor(y / rady);
+        int fz = (int) Math.floor(z / radz);
+        int x0 = (int) Math.round((fx - 1) * radx);
+        int y0 = (int) Math.round((fy - 1) * rady);
+        int z0 = (int) Math.round((fz - 1) * radz);
+        int x1 = (int) Math.round(fx * radx);
+        int y1 = (int) Math.round(fy * rady);
+        int z1 = (int) Math.round(fz * radz);
+        int x2 = (int) Math.round((fx + 1) * radx);
+        int y2 = (int) Math.round((fy + 1) * rady);
+        int z2 = (int) Math.round((fz + 1) * radz);
+        int x3 = (int) Math.round((fx + 2) * radx);
+        int y3 = (int) Math.round((fy + 2) * rady);
+        int z3 = (int) Math.round((fz + 2) * radz);
         double px = rangeScale(0, 1, x1, x2, x);
         double py = rangeScale(0, 1, y1, y2, y);
         double pz = rangeScale(0, 1, z1, z2, z);
@@ -473,26 +481,34 @@ public class IrisInterpolation {
         //@done
     }
 
-    public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n) {
-        return getTrihermite(x, y, z, rad, n, 0D, 0D);
+    public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n, double tension, double bias) {
+        return getTrihermite(x, y, z, rad, rad, rad, n, tension, bias);
     }
 
-    public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n, double tension, double bias) {
-        int fx = (int) Math.floor(x / rad);
-        int fy = (int) Math.floor(y / rad);
-        int fz = (int) Math.floor(z / rad);
-        int x0 = (int) Math.round((fx - 1) * rad);
-        int y0 = (int) Math.round((fy - 1) * rad);
-        int z0 = (int) Math.round((fz - 1) * rad);
-        int x1 = (int) Math.round(fx * rad);
-        int y1 = (int) Math.round(fy * rad);
-        int z1 = (int) Math.round(fz * rad);
-        int x2 = (int) Math.round((fx + 1) * rad);
-        int y2 = (int) Math.round((fy + 1) * rad);
-        int z2 = (int) Math.round((fz + 1) * rad);
-        int x3 = (int) Math.round((fx + 2) * rad);
-        int y3 = (int) Math.round((fy + 2) * rad);
-        int z3 = (int) Math.round((fz + 2) * rad);
+    public static double getTrihermite(int x, int y, int z, double rad, NoiseProvider3 n) {
+        return getTrihermite(x, y, z, rad, rad, rad, n, 0D, 0D);
+    }
+
+    public static double getTrihermite(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
+        return getTrihermite(x, y, z, radx, rady, radz, n, 0D, 0D);
+    }
+
+    public static double getTrihermite(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n, double tension, double bias) {
+        int fx = (int) Math.floor(x / radx);
+        int fy = (int) Math.floor(y / rady);
+        int fz = (int) Math.floor(z / radz);
+        int x0 = (int) Math.round((fx - 1) * radx);
+        int y0 = (int) Math.round((fy - 1) * rady);
+        int z0 = (int) Math.round((fz - 1) * radz);
+        int x1 = (int) Math.round(fx * radx);
+        int y1 = (int) Math.round(fy * rady);
+        int z1 = (int) Math.round(fz * radz);
+        int x2 = (int) Math.round((fx + 1) * radx);
+        int y2 = (int) Math.round((fy + 1) * rady);
+        int z2 = (int) Math.round((fz + 1) * radz);
+        int x3 = (int) Math.round((fx + 2) * radx);
+        int y3 = (int) Math.round((fy + 2) * rady);
+        int z3 = (int) Math.round((fz + 2) * radz);
         double px = rangeScale(0, 1, x1, x2, x);
         double py = rangeScale(0, 1, y1, y2, y);
         double pz = rangeScale(0, 1, z1, z2, z);
@@ -822,6 +838,23 @@ public class IrisInterpolation {
         };
         getNoise(method, 0, 0, h, np);
         return rad.get();
+    }
+
+    public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
+        return switch (method){
+            case TRILINEAR -> getTrilinear(x,y,z,radx, rady, radz, n);
+            case TRICUBIC -> getTricubic(x,y,z,radx, rady, radz, n);
+            case TRIHERMITE -> getTrihermite(x,y,z,radx, rady, radz, n);
+        };
+    }
+
+
+    public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double rad, NoiseProvider3 n) {
+        return switch (method){
+            case TRILINEAR -> getTrilinear(x,y,z,rad, rad, rad, n);
+            case TRICUBIC -> getTricubic(x,y,z,rad, rad, rad, n);
+            case TRIHERMITE -> getTrihermite(x,y,z,rad, rad, rad, n);
+        };
     }
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n) {

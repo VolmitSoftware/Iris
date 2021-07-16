@@ -16,11 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.scheduling;
 
-import com.volmit.iris.util.scheduling.Callback;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.Contained;
+import com.volmit.iris.util.collection.KList;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

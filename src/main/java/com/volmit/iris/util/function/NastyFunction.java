@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.function;
 
 public interface NastyFunction<T, R> {
     R run(T t);

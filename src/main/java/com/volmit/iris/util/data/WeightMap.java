@@ -18,8 +18,7 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.util.KMap;
-import com.volmit.iris.util.Shrinkwrap;
+import com.volmit.iris.util.collection.KMap;
 
 public class WeightMap<T> extends KMap<T, Double> {
     private static final long serialVersionUID = 87558033900969389L;

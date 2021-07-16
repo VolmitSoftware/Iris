@@ -16,10 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.collection.KList;
 import org.bukkit.Sound;
 
 import java.lang.reflect.Field;

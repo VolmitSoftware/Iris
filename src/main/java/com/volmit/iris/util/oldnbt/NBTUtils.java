@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.oldnbt;
 
 /*
   Changes : Neil Wightman - Support 19133 Tag_Int_Array tag

@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.atomics;
 
 import com.google.common.util.concurrent.AtomicDoubleArray;
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.DoubleArrayUtils;
 
 /**
  * Provides an incredibly fast averaging object. It swaps values from a sum

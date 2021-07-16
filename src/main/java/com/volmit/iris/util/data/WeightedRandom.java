@@ -18,8 +18,8 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.util.KList;
-import com.volmit.iris.util.KeyPair;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KeyPair;
 
 import java.util.Random;
 

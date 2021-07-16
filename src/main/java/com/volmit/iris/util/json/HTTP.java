@@ -16,11 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.json;
 
-
-import com.volmit.iris.util.json.JSONException;
-import com.volmit.iris.util.json.JSONObject;
 
 import java.util.Iterator;
 

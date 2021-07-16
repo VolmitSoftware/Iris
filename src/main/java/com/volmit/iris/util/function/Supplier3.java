@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.function;
 
 public interface Supplier3<T, TT, TTT> {
     void get(T t, TT tt, TTT ttt);

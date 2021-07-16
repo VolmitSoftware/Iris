@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.plugin;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

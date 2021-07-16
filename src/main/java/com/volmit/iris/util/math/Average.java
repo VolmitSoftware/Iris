@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.math;
 
-import com.volmit.iris.util.DoubleArrayUtils;
+import com.volmit.iris.util.data.DoubleArrayUtils;
 
 /**
  * Provides an incredibly fast averaging object. It swaps values from a sum

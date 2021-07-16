@@ -16,9 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.inventorygui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.scheduling.Callback;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

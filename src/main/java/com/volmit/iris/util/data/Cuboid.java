@@ -18,8 +18,7 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.util.Dimension;
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Direction;
 import org.bukkit.*;
 import org.bukkit.block.Block;

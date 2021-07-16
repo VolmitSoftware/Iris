@@ -16,8 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.inventorygui;
 
+import com.volmit.iris.util.scheduling.Callback;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.MaterialBlock;
 import org.bukkit.inventory.ItemStack;
 
 @SuppressWarnings("ALL")

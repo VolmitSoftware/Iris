@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.util.KList;
+import com.volmit.iris.util.collection.KList;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

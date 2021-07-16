@@ -16,10 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.reflect.V;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.*;
@@ -468,11 +473,11 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         commandCache = new KList<>();
 
         for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(com.volmit.iris.util.Command.class)) {
+            if (i.isAnnotationPresent(com.volmit.iris.util.plugin.Command.class)) {
                 try {
                     i.setAccessible(true);
                     MortarCommand pc = (MortarCommand) i.getType().getConstructor().newInstance();
-                    com.volmit.iris.util.Command c = i.getAnnotation(com.volmit.iris.util.Command.class);
+                    com.volmit.iris.util.plugin.Command c = i.getAnnotation(com.volmit.iris.util.plugin.Command.class);
                     registerCommand(pc, c.value());
                     commandCache.add(pc);
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");
@@ -556,7 +561,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         } else {
             RouterCommand r = new RouterCommand(cmd, this);
             r.setUsage(getName() + ":" + getClass().toString());
-            ((CommandMap) new com.volmit.iris.util.V(Bukkit.getServer()).get("commandMap")).register("", r);
+            ((CommandMap) new V(Bukkit.getServer()).get("commandMap")).register("", r);
         }
     }
 
@@ -565,9 +570,9 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return;
         }
         try {
-            SimpleCommandMap m = new com.volmit.iris.util.V(Bukkit.getServer()).get("commandMap");
+            SimpleCommandMap m = new V(Bukkit.getServer()).get("commandMap");
 
-            Map<String, Command> k = new com.volmit.iris.util.V(m).get("knownCommands");
+            Map<String, Command> k = new V(m).get("knownCommands");
 
             for (Iterator<Map.Entry<String, Command>> it = k.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Command> entry = it.next();

@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.math;
 
-import com.volmit.iris.util.math.Average;
-import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.collection.KList;
 
 public class RollingSequence extends Average {
     private double median;

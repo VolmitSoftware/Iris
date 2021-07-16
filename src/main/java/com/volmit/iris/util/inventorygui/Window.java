@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.inventorygui;
 
+import com.volmit.iris.util.scheduling.Callback;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 

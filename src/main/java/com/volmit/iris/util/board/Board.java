@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util;
+package com.volmit.iris.util.board;
 
+import com.volmit.iris.util.format.C;
 import lombok.NonNull;
 import lombok.Setter;
 import org.bukkit.Bukkit;
@@ -127,8 +128,8 @@ public class Board {
             team.setSuffix(entry.getSuffix());
 
             switch (boardSettings.getScoreDirection()) {
-                case UP -> objective.getScore(team.getName()).setScore(1 + i);
-                case DOWN -> objective.getScore(team.getName()).setScore(15 - i);
+                case ScoreDirection.UP -> objective.getScore(team.getName()).setScore(1 + i);
+                case ScoreDirection.DOWN -> objective.getScore(team.getName()).setScore(15 - i);
             }
         }
     }

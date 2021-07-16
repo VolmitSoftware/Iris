@@ -37,7 +37,7 @@ body:
     id: alternative
     attributes:
       label: Alternatives
-      descriptions: What alternatives have you considered?
+      description: What alternatives have you considered?
       value: If this could not be implemented I would ...
   - type: markdown
     id: thanks

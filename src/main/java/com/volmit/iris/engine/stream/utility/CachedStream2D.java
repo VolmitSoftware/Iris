@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
@@ -49,6 +50,11 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
+        if(IrisComplex.cacheLock.get())
+        {
+            return stream.get((int) x, (int) z);
+        }
+
         return cache.compute(Cache.key((int) x, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
     }
 

@@ -40,7 +40,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.fakenews.FakeWorld;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.plugin.MortarSender;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -117,7 +117,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             J.s(() -> {
                 try {
                     for (Player i : getTarget().getWorld().getPlayers()) {
-                        new MortarSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
+                        new VolmitSender(i, Iris.instance.getTag()).sendMessage("Dimension Hotloaded");
                         i.playSound(i.getLocation(), Sound.BLOCK_COPPER_PLACE, 1f, 1.25f);
                     }
                 } catch (Throwable e) {
@@ -195,7 +195,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         dim = IrisDataManager.loadAnyDimension(query);
 
         if (dim == null) {
-            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
+            Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
             dim = IrisDataManager.loadAnyDimension(query);
 
             if (dim == null) {
@@ -211,7 +211,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             if (dim == null) {
                 Iris.info("Installing Iris pack " + od.getName() + " into world " + world.getName() + "...");
-                Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.getWorldFolder());
+                Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.getWorldFolder());
                 dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
                 if (dim == null) {
@@ -261,7 +261,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         dim = IrisDataManager.loadAnyDimension(query);
 
         if (dim == null) {
-            Iris.proj.downloadSearch(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
+            Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
             dim = IrisDataManager.loadAnyDimension(query);
 
             if (dim == null) {
@@ -277,7 +277,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             if (dim == null) {
                 Iris.info("Installing Iris pack " + od.getName() + " into world " + world + "...");
-                Iris.proj.installIntoWorld(new MortarSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), new File(world));
+                Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), new File(world));
                 dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
                 if (dim == null) {

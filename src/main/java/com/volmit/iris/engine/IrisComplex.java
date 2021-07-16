@@ -39,8 +39,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 @Data
 public class IrisComplex implements DataProvider {
+    public static AtomicBoolean cacheLock = new AtomicBoolean(false);
     private RNG rng;
     private double fluidHeight;
     private IrisDataManager data;
@@ -100,7 +103,7 @@ public class IrisComplex implements DataProvider {
     }
 
     public IrisComplex(Engine engine, boolean simple) {
-        int cacheSize = IrisSettings.get().getCache().getStreamingCacheSize();
+        int cacheSize = 1024;
         this.rng = new RNG(engine.getWorld().getSeed());
         this.data = engine.getData();
         double height = engine.getHeight();

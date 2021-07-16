@@ -20,6 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -86,9 +87,10 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     boolean isStudio();
 
     default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
+        IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(250, false);
         long s = M.ms();
-        int cpus = 2 + (Runtime.getRuntime().availableProcessors() / 2);
+        int cpus = (Runtime.getRuntime().availableProcessors());
         KList<Engine> engines = new KList<>();
         for (int i = 0; i < getCompound().getSize(); i++) {
             Engine e = getCompound().getEngine(i);
@@ -98,29 +100,28 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         }
 
         if (engines.isEmpty()) {
+            IrisComplex.cacheLock.set(false);
             return null;
         }
 
         AtomicInteger tries = new AtomicInteger(0);
         AtomicBoolean found = new AtomicBoolean(false);
+        AtomicBoolean running = new AtomicBoolean(true);
         AtomicReference<Location> location = new AtomicReference<>();
-
         for (int i = 0; i < cpus; i++) {
             J.a(() -> {
                 try {
                     Engine e;
                     IrisBiome b;
-                    int x, y, z;
+                    int x, z;
 
-                    while (!found.get()) {
+                    while (!found.get() && running.get()) {
                         try {
                             synchronized (engines) {
                                 e = engines.getRandom();
                                 x = RNG.r.i(-29999970, 29999970);
-                                y = RNG.r.i(0, e.getHeight() - 1);
                                 z = RNG.r.i(-29999970, 29999970);
-
-                                b = e.getBiome(x, y, z);
+                                b = e.getSurfaceBiome(x, z);
                             }
 
                             if (b != null && b.getLoadKey() == null) {
@@ -129,7 +130,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                             if (b != null && b.getLoadKey().equals(biome.getLoadKey())) {
                                 found.lazySet(true);
-                                location.lazySet(new Location(e.getWorld(), x, y, z));
+                                location.lazySet(new Location(e.getWorld(), x, e.getHeight(x, z), z));
                             }
 
                             tries.getAndIncrement();
@@ -154,17 +155,22 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             }
 
             if (M.ms() - s > timeout) {
+                running.set(false);
+                IrisComplex.cacheLock.set(false);
                 return null;
             }
         }
 
+        IrisComplex.cacheLock.set(false);
+        running.set(false);
         return location.get();
     }
 
     default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
+        IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(3000, false);
         long s = M.ms();
-        int cpus = 2 + (Runtime.getRuntime().availableProcessors() / 2);
+        int cpus = (Runtime.getRuntime().availableProcessors());
         KList<Engine> engines = new KList<>();
         for (int i = 0; i < getCompound().getSize(); i++) {
             Engine e = getCompound().getEngine(i);
@@ -174,11 +180,13 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         }
 
         if (engines.isEmpty()) {
+            IrisComplex.cacheLock.set(false);
             return null;
         }
 
         AtomicInteger tries = new AtomicInteger(0);
         AtomicBoolean found = new AtomicBoolean(false);
+        AtomicBoolean running = new AtomicBoolean(true);
         AtomicReference<Location> location = new AtomicReference<>();
 
         for (int i = 0; i < cpus; i++) {
@@ -187,7 +195,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
                 IrisRegion b;
                 int x, z;
 
-                while (!found.get()) {
+                while (!found.get() && running.get()) {
                     try {
                         e = engines.getRandom();
                         x = RNG.r.i(-29999970, 29999970);
@@ -218,11 +226,15 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
             if (M.ms() - s > timeout) {
                 triesc.accept(tries.get());
+                running.set(false);
+                IrisComplex.cacheLock.set(false);
                 return null;
             }
         }
 
         triesc.accept(tries.get());
+        IrisComplex.cacheLock.set(false);
+        running.set(false);
         return location.get();
     }
 

@@ -46,7 +46,14 @@ body:
       placeholder: DO NOT SAY "LATEST"
     validations:
       required: true
-
+  - type: input
+    id: logs
+    attributes:
+      label: Log
+      description: Paste a full log. Always use [mclogs](https://mclo.gs) Or [Pastebin](https://pastebin.com/). Must not be a crash report. Must be a full log. Must not be a screenshot of a log.
+      placeholder: https://mslog.gs/...
+    validations:
+      required: true
   - type: checkboxes
     id: checksum
     attributes:

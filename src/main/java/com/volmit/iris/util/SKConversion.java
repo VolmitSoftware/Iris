@@ -25,7 +25,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.volmit.iris.Iris;
-import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObject;
 
 import java.io.File;
 import java.io.FileInputStream;

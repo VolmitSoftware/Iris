@@ -19,8 +19,8 @@
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisObject;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.IrisObject;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;

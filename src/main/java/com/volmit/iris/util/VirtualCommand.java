@@ -19,7 +19,7 @@
 package com.volmit.iris.util;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.IrisSettings;
+import com.volmit.iris.core.IrisSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;

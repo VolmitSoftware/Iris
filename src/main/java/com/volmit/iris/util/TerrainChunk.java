@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util;
 
-import com.volmit.iris.nms.BiomeBaseInjector;
+import com.volmit.iris.core.nms.BiomeBaseInjector;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;

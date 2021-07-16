@@ -19,9 +19,9 @@
 package com.volmit.iris.util;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.generator.noise.CNG;
-import com.volmit.iris.object.InterpolationMethod;
-import com.volmit.iris.object.NoiseStyle;
+import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.engine.object.InterpolationMethod;
+import com.volmit.iris.engine.object.NoiseStyle;
 
 public class IrisInterpolation {
     public static double bezier(double t) {

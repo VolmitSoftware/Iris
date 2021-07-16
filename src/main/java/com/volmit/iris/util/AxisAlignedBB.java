@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util;
 
-import com.volmit.iris.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisPosition;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 

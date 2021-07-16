@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util;
 
-import com.volmit.iris.object.tile.TileData;
+import com.volmit.iris.engine.object.tile.TileData;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 

@@ -18,19 +18,19 @@
 
 package com.volmit.iris;
 
-import com.volmit.iris.manager.*;
-import com.volmit.iris.manager.command.CommandIris;
-import com.volmit.iris.manager.command.PermissionIris;
-import com.volmit.iris.manager.command.world.CommandLocate;
-import com.volmit.iris.manager.link.BKLink;
-import com.volmit.iris.manager.link.CitizensLink;
-import com.volmit.iris.manager.link.MultiverseCoreLink;
-import com.volmit.iris.manager.link.MythicMobsLink;
-import com.volmit.iris.nms.INMS;
-import com.volmit.iris.object.IrisCompat;
-import com.volmit.iris.object.IrisDimension;
-import com.volmit.iris.scaffold.IrisWorlds;
-import com.volmit.iris.scaffold.engine.EngineCompositeGenerator;
+import com.volmit.iris.core.*;
+import com.volmit.iris.core.command.CommandIris;
+import com.volmit.iris.core.command.PermissionIris;
+import com.volmit.iris.core.command.world.CommandLocate;
+import com.volmit.iris.core.link.BKLink;
+import com.volmit.iris.core.link.CitizensLink;
+import com.volmit.iris.core.link.MultiverseCoreLink;
+import com.volmit.iris.core.link.MythicMobsLink;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.IrisCompat;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.util.*;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;

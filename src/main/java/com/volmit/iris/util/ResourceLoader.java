@@ -20,8 +20,8 @@ package com.volmit.iris.util;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.manager.IrisDataManager;
-import com.volmit.iris.object.IrisRegistrant;
+import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.object.IrisRegistrant;
 import lombok.Data;
 
 import java.io.File;

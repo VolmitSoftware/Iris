@@ -243,13 +243,10 @@ public class Pregenerator implements Listener {
 
         File mca = new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca");
         File mcg = directWriter.getMCAFile(x, z);
-        Path fileToMovePath = Paths.get(mcg.toURI());
-        Path targetPath = Paths.get(mca.toURI());
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
         if (isMCAWritable(x, z) && !mca.exists()) {
-            IrisWorlds.evacuate(world, "MCA Pregeneration is ongoing");
             method.set("Direct (Fast)");
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
                 draw(ii, jj, COLOR_MCA_GENERATE);

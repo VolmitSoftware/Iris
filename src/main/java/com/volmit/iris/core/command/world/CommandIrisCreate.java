@@ -179,7 +179,7 @@ public class CommandIrisCreate extends MortarCommand {
                 });
             });
         };
-        
+
         if (multiverse) {
             dim = IrisDataManager.loadAnyDimension(type);
 

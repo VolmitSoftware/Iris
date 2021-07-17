@@ -212,6 +212,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
     private final transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
     private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
+    private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
@@ -425,7 +426,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return real;
     }
 
-    private int getMaxHeight() {
+    public int getMaxHeight() {
         return maxHeight.aquire(() ->
         {
             int maxHeight = 0;
@@ -435,6 +436,29 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             }
 
             return maxHeight;
+        });
+    }
+
+    public int getMaxWithObjectHeight(IrisDataManager data) {
+        return maxWithObjectHeight.aquire(() ->
+        {
+            int maxHeight = 0;
+
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
+                maxHeight += i.getMax();
+            }
+
+            int gg = 0;
+
+            for(IrisObjectPlacement i : getObjects())
+            {
+                for(IrisObject j : data.getObjectLoader().loadAll(i.getPlace()))
+                {
+                    gg = Math.max(gg, j.getH());
+                }
+            }
+
+            return maxHeight + gg+3;
         });
     }
 

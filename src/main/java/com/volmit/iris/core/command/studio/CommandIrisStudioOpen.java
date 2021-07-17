@@ -49,6 +49,7 @@ public class CommandIrisStudioOpen extends MortarCommand {
             return true;
         }
 
+        sender.sendMessage("Opening studio world...");
         Iris.proj.open(sender, args[0]);
         return true;
     }

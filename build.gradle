@@ -34,6 +34,7 @@ registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/s
 registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins');
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins');
 registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/MCServer/plugins');
+registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins');
 // ==============================================================
 
 def registerCustomOutputTask(name, path) {

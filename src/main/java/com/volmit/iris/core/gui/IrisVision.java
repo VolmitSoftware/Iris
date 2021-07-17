@@ -75,7 +75,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private int lowq = 12;
     private int posZ = 0;
     private double scale = 128;
-    private double mscale = 1D;
+    private double mscale = 4D;
     private int w = 0;
     private int h = 0;
     private double lx = 0;
@@ -358,7 +358,8 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     }
 
     private double getWorldX(double screenX) {
-        return (mscale * screenX) + ((oxp / scale) * mscale);
+        //return (mscale * screenX) + ((oxp / scale) * mscale);
+        return (mscale * screenX) + ((oxp / scale));
     }
 
     private double getWorldZ(double screenZ) {
@@ -602,8 +603,8 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         KList<String> l = new KList<>();
         l.add("Biome: " + biome.getName());
         l.add("Region: " + region.getName() + "(" + region.getLoadKey() + ")");
+        l.add("Block " + (int) getWorldX(hx) + ", " + (int) getWorldZ(hz));
         if (detailed) {
-            l.add("Block " + (int) getWorldX(hx) + ", " + (int) getWorldZ(hz));
             l.add("Chunk " + ((int) getWorldX(hx) >> 4) + ", " + ((int) getWorldZ(hz) >> 4));
             l.add("Region " + (((int) getWorldX(hx) >> 4) >> 5) + ", " + (((int) getWorldZ(hz) >> 4) >> 5));
             l.add("Key: " + biome.getLoadKey());
@@ -676,9 +677,11 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private void teleport() {
         J.s(() -> {
             if (player != null) {
-                double h = engine.getFramework().getComplex().getTrueHeightStream().get(getWorldX(hx), getWorldZ(hz));
-                player.teleport(new Location(player.getWorld(), getWorldX(hx), h, getWorldZ(hz)));
-                notify("Teleporting to " + Form.f((int) getWorldX(hx)) + ", " + Form.f((int) h) + ", " + Form.f((int) getWorldZ(hz)));
+                int xx = (int) getWorldX(hx);
+                int zz = (int) getWorldZ(hz);
+                double h = engine.getFramework().getComplex().getTrueHeightStream().get(xx, zz);
+                player.teleport(new Location(player.getWorld(), xx, h, zz));
+                notify("Teleporting to " + xx + ", " + (int) h + ", " + zz);
             } else {
                 notify("No player in world, can't teleport.");
             }
@@ -704,17 +707,17 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         }
 
         w += 28;
-        h += 28;
+        h += 14;
 
         int cw = (int) ((w + 26) * pushX);
         int ch = (int) ((h + 26) * pushZ);
 
         g.setColor(Color.darkGray);
-        g.fillRect((int) x + 7 + 2 - cw, (int) y + 7 + 2 - ch, w + 7, h + 7); // Shadow
+        g.fillRect((int) x + 7 + 2 - cw, (int) y + 12 + 2 - ch, w + 7, h); // Shadow
         g.setColor(Color.gray);
-        g.fillRect((int) x + 7 + 1 - cw, (int) y + 7 + 1 - ch, w + 7, h + 7); // Shadow
+        g.fillRect((int) x + 7 + 1 - cw, (int) y + 12 + 1 - ch, w + 7, h); // Shadow
         g.setColor(Color.white);
-        g.fillRect((int) x + 7 - cw, (int) y + 7 - ch, w + 7, h + 7);
+        g.fillRect((int) x + 7 - cw, (int) y + 12 - ch, w + 7, h);
 
         g.setColor(Color.black);
         int m = 0;
@@ -756,10 +759,10 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
             return;
         }
 
-        Iris.info("Blocks/Pixel: " + (mscale) + ", Blocks Wide: " + (w * mscale));
+        //Iris.info("Blocks/Pixel: " + (mscale) + ", Blocks Wide: " + (w * mscale));
         positions.clear();
         fastpositions.clear();
-        mscale = mscale + ((0.044 * mscale) * notches);
+        mscale = mscale + ((0.25 * mscale) * notches);
         mscale = Math.max(mscale, 0.00001);
     }
 

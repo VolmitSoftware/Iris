@@ -301,7 +301,8 @@ public class ProjectManager {
         KMap<String, String> l = new KMap<>();
 
         for (String i : a.keySet()) {
-            l.put(i, a.getString(i));
+            if (a.get(i) instanceof String)
+                l.put(i, a.getString(i));
         }
 
         return l;

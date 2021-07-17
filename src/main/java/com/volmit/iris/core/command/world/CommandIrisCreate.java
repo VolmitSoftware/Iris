@@ -52,7 +52,12 @@ public class CommandIrisCreate extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if (args.length == 0 || args[args.length - 1].equals("")) { //They are about to type a new argument
+        if (args.length == 0) {
+            list.add("[worldname]");
+            return;
+        }
+
+        if (args.length >= 1 || args[args.length - 1].equals("")) { //They are about to type a new argument
             list.addAll(getBase(args));
             return;
         }

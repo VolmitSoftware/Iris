@@ -72,8 +72,7 @@ public class CommandIrisStudioGoto extends MortarCommand {
             }
 
             if (sender.isPlayer()) {
-                if(looking.get())
-                {
+                if (looking.get()) {
                     sender.sendMessage("A Search is already running, please wait!");
                 }
 

@@ -32,7 +32,6 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.stream.utility.CachedStream2D;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -319,8 +318,7 @@ public class Iris extends VolmitPlugin implements Listener {
         return instance.getDataFolder("cache", "temp");
     }
 
-    public void verifyDataPacksPost()
-    {
+    public void verifyDataPacksPost() {
         File packs = new File("plugins/Iris/packs");
         File dpacks = getDatapacksFolder();
 
@@ -342,9 +340,8 @@ public class Iris extends VolmitPlugin implements Listener {
                             if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
-                                if(!verifyDataPackInstalled(dim))
-                                {
-                                   bad = true;
+                                if (!verifyDataPackInstalled(dim)) {
+                                    bad = true;
                                 }
                             }
                         }
@@ -353,8 +350,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         }
 
-        if(bad && INMS.get().supportsDataPacks())
-        {
+        if (bad && INMS.get().supportsDataPacks()) {
             Iris.error("============================================================================");
             Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
             Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
@@ -362,10 +358,8 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
             Iris.error("============================================================================");
 
-            for(Player i : Bukkit.getOnlinePlayers())
-            {
-                if(i.isOp() || Iris.perm.has(i))
-                {
+            for (Player i : Bukkit.getOnlinePlayers()) {
+                if (i.isOp() || Iris.perm.has(i)) {
                     VolmitSender sender = new VolmitSender(i, getTag("WARNING"));
                     sender.sendMessage("There are some Iris Packs that have custom biomes in them");
                     sender.sendMessage("You need to restart your server to use these packs.");
@@ -374,27 +368,21 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    public boolean verifyDataPackInstalled(IrisDimension dimension)
-    {
+    public boolean verifyDataPackInstalled(IrisDimension dimension) {
         IrisDataManager idm = new IrisDataManager(getDataFolder("packs", dimension.getLoadKey()));
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 
-        for(IrisBiome i : dimension.getAllBiomes(() -> idm))
-        {
-            if(i.isCustom())
-            {
-                for(IrisBiomeCustom j : i.getCustomDerivitives())
-                {
-                    keys.add(dimension.getLoadKey() +":"+ j.getId());
+        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
+            if (i.isCustom()) {
+                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
+                    keys.add(dimension.getLoadKey() + ":" + j.getId());
                 }
             }
         }
 
-        if(!INMS.get().supportsDataPacks())
-        {
-            if(!keys.isEmpty())
-            {
+        if (!INMS.get().supportsDataPacks()) {
+            if (!keys.isEmpty()) {
                 Iris.warn("===================================================================================");
                 Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
                 Iris.warn("Your server version does not yet support datapacks for iris.");
@@ -405,19 +393,16 @@ public class Iris extends VolmitPlugin implements Listener {
             return true;
         }
 
-        for(String i : keys)
-        {
+        for (String i : keys) {
             Object o = INMS.get().getCustomBiomeBaseFor(i);
 
-            if(o == null)
-            {
+            if (o == null) {
                 Iris.warn("The Biome " + i + " is not registered on the server.");
                 warn = true;
             }
         }
 
-        if(warn)
-        {
+        if (warn) {
             Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes, restart your server before generating with this pack!");
         }
 

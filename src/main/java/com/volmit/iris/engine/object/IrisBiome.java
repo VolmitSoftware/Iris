@@ -450,15 +450,13 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
             int gg = 0;
 
-            for(IrisObjectPlacement i : getObjects())
-            {
-                for(IrisObject j : data.getObjectLoader().loadAll(i.getPlace()))
-                {
+            for (IrisObjectPlacement i : getObjects()) {
+                for (IrisObject j : data.getObjectLoader().loadAll(i.getPlace())) {
                     gg = Math.max(gg, j.getH());
                 }
             }
 
-            return maxHeight + gg+3;
+            return maxHeight + gg + 3;
         });
     }
 

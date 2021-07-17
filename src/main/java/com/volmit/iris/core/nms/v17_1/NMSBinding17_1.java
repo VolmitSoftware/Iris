@@ -43,8 +43,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private Field biomeStorageCache = null;
 
-    public boolean supportsDataPacks()
-    {
+    public boolean supportsDataPacks() {
         return true;
     }
 
@@ -108,10 +107,7 @@ public class NMSBinding17_1 implements INMSBinding {
     public Object getCustomBiomeBaseFor(String mckey) {
         try {
             return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.reportError(e);
         }
 

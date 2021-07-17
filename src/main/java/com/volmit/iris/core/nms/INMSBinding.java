@@ -53,8 +53,7 @@ public interface INMSBinding {
 
     void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk);
 
-    default boolean supportsDataPacks()
-    {
+    default boolean supportsDataPacks() {
         return false;
     }
 }

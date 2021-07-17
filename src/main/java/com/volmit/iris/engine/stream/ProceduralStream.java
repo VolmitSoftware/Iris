@@ -65,13 +65,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new FunctionStream<>(f, f2, helper);
     }
 
-    default ProceduralStream<Boolean> chance(double chance)
-    {
+    default ProceduralStream<Boolean> chance(double chance) {
         return of((x, z) -> getDouble(x, z) < chance, Interpolated.BOOLEAN);
     }
 
-    default ProceduralStream<Boolean> seededChance(RNG brng, long rootSeed, double chance)
-    {
+    default ProceduralStream<Boolean> seededChance(RNG brng, long rootSeed, double chance) {
         RNG rng = brng.nextParallelRNG(rootSeed - 3995L);
         return of((x, z) -> {
             double ch = getDouble(x, z);
@@ -365,11 +363,10 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new FittedStream<T>(this, min, max);
     }
 
-    default ProceduralStream<Double> style(RNG rng, IrisStyledRange range)
-    {
+    default ProceduralStream<Double> style(RNG rng, IrisStyledRange range) {
         return ProceduralStream.of((x, z) -> {
             double d = getDouble(x, z);
-            return range.get(rng,d, -d);
+            return range.get(rng, d, -d);
         }, Interpolated.DOUBLE);
     }
 

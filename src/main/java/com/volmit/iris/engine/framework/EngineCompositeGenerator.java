@@ -31,14 +31,12 @@ import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.fakenews.FakeWorld;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -464,8 +462,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         generated++;
         ps.end();
 
-        if(IrisSettings.get().getGeneral().isDebug())
-        {
+        if (IrisSettings.get().getGeneral().isDebug()) {
             Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
         }
 

@@ -199,11 +199,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     IrisLock getFeatureLock();
 
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        long key = Cache.key(((int)x)>>4, ((int)z) >> 4);
+        long key = Cache.key(((int) x) >> 4, ((int) z) >> 4);
 
-        for(IrisFeaturePositional ipf : getFeatureCache().compute(key, (ke, v) -> {
-            if(v != null)
-            {
+        for (IrisFeaturePositional ipf : getFeatureCache().compute(key, (ke, v) -> {
+            if (v != null) {
                 return v;
             }
 
@@ -226,8 +225,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
                     try {
-                        synchronized (m.getFeatures())
-                        {
+                        synchronized (m.getFeatures()) {
                             for (IrisFeaturePositional k : m.getFeatures()) {
                                 if (k.shouldFilter(x, z)) {
                                     pos.add(k);
@@ -244,16 +242,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             getFeatureLock().unlock();
 
             return pos;
-        }))
-        {
+        })) {
             f.accept(ipf);
         }
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     default void generateParallaxArea(int x, int z) {
-        if(!getEngine().getDimension().isPlaceObjects())
-        {
+        if (!getEngine().getDimension().isPlaceObjects()) {
             return;
         }
 

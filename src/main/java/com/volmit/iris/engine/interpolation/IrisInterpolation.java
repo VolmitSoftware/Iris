@@ -354,9 +354,8 @@ public class IrisInterpolation {
         //@done
     }
 
-    public static double getTrilinear(int x, int y, int z, double rad, NoiseProvider3 n)
-    {
-        return getTrilinear(x,y,z,rad,rad,rad,n);
+    public static double getTrilinear(int x, int y, int z, double rad, NoiseProvider3 n) {
+        return getTrilinear(x, y, z, rad, rad, rad, n);
     }
 
     public static double getTrilinear(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
@@ -387,7 +386,7 @@ public class IrisInterpolation {
     }
 
     public static double getTricubic(int x, int y, int z, double rad, NoiseProvider3 n) {
-        return getTricubic(x,y,z,rad,rad,rad,n);
+        return getTricubic(x, y, z, rad, rad, rad, n);
     }
 
     public static double getTricubic(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
@@ -841,19 +840,19 @@ public class IrisInterpolation {
     }
 
     public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
-        return switch (method){
-            case TRILINEAR -> getTrilinear(x,y,z,radx, rady, radz, n);
-            case TRICUBIC -> getTricubic(x,y,z,radx, rady, radz, n);
-            case TRIHERMITE -> getTrihermite(x,y,z,radx, rady, radz, n);
+        return switch (method) {
+            case TRILINEAR -> getTrilinear(x, y, z, radx, rady, radz, n);
+            case TRICUBIC -> getTricubic(x, y, z, radx, rady, radz, n);
+            case TRIHERMITE -> getTrihermite(x, y, z, radx, rady, radz, n);
         };
     }
 
 
     public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double rad, NoiseProvider3 n) {
-        return switch (method){
-            case TRILINEAR -> getTrilinear(x,y,z,rad, rad, rad, n);
-            case TRICUBIC -> getTricubic(x,y,z,rad, rad, rad, n);
-            case TRIHERMITE -> getTrihermite(x,y,z,rad, rad, rad, n);
+        return switch (method) {
+            case TRILINEAR -> getTrilinear(x, y, z, rad, rad, rad, n);
+            case TRICUBIC -> getTricubic(x, y, z, rad, rad, rad, n);
+            case TRIHERMITE -> getTrihermite(x, y, z, rad, rad, rad, n);
         };
     }
 

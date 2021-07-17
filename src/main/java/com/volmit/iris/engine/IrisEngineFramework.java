@@ -117,7 +117,7 @@ public class IrisEngineFramework implements EngineFramework {
 
     @Override
     public EngineActuator<BlockData> getTerrainActuator() {
-        return switch (getEngine().getDimension().getTerrainMode()){
+        return switch (getEngine().getDimension().getTerrainMode()) {
             case NORMAL -> getTerrainNormalActuator();
             case ISLANDS -> getTerrainIslandActuator();
         };

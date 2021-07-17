@@ -30,7 +30,6 @@ import lombok.Data;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 @AllArgsConstructor

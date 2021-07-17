@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.hunk.storage.AtomicDoubleHunk;
 import com.volmit.iris.engine.object.IrisRegistrant;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;

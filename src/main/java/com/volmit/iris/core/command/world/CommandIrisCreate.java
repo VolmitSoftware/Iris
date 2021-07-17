@@ -245,16 +245,11 @@ public class CommandIrisCreate extends MortarCommand {
                 World w = INMS.get().createWorld(wc);
                 world.set(w);
 
-                try
-                {
-                    if(pregen.get() > 0)
-                    {
+                try {
+                    if (pregen.get() > 0) {
                         new Pregenerator(w, pregen.get());
                     }
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                 }
 

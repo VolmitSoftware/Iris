@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.Iris;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.jetbrains.annotations.NotNull;

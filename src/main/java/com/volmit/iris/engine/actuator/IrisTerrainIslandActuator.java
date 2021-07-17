@@ -18,13 +18,11 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
@@ -64,13 +62,11 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
                 realX = (int) modX(xf + x);
                 realZ = (int) modZ(zf + z);
 
-                if(getComplex().getIslandStream().get(realX, realZ))
-                {
+                if (getComplex().getIslandStream().get(realX, realZ)) {
                     surface = getComplex().getIslandHeightStream().get(realX, realZ).intValue();
                     depth = getComplex().getIslandDepthStream().get(realX, realZ).intValue();
 
-                    for(i =  surface - depth; i < surface; i++)
-                    {
+                    for (i = surface - depth; i < surface; i++) {
                         h.set(xf, i, zf, BEDROCK);
                     }
                 }

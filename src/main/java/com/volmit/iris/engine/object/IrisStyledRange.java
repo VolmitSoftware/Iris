@@ -49,8 +49,7 @@ public class IrisStyledRange {
             return min;
         }
 
-        if(style.isFlat())
-        {
+        if (style.isFlat()) {
             return M.lerp(min, max, 0.5);
         }
 

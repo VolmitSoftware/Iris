@@ -160,8 +160,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             Hunk<BlockData> blocks = vblocks;
 
 
-            switch(getDimension().getTerrainMode())
-            {
+            switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
                     getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
                     getFramework().getBiomeActuator().actuate(x, z, vbiomes);

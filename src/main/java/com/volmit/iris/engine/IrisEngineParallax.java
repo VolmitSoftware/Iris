@@ -22,7 +22,6 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.engine.stream.utility.CachedStream2D;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Getter;

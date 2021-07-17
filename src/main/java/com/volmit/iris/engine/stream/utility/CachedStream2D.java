@@ -24,8 +24,6 @@ import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final ProceduralStream<T> stream;
     private final ConcurrentLinkedHashMap<Long, T> cache;
@@ -52,8 +50,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        if(IrisComplex.cacheLock.get())
-        {
+        if (IrisComplex.cacheLock.get()) {
             return stream.get((int) x, (int) z);
         }
 

@@ -30,5 +30,4 @@ public class IrisSapling {
     @MinNumber(1)
     @MaxNumber(4)
     private int size = 1;
-
 }

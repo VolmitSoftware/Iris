@@ -34,6 +34,7 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import com.volmit.iris.util.oldnbt.Tag;
+import io.papermc.lib.PaperLib;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -100,22 +101,30 @@ public class HunkRegionSlice<T> {
 
     public synchronized void save() {
         BurstExecutor e = MultiBurst.burst.burst();
-        for (ChunkPosition i : save.copy()) {
-            if (i == null) {
-                continue;
+
+        try
+        {
+            for (ChunkPosition i : save.copy()) {
+                if (i == null) {
+                    continue;
+                }
+
+                e.queue(() -> save(i.getX(), i.getZ()));
+
+                try {
+                    lock.withNasty(i.getX(), i.getZ(), () -> save.remove(i));
+                } catch (Throwable eer) {
+                    Iris.reportError(eer);
+                }
             }
 
-            e.queue(() -> save(i.getX(), i.getZ()));
-
-            try {
-                lock.withNasty(i.getX(), i.getZ(), () -> save.remove(i));
-            } catch (Throwable eer) {
-                Iris.reportError(eer);
-
-            }
+            e.complete();
         }
 
-        e.complete();
+        catch(Throwable ee)
+        {
+            Iris.reportError(ee);
+        }
     }
 
     public boolean contains(int x, int z) {

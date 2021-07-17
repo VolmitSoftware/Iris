@@ -29,9 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final ProceduralStream<T> stream;
     private final ConcurrentLinkedHashMap<Long, T> cache;
-    public static final AtomicInteger cacheHits = new AtomicInteger();
-    public static final AtomicInteger cacheMisses = new AtomicInteger();
-    public static final AtomicInteger evictions = new AtomicInteger();
 
     public CachedStream2D(ProceduralStream<T> stream, int size) {
         super();
@@ -40,7 +37,6 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
                 .initialCapacity(size)
                 .maximumWeightedCapacity(size)
                 .concurrencyLevel(32)
-                .listener((k, v) -> evictions.incrementAndGet())
                 .build();
     }
 
@@ -61,16 +57,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
             return stream.get((int) x, (int) z);
         }
 
-        return cache.compute(Cache.key((int) x, (int) z), (k, v) -> {
-            if(v != null )
-            {
-                cacheHits.incrementAndGet();
-                return v;
-            }
-
-            cacheMisses.incrementAndGet();
-            return stream.get((int) x, (int) z);
-        });
+        return cache.compute(Cache.key((int) x, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
     }
 
     @Override

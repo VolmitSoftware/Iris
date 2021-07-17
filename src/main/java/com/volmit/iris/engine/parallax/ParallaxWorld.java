@@ -22,8 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -232,11 +234,12 @@ public class ParallaxWorld implements ParallaxAccess {
 
     @Override
     public void saveAll() {
-        J.a(this::saveAllNOW);
+        MultiBurst.burst.lazy(this::saveAllNOW);
     }
 
     @Override
     public void saveAllNOW() {
+        Iris.debug("Saving " + C.GREEN + loadedRegions.size() + " Parallax Regions");
         for (ParallaxRegion i : loadedRegions.v()) {
             if (save.contains(key(i.getX(), i.getZ()))) {
                 save(i.getX(), i.getZ());

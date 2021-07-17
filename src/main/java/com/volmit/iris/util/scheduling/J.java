@@ -19,6 +19,7 @@
 package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NastyFunction;
 import com.volmit.iris.util.function.NastyFuture;
@@ -34,22 +35,6 @@ import java.util.function.Supplier;
 @SuppressWarnings("ALL")
 public class J {
     private static int tid = 0;
-    private static final ExecutorService e = Executors.newCachedThreadPool(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            tid++;
-            Thread t = new Thread(r);
-            t.setName("Iris Actuator " + tid);
-            t.setPriority(8);
-            t.setUncaughtExceptionHandler((et, e) ->
-            {
-                Iris.info("Exception encountered in " + et.getName());
-                e.printStackTrace();
-            });
-
-            return t;
-        }
-    });
 
     public static void dofor(int a, Function<Integer, Boolean> c, int ch, Consumer<Integer> d) {
         for (int i = a; c.apply(i); i += ch) {
@@ -73,7 +58,7 @@ public class J {
     }
 
     public static void arun(Runnable a) {
-        e.submit(() -> {
+        MultiBurst.burst.lazy(() -> {
             try {
                 a.run();
             } catch (Throwable e) {
@@ -85,7 +70,7 @@ public class J {
     }
 
     public static void a(Runnable a) {
-        e.submit(() -> {
+        MultiBurst.burst.lazy(() -> {
             try {
                 a.run();
             } catch (Throwable e) {
@@ -97,7 +82,7 @@ public class J {
     }
 
     public static <T> Future<T> a(Callable<T> a) {
-        return e.submit(a);
+        return MultiBurst.burst.lazySubmit(a);
     }
 
     public static void attemptAsync(NastyRunnable r) {

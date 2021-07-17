@@ -54,7 +54,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         IrisBiome biome;
         KList<BlockData> blocks, fblocks;
 
-
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {
                 realX = (int) modX(xf + x);

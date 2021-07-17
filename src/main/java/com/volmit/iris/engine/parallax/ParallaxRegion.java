@@ -25,10 +25,13 @@ import com.volmit.iris.engine.hunk.io.HunkRegion;
 import com.volmit.iris.engine.hunk.io.HunkRegionSlice;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.GridLock;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import com.volmit.iris.util.oldnbt.Tag;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -153,6 +156,7 @@ public class ParallaxRegion extends HunkRegion {
     }
 
     public synchronized void save() throws IOException {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         blockSlice.save();
         objectSlice.save();
         entitySlice.save();
@@ -160,6 +164,7 @@ public class ParallaxRegion extends HunkRegion {
         updateSlice.save();
         saveMetaHunk();
         super.save();
+        Iris.debug("Saved Parallax Region " + C.AQUA + getX() + "," + getZ() + C.LIGHT_PURPLE + " in " + C.RED + Form.duration(p.getMilliseconds(), 0));
     }
 
     public int unload() {

@@ -133,7 +133,7 @@ public class Pregenerator implements Listener {
         this.directWriter = new DirectWorldWriter(world.getWorldFolder());
         this.running = new AtomicBoolean(true);
         this.active = new AtomicBoolean(true);
-        MultiBurst burst = new MultiBurst(Runtime.getRuntime().availableProcessors());
+        MultiBurst burst = new MultiBurst("Iris Pregenerator", 9, Runtime.getRuntime().availableProcessors() + 4);
         int mcaSize = (((blockSize >> 4) + 2) >> 5) + 1;
         onComplete = new KList<>();
         max = new ChunkPosition(0, 0);

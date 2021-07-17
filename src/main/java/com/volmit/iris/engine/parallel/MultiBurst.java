@@ -21,18 +21,17 @@ package com.volmit.iris.engine.parallel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class MultiBurst {
-    public static final MultiBurst burst = new MultiBurst("Iris Burster", 10, Runtime.getRuntime().availableProcessors());
+    public static final MultiBurst burst = new MultiBurst("Iris", 6, Runtime.getRuntime().availableProcessors());
     private final ExecutorService service;
     private ExecutorService syncService;
     private int tid;
 
 
     public MultiBurst(int tc) {
-        this("Iris Generator", 6, tc);
+        this("Iris", 6, tc);
     }
 
     public MultiBurst(String name, int priority, int tc) {
@@ -73,8 +72,20 @@ public class MultiBurst {
         return burst(16);
     }
 
+    public <T> Future<T> lazySubmit(Callable<T> o) {
+        return service.submit(o);
+    }
+
     public void lazy(Runnable o) {
         service.execute(o);
+    }
+
+    public Future<?> future(Runnable o) {
+        return service.submit(o);
+    }
+
+    public CompletableFuture<?> complete(Runnable o) {
+        return CompletableFuture.runAsync(o, service);
     }
 
     public void shutdownNow() {

@@ -29,7 +29,7 @@ import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-public class IrisTerrainActuator extends EngineAssignedActuator<BlockData> {
+public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
@@ -40,7 +40,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData> {
     @Getter
     private int lastBedrock = -1;
 
-    public IrisTerrainActuator(Engine engine) {
+    public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getWorld().getSeed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
@@ -53,6 +53,7 @@ public class IrisTerrainActuator extends EngineAssignedActuator<BlockData> {
         int i, zf, depth, realX, realZ, hf, he, b, fdepth;
         IrisBiome biome;
         KList<BlockData> blocks, fblocks;
+
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {

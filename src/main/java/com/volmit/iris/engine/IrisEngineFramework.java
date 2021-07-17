@@ -22,7 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
@@ -47,7 +48,10 @@ public class IrisEngineFramework implements EngineFramework {
     final EngineParallaxManager engineParallax;
 
     @Getter
-    private final EngineActuator<BlockData> terrainActuator;
+    private final EngineActuator<BlockData> terrainNormalActuator;
+
+    @Getter
+    private final EngineActuator<BlockData> terrainIslandActuator;
 
     @Getter
     private final EngineActuator<BlockData> decorantActuator;
@@ -74,7 +78,8 @@ public class IrisEngineFramework implements EngineFramework {
         this.engine = engine;
         this.complex = new IrisComplex(getEngine());
         this.engineParallax = new IrisEngineParallax(getEngine());
-        this.terrainActuator = new IrisTerrainActuator(getEngine());
+        this.terrainNormalActuator = new IrisTerrainNormalActuator(getEngine());
+        this.terrainIslandActuator = new IrisTerrainIslandActuator(getEngine());
         this.decorantActuator = new IrisDecorantActuator(getEngine());
         this.biomeActuator = new IrisBiomeActuator(getEngine());
         this.depositModifier = new IrisDepositModifier(getEngine());
@@ -108,6 +113,14 @@ public class IrisEngineFramework implements EngineFramework {
         }
 
         cleaning.lazySet(false);
+    }
+
+    @Override
+    public EngineActuator<BlockData> getTerrainActuator() {
+        return switch (getEngine().getDimension().getTerrainMode()){
+            case NORMAL -> getTerrainNormalActuator();
+            case ISLANDS -> getTerrainIslandActuator();
+        };
     }
 
     @Override

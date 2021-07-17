@@ -290,6 +290,11 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Change the size of regions")
     private double regionZoom = 1;
 
+    @Desc("The terrain mode. NORMAL is normal... ISLANDS creates floating islands at varied heights")
+    private IrisTerrainMode terrainMode = IrisTerrainMode.NORMAL;
+
+    @Desc("The configuration for island mode dimensions")
+    private IrisTerrainIsland islandMode = new IrisTerrainIsland();
 
     @Desc("Disable this to stop placing schematics in biomes")
     private boolean placeObjects = true;

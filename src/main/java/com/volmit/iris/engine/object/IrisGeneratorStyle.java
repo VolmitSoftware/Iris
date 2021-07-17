@@ -38,28 +38,22 @@ import lombok.experimental.Accessors;
 public class IrisGeneratorStyle {
 
     @Required
-
     @Desc("The chance is 1 in CHANCE per interval")
     private NoiseStyle style = NoiseStyle.IRIS;
-
 
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;
 
-
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
 
-
     @Desc("If set to true, each dimension will be fractured with a different order of input coordinates. This is usually 2 or 3 times slower than normal.")
     private boolean maxFractureAccuracy = false;
 
-
     @Desc("Apply a generator to the coordinate field fed into this parent generator. I.e. Distort your generator with another generator.")
     private IrisGeneratorStyle fracture = null;
-
 
     @MinNumber(0.01562)
     @MaxNumber(64)

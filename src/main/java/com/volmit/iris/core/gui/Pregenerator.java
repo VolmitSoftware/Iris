@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.data.DirectWorldWriter;
+import com.volmit.iris.engine.data.mca.MCAFile;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -254,6 +255,7 @@ public class Pregenerator implements Listener {
                 vcaz.set(jj);
             }));
             e.complete();
+            verifyMCA(x, z, burst);
             directWriter.flush();
             install(mcg, mca);
         } else {
@@ -264,6 +266,37 @@ public class Pregenerator implements Listener {
         }
 
         return true;
+    }
+
+    private void verifyMCA(int x, int z, MultiBurst burst) {
+        MCAFile rg = directWriter.getMCA(x, z);
+        KList<Runnable> requeue = new KList<>();
+
+        for (int i = 0; i < 32; i++)
+        {
+            for(int j = 0; j < 32; j++)
+            {
+                com.volmit.iris.engine.data.mca.Chunk c = rg.getChunk(i, j);
+
+                if(c == null)
+                {
+                    draw(((x << 5) + i), ((z << 5) + j), COLOR_ERROR);
+                    Iris.warn("Caught Ungenerated Chunk @ " + ((x << 5) + i) + ", " + ((z << 5) + j) + " Regenerating before flush, CHECK THIS CHUNK IN THE OVERWORLD TO MAKE SURE WE FIXED IT!");
+                    int finalI = i;
+                    int finalJ = j;
+                    requeue.add(() -> {
+                        access.directWriteChunk(world, ((x << 5) + finalI), ((z << 5) + finalJ), directWriter);
+                        draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATED);
+                    });
+                }
+            }
+        }
+
+        if(requeue.isNotEmpty())
+        {
+            burst.burst(requeue);
+            verifyMCA(x, z, burst);
+        }
     }
 
     private boolean install(File from, File to) {

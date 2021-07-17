@@ -20,7 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.actuator.IrisTerrainActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -158,7 +158,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
             Engine e = getEngine(i);
 
             if (e.getDimension().isBedrock()) {
-                int m = ((IrisTerrainActuator) e.getFramework().getTerrainActuator()).getLastBedrock();
+                int m = ((IrisTerrainNormalActuator) e.getFramework().getTerrainActuator()).getLastBedrock();
 
                 if (f > m) {
                     f = m;

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.IrisComplex;
@@ -40,6 +41,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
@@ -192,41 +194,69 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
+    ConcurrentLinkedHashMap<Long, KList<IrisFeaturePositional>> getFeatureCache();
+
+    IrisLock getFeatureLock();
+
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z)) {
-                f.accept(i);
+        long key = Cache.key(((int)x)>>4, ((int)z) >> 4);
+
+        for(IrisFeaturePositional ipf : getFeatureCache().compute(key, (ke, v) -> {
+            if(v != null)
+            {
+                return v;
             }
-        }
 
-        int s = (int) Math.ceil(getParallaxSize() / 2D);
-        int i, j;
-        int cx = (int) x >> 4;
-        int cz = (int) z >> 4;
+            getFeatureLock().lock();
+            KList<IrisFeaturePositional> pos = new KList<>();
 
-        for (i = -s; i <= s; i++) {
-            for (j = -s; j <= s; j++) {
-                ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
-
-                try {
-                    synchronized (m.getFeatures()) {
-                        for (IrisFeaturePositional k : m.getFeatures()) {
-                            if (k.shouldFilter(x, z)) {
-                                f.accept(k);
-                            }
-                        }
-                    }
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                    Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
+            for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
+                if (i.shouldFilter(x, z)) {
+                    pos.add(i);
                 }
             }
+
+            int s = (int) Math.ceil(getParallaxSize() / 2D);
+            int i, j;
+            int cx = (int) x >> 4;
+            int cz = (int) z >> 4;
+
+            for (i = -s; i <= s; i++) {
+                for (j = -s; j <= s; j++) {
+                    ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
+
+                    try {
+                        synchronized (m.getFeatures())
+                        {
+                            for (IrisFeaturePositional k : m.getFeatures()) {
+                                if (k.shouldFilter(x, z)) {
+                                    pos.add(k);
+                                }
+                            }
+                        }
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                        e.printStackTrace();
+                        Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
+                    }
+                }
+            }
+            getFeatureLock().unlock();
+
+            return pos;
+        }))
+        {
+            f.accept(ipf);
         }
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     default void generateParallaxArea(int x, int z) {
+        if(!getEngine().getDimension().isPlaceObjects())
+        {
+            return;
+        }
+
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
 

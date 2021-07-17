@@ -18,8 +18,13 @@
 
 package com.volmit.iris.engine;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.engine.stream.utility.CachedStream2D;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Getter;
 
 public class IrisEngineParallax implements EngineParallaxManager {
@@ -28,6 +33,16 @@ public class IrisEngineParallax implements EngineParallaxManager {
 
     @Getter
     private final int parallaxSize;
+
+    @Getter
+    private final IrisLock featureLock = new IrisLock("Feature");
+
+    @Getter
+    private final ConcurrentLinkedHashMap<Long, KList<IrisFeaturePositional>> featureCache = new ConcurrentLinkedHashMap.Builder<Long, KList<IrisFeaturePositional>>()
+            .initialCapacity(1024)
+            .maximumWeightedCapacity(1024)
+            .concurrencyLevel(32)
+            .build();
 
     public IrisEngineParallax(Engine engine) {
         this.engine = engine;

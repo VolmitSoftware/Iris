@@ -157,16 +157,26 @@ public class IrisEngine extends BlockPopulator implements Engine {
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<BlockData> blocks = vblocks.synchronize().listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-            getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-            getFramework().getBiomeActuator().actuate(x, z, vbiomes);
-            getFramework().getTerrainActuator().actuate(x, z, blocks);
-            getFramework().getCaveModifier().modify(x, z, blocks);
-            getFramework().getRavineModifier().modify(x, z, blocks);
-            getFramework().getPostModifier().modify(x, z, blocks);
-            getFramework().getDecorantActuator().actuate(x, z, blocks);
-            getFramework().getEngineParallax().insertParallax(x, z, blocks);
-            getFramework().getDepositModifier().modify(x, z, blocks);
+            Hunk<BlockData> blocks = vblocks;
+
+
+            switch(getDimension().getTerrainMode())
+            {
+                case NORMAL -> {
+                    getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
+                    getFramework().getBiomeActuator().actuate(x, z, vbiomes);
+                    getFramework().getTerrainActuator().actuate(x, z, blocks);
+                    getFramework().getCaveModifier().modify(x, z, blocks);
+                    getFramework().getRavineModifier().modify(x, z, blocks);
+                    getFramework().getPostModifier().modify(x, z, blocks);
+                    getFramework().getDecorantActuator().actuate(x, z, blocks);
+                    getFramework().getEngineParallax().insertParallax(x, z, blocks);
+                    getFramework().getDepositModifier().modify(x, z, blocks);
+                }
+                case ISLANDS -> {
+                    getFramework().getTerrainActuator().actuate(x, z, blocks);
+                }
+            }
             getMetrics().getTotal().put(p.getMilliseconds());
         } catch (Throwable e) {
             Iris.reportError(e);

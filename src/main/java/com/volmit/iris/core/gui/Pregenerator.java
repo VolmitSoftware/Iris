@@ -281,12 +281,12 @@ public class Pregenerator implements Listener {
                 if(c == null)
                 {
                     draw(((x << 5) + i), ((z << 5) + j), COLOR_ERROR);
-                    Iris.warn("Caught Ungenerated Chunk @ " + ((x << 5) + i) + ", " + ((z << 5) + j) + " Regenerating before flush, CHECK THIS CHUNK IN THE OVERWORLD TO MAKE SURE WE FIXED IT!");
                     int finalI = i;
                     int finalJ = j;
                     requeue.add(() -> {
+                        draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATE);
                         access.directWriteChunk(world, ((x << 5) + finalI), ((z << 5) + finalJ), directWriter);
-                        draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATED);
+                        draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATED_MCA);
                     });
                 }
             }

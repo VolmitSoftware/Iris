@@ -82,9 +82,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Sapling override settings")
     private IrisSaplings saplings = new IrisSaplings();
 
-    @Desc("Enable sapling overrides")
-    private boolean useSaplings = false;
-
     @MinNumber(1)
     @MaxNumber(128)
     @Desc("The rarity of the region")

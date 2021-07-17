@@ -1,6 +1,8 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.IrisWorldManager;
+import com.volmit.iris.engine.IrisWorlds;
 import org.bukkit.TreeType;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
@@ -18,12 +20,10 @@ public class SaplingManager implements Listener {
 
     @EventHandler
     public void onStructureGrowEvent(StructureGrowEvent event) {
-        if (event.getSpecies() == TreeType.JUNGLE)
-        Iris.info("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " bonemealed is " + event.isFromBonemeal() + " by player " + Objects.requireNonNull(event.getPlayer()).getName());
-    }
+        if (!IrisWorlds.isIrisWorld(event.getWorld())) return;
 
-    @EventHandler
-    public void onBlockPlaceEvent(BlockPlaceEvent event) {
-        Iris.info("Placed " + event.getBlock().getBlockData().getMaterial().name() + " @ " + event.getBlock().getLocation());
+        // TODO: Remove this line
+        Iris.info("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " bonemealed is " + event.isFromBonemeal() + " by player " + Objects.requireNonNull(event.getPlayer()).getName());
+
     }
 }

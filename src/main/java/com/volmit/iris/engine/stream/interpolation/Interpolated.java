@@ -31,6 +31,7 @@ public interface Interpolated<T> {
     Interpolated<KList<CaveResult>> CAVE_RESULTS = of((t) -> 0D, (t) -> null);
     Interpolated<RNG> RNG = of((t) -> 0D, (t) -> null);
     Interpolated<Double> DOUBLE = of((t) -> t, (t) -> t);
+    Interpolated<Boolean> BOOLEAN = of((t) -> 0D, (t) -> false);
     Interpolated<Integer> INT = of(Double::valueOf, Double::intValue);
     Interpolated<Long> LONG = of(Double::valueOf, Double::longValue);
 

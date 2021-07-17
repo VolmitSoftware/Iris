@@ -20,6 +20,7 @@ package com.volmit.iris.engine.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.stream.arithmetic.*;
 import com.volmit.iris.engine.stream.convert.*;
@@ -30,6 +31,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
+import com.volmit.iris.util.math.RNG;
 
 import java.util.List;
 import java.util.function.Function;
@@ -61,6 +63,21 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
     static <T> ProceduralStream<T> of(Function2<Double, Double, T> f, Function3<Double, Double, Double, T> f2, Interpolated<T> helper) {
         return new FunctionStream<>(f, f2, helper);
+    }
+
+    default ProceduralStream<Boolean> chance(double chance)
+    {
+        return of((x, z) -> getDouble(x, z) < chance, Interpolated.BOOLEAN);
+    }
+
+    default ProceduralStream<Boolean> seededChance(RNG brng, long rootSeed, double chance)
+    {
+        RNG rng = brng.nextParallelRNG(rootSeed - 3995L);
+        return of((x, z) -> {
+            double ch = getDouble(x, z);
+            rng.setSeed((long) (ch * Long.MAX_VALUE));
+            return rng.chance(chance);
+        }, Interpolated.BOOLEAN);
     }
 
     default ProceduralStream<T> profile() {
@@ -326,12 +343,34 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new SelectionStream<V>(this, rarityTypes);
     }
 
+    default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {
+        KList<V> rarityTypes = new KList<>();
+        int totalRarity = 0;
+        for (V i : types) {
+            totalRarity += IRare.get(loader.apply(i));
+        }
+
+        for (V i : types) {
+            rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
+        }
+
+        return rarityTypes.size();
+    }
+
     default ProceduralStream<T> clamp(double min, double max) {
         return new ClampedStream<T>(this, min, max);
     }
 
     default ProceduralStream<T> fit(double min, double max) {
         return new FittedStream<T>(this, min, max);
+    }
+
+    default ProceduralStream<Double> style(RNG rng, IrisStyledRange range)
+    {
+        return ProceduralStream.of((x, z) -> {
+            double d = getDouble(x, z);
+            return range.get(rng,d, -d);
+        }, Interpolated.DOUBLE);
     }
 
     default ProceduralStream<T> fit(double inMin, double inMax, double min, double max) {

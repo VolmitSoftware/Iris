@@ -18,7 +18,12 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.object.annotations.Desc;
+
+@Desc("Terrain modes are used to decide the generator type currently used")
 public enum IrisTerrainMode {
+    @Desc("Normal terrain, similar to the vanilla overworld")
     NORMAL,
+    @Desc("Island terrain, more similar to the end, but endless possibilities!")
     ISLANDS
 }

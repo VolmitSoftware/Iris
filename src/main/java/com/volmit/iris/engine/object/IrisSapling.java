@@ -26,7 +26,7 @@ public class IrisSapling {
     @Desc("List of objects to overwrite saplings with")
     private KList<String> replace = new KList<>();
 
-    @Desc("The size of the square of saplings this applies to (two means a 2 by 2 sapling area")
+    @Desc("The size of the square of saplings this applies to (two means a 2 by 2 sapling area)")
     @MinNumber(1)
     @MaxNumber(4)
     private int size = 1;

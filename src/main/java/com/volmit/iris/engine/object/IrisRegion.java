@@ -80,7 +80,8 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
     @Desc("Sapling override settings")
-    private IrisSaplings saplings = new IrisSaplings();
+    @ArrayType(min = 1, type = IrisSapling.class)
+    private KList<IrisSapling> saplings = new KList<>();
 
     @MinNumber(1)
     @MaxNumber(128)

@@ -66,7 +66,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisDimension sky = null;
 
     @RegistryListJigsaw
-
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
 
@@ -75,10 +74,11 @@ public class IrisDimension extends IrisRegistrant {
     private boolean aggressiveBiomeReshuffle = false;
 
     @Desc("Sapling override settings")
-    private IrisSaplings saplings = new IrisSaplings();
+    @ArrayType(min = 1, type = IrisSapling.class)
+    private KList<IrisSapling> saplings = new KList<>();
 
     @Desc("Enable sapling overrides")
-    private boolean useSaplings = false;
+    private boolean overrideSaplings = false;
 
 
     @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")

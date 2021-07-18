@@ -23,6 +23,7 @@ import com.volmit.iris.engine.IrisEngineFramework;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import lombok.Getter;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -30,8 +31,6 @@ import org.bukkit.block.data.BlockData;
 
 
 public class FakeEngine implements Engine {
-
-
     @Getter
     private double maxBiomeObjectDensity;
 
@@ -47,9 +46,9 @@ public class FakeEngine implements Engine {
     private final EngineFramework framework;
 
     @Getter
-    private final World world;
+    private final IrisWorld world;
 
-    public FakeEngine(IrisDimension dimension, FakeWorld world) {
+    public FakeEngine(IrisDimension dimension, IrisWorld world) {
         this.dimension = dimension;
         this.world = world;
         computeBiomeMaxes();

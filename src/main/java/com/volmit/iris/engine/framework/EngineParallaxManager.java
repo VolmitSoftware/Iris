@@ -271,7 +271,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     if (!getParallaxAccess().isFeatureGenerated(xx, zz)) {
                         burst.queue(() -> {
                             getParallaxAccess().setFeatureGenerated(xx, zz);
-                            RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+                            RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
                             IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
                             IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
                             generateParallaxFeatures(rng, xx, zz, region, biome);
@@ -332,7 +332,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         if (getEngine().getDimension().isPlaceObjects()) {
             int xx = x << 4;
             int zz = z << 4;
-            RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+            RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
             IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
             IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
             after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
@@ -351,7 +351,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int xx = x << 4;
         int zz = z << 4;
         getParallaxAccess().setParallaxGenerated(x, z);
-        RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().getSeed());
+        RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
         IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
         generateParallaxSurface(rng, x, z, biome, region, false);

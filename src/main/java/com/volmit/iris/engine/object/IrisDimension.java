@@ -74,11 +74,7 @@ public class IrisDimension extends IrisRegistrant {
     private boolean aggressiveBiomeReshuffle = false;
 
     @Desc("Sapling override settings")
-    @ArrayType(min = 1, type = IrisSapling.class)
-    private KList<IrisSapling> saplings = new KList<>();
-
-    @Desc("Enable sapling overrides")
-    private boolean overrideSaplings = false;
+    private IrisTreeSettings saplingSettings = new IrisTreeSettings();
 
 
     @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")

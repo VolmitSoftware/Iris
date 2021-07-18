@@ -49,6 +49,7 @@ public class DustRevealer {
 
             if (a.getObject(block.getX(), block.getY(), block.getZ()) != null) {
                 sender.sendMessage("Found object " + a.getObject(block.getX(), block.getY(), block.getZ()));
+                Iris.info(sender.getName() + " found object " + a.getObject(block.getX(), block.getY(), block.getZ()));
                 J.a(() -> {
                     new DustRevealer(a, world, new BlockPosition(block.getX(), block.getY(), block.getZ()), a.getObject(block.getX(), block.getY(), block.getZ()), new KList<>());
                 });

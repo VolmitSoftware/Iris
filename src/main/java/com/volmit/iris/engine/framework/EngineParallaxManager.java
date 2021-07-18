@@ -199,6 +199,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     IrisLock getFeatureLock();
 
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
+        if(!getEngine().getDimension().hasFeatures(getEngine()))
+        {
+            return;
+        }
+
         long key = Cache.key(((int) x) >> 4, ((int) z) >> 4);
 
         for (IrisFeaturePositional ipf : getFeatureCache().compute(key, (ke, v) -> {
@@ -225,17 +230,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
                     try {
-                        synchronized (m.getFeatures()) {
-                            for (IrisFeaturePositional k : m.getFeatures()) {
-                                if (k.shouldFilter(x, z)) {
-                                    pos.add(k);
-                                }
+                        for (IrisFeaturePositional k : m.getFeatures()) {
+                            if (k.shouldFilter(x, z)) {
+                                pos.add(k);
                             }
                         }
                     } catch (Throwable e) {
                         Iris.reportError(e);
-                        e.printStackTrace();
-                        Iris.warn("Failed to read positional features in chunk " + (i + cx) + " " + (j + cz) + "(" + e.getClass().getSimpleName() + ")");
                     }
                 }
             }

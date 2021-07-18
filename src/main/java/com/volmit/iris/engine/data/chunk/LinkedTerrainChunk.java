@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.data.IrisBiomeStorage;
-import com.volmit.iris.util.fakenews.HeightedFakeWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -38,31 +37,10 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private ChunkData rawChunkData;
     private final BiomeGrid storage;
 
-    public LinkedTerrainChunk(int maxHeight) {
-        this(null, maxHeight);
-    }
-
     public LinkedTerrainChunk(BiomeGrid storage, ChunkData data) {
         this.storage = storage;
         rawChunkData = data;
         biome3D = storage != null ? null : new IrisBiomeStorage();
-    }
-
-    public LinkedTerrainChunk(BiomeGrid storage, int maxHeight) {
-        this.storage = storage;
-        rawChunkData = createChunkData(maxHeight);
-        biome3D = storage != null ? null : new IrisBiomeStorage();
-    }
-
-    private ChunkData createChunkData(int maxHeight) {
-        try {
-            return Bukkit.createChunkData(new HeightedFakeWorld(maxHeight));
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        return null;
     }
 
     @Override

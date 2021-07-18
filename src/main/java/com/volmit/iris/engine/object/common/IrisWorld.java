@@ -32,6 +32,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
 
 @Builder
 @Data
@@ -68,7 +69,7 @@ public class IrisWorld {
         return realWorld != null;
     }
 
-    public Iterable<? extends Player> getPlayers() {
+    public List<Player> getPlayers() {
 
         if(hasRealWorld())
         {

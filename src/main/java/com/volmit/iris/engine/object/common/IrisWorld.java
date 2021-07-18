@@ -26,15 +26,19 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.util.Collection;
 
 @Builder
 @Data
 @Accessors(chain = true, fluent = true)
 public class IrisWorld {
     private static final KList<Player> NO_PLAYERS = new KList<>();
+    private static final KList<? extends Entity> NO_ENTITIES = new KList<>();
     private String name;
     private File worldFolder;
     private long seed;
@@ -93,5 +97,14 @@ public class IrisWorld {
 
         Iris.error("This world is not real yet, cannot get spawn location! HEADLESS!");
         return null;
+    }
+
+    public <T extends Entity> Collection<? extends T> getEntitiesByClass(Class<T> t) {
+        if(hasRealWorld())
+        {
+            return realWorld().getEntitiesByClass(t);
+        }
+
+        return (KList<? extends T>) NO_ENTITIES;
     }
 }

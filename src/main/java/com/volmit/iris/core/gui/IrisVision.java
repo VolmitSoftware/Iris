@@ -24,6 +24,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -70,7 +71,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private boolean alt = false;
     private int posX = 0;
     private IrisRenderer renderer;
-    private World world;
+    private IrisWorld world;
     private double velocity = 0;
     private int lowq = 12;
     private int posZ = 0;
@@ -726,7 +727,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         }
     }
 
-    private static void createAndShowGUI(Engine r, int s, World world) {
+    private static void createAndShowGUI(Engine r, int s, IrisWorld world) {
         JFrame frame = new JFrame("Vision");
         IrisVision nv = new IrisVision(frame);
         nv.world = world;

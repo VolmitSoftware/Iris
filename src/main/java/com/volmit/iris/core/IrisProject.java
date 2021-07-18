@@ -307,9 +307,9 @@ public class IrisProject {
 
     public void close() {
         activeProvider.close();
-        File folder = activeProvider.getTarget().getWorld().getWorldFolder();
-        Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().getName());
-        Bukkit.unloadWorld(activeProvider.getTarget().getWorld().getName(), false);
+        File folder = activeProvider.getTarget().getWorld().worldFolder();
+        Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().name());
+        Bukkit.unloadWorld(activeProvider.getTarget().getWorld().name(), false);
         J.attemptAsync(() -> IO.delete(folder));
         activeProvider = null;
     }

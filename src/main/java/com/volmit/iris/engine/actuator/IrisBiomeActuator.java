@@ -37,7 +37,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
     public IrisBiomeActuator(Engine engine) {
         super(engine, "Biome");
-        rng = new RNG(engine.getWorld().getSeed() + 243995);
+        rng = new RNG(engine.getWorld().seed() + 243995);
     }
 
     private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {

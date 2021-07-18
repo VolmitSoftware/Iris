@@ -250,7 +250,7 @@ public class Pregenerator implements Listener {
             method.set("Direct (Fast)");
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> e.queue(() -> {
                 draw(ii, jj, COLOR_MCA_GENERATE);
-                access.directWriteChunk(world, ii, jj, directWriter);
+                access.directWriteChunk(access.getCompound().getWorld(), ii, jj, directWriter);
                 draw(ii, jj, COLOR_MCA_GENERATED_MCA);
                 generated.getAndIncrement();
                 vcax.set(ii);
@@ -286,7 +286,7 @@ public class Pregenerator implements Listener {
                     int finalJ = j;
                     requeue.add(() -> {
                         draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATE);
-                        access.directWriteChunk(world, ((x << 5) + finalI), ((z << 5) + finalJ), directWriter);
+                        access.directWriteChunk(access.getCompound().getWorld(), ((x << 5) + finalI), ((z << 5) + finalJ), directWriter);
                         draw(((x << 5) + finalI), ((z << 5) + finalJ), COLOR_MCA_GENERATED_MCA);
                     });
                 }

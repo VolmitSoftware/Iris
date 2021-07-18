@@ -33,11 +33,11 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.fakenews.FakeWorld;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.ReactiveFolder;
@@ -48,7 +48,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import io.netty.util.internal.ConcurrentSet;
-import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -79,9 +78,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private long mst = 0;
     private int generated = 0;
     private int lgenerated = 0;
-    private final KMap<Long, PregeneratedData> chunkCache;
     private final ChronoLatch hotloadcd;
-    private final AtomicBoolean fake;
     @Getter
     private double generatedPerSecond = 0;
     private final int art;
@@ -93,8 +90,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public EngineCompositeGenerator(String query, boolean production) {
         super();
-        chunkCache = new KMap<>();
-        fake = new AtomicBoolean(true);
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
@@ -113,6 +108,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         });
     }
 
+    @Override
     public void hotload() {
         if (isStudio()) {
             Iris.proj.updateWorkspace();
@@ -158,14 +154,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
     }
 
-    private synchronized IrisDimension getDimension(World world) {
+    private synchronized IrisDimension getDimension(IrisWorld world) {
         String query = dimensionQuery;
-        query = Iris.linkMultiverseCore.getWorldNameType(world.getName(), query);
+        query = Iris.linkMultiverseCore.getWorldNameType(world.name(), query);
 
         IrisDimension dim = null;
 
         if (query == null) {
-            File iris = new File(world.getWorldFolder(), "iris");
+            File iris = new File(world.worldFolder(), "iris");
 
             if (iris.exists() && iris.isDirectory()) {
                 for (File i : iris.listFiles()) {
@@ -191,7 +187,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (query == null) {
-            Iris.error("Cannot find iris dimension data for world: " + world.getName() + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
+            Iris.error("Cannot find iris dimension data for world: " + world.name() + "! Assuming " + IrisSettings.get().getGenerator().getDefaultWorldType() + "!");
             query = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
@@ -213,8 +209,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
-                Iris.info("Installing Iris pack " + od.getName() + " into world " + world.getName() + "...");
-                Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.getWorldFolder());
+                Iris.info("Installing Iris pack " + od.getName() + " into world " + world.name() + "...");
+                Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.worldFolder());
                 dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
                 if (dim == null) {
@@ -294,20 +290,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
-    public synchronized void initialize(World world) {
-        if (!(world instanceof FakeWorld) && fake.get() && this.compound.get() != null) {
-            fake.set(false);
-            this.compound.get().updateWorld(world);
-            getTarget().updateWorld(world);
-            placeStrongholds(world);
-
-            for (int i = 0; i < getComposite().getSize(); i++) {
-                getComposite().getEngine(i).getTarget().updateWorld(world);
-            }
-
-            Iris.info("Attached Real World to Engine Target");
-        }
-
+    public synchronized void initialize(IrisWorld world) {
         if (initialized.get()) {
             return;
         }
@@ -445,8 +428,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         );
     }
 
-    private File getDataFolder(World world) {
-        return new File(world.getWorldFolder(), "iris/pack");
+    private File getDataFolder(IrisWorld world) {
+        return new File(world.worldFolder(), "iris/pack");
     }
 
     private File getDataFolder(String world) {
@@ -458,7 +441,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         PrecisionStopwatch ps = PrecisionStopwatch.start();
         TerrainChunk tc = TerrainChunk.create(world, biome);
-        generateChunkRawData(world, x, z, tc).run();
+        generateChunkRawData(getComposite().getWorld(), x, z, tc).run();
+
+        if(!getComposite().getWorld().hasRealWorld())
+        {
+            getComposite().getWorld().bind(world);
+        }
+
         generated++;
         ps.end();
 
@@ -469,7 +458,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return tc.getRaw();
     }
 
-    public void directWriteMCA(World w, int x, int z, NBTWorld writer, MultiBurst burst) {
+    @Override
+    public void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst) {
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
@@ -485,7 +475,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         e.complete();
     }
 
-    public void directWriteChunk(World w, int x, int z, NBTWorld writer) {
+    @Override
+    public void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer) {
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.engine.data.mca.Chunk cc = writer.getChunk(x, z);
@@ -526,12 +517,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             @Override
             public int getMinHeight() {
-                return w.getMinHeight();
+                return w.minHeight();
             }
 
             @Override
             public int getMaxHeight() {
-                return w.getMaxHeight();
+                return w.maxHeight();
             }
 
             @Override
@@ -614,50 +605,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }).run();
     }
 
-    public Chunk generatePaper(World world, int x, int z) {
-        precache(world, x, z);
-        Chunk c = PaperLib.getChunkAtAsync(world, x, z, true).join();
-        chunkCache.remove(Cache.key(x, z));
-        return c;
-    }
-
-    public void precache(World world, int x, int z) {
-        synchronized (this) {
-            initialize(world);
-        }
-
-        synchronized (chunkCache) {
-            if (chunkCache.containsKey(Cache.key(x, z))) {
-                return;
-            }
-        }
-
-        PregeneratedData data = new PregeneratedData(getComposite().getHeight() - 1);
-        compound.get().generate(x * 16, z * 16, data.getBlocks(), data.getPost(), data.getBiomes());
-        synchronized (chunkCache) {
-            chunkCache.put(Cache.key(x, z), data);
-        }
-    }
-
-    @Override
-    public int getPrecacheSize() {
-        return chunkCache.size();
-    }
-
-    public int getCachedChunks() {
-        return chunkCache.size();
-    }
-
-    public Runnable generateChunkRawData(World world, int x, int z, TerrainChunk tc) {
+    public Runnable generateChunkRawData(IrisWorld world, int x, int z, TerrainChunk tc) {
         initialize(world);
-
-        synchronized (chunkCache) {
-            long g = Cache.key(x, z);
-            if (chunkCache.containsKey(g)) {
-                return chunkCache.remove(g).inject(tc);
-            }
-        }
-
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
         Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
@@ -784,145 +733,14 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public void clearRegeneratedLists(int x, int z) {
-        for (int i = 0; i < getComposite().getSize(); i++) {
-            getComposite().getEngine(i).getParallax().delete(x, z);
-        }
-    }
-
-    @Override
-    public void regenerate(int x, int z) {
-
-        clearRegeneratedLists(x, z);
-        int xx = x * 16;
-        int zz = z * 16;
-        BiomeBaseInjector inj = (a, b, c, d) -> {
-        };
-        //noinspection deprecation
-        generateChunkRawData(getComposite().getWorld(), x, z, new TerrainChunk() {
-            @Override
-            public BiomeBaseInjector getBiomeBaseInjector() {
-                return inj;
-            }
-
-            @Override
-            public void setRaw(ChunkData data) {
-
-            }
-
-            @NotNull
-            @Override
-            public Biome getBiome(int x, int z) {
-                return Biome.THE_VOID;
-            }
-
-            @NotNull
-            @Override
-            public Biome getBiome(int x, int y, int z) {
-                return Biome.THE_VOID;
-            }
-
-            @Override
-            public void setBiome(int x, int z, Biome bio) {
-
-            }
-
-            @Override
-            public void setBiome(int x, int y, int z, Biome bio) {
-
-            }
-
-            @Override
-            public int getMinHeight() {
-                return getComposite().getWorld().getMinHeight();
-            }
-
-            @Override
-            public int getMaxHeight() {
-                return getComposite().getWorld().getMaxHeight();
-            }
-
-            @Override
-            public void setBlock(int x, int y, int z, BlockData blockData) {
-                if (!getBlockData(x, y, z).matches(blockData)) {
-                    Iris.edit.set(compound.get().getWorld(), x + xx, y, z + zz, blockData);
-                }
-            }
-
-            @NotNull
-            @Override
-            public BlockData getBlockData(int x, int y, int z) {
-                return Iris.edit.get(compound.get().getWorld(), x + xx, y, z + zz);
-            }
-
-            @Override
-            public ChunkData getRaw() {
-                return null;
-            }
-
-            @Override
-            public void inject(BiomeGrid biome) {
-
-            }
-
-            @Override
-            public void setBlock(int i, int i1, int i2, @NotNull Material material) {
-                setBlock(i, i1, i2, material.createBlockData());
-            }
-
-            @Override
-            public void setBlock(int i, int i1, int i2, @NotNull MaterialData materialData) {
-                setBlock(i, i1, i2, materialData.getItemType());
-            }
-
-            @Override
-            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull Material material) {
-
-            }
-
-            @Override
-            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull MaterialData materialData) {
-
-            }
-
-            @Override
-            public void setRegion(int i, int i1, int i2, int i3, int i4, int i5, @NotNull BlockData blockData) {
-
-            }
-
-            @NotNull
-            @Override
-            public Material getType(int i, int i1, int i2) {
-                return getBlockData(i, i1, i2).getMaterial();
-            }
-
-            @NotNull
-            @Override
-            public MaterialData getTypeAndData(int i, int i1, int i2) {
-                return null;
-            }
-
-            @Override
-            public byte getData(int i, int i1, int i2) {
-                return 0;
-            }
-        });
-
-        Iris.edit.flushNow();
-
-    }
-
-
-    @Override
     public void close() {
         J.car(art);
         if (getComposite() != null) {
             getComposite().close();
 
-
-            if (isStudio()) {
-                IrisWorlds.evacuate(getComposite().getWorld());
-                Bukkit.unloadWorld(getComposite().getWorld(), !isStudio());
+            if (isStudio() && getComposite().getWorld().hasRealWorld()) {
+                getComposite().getWorld().evacuate();
+                Bukkit.unloadWorld(getComposite().getWorld().realWorld(), !isStudio());
             }
         }
     }

@@ -63,7 +63,7 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
 
         if (Iris.proj.isProjectOpen()) {
             generator = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
-            seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSeed();
+            seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().seed();
         } else {
             generator = IrisDataManager.loadAnyGenerator(args[0]);
         }

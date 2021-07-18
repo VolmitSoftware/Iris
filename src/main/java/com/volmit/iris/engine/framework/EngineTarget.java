@@ -20,10 +20,10 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import lombok.Data;
-import org.bukkit.World;
 
 import java.io.File;
 
@@ -31,27 +31,23 @@ import java.io.File;
 public class EngineTarget {
     private final MultiBurst burster;
     private final IrisDimension dimension;
-    private World world;
+    private IrisWorld world;
     private final int height;
     private final IrisDataManager data;
     private final ParallaxWorld parallaxWorld;
     private final boolean inverted;
 
-    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, boolean inverted, int threads) {
+    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisDataManager data, int height, boolean inverted, int threads) {
         this.world = world;
         this.height = height;
         this.dimension = dimension;
         this.data = data;
-        this.parallaxWorld = new ParallaxWorld(256, new File(world.getWorldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
+        this.parallaxWorld = new ParallaxWorld(256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
         this.inverted = inverted;
         this.burster = new MultiBurst(threads);
     }
 
-    public void updateWorld(World world) {
-        this.world = world;
-    }
-
-    public EngineTarget(World world, IrisDimension dimension, IrisDataManager data, int height, int threads) {
+    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisDataManager data, int height, int threads) {
         this(world, dimension, data, height, false, threads);
     }
 }

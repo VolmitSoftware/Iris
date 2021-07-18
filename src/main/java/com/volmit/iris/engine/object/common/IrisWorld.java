@@ -18,28 +18,94 @@
 
 package com.volmit.iris.engine.object.common;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
+import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.List;
 
 @Builder
 @Data
+@Accessors(chain = true, fluent = true)
 public class IrisWorld {
+    private static final KList<Player> NO_PLAYERS = new KList<>();
+    private static final KList<? extends Entity> NO_ENTITIES = new KList<>();
     private String name;
     private File worldFolder;
     private long seed;
     private World.Environment environment;
-    private boolean real;
+    private World realWorld;
+    private int minHeight;
+    private int maxHeight;
 
     public static IrisWorld fromWorld(World world)
     {
-        return IrisWorld.builder()
-                .name(world.getName())
-                .worldFolder(world.getWorldFolder())
-                .seed(world.getSeed())
-                .environment(world.getEnvironment())
-                .build();
+        return bindWorld(IrisWorld.builder().build(), world);
+    }
+
+    private static IrisWorld bindWorld(IrisWorld iw, World world)
+    {
+        return iw.name(world.getName())
+            .worldFolder(world.getWorldFolder())
+            .seed(world.getSeed())
+            .minHeight(world.getMinHeight())
+            .maxHeight(world.getMaxHeight())
+            .realWorld(world)
+            .environment(world.getEnvironment());
+    }
+
+    public boolean hasRealWorld()
+    {
+        return realWorld != null;
+    }
+
+    public List<Player> getPlayers() {
+
+        if(hasRealWorld())
+        {
+            return realWorld().getPlayers();
+        }
+
+        return NO_PLAYERS;
+    }
+
+    public void evacuate() {
+        if(hasRealWorld())
+        {
+            IrisWorlds.evacuate(realWorld());
+        }
+    }
+
+    public void bind(World world) {
+        bindWorld(this, world);
+    }
+
+    public Location spawnLocation() {
+        if(hasRealWorld())
+        {
+            return realWorld().getSpawnLocation();
+        }
+
+        Iris.error("This world is not real yet, cannot get spawn location! HEADLESS!");
+        return null;
+    }
+
+    public <T extends Entity> Collection<? extends T> getEntitiesByClass(Class<T> t) {
+        if(hasRealWorld())
+        {
+            return realWorld().getEntitiesByClass(t);
+        }
+
+        return (KList<? extends T>) NO_ENTITIES;
     }
 }

@@ -45,7 +45,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
 
     public IrisTerrainIslandActuator(Engine engine) {
         super(engine, "TerrainIsland");
-        rng = new RNG(engine.getWorld().getSeed());
+        rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
         hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }

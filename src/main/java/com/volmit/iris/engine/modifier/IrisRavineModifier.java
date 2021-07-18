@@ -41,7 +41,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
 
     public IrisRavineModifier(Engine engine) {
         super(engine, "Ravine");
-        rng = new RNG(getEngine().getWorld().getSeed()).nextParallelRNG(29596878);
+        rng = new RNG(getEngine().getWorld().seed()).nextParallelRNG(29596878);
         cng = NoiseStyle.IRIS_THICK.create(rng);
     }
 

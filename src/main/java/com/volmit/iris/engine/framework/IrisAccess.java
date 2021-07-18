@@ -86,6 +86,12 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     boolean isStudio();
 
     default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
+        if(!getCompound().getWorld().hasRealWorld())
+        {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
         IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(250, false);
         long s = M.ms();
@@ -129,7 +135,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                             if (b != null && b.getLoadKey().equals(biome.getLoadKey())) {
                                 found.lazySet(true);
-                                location.lazySet(new Location(e.getWorld(), x, e.getHeight(x, z), z));
+                                location.lazySet(new Location(e.getWorld().realWorld(), x, e.getHeight(x, z), z));
                             }
 
                             tries.getAndIncrement();
@@ -166,6 +172,12 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     }
 
     default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
+        if(!getCompound().getWorld().hasRealWorld())
+        {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
         IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(3000, false);
         long s = M.ms();
@@ -203,7 +215,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                         if (b != null && b.getLoadKey() != null && b.getLoadKey().equals(reg.getLoadKey())) {
                             found.lazySet(true);
-                            location.lazySet(new Location(e.getWorld(), x, e.getHeight(x, z) + e.getMinHeight(), z));
+                            location.lazySet(new Location(e.getWorld().realWorld(), x, e.getHeight(x, z) + e.getMinHeight(), z));
                         }
 
                         tries.getAndIncrement();

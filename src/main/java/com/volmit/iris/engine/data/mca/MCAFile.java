@@ -22,6 +22,7 @@ import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 @SuppressWarnings("ALL")
 public class MCAFile {
@@ -33,7 +34,7 @@ public class MCAFile {
 
     private final int regionX;
     private final int regionZ;
-    private Chunk[] chunks;
+    private AtomicReferenceArray<Chunk> chunks;
 
     /**
      * MCAFile represents a world save file used by Minecraft to store world
@@ -69,7 +70,7 @@ public class MCAFile {
      * @throws IOException If something went wrong during deserialization.
      */
     public void deserialize(RandomAccessFile raf, long loadFlags) throws IOException {
-        chunks = new Chunk[1024];
+        chunks = new AtomicReferenceArray<>(1024);
         for (int i = 0; i < 1024; i++) {
             raf.seek(i * 4);
             int offset = raf.read() << 16;
@@ -83,11 +84,11 @@ public class MCAFile {
             Chunk chunk = new Chunk(timestamp);
             raf.seek(4096L * offset + 4); //+4: skip data size
             chunk.deserialize(raf, loadFlags);
-            chunks[i] = chunk;
+            chunks.set(i, chunk);
         }
     }
 
-    public Chunk[] getChunks() {
+    public AtomicReferenceArray<Chunk> getChunks() {
         return chunks;
     }
 
@@ -128,7 +129,7 @@ public class MCAFile {
         for (int cx = 0; cx < 32; cx++) {
             for (int cz = 0; cz < 32; cz++) {
                 int index = getChunkIndex(cx, cz);
-                Chunk chunk = chunks[index];
+                Chunk chunk = chunks.get(index);
                 if (chunk == null) {
                     continue;
                 }
@@ -175,9 +176,9 @@ public class MCAFile {
     public void setChunk(int index, Chunk chunk) {
         checkIndex(index);
         if (chunks == null) {
-            chunks = new Chunk[1024];
+            chunks = new AtomicReferenceArray<>(1024);
         }
-        chunks[index] = chunk;
+        chunks.set(index, chunk);
     }
 
     /**
@@ -203,7 +204,7 @@ public class MCAFile {
         if (chunks == null) {
             return null;
         }
-        return chunks[index];
+        return chunks.get(index);
     }
 
     /**
@@ -215,6 +216,11 @@ public class MCAFile {
      */
     public Chunk getChunk(int chunkX, int chunkZ) {
         return getChunk(getChunkIndex(chunkX, chunkZ));
+    }
+
+    public boolean hasChunk(int chunkX, int chunkZ)
+    {
+        return getChunk(chunkX, chunkZ) != null;
     }
 
     /**
@@ -318,16 +324,5 @@ public class MCAFile {
             return null;
         }
         return chunk.getBlockStateAt(blockX, blockY, blockZ);
-    }
-
-    /**
-     * Recalculates the Palette and the BlockStates of all chunks and sections of this region.
-     */
-    public void cleanupPalettesAndBlockStates() {
-        for (Chunk chunk : chunks) {
-            if (chunk != null) {
-                chunk.cleanupPalettesAndBlockStates();
-            }
-        }
     }
 }

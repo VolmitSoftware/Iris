@@ -16,75 +16,160 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.data;
+package com.volmit.iris.engine.data.mca;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.cache.Cache;
-import com.volmit.iris.engine.data.mca.Chunk;
-import com.volmit.iris.engine.data.mca.MCAFile;
-import com.volmit.iris.engine.data.mca.MCAUtil;
-import com.volmit.iris.engine.data.mca.Section;
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.data.nbt.tag.StringTag;
-import com.volmit.iris.engine.parallel.BurstExecutor;
-import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.scheduling.IrisLock;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.*;
 
-@SuppressWarnings("EmptyMethod")
-public class DirectWorldWriter {
-    private final File worldFolder;
-    private final Map<Long, MCAFile> writeBuffer;
+public class NBTWorld {
+    private static final BlockData AIR = B.get("AIR");
     private static final Map<String, CompoundTag> blockDataCache = new KMap<>();
     private static final Map<Biome, Integer> biomeIds = computeBiomeIDs();
+    private final IrisLock regionLock = new IrisLock("Region");
+    private final KMap<Long, MCAFile> loadedRegions;
+    private final KMap<Long, Long> lastUse;
+    private final File worldFolder;
+    private final ExecutorService saveQueue;
 
-    public DirectWorldWriter(File worldFolder) {
+    public NBTWorld(File worldFolder)
+    {
         this.worldFolder = worldFolder;
-        writeBuffer = new KMap<>();
-        new File(worldFolder, "iris/mca-region").mkdirs();
+        this.loadedRegions = new KMap<>();
+        this.lastUse = new KMap<>();
+        saveQueue = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setName("Iris MCA Writer");
+            t.setPriority(Thread.MIN_PRIORITY);
+            return t;
+        });
     }
 
-    public void flush() {
-        BurstExecutor ex2 = MultiBurst.burst.burst(writeBuffer.size());
+    public void close()
+    {
+        regionLock.lock();
 
-        for (Long i : new KList<>(writeBuffer.keySet())) {
-            ex2.queue(() -> {
-                int x = Cache.keyX(i);
-                int z = Cache.keyZ(i);
-                try {
-                    File f = getMCAFile(x, z);
-
-                    if (!f.exists()) {
-                        f.getParentFile().mkdirs();
-                        f.createNewFile();
-                    }
-
-                    MCAUtil.write(writeBuffer.get(i), f, true);
-                    writeBuffer.remove(i);
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                }
-            });
+        for(Long i : loadedRegions.k())
+        {
+            queueSaveUnload(Cache.keyX(i), Cache.keyZ(i));
         }
 
-        ex2.complete();
+        regionLock.unlock();
+        saveQueue.shutdown();
+        try {
+            while(!saveQueue.awaitTermination(3, TimeUnit.SECONDS))
+            {
+                Iris.info("Still Waiting to save MCA Files...");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void optimizeChunk(int x, int z) {
-        getChunk(x, z).cleanupPalettesAndBlockStates();
+    public void queueSaveUnload(int x, int z)
+    {
+        saveQueue.submit(() -> {
+            MCAFile f = getMCAOrNull(x, z);
+            if(f != null)
+            {
+                unloadRegion(x, z);
+            }
+
+            saveRegion(x, z, f);
+        });
     }
 
-    public File getMCAFile(int x, int z) {
-        return new File(worldFolder, "iris/mca-region/r." + x + "." + z + ".mca");
+    public void save()
+    {
+        regionLock.lock();
+
+        boolean saving = true;
+
+        for(Long i : loadedRegions.k())
+        {
+            int x = Cache.keyX(i);
+            int z = Cache.keyZ(i);
+
+            if(!lastUse.containsKey(i))
+            {
+                lastUse.put(i, M.ms());
+            }
+
+            if(shouldUnload(x, z))
+            {
+                queueSaveUnload(x, z);
+            }
+        }
+
+        Iris.debug("Regions: " + C.GOLD + loadedRegions.size() + C.LIGHT_PURPLE);
+
+        regionLock.unlock();
+    }
+
+    public void queueSave()
+    {
+
+    }
+
+    public synchronized void unloadRegion(int x, int z)
+    {
+        long key = Cache.key(x, z);
+        regionLock.lock();
+        loadedRegions.remove(key);
+        lastUse.remove(key);
+        regionLock.unlock();
+        Iris.debug("Unloaded Region " + C.GOLD + x + " " + z);
+    }
+
+    public void saveRegion(int x, int z)
+    {
+        long k = Cache.key(x, z);
+        MCAFile mca = getMCAOrNull(x, z);
+        try {
+            MCAUtil.write(mca, getRegionFile(x, z), true);
+            Iris.debug("Saved Region " + C.GOLD + x + " " + z);
+        } catch (IOException e) {
+            Iris.error("Failed to save region " + getRegionFile(x, z).getPath());
+            e.printStackTrace();
+        }
+    }
+
+    public void saveRegion(int x, int z, MCAFile mca)
+    {
+        try {
+            MCAUtil.write(mca, getRegionFile(x, z), true);
+            Iris.debug("Saved Region " + C.GOLD + x + " " + z);
+        } catch (IOException e) {
+            Iris.error("Failed to save region " + getRegionFile(x, z).getPath());
+            e.printStackTrace();
+        }
+    }
+
+    public boolean shouldUnload(int x, int z)
+    {
+        return getIdleDuration(x, z) > 60000;
+    }
+
+    public File getRegionFile(int x, int z) {
+        return new File(worldFolder, "region/r." + x + "." + z + ".mca");
     }
 
     public static BlockData getBlockData(CompoundTag tag) {
@@ -125,7 +210,6 @@ public class DirectWorldWriter {
         NamespacedKey key = blockData.getMaterial().getKey();
         s.putString("Name", key.getNamespace() + ":" + key.getKey());
 
-
         if (data.contains("[")) {
             String raw = data.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
             CompoundTag props = new CompoundTag();
@@ -154,7 +238,7 @@ public class DirectWorldWriter {
             CompoundTag tag = getChunkSection(x >> 4, y >> 4, z >> 4).getBlockStateAt(x & 15, y & 15, z & 15);
 
             if (tag == null) {
-                return B.get("AIR");
+                return AIR;
             }
 
             return getBlockData(tag);
@@ -162,7 +246,7 @@ public class DirectWorldWriter {
             Iris.reportError(e);
 
         }
-        return B.get("AIR");
+        return AIR;
     }
 
     public void setBlockData(int x, int y, int z, BlockData data) {
@@ -185,10 +269,6 @@ public class DirectWorldWriter {
         return s;
     }
 
-    public void deleteChunk(int x, int z) {
-
-    }
-
     public Chunk getChunk(int x, int z) {
         MCAFile mca = getMCA(x >> 5, z >> 5);
         Chunk c = mca.getChunk(x & 31, z & 31);
@@ -201,28 +281,57 @@ public class DirectWorldWriter {
         return c;
     }
 
+    public long getIdleDuration(int x, int z)
+    {
+        Long l = lastUse.get(Cache.key(x, z));
+
+        return l == null ? 0 : (M.ms() - l);
+    }
+
     public MCAFile getMCA(int x, int z) {
         long key = Cache.key(x, z);
-        MCAFile mca = writeBuffer.get(key);
 
-        if (mca != null) {
-            return mca;
+        regionLock.lock();
+        lastUse.put(key, M.ms());
+        MCAFile mcaf = loadedRegions.get(key);
+        regionLock.unlock();
+
+        if(mcaf == null)
+        {
+            File f = getRegionFile(x, z);
+            try {
+                mcaf = f.exists() ? MCAUtil.read(f) : new MCAFile(x, z);
+            } catch (IOException e) {
+                Iris.error("Failed to properly read MCA File " + f.getPath() + " Using a blank one.");
+                e.printStackTrace();
+                mcaf = new MCAFile(x, z);
+            }
+
+            regionLock.lock();
+            loadedRegions.put(key, mcaf);
+            regionLock.unlock();
         }
 
-        File f = getMCAFile(x, z);
-        try {
-            mca = f.exists() ? MCAUtil.read(f) : new MCAFile(x, z);
-        } catch (IOException e) {
-            e.printStackTrace();
-            mca = new MCAFile(x, z);
+        return mcaf;
+    }
+
+    public MCAFile getMCAOrNull(int x, int z) {
+        long key = Cache.key(x, z);
+        MCAFile ff = null;
+        regionLock.lock();
+
+        if(loadedRegions.containsKey(key))
+        {
+            lastUse.put(key, M.ms());
+            ff = loadedRegions.get(key);
         }
 
-        writeBuffer.put(key, mca);
-        return mca;
+        regionLock.unlock();
+        return ff;
     }
 
     public int size() {
-        return writeBuffer.size();
+        return loadedRegions.size();
     }
 
     private static Map<Biome, Integer> computeBiomeIDs() {
@@ -235,19 +344,5 @@ public class DirectWorldWriter {
         }
 
         return biomeIds;
-    }
-
-    public void verify(int mcaox, int mcaoz) {
-        MCAFile file = getMCA(mcaox, mcaoz);
-
-        for (int i = 0; i < 32; i++) {
-            for (int j = 0; j < 32; j++) {
-                Chunk c = file.getChunk(i, j);
-
-                if (c == null) {
-                    Iris.warn("Chunk " + ((mcaox << 5) + i) + ", " + ((mcaoz << 5) + j) + " is null in MCA File " + mcaox + ", " + mcaoz);
-                }
-            }
-        }
     }
 }

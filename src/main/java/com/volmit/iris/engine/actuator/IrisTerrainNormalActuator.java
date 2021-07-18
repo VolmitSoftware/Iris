@@ -42,7 +42,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
-        rng = new RNG(engine.getWorld().getSeed());
+        rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
         hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }

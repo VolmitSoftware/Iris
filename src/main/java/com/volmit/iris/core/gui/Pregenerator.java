@@ -216,7 +216,7 @@ public class Pregenerator implements Listener {
                 int up = m - w;
                 double dur = p.getMilliseconds();
                 perSecond.put((int) (up / (dur / 1000D)));
-                perSecond.put((int) (up / (dur / 60000D)));
+                perMinute.put((int) (up / (dur / 60000D)));
                 p.reset();
                 p.begin();
                 updateProgress();

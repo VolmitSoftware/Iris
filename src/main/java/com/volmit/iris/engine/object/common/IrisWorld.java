@@ -18,20 +18,23 @@
 
 package com.volmit.iris.engine.object.common;
 
+import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 
 @Builder
 @Data
 public class IrisWorld {
+    private static final KList<Player> NO_PLAYERS = new KList<>();
     private String name;
     private File worldFolder;
     private long seed;
     private World.Environment environment;
-    private boolean real;
+    private World realWorld;
 
     public static IrisWorld fromWorld(World world)
     {
@@ -41,5 +44,20 @@ public class IrisWorld {
                 .seed(world.getSeed())
                 .environment(world.getEnvironment())
                 .build();
+    }
+
+    public boolean hasRealWorld()
+    {
+        return realWorld != null;
+    }
+
+    public Iterable<? extends Player> getPlayers() {
+
+        if(hasRealWorld())
+        {
+            return getRealWorld().getPlayers();
+        }
+
+        return NO_PLAYERS;
     }
 }

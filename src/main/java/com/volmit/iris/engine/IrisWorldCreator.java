@@ -22,7 +22,6 @@ import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
-import com.volmit.iris.util.fakenews.FakeWorld;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 

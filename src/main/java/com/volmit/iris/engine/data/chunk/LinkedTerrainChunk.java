@@ -22,8 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
@@ -36,6 +38,16 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private final IrisBiomeStorage biome3D;
     private ChunkData rawChunkData;
     private final BiomeGrid storage;
+
+    public LinkedTerrainChunk(World world)
+    {
+        this(null, Bukkit.createChunkData(world));
+    }
+
+    public LinkedTerrainChunk(World world, BiomeGrid storage)
+    {
+        this(storage, Bukkit.createChunkData(world));
+    }
 
     public LinkedTerrainChunk(BiomeGrid storage, ChunkData data) {
         this.storage = storage;

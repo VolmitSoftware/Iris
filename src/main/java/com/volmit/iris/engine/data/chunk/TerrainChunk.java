@@ -28,23 +28,15 @@ import org.jetbrains.annotations.NotNull;
 
 public interface TerrainChunk extends BiomeGrid, ChunkData {
     static TerrainChunk create(World world) {
-        return create(world.getMaxHeight());
-    }
-
-    static TerrainChunk create(int maxHeight) {
-        return new LinkedTerrainChunk(maxHeight);
+        return new LinkedTerrainChunk(world);
     }
 
     static TerrainChunk create(World world, BiomeGrid grid) {
-        return create(world.getMaxHeight(), grid);
+        return new LinkedTerrainChunk(world, grid);
     }
 
     static TerrainChunk create(ChunkData raw, BiomeGrid grid) {
         return new LinkedTerrainChunk(grid, raw);
-    }
-
-    static TerrainChunk create(int maxHeight, BiomeGrid grid) {
-        return new LinkedTerrainChunk(grid, maxHeight);
     }
 
     BiomeBaseInjector getBiomeBaseInjector();

@@ -18,9 +18,11 @@
 
 package com.volmit.iris.engine.object.common;
 
+import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -28,6 +30,7 @@ import java.io.File;
 
 @Builder
 @Data
+@Accessors(chain = true, fluent = true)
 public class IrisWorld {
     private static final KList<Player> NO_PLAYERS = new KList<>();
     private String name;
@@ -35,15 +38,23 @@ public class IrisWorld {
     private long seed;
     private World.Environment environment;
     private World realWorld;
+    private int minHeight;
+    private int maxHeight;
 
     public static IrisWorld fromWorld(World world)
     {
-        return IrisWorld.builder()
-                .name(world.getName())
-                .worldFolder(world.getWorldFolder())
-                .seed(world.getSeed())
-                .environment(world.getEnvironment())
-                .build();
+        return bindWorld(IrisWorld.builder().build(), world);
+    }
+
+    private static IrisWorld bindWorld(IrisWorld iw, World world)
+    {
+        return iw.name(world.getName())
+            .worldFolder(world.getWorldFolder())
+            .seed(world.getSeed())
+            .minHeight(world.getMinHeight())
+            .maxHeight(world.getMaxHeight())
+            .realWorld(world)
+            .environment(world.getEnvironment());
     }
 
     public boolean hasRealWorld()
@@ -55,9 +66,20 @@ public class IrisWorld {
 
         if(hasRealWorld())
         {
-            return getRealWorld().getPlayers();
+            return realWorld().getPlayers();
         }
 
         return NO_PLAYERS;
+    }
+
+    public void evacuate() {
+        if(hasRealWorld())
+        {
+            IrisWorlds.evacuate(realWorld());
+        }
+    }
+
+    public void bind(World world) {
+        bindWorld(this, world);
     }
 }

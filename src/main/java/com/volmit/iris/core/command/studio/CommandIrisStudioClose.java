@@ -56,7 +56,7 @@ public class CommandIrisStudioClose extends MortarCommand {
             World f = null;
 
             for (World i : Bukkit.getWorlds()) {
-                if (i.getWorldFolder().getAbsolutePath().equals(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getWorldFolder().getAbsolutePath())) {
+                if (i.getWorldFolder().getAbsolutePath().equals(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().worldFolder().getAbsolutePath())) {
                     continue;
                 }
 

@@ -108,14 +108,14 @@ public class IrisComplex implements DataProvider {
 
     public IrisComplex(Engine engine, boolean simple) {
         int cacheSize = 1024 * 128;
-        this.rng = new RNG(engine.getWorld().getSeed());
+        this.rng = new RNG(engine.getWorld().seed());
         this.data = engine.getData();
         double height = engine.getHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KList<>();
         focus = engine.getFocus();
         IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
-        RNG rng = new RNG(engine.getWorld().getSeed());
+        RNG rng = new RNG(engine.getWorld().seed());
         //@builder
         engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
                 .getAllBiomes(this).forEach((b) -> b
@@ -124,7 +124,7 @@ public class IrisComplex implements DataProvider {
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
         engine.getDimension().getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, x, z)));
         rngStream = ProceduralStream.of((x, z) -> new RNG(((x.longValue()) << 32) | (z.longValue() & 0xffffffffL))
-                .nextParallelRNG(engine.getWorld().getSeed()), Interpolated.RNG);
+                .nextParallelRNG(engine.getWorld().seed()), Interpolated.RNG);
         chunkRngStream = rngStream.blockToChunkCoords();
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
                 .select(engine.getDimension().getRockPalette().getBlockData(data));
@@ -193,7 +193,7 @@ public class IrisComplex implements DataProvider {
                         .convertAware2D(this::implode).cache2D(cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().getSeed());
+            return getHeight(engine, b, x, z, engine.getWorld().seed());
         }, Interpolated.DOUBLE).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {

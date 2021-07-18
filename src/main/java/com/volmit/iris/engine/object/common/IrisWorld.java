@@ -18,11 +18,13 @@
 
 package com.volmit.iris.engine.object.common;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -81,5 +83,15 @@ public class IrisWorld {
 
     public void bind(World world) {
         bindWorld(this, world);
+    }
+
+    public Location getSpawnLocation() {
+        if(hasRealWorld())
+        {
+            return realWorld().getSpawnLocation();
+        }
+
+        Iris.error("This world is not real yet, cannot get spawn location! HEADLESS!");
+        return null;
     }
 }

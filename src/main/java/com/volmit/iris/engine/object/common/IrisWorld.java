@@ -85,7 +85,7 @@ public class IrisWorld {
         bindWorld(this, world);
     }
 
-    public Location getSpawnLocation() {
+    public Location spawnLocation() {
         if(hasRealWorld())
         {
             return realWorld().getSpawnLocation();

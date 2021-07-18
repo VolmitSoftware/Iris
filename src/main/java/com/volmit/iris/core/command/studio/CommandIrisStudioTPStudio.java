@@ -57,7 +57,7 @@ public class CommandIrisStudioTPStudio extends MortarCommand {
 
         try {
             sender.sendMessage("Teleporting you to the active studio world.");
-            sender.player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSpawnLocation());
+            sender.player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
             sender.player().setGameMode(GameMode.SPECTATOR);
         } catch (Throwable e) {
             Iris.reportError(e);

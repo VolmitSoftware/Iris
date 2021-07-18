@@ -25,6 +25,7 @@ import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
@@ -44,9 +45,9 @@ import java.util.function.Consumer;
 @SuppressWarnings("EmptyMethod")
 public interface IrisAccess extends Hotloadable, DataProvider {
 
-    void directWriteMCA(World w, int x, int z, NBTWorld writer, MultiBurst burst);
+    void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst);
 
-    void directWriteChunk(World w, int x, int z, NBTWorld writer);
+    void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer);
 
     int getGenerated();
 
@@ -71,8 +72,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     int getThreadCount();
 
     void changeThreadCount(int m);
-
-    void regenerate(int x, int z);
 
     void close();
 
@@ -237,14 +236,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         running.set(false);
         return location.get();
     }
-
-    void clearRegeneratedLists(int x, int z);
-
-    void precache(World world, int x, int z);
-
-    int getPrecacheSize();
-
-    Chunk generatePaper(World world, int cx, int cz);
 
     default int getParallaxChunkCount() {
         int v = 0;

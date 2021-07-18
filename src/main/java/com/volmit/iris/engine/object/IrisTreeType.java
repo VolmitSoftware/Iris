@@ -1,56 +1,49 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.object.annotations.Desc;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.bukkit.TreeType;
 
+@Accessors(chain = true)
+@NoArgsConstructor
+@Desc("Tree Types")
 public enum IrisTreeType {
 
-    /**
-     * Oak tree (BIG_TREE, TREE)
-     */
+    @Desc("Oak tree (BIG_TREE, TREE)")
     OAK,
-    /**
-     * Spruce tree (MEGA_REDWOOD, REDWOOD, SWAMP, TALL_REDWOOD)
-     */
+
+    @Desc("Spruce tree (MEGA_REDWOOD, REDWOOD, SWAMP, TALL_REDWOOD)")
     SPRUCE,
-    /**
-     * Birch tree (BIRCH, TALL_BIRCH)
-     */
+
+    @Desc("Birch tree (BIRCH, TALL_BIRCH)")
     BIRCH,
-    /**
-     * Jungle tree (JUNGLE, SMALL_JUNGLE)
-     */
+
+    @Desc("Jungle tree (JUNGLE, SMALL_JUNGLE)")
     JUNGLE,
-    /**
-     * Big red mushroom; short and fat
-     */
+
+    @Desc("Big red mushroom; short and fat")
     RED_MUSHROOM,
-    /**
-     * Big brown mushroom; tall and umbrella-like
-     */
+
+    @Desc("Big brown mushroom; tall and umbrella-like")
     BROWN_MUSHROOM,
-    /**
-     * Acacia tree
-     */
+
+    @Desc("Acacia tree")
     ACACIA,
-    /**
-     * Dark Oak tree
-     */
+
+    @Desc("Dark Oak tree")
     DARK_OAK,
-    /**
-     * Large crimson fungus native to the nether
-     */
+
+    @Desc("Large crimson fungus native to the nether")
     CRIMSON_FUNGUS,
-    /**
-     * Large warped fungus native to the nether
-     */
+
+    @Desc("Large warped fungus native to the nether")
     WARPED_FUNGUS,
-    /**
-     * Tree with large roots which grows above lush caves
-     */
+
+    @Desc("Tree with large roots which grows above lush caves")
     AZALEA,
-    /**
-     * The fallback type for all other non-supported growth events
-     */
+
+    @Desc("The fallback type for all other non-supported growth events")
     NONE;
 
     public static IrisTreeType fromTreeType(TreeType type){

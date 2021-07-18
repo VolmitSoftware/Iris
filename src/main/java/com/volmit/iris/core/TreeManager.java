@@ -9,6 +9,7 @@ import com.volmit.iris.util.math.RNG;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.TreeType;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
@@ -16,11 +17,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public class SaplingManager implements Listener {
+public class TreeManager implements Listener {
 
-    private static final boolean debugMe = false;
+    private static final boolean debugMe = true;
 
-    public SaplingManager() {
+    public static final int maxSaplingPlane = 5;
+
+    public TreeManager() {
         Iris.instance.registerListener(this);
         Iris.info("Loading Sapling Manager");
     }
@@ -70,7 +73,9 @@ public class SaplingManager implements Listener {
         if (debugMe)
             Iris.info("Dimension saplings: " + settings.getSaplings().toString());
 
-        int saplingSize = getSaplingSize(event.getLocation());
+        // Get sapling location
+        KList<Location> saplingLocations = getSaplingPlane(event.getLocation());
+        int saplingSize = getSaplingSize(saplingLocations);
 
         // Check biome, region and dimension
         treeObjects.addAll(getSaplingsFrom(biome.getSaplings(), event.getSpecies(), saplingSize));
@@ -99,12 +104,22 @@ public class SaplingManager implements Listener {
         IrisObject pickedObject = IrisDataManager.loadAnyObject(pickedObjectString);
 
         // Delete the saplings (some objects may not have blocks where the sapling is)
-        // TODO: Rewrite this to delete the saplings that matter
-        event.getBlocks().forEach(b -> b.setType(Material.AIR));
+        deleteSaplings(saplingLocations);
 
         // Rotate and place the object
         pickedObject.rotate(new IrisObjectRotation(), 0, 90 * RNG.r.i(0, 3), 0);
         pickedObject.place(event.getLocation());
+    }
+
+    /**
+     * Deletes all saplings at the
+     * @param locations sapling locations
+     */
+    private void deleteSaplings(KList<Location> locations) {
+        locations.forEach(l -> {
+            if (debugMe) Iris.info("Deleting block of type: " + l.getBlock().getType());
+            l.getBlock().setType(Material.AIR);
+        });
     }
 
     /**
@@ -129,7 +144,6 @@ public class SaplingManager implements Listener {
             for (IrisTreeType configTreeType : sapling.getTreeTypes()) {
                 if (configTreeType == eventTreeType && size == sapling.getSize()) {
                     objects.addAll(sapling.getObjects());
-                    if (debugMe) Iris.info("Added replacements: " + sapling.getObjects().toString());
                 }
             }
         }
@@ -138,11 +152,26 @@ public class SaplingManager implements Listener {
 
     /**
      * Retrieve the `size * size` area of a sapling (any sapling in the area)
-     * @param location The location to start the search from
+     * @param saplings The locations of the saplings in the plane
      * @return The `x * x` area of saplings
      */
-    private int getSaplingSize(Location location){
-        // TODO: Write this
-        return 1;
+    private int getSaplingSize(KList<Location> saplings){
+        double size = Math.sqrt(saplings.size());
+        if (size % 1 != 0) {
+            Iris.error("Size of sapling square array is not a power of an integer (not a square)");
+            return -1;
+        }
+        return (int) size;
+    }
+
+    /**
+     * Retrieve all saplings in a square area around the current sapling.
+     * This searches around the current sapling, and the next, etc, iteratively
+     * Note: This is limited by maxSaplingPlane
+     * @param location The location to search from (the originating sapling)
+     * @return A list of saplings in a square
+     */
+    private KList<Location> getSaplingPlane(Location location){
+        return new KList<>();
     }
 }

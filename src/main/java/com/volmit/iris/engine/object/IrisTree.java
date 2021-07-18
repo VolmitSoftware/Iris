@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.TreeManager;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,7 @@ public class IrisTree {
 
     @Required
     @Desc("The types of trees overwritten")
-    @ArrayType(min = 1, type = TreeType.class)
+    @ArrayType(min = 1, type = IrisTreeType.class)
     private KList<IrisTreeType> treeTypes;
 
     @RegistryListObject
@@ -28,6 +29,6 @@ public class IrisTree {
 
     @Desc("The size of the square of saplings this applies to (2 means a 2 * 2 sapling area)")
     @MinNumber(1)
-    @MaxNumber(5)
+    @MaxNumber(TreeManager.maxSaplingPlane)
     private int size = 1;
 }

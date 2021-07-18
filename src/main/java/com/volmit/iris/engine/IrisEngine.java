@@ -88,7 +88,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private double maxBiomeDecoratorDensity;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
-        Iris.info("Initializing Engine: " + target.getWorld().getName() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
         this.target = target;
         this.framework = new IrisEngineFramework(this);

@@ -20,6 +20,7 @@ package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import lombok.Data;
 
 @Data
@@ -27,12 +28,36 @@ public class HeadlessGenerator {
     private final HeadlessWorld world;
     private final EngineCompositeGenerator generator;
     private final NBTWorld writer;
+    private final MultiBurst burst;
 
     public HeadlessGenerator(HeadlessWorld world)
     {
         this.world = world;
+        burst = new MultiBurst("Iris Headless Generator", 9, Runtime.getRuntime().availableProcessors());
         generator = new EngineCompositeGenerator(world.getDimension().getLoadKey(), true);
         generator.initialize(world.getWorld());
         writer = new NBTWorld(world.getWorld().worldFolder());
+    }
+
+    public void generateChunk(int x, int z)
+    {
+        generator.directWriteChunk(world.getWorld(), x, z, writer);
+    }
+
+    public void generateRegion(int x, int z)
+    {
+        generator.directWriteMCA(world.getWorld(), x, z, writer, burst);
+    }
+
+    public void save()
+    {
+        writer.save();
+    }
+
+    public void close()
+    {
+        burst.shutdownAndAwait();
+        generator.close();
+        writer.close();
     }
 }

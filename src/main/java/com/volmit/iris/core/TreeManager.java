@@ -9,17 +9,18 @@ import com.volmit.iris.util.math.RNG;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.TreeType;
-import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public class TreeManager implements Listener {
 
-    private static final boolean debugMe = true;
+    private static final boolean debugMe = false;
 
     public static final int maxSaplingPlane = 5;
 
@@ -106,8 +107,11 @@ public class TreeManager implements Listener {
         // Delete the saplings (some objects may not have blocks where the sapling is)
         deleteSaplings(saplingLocations);
 
-        // Rotate and place the object
+        // Rotate the object randomly
         pickedObject.rotate(new IrisObjectRotation(), 0, 90 * RNG.r.i(0, 3), 0);
+
+        // TODO: Consider adding a translation to object placement.
+        // Place the object
         pickedObject.place(event.getLocation());
     }
 
@@ -172,6 +176,42 @@ public class TreeManager implements Listener {
      * @return A list of saplings in a square
      */
     private KList<Location> getSaplingPlane(Location location){
-        return new KList<>();
+        KList<Location> locations = new KList<>();
+
+        // TODO: Debug getBlockMap
+        boolean[][] map = getBlockMap(location);
+
+        for (boolean[] row : map)
+            Iris.info(Arrays.toString(row));
+
+        // TODO: Write logic here that checks for the largest possible square with the Location included
+        // TODO: The boolean[][] map has true's where there's another sapling of the same type, and false if not.
+        // TODO: Fill the locations array with the found sapling locations and return the array. The rest is hopefully done.
+        // Note: I tested the system. Placing objects works. Removing saplings may not work perfectly.
+
+        return locations;
+    }
+
+    /**
+     * Get a boolean map which indicates if at positions in all directions the same block can be found
+     * @param location the center location around which we search
+     * @return A boolean 2d map of trues and false's
+     */
+    private boolean[][] getBlockMap(Location location) {
+        Material blockMaterial = location.getBlock().getType();
+        int size = maxSaplingPlane * 2 - 1;
+        boolean[][] map = new boolean[size][size];
+
+        for (int i = 0; i < size; i++){
+            boolean[] row = new boolean[size];
+            for (int j = 0; j < size; j++){
+                Vector zdir = new Vector(0, 0, 1).multiply(i - maxSaplingPlane + 1);
+                Vector xdir = new Vector(1, 0, 0).multiply(j - maxSaplingPlane + 1);
+                Material foundBlock = location.add(xdir).add(zdir).getBlock().getType();
+                row[j] = blockMaterial.name().equals(foundBlock.name());
+            }
+            map[i] = row;
+        }
+        return map;
     }
 }

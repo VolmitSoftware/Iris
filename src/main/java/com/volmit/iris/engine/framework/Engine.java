@@ -27,6 +27,7 @@ import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -105,7 +106,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getData();
     }
 
-    default World getWorld() {
+    default IrisWorld getWorld() {
         return getTarget().getWorld();
     }
 

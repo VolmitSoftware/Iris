@@ -42,7 +42,7 @@ public class EngineTarget {
         this.height = height;
         this.dimension = dimension;
         this.data = data;
-        this.parallaxWorld = new ParallaxWorld(256, new File(world.getWorldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
+        this.parallaxWorld = new ParallaxWorld(256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
         this.inverted = inverted;
         this.burster = new MultiBurst(threads);
     }

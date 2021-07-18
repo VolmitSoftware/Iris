@@ -21,8 +21,8 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.IrisWorlds;
-import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.data.mca.MCAFile;
+import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -77,7 +77,7 @@ public class Pregenerator implements Listener {
     private static final Color COLOR_MCA_DEFERRED = Color.decode("#3CB57A");
     private final World world;
     private int lowestBedrock;
-    private final DirectWorldWriter directWriter;
+    private final NBTWorld directWriter;
     private final AtomicBoolean active;
     private final AtomicBoolean running;
     private final KList<ChunkPosition> errors;
@@ -89,6 +89,7 @@ public class Pregenerator implements Listener {
     private final AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final RollingSequence perSecond;
+    private final RollingSequence perMinute;
     private final AtomicInteger totalChunks;
     private final AtomicLong memory;
     private final AtomicReference<String> memoryMetric;
@@ -125,16 +126,17 @@ public class Pregenerator implements Listener {
         vmcaz = new AtomicInteger();
         vcax = new AtomicInteger();
         vcaz = new AtomicInteger();
+        perMinute = new RollingSequence(200);
         perSecond = new RollingSequence(20);
         generatedLast = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
         generated = new AtomicInteger(0);
         mcaDefer = new KList<>();
         access = IrisWorlds.access(world);
-        this.directWriter = new DirectWorldWriter(world.getWorldFolder());
+        this.directWriter = new NBTWorld(world.getWorldFolder());
         this.running = new AtomicBoolean(true);
         this.active = new AtomicBoolean(true);
-        MultiBurst burst = new MultiBurst("Iris Pregenerator", 9, Runtime.getRuntime().availableProcessors() + 4);
+        MultiBurst burst = new MultiBurst("Iris Pregenerator", 9, Runtime.getRuntime().availableProcessors());
         int mcaSize = (((blockSize >> 4) + 2) >> 5) + 1;
         onComplete = new KList<>();
         max = new ChunkPosition(0, 0);
@@ -196,7 +198,7 @@ public class Pregenerator implements Listener {
             }
 
             burst.shutdownNow();
-            directWriter.flush();
+            directWriter.close();
             flushWorld();
             onComplete.forEach(Runnable::run);
             running.set(false);
@@ -214,6 +216,7 @@ public class Pregenerator implements Listener {
                 int up = m - w;
                 double dur = p.getMilliseconds();
                 perSecond.put((int) (up / (dur / 1000D)));
+                perSecond.put((int) (up / (dur / 60000D)));
                 p.reset();
                 p.begin();
                 updateProgress();
@@ -239,8 +242,7 @@ public class Pregenerator implements Listener {
             return false;
         }
 
-        File mca = new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca");
-        File mcg = directWriter.getMCAFile(x, z);
+        File mca = directWriter.getRegionFile(x, z);
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
@@ -255,9 +257,8 @@ public class Pregenerator implements Listener {
                 vcaz.set(jj);
             }));
             e.complete();
-            verifyMCA(x, z, burst);
-            directWriter.flush();
-            install(mcg, mca);
+            //verifyMCA(x, z, burst);
+            directWriter.save();
         } else {
             totalChunks.getAndAdd(1024);
             mcaDefer.add(new ChunkPosition(x, z));
@@ -299,27 +300,6 @@ public class Pregenerator implements Listener {
         }
     }
 
-    private boolean install(File from, File to) {
-        try {
-            Files.move(from.toPath(), to.toPath());
-            return true;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-
-        }
-
-        try {
-            IO.copyFile(from, to);
-            from.delete();
-            return true;
-        } catch (IOException e) {
-            Iris.reportError(e);
-
-        }
-
-        return false;
-    }
-
     public void updateProgress() {
         if (!latch.flip()) {
             return;
@@ -335,7 +315,7 @@ public class Pregenerator implements Listener {
         if (PaperLib.isPaper()) {
             method.set("PaperAsync (Slow)");
 
-            while (wait.size() > 32) {
+            while (wait.size() > 16) {
                 J.sleep(5);
             }
 
@@ -509,7 +489,8 @@ public class Pregenerator implements Listener {
         return new String[]{
                 "Progress: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ")",
                 "ETA: " + Form.duration(eta, 0),
-                "Chunks/s: " + Form.f((int) perSecond.getAverage()),
+                "Chunks/s: " + Form.f((int) perSecond.getAverage()) + " (" + Form.f((int)perSecond.getMax()) + " Peak)",
+                "Chunks/min: " + Form.f((int) perMinute.getAverage())+ " (" + Form.f((int)perMinute.getMax()) + " Peak)",
                 "Memory: " + memoryMetric.get(),
                 "Cursor: " + "MCA(" + vmcax.get() + ", " + vmcaz.get() + ") @ (" + vcax.get() + ", " + vcaz.get() + ")",
                 "Gen Mode: " + method.get(),

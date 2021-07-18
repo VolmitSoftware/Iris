@@ -156,7 +156,6 @@ public class ParallaxRegion extends HunkRegion {
     }
 
     public synchronized void save() throws IOException {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
         blockSlice.save();
         objectSlice.save();
         entitySlice.save();
@@ -164,7 +163,6 @@ public class ParallaxRegion extends HunkRegion {
         updateSlice.save();
         saveMetaHunk();
         super.save();
-        Iris.debug("Saved Parallax Region " + C.AQUA + getX() + "," + getZ() + C.LIGHT_PURPLE + " in " + C.RED + Form.duration(p.getMilliseconds(), 0));
     }
 
     public int unload() {

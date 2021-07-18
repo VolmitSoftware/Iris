@@ -20,7 +20,7 @@ package com.volmit.iris.core;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.DirectWorldWriter;
+import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.data.nbt.io.NBTUtil;
 import com.volmit.iris.engine.data.nbt.io.NamedTag;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
@@ -151,7 +151,7 @@ public class ConversionManager {
                     @SuppressWarnings("unchecked") ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) compound.getListTag("palette");
                     for (int i = 0; i < paletteList.size(); i++) {
                         CompoundTag cp = paletteList.get(i);
-                        palette.add(DirectWorldWriter.getBlockData(cp));
+                        palette.add(NBTWorld.getBlockData(cp));
                     }
                     IrisJigsawPiece piece = new IrisJigsawPiece();
                     IrisObject object = new IrisObject(w, h, d);
@@ -171,7 +171,7 @@ public class ConversionManager {
                             CompoundTag finalState = new CompoundTag();
                             finalState.putString("Name", nbt.getString("final_state"));
                             BlockData jd = bd.clone();
-                            bd = DirectWorldWriter.getBlockData(finalState);
+                            bd = NBTWorld.getBlockData(finalState);
                             String joint = nbt.getString("joint");
                             String pool = nbt.getString("pool");
                             String poolId = toPoolName(pool);

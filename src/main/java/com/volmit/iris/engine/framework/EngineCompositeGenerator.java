@@ -27,8 +27,8 @@ import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.data.DirectWorldWriter;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -104,7 +104,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
-                if (compound != null) {
+                if (compound.get() != null) {
                     for (BlockPopulator i : compound.get().getPopulators()) {
                         i.populate(world, random, chunk);
                     }
@@ -295,7 +295,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public synchronized void initialize(World world) {
-        if (!(world instanceof FakeWorld) && fake.get() && this.compound != null) {
+        if (!(world instanceof FakeWorld) && fake.get() && this.compound.get() != null) {
             fake.set(false);
             this.compound.get().updateWorld(world);
             getTarget().updateWorld(world);
@@ -469,7 +469,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return tc.getRaw();
     }
 
-    public void directWriteMCA(World w, int x, int z, DirectWorldWriter writer, MultiBurst burst) {
+    public void directWriteMCA(World w, int x, int z, NBTWorld writer, MultiBurst burst) {
         BurstExecutor e = burst.burst(1024);
         int mcaox = x << 5;
         int mcaoz = z << 5;
@@ -485,7 +485,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         e.complete();
     }
 
-    public void directWriteChunk(World w, int x, int z, DirectWorldWriter writer) {
+    public void directWriteChunk(World w, int x, int z, NBTWorld writer) {
         int ox = x << 4;
         int oz = z << 4;
         com.volmit.iris.engine.data.mca.Chunk cc = writer.getChunk(x, z);
@@ -543,7 +543,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     return;
                 }
 
-                cc.setBlockStateAt(xx, y, zz, DirectWorldWriter.getCompound(blockData), false);
+                cc.setBlockStateAt(xx, y, zz, NBTWorld.getCompound(blockData), false);
             }
 
             @NotNull
@@ -557,7 +557,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     y = 0;
                 }
 
-                return DirectWorldWriter.getBlockData(cc.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));
+                return NBTWorld.getBlockData(cc.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));
             }
 
             @Override

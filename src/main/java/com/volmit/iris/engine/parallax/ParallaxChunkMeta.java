@@ -30,6 +30,7 @@ import lombok.Data;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 @AllArgsConstructor
@@ -56,9 +57,9 @@ public class ParallaxChunkMeta {
     private int maxObject = -1;
     private int minObject = -1;
     private int count;
-    private KList<IrisFeaturePositional> features;
+    private CopyOnWriteArrayList<IrisFeaturePositional> features;
 
     public ParallaxChunkMeta() {
-        this(false, false, false, false, false, false, -1, -1, 0, new KList<>());
+        this(false, false, false, false, false, false, -1, -1, 0, new CopyOnWriteArrayList<>());
     }
 }

@@ -114,7 +114,7 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(future.size() > 32)
+        if(future.size() > 128)
         {
             waitForChunks();
         }

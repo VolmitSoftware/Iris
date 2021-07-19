@@ -72,7 +72,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
             return false;
         }
 
-        return !new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca").exists();
+        return new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca").exists();
     }
 
     @Override

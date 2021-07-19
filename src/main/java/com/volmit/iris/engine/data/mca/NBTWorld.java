@@ -84,17 +84,32 @@ public class NBTWorld {
         }
     }
 
+    public void flushNow()
+    {
+        regionLock.lock();
+
+        for(Long i : loadedRegions.k())
+        {
+            doSaveUnload(Cache.keyX(i), Cache.keyZ(i));
+        }
+
+        regionLock.unlock();
+    }
+
     public void queueSaveUnload(int x, int z)
     {
-        saveQueue.submit(() -> {
-            MCAFile f = getMCAOrNull(x, z);
-            if(f != null)
-            {
-                unloadRegion(x, z);
-            }
+        saveQueue.submit(() -> doSaveUnload(x, z));
+    }
 
-            saveRegion(x, z, f);
-        });
+    public void doSaveUnload(int x, int z)
+    {
+        MCAFile f = getMCAOrNull(x, z);
+        if(f != null)
+        {
+            unloadRegion(x, z);
+        }
+
+        saveRegion(x, z, f);
     }
 
     public void save()

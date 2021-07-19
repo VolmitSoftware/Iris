@@ -59,7 +59,7 @@ public class PregeneratorJob implements PregenListener {
         info = new String[]{"Initializing..."};
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
-        this.pregenerator.start();
+        J.a(this.pregenerator::start);
         open();
     }
 

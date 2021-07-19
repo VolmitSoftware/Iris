@@ -24,6 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
+import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.cache.Cache;
@@ -467,26 +468,18 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @Override
     public void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst, PregenListener l) {
         BurstExecutor e = burst.burst(1024);
-        int mcaox = x << 5;
-        int mcaoz = z << 5;
 
-        for (int i = 0; i < 32; i++) {
-            int ii = i;
-            for (int j = 0; j < 32; j++) {
-                int jj = j;
-                e.queue(() -> {
-                    if(l != null)
-                    {
-                        l.onChunkGenerating(ii + mcaox, jj + mcaoz);
-                    }
-                    directWriteChunk(w, ii + mcaox, jj + mcaoz, writer);
-                    if(l != null)
-                    {
-                        l.onChunkGenerated(ii + mcaox, jj + mcaoz);
-                    }
-                });
+        PregenTask.iterateRegion(x, z, (ii, jj) -> e.queue(() -> {
+            if(l != null)
+            {
+                l.onChunkGenerating(ii, jj);
             }
-        }
+            directWriteChunk(w, ii, jj, writer);
+            if(l != null)
+            {
+                l.onChunkGenerated(ii, jj);
+            }
+        }));
 
         e.complete();
     }

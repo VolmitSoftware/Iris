@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +27,6 @@ import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.io.File;

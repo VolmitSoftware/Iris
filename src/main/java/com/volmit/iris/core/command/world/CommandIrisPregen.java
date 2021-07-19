@@ -19,8 +19,12 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.gui.components.Pregenerator;
+import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.pregenerator.methods.PaperOrMedievalPregenMethod;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
@@ -69,17 +73,17 @@ public class CommandIrisPregen extends MortarCommand {
         }
 
         if (args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("x")) {
-            if (Pregenerator.shutdownInstance()) {
+            if (PregeneratorJob.shutdownInstance()) {
                 sender.sendMessage("Stopped Pregen.");
             } else {
                 sender.sendMessage("No Active Pregens.");
             }
             return true;
         } else if (args[0].equalsIgnoreCase("pause") || args[0].equalsIgnoreCase("resume")) {
-            if (Pregenerator.getInstance() != null) {
-                Pregenerator.pauseResume();
+            if (PregeneratorJob.getInstance() != null) {
+                PregeneratorJob.pauseResume();
 
-                if (Pregenerator.isPaused()) {
+                if (PregeneratorJob.isPaused()) {
                     sender.sendMessage("Pregen Paused");
                 } else {
                     sender.sendMessage("Pregen Resumed");
@@ -105,7 +109,12 @@ public class CommandIrisPregen extends MortarCommand {
                 }
             }
             try {
-                new Pregenerator(world, getVal(args[0]) * 2);
+                new PregeneratorJob(PregenTask
+                        .builder()
+                            .center(new Position2(0, 0))
+                            .radius(getVal(args[0]))
+                        .build(),
+                        new PaperOrMedievalPregenMethod(world, 16));
             } catch (NumberFormatException e) {
                 Iris.reportError(e);
                 sender.sendMessage("Invalid argument in command");

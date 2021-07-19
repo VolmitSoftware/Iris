@@ -59,7 +59,7 @@ public class HeadlessWorld {
         }
     }
 
-    public HeadlessGenerator headlessMode()
+    public HeadlessGenerator generate()
     {
         return new HeadlessGenerator(this);
     }

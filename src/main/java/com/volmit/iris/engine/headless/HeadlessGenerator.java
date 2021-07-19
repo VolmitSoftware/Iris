@@ -23,6 +23,8 @@ import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import lombok.Data;
 
+import java.io.File;
+
 @Data
 public class HeadlessGenerator {
     private final HeadlessWorld world;
@@ -47,6 +49,18 @@ public class HeadlessGenerator {
     public void generateRegion(int x, int z)
     {
         generator.directWriteMCA(world.getWorld(), x, z, writer, burst);
+    }
+
+    public File generateRegionToFile(int x, int z)
+    {
+        generateRegionToFile(x, z);
+        flush();
+        return writer.getRegionFile(x, z);
+    }
+
+    public void flush()
+    {
+        writer.flushNow();
     }
 
     public void save()

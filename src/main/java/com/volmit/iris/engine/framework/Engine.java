@@ -20,8 +20,8 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.gui.RenderType;
-import com.volmit.iris.core.gui.Renderer;
+import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
@@ -38,7 +38,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;

@@ -19,7 +19,7 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.gui.Pregenerator;
+import com.volmit.iris.core.gui.components.Pregenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;

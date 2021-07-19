@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.gui.RenderType;
+import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;

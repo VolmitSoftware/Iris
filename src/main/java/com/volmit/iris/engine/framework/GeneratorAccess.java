@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.gui.Renderer;
+import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisObjectPlacement;

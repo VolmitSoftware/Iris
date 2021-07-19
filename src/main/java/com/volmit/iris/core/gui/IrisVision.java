@@ -19,6 +19,7 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -37,7 +38,6 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;

@@ -20,6 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
@@ -46,6 +47,8 @@ import java.util.function.Consumer;
 public interface IrisAccess extends Hotloadable, DataProvider {
 
     void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst);
+
+    void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst, PregenListener listener);
 
     void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer);
 

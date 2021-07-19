@@ -16,7 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.core.pregenerator;
 
-public class PregeneratorGUI {
+public interface PregenListener {
+    void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method);
+
+    void onChunkGenerating(int x, int z);
+
+    void onChunkGenerated(int x, int z);
+
+    void onRegionGenerated(int x, int z);
+
+    void onRegionGenerating(int x, int z);
+
+    void onRegionSkipped(int x, int z);
+
+    void onClose();
+
+    void onSaving();
 }

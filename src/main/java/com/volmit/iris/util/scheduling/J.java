@@ -208,6 +208,15 @@ public class J {
         Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
     }
 
+    public static CompletableFuture sfut(Runnable r) {
+        CompletableFuture f = new CompletableFuture();
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+            r.run();
+            f.complete(null);
+        });
+        return f;
+    }
+
     /**
      * Queue a sync task
      *

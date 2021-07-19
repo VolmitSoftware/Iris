@@ -313,15 +313,7 @@ public class NBTWorld {
 
         if(mcaf == null)
         {
-            File f = getRegionFile(x, z);
-            try {
-                mcaf = f.exists() ? MCAUtil.read(f) : new MCAFile(x, z);
-            } catch (IOException e) {
-                Iris.error("Failed to properly read MCA File " + f.getPath() + " Using a blank one.");
-                e.printStackTrace();
-                mcaf = new MCAFile(x, z);
-            }
-
+            mcaf = new MCAFile(x, z);
             regionLock.lock();
             loadedRegions.put(key, mcaf);
             regionLock.unlock();

@@ -43,6 +43,11 @@ public class Position2 {
         this.z = z;
     }
 
+    public String toString()
+    {
+        return "[" + x + "," + z + "]";
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -50,6 +55,11 @@ public class Position2 {
         result = prime * result + x;
         result = prime * result + z;
         return result;
+    }
+
+    public Position2 regionToChunk()
+    {
+        return new Position2(x << 5, z << 5);
     }
 
     @Override
@@ -65,5 +75,9 @@ public class Position2 {
 
     public double distance(Position2 center) {
         return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
+    }
+
+    public Position2 add(int x, int z) {
+        return new Position2(this.x + x, this.z + z);
     }
 }

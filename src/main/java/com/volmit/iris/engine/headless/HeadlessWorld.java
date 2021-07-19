@@ -20,7 +20,9 @@ package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -71,6 +73,10 @@ public class HeadlessWorld {
                 .seed(world.seed())
                 .generator(new EngineCompositeGenerator(dimension.getLoadKey(), true))
                 .createWorld();
+    }
+
+    public static HeadlessWorld from(World world) {
+        return new HeadlessWorld(world.getName(), IrisWorlds.access(world).getTarget().getDimension(), world.getSeed());
     }
 
     public static HeadlessWorld from(String name, String dimension, long seed)

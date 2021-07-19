@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.gui;
 
+import com.sk89q.worldedit.function.factory.ApplyRegion;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.components.Pregenerator;
@@ -59,6 +60,46 @@ public class PregeneratorJob implements PregenListener {
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
         this.pregenerator.start();
+    }
+
+    public static boolean shutdownInstance() {
+        if(instance == null)
+        {
+            return false;
+        }
+
+        J.a(() -> instance.pregenerator.close());
+        return true;
+    }
+
+    public static PregeneratorJob getInstance() {
+        return instance;
+    }
+
+    public static void pauseResume() {
+        if(instance == null)
+        {
+            return;
+        }
+
+        if(isPaused())
+        {
+            instance.pregenerator.resume();
+        }
+
+        else
+        {
+            instance.pregenerator.pause();
+        }
+    }
+
+    public static boolean isPaused() {
+        if(instance == null)
+        {
+            return true;
+        }
+
+        return instance.paused();
     }
 
     public void draw(int x, int z, Color color)

@@ -29,6 +29,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.J;
 
 import javax.swing.*;
@@ -48,6 +49,8 @@ public class PregeneratorJob implements PregenListener {
     private final IrisPregenerator pregenerator;
     private PregenRenderer renderer;
     private String[] info;
+    private Position2 min;
+    private Position2 max;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method)
     {
@@ -57,6 +60,15 @@ public class PregeneratorJob implements PregenListener {
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
         J.a(this.pregenerator::start);
+        max = new Position2(0, 0);
+        min = new Position2(0, 0);
+        KList<Runnable> draw = new KList<>();
+        task.iterateRegions((xx,zz) -> {
+            min.setX(Math.min(xx << 5, min.getX()));
+            min.setZ(Math.min(zz << 5, min.getZ()));
+            max.setX(Math.max((xx << 5) + 31, max.getX()));
+            max.setZ(Math.max((zz << 5) + 31, max.getZ()));
+        });
         open();
     }
 
@@ -130,6 +142,7 @@ public class PregeneratorJob implements PregenListener {
         J.a(() -> {
             try
             {
+                J.sleep(3000);
                 frame.setVisible(false);
             }
 
@@ -216,11 +229,11 @@ public class PregeneratorJob implements PregenListener {
     }
 
     private Position2 getMax() {
-        return task.getCenter().add(task.getRadius(), task.getRadius()).regionToChunk();
+        return max;
     }
 
     private Position2 getMin() {
-        return task.getCenter().add(-task.getRadius(), -task.getRadius()).regionToChunk();
+        return min;
     }
 
     private boolean paused() {

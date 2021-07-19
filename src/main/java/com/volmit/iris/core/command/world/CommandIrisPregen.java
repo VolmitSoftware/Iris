@@ -112,7 +112,7 @@ public class CommandIrisPregen extends MortarCommand {
                 new PregeneratorJob(PregenTask
                         .builder()
                             .center(new Position2(0, 0))
-                            .radius(getVal(args[0]))
+                            .radius(((getVal(args[0])>>4)>>5) + 1)
                         .build(),
                         new PaperOrMedievalPregenMethod(world, 16));
             } catch (NumberFormatException e) {
@@ -143,7 +143,7 @@ public class CommandIrisPregen extends MortarCommand {
                 new PregeneratorJob(PregenTask
                         .builder()
                         .center(new Position2(0, 0))
-                        .radius(getVal(args[0]))
+                        .radius(((getVal(args[0])>>4)>>5) + 1)
                         .build(),
                         new PaperOrMedievalPregenMethod(world, 16));
             } catch (NumberFormatException e) {

@@ -25,7 +25,7 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -76,7 +76,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
 
     private final float[] ravineCache = new float[1024];
 
-    private void doRavine(long seed, int tx, int tz, ChunkPosition pos, double sx, double sy, double sz, float f, float f2, float f3, @SuppressWarnings("SameParameterValue") int n3, @SuppressWarnings("SameParameterValue") int n4, @SuppressWarnings("SameParameterValue") double d4, RNG bbx, Hunk<BlockData> terrain) {
+    private void doRavine(long seed, int tx, int tz, Position2 pos, double sx, double sy, double sz, float f, float f2, float f3, @SuppressWarnings("SameParameterValue") int n3, @SuppressWarnings("SameParameterValue") int n4, @SuppressWarnings("SameParameterValue") double d4, RNG bbx, Hunk<BlockData> terrain) {
         int n5;
         RNG random = new RNG(seed);
         double x = tx * 16 + 8;
@@ -248,7 +248,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
         //@done
     }
 
-    public void genRavines(int n, int n2, ChunkPosition chunkSnapshot, RNG bbb, Hunk<BlockData> terrain) {
+    public void genRavines(int n, int n2, Position2 chunkSnapshot, RNG bbb, Hunk<BlockData> terrain) {
         RNG b = this.rng.nextParallelRNG(21949666);
         RNG bx = this.rng.nextParallelRNG(6676121);
         long l = b.nextLong();
@@ -263,7 +263,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
         }
     }
 
-    private void doRavines(int tx, int tz, int sx, int sz, ChunkPosition chunkSnapshot, RNG b, Hunk<BlockData> terrain) {
+    private void doRavines(int tx, int tz, int sx, int sz, Position2 chunkSnapshot, RNG b, Hunk<BlockData> terrain) {
         if (b.nextInt(getDimension().getRavineRarity()) != 0) {
             return;
         }
@@ -281,6 +281,6 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public void generateRavines(RNG nextParallelRNG, int x, int z, Hunk<BlockData> terrain) {
-        genRavines(x, z, new ChunkPosition(x, z), nextParallelRNG.nextParallelRNG(x).nextParallelRNG(z), terrain);
+        genRavines(x, z, new Position2(x, z), nextParallelRNG.nextParallelRNG(x).nextParallelRNG(z), terrain);
     }
 }

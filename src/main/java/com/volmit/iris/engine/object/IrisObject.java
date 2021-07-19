@@ -30,7 +30,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Data;
@@ -466,7 +466,7 @@ public class IrisObject extends IrisRegistrant {
 
         boolean warped = !config.getWarp().isFlat();
         boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
-        KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
+        KMap<Position2, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
         int spinx = rng.imax() / 1000;
         int spiny = rng.imax() / 1000;
         int spinz = rng.imax() / 1000;
@@ -638,7 +638,7 @@ public class IrisObject extends IrisRegistrant {
             }
 
             if (heightmap != null) {
-                ChunkPosition pos = new ChunkPosition(xx, zz);
+                Position2 pos = new Position2(xx, zz);
 
                 if (!heightmap.containsKey(pos)) {
                     heightmap.put(pos, yy);
@@ -727,7 +727,7 @@ public class IrisObject extends IrisRegistrant {
         if (heightmap != null) {
             RNG rngx = rng.nextParallelRNG(3468854);
 
-            for (ChunkPosition i : heightmap.k()) {
+            for (Position2 i : heightmap.k()) {
                 int vx = i.getX();
                 int vy = heightmap.get(i);
                 int vz = i.getZ();

@@ -18,11 +18,11 @@
 
 package com.volmit.iris.util.math;
 
-public class ChunkPosition {
+public class Position2 {
     private int x;
     private int z;
 
-    public ChunkPosition(int x, int z) {
+    public Position2(int x, int z) {
         this.x = x;
         this.z = z;
     }
@@ -57,13 +57,13 @@ public class ChunkPosition {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof ChunkPosition other)) {
+        if (!(obj instanceof Position2 other)) {
             return false;
         }
         return x == other.x && z == other.z;
     }
 
-    public double distance(ChunkPosition center) {
+    public double distance(Position2 center) {
         return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
     }
 }

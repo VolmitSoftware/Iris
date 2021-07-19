@@ -26,7 +26,7 @@ import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -336,7 +336,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Define biome mutations for this dimension")
     private KList<IrisBiomeMutation> mutations = new KList<>();
 
-    private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
+    private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> coordFracture = new AtomicCache<>();

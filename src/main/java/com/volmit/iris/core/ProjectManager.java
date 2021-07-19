@@ -171,7 +171,7 @@ public class ProjectManager {
             Iris.info("Assuming URL " + url);
             String branch = "master";
             String[] nodes = url.split("\\Q/\\E");
-            String repo = nodes[0] + "/" + nodes[1];
+            String repo = nodes.length == 1 ? "IrisDimensions/" + nodes[0] : nodes[0] + "/" + nodes[1];
             branch = nodes.length > 2 ? nodes[2] : branch;
             download(sender, repo, branch, trim, forceOverwrite);
         } catch (Throwable e) {

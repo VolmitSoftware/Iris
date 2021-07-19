@@ -42,28 +42,44 @@ public class CommandIrisDownload extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (args.length < 1) {
-            sender.sendMessage("/iris dl " + C.BOLD + "<NAME>");
+            sender.sendMessage("/iris dl " + C.BOLD + "<NAME> [BRANCH=master]");
             return true;
         }
 
         boolean trim = false;
+        String branch = "master";
 
         for (String i : args) {
             if (i.equals("-t") || i.equals("--trim")) {
                 trim = true;
                 break;
+            } else if (i.startsWith("-")) {
+                sender.sendMessage("Invalid parameter.");
+                sender.sendMessage("/iris dl " + C.BOLD + "<NAME> [BRANCH=master]");
+                return true;
+            } else {
+                branch = i;
+                if (branch.toLowerCase().startsWith("branch=")) branch = branch.substring(7);
             }
         }
 
         boolean btrim = trim;
 
-        J.a(() -> Iris.proj.downloadSearch(sender, args[0], btrim));
+        String pack = args[0];
+
+        if (!pack.contains("/")) {
+            pack = "IrisDimensions/" + pack;
+        }
+
+        final String finalPack = pack + "/" + branch;
+
+        J.a(() -> Iris.proj.downloadSearch(sender, finalPack, btrim));
 
         return true;
     }
 
     @Override
     protected String getArgsUsage() {
-        return "<name> [-t/--trim]";
+        return "<name> [branch=master] [-t/--trim]";
     }
 }

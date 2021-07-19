@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.core.gui.components;
 
 public enum RenderType {
     BIOME, BIOME_LAND, BIOME_SEA, REGION, CAVE_LAND, HEIGHT, OBJECT_LOAD, DECORATOR_LOAD, LAYER_LOAD

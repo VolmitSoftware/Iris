@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.core.gui.components;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
@@ -30,7 +30,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.function.Consumer3;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.ChunkPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
@@ -54,7 +53,6 @@ import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;

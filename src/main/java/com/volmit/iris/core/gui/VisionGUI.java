@@ -19,6 +19,7 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
@@ -55,7 +56,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 
-public class IrisVision extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
+public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;
 
     private RenderType currentType = RenderType.BIOME;
@@ -129,7 +130,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     });
     private BufferedImage texture;
 
-    public IrisVision(JFrame frame) {
+    public VisionGUI(JFrame frame) {
         m.set(8);
         rs.put(1);
         addMouseWheelListener(this);
@@ -729,7 +730,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
 
     private static void createAndShowGUI(Engine r, int s, IrisWorld world) {
         JFrame frame = new JFrame("Vision");
-        IrisVision nv = new IrisVision(frame);
+        VisionGUI nv = new VisionGUI(frame);
         nv.world = world;
         nv.engine = r;
         nv.renderer = new IrisRenderer(r);

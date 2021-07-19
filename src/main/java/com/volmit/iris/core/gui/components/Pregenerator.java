@@ -30,7 +30,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.function.Consumer3;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Deprecated
 @Data
 public class Pregenerator implements Listener {
     private static Pregenerator instance;
@@ -78,12 +79,12 @@ public class Pregenerator implements Listener {
     private final NBTWorld directWriter;
     private final AtomicBoolean active;
     private final AtomicBoolean running;
-    private final KList<ChunkPosition> errors;
+    private final KList<Position2> errors;
     private final KList<Runnable> onComplete;
-    private final ChunkPosition max;
-    private final ChunkPosition min;
+    private final Position2 max;
+    private final Position2 min;
     private final MCAPregenGui gui;
-    private final KList<ChunkPosition> mcaDefer;
+    private final KList<Position2> mcaDefer;
     private final AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final RollingSequence perSecond;
@@ -99,8 +100,8 @@ public class Pregenerator implements Listener {
     private final long elapsed;
     private final ChronoLatch latch;
     private IrisAccess access;
-    private final KList<ChunkPosition> regionReload;
-    private KList<ChunkPosition> wait = new KList<>();
+    private final KList<Position2> regionReload;
+    private KList<Position2> wait = new KList<>();
 
     public Pregenerator(World world, int blockSize, Runnable onComplete) {
         this(world, blockSize);
@@ -137,8 +138,8 @@ public class Pregenerator implements Listener {
         MultiBurst burst = new MultiBurst("Iris Pregenerator", 9, Runtime.getRuntime().availableProcessors());
         int mcaSize = (((blockSize >> 4) + 2) >> 5) + 1;
         onComplete = new KList<>();
-        max = new ChunkPosition(0, 0);
-        min = new ChunkPosition(0, 0);
+        max = new Position2(0, 0);
+        min = new Position2(0, 0);
         KList<Runnable> draw = new KList<>();
         new Spiraler(mcaSize, mcaSize, (xx, zz) -> {
             min.setX(Math.min(xx << 5, min.getX()));
@@ -153,7 +154,7 @@ public class Pregenerator implements Listener {
         }
         gui = dogui ? (IrisSettings.get().getGui().isLocalPregenGui() && IrisSettings.get().getGui().isUseServerLaunchedGuis() ? MCAPregenGui.createAndShowGUI(this) : null) : null;
         flushWorld();
-        KList<ChunkPosition> order = computeChunkOrder();
+        KList<Position2> order = computeChunkOrder();
         Consumer3<Integer, Integer, Consumer2<Integer, Integer>> mcaIteration =
                 (ox, oz, r) -> order.forEach((i)
                         -> r.accept(i.getX() + ox, i.getZ() + oz));
@@ -184,7 +185,7 @@ public class Pregenerator implements Listener {
             mcaDefer.removeDuplicates();
 
             while (running.get() && mcaDefer.isNotEmpty()) {
-                ChunkPosition p = mcaDefer.popLast();
+                Position2 p = mcaDefer.popLast();
                 vmcax.set(p.getX());
                 vmcaz.set(p.getZ());
                 generateDeferedMCARegion(p.getX(), p.getZ(), burst, mcaIteration);
@@ -259,7 +260,7 @@ public class Pregenerator implements Listener {
             directWriter.save();
         } else {
             totalChunks.getAndAdd(1024);
-            mcaDefer.add(new ChunkPosition(x, z));
+            mcaDefer.add(new Position2(x, z));
             e.complete();
             return false;
         }
@@ -318,7 +319,7 @@ public class Pregenerator implements Listener {
             }
 
             mcaIteration.accept(mcaox, mcaoz, (ii, jj) -> {
-                ChunkPosition cx = new ChunkPosition(ii, jj);
+                Position2 cx = new Position2(ii, jj);
                 PaperLib.getChunkAtAsync(world, ii, jj).thenAccept((c) -> {
                     draw(ii, jj, COLOR_MCA_GENERATE_SLOW_ASYNC);
                     draw(ii, jj, COLOR_MCA_GENERATED);
@@ -375,9 +376,9 @@ public class Pregenerator implements Listener {
         }
     }
 
-    private KList<ChunkPosition> computeChunkOrder() {
-        ChunkPosition center = new ChunkPosition(15, 15);
-        KList<ChunkPosition> p = new KList<>();
+    private KList<Position2> computeChunkOrder() {
+        Position2 center = new Position2(15, 15);
+        KList<Position2> p = new KList<>();
         new Spiraler(33, 33, (x, z) -> {
             int xx = x + 15;
             int zz = z + 15;
@@ -385,7 +386,7 @@ public class Pregenerator implements Listener {
                 return;
             }
 
-            p.add(new ChunkPosition(xx, zz));
+            p.add(new Position2(xx, zz));
         }).drain();
         p.sort(Comparator.comparing((i) -> i.distance(center)));
         return p;
@@ -428,7 +429,7 @@ public class Pregenerator implements Listener {
 
     private void draw(int cx, int cz, Color color) {
         if (gui != null) {
-            gui.func.accept(new ChunkPosition(cx, cz), color);
+            gui.func.accept(new Position2(cx, cz), color);
         }
     }
 
@@ -507,7 +508,7 @@ public class Pregenerator implements Listener {
         Graphics2D bg;
         private ReentrantLock l;
         private final BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
-        private Consumer2<ChunkPosition, Color> func;
+        private Consumer2<Position2, Color> func;
         private JFrame frame;
 
         public MCAPregenGui() {
@@ -515,7 +516,7 @@ public class Pregenerator implements Listener {
         }
 
         public void paint(int x, int z, Color c) {
-            func.accept(new ChunkPosition(x, z), c);
+            func.accept(new Position2(x, z), c);
         }
 
         @Override
@@ -558,7 +559,7 @@ public class Pregenerator implements Listener {
             repaint();
         }
 
-        private void draw(ChunkPosition p, Color c, Graphics2D bg) {
+        private void draw(Position2 p, Color c, Graphics2D bg) {
             double pw = M.lerpInverse(job.getMin().getX(), job.getMax().getX(), p.getX());
             double ph = M.lerpInverse(job.getMin().getZ(), job.getMax().getZ(), p.getZ());
             double pwa = M.lerpInverse(job.getMin().getX(), job.getMax().getX(), p.getX() + 1);
@@ -582,7 +583,7 @@ public class Pregenerator implements Listener {
             nv.job = j;
             nv.func = (c, b) ->
             {
-                if (b.equals(Color.pink) && c.equals(new ChunkPosition(Integer.MAX_VALUE, Integer.MAX_VALUE))) {
+                if (b.equals(Color.pink) && c.equals(new Position2(Integer.MAX_VALUE, Integer.MAX_VALUE))) {
                     frame.hide();
                 }
                 nv.l.lock();

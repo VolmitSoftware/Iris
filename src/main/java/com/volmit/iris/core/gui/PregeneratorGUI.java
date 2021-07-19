@@ -18,5 +18,5 @@
 
 package com.volmit.iris.core.gui;
 
-public class IrisPregenerator {
+public class PregeneratorGUI {
 }

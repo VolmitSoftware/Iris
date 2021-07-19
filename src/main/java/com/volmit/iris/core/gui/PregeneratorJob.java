@@ -18,15 +18,12 @@
 
 package com.volmit.iris.core.gui;
 
-import com.sk89q.worldedit.function.factory.ApplyRegion;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.gui.components.Pregenerator;
 import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
@@ -215,11 +212,11 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onSaving() {
-        saving = true;
+
     }
 
     private Position2 getMax() {
-        return task.getCenter().add(task.getRadius(), task.getRadius()).bottomRightChunkOfRegion();
+        return task.getCenter().add(task.getRadius(), task.getRadius()).topLeftChunkOfRegion();
     }
 
     private Position2 getMin() {
@@ -318,7 +315,7 @@ public class PregeneratorJob implements PregenListener {
         @Override
         public void keyReleased(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_P) {
-                Pregenerator.pauseResume();
+                PregeneratorJob.pauseResume();
             }
         }
 

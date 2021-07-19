@@ -47,22 +47,20 @@ public enum IrisTreeType {
     NONE;
 
     public static IrisTreeType fromTreeType(TreeType type){
-        IrisTreeType irisType;
-        switch(type){
-            case BIG_TREE, TREE -> irisType = IrisTreeType.OAK;
-            case MEGA_REDWOOD, REDWOOD, SWAMP, TALL_REDWOOD -> irisType = IrisTreeType.SPRUCE;
-            case BIRCH, TALL_BIRCH -> irisType = IrisTreeType.BIRCH;
-            case JUNGLE, SMALL_JUNGLE -> irisType = IrisTreeType.JUNGLE;
-            case RED_MUSHROOM -> irisType = IrisTreeType.RED_MUSHROOM;
-            case BROWN_MUSHROOM -> irisType = IrisTreeType.BROWN_MUSHROOM;
-            case ACACIA -> irisType = IrisTreeType.ACACIA;
-            case DARK_OAK -> irisType = IrisTreeType.DARK_OAK;
-            case CRIMSON_FUNGUS -> irisType = IrisTreeType.CRIMSON_FUNGUS;
-            case WARPED_FUNGUS -> irisType = IrisTreeType.WARPED_FUNGUS;
-            case AZALEA -> irisType = IrisTreeType.AZALEA;
-            //case COCOA_TREE, CHORUS_PLANT, JUNGLE_BUSH -> irisType = IrisSaplingType.NONE;
-            default -> irisType = IrisTreeType.NONE;
-        }
-        return irisType;
+        return switch(type){
+            case BIG_TREE, TREE -> IrisTreeType.OAK;
+            case MEGA_REDWOOD, REDWOOD, SWAMP, TALL_REDWOOD -> IrisTreeType.SPRUCE;
+            case BIRCH, TALL_BIRCH -> IrisTreeType.BIRCH;
+            case JUNGLE, SMALL_JUNGLE -> IrisTreeType.JUNGLE;
+            case RED_MUSHROOM -> IrisTreeType.RED_MUSHROOM;
+            case BROWN_MUSHROOM -> IrisTreeType.BROWN_MUSHROOM;
+            case ACACIA -> IrisTreeType.ACACIA;
+            case DARK_OAK -> IrisTreeType.DARK_OAK;
+            case CRIMSON_FUNGUS -> IrisTreeType.CRIMSON_FUNGUS;
+            case WARPED_FUNGUS -> IrisTreeType.WARPED_FUNGUS;
+            case AZALEA -> IrisTreeType.AZALEA;
+            //case COCOA_TREE, CHORUS_PLANT, JUNGLE_BUSH -> IrisSaplingType.NONE;
+            default -> IrisTreeType.NONE;
+        };
     }
 }

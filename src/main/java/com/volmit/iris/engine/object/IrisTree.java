@@ -12,23 +12,17 @@ import org.bukkit.TreeType;
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
-@Desc("Tree replace options")
+@Desc("Tree replace options for this object placer")
 @Data
 public class IrisTree {
 
     @Required
-    @Desc("The types of trees overwritten")
+    @Desc("The types of trees overwritten by this object")
     @ArrayType(min = 1, type = IrisTreeType.class)
     private KList<IrisTreeType> treeTypes;
 
-    @RegistryListObject
     @Required
-    @ArrayType(min = 1, type = String.class)
-    @Desc("List of objects to replace trees with")
-    private KList<String> objects = new KList<>();
-
     @Desc("The size of the square of saplings this applies to (2 means a 2 * 2 sapling area)")
-    @MinNumber(1)
-    @MaxNumber(TreeManager.maxSaplingPlane)
-    private int size = 1;
+    @ArrayType(min = 1, type = IrisTreeSize.class)
+    private KList<IrisTreeSize> sizes = new KList<>();
 }

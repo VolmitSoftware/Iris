@@ -151,6 +151,9 @@ public class IrisObjectPlacement {
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
 
+    @Desc("Tree growth overrides for these object placements")
+    private IrisTreeOptions treeOptions = new IrisTreeOptions();
+
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
         p.setPlace(new KList<>(place));

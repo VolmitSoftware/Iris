@@ -29,8 +29,13 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
 
     public HeadlessPregenMethod(HeadlessWorld world)
     {
+        this(world, world.generate());
+    }
+
+    public HeadlessPregenMethod(HeadlessWorld world, HeadlessGenerator generator)
+    {
         this.world = world;
-        this.generator = world.generate();
+        this.generator = generator;
     }
 
     @Override

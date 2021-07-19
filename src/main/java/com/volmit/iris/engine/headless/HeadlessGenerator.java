@@ -37,9 +37,11 @@ public class HeadlessGenerator {
     {
         this.world = world;
         burst = new MultiBurst("Iris Headless Generator", 9, Runtime.getRuntime().availableProcessors());
-        generator = new EngineCompositeGenerator(world.getDimension().getLoadKey(), true);
-        generator.initialize(world.getWorld());
         writer = new NBTWorld(world.getWorld().worldFolder());
+        generator = new EngineCompositeGenerator(world.getDimension().getLoadKey(), !world.isStudio());
+        generator.assignHeadlessGenerator(this);
+        generator.assignHeadlessNBTWriter(writer);
+        generator.initialize(world.getWorld());
     }
 
     public void generateChunk(int x, int z)

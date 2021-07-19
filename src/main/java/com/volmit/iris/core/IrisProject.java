@@ -23,7 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
-import com.volmit.iris.engine.IrisWorldCreator;
+import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;

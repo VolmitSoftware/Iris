@@ -20,7 +20,7 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.headless.HeadlessWorld;
 import org.bukkit.World;
 

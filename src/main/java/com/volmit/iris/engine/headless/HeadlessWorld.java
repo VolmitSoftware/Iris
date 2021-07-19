@@ -20,9 +20,8 @@ package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -39,11 +38,18 @@ public class HeadlessWorld {
     private final IrisDimension dimension;
     private final String worldName;
     private final IrisWorld world;
+    private boolean studio = false;
 
     public HeadlessWorld(String worldName, IrisDimension dimension, long seed)
     {
+        this(worldName, dimension, seed, false);
+    }
+
+    public HeadlessWorld(String worldName, IrisDimension dimension, long seed, boolean studio)
+    {
         this.worldName = worldName;
         this.dimension = dimension;
+        this.studio = studio;
         world = IrisWorld.builder()
                 .environment(dimension.getEnvironment())
                 .worldFolder(new File(worldName))
@@ -55,7 +61,7 @@ public class HeadlessWorld {
         world.worldFolder().mkdirs();
         new File(world.worldFolder(), "region").mkdirs();
 
-        if(!new File(world.worldFolder(), "iris").exists())
+        if(!studio && !new File(world.worldFolder(), "iris").exists())
         {
             Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
@@ -71,7 +77,7 @@ public class HeadlessWorld {
         return new WorldCreator(worldName)
                 .environment(dimension.getEnvironment())
                 .seed(world.seed())
-                .generator(new EngineCompositeGenerator(dimension.getLoadKey(), true))
+                .generator(new EngineCompositeGenerator(dimension.getLoadKey(), !studio))
                 .createWorld();
     }
 

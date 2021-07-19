@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
@@ -99,5 +99,10 @@ public class IrisWorldCreator {
         } else {
             return dim.getEnvironment();
         }
+    }
+
+    public IrisWorldCreator studio(boolean studio) {
+        this.studio = studio;
+        return this;
     }
 }

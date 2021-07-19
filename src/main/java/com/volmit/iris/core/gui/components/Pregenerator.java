@@ -20,7 +20,7 @@ package com.volmit.iris.core.gui.components;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.data.mca.MCAFile;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.IrisAccess;

@@ -24,6 +24,7 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.common.IrisWorld;
@@ -45,6 +46,14 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("EmptyMethod")
 public interface IrisAccess extends Hotloadable, DataProvider {
+
+    HeadlessGenerator getHeadlessGenerator();
+
+    default boolean isHeadless(){
+        return getHeadlessGenerator() != null;
+    }
+
+    NBTWorld getHeadlessNBTWriter();
 
     void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst);
 

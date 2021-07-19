@@ -26,11 +26,10 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.engine.IrisEngineCompound;
-import com.volmit.iris.engine.IrisWorlds;
-import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -78,6 +77,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private final boolean production;
     private final KList<BlockPopulator> populators;
     private long mst = 0;
+    private HeadlessGenerator headlessGenerator;
+    private NBTWorld nbtWorld;
     private int generated = 0;
     private int lgenerated = 0;
     private final ChronoLatch hotloadcd;
@@ -458,6 +459,26 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         return tc.getRaw();
+    }
+
+    public void assignHeadlessGenerator(HeadlessGenerator headlessGenerator)
+    {
+        this.headlessGenerator = headlessGenerator;
+    }
+
+    @Override
+    public HeadlessGenerator getHeadlessGenerator() {
+        return headlessGenerator;
+    }
+
+    public void assignHeadlessNBTWriter(NBTWorld writer)
+    {
+        this.nbtWorld = writer;
+    }
+
+    @Override
+    public NBTWorld getHeadlessNBTWriter() {
+        return nbtWorld;
     }
 
     @Override

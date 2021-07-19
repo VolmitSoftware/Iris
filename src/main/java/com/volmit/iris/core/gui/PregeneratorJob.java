@@ -29,7 +29,6 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.J;
 
 import javax.swing.*;
@@ -38,6 +37,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public class PregeneratorJob implements PregenListener {
     public static PregeneratorJob instance;
@@ -46,6 +46,8 @@ public class PregeneratorJob implements PregenListener {
     private JFrame frame;
     private final PregenTask task;
     private boolean saving;
+    private KList<Consumer<Double>> onProgress = new KList<>();
+    private KList<Runnable> whenDone = new KList<>();
     private final IrisPregenerator pregenerator;
     private PregenRenderer renderer;
     private String[] info;
@@ -70,6 +72,18 @@ public class PregeneratorJob implements PregenListener {
             max.setZ(Math.max((zz << 5) + 31, max.getZ()));
         });
         open();
+    }
+
+    public PregeneratorJob onProgress(Consumer<Double> c)
+    {
+        onProgress.add(c);
+        return this;
+    }
+
+    public PregeneratorJob whenDone(Runnable r)
+    {
+        whenDone.add(r);
+        return this;
     }
 
     public static boolean shutdownInstance() {
@@ -190,6 +204,11 @@ public class PregeneratorJob implements PregenListener {
             Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
             "Generation Method: " + method,
         };
+
+        for(Consumer<Double> i : onProgress)
+        {
+            i.accept(percent);
+        }
     }
 
     @Override
@@ -221,6 +240,7 @@ public class PregeneratorJob implements PregenListener {
     public void onClose() {
         close();
         instance = null;
+        whenDone.forEach(Runnable::run);
     }
 
     @Override

@@ -24,7 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.components.Pregenerator;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.IrisWorldCreator;
+import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;

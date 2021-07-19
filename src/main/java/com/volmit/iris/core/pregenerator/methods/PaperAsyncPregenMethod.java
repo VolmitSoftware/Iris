@@ -52,12 +52,14 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
             {
                 i.unload(true);
             }
+            world.save();
         });
     }
 
-    private void completeChunk(int x, int z) {
+    private void completeChunk(int x, int z, PregenListener listener) {
         try {
             PaperLib.getChunkAtAsync(world, x, z, true).get();
+            listener.onChunkGenerated(x, z);
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -92,14 +94,12 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
         waitForChunks();
         burst.shutdownAndAwait();
         unloadAndSaveAllChunks();
-        world.save();
     }
 
     @Override
     public void save() {
         waitForChunks();
         unloadAndSaveAllChunks();
-        world.save();
     }
 
     @Override
@@ -113,7 +113,13 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
-        future.add(burst.complete(() -> completeChunk(x, z)));
+    public void generateChunk(int x, int z, PregenListener listener) {
+        if(future.size() > 32)
+        {
+            waitForChunks();
+        }
+
+        listener.onChunkGenerating(x, z);
+        future.add(burst.complete(() -> completeChunk(x, z, listener)));
     }
 }

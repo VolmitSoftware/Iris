@@ -67,6 +67,7 @@ public interface PregeneratorMethod {
      * Called to generate a chunk. You can go async so long as save will wait on the threads to finish
      * @param x the x
      * @param z the z
+     * @param listener
      */
-    void generateChunk(int x, int z);
+    void generateChunk(int x, int z, PregenListener listener);
 }

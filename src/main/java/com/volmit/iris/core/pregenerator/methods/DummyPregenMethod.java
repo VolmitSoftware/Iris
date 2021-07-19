@@ -53,7 +53,7 @@ public class DummyPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
+    public void generateChunk(int x, int z, PregenListener listener) {
 
     }
 }

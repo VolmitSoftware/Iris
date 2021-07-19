@@ -81,7 +81,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
-        inWorld.generateChunk(x, z);
+    public void generateChunk(int x, int z, PregenListener listener) {
+        inWorld.generateChunk(x, z, listener);
     }
 }

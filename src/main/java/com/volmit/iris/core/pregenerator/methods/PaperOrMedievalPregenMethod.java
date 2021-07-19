@@ -62,7 +62,7 @@ public class PaperOrMedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
-        method.generateChunk(x, z);
+    public void generateChunk(int x, int z, PregenListener listener) {
+        method.generateChunk(x, z, listener);
     }
 }

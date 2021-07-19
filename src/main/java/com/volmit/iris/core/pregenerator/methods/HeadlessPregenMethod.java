@@ -64,7 +64,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
+    public void generateChunk(int x, int z, PregenListener listener) {
         throw new UnsupportedOperationException();
     }
 }

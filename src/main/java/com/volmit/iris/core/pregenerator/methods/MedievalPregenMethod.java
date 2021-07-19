@@ -20,24 +20,45 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.concurrent.CompletableFuture;
+
 public class MedievalPregenMethod implements PregeneratorMethod {
     private final World world;
+    private final KList<CompletableFuture<?>> futures;
 
     public MedievalPregenMethod(World world)
     {
         this.world = world;
+        futures = new KList<>();
+    }
+
+    private void waitForChunks()
+    {
+        for(CompletableFuture<?> i : futures)
+        {
+            try {
+                i.get();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
+
+        futures.clear();
     }
 
     private void unloadAndSaveAllChunks() {
+        waitForChunks();
         J.s(() -> {
             for(Chunk i : world.getLoadedChunks())
             {
                 i.unload(true);
             }
+            world.save();
         });
     }
 
@@ -49,13 +70,11 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         unloadAndSaveAllChunks();
-        world.save();
     }
 
     @Override
     public void save() {
         unloadAndSaveAllChunks();
-        world.save();
     }
 
     @Override
@@ -74,7 +93,16 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateChunk(int x, int z) {
-        world.getChunkAt(x, z);
+    public void generateChunk(int x, int z, PregenListener listener) {
+        if(futures.size() > 32)
+        {
+            waitForChunks();
+        }
+
+        listener.onChunkGenerating(x, z);
+        futures.add(J.sfut(() -> {
+            world.getChunkAt(x, z);
+            listener.onChunkGenerated(x, z);
+        }));
     }
 }

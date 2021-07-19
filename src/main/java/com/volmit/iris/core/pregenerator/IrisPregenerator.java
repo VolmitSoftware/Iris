@@ -63,6 +63,7 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
+        task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
             @Override
@@ -104,7 +105,6 @@ public class IrisPregenerator {
     public void start()
     {
         init();
-        task.iterateRegions((__, ___) -> totalChunks.addAndGet(1024));
         ticker.start();
         task.iterateRegions(this::visitRegion);
         shutdown();

@@ -140,7 +140,12 @@ public class CommandIrisPregen extends MortarCommand {
             }
             World world = Bukkit.getWorld(args[1]);
             try {
-                new Pregenerator(world, getVal(args[0]) * 2);
+                new PregeneratorJob(PregenTask
+                        .builder()
+                        .center(new Position2(0, 0))
+                        .radius(getVal(args[0]))
+                        .build(),
+                        new PaperOrMedievalPregenMethod(world, 16));
             } catch (NumberFormatException e) {
                 Iris.reportError(e);
                 sender.sendMessage("Invalid argument in command");

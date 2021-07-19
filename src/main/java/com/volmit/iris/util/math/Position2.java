@@ -43,6 +43,11 @@ public class Position2 {
         this.z = z;
     }
 
+    public String toString()
+    {
+        return "[" + x + "," + z + "]";
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

@@ -18,11 +18,7 @@
 
 package com.volmit.iris.core.pregenerator;
 
-import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -147,11 +143,7 @@ public class IrisPregenerator {
 
         else
         {
-            task.iterateRegion(x, z, (xx, zz) -> {
-                listener.onChunkGenerating(xx, zz);
-                generator.generateChunk(xx, zz);
-                listener.onChunkGenerated(xx, zz);
-            });
+            task.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
         }
 
         listener.onRegionGenerated(x, z);

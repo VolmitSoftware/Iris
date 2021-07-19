@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.headless;
 
+import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -49,6 +50,11 @@ public class HeadlessGenerator {
     public void generateRegion(int x, int z)
     {
         generator.directWriteMCA(world.getWorld(), x, z, writer, burst);
+    }
+
+    public void generateRegion(int x, int z, PregenListener listener)
+    {
+        generator.directWriteMCA(world.getWorld(), x, z, writer, burst, listener);
     }
 
     public File generateRegionToFile(int x, int z)

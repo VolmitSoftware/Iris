@@ -60,6 +60,7 @@ public class PregeneratorJob implements PregenListener {
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
         this.pregenerator.start();
+        open();
     }
 
     public static boolean shutdownInstance() {

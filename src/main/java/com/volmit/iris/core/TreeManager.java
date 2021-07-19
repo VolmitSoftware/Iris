@@ -20,8 +20,6 @@ import java.util.Objects;
 
 public class TreeManager implements Listener {
 
-    private static final boolean debugMe = false;
-
     public static final int maxSaplingPlane = 5;
 
     public TreeManager() {
@@ -41,11 +39,12 @@ public class TreeManager implements Listener {
     @EventHandler
     public void onStructureGrowEvent(StructureGrowEvent event) {
 
-        if (debugMe)
-            Iris.info("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
+        Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
 
         // Must be iris world
-        if (!IrisWorlds.isIrisWorld(event.getWorld())) return;
+        if (!IrisWorlds.isIrisWorld(event.getWorld())) {
+            return;
+        }
 
         IrisAccess worldAccess;
         try {
@@ -56,10 +55,12 @@ public class TreeManager implements Listener {
         }
         IrisTreeSettings settings = worldAccess.getCompound().getRootDimension().getSaplingSettings();
 
-        if (debugMe) Iris.info("Custom saplings are enabled: " + (settings.isEnabled() ? "Yes" : "No"));
+        Iris.debug("Custom saplings are enabled: " + (settings.isEnabled() ? "Yes" : "No"));
 
         // Must have override enabled
-        if (!settings.isEnabled()) return;
+        if (!settings.isEnabled()) {
+            return;
+        }
 
         KList<String> treeObjects = new KList<>();
 
@@ -67,12 +68,9 @@ public class TreeManager implements Listener {
         IrisBiome biome = worldAccess.getBiome(event.getLocation().getBlockX(), event.getLocation().getBlockY(), event.getLocation().getBlockZ());
         IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(event.getLocation().getBlockX(), event.getLocation().getBlockZ());
 
-        if (debugMe)
-            Iris.info("Biome name: " + biome.getName() + " | List of saplings: " + biome.getSaplings().toString());
-        if (debugMe)
-            Iris.info("Region name: " + region.getName() + " | List of saplings: " + region.getSaplings().toString());
-        if (debugMe)
-            Iris.info("Dimension saplings: " + settings.getSaplings().toString());
+        Iris.debug("Biome name: " + biome.getName() + " | List of saplings: " + biome.getSaplings().toString());
+        Iris.debug("Region name: " + region.getName() + " | List of saplings: " + region.getSaplings().toString());
+        Iris.debug("Dimension saplings: " + settings.getSaplings().toString());
 
         // Get sapling location
         KList<Location> saplingLocations = getSaplingPlane(event.getLocation());
@@ -82,17 +80,21 @@ public class TreeManager implements Listener {
         treeObjects.addAll(getSaplingsFrom(biome.getSaplings(), event.getSpecies(), saplingSize));
 
         // Check region
-        if (settings.getMode() == IrisTreeModes.ALL || treeObjects.size() == 0)
+        if (settings.getMode() == IrisTreeModes.ALL || treeObjects.size() == 0) {
             treeObjects.addAll(getSaplingsFrom(region.getSaplings(), event.getSpecies(), saplingSize));
+        }
 
         // Check dimension
-        if (settings.getMode() == IrisTreeModes.ALL || treeObjects.size() == 0)
+        if (settings.getMode() == IrisTreeModes.ALL || treeObjects.size() == 0) {
             treeObjects.addAll(getSaplingsFrom(settings.getSaplings(), event.getSpecies(), saplingSize));
+        }
 
-        if (debugMe) Iris.info("List of saplings (together): " + treeObjects);
+        Iris.debug("List of saplings (together): " + treeObjects);
 
         // Check to make sure something was found
-        if (treeObjects.size() == 0) return;
+        if (treeObjects.size() == 0) {
+            return;
+        }
 
         // Pick a random object from the list of objects found
         String pickedObjectString = treeObjects.get(RNG.r.i(0, treeObjects.size() - 1));
@@ -101,7 +103,7 @@ public class TreeManager implements Listener {
         event.setCancelled(true);
 
         // Retrieve & place the object
-        if (debugMe) Iris.info("Placing tree object instead of vanilla tree: " + pickedObjectString);
+        Iris.debug("Placing tree object instead of vanilla tree: " + pickedObjectString);
         IrisObject pickedObject = IrisDataManager.loadAnyObject(pickedObjectString);
 
         // Delete the saplings (some objects may not have blocks where the sapling is)
@@ -121,7 +123,7 @@ public class TreeManager implements Listener {
      */
     private void deleteSaplings(KList<Location> locations) {
         locations.forEach(l -> {
-            if (debugMe) Iris.info("Deleting block of type: " + l.getBlock().getType());
+            Iris.debug("Deleting block of type: " + l.getBlock().getType());
             l.getBlock().setType(Material.AIR);
         });
     }
@@ -181,8 +183,9 @@ public class TreeManager implements Listener {
         // TODO: Debug getBlockMap
         boolean[][] map = getBlockMap(location);
 
-        for (boolean[] row : map)
+        for (boolean[] row : map) {
             Iris.info(Arrays.toString(row));
+        }
 
         // TODO: Write logic here that checks for the largest possible square with the Location included
         // TODO: The boolean[][] map has true's where there's another sapling of the same type, and false if not.

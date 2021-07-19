@@ -444,7 +444,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         PrecisionStopwatch ps = PrecisionStopwatch.start();
         TerrainChunk tc = TerrainChunk.create(world, biome);
-        generateChunkRawData(getComposite().getWorld(), x, z, tc).run();
+        IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
+        generateChunkRawData(ww, x, z, tc).run();
 
         if(!getComposite().getWorld().hasRealWorld())
         {

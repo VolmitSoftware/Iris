@@ -216,11 +216,11 @@ public class PregeneratorJob implements PregenListener {
     }
 
     private Position2 getMax() {
-        return task.getCenter().add(task.getRadius(), task.getRadius()).topLeftChunkOfRegion();
+        return task.getCenter().add(task.getRadius(), task.getRadius()).regionToChunk();
     }
 
     private Position2 getMin() {
-        return task.getCenter().add(-task.getRadius(), -task.getRadius()).topLeftChunkOfRegion();
+        return task.getCenter().add(-task.getRadius(), -task.getRadius()).regionToChunk();
     }
 
     private boolean paused() {

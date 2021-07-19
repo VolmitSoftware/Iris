@@ -143,7 +143,7 @@ public class IrisPregenerator {
 
         else
         {
-            task.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
+            PregenTask.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
         }
 
         listener.onRegionGenerated(x, z);

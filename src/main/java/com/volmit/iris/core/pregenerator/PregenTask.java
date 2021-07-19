@@ -18,11 +18,14 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.Spiraled;
 import com.volmit.iris.util.math.Spiraler;
 import lombok.Builder;
 import lombok.Data;
+
+import java.util.Comparator;
 
 @Builder
 @Data
@@ -33,24 +36,41 @@ public class PregenTask {
     @Builder.Default
     private int radius = 1;
 
+    private static final KList<Position2> order = computeChunkOrder();
+
     public void iterateRegions(Spiraled s)
     {
         new Spiraler(radius * 2, radius * 2, s)
                 .setOffset(center.getX(), center.getZ()).drain();
     }
 
-    public void iterateRegion(int x, int z, Spiraled s)
+    public static void iterateRegion(int xr, int zr, Spiraled s)
     {
-        new Spiraler(33, 33, (xx, zz) -> {
-            if (xx < 0 || xx > 31 || zz < 0 || zz > 31) {
-                s.on(xx+(x<<5), zz+(z<<5));
-            }
-        }).setOffset(15, 15).drain();
+        for(Position2 i : order)
+        {
+            s.on(i.getX() + (xr << 5), i.getZ() + (zr << 5));
+        }
     }
 
     public void iterateAllChunks(Spiraled s)
     {
         new Spiraler(radius * 2, radius * 2, (x, z) -> iterateRegion(x, z, s))
                 .setOffset(center.getX(), center.getZ()).drain();
+    }
+
+    private static KList<Position2> computeChunkOrder() {
+        Position2 center = new Position2(15, 15);
+        KList<Position2> p = new KList<>();
+        new Spiraler(33, 33, (x, z) -> {
+            int xx = x + 15;
+            int zz = z + 15;
+            if (xx < 0 || xx > 31 || zz < 0 || zz > 31) {
+                return;
+            }
+
+            p.add(new Position2(xx, zz));
+        }).drain();
+        p.sort(Comparator.comparing((i) -> i.distance(center)));
+        return p;
     }
 }

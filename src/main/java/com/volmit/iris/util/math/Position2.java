@@ -52,6 +52,26 @@ public class Position2 {
         return result;
     }
 
+    public Position2 topLeftChunkOfRegion()
+    {
+        return new Position2((x >> 5) << 5, (z >> 5) << 5);
+    }
+
+    public Position2 bottomRightChunkOfRegion()
+    {
+        return new Position2((((x >> 5)+1) << 5) - 1, (((z >> 5)+1) << 5) - 1);
+    }
+
+    public Position2 topRightChunkOfRegion()
+    {
+        return new Position2((((x >> 5)+1) << 5) - 1, (z >> 5) << 5);
+    }
+
+    public Position2 bottomLeftChunkOfRegion()
+    {
+        return new Position2((x >> 5) << 5, (((z >> 5)+1) << 5) - 1);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -65,5 +85,9 @@ public class Position2 {
 
     public double distance(Position2 center) {
         return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
+    }
+
+    public Position2 add(int x, int z) {
+        return new Position2(this.x + x, this.z + z);
     }
 }

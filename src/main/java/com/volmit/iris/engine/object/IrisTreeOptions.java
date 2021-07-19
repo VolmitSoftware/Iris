@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -18,5 +19,6 @@ public class IrisTreeOptions {
     private boolean enabled = false;
 
     @Desc("Tree overrides affected by these object placements")
+    @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
 }

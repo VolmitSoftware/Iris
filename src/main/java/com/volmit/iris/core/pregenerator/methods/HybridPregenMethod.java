@@ -19,6 +19,7 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisWorlds;
@@ -41,7 +42,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     private boolean supportsHeadless(World world) {
-        return IrisWorlds.access(world) != null;
+        return IrisWorlds.access(world) != null && IrisSettings.get().getGenerator().isMcaPregenerator();
     }
 
     @Override

@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.DecorationPart;
 import com.volmit.iris.engine.object.InferredType;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 
@@ -34,6 +35,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         super(engine, "Surface", DecorationPart.NONE);
     }
 
+    @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         if (biome.getInferredType().equals(InferredType.SHORE) && height < getDimension().getFluidHeight()) {

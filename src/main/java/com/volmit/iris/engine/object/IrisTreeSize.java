@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
 import org.bukkit.Location;
@@ -30,6 +31,16 @@ public enum IrisTreeSize {
 
     @Desc("Five by five center")
     FIVE_CENTER;
+
+    /**
+     * All sizes in this enum
+     */
+    public static final KList<IrisTreeSize> sizes = new KList<>(ONE, TWO, THREE_ANY, THREE_CENTER, FOUR, FIVE_ANY, FIVE_CENTER);
+
+    /**
+     * The best size in this enum
+     */
+    public static final IrisTreeSize bestSize = FIVE_CENTER;
 
     /**
      * Whether the position of the any type (not fixed at a center)
@@ -73,14 +84,28 @@ public enum IrisTreeSize {
         }
     }
 
+    /**
+     * Find the best size based on a location
+     * @param location The location to look from
+     * @return The best size
+     */
     public static IrisTreeSize getBestSize(Location location){
-        KList<IrisTreeSize> sizes = new KList<>(ONE, TWO, THREE_ANY, THREE_CENTER, FOUR, FIVE_ANY, FIVE_CENTER);
-        while (sizes.isNotEmpty()){
+        return getBestSize(location, sizes.copy());
+    }
+
+    /**
+     * Find the best valid size based on a location and a list of sizes
+     * @param location The location to search from
+     * @param sizeList The list of sizes to pick from
+     * @return The best valid size
+     */
+    public static IrisTreeSize getBestSize(Location location, KList<IrisTreeSize> sizeList){
+        while (sizeList.isNotEmpty()){
 
             // Find the best size & remove from list
-            IrisTreeSize bestSize = bestSize(sizes);
+            IrisTreeSize bestSize = bestSize(sizeList);
             assert bestSize != null;
-            sizes.remove(bestSize);
+            sizeList.remove(bestSize);
 
             // Find the best match
             KList<KList<Location>> best = isSizeValid(bestSize, location);
@@ -89,6 +114,7 @@ public enum IrisTreeSize {
             }
         }
         return ONE;
+
     }
 
     /**
@@ -98,56 +124,44 @@ public enum IrisTreeSize {
      * @return A list of locations if any match, or null if not.
      */
     public static KList<KList<Location>> isSizeValid(IrisTreeSize size, Location location) {
-        switch (size){
-            case ONE -> {
-                return new KList<KList<Location>>(new KList<>(location));
-            }
-            case TWO -> {
-                return loopLocation(location, 2, location.getBlock().getType());
-            }
-            case THREE_ANY -> {
-                return loopLocation(location, 3, location.getBlock().getType());
-            }
-            case THREE_CENTER -> {
-                KList<KList<Location>> locations = getMap(3, location, true);
-                if (locations == null) {
-                    return null;
-                }
-                return isMapValid(locations, location.getBlock().getType()) ? locations : null;
-            }
-            case FOUR -> {
-                return loopLocation(location, 4, location.getBlock().getType());
-            }
-            case FIVE_ANY -> {
-                return loopLocation(location, 5, location.getBlock().getType());
-            }
-            case FIVE_CENTER -> {
-                KList<KList<Location>> locations = getMap(5, location, true);
-                if (locations == null) {
-                    return null;
-                }
-                return isMapValid(locations, location.getBlock().getType()) ? locations : null;
-            }
-            default -> {
-                return null;
-            }
-        }
+        return switch (size){
+            case ONE            -> new KList<KList<Location>>(new KList<>(location));
+            case TWO            -> loopLocation(location, 2);
+            case THREE_ANY      -> loopLocation(location, 3);
+            case FOUR           -> loopLocation(location, 4);
+            case FIVE_ANY       -> loopLocation(location, 5);
+            case THREE_CENTER   -> isCenterMapValid(location, 3);
+            case FIVE_CENTER    -> isCenterMapValid(location, 5);
+        };
     }
 
     /**
+     * Check a map with
+     * @param center this block location as a center
+     * @param size with this size map
+     * @return A 2d KList of locations or null
+     */
+    private static KList<KList<Location>> isCenterMapValid(Location center, int size) {
+        KList<KList<Location>> locations = getMap(size, center, true);
+        return isMapValid(locations, center.getBlock().getType()) ? locations : null;
+    }
+
+
+    /**
      * Loops over all possible squares based on
-     * @param location top left position
+     * @param center center position
      * @param size a square size
-     * @param blockType and a type of a block
      * @return A list of matching locations, or null.
      */
-    private static KList<KList<Location>> loopLocation(Location location, int size, Material blockType){
-        Location leftTop = location.add(-size + 1, 0, -size + 1);
+    private static KList<KList<Location>> loopLocation(Location center, int size){
+        Material blockType = center.getBlock().getType();
         KList<KList<Location>> locations;
         for (int i = -size + 1; i <= 0; i++){
             for (int j = -size + 1; j <= 0; j++){
-                locations = getMap(size, leftTop.add(i, 0, j));
+                locations = getMap(size, center.clone().add(i, 0, j));
                 if (isMapValid(locations, blockType)){
+                    Iris.info("Valid map for size " + size + " with material " + blockType.name() + " with center" + center);
+                    Iris.info("Locations: " + locations);
                     return locations;
                 }
             }
@@ -162,6 +176,7 @@ public enum IrisTreeSize {
      * @return True if it's valid
      */
     private static boolean isMapValid(KList<KList<Location>> map, Material block){
+        if (map == null) return false;
         return map.stream().allMatch(row -> row.stream().allMatch(location -> location.getBlock().getType().equals(block)));
     }
 
@@ -176,7 +191,7 @@ public enum IrisTreeSize {
         for (int i = 0; i < size; i++){
             KList<Location> row = new KList<>();
             for (int j = 0; j < size; j++){
-                row.add(leftTop.add(i, 0, j));
+                row.add(leftTop.clone().add(i, 0, j));
             }
             locations.add(row);
         }
@@ -194,6 +209,6 @@ public enum IrisTreeSize {
         if (size % 2 != 1){
             return null;
         }
-        return getMap(size, center.add(-(size - 1) / 2d, 0, -(size - 1) / 2d));
+        return getMap(size, center.clone().add(-(size - 1) / 2d, 0, -(size - 1) / 2d));
     }
 }

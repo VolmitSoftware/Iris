@@ -42,7 +42,7 @@ public abstract class Looper extends Thread {
             }
         }
 
-        Iris.info("Thread " + getName() + " Shutdown.");
+        Iris.info("Thread " + getName() + " Shutdown. Pregen stopped / finished.");
     }
 
     protected abstract long loop();

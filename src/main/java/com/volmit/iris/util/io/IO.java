@@ -321,7 +321,14 @@ public class IO {
     }
 
     public static void writeAll(File f, Object c) throws IOException {
-        f.getParentFile().mkdirs();
+        try {
+            f.getParentFile().mkdirs();
+        }
+        catch(Throwable ignored)
+        {
+
+        }
+
         PrintWriter pw = new PrintWriter(new FileWriter(f));
         pw.println(c.toString());
         pw.close();

@@ -73,7 +73,12 @@ public class PregeneratorJob implements PregenListener {
             max.setX(Math.max((xx << 5) + 31, max.getX()));
             max.setZ(Math.max((zz << 5) + 31, max.getZ()));
         });
-        open();
+
+        if(IrisSettings.get().getGui().isUseServerLaunchedGuis())
+        {
+            open();
+        }
+
         J.a(this.pregenerator::start, 20);
     }
 

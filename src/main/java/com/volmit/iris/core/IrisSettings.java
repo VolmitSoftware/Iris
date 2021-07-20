@@ -114,7 +114,7 @@ public class IrisSettings {
         public boolean systemEffects = true;
         public boolean systemEntitySpawnOverrides = true;
         public boolean systemEntityInitialSpawns = true;
-        public int maxBiomeChildDepth = 5;
+        public int maxBiomeChildDepth = 4;
     }
 
     @Data

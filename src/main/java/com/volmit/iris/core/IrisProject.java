@@ -273,8 +273,9 @@ public class IrisProject {
                     break;
                 }
             }
-
-            sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+            if (sender.isPlayer()) {
+                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+            }
         });
 
         //@builder

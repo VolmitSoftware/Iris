@@ -108,6 +108,7 @@ public class IrisComplex implements DataProvider {
 
     public IrisComplex(Engine engine, boolean simple) {
         int cacheSize = 1024 * 128;
+        IrisBiome emptyBiome = new IrisBiome();
         this.rng = new RNG(engine.getWorld().seed());
         this.data = engine.getData();
         double height = engine.getHeight();
@@ -151,7 +152,7 @@ public class IrisComplex implements DataProvider {
                 .onNull("")
                 .convertCached((s) -> {
                     if (s.isEmpty()) {
-                        return new IrisBiome();
+                        return emptyBiome;
                     }
 
                     return data.getBiomeLoader().load(s)

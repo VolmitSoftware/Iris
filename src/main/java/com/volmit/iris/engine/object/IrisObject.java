@@ -992,4 +992,8 @@ public class IrisObject extends IrisRegistrant {
         }
         return locations;
     }
+
+    public int volume() {
+        return blocks.size();
+    }
 }

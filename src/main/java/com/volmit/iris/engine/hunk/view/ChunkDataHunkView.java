@@ -51,7 +51,6 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
             return;
         }
 
-        enforceBounds(x1, y1, z1, x2 - x1, y2 - y1, z2 - z1);
         chunk.setRegion(x1, y1, z1, x2, y2, z2, t);
     }
 

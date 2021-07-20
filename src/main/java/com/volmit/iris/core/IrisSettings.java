@@ -63,7 +63,7 @@ public class IrisSettings {
             return 2;
         }
 
-        return c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c;
+        return Math.max(2, c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c);
     }
 
     @Data
@@ -73,8 +73,12 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsConcurrency {
-        public int threadCount = -1;
+        public int engineThreadCount = -1;
+        public int engineThreadPriority = 6;
         public int pregenThreadCount = -1;
+        public int pregenThreadPriority = 8;
+        public int miscThreadCount = -4;
+        public int miscThreadPriority = 3;
     }
 
     @Data

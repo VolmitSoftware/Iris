@@ -20,6 +20,7 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
@@ -121,7 +122,24 @@ public class IrisToolbelt {
             return pregenerate(task, new HeadlessPregenMethod(access.getHeadlessGenerator().getWorld(), access.getHeadlessGenerator()));
         }
 
-        return pregenerate(task, new HybridPregenMethod(access.getCompound().getWorld().realWorld(), Runtime.getRuntime().availableProcessors()));
+        return pregenerate(task, new HybridPregenMethod(access.getCompound().getWorld().realWorld(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())));
+    }
+
+    /**
+     * Start a pregenerator task. If the supplied generator is headless, headless mode is used,
+     * otherwise Hybrid mode is used.
+     * @param task the scheduled task
+     * @param world the World
+     * @return the pregenerator job (already started)
+     */
+    public static PregeneratorJob pregenerate(PregenTask task, World world)
+    {
+        if(isIrisWorld(world))
+        {
+            return pregenerate(task, access(world));
+        }
+
+        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())));
     }
 
     /**

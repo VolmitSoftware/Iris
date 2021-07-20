@@ -78,9 +78,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MultiverseCoreLink linkMultiverseCore;
     public static MythicMobsLink linkMythicMobs;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
-    public static boolean customModels = doesSupportCustomModels();
-    public static boolean awareEntities = doesSupportAwareness();
-    public static boolean lowMemoryMode = false;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
 
@@ -94,7 +91,6 @@ public class Iris extends VolmitPlugin implements Listener {
         instance = this;
         INMS.get();
         IO.delete(new File("iris"));
-        lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4;
         installDataPacks();
     }
 
@@ -153,30 +149,6 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         Iris.info("Data Packs Setup!");
-    }
-
-    private static boolean doesSupportCustomModels() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 14;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
-    }
-
-    private static boolean doesSupportAwareness() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 15;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
     }
 
     @Override
@@ -545,18 +517,6 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         Iris.info("\n\n " + new KList<>(splash).toString("\n") + "\n");
-
-        if (lowMemoryMode) {
-            Iris.verbose("* Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
-        }
-
-        if (!customModels) {
-            Iris.verbose("* This version of minecraft does not support custom model data in loot items (1.14 and up). Iris will generate as normal, but loot will not have custom models.");
-        }
-
-        if (!doesSupportAwareness()) {
-            Iris.verbose("* This version of minecraft does not support entity awareness.");
-        }
     }
 
     @SuppressWarnings("deprecation")

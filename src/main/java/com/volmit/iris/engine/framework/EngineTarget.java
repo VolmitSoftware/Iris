@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
@@ -43,7 +44,7 @@ public class EngineTarget {
         this.dimension = dimension;
         this.data = data;
         this.inverted = inverted;
-        this.burster = new MultiBurst("Iris Engine " + dimension.getName(), threads, 6);
+        this.burster = new MultiBurst("Iris Engine " + dimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(), threads);
         this.parallaxWorld = new ParallaxWorld(burster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 

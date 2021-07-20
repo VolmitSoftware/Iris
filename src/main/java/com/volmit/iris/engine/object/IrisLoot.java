@@ -142,10 +142,15 @@ public class IrisLoot {
                 i.apply(rng, m);
             }
 
-            if (Iris.customModels) {
+            try
+            {
                 m.setCustomModelData(getCustomModel());
             }
 
+            catch(Throwable e)
+            {
+                Iris.reportError(e);
+            }
             m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
             m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
             m.setUnbreakable(isUnbreakable());
@@ -226,8 +231,14 @@ public class IrisLoot {
                     i.apply(rng, m);
                 }
 
-                if (Iris.customModels) {
+                try
+                {
                     m.setCustomModelData(getCustomModel());
+                }
+
+                catch(Throwable e)
+                {
+                    Iris.reportError(e);
                 }
 
                 m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));

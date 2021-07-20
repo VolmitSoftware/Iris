@@ -357,8 +357,13 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getCompound().isStudio();
     }
 
+    default MultiBurst burst()
+    {
+        return getTarget().getBurster();
+    }
+
     default void clean() {
-        MultiBurst.burst.lazy(() -> getParallax().cleanup());
+        burst().lazy(() -> getParallax().cleanup());
     }
 
     default IrisBiome getBiome(Location l) {

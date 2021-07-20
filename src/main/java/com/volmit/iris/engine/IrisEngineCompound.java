@@ -20,6 +20,7 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineCompound;
 import com.volmit.iris.engine.framework.EngineData;
@@ -98,7 +99,7 @@ public class IrisEngineCompound implements EngineCompound {
         } else {
             double totalWeight = 0D;
             engines = new Engine[rootDimension.getDimensionalComposite().size()];
-            burster = engines.length > 1 ? new MultiBurst(engines.length) : null;
+            burster = engines.length > 1 ? new MultiBurst("Iris Compound " + rootDimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(),  engines.length) : null;
             int threadDist = (Math.max(2, maximumThreads - engines.length)) / engines.length;
 
             if ((threadDist * engines.length) + engines.length > maximumThreads) {

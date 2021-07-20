@@ -262,7 +262,7 @@ public class LightingTaskBatch implements LightingTask {
             LightingChunk nextChunk = null;
             CompletableFuture<Void> nextChunkFuture = null;
             synchronized (chunks_lock) {
-                for (; i < chunks.length && numBeingLoaded < IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getThreadCount()); i++) {
+                for (; i < chunks.length && numBeingLoaded < IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount()); i++) {
                     LightingChunk lc = chunks[i];
                     if (lc.loadingStarted) {
                         continue; // Already (being) loaded

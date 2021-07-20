@@ -257,7 +257,7 @@ public class ParallaxWorld implements ParallaxAccess {
 
     @Override
     public void saveAll() {
-        MultiBurst.burst.lazy(this::saveAllNOW);
+        burst.lazy(this::saveAllNOW);
     }
 
     @Override

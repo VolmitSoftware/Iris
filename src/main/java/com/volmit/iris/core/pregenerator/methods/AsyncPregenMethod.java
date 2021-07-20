@@ -44,7 +44,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = new MultiBurst("Iris PaperAsync Pregenerator", 6, threads);
+        burst = new MultiBurst("Iris Async Pregenerator", IrisSettings.get().getConcurrency().getPregenThreadPriority(), threads);
         future = new KList<>(1024);
     }
 

@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -108,12 +109,11 @@ public class CommandIrisPregen extends MortarCommand {
                 }
             }
             try {
-                new PregeneratorJob(PregenTask
+                IrisToolbelt.pregenerate(PregenTask
                         .builder()
-                            .center(new Position2(0, 0))
-                            .radius(((getVal(args[0])>>4)>>5) + 1)
-                        .build(),
-                        new HybridPregenMethod(world, Runtime.getRuntime().availableProcessors()));
+                        .center(new Position2(0, 0))
+                        .radius(((getVal(args[0])>>4)>>5) + 1)
+                        .build(), world);
             } catch (NumberFormatException e) {
                 Iris.reportError(e);
                 sender.sendMessage("Invalid argument in command");

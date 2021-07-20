@@ -19,16 +19,16 @@
 package com.volmit.iris.engine.parallel;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 
 import java.util.concurrent.*;
 
 public class MultiBurst {
-    public static final MultiBurst burst = new MultiBurst("Iris", 6, Runtime.getRuntime().availableProcessors());
+    public static final MultiBurst burst = new MultiBurst("Iris", IrisSettings.get().getConcurrency().getMiscThreadPriority(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getMiscThreadCount()));
     private final ExecutorService service;
     private ExecutorService syncService;
     private int tid;
-
 
     public MultiBurst(int tc) {
         this("Iris", 6, tc);

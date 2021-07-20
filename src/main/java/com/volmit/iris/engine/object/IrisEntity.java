@@ -279,7 +279,7 @@ public class IrisEntity extends IrisRegistrant {
             }, 1);
         }
 
-        if (Iris.awareEntities && e instanceof Mob) {
+        if (e instanceof Mob) {
             Mob m = (Mob) e;
             m.setAware(isAware());
         }

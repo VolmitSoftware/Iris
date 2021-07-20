@@ -23,12 +23,12 @@ import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import io.papermc.lib.PaperLib;
 import org.bukkit.World;
 
-public class PaperOrMedievalPregenMethod implements PregeneratorMethod {
+public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
 
-    public PaperOrMedievalPregenMethod(World world, int threads)
+    public AsyncOrMedievalPregenMethod(World world, int threads)
     {
-        method = PaperLib.isPaper() ? new PaperAsyncPregenMethod(world, threads) : new MedievalPregenMethod(world);
+        method = PaperLib.isPaper() ? new AsyncPregenMethod(world, threads) : new MedievalPregenMethod(world);
     }
 
     @Override

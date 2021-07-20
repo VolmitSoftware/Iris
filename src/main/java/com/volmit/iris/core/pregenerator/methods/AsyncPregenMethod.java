@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -30,12 +31,12 @@ import org.bukkit.World;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class PaperAsyncPregenMethod implements PregeneratorMethod {
+public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final MultiBurst burst;
     private final KList<CompletableFuture<?>> future;
 
-    public PaperAsyncPregenMethod(World world, int threads)
+    public AsyncPregenMethod(World world, int threads)
     {
         if(!PaperLib.isPaper())
         {
@@ -119,7 +120,7 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(future.size() > 16)
+        if(future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()))
         {
             waitForChunks();
         }

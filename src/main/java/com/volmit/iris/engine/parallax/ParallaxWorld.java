@@ -40,10 +40,12 @@ public class ParallaxWorld implements ParallaxAccess {
     private final KMap<Long, ParallaxRegion> loadedRegions;
     private final KList<Long> save;
     private final File folder;
+    private final MultiBurst burst;
     private final int height;
 
-    public ParallaxWorld(int height, File folder) {
+    public ParallaxWorld(MultiBurst burst, int height, File folder) {
         this.height = height;
+        this.burst = burst;
         this.folder = folder;
         save = new KList<>();
         loadedRegions = new KMap<>();
@@ -125,7 +127,7 @@ public class ParallaxWorld implements ParallaxAccess {
             return loadedRegions.get(key(x, z));
         }
 
-        ParallaxRegion v = new ParallaxRegion(height, folder, x, z);
+        ParallaxRegion v = new ParallaxRegion(burst, height, folder, x, z);
         loadedRegions.put(key(x, z), v);
 
         return v;

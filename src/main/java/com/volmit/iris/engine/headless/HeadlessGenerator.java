@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.headless;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.data.mca.LoadFlags;
 import com.volmit.iris.engine.data.mca.MCAFile;
@@ -43,7 +44,7 @@ public class HeadlessGenerator {
     public HeadlessGenerator(HeadlessWorld world)
     {
         this.world = world;
-        burst = new MultiBurst("Iris Headless Generator", 9, Runtime.getRuntime().availableProcessors());
+        burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
         generator = new EngineCompositeGenerator(world.getDimension().getLoadKey(), !world.isStudio());
         generator.assignHeadlessGenerator(this);

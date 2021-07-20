@@ -98,8 +98,8 @@ public class HunkRegionSlice<T> {
         }
     }
 
-    public synchronized void save() {
-        BurstExecutor e = MultiBurst.burst.burst();
+    public synchronized void save(MultiBurst burst) {
+        BurstExecutor e = burst.burst();
 
         try
         {

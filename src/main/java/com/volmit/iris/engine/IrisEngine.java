@@ -25,10 +25,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -42,8 +39,6 @@ import org.bukkit.generator.BlockPopulator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 public class IrisEngine extends BlockPopulator implements Engine {
     @Getter

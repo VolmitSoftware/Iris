@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
@@ -261,7 +262,7 @@ public class LightingTaskBatch implements LightingTask {
             LightingChunk nextChunk = null;
             CompletableFuture<Void> nextChunkFuture = null;
             synchronized (chunks_lock) {
-                for (; i < chunks.length && numBeingLoaded < Iris.getThreadCount(); i++) {
+                for (; i < chunks.length && numBeingLoaded < IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getThreadCount()); i++) {
                     LightingChunk lc = chunks[i];
                     if (lc.loadingStarted) {
                         continue; // Already (being) loaded

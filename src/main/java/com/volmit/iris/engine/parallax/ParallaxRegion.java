@@ -25,6 +25,7 @@ import com.volmit.iris.engine.hunk.io.HunkRegion;
 import com.volmit.iris.engine.hunk.io.HunkRegionSlice;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.GridLock;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
@@ -50,16 +51,19 @@ public class ParallaxRegion extends HunkRegion {
     private final GridLock lock;
     private long lastUse;
     private final int height;
+    private final MultiBurst burst;
 
-    public ParallaxRegion(int height, File folder, int x, int z, CompoundTag compound) {
+    public ParallaxRegion(MultiBurst burst, int height, File folder, int x, int z, CompoundTag compound) {
         super(folder, x, z, compound);
+        this.burst = burst;
         this.height = height;
         setupSlices();
         lock = new GridLock(32, 32);
     }
 
-    public ParallaxRegion(int height, File folder, int x, int z) {
+    public ParallaxRegion(MultiBurst burst, int height, File folder, int x, int z) {
         super(folder, x, z);
+        this.burst = burst;
         this.height = height;
         setupSlices();
         lock = new GridLock(32, 32);
@@ -155,12 +159,13 @@ public class ParallaxRegion extends HunkRegion {
         }
     }
 
+    @Override
     public synchronized void save() throws IOException {
-        blockSlice.save();
-        objectSlice.save();
-        entitySlice.save();
-        tileSlice.save();
-        updateSlice.save();
+        blockSlice.save(burst);
+        objectSlice.save(burst);
+        entitySlice.save(burst);
+        tileSlice.save(burst);
+        updateSlice.save(burst);
         saveMetaHunk();
         Iris.debug("Saved Parallax Region "+ C.GOLD + getX() + " " + getZ());
         super.save();

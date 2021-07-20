@@ -107,7 +107,7 @@ public class IrisComplex implements DataProvider {
     }
 
     public IrisComplex(Engine engine, boolean simple) {
-        int cacheSize = 1024 * 128;
+        int cacheSize = 131072;
         IrisBiome emptyBiome = new IrisBiome();
         this.rng = new RNG(engine.getWorld().seed());
         this.data = engine.getData();

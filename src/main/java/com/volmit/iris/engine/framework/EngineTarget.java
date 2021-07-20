@@ -42,9 +42,9 @@ public class EngineTarget {
         this.height = height;
         this.dimension = dimension;
         this.data = data;
-        this.parallaxWorld = new ParallaxWorld(256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
         this.inverted = inverted;
-        this.burster = new MultiBurst(threads);
+        this.burster = new MultiBurst("Iris Engine " + dimension.getName(), threads, 6);
+        this.parallaxWorld = new ParallaxWorld(burster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 
     public EngineTarget(IrisWorld world, IrisDimension dimension, IrisDataManager data, int height, int threads) {

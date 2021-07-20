@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.util.collection.KList;
@@ -98,7 +99,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(futures.size() > 32)
+        if(futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()))
         {
             waitForChunks();
         }

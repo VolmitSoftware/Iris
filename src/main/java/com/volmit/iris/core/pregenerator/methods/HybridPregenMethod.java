@@ -38,7 +38,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
         this.world = world;
         headless = supportsHeadless(world)
                 ? new HeadlessPregenMethod(HeadlessWorld.from(world)) : new DummyPregenMethod();
-        inWorld = new PaperOrMedievalPregenMethod(world, threads);
+        inWorld = new AsyncOrMedievalPregenMethod(world, threads);
     }
 
     private boolean supportsHeadless(World world) {

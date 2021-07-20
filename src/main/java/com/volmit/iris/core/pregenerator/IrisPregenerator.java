@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.M;
@@ -96,6 +97,7 @@ public class IrisPregenerator {
                         generated.get(), totalChunks.get(),
                         totalChunks.get() - generated.get(),
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
+
                 return 1000;
             }
         };

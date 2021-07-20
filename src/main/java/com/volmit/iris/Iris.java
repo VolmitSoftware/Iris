@@ -155,30 +155,6 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.info("Data Packs Setup!");
     }
 
-    public static int getThreadCount() {
-        int tc = IrisSettings.get().getConcurrency().getThreadCount();
-
-        if (tc <= 0) {
-            int p = Runtime.getRuntime().availableProcessors();
-
-            return p > 16 ? 16 : Math.max(p, 4);
-        }
-
-        return tc;
-    }
-
-    private static boolean doesSupport3DBiomes() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 15;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
-    }
-
     private static boolean doesSupportCustomModels() {
         try {
             int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);

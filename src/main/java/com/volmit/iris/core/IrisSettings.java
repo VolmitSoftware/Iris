@@ -56,14 +56,25 @@ public class IrisSettings {
         return getParallax().getParallaxRegionEvictionMS();
     }
 
+    public static int getThreadCount(int c)
+    {
+        if(c < 2 && c >= 0)
+        {
+            return 2;
+        }
+
+        return c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c;
+    }
+
     @Data
     public static class IrisSettingsCache {
-        public int streamingCacheSize = 8192;
+        public int complexCacheSize = 131072;
     }
 
     @Data
     public static class IrisSettingsConcurrency {
         public int threadCount = -1;
+        public int pregenThreadCount = -1;
     }
 
     @Data
@@ -100,7 +111,6 @@ public class IrisSettings {
         public boolean systemEntitySpawnOverrides = true;
         public boolean systemEntityInitialSpawns = true;
         public int maxBiomeChildDepth = 5;
-
     }
 
     @Data

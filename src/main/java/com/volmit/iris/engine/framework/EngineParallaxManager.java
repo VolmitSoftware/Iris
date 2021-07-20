@@ -272,7 +272,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int i, j;
             KList<Runnable> after = new KList<>();
             int bs = (int) Math.pow((s * 2) + 1, 2);
-            BurstExecutor burst = MultiBurst.burst.burst(bs);
+            BurstExecutor burst = getEngine().getTarget().getBurster().burst(bs);
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
                     int xx = i + x;
@@ -294,7 +294,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             burst.complete();
 
             if (getEngine().getDimension().isPlaceObjects()) {
-                burst = MultiBurst.burst.burst(bs);
+                burst = getEngine().getTarget().getBurster().burst(bs);
 
                 for (i = -s; i <= s; i++) {
                     int ii = i;
@@ -310,7 +310,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
 
                 burst.complete();
-                burst = MultiBurst.burst.burst(bs);
+                burst = getEngine().getTarget().getBurster().burst(bs);
 
                 for (i = -s; i <= s; i++) {
                     int ii = i;
@@ -323,7 +323,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 burst.complete();
             }
 
-            MultiBurst.burst.burst(after);
+            getEngine().getTarget().getBurster().burst(after);
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
@@ -677,7 +677,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
-            BurstExecutor e = MultiBurst.burst.burst(objects.size());
+            BurstExecutor e = getEngine().getTarget().getBurster().burst(objects.size());
             KMap<String, BlockVector> sizeCache = new KMap<>();
             for (String i : objects) {
                 e.queue(() -> {

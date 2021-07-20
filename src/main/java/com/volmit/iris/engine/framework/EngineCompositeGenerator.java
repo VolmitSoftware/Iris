@@ -302,7 +302,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             initialized.set(true);
             IrisDimension dim = getDimension(world);
             IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
-            compound.set(new IrisEngineCompound(world, dim, data, Iris.getThreadCount()));
+            compound.set(new IrisEngineCompound(world, dim, data, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getThreadCount())));
             compound.get().setStudio(!production);
             populators.clear();
             populators.addAll(compound.get().getPopulators());

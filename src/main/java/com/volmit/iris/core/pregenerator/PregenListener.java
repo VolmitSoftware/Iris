@@ -31,6 +31,16 @@ public interface PregenListener {
 
     void onRegionSkipped(int x, int z);
 
+    void onNetworkStarted(int x, int z);
+
+    void onNetworkFailed(int x, int z);
+
+    void onNetworkReclaim(int revert);
+
+    void onNetworkGeneratedChunk(int x, int z);
+
+    void onNetworkDownloaded(int x, int z);
+
     void onClose();
 
     void onSaving();

@@ -20,10 +20,8 @@ package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.PregeneratorJob;
-import com.volmit.iris.core.gui.components.Pregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
-import com.volmit.iris.core.pregenerator.methods.PaperOrMedievalPregenMethod;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.MortarCommand;

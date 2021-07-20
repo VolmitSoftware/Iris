@@ -223,7 +223,6 @@ public class CommandIrisCreate extends MortarCommand {
                     .productionMode().seed(seed).create();
 
             J.s(() -> {
-                sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
                 O<Boolean> done = new O<>();
                 done.set(false);
 

@@ -132,6 +132,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         closed = true;
         getWorldManager().close();
         getFramework().close();
+        getTarget().close();
     }
 
     @Override

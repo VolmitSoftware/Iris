@@ -25,11 +25,10 @@ public class TreeManager implements Listener {
 
     /**This function does the following
      * <br>1. Is the sapling growing in an Iris world? No -> exit</br>
-     * <br>2. Is the sapling overwriting setting on in that dimension? No -> exit</br>
-     * <br>3. Check biome for overrides for that sapling type -> Found -> use</br>
-     * <br>4. Check region ...</br>
-     * <br>5. Check dimension ...</br>
-     * <br>6. Exit if none are found</br>
+     * <br>2. Is the Iris world accessible? No -> exit</br>
+     * <br>3. Is the sapling overwriting setting on in that dimension? No -> exit</br>
+     * <br>4. Check biome, region and dimension for overrides for that sapling type -> Found -> use</br>
+     * <br>5. Exit if none are found, cancel event if one or more are.</br>
      * @param event Checks the given event for sapling overrides
      */
     @EventHandler
@@ -66,7 +65,13 @@ public class TreeManager implements Listener {
         KMap<IrisTreeSize, KList<KList<Location>>> sizes = IrisTreeSize.getValidSizes(event.getLocation());
         KList<IrisTreeSize> keys = sizes.k();
 
-        // Find best object placement based on size
+        // Check if any were returned
+        if (keys.isEmpty()) {
+            Iris.debug(this.getClass().getName() + " found no matching sapling sizes for the grow event, which should be impossible (considering ONE is an option)");
+            return;
+        }
+
+        // Find best object placement based on sizes
         IrisObjectPlacement placement = null;
         while (placement == null && keys.isNotEmpty()){
             IrisTreeSize bestSize = IrisTreeSize.bestSizeInSizes(keys);
@@ -74,8 +79,9 @@ public class TreeManager implements Listener {
             placement = getObjectPlacement(worldAccess, event.getLocation(), type, bestSize);
         }
 
-        // If none was found, just exit
+        // If none were found, just exit
         if (placement == null) {
+            Iris.debug(this.getClass().getName() + " had options but did not manage to find objectplacements for them");
             return;
         }
 

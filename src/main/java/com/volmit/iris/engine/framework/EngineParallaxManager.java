@@ -38,6 +38,7 @@ import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.RNG;
@@ -165,14 +166,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         });
     }
 
+    @ChunkCoordinates
     default void insertParallax(int x, int z, Hunk<BlockData> data) {
+        if (!getEngine().getDimension().isPlaceObjects()) {
+            return;
+        }
+
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x >> 4, z >> 4);
+            ParallaxChunkMeta meta = getParallaxAccess().getMetaR(x, z);
 
             if (!meta.isParallaxGenerated()) {
                 generateParallaxLayer(x, z, true);
-                meta = getParallaxAccess().getMetaR(x >> 4, z >> 4);
+                meta = getParallaxAccess().getMetaR(x, z);
             }
 
             if (!meta.isObjects()) {
@@ -180,7 +186,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 return;
             }
 
-            getParallaxAccess().getBlocksR(x >> 4, z >> 4).iterateSync((a, b, c, d) -> {
+            getParallaxAccess().getBlocksR(x, z).iterateSync((a, b, c, d) -> {
                 if (d != null) {
                     data.set(a, b, c, d);
                 }
@@ -349,7 +355,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void generateParallaxLayer(int x, int z, boolean force) {
-        if (!force && getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4)) {
+        if (!force && getParallaxAccess().isParallaxGenerated(x, z)) {
             return;
         }
 

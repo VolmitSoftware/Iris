@@ -42,7 +42,7 @@ import java.util.function.Consumer;
 public class PregeneratorJob implements PregenListener {
     public static PregeneratorJob instance;
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
-    private static final Color COLOR_GENERATING = parseColor("#00ffdd");
+    private static final Color COLOR_GENERATING = parseColor("#0062ff");
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
     private JFrame frame;
     private final PregenTask task;

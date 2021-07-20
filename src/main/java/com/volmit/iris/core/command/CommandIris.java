@@ -69,6 +69,9 @@ public class CommandIris extends MortarCommand {
     @Command
     private CommandIrisReload reload;
 
+    @Command
+    private CommandIrisDoAFlip doaflip;
+
     public CommandIris() {
         super("iris", "ir", "irs");
         requiresPermission(Iris.perm);

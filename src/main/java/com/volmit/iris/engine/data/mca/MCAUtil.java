@@ -18,6 +18,9 @@
 
 package com.volmit.iris.engine.data.mca;
 
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.Position2;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -80,6 +83,13 @@ public final class MCAUtil {
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             mcaFile.deserialize(raf, loadFlags);
             return mcaFile;
+        }
+    }
+
+    public static KList<Position2> sampleChunkPositions(File file) throws IOException {
+        MCAFile mcaFile = newMCAFile(file);
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            return mcaFile.samplePositions(raf);
         }
     }
 

@@ -19,6 +19,9 @@
 package com.volmit.iris.engine.data.mca;
 
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
+import com.volmit.iris.engine.hunk.storage.ArrayHunk;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.Position2;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -86,6 +89,27 @@ public class MCAFile {
             chunk.deserialize(raf, loadFlags);
             chunks.set(i, chunk);
         }
+    }
+
+    public KList<Position2> samplePositions(RandomAccessFile raf) throws IOException {
+        KList<Position2> p2 = new KList<>();
+        chunks = new AtomicReferenceArray<>(1024);
+        int x = 0;
+        int z = 0;
+        for (int i = 0; i < 1024; i++) {
+            x++;
+            z++;
+
+            raf.seek(i * 4);
+            int offset = raf.read() << 16;
+            offset |= (raf.read() & 0xFF) << 8;
+            offset |= raf.read() & 0xFF;
+            if (raf.readByte() == 0) {
+                continue;
+            }
+            p2.add(new Position2(x & 31, (z / 32) & 31));
+        }
+        return p2;
     }
 
     public AtomicReferenceArray<Chunk> getChunks() {

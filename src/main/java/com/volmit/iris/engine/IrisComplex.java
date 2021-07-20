@@ -196,7 +196,7 @@ public class IrisComplex implements DataProvider {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getWorld().seed());
         }, Interpolated.DOUBLE).cache2D(cacheSize);
-        slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
+        slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);

@@ -19,15 +19,22 @@
 package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
+import com.volmit.iris.engine.data.mca.LoadFlags;
+import com.volmit.iris.engine.data.mca.MCAFile;
+import com.volmit.iris.engine.data.mca.MCAUtil;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.Position2;
 import lombok.Data;
 
 import java.io.File;
+import java.io.IOException;
 
 @Data
 public class HeadlessGenerator {
+    private static  KList<Position2> EMPTYPOINTS = new KList<>();
     private final HeadlessWorld world;
     private final EngineCompositeGenerator generator;
     private final NBTWorld writer;
@@ -81,5 +88,15 @@ public class HeadlessGenerator {
         burst.shutdownAndAwait();
         generator.close();
         writer.close();
+    }
+
+    public KList<Position2> getChunksInRegion(int x, int z) {
+        try {
+            return MCAUtil.sampleChunkPositions(writer.getRegionFile(x, z));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return EMPTYPOINTS;
     }
 }

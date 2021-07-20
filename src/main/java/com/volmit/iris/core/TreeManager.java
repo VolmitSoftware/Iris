@@ -4,13 +4,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.Location;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
@@ -38,10 +35,11 @@ public class TreeManager implements Listener {
     @EventHandler
     public void onStructureGrowEvent(StructureGrowEvent event) {
 
-        Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
+        Iris.debug(this.getClass().getName() + " received a structure grow event");
 
         // Must be iris world
         if (!IrisWorlds.isIrisWorld(event.getWorld())) {
+            Iris.debug(this.getClass().getName() + " passed it off to vanilla since not an Iris world");
             return;
         }
 
@@ -50,26 +48,45 @@ public class TreeManager implements Listener {
         try {
             worldAccess = Objects.requireNonNull(IrisWorlds.access(event.getWorld()));
         } catch (Throwable e) {
+            Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
             Iris.reportError(e);
             return;
         }
 
-        Iris.debug("Custom saplings are " + (worldAccess.getCompound().getRootDimension().getSaplingSettings().isEnabled() ? "" : "NOT") + " enabled.");
+        // Return null if not enabled
+        if (!worldAccess.getCompound().getRootDimension().getSaplingSettings().isEnabled()) {
+            Iris.debug(this.getClass().getName() + "cancelled because not");
+            return;
+        }
+
+        Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
 
         // Calculate size, type & placement
         IrisTreeType type = IrisTreeType.fromTreeType(event.getSpecies());
-        IrisTreeSize size = getTreeSize(event.getLocation(), type);
-        IrisObjectPlacement placement = getObjectPlacement(worldAccess, type, event.getLocation(), size);
+        KMap<IrisTreeSize, KList<KList<Location>>> sizes = IrisTreeSize.getValidSizes(event.getLocation());
+        KList<IrisTreeSize> keys = sizes.k();
 
-        // Make sure placement was found
-        if (placement == null){
+        // Find best object placement based on size
+        IrisObjectPlacement placement = null;
+        while (placement == null && keys.isNotEmpty()){
+            IrisTreeSize bestSize = IrisTreeSize.bestSizeInSizes(keys);
+            keys.remove(bestSize);
+            placement = getObjectPlacement(worldAccess, event.getLocation(), type, bestSize);
+        }
+
+        // If none was found, just exit
+        if (placement == null) {
             return;
         }
+
+        // Cancel the placement
+        event.setCancelled(true);
 
         // Get object from placer
         IrisObject f = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
 
         // TODO: Implement placer
+        /*
         IObjectPlacer placer = new IObjectPlacer(){
 
             @Override
@@ -122,11 +139,13 @@ public class TreeManager implements Listener {
 
             }
         };
+        */
 
         // TODO: Figure out how to place without wrecking claims, other builds, etc.
         // Especially with large object
 
         // Place the object with the placer
+        /*
         f.place(
                 event.getLocation().getBlockX(),
                 event.getLocation().getBlockY(),
@@ -136,36 +155,20 @@ public class TreeManager implements Listener {
                 RNG.r,
                 Objects.requireNonNull(IrisWorlds.access(event.getWorld())).getData()
         );
-    }
-
-    /**
-     * Finds the tree size
-     * @param location The location the event triggers from. This sapling's Material type is used to check other locations
-     * @return The size of the tree
-     */
-    private IrisTreeSize getTreeSize(Location location, IrisTreeType type) {
-        KList<IrisTreeSize> validSizes = new KList<>();
-
-        IrisTreeSize.isSizeValid();
-
-        return IrisTreeSize.bestSize(validSizes);
+        */
+        // TODO: Place the object at the right location (one of the center positions)
+        f.place(event.getLocation());
     }
 
     /**
      * Finds a single object placement (which may contain more than one object) for the requirements species, location & size
      * @param worldAccess The world to access (check for biome, region, dimension, etc)
-     * @param type The bukkit TreeType to match
      * @param location The location of the growth event (For biome/region finding)
+     * @param type The bukkit TreeType to match
      * @param size The size of the sapling area
      * @return An object placement which contains the matched tree, or null if none were found / it's disabled.
      */
-    private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, IrisTreeType type, Location location, IrisTreeSize size) {
-        IrisDimension dimension = worldAccess.getCompound().getRootDimension();
-
-        // Return null if not enabled
-        if (!dimension.getSaplingSettings().isEnabled()) {
-            return null;
-        }
+    private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, Location location, IrisTreeType type, IrisTreeSize size) {
 
         KList<IrisObjectPlacement> placements = new KList<>();
 
@@ -174,16 +177,17 @@ public class TreeManager implements Listener {
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region
-        if (dimension.getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
+        if (worldAccess.getCompound().getRootDimension().getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
             IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
         }
 
         // Add more or find any in the dimension
-        if (dimension.getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
-            //TODO: Implement object placement in dimension & here
-            //placements.addAll(matchObjectPlacements(dimension.getObjects(), size, type));
+        /* TODO: Implement object placement in dimension & here
+        if (worldAccess.getCompound().getRootDimension().getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
+            placements.addAll(matchObjectPlacements(worldAccess.getCompound().getRootDimension().getObjects(), size, type));
         }
+         */
 
         // Check if no matches were found, return a random one if they are
         return placements.isNotEmpty() ? placements.getRandom(RNG.r) : null;

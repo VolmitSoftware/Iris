@@ -1,12 +1,10 @@
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
-
-import java.util.Objects;
 
 @Desc("Sapling override object picking options")
 public enum IrisTreeSize {
@@ -58,7 +56,7 @@ public enum IrisTreeSize {
      * @param sizes The list of sizes
      * @return The best size (highest & center > any)
      */
-    public static IrisTreeSize bestSize(KList<IrisTreeSize> sizes){
+    public static IrisTreeSize bestSizeInSizes(KList<IrisTreeSize> sizes){
         if (sizes.contains(FIVE_CENTER)){
             return FIVE_CENTER;
         }
@@ -103,12 +101,12 @@ public enum IrisTreeSize {
         while (sizeList.isNotEmpty()){
 
             // Find the best size & remove from list
-            IrisTreeSize bestSize = bestSize(sizeList);
+            IrisTreeSize bestSize = bestSizeInSizes(sizeList);
             assert bestSize != null;
             sizeList.remove(bestSize);
 
             // Find the best match
-            KList<KList<Location>> best = isSizeValid(bestSize, location);
+            KList<KList<Location>> best = getPlacesIfValid(bestSize, location);
             if (best != null){
                 return bestSize;
             }
@@ -123,7 +121,7 @@ public enum IrisTreeSize {
      * @param location at this location
      * @return A list of locations if any match, or null if not.
      */
-    public static KList<KList<Location>> isSizeValid(IrisTreeSize size, Location location) {
+    public static KList<KList<Location>> getPlacesIfValid (IrisTreeSize size, Location location) {
         return switch (size){
             case ONE            -> new KList<KList<Location>>(new KList<>(location));
             case TWO            -> loopLocation(location, 2);
@@ -160,8 +158,6 @@ public enum IrisTreeSize {
             for (int j = -size + 1; j <= 0; j++){
                 locations = getMap(size, center.clone().add(i, 0, j));
                 if (isMapValid(locations, blockType)){
-                    Iris.info("Valid map for size " + size + " with material " + blockType.name() + " with center" + center);
-                    Iris.info("Locations: " + locations);
                     return locations;
                 }
             }
@@ -210,5 +206,21 @@ public enum IrisTreeSize {
             return null;
         }
         return getMap(size, center.clone().add(-(size - 1) / 2d, 0, -(size - 1) / 2d));
+    }
+
+    /**
+     * Get sizes hash with size -> location map
+     * @param location the location to search from
+     * @return A hash with IrisTreeSize -> KList-KList-Location
+     */
+    public static KMap<IrisTreeSize, KList<KList<Location>>> getValidSizes(Location location) {
+        KMap<IrisTreeSize, KList<KList<Location>>> sizes = new KMap<>();
+        IrisTreeSize.sizes.forEach(size -> {
+            KList<KList<Location>> locations = getPlacesIfValid(size, location);
+            if (locations != null){
+                sizes.put(size, locations);
+            }
+        });
+        return sizes;
     }
 }

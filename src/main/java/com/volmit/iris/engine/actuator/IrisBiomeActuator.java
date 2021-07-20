@@ -27,6 +27,8 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.Biome;
@@ -40,6 +42,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
         rng = new RNG(engine.getWorld().seed() + 243995);
     }
 
+    @BlockCoordinates
     private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {
         try {
             if (h instanceof BiomeGridHunkView hh) {
@@ -59,6 +62,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
         return false;
     }
 
+    @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h) {
         PrecisionStopwatch p = PrecisionStopwatch.start();

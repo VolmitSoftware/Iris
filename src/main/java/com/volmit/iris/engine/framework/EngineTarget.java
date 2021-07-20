@@ -51,4 +51,8 @@ public class EngineTarget {
     public EngineTarget(IrisWorld world, IrisDimension dimension, IrisDataManager data, int height, int threads) {
         this(world, dimension, data, height, false, threads);
     }
+
+    public void close() {
+        burster.shutdownAndAwait();
+    }
 }

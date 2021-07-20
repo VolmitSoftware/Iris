@@ -142,13 +142,9 @@ public class IrisLoot {
                 i.apply(rng, m);
             }
 
-            try
-            {
+            try {
                 m.setCustomModelData(getCustomModel());
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 Iris.reportError(e);
             }
             m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
@@ -231,13 +227,9 @@ public class IrisLoot {
                     i.apply(rng, m);
                 }
 
-                try
-                {
+                try {
                     m.setCustomModelData(getCustomModel());
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                 }
 

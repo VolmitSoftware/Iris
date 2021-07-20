@@ -31,29 +31,25 @@ import java.util.Comparator;
 @Data
 public class PregenTask {
     @Builder.Default
-    private Position2 center = new Position2(0,0);
+    private Position2 center = new Position2(0, 0);
 
     @Builder.Default
     private int radius = 1;
 
     private static final KList<Position2> order = computeChunkOrder();
 
-    public void iterateRegions(Spiraled s)
-    {
+    public void iterateRegions(Spiraled s) {
         new Spiraler(radius * 2, radius * 2, s)
                 .setOffset(center.getX(), center.getZ()).drain();
     }
 
-    public static void iterateRegion(int xr, int zr, Spiraled s)
-    {
-        for(Position2 i : order)
-        {
+    public static void iterateRegion(int xr, int zr, Spiraled s) {
+        for (Position2 i : order) {
             s.on(i.getX() + (xr << 5), i.getZ() + (zr << 5));
         }
     }
 
-    public void iterateAllChunks(Spiraled s)
-    {
+    public void iterateAllChunks(Spiraled s) {
         new Spiraler(radius * 2, radius * 2, (x, z) -> iterateRegion(x, z, s))
                 .setOffset(center.getX(), center.getZ()).drain();
     }

@@ -28,7 +28,6 @@ import com.volmit.iris.engine.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.documentation.BlockCoordinates;
-import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.Biome;

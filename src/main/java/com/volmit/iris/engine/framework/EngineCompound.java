@@ -30,7 +30,6 @@ import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;

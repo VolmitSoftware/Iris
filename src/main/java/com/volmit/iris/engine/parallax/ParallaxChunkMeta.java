@@ -22,7 +22,6 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -32,16 +32,13 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     private final World world;
     private final KList<CompletableFuture<?>> futures;
 
-    public MedievalPregenMethod(World world)
-    {
+    public MedievalPregenMethod(World world) {
         this.world = world;
         futures = new KList<>();
     }
 
-    private void waitForChunks()
-    {
-        for(CompletableFuture<?> i : futures)
-        {
+    private void waitForChunks() {
+        for (CompletableFuture<?> i : futures) {
             try {
                 i.get();
             } catch (Throwable e) {
@@ -56,8 +53,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         waitForChunks();
         try {
             J.sfut(() -> {
-                for(Chunk i : world.getLoadedChunks())
-                {
+                for (Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }
                 world.save();
@@ -99,8 +95,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()))
-        {
+        if (futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())) {
             waitForChunks();
         }
 

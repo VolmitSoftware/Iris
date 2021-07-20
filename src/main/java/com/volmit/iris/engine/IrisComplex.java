@@ -198,8 +198,7 @@ public class IrisComplex implements DataProvider {
         }, Interpolated.DOUBLE).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
-            if(engine.getDimension().hasFeatures(engine))
-            {
+            if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);
                 engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
                         -> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z))));

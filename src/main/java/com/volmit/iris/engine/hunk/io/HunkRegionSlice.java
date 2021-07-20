@@ -29,8 +29,8 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import com.volmit.iris.util.oldnbt.Tag;
@@ -101,8 +101,7 @@ public class HunkRegionSlice<T> {
     public synchronized void save(MultiBurst burst) {
         BurstExecutor e = burst.burst();
 
-        try
-        {
+        try {
             for (Position2 i : save.copy()) {
                 if (i == null) {
                     continue;
@@ -118,10 +117,7 @@ public class HunkRegionSlice<T> {
             }
 
             e.complete();
-        }
-
-        catch(Throwable ee)
-        {
+        } catch (Throwable ee) {
             Iris.reportError(ee);
         }
     }

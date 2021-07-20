@@ -34,9 +34,7 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,7 +47,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     HeadlessGenerator getHeadlessGenerator();
 
-    default boolean isHeadless(){
+    default boolean isHeadless() {
         return getHeadlessGenerator() != null;
     }
 
@@ -98,8 +96,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     boolean isStudio();
 
     default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
-        if(!getCompound().getWorld().hasRealWorld())
-        {
+        if (!getCompound().getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
         }
@@ -184,8 +181,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     }
 
     default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
-        if(!getCompound().getWorld().hasRealWorld())
-        {
+        if (!getCompound().getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
         }

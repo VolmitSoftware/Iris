@@ -18,8 +18,7 @@
 
 package com.volmit.iris.util.exceptions;
 
-public class IrisException extends Exception
-{
+public class IrisException extends Exception {
     public IrisException() {
         super();
     }

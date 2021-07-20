@@ -57,8 +57,7 @@ public class PregeneratorJob implements PregenListener {
     private Position2 min;
     private Position2 max;
 
-    public PregeneratorJob(PregenTask task, PregeneratorMethod method)
-    {
+    public PregeneratorJob(PregenTask task, PregeneratorMethod method) {
         instance = this;
         saving = false;
         info = new String[]{"Initializing..."};
@@ -67,36 +66,32 @@ public class PregeneratorJob implements PregenListener {
         max = new Position2(0, 0);
         min = new Position2(0, 0);
         KList<Runnable> draw = new KList<>();
-        task.iterateRegions((xx,zz) -> {
+        task.iterateRegions((xx, zz) -> {
             min.setX(Math.min(xx << 5, min.getX()));
             min.setZ(Math.min(zz << 5, min.getZ()));
             max.setX(Math.max((xx << 5) + 31, max.getX()));
             max.setZ(Math.max((zz << 5) + 31, max.getZ()));
         });
 
-        if(IrisSettings.get().getGui().isUseServerLaunchedGuis())
-        {
+        if (IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             open();
         }
 
         J.a(this.pregenerator::start, 20);
     }
 
-    public PregeneratorJob onProgress(Consumer<Double> c)
-    {
+    public PregeneratorJob onProgress(Consumer<Double> c) {
         onProgress.add(c);
         return this;
     }
 
-    public PregeneratorJob whenDone(Runnable r)
-    {
+    public PregeneratorJob whenDone(Runnable r) {
         whenDone.add(r);
         return this;
     }
 
     public static boolean shutdownInstance() {
-        if(instance == null)
-        {
+        if (instance == null) {
             return false;
         }
 
@@ -109,59 +104,45 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public static void pauseResume() {
-        if(instance == null)
-        {
+        if (instance == null) {
             return;
         }
 
-        if(isPaused())
-        {
+        if (isPaused()) {
             instance.pregenerator.resume();
-        }
-
-        else
-        {
+        } else {
             instance.pregenerator.pause();
         }
     }
 
     public static boolean isPaused() {
-        if(instance == null)
-        {
+        if (instance == null) {
             return true;
         }
 
         return instance.paused();
     }
 
-    public void drawRegion(int x, int z, Color color)
-    {
+    public void drawRegion(int x, int z, Color color) {
         J.a(() -> {
-            PregenTask.iterateRegion(x, z, (xx,zz)->{
-                draw(xx,zz,color);
+            PregenTask.iterateRegion(x, z, (xx, zz) -> {
+                draw(xx, zz, color);
                 J.sleep(3);
             });
         });
     }
 
-    public void draw(int x, int z, Color color)
-    {
-        try
-        {
-            if(renderer != null && frame != null && frame.isVisible())
-            {
+    public void draw(int x, int z, Color color) {
+        try {
+            if (renderer != null && frame != null && frame.isVisible()) {
                 renderer.func.accept(new Position2(x, z), color);
             }
-        }
-
-        catch(Throwable ignored)
-        {
+        } catch (Throwable ignored) {
 
         }
     }
 
-    public void stop()
-    {
+    public void stop() {
         J.a(() -> {
             pregenerator.close();
             close();
@@ -169,27 +150,20 @@ public class PregeneratorJob implements PregenListener {
         });
     }
 
-    public void close()
-    {
+    public void close() {
         J.a(() -> {
-            try
-            {
+            try {
                 J.sleep(3000);
                 frame.setVisible(false);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
 
             }
         });
     }
 
-    public void open()
-    {
+    public void open() {
         J.a(() -> {
-            try
-            {
+            try {
                 frame = new JFrame("Pregen View");
                 renderer = new PregenRenderer();
                 frame.addKeyListener(renderer);
@@ -205,10 +179,7 @@ public class PregeneratorJob implements PregenListener {
                 frame.add(renderer);
                 frame.setSize(1000, 1000);
                 frame.setVisible(true);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
 
             }
         });
@@ -216,15 +187,14 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method) {
-        info = new String[] {
-            (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
-            "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
-            Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
-            "Generation Method: " + method,
+        info = new String[]{
+                (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
+                "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
+                Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
+                "Generation Method: " + method,
         };
 
-        for(Consumer<Double> i : onProgress)
-        {
+        for (Consumer<Double> i : onProgress) {
             i.accept(percent);
         }
     }
@@ -305,7 +275,7 @@ public class PregeneratorJob implements PregenListener {
     }
 
     private boolean paused() {
-       return pregenerator.paused();
+        return pregenerator.paused();
     }
 
     private String[] getProgress() {

@@ -357,8 +357,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getCompound().isStudio();
     }
 
-    default MultiBurst burst()
-    {
+    default MultiBurst burst() {
         return getTarget().getBurster();
     }
 

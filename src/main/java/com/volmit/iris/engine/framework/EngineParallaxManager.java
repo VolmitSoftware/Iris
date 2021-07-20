@@ -34,7 +34,6 @@ import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
 import com.volmit.iris.engine.parallel.BurstExecutor;
-import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -205,8 +204,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     IrisLock getFeatureLock();
 
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        if(!getEngine().getDimension().hasFeatures(getEngine()))
-        {
+        if (!getEngine().getDimension().hasFeatures(getEngine())) {
             return;
         }
 
@@ -235,8 +233,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (j = -s; j <= s; j++) {
                     ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
-                    synchronized (m)
-                    {
+                    synchronized (m) {
                         try {
                             for (IrisFeaturePositional k : m.getFeatures()) {
                                 if (k.shouldFilter(x, z)) {

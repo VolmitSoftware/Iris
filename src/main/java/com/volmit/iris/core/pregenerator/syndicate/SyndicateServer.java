@@ -56,10 +56,8 @@ public class SyndicateServer extends Thread implements PregenListener {
         server.setSoTimeout(1000);
     }
 
-    public void run()
-    {
-        while(!interrupted())
-        {
+    public void run() {
+        while (!interrupted()) {
             try {
                 Socket client = server.accept();
                 DataInputStream i = new DataInputStream(client.getInputStream());
@@ -79,40 +77,34 @@ public class SyndicateServer extends Thread implements PregenListener {
         }
     }
 
-    private void handle(Socket client, DataInputStream i, DataOutputStream o) throws Throwable
-    {
+    private void handle(Socket client, DataInputStream i, DataOutputStream o) throws Throwable {
         SyndicateCommand cmd = handle(SyndicateCommandIO.read(i), i, o);
 
-        if(cmd != null)
-        {
+        if (cmd != null) {
             SyndicateCommandIO.write(cmd, o);
         }
 
         o.flush();
     }
 
-    private File getCachedDim(UUID id)
-    {
-        return new File(cache, id.toString().charAt(2) +"/" + id.toString().substring(0, 4)+ "/" + id);
+    private File getCachedDim(UUID id) {
+        return new File(cache, id.toString().charAt(2) + "/" + id.toString().substring(0, 4) + "/" + id);
     }
 
     private SyndicateCommand handle(SyndicateCommand command, DataInputStream i, DataOutputStream o) throws Throwable {
-        if(command instanceof SyndicateInstallPack)
-        {
-            if(busy)
-            {
+        if (command instanceof SyndicateInstallPack) {
+            if (busy) {
                 return new SyndicateBusy();
             }
 
-            if(generator != null)
-            {
+            if (generator != null) {
                 generator.close();
                 IO.delete(generator.getWorld().getWorld().worldFolder());
                 generator = null;
             }
 
             UUID id = ((SyndicateInstallPack) command).getPack();
-            File cacheload = new File(cache, id.toString().charAt(2) +"/" + id.toString().substring(0, 4)+ "/" + id + ".zip");
+            File cacheload = new File(cache, id.toString().charAt(2) + "/" + id.toString().substring(0, 4) + "/" + id + ".zip");
             File cachestore = getCachedDim(id);
             IO.delete(cachestore);
             int len = i.readInt();
@@ -129,14 +121,12 @@ public class SyndicateServer extends Thread implements PregenListener {
             return new SyndicateOK();
         }
 
-        if(command instanceof SyndicateGenerate)
-        {
-            if(busy)
-            {
+        if (command instanceof SyndicateGenerate) {
+            if (busy) {
                 return new SyndicateBusy();
             }
 
-            if(generator == null || !Objects.equals(currentId, ((SyndicateGenerate) command).getPack())) {
+            if (generator == null || !Objects.equals(currentId, ((SyndicateGenerate) command).getPack())) {
                 return new SyndicateInstallFirst();
             }
 
@@ -149,10 +139,8 @@ public class SyndicateServer extends Thread implements PregenListener {
             return new SyndicateOK();
         }
 
-        if(command instanceof SyndicateClose)
-        {
-            if(generator != null && Objects.equals(currentId, ((SyndicateClose) command).getPack()) && !busy)
-            {
+        if (command instanceof SyndicateClose) {
+            if (generator != null && Objects.equals(currentId, ((SyndicateClose) command).getPack()) && !busy) {
                 generator.close();
                 IO.delete(generator.getWorld().getWorld().worldFolder());
                 generator = null;
@@ -160,31 +148,20 @@ public class SyndicateServer extends Thread implements PregenListener {
             }
         }
 
-        if(command instanceof SyndicateGetProgress)
-        {
-            if(generator != null && busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()))
-            {
-                return SyndicateSendProgress.builder().progress((double)g.get() / 1024D).build();
-            }
-
-            else if(generator != null && !busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists())
-            {
+        if (command instanceof SyndicateGetProgress) {
+            if (generator != null && busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack())) {
+                return SyndicateSendProgress.builder().progress((double) g.get() / 1024D).build();
+            } else if (generator != null && !busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists()) {
                 SyndicateCommandIO.write(SyndicateSendProgress
-                    .builder()
+                        .builder()
                         .progress(1).available(true)
-                    .build(), o);
+                        .build(), o);
                 o.writeLong(lastGeneratedRegion.length());
                 IO.writeAll(lastGeneratedRegion, o);
                 return null;
-            }
-
-            else if(generator == null)
-            {
+            } else if (generator == null) {
                 return new SyndicateInstallFirst();
-            }
-
-            else
-            {
+            } else {
                 return new SyndicateBusy();
             }
         }

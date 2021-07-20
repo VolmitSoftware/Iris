@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.data.mca;
 
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
-import com.volmit.iris.engine.hunk.storage.ArrayHunk;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 
@@ -242,8 +241,7 @@ public class MCAFile {
         return getChunk(getChunkIndex(chunkX, chunkZ));
     }
 
-    public boolean hasChunk(int chunkX, int chunkZ)
-    {
+    public boolean hasChunk(int chunkX, int chunkZ) {
         return getChunk(chunkX, chunkZ) != null;
     }
 

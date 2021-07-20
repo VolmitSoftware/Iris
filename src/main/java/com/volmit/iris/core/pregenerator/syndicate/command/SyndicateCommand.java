@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.pregenerator.syndicate.command;
 
-public interface SyndicateCommand
-{
+public interface SyndicateCommand {
 
 }

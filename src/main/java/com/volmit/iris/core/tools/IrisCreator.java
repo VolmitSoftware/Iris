@@ -87,6 +87,7 @@ public class IrisCreator {
 
     /**
      * Create the IrisAccess (contains the world)
+     *
      * @return the IrisAccess
      * @throws IrisException shit happens
      */
@@ -94,40 +95,29 @@ public class IrisCreator {
         IrisDimension d = IrisToolbelt.getDimension(dimension());
         IrisAccess access = null;
         Consumer<Double> prog = (pxx) -> {
-            double px = (headless && pregen!=null) ? pxx/2 : pxx;
+            double px = (headless && pregen != null) ? pxx / 2 : pxx;
 
-            if(pregen != null && !headless)
-            {
+            if (pregen != null && !headless) {
                 px = (px / 2) + 0.5;
             }
 
-            if(sender != null)
-            {
-                if(sender.isPlayer())
-                {
+            if (sender != null) {
+                if (sender.isPlayer()) {
                     sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(px)));
-                }
-
-                else
-                {
+                } else {
                     sender.sendMessage("Generating " + Form.f(px, 0));
                 }
             }
         };
 
-        if(d == null)
-        {
+        if (d == null) {
             throw new MissingDimensionException("Cannot find dimension '" + dimension() + "'");
         }
 
-        if (headless)
-        {
+        if (headless) {
             HeadlessWorld w = new HeadlessWorld(name, d, seed, studio);
             access = w.generate().getGenerator();
-        }
-
-        else
-        {
+        } else {
             O<Boolean> done = new O<>();
             done.set(false);
             WorldCreator wc = new IrisWorldCreator()
@@ -146,9 +136,8 @@ public class IrisCreator {
                 while (finalAccess1.getGenerated() < req && !done.get()) {
                     double v = (double) finalAccess1.getGenerated() / (double) req;
 
-                    if(pregen != null)
-                    {
-                        v /=2;
+                    if (pregen != null) {
+                        v /= 2;
                     }
 
                     if (sender.isPlayer()) {
@@ -173,8 +162,7 @@ public class IrisCreator {
             done.set(true);
         }
 
-        if(access == null)
-        {
+        if (access == null) {
             throw new IrisException("Access is null. Something bad happened.");
         }
 
@@ -182,8 +170,7 @@ public class IrisCreator {
         Runnable loadup = () -> {
             try {
                 J.sfut(() -> {
-                    if(headless)
-                    {
+                    if (headless) {
                         O<Boolean> done = new O<>();
                         done.set(false);
 
@@ -193,7 +180,7 @@ public class IrisCreator {
 
                             while (finalAccess.getGenerated() < req && !done.get()) {
                                 double v = (double) finalAccess.getGenerated() / (double) req;
-                                v = (v/2) + 0.5;
+                                v = (v / 2) + 0.5;
 
                                 if (sender.isPlayer()) {
                                     sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)"))));
@@ -222,13 +209,9 @@ public class IrisCreator {
             }
         };
 
-        if(pregen != null)
-        {
+        if (pregen != null) {
             IrisToolbelt.pregenerate(pregen, access).onProgress(prog).whenDone(loadup);
-        }
-
-        else
-        {
+        } else {
             loadup.run();
         }
 

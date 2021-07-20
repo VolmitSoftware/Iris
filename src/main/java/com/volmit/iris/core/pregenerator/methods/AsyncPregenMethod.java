@@ -29,17 +29,14 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final MultiBurst burst;
     private final KList<CompletableFuture<?>> future;
 
-    public AsyncPregenMethod(World world, int threads)
-    {
-        if(!PaperLib.isPaper())
-        {
+    public AsyncPregenMethod(World world, int threads) {
+        if (!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
 
@@ -51,8 +48,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadAndSaveAllChunks() {
         try {
             J.sfut(() -> {
-                for(Chunk i : world.getLoadedChunks())
-                {
+                for (Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }
                 world.save();
@@ -71,10 +67,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
     }
 
-    private void waitForChunks()
-    {
-        for(CompletableFuture<?> i : future)
-        {
+    private void waitForChunks() {
+        for (CompletableFuture<?> i : future) {
             try {
                 i.get();
             } catch (Throwable e) {
@@ -120,8 +114,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()))
-        {
+        if (future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())) {
             waitForChunks();
         }
 

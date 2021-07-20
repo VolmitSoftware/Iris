@@ -27,12 +27,10 @@ import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.GridLock;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import com.volmit.iris.util.oldnbt.Tag;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -167,7 +165,7 @@ public class ParallaxRegion extends HunkRegion {
         tileSlice.save(burst);
         updateSlice.save(burst);
         saveMetaHunk();
-        Iris.debug("Saved Parallax Region "+ C.GOLD + getX() + " " + getZ());
+        Iris.debug("Saved Parallax Region " + C.GOLD + getX() + " " + getZ());
         super.save();
     }
 

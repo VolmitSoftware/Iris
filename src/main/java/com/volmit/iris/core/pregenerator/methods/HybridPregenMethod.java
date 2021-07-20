@@ -33,8 +33,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod inWorld;
     private final World world;
 
-    public HybridPregenMethod(World world, int threads)
-    {
+    public HybridPregenMethod(World world, int threads) {
         this.world = world;
         headless = supportsHeadless(world)
                 ? new HeadlessPregenMethod(HeadlessWorld.from(world)) : new DummyPregenMethod();
@@ -76,18 +75,12 @@ public class HybridPregenMethod implements PregeneratorMethod {
 
         boolean r = !new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca").exists();
 
-        if(!r && listener != null)
-        {
-            try
-            {
-                for(Position2 i : ((HeadlessPregenMethod) headless).getGenerator().getChunksInRegion(x, z))
-                {
+        if (!r && listener != null) {
+            try {
+                for (Position2 i : ((HeadlessPregenMethod) headless).getGenerator().getChunksInRegion(x, z)) {
                     listener.onChunkExistsInRegionGen((x << 5) + i.getX(), (z << 5) + i.getZ());
                 }
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 Iris.reportError(e);
             }
         }

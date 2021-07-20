@@ -47,31 +47,27 @@ public class IrisWorld {
     private int minHeight;
     private int maxHeight;
 
-    public static IrisWorld fromWorld(World world)
-    {
+    public static IrisWorld fromWorld(World world) {
         return bindWorld(IrisWorld.builder().build(), world);
     }
 
-    private static IrisWorld bindWorld(IrisWorld iw, World world)
-    {
+    private static IrisWorld bindWorld(IrisWorld iw, World world) {
         return iw.name(world.getName())
-            .worldFolder(world.getWorldFolder())
-            .seed(world.getSeed())
-            .minHeight(world.getMinHeight())
-            .maxHeight(world.getMaxHeight())
-            .realWorld(world)
-            .environment(world.getEnvironment());
+                .worldFolder(world.getWorldFolder())
+                .seed(world.getSeed())
+                .minHeight(world.getMinHeight())
+                .maxHeight(world.getMaxHeight())
+                .realWorld(world)
+                .environment(world.getEnvironment());
     }
 
-    public boolean hasRealWorld()
-    {
+    public boolean hasRealWorld() {
         return realWorld != null;
     }
 
     public List<Player> getPlayers() {
 
-        if(hasRealWorld())
-        {
+        if (hasRealWorld()) {
             return realWorld().getPlayers();
         }
 
@@ -79,8 +75,7 @@ public class IrisWorld {
     }
 
     public void evacuate() {
-        if(hasRealWorld())
-        {
+        if (hasRealWorld()) {
             IrisWorlds.evacuate(realWorld());
         }
     }
@@ -90,8 +85,7 @@ public class IrisWorld {
     }
 
     public Location spawnLocation() {
-        if(hasRealWorld())
-        {
+        if (hasRealWorld()) {
             return realWorld().getSpawnLocation();
         }
 
@@ -100,8 +94,7 @@ public class IrisWorld {
     }
 
     public <T extends Entity> Collection<? extends T> getEntitiesByClass(Class<T> t) {
-        if(hasRealWorld())
-        {
+        if (hasRealWorld()) {
             return realWorld().getEntitiesByClass(t);
         }
 

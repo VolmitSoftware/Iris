@@ -99,16 +99,11 @@ public class MultiBurst {
     public void shutdownAndAwait() {
         service.shutdown();
 
-        try
-        {
-            while(!service.awaitTermination(10, TimeUnit.SECONDS))
-            {
+        try {
+            while (!service.awaitTermination(10, TimeUnit.SECONDS)) {
                 Iris.info("Still waiting to shutdown burster...");
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);
         }

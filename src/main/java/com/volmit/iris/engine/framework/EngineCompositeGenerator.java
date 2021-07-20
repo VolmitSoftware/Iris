@@ -447,8 +447,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
         generateChunkRawData(ww, x, z, tc).run();
 
-        if(!getComposite().getWorld().hasRealWorld())
-        {
+        if (!getComposite().getWorld().hasRealWorld()) {
             getComposite().getWorld().bind(world);
         }
 
@@ -462,8 +461,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return tc.getRaw();
     }
 
-    public void assignHeadlessGenerator(HeadlessGenerator headlessGenerator)
-    {
+    public void assignHeadlessGenerator(HeadlessGenerator headlessGenerator) {
         this.headlessGenerator = headlessGenerator;
     }
 
@@ -472,8 +470,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return headlessGenerator;
     }
 
-    public void assignHeadlessNBTWriter(NBTWorld writer)
-    {
+    public void assignHeadlessNBTWriter(NBTWorld writer) {
         this.nbtWorld = writer;
     }
 
@@ -492,13 +489,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         BurstExecutor e = burst.burst(1024);
 
         PregenTask.iterateRegion(x, z, (ii, jj) -> e.queue(() -> {
-            if(l != null)
-            {
+            if (l != null) {
                 l.onChunkGenerating(ii, jj);
             }
             directWriteChunk(w, ii, jj, writer);
-            if(l != null)
-            {
+            if (l != null) {
                 l.onChunkGenerated(ii, jj);
             }
         }));

@@ -43,8 +43,7 @@ public class Position2 {
         this.z = z;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return "[" + x + "," + z + "]";
     }
 
@@ -57,8 +56,7 @@ public class Position2 {
         return result;
     }
 
-    public Position2 regionToChunk()
-    {
+    public Position2 regionToChunk() {
         return new Position2(x << 5, z << 5);
     }
 

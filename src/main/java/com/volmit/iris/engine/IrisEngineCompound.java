@@ -39,7 +39,6 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
@@ -99,7 +98,7 @@ public class IrisEngineCompound implements EngineCompound {
         } else {
             double totalWeight = 0D;
             engines = new Engine[rootDimension.getDimensionalComposite().size()];
-            burster = engines.length > 1 ? new MultiBurst("Iris Compound " + rootDimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(),  engines.length) : null;
+            burster = engines.length > 1 ? new MultiBurst("Iris Compound " + rootDimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(), engines.length) : null;
             int threadDist = (Math.max(2, maximumThreads - engines.length)) / engines.length;
 
             if ((threadDist * engines.length) + engines.length > maximumThreads) {

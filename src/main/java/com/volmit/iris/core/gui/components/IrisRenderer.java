@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.gui.components;
 
-import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 

@@ -2,10 +2,12 @@
 
 For 1.16 and below, see the 1.14-1.16 branch. The master branch is for the latest version of minecraft.
 
-# [Support](https://discord.gg/3xxPTpT) **|** [Documentation](https://docs.volmit.com/iris/) **|** [Git](https://github.com/IrisDimensions)
+# [Support](https://discord.gg/3xxPTpT) **|** [Documentation](https://docs.volmit.com/iris/) **
+|** [Git](https://github.com/IrisDimensions)
 
 ## Iris Toolbelt
-Everyone needs a toolbelt. 
+
+Everyone needs a toolbelt.
 
 ```java
 package com.volmit.iris.core.tools

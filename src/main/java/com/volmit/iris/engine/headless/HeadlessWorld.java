@@ -40,13 +40,11 @@ public class HeadlessWorld {
     private final IrisWorld world;
     private boolean studio = false;
 
-    public HeadlessWorld(String worldName, IrisDimension dimension, long seed)
-    {
+    public HeadlessWorld(String worldName, IrisDimension dimension, long seed) {
         this(worldName, dimension, seed, false);
     }
 
-    public HeadlessWorld(String worldName, IrisDimension dimension, long seed, boolean studio)
-    {
+    public HeadlessWorld(String worldName, IrisDimension dimension, long seed, boolean studio) {
         this.worldName = worldName;
         this.dimension = dimension;
         this.studio = studio;
@@ -61,19 +59,16 @@ public class HeadlessWorld {
         world.worldFolder().mkdirs();
         new File(world.worldFolder(), "region").mkdirs();
 
-        if(!studio && !new File(world.worldFolder(), "iris").exists())
-        {
+        if (!studio && !new File(world.worldFolder(), "iris").exists()) {
             Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
     }
 
-    public HeadlessGenerator generate()
-    {
+    public HeadlessGenerator generate() {
         return new HeadlessGenerator(this);
     }
 
-    public World load()
-    {
+    public World load() {
         return new WorldCreator(worldName)
                 .environment(dimension.getEnvironment())
                 .seed(world.seed())
@@ -85,8 +80,7 @@ public class HeadlessWorld {
         return new HeadlessWorld(world.getName(), IrisWorlds.access(world).getTarget().getDimension(), world.getSeed());
     }
 
-    public static HeadlessWorld from(String name, String dimension, long seed)
-    {
+    public static HeadlessWorld from(String name, String dimension, long seed) {
         return new HeadlessWorld(name, IrisDataManager.loadAnyDimension(dimension), seed);
     }
 }

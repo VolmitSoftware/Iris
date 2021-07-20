@@ -24,21 +24,20 @@ import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.data.nbt.tag.StringTag;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.IrisLock;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class NBTWorld {
     private static final BlockData AIR = B.get("AIR");
@@ -50,8 +49,7 @@ public class NBTWorld {
     private final File worldFolder;
     private final ExecutorService saveQueue;
 
-    public NBTWorld(File worldFolder)
-    {
+    public NBTWorld(File worldFolder) {
         this.worldFolder = worldFolder;
         this.loadedRegions = new KMap<>();
         this.lastUse = new KMap<>();
@@ -63,20 +61,17 @@ public class NBTWorld {
         });
     }
 
-    public void close()
-    {
+    public void close() {
         regionLock.lock();
 
-        for(Long i : loadedRegions.k())
-        {
+        for (Long i : loadedRegions.k()) {
             queueSaveUnload(Cache.keyX(i), Cache.keyZ(i));
         }
 
         regionLock.unlock();
         saveQueue.shutdown();
         try {
-            while(!saveQueue.awaitTermination(3, TimeUnit.SECONDS))
-            {
+            while (!saveQueue.awaitTermination(3, TimeUnit.SECONDS)) {
                 Iris.info("Still Waiting to save MCA Files...");
             }
         } catch (InterruptedException e) {
@@ -84,52 +79,43 @@ public class NBTWorld {
         }
     }
 
-    public void flushNow()
-    {
+    public void flushNow() {
         regionLock.lock();
 
-        for(Long i : loadedRegions.k())
-        {
+        for (Long i : loadedRegions.k()) {
             doSaveUnload(Cache.keyX(i), Cache.keyZ(i));
         }
 
         regionLock.unlock();
     }
 
-    public void queueSaveUnload(int x, int z)
-    {
+    public void queueSaveUnload(int x, int z) {
         saveQueue.submit(() -> doSaveUnload(x, z));
     }
 
-    public void doSaveUnload(int x, int z)
-    {
+    public void doSaveUnload(int x, int z) {
         MCAFile f = getMCAOrNull(x, z);
-        if(f != null)
-        {
+        if (f != null) {
             unloadRegion(x, z);
         }
 
         saveRegion(x, z, f);
     }
 
-    public void save()
-    {
+    public void save() {
         regionLock.lock();
 
         boolean saving = true;
 
-        for(Long i : loadedRegions.k())
-        {
+        for (Long i : loadedRegions.k()) {
             int x = Cache.keyX(i);
             int z = Cache.keyZ(i);
 
-            if(!lastUse.containsKey(i))
-            {
+            if (!lastUse.containsKey(i)) {
                 lastUse.put(i, M.ms());
             }
 
-            if(shouldUnload(x, z))
-            {
+            if (shouldUnload(x, z)) {
                 queueSaveUnload(x, z);
             }
         }
@@ -139,13 +125,11 @@ public class NBTWorld {
         regionLock.unlock();
     }
 
-    public void queueSave()
-    {
+    public void queueSave() {
 
     }
 
-    public synchronized void unloadRegion(int x, int z)
-    {
+    public synchronized void unloadRegion(int x, int z) {
         long key = Cache.key(x, z);
         regionLock.lock();
         loadedRegions.remove(key);
@@ -154,8 +138,7 @@ public class NBTWorld {
         Iris.debug("Unloaded Region " + C.GOLD + x + " " + z);
     }
 
-    public void saveRegion(int x, int z)
-    {
+    public void saveRegion(int x, int z) {
         long k = Cache.key(x, z);
         MCAFile mca = getMCAOrNull(x, z);
         try {
@@ -167,8 +150,7 @@ public class NBTWorld {
         }
     }
 
-    public void saveRegion(int x, int z, MCAFile mca)
-    {
+    public void saveRegion(int x, int z, MCAFile mca) {
         try {
             MCAUtil.write(mca, getRegionFile(x, z), true);
             Iris.debug("Saved Region " + C.GOLD + x + " " + z);
@@ -178,8 +160,7 @@ public class NBTWorld {
         }
     }
 
-    public boolean shouldUnload(int x, int z)
-    {
+    public boolean shouldUnload(int x, int z) {
         return getIdleDuration(x, z) > 60000;
     }
 
@@ -296,8 +277,7 @@ public class NBTWorld {
         return c;
     }
 
-    public long getIdleDuration(int x, int z)
-    {
+    public long getIdleDuration(int x, int z) {
         Long l = lastUse.get(Cache.key(x, z));
 
         return l == null ? 0 : (M.ms() - l);
@@ -311,8 +291,7 @@ public class NBTWorld {
         MCAFile mcaf = loadedRegions.get(key);
         regionLock.unlock();
 
-        if(mcaf == null)
-        {
+        if (mcaf == null) {
             mcaf = new MCAFile(x, z);
             regionLock.lock();
             loadedRegions.put(key, mcaf);
@@ -327,8 +306,7 @@ public class NBTWorld {
         MCAFile ff = null;
         regionLock.lock();
 
-        if(loadedRegions.containsKey(key))
-        {
+        if (loadedRegions.containsKey(key)) {
             lastUse.put(key, M.ms());
             ff = loadedRegions.get(key);
         }

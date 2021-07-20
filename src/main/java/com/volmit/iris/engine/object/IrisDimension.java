@@ -515,37 +515,28 @@ public class IrisDimension extends IrisRegistrant {
 
     public boolean hasFeatures(DataProvider data) {
         return featuresUsed.aquire(() -> {
-            if(getFeatures().isNotEmpty() || getSpecificFeatures().isNotEmpty())
-            {
+            if (getFeatures().isNotEmpty() || getSpecificFeatures().isNotEmpty()) {
                 return true;
             }
 
-            for(IrisRegion i : getAllRegions(data))
-            {
-                if(i.getFeatures().isNotEmpty())
-                {
+            for (IrisRegion i : getAllRegions(data)) {
+                if (i.getFeatures().isNotEmpty()) {
                     return true;
                 }
 
-                for(IrisObjectPlacement j : i.getObjects())
-                {
-                    if(j.isVacuum())
-                    {
+                for (IrisObjectPlacement j : i.getObjects()) {
+                    if (j.isVacuum()) {
                         return true;
                     }
                 }
 
-                for(IrisBiome j : i.getAllBiomes(data))
-                {
-                    if(j.getFeatures().isNotEmpty())
-                    {
+                for (IrisBiome j : i.getAllBiomes(data)) {
+                    if (j.getFeatures().isNotEmpty()) {
                         return true;
                     }
 
-                    for(IrisObjectPlacement k : i.getObjects())
-                    {
-                        if(k.isVacuum())
-                        {
+                    for (IrisObjectPlacement k : i.getObjects()) {
+                        if (k.isVacuum()) {
                             return true;
                         }
                     }

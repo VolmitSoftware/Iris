@@ -27,7 +27,9 @@ import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.math.FinalInteger;
 import org.bukkit.Bukkit;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;

@@ -56,10 +56,8 @@ public class IrisSettings {
         return getParallax().getParallaxRegionEvictionMS();
     }
 
-    public static int getThreadCount(int c)
-    {
-        if(c < 2 && c >= 0)
-        {
+    public static int getThreadCount(int c) {
+        if (c < 2 && c >= 0) {
             return 2;
         }
 

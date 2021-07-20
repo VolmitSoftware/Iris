@@ -20,8 +20,6 @@ package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
-import com.volmit.iris.engine.data.mca.LoadFlags;
-import com.volmit.iris.engine.data.mca.MCAFile;
 import com.volmit.iris.engine.data.mca.MCAUtil;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
@@ -35,14 +33,13 @@ import java.io.IOException;
 
 @Data
 public class HeadlessGenerator {
-    private static  KList<Position2> EMPTYPOINTS = new KList<>();
+    private static KList<Position2> EMPTYPOINTS = new KList<>();
     private final HeadlessWorld world;
     private final EngineCompositeGenerator generator;
     private final NBTWorld writer;
     private final MultiBurst burst;
 
-    public HeadlessGenerator(HeadlessWorld world)
-    {
+    public HeadlessGenerator(HeadlessWorld world) {
         this.world = world;
         burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
@@ -52,40 +49,33 @@ public class HeadlessGenerator {
         generator.initialize(world.getWorld());
     }
 
-    public void generateChunk(int x, int z)
-    {
+    public void generateChunk(int x, int z) {
         generator.directWriteChunk(world.getWorld(), x, z, writer);
     }
 
-    public void generateRegion(int x, int z)
-    {
+    public void generateRegion(int x, int z) {
         generator.directWriteMCA(world.getWorld(), x, z, writer, burst);
     }
 
-    public void generateRegion(int x, int z, PregenListener listener)
-    {
+    public void generateRegion(int x, int z, PregenListener listener) {
         generator.directWriteMCA(world.getWorld(), x, z, writer, burst, listener);
     }
 
-    public File generateRegionToFile(int x, int z, PregenListener listener)
-    {
+    public File generateRegionToFile(int x, int z, PregenListener listener) {
         generateRegionToFile(x, z, listener);
         flush();
         return writer.getRegionFile(x, z);
     }
 
-    public void flush()
-    {
+    public void flush() {
         writer.flushNow();
     }
 
-    public void save()
-    {
+    public void save() {
         writer.save();
     }
 
-    public void close()
-    {
+    public void close() {
         burst.shutdownAndAwait();
         generator.close();
         writer.close();

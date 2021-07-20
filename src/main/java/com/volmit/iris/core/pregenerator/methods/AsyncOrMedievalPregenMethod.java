@@ -26,8 +26,7 @@ import org.bukkit.World;
 public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
 
-    public AsyncOrMedievalPregenMethod(World world, int threads)
-    {
+    public AsyncOrMedievalPregenMethod(World world, int threads) {
         method = PaperLib.isPaper() ? new AsyncPregenMethod(world, threads) : new MedievalPregenMethod(world);
     }
 

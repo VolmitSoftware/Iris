@@ -229,14 +229,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (j = -s; j <= s; j++) {
                     ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
 
-                    try {
-                        for (IrisFeaturePositional k : m.getFeatures()) {
-                            if (k.shouldFilter(x, z)) {
-                                pos.add(k);
+                    synchronized (m)
+                    {
+                        try {
+                            for (IrisFeaturePositional k : m.getFeatures()) {
+                                if (k.shouldFilter(x, z)) {
+                                    pos.add(k);
+                                }
                             }
+                        } catch (Throwable e) {
+                            Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
+                            e.printStackTrace();
+                            Iris.reportError(e);
                         }
-                    } catch (Throwable e) {
-                        Iris.reportError(e);
                     }
                 }
             }
@@ -325,7 +330,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default KList<Runnable> generateParallaxVacuumLayer(int x, int z) {
         KList<Runnable> after = new KList<>();
-        if (getParallaxAccess().isParallaxGenerated(x, z)) {
+        if (getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4)) {
             return after;
         }
 
@@ -344,7 +349,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void generateParallaxLayer(int x, int z, boolean force) {
-        if (!force && getParallaxAccess().isParallaxGenerated(x, z)) {
+        if (!force && getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4)) {
             return;
         }
 

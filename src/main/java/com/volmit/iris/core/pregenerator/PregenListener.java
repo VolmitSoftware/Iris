@@ -34,4 +34,6 @@ public interface PregenListener {
     void onClose();
 
     void onSaving();
+
+    void onChunkExistsInRegionGen(int x, int z);
 }

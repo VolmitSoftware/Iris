@@ -43,7 +43,7 @@ public class DummyPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
     }
 

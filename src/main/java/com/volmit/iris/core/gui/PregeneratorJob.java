@@ -41,7 +41,8 @@ import java.util.function.Consumer;
 
 public class PregeneratorJob implements PregenListener {
     public static PregeneratorJob instance;
-    private static final Color COLOR_GENERATING = parseColor("#346beb");
+    private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
+    private static final Color COLOR_GENERATING = parseColor("#00ffdd");
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
     private JFrame frame;
     private final PregenTask task;
@@ -61,7 +62,6 @@ public class PregeneratorJob implements PregenListener {
         info = new String[]{"Initializing..."};
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
-        J.a(this.pregenerator::start);
         max = new Position2(0, 0);
         min = new Position2(0, 0);
         KList<Runnable> draw = new KList<>();
@@ -72,6 +72,7 @@ public class PregeneratorJob implements PregenListener {
             max.setZ(Math.max((zz << 5) + 31, max.getZ()));
         });
         open();
+        J.a(this.pregenerator::start, 20);
     }
 
     public PregeneratorJob onProgress(Consumer<Double> c)
@@ -246,6 +247,11 @@ public class PregeneratorJob implements PregenListener {
     @Override
     public void onSaving() {
 
+    }
+
+    @Override
+    public void onChunkExistsInRegionGen(int x, int z) {
+        draw(x, z, COLOR_EXISTS);
     }
 
     private Position2 getMax() {

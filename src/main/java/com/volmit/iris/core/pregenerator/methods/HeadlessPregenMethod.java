@@ -22,9 +22,12 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.headless.HeadlessWorld;
+import lombok.Getter;
 
 public class HeadlessPregenMethod implements PregeneratorMethod {
     private final HeadlessWorld world;
+
+    @Getter
     private final HeadlessGenerator generator;
 
     public HeadlessPregenMethod(HeadlessWorld world)
@@ -54,7 +57,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         return true;
     }
 

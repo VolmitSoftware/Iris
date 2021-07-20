@@ -28,6 +28,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class PaperAsyncPregenMethod implements PregeneratorMethod {
     private final World world;
@@ -47,13 +48,17 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void unloadAndSaveAllChunks() {
-        J.s(() -> {
-            for(Chunk i : world.getLoadedChunks())
-            {
-                i.unload(true);
-            }
-            world.save();
-        });
+        try {
+            J.sfut(() -> {
+                for(Chunk i : world.getLoadedChunks())
+                {
+                    i.unload(true);
+                }
+                world.save();
+            }).get();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     private void completeChunk(int x, int z, PregenListener listener) {
@@ -103,7 +108,7 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
     }
 
@@ -114,7 +119,7 @@ public class PaperAsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(future.size() > 128)
+        if(future.size() > 16)
         {
             waitForChunks();
         }

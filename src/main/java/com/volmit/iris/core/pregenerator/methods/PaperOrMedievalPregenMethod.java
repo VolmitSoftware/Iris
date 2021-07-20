@@ -52,7 +52,7 @@ public class PaperOrMedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
     }
 

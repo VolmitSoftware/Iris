@@ -53,13 +53,17 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     private void unloadAndSaveAllChunks() {
         waitForChunks();
-        J.s(() -> {
-            for(Chunk i : world.getLoadedChunks())
-            {
-                i.unload(true);
-            }
-            world.save();
-        });
+        try {
+            J.sfut(() -> {
+                for(Chunk i : world.getLoadedChunks())
+                {
+                    i.unload(true);
+                }
+                world.save();
+            }).get();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -78,7 +82,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
     }
 

@@ -18,7 +18,10 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -46,10 +49,12 @@ public class IrisPregenerator {
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
+    private final KSet<Position2> generatedRegions;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener)
     {
         this.listener = listenify(listener);
+        generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
         this.task = task;
@@ -106,12 +111,19 @@ public class IrisPregenerator {
     {
         init();
         ticker.start();
-        task.iterateRegions(this::visitRegion);
+        checkRegions();
+        task.iterateRegions((x,z) -> visitRegion(x, z, true));
+        task.iterateRegions((x,z) -> visitRegion(x, z, false));
         shutdown();
+    }
+
+    private void checkRegions() {
+        task.iterateRegions(this::checkRegion);
     }
 
     private void init() {
         generator.init();
+        generator.save();
     }
 
     private void shutdown() {
@@ -121,7 +133,7 @@ public class IrisPregenerator {
         listener.onClose();
     }
 
-    private void visitRegion(int x, int z) {
+    private void visitRegion(int x, int z, boolean regions) {
         while(paused.get() && !shutdown.get())
         {
             J.sleep(50);
@@ -133,22 +145,46 @@ public class IrisPregenerator {
             return;
         }
 
-        listener.onRegionGenerating(x, z);
-        currentGeneratorMethod.set(generator.getMethod(x, z));
+        Position2 pos = new Position2(x, z);
 
-        if(generator.supportsRegions(x, z))
+        if(generatedRegions.contains(pos))
         {
+            return;
+        }
+
+        currentGeneratorMethod.set(generator.getMethod(x, z));
+        boolean hit = false;
+        if(generator.supportsRegions(x, z, listener) && regions)
+        {
+            hit = true;
+            listener.onRegionGenerating(x, z);
             generator.generateRegion(x, z, listener);
         }
 
-        else
+        else if(!regions)
         {
+            hit = true;
+            listener.onRegionGenerating(x, z);
             PregenTask.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
         }
 
-        listener.onRegionGenerated(x, z);
-        listener.onSaving();
-        generator.save();
+        if(hit)
+        {
+            listener.onRegionGenerated(x, z);
+            listener.onSaving();
+            generator.save();
+            generatedRegions.add(pos);
+            checkRegions();
+        }
+    }
+
+    private void checkRegion(int x, int z) {
+        if(generatedRegions.contains(new Position2(x, z)))
+        {
+            return;
+        }
+
+        generator.supportsRegions(x, z, listener);
     }
 
     public void pause()
@@ -202,6 +238,11 @@ public class IrisPregenerator {
             @Override
             public void onSaving() {
                 listener.onSaving();
+            }
+
+            @Override
+            public void onChunkExistsInRegionGen(int x, int z) {
+                listener.onChunkExistsInRegionGen(x, z);
             }
         };
     }

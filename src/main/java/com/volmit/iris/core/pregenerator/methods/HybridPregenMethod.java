@@ -18,10 +18,12 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.headless.HeadlessWorld;
+import com.volmit.iris.util.math.Position2;
 import org.bukkit.World;
 
 import java.io.File;
@@ -45,7 +47,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
 
     @Override
     public String getMethod(int x, int z) {
-        return "Hybrid<" + ((supportsRegions(x, z) ? headless.getMethod(x, z) : inWorld.getMethod(x, z)) + ">");
+        return "Hybrid<" + ((supportsRegions(x, z, null) ? headless.getMethod(x, z) : inWorld.getMethod(x, z)) + ">");
     }
 
     @Override
@@ -67,12 +69,30 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public boolean supportsRegions(int x, int z) {
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
         if (headless instanceof DummyPregenMethod) {
             return false;
         }
 
-        return !new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca").exists();
+        boolean r = !new File(world.getWorldFolder(), "region/r." + x + "." + z + ".mca").exists();
+
+        if(!r && listener != null)
+        {
+            try
+            {
+                for(Position2 i : ((HeadlessPregenMethod) headless).getGenerator().getChunksInRegion(x, z))
+                {
+                    listener.onChunkExistsInRegionGen((x << 5) + i.getX(), (z << 5) + i.getZ());
+                }
+            }
+
+            catch(Throwable e)
+            {
+                Iris.reportError(e);
+            }
+        }
+
+        return r;
     }
 
     @Override

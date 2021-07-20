@@ -44,7 +44,7 @@ public interface PregeneratorMethod {
      * @param x the x region
      * @param z the z region
      */
-    boolean supportsRegions(int x, int z);
+    boolean supportsRegions(int x, int z, PregenListener listener);
 
     /**
      * Return the name of the method being used

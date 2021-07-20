@@ -66,9 +66,9 @@ public class HeadlessGenerator {
         generator.directWriteMCA(world.getWorld(), x, z, writer, burst, listener);
     }
 
-    public File generateRegionToFile(int x, int z)
+    public File generateRegionToFile(int x, int z, PregenListener listener)
     {
-        generateRegionToFile(x, z);
+        generateRegionToFile(x, z, listener);
         flush();
         return writer.getRegionFile(x, z);
     }

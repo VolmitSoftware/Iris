@@ -39,6 +39,40 @@ import org.bukkit.block.data.BlockData;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
+// TODO:  THIS IS SO SLOW
 
 public class HunkRegionSlice<T> {
     public static final Function2<Integer, CompoundTag, HunkRegionSlice<BlockData>> BLOCKDATA = (h, c) -> new HunkRegionSlice<>(h, Hunk::newMappedHunkSynced, new BlockDataHunkIOAdapter(), c, "blockdata");

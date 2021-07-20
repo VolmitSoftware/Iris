@@ -43,6 +43,8 @@ public class PregeneratorJob implements PregenListener {
     public static PregeneratorJob instance;
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
     private static final Color COLOR_GENERATING = parseColor("#0062ff");
+    private static final Color COLOR_NETWORK = parseColor("#a863c2");
+    private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
     private JFrame frame;
     private final PregenTask task;
@@ -125,6 +127,16 @@ public class PregeneratorJob implements PregenListener {
         }
 
         return instance.paused();
+    }
+
+    public void drawRegion(int x, int z, Color color)
+    {
+        J.a(() -> {
+            PregenTask.iterateRegion(x, z, (xx,zz)->{
+                draw(xx,zz,color);
+                J.sleep(3);
+            });
+        });
     }
 
     public void draw(int x, int z, Color color)
@@ -235,6 +247,31 @@ public class PregeneratorJob implements PregenListener {
     @Override
     public void onRegionSkipped(int x, int z) {
 
+    }
+
+    @Override
+    public void onNetworkStarted(int x, int z) {
+        drawRegion(x, z, COLOR_NETWORK);
+    }
+
+    @Override
+    public void onNetworkFailed(int x, int z) {
+
+    }
+
+    @Override
+    public void onNetworkReclaim(int revert) {
+
+    }
+
+    @Override
+    public void onNetworkGeneratedChunk(int x, int z) {
+        draw(x, z, COLOR_NETWORK_GENERATING);
+    }
+
+    @Override
+    public void onNetworkDownloaded(int x, int z) {
+        drawRegion(x, z, COLOR_NETWORK);
     }
 
     @Override

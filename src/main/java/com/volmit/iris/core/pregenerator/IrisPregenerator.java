@@ -50,6 +50,8 @@ public class IrisPregenerator {
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
     private final KSet<Position2> generatedRegions;
+    private final KSet<Position2> retry;
+    private final KSet<Position2> net;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener)
     {
@@ -59,6 +61,8 @@ public class IrisPregenerator {
         this.paused = new AtomicBoolean(false);
         this.task = task;
         this.generator = generator;
+        retry = new KSet<>();
+        net = new KSet<>();
         currentGeneratorMethod = new AtomicReference<>("Void");
         minuteLatch = new ChronoLatch(60000, false);
         chunksPerSecond = new RollingSequence(10);
@@ -228,6 +232,31 @@ public class IrisPregenerator {
             @Override
             public void onRegionSkipped(int x, int z) {
                 listener.onRegionSkipped(x, z);
+            }
+
+            @Override
+            public void onNetworkStarted(int x, int z) {
+                net.add(new Position2(x, z));
+            }
+
+            @Override
+            public void onNetworkFailed(int x, int z) {
+                retry.add(new Position2(x, z));
+            }
+
+            @Override
+            public void onNetworkReclaim(int revert) {
+                generated.addAndGet(-revert);
+            }
+
+            @Override
+            public void onNetworkGeneratedChunk(int x, int z) {
+                generated.addAndGet(1);
+            }
+
+            @Override
+            public void onNetworkDownloaded(int x, int z) {
+                net.remove(new Position2(x, z));
             }
 
             @Override

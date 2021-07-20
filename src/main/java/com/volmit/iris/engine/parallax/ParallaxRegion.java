@@ -162,6 +162,7 @@ public class ParallaxRegion extends HunkRegion {
         tileSlice.save();
         updateSlice.save();
         saveMetaHunk();
+        Iris.debug("Saved Parallax Region "+ C.GOLD + getX() + " " + getZ());
         super.save();
     }
 

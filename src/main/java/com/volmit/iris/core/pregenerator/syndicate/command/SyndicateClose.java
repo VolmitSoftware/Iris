@@ -16,25 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-import com.google.gson.Gson;
-import com.volmit.iris.core.pregenerator.turbo.command.TurboCommand;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.util.UUID;
 
-public class TurboCommander {
-    private static final Gson gson = new Gson();
-
-    public static TurboCommand read(DataInputStream in) throws IOException, ClassNotFoundException {
-        String clazz = in.readUTF();
-        return (TurboCommand) gson.fromJson(in.readUTF(), Class.forName(clazz));
-    }
-
-    public static void write(TurboCommand c, DataOutputStream out) throws IOException {
-        out.writeUTF(c.getClass().getCanonicalName());
-        out.writeUTF(gson.toJson(c));
-    }
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class SyndicateClose implements SyndicateCommand {
+    @Builder.Default
+    private UUID pack = UUID.randomUUID();
 }

@@ -16,9 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-public interface TurboCommand
-{
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class SyndicateGenerate implements SyndicateCommand {
+    @Builder.Default
+    private int x = 0;
+    @Builder.Default
+    private int z = 0;
+    @Builder.Default
+    private UUID pack = UUID.randomUUID();
 }

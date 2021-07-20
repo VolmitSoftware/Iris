@@ -16,20 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TurboSendProgress implements TurboCommand {
-    @Builder.Default
-    private double progress = 0;
-    @Builder.Default
-    private boolean available = false;
+public class SyndicateOK implements SyndicateCommand {
 }

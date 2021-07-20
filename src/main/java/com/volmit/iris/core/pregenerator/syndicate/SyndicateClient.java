@@ -16,33 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo;
+package com.volmit.iris.core.pregenerator.syndicate;
 
-import com.volmit.iris.core.pregenerator.turbo.command.TurboCommand;
-import com.volmit.iris.util.collection.GBiset;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateCommand;
 import com.volmit.iris.util.function.Consumer2;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Builder;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.net.Socket;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 @Builder
-public class TurboClient {
+public class SyndicateClient {
     private String address;
     private int port;
-    private TurboCommand command;
+    private SyndicateCommand command;
     private Consumer<DataOutputStream> output;
 
-    public void go(Consumer2<TurboCommand, DataInputStream> handler) throws Throwable {
+    public void go(Consumer2<SyndicateCommand, DataInputStream> handler) throws Throwable {
         Socket socket = new Socket(address, port);
         DataInputStream i = new DataInputStream(socket.getInputStream());
         DataOutputStream o = new DataOutputStream(socket.getOutputStream());
-        TurboCommander.write(command, o);
+        SyndicateCommandIO.write(command, o);
 
         if(output != null)
         {
@@ -50,7 +46,7 @@ public class TurboClient {
         }
 
         o.flush();
-        handler.accept(TurboCommander.read(i), i);
+        handler.accept(SyndicateCommandIO.read(i), i);
         socket.close();
     }
 }

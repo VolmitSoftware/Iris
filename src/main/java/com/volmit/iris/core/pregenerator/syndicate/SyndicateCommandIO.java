@@ -16,27 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate;
 
-import com.volmit.iris.engine.object.IrisDimension;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.google.gson.Gson;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateCommand;
 
-import java.util.UUID;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-public class TurboInstallPack implements TurboCommand {
-    @Builder.Default
-    private UUID pack = UUID.randomUUID();
+public class SyndicateCommandIO {
+    private static final Gson gson = new Gson();
 
-    @Builder.Default
-    private long seed = 1337;
+    public static SyndicateCommand read(DataInputStream in) throws IOException, ClassNotFoundException {
+        String clazz = in.readUTF();
+        return (SyndicateCommand) gson.fromJson(in.readUTF(), Class.forName(clazz));
+    }
 
-    @Builder.Default
-    private IrisDimension dimension = null;
+    public static void write(SyndicateCommand c, DataOutputStream out) throws IOException {
+        out.writeUTF(c.getClass().getCanonicalName());
+        out.writeUTF(gson.toJson(c));
+    }
 }

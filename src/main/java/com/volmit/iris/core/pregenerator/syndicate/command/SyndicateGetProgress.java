@@ -16,7 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-public class TurboOK implements TurboCommand {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class SyndicateGetProgress implements SyndicateCommand {
+    @Builder.Default
+    private UUID pack = UUID.randomUUID();
 }

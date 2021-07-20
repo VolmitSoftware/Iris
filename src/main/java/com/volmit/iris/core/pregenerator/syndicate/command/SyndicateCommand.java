@@ -16,7 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-public class TurboBusy implements TurboCommand {
+public interface SyndicateCommand
+{
+
 }

@@ -16,7 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo.command;
+package com.volmit.iris.core.pregenerator.syndicate.command;
 
-public class TurboInstallFirst implements TurboCommand {
+import com.volmit.iris.engine.object.IrisDimension;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class SyndicateInstallPack implements SyndicateCommand {
+    @Builder.Default
+    private UUID pack = UUID.randomUUID();
+
+    @Builder.Default
+    private long seed = 1337;
+
+    @Builder.Default
+    private IrisDimension dimension = null;
 }

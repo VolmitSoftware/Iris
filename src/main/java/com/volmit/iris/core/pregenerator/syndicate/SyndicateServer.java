@@ -16,16 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.pregenerator.turbo;
+package com.volmit.iris.core.pregenerator.syndicate;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
-import com.volmit.iris.core.pregenerator.turbo.command.*;
+import com.volmit.iris.core.pregenerator.syndicate.command.*;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.headless.HeadlessWorld;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
-import org.apache.logging.log4j.core.tools.Generate;
-import org.zeroturnaround.zip.ZTFileUtil;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;
@@ -36,7 +34,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TurboServer extends Thread implements PregenListener {
+public class SyndicateServer extends Thread implements PregenListener {
     private int port;
     private String password;
     private boolean busy;
@@ -48,7 +46,7 @@ public class TurboServer extends Thread implements PregenListener {
     private AtomicInteger g = new AtomicInteger(0);
     private File lastGeneratedRegion = null;
 
-    public TurboServer(File cache, int port, String password, int tc) throws IOException {
+    public SyndicateServer(File cache, int port, String password, int tc) throws IOException {
         this.port = port;
         this.cache = cache;
         this.password = password;
@@ -83,11 +81,11 @@ public class TurboServer extends Thread implements PregenListener {
 
     private void handle(Socket client, DataInputStream i, DataOutputStream o) throws Throwable
     {
-        TurboCommand cmd = handle(TurboCommander.read(i), i, o);
+        SyndicateCommand cmd = handle(SyndicateCommandIO.read(i), i, o);
 
         if(cmd != null)
         {
-            TurboCommander.write(cmd, o);
+            SyndicateCommandIO.write(cmd, o);
         }
 
         o.flush();
@@ -98,12 +96,12 @@ public class TurboServer extends Thread implements PregenListener {
         return new File(cache, id.toString().charAt(2) +"/" + id.toString().substring(0, 4)+ "/" + id);
     }
 
-    private TurboCommand handle(TurboCommand command, DataInputStream i, DataOutputStream o) throws Throwable {
-        if(command instanceof TurboInstallPack)
+    private SyndicateCommand handle(SyndicateCommand command, DataInputStream i, DataOutputStream o) throws Throwable {
+        if(command instanceof SyndicateInstallPack)
         {
             if(busy)
             {
-                return new TurboBusy();
+                return new SyndicateBusy();
             }
 
             if(generator != null)
@@ -113,7 +111,7 @@ public class TurboServer extends Thread implements PregenListener {
                 generator = null;
             }
 
-            UUID id = ((TurboInstallPack) command).getPack();
+            UUID id = ((SyndicateInstallPack) command).getPack();
             File cacheload = new File(cache, id.toString().charAt(2) +"/" + id.toString().substring(0, 4)+ "/" + id + ".zip");
             File cachestore = getCachedDim(id);
             IO.delete(cachestore);
@@ -125,35 +123,35 @@ public class TurboServer extends Thread implements PregenListener {
             fos.close();
             ZipUtil.unpack(cacheload, cachestore);
             cacheload.deleteOnExit();
-            HeadlessWorld w = new HeadlessWorld("turbo/" + id.toString(), ((TurboInstallPack) command).getDimension(), ((TurboInstallPack) command).getSeed());
+            HeadlessWorld w = new HeadlessWorld("turbo/" + id.toString(), ((SyndicateInstallPack) command).getDimension(), ((SyndicateInstallPack) command).getSeed());
             w.setStudio(true);
             generator = w.generate();
-            return new TurboOK();
+            return new SyndicateOK();
         }
 
-        if(command instanceof TurboGenerate)
+        if(command instanceof SyndicateGenerate)
         {
             if(busy)
             {
-                return new TurboBusy();
+                return new SyndicateBusy();
             }
 
-            if(generator == null || !Objects.equals(currentId, ((TurboGenerate) command).getPack())) {
-                return new TurboInstallFirst();
+            if(generator == null || !Objects.equals(currentId, ((SyndicateGenerate) command).getPack())) {
+                return new SyndicateInstallFirst();
             }
 
             g.set(0);
             busy = true;
             J.a(() -> {
                 busy = false;
-                lastGeneratedRegion = generator.generateRegionToFile(((TurboGenerate) command).getX(), ((TurboGenerate) command).getZ(), this);
+                lastGeneratedRegion = generator.generateRegionToFile(((SyndicateGenerate) command).getX(), ((SyndicateGenerate) command).getZ(), this);
             });
-            return new TurboOK();
+            return new SyndicateOK();
         }
 
-        if(command instanceof TurboClose)
+        if(command instanceof SyndicateClose)
         {
-            if(generator != null && Objects.equals(currentId, ((TurboClose) command).getPack()) && !busy)
+            if(generator != null && Objects.equals(currentId, ((SyndicateClose) command).getPack()) && !busy)
             {
                 generator.close();
                 IO.delete(generator.getWorld().getWorld().worldFolder());
@@ -162,16 +160,16 @@ public class TurboServer extends Thread implements PregenListener {
             }
         }
 
-        if(command instanceof TurboGetProgress)
+        if(command instanceof SyndicateGetProgress)
         {
-            if(generator != null && busy && Objects.equals(currentId, ((TurboGetProgress) command).getPack()))
+            if(generator != null && busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()))
             {
-                return TurboSendProgress.builder().progress((double)g.get() / 1024D).build();
+                return SyndicateSendProgress.builder().progress((double)g.get() / 1024D).build();
             }
 
-            else if(generator != null && !busy && Objects.equals(currentId, ((TurboGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists())
+            else if(generator != null && !busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists())
             {
-                TurboCommander.write(TurboSendProgress
+                SyndicateCommandIO.write(SyndicateSendProgress
                     .builder()
                         .progress(1).available(true)
                     .build(), o);
@@ -182,12 +180,12 @@ public class TurboServer extends Thread implements PregenListener {
 
             else if(generator == null)
             {
-                return new TurboInstallFirst();
+                return new SyndicateInstallFirst();
             }
 
             else
             {
-                return new TurboBusy();
+                return new SyndicateBusy();
             }
         }
 
@@ -227,6 +225,31 @@ public class TurboServer extends Thread implements PregenListener {
 
     @Override
     public void onRegionSkipped(int x, int z) {
+
+    }
+
+    @Override
+    public void onNetworkStarted(int x, int z) {
+
+    }
+
+    @Override
+    public void onNetworkFailed(int x, int z) {
+
+    }
+
+    @Override
+    public void onNetworkReclaim(int revert) {
+
+    }
+
+    @Override
+    public void onNetworkGeneratedChunk(int x, int z) {
+
+    }
+
+    @Override
+    public void onNetworkDownloaded(int x, int z) {
 
     }
 

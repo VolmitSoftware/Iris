@@ -23,27 +23,20 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.pregenerator.turbo.TurboClient;
-import com.volmit.iris.core.pregenerator.turbo.command.*;
-import com.volmit.iris.engine.data.mca.NBTWorld;
-import com.volmit.iris.engine.headless.HeadlessGenerator;
-import com.volmit.iris.engine.headless.HeadlessWorld;
+import com.volmit.iris.core.pregenerator.syndicate.SyndicateClient;
+import com.volmit.iris.core.pregenerator.syndicate.command.*;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import org.zeroturnaround.zip.ZipUtil;
 
-import javax.management.RuntimeErrorException;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SlavePregenMethod implements PregeneratorMethod
+public class SyndicatePregenMethod implements PregeneratorMethod
 {
     @Getter
     private String address;
@@ -56,7 +49,7 @@ public class SlavePregenMethod implements PregeneratorMethod
     private UUID pack = UUID.randomUUID();
     private long seed;
 
-    public SlavePregenMethod(String nickname, File worldFolder, String address, int port, String password, IrisDimension dimension, long seed)
+    public SyndicatePregenMethod(String nickname, File worldFolder, String address, int port, String password, IrisDimension dimension, long seed)
     {
         this.seed = seed;
         this.worldFolder = worldFolder;
@@ -66,9 +59,9 @@ public class SlavePregenMethod implements PregeneratorMethod
         this.dimension = dimension;
     }
 
-    private TurboClient.TurboClientBuilder connect()
+    private SyndicateClient.SyndicateClientBuilder connect()
     {
-        return TurboClient.builder().address(address).port(port);
+        return SyndicateClient.builder().address(address).port(port);
     }
 
     public synchronized void setup()
@@ -80,7 +73,7 @@ public class SlavePregenMethod implements PregeneratorMethod
 
         ready = false;
         try {
-            connect().command(TurboInstallPack
+            connect().command(SyndicateInstallPack
                 .builder()
                     .dimension(dimension)
                     .pack(pack)
@@ -99,7 +92,7 @@ public class SlavePregenMethod implements PregeneratorMethod
                     to.deleteOnExit();
                 })
                 .build().go((response, data) -> {
-                    if(response instanceof TurboBusy)
+                    if(response instanceof SyndicateBusy)
                     {
                         throw new RuntimeException("Service is busy, will try later");
                     }
@@ -139,7 +132,7 @@ public class SlavePregenMethod implements PregeneratorMethod
         {
             try {
                 connect()
-                    .command(TurboClose
+                    .command(SyndicateClose
                         .builder()
                             .pack(pack)
                         .build())
@@ -163,7 +156,7 @@ public class SlavePregenMethod implements PregeneratorMethod
 
     @Override
     public String getMethod(int x, int z) {
-        return "Remote<" + nickname + ">";
+        return "Syndicate<" + nickname + ">";
     }
 
     private double checkProgress(int x, int z)
@@ -171,14 +164,14 @@ public class SlavePregenMethod implements PregeneratorMethod
         AtomicDouble progress = new AtomicDouble(-1);
         try {
             connect()
-                .command(TurboGetProgress.builder()
+                .command(SyndicateGetProgress.builder()
                         .pack(pack).build()).output((i) -> {
                 }).build().go((response, o) -> {
-                    if(response instanceof TurboSendProgress)
+                    if(response instanceof SyndicateSendProgress)
                     {
-                        if(((TurboSendProgress) response).isAvailable())
+                        if(((SyndicateSendProgress) response).isAvailable())
                         {
-                            progress.set(((TurboSendProgress) response).getProgress());
+                            progress.set(((SyndicateSendProgress) response).getProgress());
                             File f = new File(worldFolder, "region/r." + x + "." + z + ".mca");
                             try {
                                 f.getParentFile().mkdirs();
@@ -205,12 +198,12 @@ public class SlavePregenMethod implements PregeneratorMethod
         }
 
         try {
-            connect().command(TurboGenerate
+            connect().command(SyndicateGenerate
                 .builder()
                     .x(x).z(z).pack(pack)
                 .build())
                 .build().go((response, data) -> {
-                    if(response instanceof TurboOK)
+                    if(response instanceof SyndicateOK)
                     {
                         listener.onNetworkStarted(x, z);
                         J.a(() -> {
@@ -267,13 +260,13 @@ public class SlavePregenMethod implements PregeneratorMethod
                         });
                     }
 
-                    else if(response instanceof TurboInstallFirst)
+                    else if(response instanceof SyndicateInstallFirst)
                     {
                         ready = false;
                         throw new RuntimeException();
                     }
 
-                    else if(response instanceof TurboBusy)
+                    else if(response instanceof SyndicateBusy)
                     {
                         throw new RuntimeException();
                     }

@@ -327,6 +327,13 @@ public class IO {
         pw.close();
     }
 
+    public static void writeAll(File f, OutputStream c) throws IOException {
+        f.getParentFile().mkdirs();
+        FileInputStream in = new FileInputStream(f);
+        IO.fullTransfer(in, c, 8192);
+        in.close();
+    }
+
     public static String readAll(File f) throws IOException {
         FileReader fr;
         try {

@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
@@ -158,6 +159,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         return z / getDimension().getTerrainZoom();
     }
 
+    @ChunkCoordinates
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try {
@@ -172,7 +174,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     getFramework().getRavineModifier().modify(x, z, vblocks);
                     getFramework().getPostModifier().modify(x, z, vblocks);
                     getFramework().getDecorantActuator().actuate(x, z, vblocks);
-                    getFramework().getEngineParallax().insertParallax(x, z, vblocks);
+                    getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, vblocks);
                     getFramework().getDepositModifier().modify(x, z, vblocks);
                 }
                 case ISLANDS -> {

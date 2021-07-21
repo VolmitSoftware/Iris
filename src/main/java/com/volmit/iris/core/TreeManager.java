@@ -210,7 +210,7 @@ public class TreeManager implements Listener {
                 .filter(objectPlacement -> objectPlacement.getTreeOptions().isEnabled())
                 .filter(objectPlacement -> objectPlacement.getTreeOptions().getTrees().stream().anyMatch(irisTree ->
                         irisTree.getSizes().stream().anyMatch(treeSize -> treeSize == IrisTreeSize.ANY || treeSize == size) &&
-                        irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType == type)))
+                        irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType == IrisTreeType.ANY || treeType == type)))
                 .forEach(objectPlacements::add);
         return objectPlacements;
     }

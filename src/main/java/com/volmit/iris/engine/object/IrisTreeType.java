@@ -43,6 +43,9 @@ public enum IrisTreeType {
     @Desc("Tree with large roots which grows above lush caves")
     AZALEA,
 
+    @Desc("Any tree type (all will match, including mushrooms & nether trees")
+    ANY,
+
     @Desc("The fallback type for all other non-supported growth events")
     NONE;
 

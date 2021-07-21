@@ -163,7 +163,7 @@ public class TreeManager implements Listener {
                 Objects.requireNonNull(IrisWorlds.access(event.getWorld())).getData()
         );
         */
-        //f.place(event.getLocation());
+        f.place(event.getLocation());
     }
 
     /**

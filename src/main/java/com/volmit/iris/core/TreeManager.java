@@ -8,6 +8,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
@@ -73,20 +74,24 @@ public class TreeManager implements Listener {
 
         // Find best object placement based on sizes
         IrisObjectPlacement placement = null;
+        IrisTreeSize bestSize = null;
         while (placement == null && keys.isNotEmpty()){
-            IrisTreeSize bestSize = IrisTreeSize.bestSizeInSizes(keys);
+            bestSize = IrisTreeSize.bestSizeInSizes(keys);
             keys.remove(bestSize);
             placement = getObjectPlacement(worldAccess, event.getLocation(), type, bestSize);
         }
 
         // If none were found, just exit
         if (placement == null) {
-            Iris.debug(this.getClass().getName() + " had options but did not manage to find objectplacements for them");
+            Iris.debug(this.getClass().getName() + " had options but did not manage to find objectPlacements for them");
             return;
         }
 
         // Cancel the placement
         event.setCancelled(true);
+
+        // Delete existing saplings
+        sizes.get(bestSize).forEach(row -> row.forEach(location -> location.getBlock().setType(Material.AIR)));
 
         // Get object from placer
         IrisObject f = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
@@ -153,17 +158,14 @@ public class TreeManager implements Listener {
         // Place the object with the placer
         /*
         f.place(
-                event.getLocation().getBlockX(),
-                event.getLocation().getBlockY(),
-                event.getLocation().getBlockZ(),
+                event.getLocation() // TODO: Place the object at the right location (one of the center positions)
                 placer,
                 placement,
                 RNG.r,
                 Objects.requireNonNull(IrisWorlds.access(event.getWorld())).getData()
         );
         */
-        // TODO: Place the object at the right location (one of the center positions)
-        f.place(event.getLocation());
+        //f.place(event.getLocation());
     }
 
     /**

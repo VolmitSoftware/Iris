@@ -415,6 +415,10 @@ public class IrisObject extends IrisRegistrant {
         return place(x, yv, z, placer, config, rng, null, null, rdata);
     }
 
+    public int place(Location loc, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata) {
+        return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
+    }
+
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new IObjectPlacer() {
             final long s = rng.nextLong() + yv + z - x;

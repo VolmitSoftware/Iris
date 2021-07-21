@@ -74,7 +74,7 @@ public class CommandIrisPregen extends MortarCommand {
 
         if (args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("x")) {
             if (PregeneratorJob.shutdownInstance()) {
-                sender.sendMessage("Stopped Pregen.");
+                sender.sendMessage("Stopped Pregen. Finishing last region file before shutting down...");
             } else {
                 sender.sendMessage("No Active Pregens.");
             }

@@ -134,7 +134,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     public void tick() {
-        if (isClosed()) {
+        if (getComposite() == null || isClosed()) {
             return;
         }
 

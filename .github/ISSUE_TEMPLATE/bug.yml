@@ -1,0 +1,71 @@
+name: Iris Bug Report
+description: File a bug report for Iris
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill this out!
+        If this does not work for you, feel free to use the [blank](https://github.com/VolmitSoftware/Iris/issues/new) format.
+  - type: textarea
+    id: how
+    attributes:
+      label: Problem
+      description: Please give a text description of how you reached the problem
+      value: |
+        1. Install Iris...
+        2. Do this...
+        3. Do that...
+        4. Observe the error...
+      render: txt
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Solution
+      description: Explain where you think the problem comes from (optional)
+      placeholder: The code to place a is missing b and c...
+    validations:
+      required: false
+  - type: dropdown
+    id: mcversion
+    attributes:
+      label: Minecraft Version
+      description: What version of Minecraft is the server on?
+      options:
+        - 1.14 to 1.16.5
+        - 1.17.x
+        - 1.18.x
+    validations:
+      required: true
+  - type: input
+    id: irisversion
+    attributes:
+      label: Iris Version
+      description: What version of Iris are you running? (see console)
+      placeholder: DO NOT SAY "LATEST"
+    validations:
+      required: true
+  - type: input
+    id: logs
+    attributes:
+      label: Log
+      description: Paste a full log. Always use [mclogs](https://mclo.gs) Or [Pastebin](https://pastebin.com/). Must not be a crash report. Must be a full log. Must not be a screenshot of a log.
+      placeholder: https://mslog.gs/...
+    validations:
+      required: true
+  - type: checkboxes
+    id: checksum
+    attributes:
+      label: Checklist
+      description: Please ensure you meet each of the requirements below
+      options:
+        - label: I am using an unmodified version of Iris. (If you modified the plugin and see an issue, make sure it is reproducable on the latest spigot version or contact [support](discord.gg/volmit))
+          required: true
+        - label: I am using Spigot, Paper, Tuinity, or Purpur. (If you are not, and still think it is a valid issue, contact [support](discord.gg/volmit))
+          required: true
+  - type: markdown
+    id: thanks
+    attributes:
+      value: "Thank you for filling out the form! We will be with you soon. Please do not ask support to review your report."

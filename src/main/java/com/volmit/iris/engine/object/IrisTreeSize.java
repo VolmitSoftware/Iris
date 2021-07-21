@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -28,7 +29,10 @@ public enum IrisTreeSize {
     FIVE_ANY,
 
     @Desc("Five by five center")
-    FIVE_CENTER;
+    FIVE_CENTER,
+
+    @Desc("Any size")
+    ANY;
 
     /**
      * All sizes in this enum
@@ -36,28 +40,15 @@ public enum IrisTreeSize {
     public static final KList<IrisTreeSize> sizes = new KList<>(ONE, TWO, THREE_ANY, THREE_CENTER, FOUR, FIVE_ANY, FIVE_CENTER);
 
     /**
-     * The best size in this enum
-     */
-    public static final IrisTreeSize bestSize = FIVE_CENTER;
-
-    /**
-     * Whether the position of the any type (not fixed at a center)
-     * @param treeSize The treesize to check
-     */
-    public static boolean isAnyPosition(IrisTreeSize treeSize){
-        return switch (treeSize) {
-            case ONE, THREE_CENTER, FIVE_CENTER -> false;
-            default -> true;
-        };
-    }
-
-    /**
      * Get the best size to match against from a list of sizes
      * @param sizes The list of sizes
      * @return The best size (highest & center > any)
      */
     public static IrisTreeSize bestSizeInSizes(KList<IrisTreeSize> sizes){
-        if (sizes.contains(FIVE_CENTER)){
+        if (sizes.contains(ANY)){
+            return ANY;
+        }
+        else if (sizes.contains(FIVE_CENTER)){
             return FIVE_CENTER;
         }
         else if (sizes.contains(FIVE_ANY)){
@@ -83,45 +74,15 @@ public enum IrisTreeSize {
     }
 
     /**
-     * Find the best size based on a location
-     * @param location The location to look from
-     * @return The best size
-     */
-    public static IrisTreeSize getBestSize(Location location){
-        return getBestSize(location, sizes.copy());
-    }
-
-    /**
-     * Find the best valid size based on a location and a list of sizes
-     * @param location The location to search from
-     * @param sizeList The list of sizes to pick from
-     * @return The best valid size
-     */
-    public static IrisTreeSize getBestSize(Location location, KList<IrisTreeSize> sizeList){
-        while (sizeList.isNotEmpty()){
-
-            // Find the best size & remove from list
-            IrisTreeSize bestSize = bestSizeInSizes(sizeList);
-            assert bestSize != null;
-            sizeList.remove(bestSize);
-
-            // Find the best match
-            KList<KList<Location>> best = getPlacesIfValid(bestSize, location);
-            if (best != null){
-                return bestSize;
-            }
-        }
-        return ONE;
-
-    }
-
-    /**
      * Check if the size at a specific location is valid
      * @param size the IrisTreeSize to check
      * @param location at this location
      * @return A list of locations if any match, or null if not.
      */
     public static KList<KList<Location>> getPlacesIfValid (IrisTreeSize size, Location location) {
+        if (size == ANY){
+            Iris.debug("ANY was passed to getPlacesIfValid while it should never!");
+        }
         return switch (size){
             case ONE            -> new KList<KList<Location>>(new KList<>(location));
             case TWO            -> loopLocation(location, 2);
@@ -130,6 +91,7 @@ public enum IrisTreeSize {
             case FIVE_ANY       -> loopLocation(location, 5);
             case THREE_CENTER   -> isCenterMapValid(location, 3);
             case FIVE_CENTER    -> isCenterMapValid(location, 5);
+            case ANY            -> null;
         };
     }
 

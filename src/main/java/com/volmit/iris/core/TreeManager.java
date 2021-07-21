@@ -17,8 +17,6 @@ import java.util.Objects;
 
 public class TreeManager implements Listener {
 
-    public static final int maxSaplingPlane = 5;
-
     public TreeManager() {
         Iris.instance.registerListener(this);
         Iris.info("Loading Sapling Manager");
@@ -191,11 +189,9 @@ public class TreeManager implements Listener {
         }
 
         // Add more or find any in the dimension
-        /* TODO: Implement object placement in dimension & here
         if (worldAccess.getCompound().getRootDimension().getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
             placements.addAll(matchObjectPlacements(worldAccess.getCompound().getRootDimension().getObjects(), size, type));
         }
-         */
 
         // Check if no matches were found, return a random one if they are
         return placements.isNotEmpty() ? placements.getRandom(RNG.r) : null;
@@ -213,7 +209,7 @@ public class TreeManager implements Listener {
         objects.stream()
                 .filter(objectPlacement -> objectPlacement.getTreeOptions().isEnabled())
                 .filter(objectPlacement -> objectPlacement.getTreeOptions().getTrees().stream().anyMatch(irisTree ->
-                        irisTree.getSizes().stream().anyMatch(treeSize -> treeSize == size) &&
+                        irisTree.getSizes().stream().anyMatch(treeSize -> treeSize == IrisTreeSize.ANY || treeSize == size) &&
                         irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType == type)))
                 .forEach(objectPlacements::add);
         return objectPlacements;

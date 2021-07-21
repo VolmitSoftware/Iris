@@ -378,4 +378,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     IrisBiome getFocus();
+
+    void hotloading();
 }

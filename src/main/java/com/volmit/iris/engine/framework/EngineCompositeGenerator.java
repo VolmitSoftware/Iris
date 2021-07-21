@@ -127,6 +127,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
                 }
             });
+
+            getComposite().close();
             initialized.lazySet(false);
         }
     }

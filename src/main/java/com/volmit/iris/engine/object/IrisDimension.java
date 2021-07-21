@@ -61,6 +61,9 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisDimensionIndex.class)
     private KList<IrisDimensionIndex> dimensionalComposite = new KList<>();
 
+    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @Desc("Objects define what schematics (iob files) iris will place in this biome. ONLY FOR SAPLINGS UNTIL FURTHER NOTICE!")
+    private KList<IrisObjectPlacement> objects = new KList<>();
 
     @Desc("Create an inverted dimension in the sky (like the nether)")
     private IrisDimension sky = null;

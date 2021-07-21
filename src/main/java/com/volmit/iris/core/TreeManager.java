@@ -52,8 +52,8 @@ public class TreeManager implements Listener {
         }
 
         // Return null if not enabled
-        if (!worldAccess.getCompound().getRootDimension().getSaplingSettings().isEnabled()) {
-            Iris.debug(this.getClass().getName() + "cancelled because not");
+        if (!worldAccess.getCompound().getRootDimension().getTreeSettings().isEnabled()) {
+            Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }
 
@@ -183,13 +183,13 @@ public class TreeManager implements Listener {
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region
-        if (worldAccess.getCompound().getRootDimension().getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
+        if (worldAccess.getCompound().getRootDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
             IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
         }
 
         // Add more or find any in the dimension
-        if (worldAccess.getCompound().getRootDimension().getSaplingSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
+        if (worldAccess.getCompound().getRootDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL) || placements.isEmpty()){
             placements.addAll(matchObjectPlacements(worldAccess.getCompound().getRootDimension().getObjects(), size, type));
         }
 

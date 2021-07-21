@@ -361,7 +361,6 @@ public class IrisProject {
         jc.put("editor.autoIndent", "brackets");
         jc.put("editor.acceptSuggestionOnEnter", "smart");
         jc.put("editor.cursorSmoothCaretAnimation", true);
-        jc.put("editor.dragAndDrop", false);
         jc.put("files.trimTrailingWhitespace", true);
         jc.put("diffEditor.ignoreTrimWhitespace", true);
         jc.put("files.trimFinalNewlines", true);

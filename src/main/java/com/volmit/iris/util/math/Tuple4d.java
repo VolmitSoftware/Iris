@@ -328,6 +328,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use scaleAdd(double,Tuple4d) instead
      */
+    @Deprecated
     public final void scaleAdd(float s, Tuple4d t1) {
         scaleAdd((double) s, t1);
     }
@@ -452,6 +453,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clamp(double,double,Tuple4d) instead
      */
+    @Deprecated
     public final void clamp(float min, float max, Tuple4d t) {
         clamp(min, (double) max, t);
     }
@@ -488,6 +490,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clampMin(double,Tuple4d) instead
      */
+    @Deprecated
     public final void clampMin(float min, Tuple4d t) {
         clampMin((double) min, t);
     }
@@ -515,6 +518,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clampMax(double,Tuple4d) instead
      */
+    @Deprecated
     public final void clampMax(float max, Tuple4d t) {
         clampMax((double) max, t);
     }
@@ -561,6 +565,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clamp(double,double) instead
      */
+    @Deprecated
     public final void clamp(float min, float max) {
         clamp(min, (double) max);
     }
@@ -603,6 +608,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clampMin(double) instead
      */
+    @Deprecated
     public final void clampMin(float min) {
         clampMin((double) min);
     }
@@ -624,6 +630,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use clampMax(double) instead
      */
+    @Deprecated
     public final void clampMax(float max) {
         clampMax((double) max);
     }
@@ -658,6 +665,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use interpolate(Tuple4d,Tuple4d,double) instead
      */
+    @Deprecated
     public void interpolate(Tuple4d t1, Tuple4d t2, float alpha) {
         interpolate(t1, t2, (double) alpha);
     }
@@ -682,6 +690,7 @@ public abstract class Tuple4d implements java.io.Serializable, Cloneable {
     /**
      * @deprecated Use interpolate(Tuple4d,double) instead
      */
+    @Deprecated
     public void interpolate(Tuple4d t1, float alpha) {
         interpolate(t1, (double) alpha);
     }

@@ -1,0 +1,46 @@
+name: Iris Feature Request
+description: File a feature request for Iris. If you want to report a bug this is not the place.
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill this out!
+        If this does not work for you, feel free to use the [blank](https://github.com/VolmitSoftware/Iris/issues/new) format.
+  - type: dropdown
+    id: arc
+    attributes:
+      label: Adding, Removing, or Changing
+      description: What are you doing
+      options:
+        - Adding
+        - Removing
+        - Changing
+    validations:
+      required: true
+  - type: input
+    id: atype
+    attributes:
+      label: Type of Modification
+      description: What is it for?
+      value: I want to ...
+    validations:
+      required: true
+  - type: textarea
+    id: desc
+    attributes:
+      label: What are you trying to modify
+      description: Give as detailed of a description as you can for the modification that you want done (include pictures if applicable)
+      value: The way I would implement this is ...
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternatives
+      description: What alternatives have you considered?
+      value: If this could not be implemented I would ...
+  - type: markdown
+    id: thanks
+    attributes:
+      value: "Thank you for filling out the form! We will be with you soon. Please do not ask support to review your report."

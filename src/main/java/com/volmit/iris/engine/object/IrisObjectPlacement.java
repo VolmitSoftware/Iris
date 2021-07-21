@@ -61,7 +61,7 @@ public class IrisObjectPlacement {
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
     private double snow = 0;
-    
+
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")

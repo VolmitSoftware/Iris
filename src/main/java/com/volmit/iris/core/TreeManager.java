@@ -93,7 +93,7 @@ public class TreeManager implements Listener {
         IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
 
         // Create object placer
-        IObjectPlacer placer = new IObjectPlacer(){
+        IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
             public int getHighest(int x, int z) {
@@ -138,7 +138,13 @@ public class TreeManager implements Listener {
 
             @Override
             public int getFluidHeight() {
-                return ((Engine)worldAccess.getEngineAccess(event.getLocation().getBlockY())).getDimension().getFluidHeight();
+                Engine engine;
+                if (worldAccess.getCompound().getSize() > 1) {
+                    engine = worldAccess.getCompound().getEngine(0);
+                } else {
+                    engine = (Engine) worldAccess.getCompound().getRootDimension();
+                }
+                return engine.getDimension().getFluidHeight();
             }
 
             @Override

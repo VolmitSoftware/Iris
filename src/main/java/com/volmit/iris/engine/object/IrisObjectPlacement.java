@@ -150,7 +150,7 @@ public class IrisObjectPlacement {
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
 
-    @Desc("This objects overrides these trees when they grow...")
+    @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
 

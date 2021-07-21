@@ -42,12 +42,10 @@ public class TreeManager implements Listener {
         }
 
         // Get world access
-        IrisAccess worldAccess;
-        try {
-            worldAccess = Objects.requireNonNull(IrisToolbelt.access(event.getWorld()));
-        } catch (Throwable e) {
+        IrisAccess worldAccess = IrisToolbelt.access(event.getWorld());
+        if (worldAccess == null){
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
-            Iris.reportError(e);
+            Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
             return;
         }
 

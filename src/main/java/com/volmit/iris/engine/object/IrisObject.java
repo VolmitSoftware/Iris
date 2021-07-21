@@ -68,7 +68,7 @@ public class IrisObject extends IrisRegistrant {
     private int w;
     private int d;
     private int h;
-    private transient final IrisLock readLock = new IrisLock("read-conclock").setDisabled(true);
+    private transient final IrisLock readLock = new IrisLock("read-conclock");
     private transient BlockVector center;
     private transient volatile boolean smartBored = false;
     private transient IrisLock lock = new IrisLock("Preloadcache");

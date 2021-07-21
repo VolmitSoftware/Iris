@@ -28,12 +28,14 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("ALL")
 public class ParallaxWorld implements ParallaxAccess {
@@ -234,25 +236,22 @@ public class ParallaxWorld implements ParallaxAccess {
     }
 
     @Override
-    public void cleanup(long r, long c) {
-        J.a(() -> {
-            try {
-                int rr = 0;
-                int cc = 0;
-
-                for (ParallaxRegion i : loadedRegions.v()) {
+    public synchronized void cleanup(long r, long c) {
+        try {
+            int rr = 0;
+            for (ParallaxRegion i : loadedRegions.v()) {
+                burst.lazy(() -> {
                     if (i.hasBeenIdleLongerThan(r)) {
-                        rr++;
                         unload(i.getX(), i.getZ());
                     } else {
-                        cc += i.cleanup(c);
+                        i.cleanup(c);
                     }
-                }
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                e.printStackTrace();
+                });
             }
-        });
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
     }
 
     @Override

@@ -144,6 +144,13 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                 help = false;
             }
         });
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                e.shutdown();
+                eh.shutdown();
+            }
+        });
     }
 
     @Override

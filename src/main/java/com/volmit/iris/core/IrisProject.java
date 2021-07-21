@@ -354,8 +354,6 @@ public class IrisProject {
         folders.put(folder);
         ws.put("folders", folders);
         JSONObject settings = new JSONObject();
-        settings.put("workbench.colorTheme", "Monokai");
-        settings.put("workbench.preferredDarkColorTheme", "Solarized Dark");
         settings.put("workbench.tips.enabled", false);
         settings.put("workbench.tree.indent", 24);
         settings.put("files.autoSave", "onFocusChange");
@@ -375,7 +373,7 @@ public class IrisProject {
         jc.put("editor.quickSuggestions", st);
         jc.put("editor.suggest.insertMode", "replace");
         settings.put("[json]", jc);
-        settings.put("json.maxItemsComputed", 30000);
+        settings.put("json.maxItemsComputed", 50000);
         JSONArray schemas = new JSONArray();
         IrisDataManager dm = new IrisDataManager(getPath());
         schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));

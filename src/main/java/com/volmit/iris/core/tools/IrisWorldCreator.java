@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.util.fakenews.FakeWorld;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
@@ -78,8 +78,14 @@ public class IrisWorldCreator {
 
     public WorldCreator create() {
         EngineCompositeGenerator g = new EngineCompositeGenerator(dimensionName, !studio);
-        g.initialize(new FakeWorld(name, minHeight, maxHeight, seed, new File(name), findEnvironment()));
-
+        g.initialize(IrisWorld.builder()
+                .name(name)
+                .minHeight(minHeight)
+                .maxHeight(maxHeight)
+                .seed(seed)
+                .worldFolder(new File(name))
+                .environment(findEnvironment())
+                .build());
         return new WorldCreator(name)
                 .environment(findEnvironment())
                 .generateStructures(true)
@@ -93,5 +99,10 @@ public class IrisWorldCreator {
         } else {
             return dim.getEnvironment();
         }
+    }
+
+    public IrisWorldCreator studio(boolean studio) {
+        this.studio = studio;
+        return this;
     }
 }

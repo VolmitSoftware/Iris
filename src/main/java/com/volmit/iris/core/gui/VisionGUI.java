@@ -19,11 +19,14 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.gui.components.IrisRenderer;
+import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -36,7 +39,6 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -54,7 +56,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 
-public class IrisVision extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
+public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;
 
     private RenderType currentType = RenderType.BIOME;
@@ -70,7 +72,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     private boolean alt = false;
     private int posX = 0;
     private IrisRenderer renderer;
-    private World world;
+    private IrisWorld world;
     private double velocity = 0;
     private int lowq = 12;
     private int posZ = 0;
@@ -128,7 +130,7 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
     });
     private BufferedImage texture;
 
-    public IrisVision(JFrame frame) {
+    public VisionGUI(JFrame frame) {
         m.set(8);
         rs.put(1);
         addMouseWheelListener(this);
@@ -140,6 +142,13 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
 
             if (!helpIgnored && help) {
                 help = false;
+            }
+        });
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                e.shutdown();
+                eh.shutdown();
             }
         });
     }
@@ -726,9 +735,9 @@ public class IrisVision extends JPanel implements MouseWheelListener, KeyListene
         }
     }
 
-    private static void createAndShowGUI(Engine r, int s, World world) {
+    private static void createAndShowGUI(Engine r, int s, IrisWorld world) {
         JFrame frame = new JFrame("Vision");
-        IrisVision nv = new IrisVision(frame);
+        VisionGUI nv = new VisionGUI(frame);
         nv.world = world;
         nv.engine = r;
         nv.renderer = new IrisRenderer(r);

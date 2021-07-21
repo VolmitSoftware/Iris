@@ -16,8 +16,44 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.core.pregenerator.methods;
 
-public enum RenderType {
-    BIOME, BIOME_LAND, BIOME_SEA, REGION, CAVE_LAND, HEIGHT, OBJECT_LOAD, DECORATOR_LOAD, LAYER_LOAD
+import com.volmit.iris.core.pregenerator.PregenListener;
+import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+
+public class DummyPregenMethod implements PregeneratorMethod {
+    @Override
+    public void init() {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public String getMethod(int x, int z) {
+        return "Dummy";
+    }
+
+    @Override
+    public void save() {
+
+    }
+
+    @Override
+    public boolean supportsRegions(int x, int z, PregenListener listener) {
+        return false;
+    }
+
+    @Override
+    public void generateRegion(int x, int z, PregenListener listener) {
+
+    }
+
+    @Override
+    public void generateChunk(int x, int z, PregenListener listener) {
+
+    }
 }

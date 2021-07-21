@@ -18,11 +18,16 @@
 
 package com.volmit.iris.util.math;
 
-public class ChunkPosition {
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+
+public class Position2 {
     private int x;
     private int z;
 
-    public ChunkPosition(int x, int z) {
+    public Position2(int x, int z) {
         this.x = x;
         this.z = z;
     }
@@ -43,6 +48,10 @@ public class ChunkPosition {
         this.z = z;
     }
 
+    public String toString() {
+        return "[" + x + "," + z + "]";
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -52,18 +61,26 @@ public class ChunkPosition {
         return result;
     }
 
+    public Position2 regionToChunk() {
+        return new Position2(x << 5, z << 5);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof ChunkPosition other)) {
+        if (!(obj instanceof Position2 other)) {
             return false;
         }
         return x == other.x && z == other.z;
     }
 
-    public double distance(ChunkPosition center) {
+    public double distance(Position2 center) {
         return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
+    }
+
+    public Position2 add(int x, int z) {
+        return new Position2(this.x + x, this.z + z);
     }
 }

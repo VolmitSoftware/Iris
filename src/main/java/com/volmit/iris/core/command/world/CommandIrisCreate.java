@@ -21,10 +21,9 @@ package com.volmit.iris.core.command.world;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.gui.Pregenerator;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.IrisWorldCreator;
+import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
@@ -161,8 +160,7 @@ public class CommandIrisCreate extends MortarCommand {
                 sender.sendMessage("Pregenerating " + worldName + " " + size + " x " + size);
                 sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
-                new Pregenerator(world.get(), size, () ->
-                        b.set(true));
+
             }
 
             World ww = world.get();
@@ -223,7 +221,6 @@ public class CommandIrisCreate extends MortarCommand {
                     .productionMode().seed(seed).create();
 
             J.s(() -> {
-                sender.sendMessage("Generating with " + Iris.getThreadCount() + " threads per chunk");
                 O<Boolean> done = new O<>();
                 done.set(false);
 
@@ -249,15 +246,6 @@ public class CommandIrisCreate extends MortarCommand {
 
                 World w = INMS.get().createWorld(wc);
                 world.set(w);
-
-                try {
-                    if (pregen.get() > 0) {
-                        new Pregenerator(w, pregen.get());
-                    }
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                }
-
                 done.set(true);
             });
         }

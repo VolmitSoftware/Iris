@@ -321,10 +321,24 @@ public class IO {
     }
 
     public static void writeAll(File f, Object c) throws IOException {
-        f.getParentFile().mkdirs();
+        try {
+            f.getParentFile().mkdirs();
+        }
+        catch(Throwable ignored)
+        {
+
+        }
+
         PrintWriter pw = new PrintWriter(new FileWriter(f));
         pw.println(c.toString());
         pw.close();
+    }
+
+    public static void writeAll(File f, OutputStream c) throws IOException {
+        f.getParentFile().mkdirs();
+        FileInputStream in = new FileInputStream(f);
+        IO.fullTransfer(in, c, 8192);
+        in.close();
     }
 
     public static String readAll(File f) throws IOException {
@@ -621,6 +635,7 @@ public class IO {
      * @return the requested byte array
      * @deprecated Use {@link String#getBytes()}
      */
+    @Deprecated
     public static byte[] toByteArray(String input) {
         return input.getBytes();
     }
@@ -756,6 +771,7 @@ public class IO {
      * @return the requested String
      * @deprecated Use {@link String#String(byte[])}
      */
+    @Deprecated
     public static String toString(byte[] input) {
         return new String(input);
     }
@@ -774,6 +790,7 @@ public class IO {
      * @throws IOException          if an I/O error occurs (never occurs)
      * @deprecated Use {@link String#String(byte[], String)}
      */
+    @Deprecated
     public static String toString(byte[] input, String encoding) throws IOException {
         if (encoding == null) {
             return new String(input);

@@ -20,6 +20,7 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineCompound;
 import com.volmit.iris.engine.framework.EngineData;
@@ -28,6 +29,7 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisDimensionIndex;
 import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
@@ -37,7 +39,6 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
@@ -50,7 +51,7 @@ import java.util.List;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
-    private World world;
+    private IrisWorld world;
 
     private final AtomicRollingSequence wallClock;
 
@@ -77,10 +78,10 @@ public class IrisEngineCompound implements EngineCompound {
     @Setter
     private boolean studio;
 
-    public IrisEngineCompound(World world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads) {
+    public IrisEngineCompound(IrisWorld world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads) {
         wallClock = new AtomicRollingSequence(32);
         this.rootDimension = rootDimension;
-        Iris.info("Initializing Engine Composite for " + world.getName());
+        Iris.info("Initializing Engine Composite for " + world.name());
         this.world = world;
         engineMetadata = EngineData.load(getEngineMetadataFile());
         engineMetadata.setDimension(rootDimension.getLoadKey());
@@ -97,7 +98,7 @@ public class IrisEngineCompound implements EngineCompound {
         } else {
             double totalWeight = 0D;
             engines = new Engine[rootDimension.getDimensionalComposite().size()];
-            burster = engines.length > 1 ? new MultiBurst(engines.length) : null;
+            burster = engines.length > 1 ? new MultiBurst("Iris Compound " + rootDimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(), engines.length) : null;
             int threadDist = (Math.max(2, maximumThreads - engines.length)) / engines.length;
 
             if ((threadDist * engines.length) + engines.length > maximumThreads) {
@@ -208,7 +209,7 @@ public class IrisEngineCompound implements EngineCompound {
     }
 
     private File getEngineMetadataFile() {
-        return new File(world.getWorldFolder(), "iris/engine-metadata.json");
+        return new File(world.worldFolder(), "iris/engine-metadata.json");
     }
 
     @Override
@@ -272,11 +273,6 @@ public class IrisEngineCompound implements EngineCompound {
     @Override
     public Engine getDefaultEngine() {
         return defaultEngine;
-    }
-
-    @Override
-    public void updateWorld(World world) {
-        this.world = world;
     }
 
     @Override

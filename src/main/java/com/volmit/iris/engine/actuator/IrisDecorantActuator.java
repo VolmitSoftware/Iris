@@ -24,6 +24,7 @@ import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
@@ -50,7 +51,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     public IrisDecorantActuator(Engine engine) {
         super(engine, "Decorant");
         shouldRay = shouldRayDecorate();
-        this.rng = new RNG(engine.getTarget().getWorld().getSeed());
+        this.rng = new RNG(engine.getTarget().getWorld().seed());
         surfaceDecorator = new IrisSurfaceDecorator(getEngine());
         ceilingDecorator = new IrisCeilingDecorator(getEngine());
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(getEngine());
@@ -58,6 +59,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
     }
 
+    @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> output) {
         if (!getEngine().getDimension().isDecorate()) {

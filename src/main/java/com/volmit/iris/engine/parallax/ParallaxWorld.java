@@ -25,23 +25,29 @@ import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("ALL")
 public class ParallaxWorld implements ParallaxAccess {
     private final KMap<Long, ParallaxRegion> loadedRegions;
     private final KList<Long> save;
     private final File folder;
+    private final MultiBurst burst;
     private final int height;
 
-    public ParallaxWorld(int height, File folder) {
+    public ParallaxWorld(MultiBurst burst, int height, File folder) {
         this.height = height;
+        this.burst = burst;
         this.folder = folder;
         save = new KList<>();
         loadedRegions = new KMap<>();
@@ -85,16 +91,19 @@ public class ParallaxWorld implements ParallaxAccess {
         }
     }
 
+    @RegionCoordinates
     public boolean isLoaded(int x, int z) {
         return loadedRegions.containsKey(key(x, z));
     }
 
+    @RegionCoordinates
     public void save(int x, int z) {
         if (isLoaded(x, z)) {
             save(getR(x, z));
         }
     }
 
+    @RegionCoordinates
     public int unload(int x, int z) {
         long key = key(x, z);
         int v = 0;
@@ -114,17 +123,19 @@ public class ParallaxWorld implements ParallaxAccess {
         return v;
     }
 
+    @RegionCoordinates
     public ParallaxRegion load(int x, int z) {
         if (isLoaded(x, z)) {
             return loadedRegions.get(key(x, z));
         }
 
-        ParallaxRegion v = new ParallaxRegion(height, folder, x, z);
+        ParallaxRegion v = new ParallaxRegion(burst, height, folder, x, z);
         loadedRegions.put(key(x, z), v);
 
         return v;
     }
 
+    @RegionCoordinates
     public ParallaxRegion getR(int x, int z) {
         long key = key(x, z);
 
@@ -137,70 +148,84 @@ public class ParallaxWorld implements ParallaxAccess {
         return region;
     }
 
+    @RegionCoordinates
     public ParallaxRegion getRW(int x, int z) {
         save.addIfMissing(key(x, z));
         return getR(x, z);
     }
 
+    @RegionCoordinates
     private long key(int x, int z) {
         return (((long) x) << 32) | (((long) z) & 0xffffffffL);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<BlockData> getBlocksR(int x, int z) {
         return getR(x >> 5, z >> 5).getBlockSlice().getR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<BlockData> getBlocksRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getBlockSlice().getRW(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<TileData<? extends TileState>> getTilesR(int x, int z) {
         return getR(x >> 5, z >> 5).getTileSlice().getR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<TileData<? extends TileState>> getTilesRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getTileSlice().getRW(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<String> getObjectsR(int x, int z) {
         return getR(x >> 5, z >> 5).getObjectSlice().getR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<String> getObjectsRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getObjectSlice().getRW(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<String> getEntitiesRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getEntitySlice().getRW(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<String> getEntitiesR(int x, int z) {
         return getRW(x >> 5, z >> 5).getEntitySlice().getR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<Boolean> getUpdatesR(int x, int z) {
         return getR(x >> 5, z >> 5).getUpdateSlice().getR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public Hunk<Boolean> getUpdatesRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getUpdateSlice().getRW(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public ParallaxChunkMeta getMetaR(int x, int z) {
         return getR(x >> 5, z >> 5).getMetaR(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
     @Override
     public ParallaxChunkMeta getMetaRW(int x, int z) {
         return getRW(x >> 5, z >> 5).getMetaRW(x & 31, z & 31);
@@ -211,30 +236,27 @@ public class ParallaxWorld implements ParallaxAccess {
     }
 
     @Override
-    public void cleanup(long r, long c) {
-        J.a(() -> {
-            try {
-                int rr = 0;
-                int cc = 0;
-
-                for (ParallaxRegion i : loadedRegions.v()) {
+    public synchronized void cleanup(long r, long c) {
+        try {
+            int rr = 0;
+            for (ParallaxRegion i : loadedRegions.v()) {
+                burst.lazy(() -> {
                     if (i.hasBeenIdleLongerThan(r)) {
-                        rr++;
                         unload(i.getX(), i.getZ());
                     } else {
-                        cc += i.cleanup(c);
+                        i.cleanup(c);
                     }
-                }
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                e.printStackTrace();
+                });
             }
-        });
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void saveAll() {
-        MultiBurst.burst.lazy(this::saveAllNOW);
+        burst.lazy(this::saveAllNOW);
     }
 
     @Override

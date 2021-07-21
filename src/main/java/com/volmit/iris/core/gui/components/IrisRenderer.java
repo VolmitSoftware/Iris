@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.core.gui.components;
 
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import org.bukkit.Material;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -59,9 +58,5 @@ public class IrisRenderer {
         }
 
         return image;
-    }
-
-    public void set(double worldX, double worldZ) {
-        renderer.getWorld().getBlockAt((int) worldX, 20, (int) worldZ).setType(Material.DIAMOND_BLOCK);
     }
 }

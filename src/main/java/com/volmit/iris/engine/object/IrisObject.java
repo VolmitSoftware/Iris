@@ -30,7 +30,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Data;
@@ -44,6 +44,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.entity.ThrownExpBottle;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -470,7 +471,7 @@ public class IrisObject extends IrisRegistrant {
 
         boolean warped = !config.getWarp().isFlat();
         boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
-        KMap<ChunkPosition, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
+        KMap<Position2, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
         int spinx = rng.imax() / 1000;
         int spiny = rng.imax() / 1000;
         int spinz = rng.imax() / 1000;
@@ -581,97 +582,109 @@ public class IrisObject extends IrisRegistrant {
         int lowest = Integer.MAX_VALUE;
         y += yrand;
         readLock.lock();
-        for (BlockVector g : getBlocks().keySet()) {
-            BlockData d;
-            TileData<? extends TileState> tile = null;
+        try
+        {
+            for (BlockVector g : getBlocks().keySet()) {
+                BlockData d;
+                TileData<? extends TileState> tile = null;
 
-            try {
-                d = getBlocks().get(g);
-                tile = getStates().get(g);
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
-                d = AIR;
-            }
+                try {
+                    d = getBlocks().get(g);
+                    tile = getStates().get(g);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
+                    d = AIR;
+                }
 
-            if (d == null) {
-                Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (null)");
-                d = AIR;
-            }
+                if (d == null) {
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (null)");
+                    d = AIR;
+                }
 
-            BlockVector i = g.clone();
-            BlockData data = d.clone();
-            i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
-            i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
+                BlockVector i = g.clone();
+                BlockData data = d.clone();
+                i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
+                i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 
-            if (stilting && i.getBlockY() < lowest && !B.isAir(data)) {
-                lowest = i.getBlockY();
-            }
+                if (stilting && i.getBlockY() < lowest && !B.isAir(data)) {
+                    lowest = i.getBlockY();
+                }
 
-            if (placer.isPreventingDecay() && (data) instanceof Leaves && !((Leaves) (data)).isPersistent()) {
-                ((Leaves) data).setPersistent(true);
-            }
+                if (placer.isPreventingDecay() && (data) instanceof Leaves && !((Leaves) (data)).isPersistent()) {
+                    ((Leaves) data).setPersistent(true);
+                }
 
-            for (IrisObjectReplace j : config.getEdit()) {
-                if (rng.chance(j.getChance())) {
-                    for (BlockData k : j.getFind(rdata)) {
-                        if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
-                            BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+                for (IrisObjectReplace j : config.getEdit()) {
+                    if (rng.chance(j.getChance())) {
+                        for (BlockData k : j.getFind(rdata)) {
+                            if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
+                                BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                            if (newData.getMaterial() == data.getMaterial())
-                                data = data.merge(newData);
-                            else
-                                data = newData;
+                                if (newData.getMaterial() == data.getMaterial())
+                                {
+                                    data = data.merge(newData);
+                                }
+                                else
+                                {
+                                    data = newData;
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            data = config.getRotation().rotate(data, spinx, spiny, spinz);
-            xx = x + (int) Math.round(i.getX());
-            int yy = y + (int) Math.round(i.getY());
-            zz = z + (int) Math.round(i.getZ());
+                data = config.getRotation().rotate(data, spinx, spiny, spinz);
+                xx = x + (int) Math.round(i.getX());
+                int yy = y + (int) Math.round(i.getY());
+                zz = z + (int) Math.round(i.getZ());
 
-            if (warped) {
-                xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
-                zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
-            }
-
-            if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT))) {
-                yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, config.isUnderwater());
-            }
-
-            if (heightmap != null) {
-                ChunkPosition pos = new ChunkPosition(xx, zz);
-
-                if (!heightmap.containsKey(pos)) {
-                    heightmap.put(pos, yy);
+                if (warped) {
+                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
+                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
                 }
 
-                if (heightmap.get(pos) < yy) {
-                    heightmap.put(pos, yy);
+                if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT))) {
+                    yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, config.isUnderwater());
+                }
+
+                if (heightmap != null) {
+                    Position2 pos = new Position2(xx, zz);
+
+                    if (!heightmap.containsKey(pos)) {
+                        heightmap.put(pos, yy);
+                    }
+
+                    if (heightmap.get(pos) < yy) {
+                        heightmap.put(pos, yy);
+                    }
+                }
+
+                if (config.isMeld() && !placer.isSolid(xx, yy, zz)) {
+                    continue;
+                }
+
+                if (config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
+                    ((Waterlogged) data).setWaterlogged(true);
+                }
+
+                if (listener != null) {
+                    listener.accept(new BlockPosition(xx, yy, zz));
+                }
+
+                if (!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {
+                    placer.set(xx, yy, zz, data);
+
+                    if (tile != null) {
+                        placer.setTile(xx, yy, zz, tile);
+                    }
                 }
             }
+        }
 
-            if (config.isMeld() && !placer.isSolid(xx, yy, zz)) {
-                continue;
-            }
-
-            if (config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
-                ((Waterlogged) data).setWaterlogged(true);
-            }
-
-            if (listener != null) {
-                listener.accept(new BlockPosition(xx, yy, zz));
-            }
-
-            if (!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {
-                placer.set(xx, yy, zz, data);
-
-                if (tile != null) {
-                    placer.setTile(xx, yy, zz, tile);
-                }
-            }
+        catch(Throwable e)
+        {
+            Iris.reportError(e);
         }
         readLock.unlock();
 
@@ -731,7 +744,7 @@ public class IrisObject extends IrisRegistrant {
         if (heightmap != null) {
             RNG rngx = rng.nextParallelRNG(3468854);
 
-            for (ChunkPosition i : heightmap.k()) {
+            for (Position2 i : heightmap.k()) {
                 int vx = i.getX();
                 int vy = heightmap.get(i);
                 int vz = i.getZ();
@@ -995,5 +1008,9 @@ public class IrisObject extends IrisRegistrant {
             }
         }
         return locations;
+    }
+
+    public int volume() {
+        return blocks.size();
     }
 }

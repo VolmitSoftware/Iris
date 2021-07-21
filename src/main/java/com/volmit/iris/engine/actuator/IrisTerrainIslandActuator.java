@@ -23,6 +23,7 @@ import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
@@ -45,11 +46,12 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
 
     public IrisTerrainIslandActuator(Engine engine) {
         super(engine, "TerrainIsland");
-        rng = new RNG(engine.getWorld().getSeed());
+        rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
         hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }
 
+    @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h) {
         PrecisionStopwatch p = PrecisionStopwatch.start();

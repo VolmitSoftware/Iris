@@ -26,10 +26,10 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
@@ -43,7 +43,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
 
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
 
-    World getWorld();
+    IrisWorld getWorld();
 
     List<IrisPosition> getStrongholdPositions();
 
@@ -148,8 +148,6 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
 
         return v.v();
     }
-
-    void updateWorld(World world);
 
     default int getLowestBedrock() {
         int f = Integer.MAX_VALUE;

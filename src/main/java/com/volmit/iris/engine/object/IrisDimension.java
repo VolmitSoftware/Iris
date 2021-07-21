@@ -26,7 +26,7 @@ import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.ChunkPosition;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -341,7 +341,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Define biome mutations for this dimension")
     private KList<IrisBiomeMutation> mutations = new KList<>();
 
-    private final transient AtomicCache<ChunkPosition> parallaxSize = new AtomicCache<>();
+    private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
@@ -520,37 +520,28 @@ public class IrisDimension extends IrisRegistrant {
 
     public boolean hasFeatures(DataProvider data) {
         return featuresUsed.aquire(() -> {
-            if(getFeatures().isNotEmpty() || getSpecificFeatures().isNotEmpty())
-            {
+            if (getFeatures().isNotEmpty() || getSpecificFeatures().isNotEmpty()) {
                 return true;
             }
 
-            for(IrisRegion i : getAllRegions(data))
-            {
-                if(i.getFeatures().isNotEmpty())
-                {
+            for (IrisRegion i : getAllRegions(data)) {
+                if (i.getFeatures().isNotEmpty()) {
                     return true;
                 }
 
-                for(IrisObjectPlacement j : i.getObjects())
-                {
-                    if(j.isVacuum())
-                    {
+                for (IrisObjectPlacement j : i.getObjects()) {
+                    if (j.isVacuum()) {
                         return true;
                     }
                 }
 
-                for(IrisBiome j : i.getAllBiomes(data))
-                {
-                    if(j.getFeatures().isNotEmpty())
-                    {
+                for (IrisBiome j : i.getAllBiomes(data)) {
+                    if (j.getFeatures().isNotEmpty()) {
                         return true;
                     }
 
-                    for(IrisObjectPlacement k : i.getObjects())
-                    {
-                        if(k.isVacuum())
-                        {
+                    for (IrisObjectPlacement k : i.getObjects()) {
+                        if (k.isVacuum()) {
                             return true;
                         }
                     }

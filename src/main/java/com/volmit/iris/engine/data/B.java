@@ -25,6 +25,7 @@ import com.volmit.iris.util.collection.KSet;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
 
 public class B {
     private static final Material AIR_MATERIAL = Material.AIR;
@@ -103,7 +104,6 @@ public class B {
     public static BlockData getOrNull(String bdxf) {
         try {
             String bd = bdxf.trim();
-
             BlockData bdx = parseBlockData(bd);
 
             if (bdx == null) {
@@ -143,6 +143,12 @@ public class B {
             }
 
             BlockData bx = Bukkit.createBlockData(ix);
+
+            if(bx instanceof Leaves)
+            {
+                ((Leaves) bx).setPersistent(true);
+            }
+
             blockDataCache.put(ix, bx);
             return bx;
         } catch (Throwable e) {
@@ -151,6 +157,7 @@ public class B {
         }
 
         String i = ix.toUpperCase().trim();
+        i = i.equals("GRASS_PATH") ? "DIRT_PATH" : i;
         i = i.equals("WOOL") ? "WHITE_WOOL" : i;
         i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
 

@@ -16,16 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.gui;
+package com.volmit.iris.util.exceptions;
 
-import lombok.Builder;
-import lombok.Data;
+public class MissingDimensionException extends IrisException {
+    public MissingDimensionException() {
+        super();
+    }
 
-import java.awt.image.BufferedImage;
-
-@Builder
-@Data
-public class TileRender {
-    private BufferedImage image;
-    private int quality;
+    public MissingDimensionException(String message) {
+        super(message);
+    }
 }

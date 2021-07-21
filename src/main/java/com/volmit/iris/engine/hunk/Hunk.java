@@ -865,18 +865,6 @@ public interface Hunk<T> {
         return this;
     }
 
-    default void enforceBounds(int x, int y, int z) {
-        if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth()) {
-            //Iris.warn(x + "," + y + "," + z + " does not fit within size " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
-        }
-    }
-
-    default void enforceBounds(int x, int y, int z, int w, int h, int d) {
-        if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth() || x + w < 0 || x + w > getWidth() || y + h < 0 || y + h > getHeight() || z + d < 0 || z + d > getDepth()) {
-            //Iris.warn("The hunk " + w + "," + h + "," + d + " with an offset of " + x + "," + y + "," + z + " does not fit within the parent hunk " + getWidth() + "," + getHeight() + "," + getDepth() + " (0,0,0 to " + (getWidth() - 1) + "," + (getHeight() - 1) + "," + (getDepth() - 1) + ")");
-        }
-    }
-
     /**
      * Create a new hunk from a section of this hunk.
      *
@@ -890,7 +878,6 @@ public interface Hunk<T> {
      */
     default ArrayHunk<T> crop(int x1, int y1, int z1, int x2, int y2, int z2) {
         ArrayHunk<T> h = new ArrayHunk<T>(x2 - x1, y2 - y1, z2 - z1);
-        enforceBounds(x1, y1, z1, x2 - x1, y2 - y1, z2 - z1);
 
         for (int i = x1; i < x2; i++) {
             for (int j = y1; j < y2; j++) {
@@ -916,7 +903,6 @@ public interface Hunk<T> {
      * @return the cropped view of this hunk (x2-x1, y2-y1, z2-z1)
      */
     default Hunk<T> croppedView(int x1, int y1, int z1, int x2, int y2, int z2) {
-        enforceBounds(x1, y1, z1, x2 - x1, y2 - y1, z2 - z1);
         return new HunkView<T>(this, x2 - x1, y2 - y1, z2 - z1, x1, y1, z1);
     }
 
@@ -947,7 +933,6 @@ public interface Hunk<T> {
      * @param t  the value to set
      */
     default void set(int x1, int y1, int z1, int x2, int y2, int z2, T t) {
-        enforceBounds(x1, y1, z1, x2 - x1, y2 - y1, z2 - z1);
         for (int i = x1; i <= x2; i++) {
             for (int j = y1; j <= y2; j++) {
                 for (int k = z1; k <= z2; k++) {
@@ -1036,7 +1021,6 @@ public interface Hunk<T> {
      * @param t the value
      */
     default void set(int x, int y, int z, T t) {
-        enforceBounds(x, y, z);
         setRaw(x, y, z, t);
     }
 
@@ -1089,12 +1073,10 @@ public interface Hunk<T> {
      * @return the value or null
      */
     default T get(int x, int y, int z) {
-        enforceBounds(x, y, z);
         return getRaw(x, y, z);
     }
 
     default T getOr(int x, int y, int z, T t) {
-        enforceBounds(x, y, z);
         T v = getRaw(x, y, z);
 
         if (v == null) {
@@ -1161,8 +1143,6 @@ public interface Hunk<T> {
      * @param invertY should the inserted hunk be inverted
      */
     default void insert(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY) {
-        enforceBounds(offX, offY, offZ, hunk.getWidth(), hunk.getHeight(), hunk.getDepth());
-
         for (int i = offX; i < offX + hunk.getWidth(); i++) {
             for (int j = offY; j < offY + hunk.getHeight(); j++) {
                 for (int k = offZ; k < offZ + hunk.getDepth(); k++) {
@@ -1183,8 +1163,6 @@ public interface Hunk<T> {
      * @param invertY should the inserted hunk be inverted
      */
     default void insertSoftly(int offX, int offY, int offZ, Hunk<T> hunk, boolean invertY, Predicate<T> shouldOverwrite) {
-        enforceBounds(offX, offY, offZ, hunk.getWidth(), hunk.getHeight(), hunk.getDepth());
-
         for (int i = offX; i < offX + hunk.getWidth(); i++) {
             for (int j = offY; j < offY + hunk.getHeight(); j++) {
                 for (int k = offZ; k < offZ + hunk.getDepth(); k++) {

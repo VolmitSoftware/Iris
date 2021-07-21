@@ -27,7 +27,9 @@ import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.math.FinalInteger;
 import org.bukkit.Bukkit;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -206,6 +208,15 @@ public class J {
      */
     public static void s(Runnable r) {
         Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
+    }
+
+    public static CompletableFuture sfut(Runnable r) {
+        CompletableFuture f = new CompletableFuture();
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+            r.run();
+            f.complete(null);
+        });
+        return f;
     }
 
     /**

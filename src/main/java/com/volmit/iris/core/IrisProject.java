@@ -23,7 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
-import com.volmit.iris.engine.IrisWorldCreator;
+import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
@@ -273,8 +273,9 @@ public class IrisProject {
                     break;
                 }
             }
-
-            sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+            if (sender.isPlayer()) {
+                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+            }
         });
 
         //@builder
@@ -307,9 +308,9 @@ public class IrisProject {
 
     public void close() {
         activeProvider.close();
-        File folder = activeProvider.getTarget().getWorld().getWorldFolder();
-        Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().getName());
-        Bukkit.unloadWorld(activeProvider.getTarget().getWorld().getName(), false);
+        File folder = activeProvider.getTarget().getWorld().worldFolder();
+        Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().name());
+        Bukkit.unloadWorld(activeProvider.getTarget().getWorld().name(), false);
         J.attemptAsync(() -> IO.delete(folder));
         activeProvider = null;
     }

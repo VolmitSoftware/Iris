@@ -34,6 +34,9 @@ public class CommandIris extends MortarCommand {
     private CommandIrisCreate create;
 
     @Command
+    private CommandIrisVerify verify;
+
+    @Command
     private CommandIrisFix fix;
 
     @Command

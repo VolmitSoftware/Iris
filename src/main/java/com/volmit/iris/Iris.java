@@ -26,12 +26,13 @@ import com.volmit.iris.core.link.BKLink;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -79,9 +80,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MythicMobsLink linkMythicMobs;
     public static TreeManager saplingManager;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
-    public static boolean customModels = doesSupportCustomModels();
-    public static boolean awareEntities = doesSupportAwareness();
-    public static boolean lowMemoryMode = false;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
 
@@ -95,7 +93,6 @@ public class Iris extends VolmitPlugin implements Listener {
         instance = this;
         INMS.get();
         IO.delete(new File("iris"));
-        lowMemoryMode = Runtime.getRuntime().maxMemory() < 4000000000L; // 4 * 1000 * 1000 * 1000 // 4;
         installDataPacks();
     }
 
@@ -154,54 +151,6 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         Iris.info("Data Packs Setup!");
-    }
-
-    public static int getThreadCount() {
-        int tc = IrisSettings.get().getConcurrency().getThreadCount();
-
-        if (tc <= 0) {
-            int p = Runtime.getRuntime().availableProcessors();
-
-            return p > 16 ? 16 : Math.max(p, 4);
-        }
-
-        return tc;
-    }
-
-    private static boolean doesSupport3DBiomes() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 15;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
-    }
-
-    private static boolean doesSupportCustomModels() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 14;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
-    }
-
-    private static boolean doesSupportAwareness() {
-        try {
-            int v = Integer.parseInt(Bukkit.getBukkitVersion().split("\\Q-\\E")[0].split("\\Q.\\E")[1]);
-
-            return v >= 15;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return false;
     }
 
     @Override
@@ -276,6 +225,7 @@ public class Iris extends VolmitPlugin implements Listener {
         board.disable();
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
+        MultiBurst.burst.shutdown();
         super.onDisable();
     }
 
@@ -571,18 +521,6 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         Iris.info("\n\n " + new KList<>(splash).toString("\n") + "\n");
-
-        if (lowMemoryMode) {
-            Iris.verbose("* Low Memory mode Activated! For better performance, allocate 4gb or more to this server.");
-        }
-
-        if (!customModels) {
-            Iris.verbose("* This version of minecraft does not support custom model data in loot items (1.14 and up). Iris will generate as normal, but loot will not have custom models.");
-        }
-
-        if (!doesSupportAwareness()) {
-            Iris.verbose("* This version of minecraft does not support entity awareness.");
-        }
     }
 
     @SuppressWarnings("deprecation")

@@ -20,10 +20,14 @@ package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.Iris;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.util.concurrent.locks.ReentrantLock;
 
 @Data
+@Accessors(
+        chain = true
+)
 public class IrisLock {
     private transient final ReentrantLock lock;
     private transient final String name;

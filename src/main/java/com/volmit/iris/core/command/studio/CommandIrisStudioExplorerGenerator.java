@@ -21,7 +21,7 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.gui.IrisExplorer;
+import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
@@ -63,14 +63,14 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
 
         if (Iris.proj.isProjectOpen()) {
             generator = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
-            seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getSeed();
+            seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().seed();
         } else {
             generator = IrisDataManager.loadAnyGenerator(args[0]);
         }
 
         if (generator != null) {
             long finalSeed = seed;
-            IrisExplorer.launch((x, z) ->
+            NoiseExplorerGUI.launch((x, z) ->
                     generator.getHeight(x, z, new RNG(finalSeed).nextParallelRNG(3245).lmax()), "Gen: " + generator.getLoadKey());
 
             sender.sendMessage("Opening Noise Explorer for gen " + generator.getLoadKey() + " (" + generator.getLoader().getDataFolder().getName() + ")");

@@ -20,13 +20,14 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.gui.RenderType;
-import com.volmit.iris.core.gui.Renderer;
+import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -37,7 +38,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -105,7 +105,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getData();
     }
 
-    default World getWorld() {
+    default IrisWorld getWorld() {
         return getTarget().getWorld();
     }
 
@@ -357,8 +357,12 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getCompound().isStudio();
     }
 
+    default MultiBurst burst() {
+        return getTarget().getBurster();
+    }
+
     default void clean() {
-        MultiBurst.burst.lazy(() -> getParallax().cleanup());
+        burst().lazy(() -> getParallax().cleanup());
     }
 
     default IrisBiome getBiome(Location l) {
@@ -374,4 +378,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     IrisBiome getFocus();
+
+    void hotloading();
 }

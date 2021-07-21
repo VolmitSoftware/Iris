@@ -20,20 +20,21 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,9 +45,19 @@ import java.util.function.Consumer;
 @SuppressWarnings("EmptyMethod")
 public interface IrisAccess extends Hotloadable, DataProvider {
 
-    void directWriteMCA(World w, int x, int z, NBTWorld writer, MultiBurst burst);
+    HeadlessGenerator getHeadlessGenerator();
 
-    void directWriteChunk(World w, int x, int z, NBTWorld writer);
+    default boolean isHeadless() {
+        return getHeadlessGenerator() != null;
+    }
+
+    NBTWorld getHeadlessNBTWriter();
+
+    void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst);
+
+    void directWriteMCA(IrisWorld w, int x, int z, NBTWorld writer, MultiBurst burst, PregenListener listener);
+
+    void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer);
 
     int getGenerated();
 
@@ -72,8 +83,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     void changeThreadCount(int m);
 
-    void regenerate(int x, int z);
-
     void close();
 
     boolean isClosed();
@@ -87,6 +96,11 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     boolean isStudio();
 
     default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
+        if (!getCompound().getWorld().hasRealWorld()) {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
         IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(250, false);
         long s = M.ms();
@@ -130,7 +144,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                             if (b != null && b.getLoadKey().equals(biome.getLoadKey())) {
                                 found.lazySet(true);
-                                location.lazySet(new Location(e.getWorld(), x, e.getHeight(x, z), z));
+                                location.lazySet(new Location(e.getWorld().realWorld(), x, e.getHeight(x, z), z));
                             }
 
                             tries.getAndIncrement();
@@ -167,6 +181,11 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     }
 
     default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
+        if (!getCompound().getWorld().hasRealWorld()) {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
         IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(3000, false);
         long s = M.ms();
@@ -204,7 +223,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
                         if (b != null && b.getLoadKey() != null && b.getLoadKey().equals(reg.getLoadKey())) {
                             found.lazySet(true);
-                            location.lazySet(new Location(e.getWorld(), x, e.getHeight(x, z) + e.getMinHeight(), z));
+                            location.lazySet(new Location(e.getWorld().realWorld(), x, e.getHeight(x, z) + e.getMinHeight(), z));
                         }
 
                         tries.getAndIncrement();
@@ -237,14 +256,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         running.set(false);
         return location.get();
     }
-
-    void clearRegeneratedLists(int x, int z);
-
-    void precache(World world, int x, int z);
-
-    int getPrecacheSize();
-
-    Chunk generatePaper(World world, int cx, int cz);
 
     default int getParallaxChunkCount() {
         int v = 0;

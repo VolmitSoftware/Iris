@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.jigsaw;
 
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;

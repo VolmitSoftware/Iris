@@ -43,7 +43,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
 
     public IrisCaveModifier(Engine engine) {
         super(engine, "Cave");
-        rng = new RNG(engine.getWorld().getSeed() + 28934555);
+        rng = new RNG(engine.getWorld().seed() + 28934555);
         gg = new FastNoiseDouble(324895L * rng.nextParallelRNG(49678).imax());
     }
 

@@ -22,14 +22,15 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
@@ -39,7 +40,15 @@ public class ParallaxChunkMeta {
     public static final Function<CompoundTag, HunkIOAdapter<ParallaxChunkMeta>> adapter = (c) -> new PaletteHunkIOAdapter<>() {
         @Override
         public void write(ParallaxChunkMeta parallaxChunkMeta, DataOutputStream dos) throws IOException {
-            dos.writeUTF(new Gson().toJson(parallaxChunkMeta));
+            try
+            {
+                dos.writeUTF(new Gson().toJson(parallaxChunkMeta));
+            }
+
+            catch(Throwable e)
+            {
+                IO.writeAll(new File("WTF", UUID.randomUUID().toString()), new Gson().toJson(parallaxChunkMeta));
+            }
         }
 
         @Override

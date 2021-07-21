@@ -69,7 +69,7 @@ public interface EngineComponent {
     }
 
     default long getSeed() {
-        return getTarget().getWorld().getSeed();
+        return getTarget().getWorld().seed();
     }
 
     default EngineFramework getFramework() {

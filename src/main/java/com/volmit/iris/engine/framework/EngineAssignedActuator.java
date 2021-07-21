@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 
 public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent implements EngineActuator<T> {
     public EngineAssignedActuator(Engine engine, String name) {
@@ -27,6 +28,7 @@ public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent 
 
     public abstract void onActuate(int x, int z, Hunk<T> output);
 
+    @BlockCoordinates
     @Override
     public void actuate(int x, int z, Hunk<T> output) {
         onActuate(x, z, output);

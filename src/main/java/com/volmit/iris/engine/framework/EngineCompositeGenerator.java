@@ -309,7 +309,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.clear();
             populators.addAll(compound.get().getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
-            dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
+
+            if(isStudio())
+            {
+                dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
+            }
         } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();

@@ -19,6 +19,8 @@
 package com.volmit.iris.util.math;
 
 import lombok.Data;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 
 import java.util.Objects;
 
@@ -27,6 +29,7 @@ public class BlockPosition {
     private int x;
     private int y;
     private int z;
+
 
     //Magic numbers
     private static final int m1 = 1 + MathHelper.f(MathHelper.c(30000000));
@@ -87,5 +90,26 @@ public class BlockPosition {
         var3 |= (y & m5);
         var3 |= (z & m6) << m2;
         return var3;
+    }
+
+    public Block toBlock(World world)
+    {
+        return world.getBlockAt(x,y,z);
+    }
+
+    public BlockPosition add(int x, int y, int z) {
+        return new BlockPosition(x,y,z);
+    }
+
+    public void min(BlockPosition i) {
+        setX(Math.min(i.getX(), getX()));
+        setY(Math.min(i.getY(), getY()));
+        setZ(Math.min(i.getZ(), getZ()));
+    }
+
+    public void max(BlockPosition i) {
+        setX(Math.max(i.getX(), getX()));
+        setY(Math.max(i.getY(), getY()));
+        setZ(Math.max(i.getZ(), getZ()));
     }
 }

@@ -25,6 +25,8 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.parallel.BurstExecutor;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
@@ -160,12 +162,29 @@ public class IrisEngine extends BlockPopulator implements Engine {
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
+            BurstExecutor b = burst().burst(16);
+
+            // This is a very weird optimization, but it works
+            // Basically we precache multicore the biome stream which effectivley
+            // makes the biome stream, interpolation & noise engine run in parallel without mca
+            for(int i = 0; i < vblocks.getWidth(); i++)
+            {
+                int finalI = i;
+                b.queue(() -> {
+                    for(int j = 0; j < vblocks.getDepth(); j++)
+                    {
+                        getFramework().getComplex().getTrueBiomeStream().get(x+ finalI,z+j);
+                    }
+                });
+            }
+
+            b.complete();
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
                     getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-                    getFramework().getBiomeActuator().actuate(x, z, vbiomes);
                     getFramework().getTerrainActuator().actuate(x, z, vblocks);
+                    getFramework().getBiomeActuator().actuate(x, z, vbiomes);
                     getFramework().getCaveModifier().modify(x, z, vblocks);
                     getFramework().getRavineModifier().modify(x, z, vblocks);
                     getFramework().getPostModifier().modify(x, z, vblocks);

@@ -75,7 +75,7 @@ public class TreeManager implements Listener {
         }
 
         // Find best object placement based on sizes
-        IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), null);
+        IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
 
         // If none were found, just exit
         if (placement == null) {
@@ -211,8 +211,8 @@ public class TreeManager implements Listener {
     private KList<IrisObjectPlacement> matchObjectPlacements(KList<IrisObjectPlacement> objects, IrisTreeSize size, TreeType type) {
 
         Predicate<IrisTree> isValid = irisTree -> (
-                irisTree.isAnySize() || irisTree.getSizes().stream().anyMatch(treeSize -> treeSize == IrisTreeSize.ANY || treeSize == size)) && (
-                irisTree.isAnyTree() || irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType == type));
+                irisTree.isAnySize() || irisTree.getSizes().stream().anyMatch(treeSize -> treeSize.doesMatch(size))) && (
+                irisTree.isAnyTree() || irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType.equals(type)));
 
         objects.removeIf(objectPlacement -> objectPlacement.getTrees().stream().noneMatch(isValid));
 

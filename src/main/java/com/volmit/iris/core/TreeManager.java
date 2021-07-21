@@ -1,7 +1,7 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
@@ -36,7 +36,7 @@ public class TreeManager implements Listener {
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
         // Must be iris world
-        if (!IrisWorlds.isIrisWorld(event.getWorld())) {
+        if (!IrisToolbelt.isIrisWorld(event.getWorld())) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla since not an Iris world");
             return;
         }
@@ -44,7 +44,7 @@ public class TreeManager implements Listener {
         // Get world access
         IrisAccess worldAccess;
         try {
-            worldAccess = Objects.requireNonNull(IrisWorlds.access(event.getWorld()));
+            worldAccess = Objects.requireNonNull(IrisToolbelt.access(event.getWorld()));
         } catch (Throwable e) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
             Iris.reportError(e);

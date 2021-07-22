@@ -71,6 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
+    private static final BlockData ERROR_BLOCK = Material.RED_GLAZED_TERRACOTTA.createBlockData();
     private final AtomicReference<EngineCompound> compound = new AtomicReference<>();
     private final AtomicBoolean initialized;
     private final String dimensionQuery;
@@ -448,23 +449,46 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
-        PrecisionStopwatch ps = PrecisionStopwatch.start();
-        TerrainChunk tc = TerrainChunk.create(world, biome);
-        IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
-        generateChunkRawData(ww, x, z, tc).run();
+        try
+        {
+            PrecisionStopwatch ps = PrecisionStopwatch.start();
+            TerrainChunk tc = TerrainChunk.create(world, biome);
+            IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
+            generateChunkRawData(ww, x, z, tc).run();
 
-        if (!getComposite().getWorld().hasRealWorld()) {
-            getComposite().getWorld().bind(world);
+            if (!getComposite().getWorld().hasRealWorld()) {
+                getComposite().getWorld().bind(world);
+            }
+
+            generated++;
+            ps.end();
+
+            if (IrisSettings.get().getGeneral().isDebug()) {
+                Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
+            }
+
+            return tc.getRaw();
         }
 
-        generated++;
-        ps.end();
+        catch(Throwable e)
+        {
+            Iris.error("======================================");
+            e.printStackTrace();
+            Iris.reportErrorChunk(x, z, e);
+            Iris.error("======================================");
+            
+            ChunkData d = Bukkit.createChunkData(world);
 
-        if (IrisSettings.get().getGeneral().isDebug()) {
-            Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
+            for(int i = 0; i < 16; i++)
+            {
+                for(int j = 0; j < 16; j++)
+                {
+                    d.setBlock(i, 0, j, ERROR_BLOCK);
+                }
+            }
+
+            return d;
         }
-
-        return tc.getRaw();
     }
 
     public void assignHeadlessGenerator(HeadlessGenerator headlessGenerator) {

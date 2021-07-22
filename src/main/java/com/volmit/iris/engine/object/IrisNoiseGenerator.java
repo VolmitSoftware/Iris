@@ -58,9 +58,7 @@ public class IrisNoiseGenerator {
     private double offsetX = 0;
 
 
-    @Desc("Height output offset y")
-    @MinNumber(-1)
-    @MaxNumber(1)
+    @Desc("Height output offset y. Avoid using with terrain generation.")
     private double offsetY = 0;
 
 

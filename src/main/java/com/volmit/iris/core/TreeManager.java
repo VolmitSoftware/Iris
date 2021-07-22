@@ -67,12 +67,7 @@ public class TreeManager implements Listener {
 
         // Calculate size, type & placement
         Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> event.getLocation().getBlock().getBlockData().equals(blockData), event.getWorld());
-
-        // Check if any were returned
-        if (saplingPlane == null) {
-            Iris.debug(this.getClass().getName() + " found no matching sapling sizes for the grow event, which should be impossible (considering the one that grew is an option)");
-            return;
-        }
+        Iris.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
 
         // Find best object placement based on sizes
         IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
@@ -183,16 +178,19 @@ public class TreeManager implements Listener {
     private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, Location location, TreeType type, IrisTreeSize size) {
 
         KList<IrisObjectPlacement> placements = new KList<>();
+        KList<IrisObjectPlacement> allObjects = new KList<>();
         boolean isUseAll = ((Engine)worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
         IrisBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
+        allObjects.addAll(biome.getObjects());
 
         // Add more or find any in the region
         if (isUseAll || placements.isEmpty()){
             IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
+            allObjects.addAll(region.getObjects());
         }
 
         // TODO: Add more or find any in the dimension
@@ -277,7 +275,7 @@ public class TreeManager implements Listener {
             cuboidIsValid = true;
         }
 
-        return null;
+        return new Cuboid(at, at);
     }
 
     /**

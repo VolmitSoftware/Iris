@@ -50,7 +50,6 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("The opacity, essentially a multiplier on the output.")
     private double opacity = 1;
 
-
     @Desc("Multiply the compsites instead of adding them")
     private boolean multiplicitive = false;
 
@@ -80,12 +79,10 @@ public class IrisGenerator extends IrisRegistrant {
     private double offsetZ = 0;
 
     @Required
-
     @Desc("The seed for this generator")
     private long seed = 1;
 
     @Required
-
     @Desc("The interpolator to use when smoothing this generator into other regions & generators")
     private IrisInterpolator interpolator = new IrisInterpolator();
 
@@ -227,12 +224,11 @@ public class IrisGenerator extends IrisRegistrant {
         }
 
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
-        double h = 0;
-        double tp = multiplicitive ? 1 : 0;
+        double h = multiplicitive ? 1 : 0;
+        double tp = 0;
 
         for (IrisNoiseGenerator i : composite) {
             if (multiplicitive) {
-                tp *= i.getOpacity();
                 h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
             } else {
                 tp += i.getOpacity();

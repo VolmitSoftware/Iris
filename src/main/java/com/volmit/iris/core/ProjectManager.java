@@ -171,7 +171,7 @@ public class ProjectManager {
             Iris.info("Assuming URL " + url);
             String branch = "master";
             String[] nodes = url.split("\\Q/\\E");
-            String repo = nodes[0] + "/" + nodes[1];
+            String repo = nodes.length == 1 ? "IrisDimensions/" + nodes[0] : nodes[0] + "/" + nodes[1];
             branch = nodes.length > 2 ? nodes[2] : branch;
             download(sender, repo, branch, trim, forceOverwrite);
         } catch (Throwable e) {
@@ -192,6 +192,13 @@ public class ProjectManager {
         File temp = Iris.getTemp();
         File work = new File(temp, "dl-" + UUID.randomUUID());
         File packs = getWorkspaceFolder();
+
+        if (zip == null || !zip.exists()) {
+            sender.sendMessage("Failed to find pack at " + url);
+            sender.sendMessage("Make sure you specified the correct repo and branch!");
+            sender.sendMessage("For example: /iris download IrisDimensions/overworld branch=master");
+            return;
+        }
         sender.sendMessage("Unpacking " + repo);
         try {
             ZipUtil.unpack(zip, work);

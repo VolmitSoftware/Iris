@@ -23,6 +23,7 @@ import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
@@ -48,6 +49,7 @@ public class IrisNoiseGenerator {
     private boolean negative = false;
 
     @MinNumber(0)
+    @MaxNumber(1)
     @Desc("The output multiplier")
     private double opacity = 1;
 
@@ -56,7 +58,7 @@ public class IrisNoiseGenerator {
     private double offsetX = 0;
 
 
-    @Desc("Height output offset y")
+    @Desc("Height output offset y. Avoid using with terrain generation.")
     private double offsetY = 0;
 
 
@@ -64,7 +66,6 @@ public class IrisNoiseGenerator {
     private double offsetZ = 0;
 
     @Required
-
     @Desc("The seed")
     private long seed = 0;
 

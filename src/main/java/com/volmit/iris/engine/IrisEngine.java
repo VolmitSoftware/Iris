@@ -41,6 +41,7 @@ import org.bukkit.generator.BlockPopulator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
+import java.util.concurrent.RejectedExecutionException;
 
 public class IrisEngine extends BlockPopulator implements Engine {
     @Getter
@@ -167,13 +168,11 @@ public class IrisEngine extends BlockPopulator implements Engine {
             // This is a very weird optimization, but it works
             // Basically we precache multicore the biome stream which effectivley
             // makes the biome stream, interpolation & noise engine run in parallel without mca
-            for(int i = 0; i < vblocks.getWidth(); i++)
-            {
+            for (int i = 0; i < vblocks.getWidth(); i++) {
                 int finalI = i;
                 b.queue(() -> {
-                    for(int j = 0; j < vblocks.getDepth(); j++)
-                    {
-                        getFramework().getComplex().getTrueBiomeStream().get(x+ finalI,z+j);
+                    for (int j = 0; j < vblocks.getDepth(); j++) {
+                        getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
                     }
                 });
             }
@@ -197,6 +196,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
                 }
             }
             getMetrics().getTotal().put(p.getMilliseconds());
+        } catch (RejectedExecutionException e){
+            fail("Failed to generate " + x + ", " + z + ", likely because the thread was running after the server shut down.", e);
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

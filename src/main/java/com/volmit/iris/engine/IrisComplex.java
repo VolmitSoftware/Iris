@@ -115,6 +115,12 @@ public class IrisComplex implements DataProvider {
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KList<>();
         focus = engine.getFocus();
+
+        if(focus != null)
+        {
+            focus.setInferredType(InferredType.LAND);
+        }
+
         IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
         RNG rng = new RNG(engine.getWorld().seed());
         //@builder

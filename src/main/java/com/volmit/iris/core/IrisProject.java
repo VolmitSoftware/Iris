@@ -381,6 +381,7 @@ public class IrisProject {
         schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisMod.class, dm, "/mods/*.json", "/mods/*/*.json", "/mods/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json", "/regions/*/*.json", "/regions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisGenerator.class, dm, "/generators/*.json", "/generators/*/*.json", "/generators/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json", "/jigsaw-pieces/*/*.json", "/jigsaw-pieces/*/*/*.json"));

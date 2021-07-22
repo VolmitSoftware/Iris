@@ -44,14 +44,11 @@ import java.util.Map;
 public class IrisBlockData extends IrisRegistrant {
     @RegistryListBlockType
     @Required
-
     @Desc("The block to use")
     private String block = "air";
 
-    @Desc("Debug this block by printing it to the console when it's used")
-
+    @Desc("Debug this block by printing it to the console when it's used. Must have debug turned on in settings.")
     private boolean debug = false;
-
 
     @Desc("The resource key. Typically Minecraft")
     private String key = "minecraft";
@@ -61,10 +58,8 @@ public class IrisBlockData extends IrisRegistrant {
     @Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
     private int weight = 1;
 
-
     @Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
     private IrisBlockData backup = null;
-
 
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
@@ -122,7 +117,7 @@ public class IrisBlockData extends IrisRegistrant {
                     String sx = getKey() + ":" + st.split("\\Q:\\E")[1] + computeProperties(cdata);
 
                     if (debug) {
-                        Iris.warn("Debug block data " + sx + " (CUSTOM)");
+                        Iris.debug("Block Data used " + sx + " (CUSTOM)");
                     }
 
                     BlockData bx = B.get(sx);
@@ -141,7 +136,7 @@ public class IrisBlockData extends IrisRegistrant {
             b = B.get(ss);
 
             if (debug) {
-                Iris.warn("Debug block data " + ss);
+                Iris.debug("Block Data used " + ss);
             }
 
             if (b != null) {

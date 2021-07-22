@@ -83,9 +83,6 @@ public class TreeManager implements Listener {
             return;
         }
 
-        // Cancel the placement
-        event.setCancelled(true);
-
         // Delete existing saplings
         saplingPlane.forEach(block -> block.setType(Material.AIR));
 
@@ -157,6 +154,13 @@ public class TreeManager implements Listener {
 
             }
         };
+
+        // TODO: Prevent placing on claimed blocks (however that's defined, idk)
+
+        // TODO: Prevent placing object when overriding blocks
+
+        // Cancel the vanilla placement
+        event.setCancelled(true);
 
         // Place the object with the placer
         object.place(

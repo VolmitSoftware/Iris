@@ -102,17 +102,14 @@ public class IrisMod extends IrisRegistrant {
     private KList<IrisModObjectPlacementRegionInjector> regionObjectPlacementInjectors = new KList<>();
 
     @ArrayType(min = 1, type = IrisModRegionReplacer.class)
-    @Required
     @Desc("Replace biomes with other biomes")
     private KList<IrisModRegionReplacer> regionReplacers = new KList<>();
 
     @ArrayType(min = 1, type = IrisObjectReplace.class)
-    @Required
     @Desc("Replace blocks with other blocks")
     private KList<IrisObjectReplace> blockReplacers = new KList<>();
 
     @ArrayType(min = 1, type = IrisModNoiseStyleReplacer.class)
-    @Required
     @Desc("Replace noise styles with other styles")
     private KList<IrisModNoiseStyleReplacer> styleReplacers = new KList<>();
 }

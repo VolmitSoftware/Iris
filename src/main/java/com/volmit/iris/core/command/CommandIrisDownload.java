@@ -25,6 +25,8 @@ import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 
+import java.util.Arrays;
+
 public class CommandIrisDownload extends MortarCommand {
     public CommandIrisDownload() {
         super("download", "down", "dl");
@@ -49,7 +51,7 @@ public class CommandIrisDownload extends MortarCommand {
         boolean trim = false;
         String branch = "master";
 
-        for (String i : args) {
+        for (String i : Arrays.copyOfRange(args, 1, args.length)) {
             if (i.equals("-t") || i.equals("--trim")) {
                 trim = true;
                 break;

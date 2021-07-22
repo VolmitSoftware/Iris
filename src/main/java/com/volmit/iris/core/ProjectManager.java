@@ -192,6 +192,13 @@ public class ProjectManager {
         File temp = Iris.getTemp();
         File work = new File(temp, "dl-" + UUID.randomUUID());
         File packs = getWorkspaceFolder();
+
+        if (zip == null || !zip.exists()) {
+            sender.sendMessage("Failed to find pack at " + url);
+            sender.sendMessage("Make sure you specified the correct repo and branch!");
+            sender.sendMessage("For example: /iris download IrisDimensions/overworld branch=master");
+            return;
+        }
         sender.sendMessage("Unpacking " + repo);
         try {
             ZipUtil.unpack(zip, work);

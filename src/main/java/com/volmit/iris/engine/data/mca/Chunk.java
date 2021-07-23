@@ -32,7 +32,6 @@ import static com.volmit.iris.engine.data.mca.LoadFlags.*;
 
 public class Chunk {
 
-    public transient int writes = 0;
     public static final int DEFAULT_DATA_VERSION = 1628;
 
     private boolean partial;
@@ -325,10 +324,12 @@ public class Chunk {
         Section section = sections.get(sectionIndex);
         if (section == null) {
             section = Section.newSection();
-            sections.set(sectionIndex, section);
+            synchronized (sections)
+            {
+                sections.set(sectionIndex, section);
+            }
         }
         section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
-        writes++;
     }
 
     /**

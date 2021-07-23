@@ -547,11 +547,6 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build()).run();
-
-            if(chunk.writes == 0)
-            {
-                Iris.error("Chunk " + x + " " + z + " has 0 writes?");
-            }
         }
 
         catch(Throwable e)

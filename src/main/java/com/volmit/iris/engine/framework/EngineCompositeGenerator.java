@@ -34,6 +34,7 @@ import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.lighting.LightingChunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
@@ -546,6 +547,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build()).run();
+
+            if(chunk.writes == 0)
+            {
+                Iris.error("Chunk " + x + " " + z + " has 0 writes?");
+            }
         }
 
         catch(Throwable e)

@@ -100,20 +100,21 @@ public class NibbleArray implements Writable {
         }
     }
 
-    public byte getAsync(int index) {
-        int bitIndex = index * depth;
-        int byteIndex = bitIndex >> 3;
-        int bitInByte = bitIndex & 7;
-        int value = data[byteIndex] >> bitInByte;
+    public byte get(int x, int y, int z)
+    {
+        return get(index(x,y,z));
+    }
 
-        if (bitInByte + depth > 8) {
-            value |= data[byteIndex + 1] << bitInByte;
-        }
-
-        return (byte) (value & mask);
+    public int index(int x, int y, int z) {
+        return y << 8 | z << 4 | x;
     }
 
     private transient int bitIndex, byteIndex, bitInByte;
+
+    public void set(int x, int y, int z, int nibble)
+    {
+        set(index(x,y,z), nibble);
+    }
 
     public void set(int index, int nibble) {
         set(index, (byte) nibble);

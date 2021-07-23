@@ -107,6 +107,19 @@ public class Section {
         return null;
     }
 
+    public void runLighting() {
+        for(int x = 1; x < 14; x++)
+        {
+            for(int z = 1; z < 14; z++)
+            {
+                for(int y = 0; y < 16; y++)
+                {
+
+                }
+            }
+        }
+    }
+
     @SuppressWarnings("ClassCanBeRecord")
     private static class PaletteIndex {
 

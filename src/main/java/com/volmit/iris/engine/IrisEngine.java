@@ -163,6 +163,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             BurstExecutor b = burst().burst(16);
+            Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
             // This is a very weird optimization, but it works
             // Basically we precache multicore the biome stream which effectivley
@@ -188,9 +189,9 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     getFramework().getCaveModifier().modify(x, z, vblocks);
                     getFramework().getRavineModifier().modify(x, z, vblocks);
                     getFramework().getPostModifier().modify(x, z, vblocks);
-                    getFramework().getDecorantActuator().actuate(x, z, vblocks);
-                    getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, vblocks);
-                    getFramework().getDepositModifier().modify(x, z, vblocks);
+                    getFramework().getDecorantActuator().actuate(x, z, blocks);
+                    getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
+                    getFramework().getDepositModifier().modify(x, z, blocks);
                 }
                 case ISLANDS -> {
                     getFramework().getTerrainActuator().actuate(x, z, vblocks);

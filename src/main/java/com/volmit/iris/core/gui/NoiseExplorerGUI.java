@@ -19,8 +19,12 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.hunk.storage.ArrayHunk;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.engine.parallel.BurstExecutor;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.math.M;
@@ -34,6 +38,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -44,7 +49,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
 
     static JComboBox<String> combo;
     @SuppressWarnings("CanBeFinal")
-    RollingSequence r = new RollingSequence(90);
+    RollingSequence r = new RollingSequence(290);
     @SuppressWarnings("CanBeFinal")
     boolean colorMode = true;
     double scale = 1;
@@ -53,9 +58,9 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
     static double ascale = 10;
     CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
     @SuppressWarnings("CanBeFinal")
-    GroupedExecutor gx = new GroupedExecutor(Runtime.getRuntime().availableProcessors(), Thread.MAX_PRIORITY, "Iris Renderer");
+    MultiBurst gx = new MultiBurst("Iris Noise Renderer", Thread.MAX_PRIORITY, Runtime.getRuntime().availableProcessors());
     ReentrantLock l = new ReentrantLock();
-    int[][] co;
+    BufferedImage img;
     int w = 0;
     int h = 0;
     Function2<Double, Double, Double> generator;
@@ -161,7 +166,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int accuracy = hd ? 1 : M.clip((r.getAverage() / 6D), 1D, 128D).intValue();
+        int accuracy = hd ? 1 : M.clip((r.getAverage() / 12D), 2D, 128D).intValue();
         accuracy = down ? accuracy * 4 : accuracy;
         int v = 1000;
 
@@ -170,45 +175,41 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
             if (getParent().getWidth() != w || getParent().getHeight() != h) {
                 w = getParent().getWidth();
                 h = getParent().getHeight();
-                co = null;
+                img = null;
             }
 
-            if (co == null) {
-                co = new int[w][h];
+            if (img == null) {
+                img = new BufferedImage(w/accuracy, h/accuracy, BufferedImage.TYPE_INT_RGB);
             }
 
-            for (int x = 0; x < w; x += accuracy) {
+            BurstExecutor e = gx.burst(w);
+
+            for (int x = 0; x < w/accuracy; x ++) {
                 int xx = x;
 
-                for (int z = 0; z < h; z += accuracy) {
-                    int zz = z;
-                    gx.queue("a", () ->
-                    {
-                        double n = generator != null ? generator.apply((xx * ascale) + oxp, (zz * ascale) + ozp) : cng.noise((xx * ascale) + oxp, tz, (zz * ascale) + ozp);
+                int finalAccuracy = accuracy;
+                e.queue(() -> {
+                    for (int z = 0; z < h/finalAccuracy; z++) {
+                        double n = generator != null ? generator.apply(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp) : cng.noise(((xx*finalAccuracy) * ascale) + oxp, tz, ((z*finalAccuracy) * ascale) + ozp);
+                        n = n > 1 ? 1 : n < 0 ? 0 : n;
 
-                        if (n > 1 || n < 0) {
-                            return;
+                        try
+                        {
+                            Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+                            int rgb = color.getRGB();
+                            img.setRGB(xx, z, rgb);
                         }
 
-                        Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
-                        int rgb = color.getRGB();
-                        co[xx][zz] = rgb;
-                    });
-                }
+                        catch(Throwable xxx)
+                        {
 
-                gx.waitFor("a");
-
-                if (hd && p.getMilliseconds() > v) {
-                    break;
-                }
+                        }
+                    }
+                });
             }
 
-            for (int x = 0; x < getParent().getWidth(); x += accuracy) {
-                for (int z = 0; z < getParent().getHeight(); z += accuracy) {
-                    gg.setColor(new Color(co[x][z]));
-                    gg.fillRect(x, z, accuracy, accuracy);
-                }
-            }
+            e.complete();
+            gg.drawImage(img, 0, 0, getParent().getWidth()*accuracy, getParent().getHeight()*accuracy, (img, infoflags, x, y, width, height) -> true);
         }
 
         p.end();

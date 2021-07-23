@@ -108,7 +108,7 @@ public class IrisSettings {
     public static class IrisSettingsGenerator {
 
         public String defaultWorldType = "overworld";
-        public boolean mcaPregenerator = false;
+        public boolean disableMCA = false;
         public boolean systemEffects = true;
         public boolean systemEntitySpawnOverrides = true;
         public boolean systemEntityInitialSpawns = true;

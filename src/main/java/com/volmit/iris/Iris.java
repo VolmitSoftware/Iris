@@ -558,9 +558,8 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean isMCA() {
-        return IrisSettings.get().getGenerator().isMcaPregenerator();
+        return !IrisSettings.get().getGenerator().isDisableMCA();
     }
-
 
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
         if (IrisSettings.get().getGeneral().isDebug()) {

@@ -324,10 +324,7 @@ public class Chunk {
         Section section = sections.get(sectionIndex);
         if (section == null) {
             section = Section.newSection();
-            synchronized (sections)
-            {
-                sections.set(sectionIndex, section);
-            }
+            sections.set(sectionIndex, section);
         }
         section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
     }

@@ -265,7 +265,7 @@ public class NBTWorld {
         return s;
     }
 
-    public Chunk getChunk(int x, int z) {
+    public synchronized Chunk getChunk(int x, int z) {
         MCAFile mca = getMCA(x >> 5, z >> 5);
         Chunk c = mca.getChunk(x & 31, z & 31);
 

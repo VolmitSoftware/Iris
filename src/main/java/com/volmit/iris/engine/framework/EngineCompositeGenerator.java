@@ -536,7 +536,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public synchronized void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer) {
+    public void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer) {
         try
         {int ox = x << 4;
             int oz = z << 4;

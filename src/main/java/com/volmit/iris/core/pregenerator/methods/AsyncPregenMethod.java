@@ -69,15 +69,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void waitForChunks() {
-        for (CompletableFuture<?> i : future) {
+        for (CompletableFuture<?> i : future.copy()) {
             try {
                 i.get();
+                future.remove(i);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
-
-        future.clear();
     }
 
     @Override

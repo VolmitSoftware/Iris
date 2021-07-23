@@ -26,6 +26,7 @@ import com.volmit.iris.engine.data.nbt.tag.ListTag;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static com.volmit.iris.engine.data.mca.LoadFlags.*;
 
@@ -45,7 +46,7 @@ public class Chunk {
     private int[] biomes;
     private CompoundTag heightMaps;
     private CompoundTag carvingMasks;
-    private final Section[] sections = new Section[16];
+    private final AtomicReferenceArray<Section> sections = new AtomicReferenceArray<>(16);
     private ListTag<CompoundTag> entities;
     private ListTag<CompoundTag> tileEntities;
     private ListTag<CompoundTag> tileTicks;
@@ -129,7 +130,7 @@ public class Chunk {
                 if (newSection.isEmpty()) {
                     continue;
                 }
-                sections[sectionIndex] = newSection;
+                sections.set(sectionIndex, newSection);
             }
         }
 
@@ -299,7 +300,7 @@ public class Chunk {
     }
 
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        Section section = sections[MCAUtil.blockToChunk(blockY)];
+        Section section = sections.get(MCAUtil.blockToChunk(blockY));
         if (section == null) {
             return null;
         }
@@ -320,9 +321,10 @@ public class Chunk {
      */
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int sectionIndex = MCAUtil.blockToChunk(blockY);
-        Section section = sections[sectionIndex];
+        Section section = sections.get(sectionIndex);
         if (section == null) {
-            section = sections[sectionIndex] = Section.newSection();
+            section = Section.newSection();
+            sections.set(sectionIndex, section);
         }
         section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
     }
@@ -383,7 +385,7 @@ public class Chunk {
      * @return The Section.
      */
     public Section getSection(int sectionY) {
-        return sections[sectionY];
+        return sections.get(sectionY);
     }
 
     /**
@@ -393,7 +395,7 @@ public class Chunk {
      * @param section  The section to be set.
      */
     public void setSection(int sectionY, Section section) {
-        sections[sectionY] = section;
+        sections.set(sectionY, section);
     }
 
     /**
@@ -632,7 +634,9 @@ public class Chunk {
     }
 
     public void cleanupPalettesAndBlockStates() {
-        for (Section section : sections) {
+        for (int i = 0; i < sections.length(); i++)
+        {
+            Section section = sections.get(i);
             if (section != null) {
                 section.cleanupPaletteAndBlockStates();
             }
@@ -673,9 +677,9 @@ public class Chunk {
         level.putString("Status", status);
         if (structures != null) level.put("Structures", structures);
         ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
-        for (int i = 0; i < this.sections.length; i++) {
-            if (this.sections[i] != null) {
-                sections.add(this.sections[i].updateHandle(i));
+        for (int i = 0; i < this.sections.length(); i++) {
+            if (this.sections.get(i) != null) {
+                sections.add(this.sections.get(i).updateHandle(i));
             }
         }
         level.put("Sections", sections);
@@ -683,6 +687,6 @@ public class Chunk {
     }
 
     public int sectionCount() {
-        return sections.length;
+        return sections.length();
     }
 }

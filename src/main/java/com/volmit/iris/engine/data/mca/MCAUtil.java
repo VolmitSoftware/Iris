@@ -160,6 +160,7 @@ public final class MCAUtil {
         if (chunks > 0 && to != file) {
             Files.move(to.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
+
         return chunks;
     }
 

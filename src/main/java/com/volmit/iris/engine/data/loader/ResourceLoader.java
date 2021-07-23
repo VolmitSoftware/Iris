@@ -37,6 +37,7 @@ import lombok.Data;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant> {
@@ -91,6 +92,32 @@ public class ResourceLoader<T extends IrisRegistrant> {
         J.a(() -> Iris.warn("Couldn't Load " + resourceTypeName + " file: " + path.getPath() + ": " + e.getMessage()));
     }
 
+    private KList<File> matchAllFiles(File root, Predicate<File> f)
+    {
+        KList<File> fx = new KList<>();
+        matchFiles(root, fx, f);
+        return fx;
+    }
+
+    private void matchFiles(File at, KList<File> files, Predicate<File> f)
+    {
+        if(at.isDirectory())
+        {
+            for(File i : at.listFiles())
+            {
+                matchFiles(i, files, f);
+            }
+        }
+
+        else
+        {
+            if(f.test(at))
+            {
+                files.add(at);
+            }
+        }
+    }
+
     public String[] getPossibleKeys() {
         if (possibleKeys != null) {
             return possibleKeys;
@@ -99,17 +126,11 @@ public class ResourceLoader<T extends IrisRegistrant> {
         Iris.info("Building " + resourceTypeName + " Registry Lists");
         KSet<String> m = new KSet<>();
 
-        for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".json")) {
-                    m.add(j.getName().replaceAll("\\Q.json\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".json")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.json\\E", ""));
-                        }
-                    }
-                }
+        for(File i : getFolders())
+        {
+            for(File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json")))
+            {
+                m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
             }
         }
 

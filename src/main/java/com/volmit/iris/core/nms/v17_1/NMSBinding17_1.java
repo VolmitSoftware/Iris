@@ -58,6 +58,11 @@ public class NMSBinding17_1 implements INMSBinding {
         return null;
     }
 
+    @Override
+    public boolean supportsCustomHeight() {
+        return false;
+    }
+
     private Field getFieldForBiomeStorage(Object storage) {
         Field f = biomeStorageCache;
 
@@ -106,6 +111,11 @@ public class NMSBinding17_1 implements INMSBinding {
     @Override
     public boolean supportsCustomBiomes() {
         return true;
+    }
+
+    @Override
+    public int getMinHeight(World world) {
+        return world.getMinHeight();
     }
 
     @Override

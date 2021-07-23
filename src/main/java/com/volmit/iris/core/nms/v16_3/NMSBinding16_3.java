@@ -54,6 +54,16 @@ public class NMSBinding16_3 implements INMSBinding {
     }
 
     @Override
+    public boolean supportsCustomHeight() {
+        return false;
+    }
+
+    @Override
+    public int getMinHeight(World world) {
+        return 0;
+    }
+
+    @Override
     public boolean supportsCustomBiomes() {
         return false;
     }

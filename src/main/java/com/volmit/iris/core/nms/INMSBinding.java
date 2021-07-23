@@ -25,7 +25,11 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 public interface INMSBinding {
+    boolean supportsCustomHeight();
+
     Object getBiomeBaseFromId(int id);
+
+    int getMinHeight(World world);
 
     boolean supportsCustomBiomes();
 

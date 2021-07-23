@@ -125,6 +125,16 @@ public class NMSBinding16_2 implements INMSBinding {
         return false;
     }
 
+    @Override
+    public int getMinHeight(World world) {
+        return 0;
+    }
+
+    @Override
+    public boolean supportsCustomHeight() {
+        return false;
+    }
+
     private Class<?>[] classify(Object... par) {
         Class<?>[] g = new Class<?>[par.length];
         for (int i = 0; i < g.length; i++) {

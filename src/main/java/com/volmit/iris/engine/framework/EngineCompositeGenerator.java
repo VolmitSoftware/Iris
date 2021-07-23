@@ -315,6 +315,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.addAll(compound.get().getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
 
+//            if(world.hasRealWorld())
+//            {
+//                placeStrongholds(world.realWorld());
+//            }
+
             if(isStudio())
             {
                 dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());

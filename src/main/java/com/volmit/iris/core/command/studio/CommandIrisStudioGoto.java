@@ -40,8 +40,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CommandIrisStudioGoto extends MortarCommand {
-    private static final AtomicBoolean looking = new AtomicBoolean(false);
-
     public CommandIrisStudioGoto() {
         super("goto", "find", "g");
         setDescription("Find any region or biome");
@@ -74,10 +72,6 @@ public class CommandIrisStudioGoto extends MortarCommand {
             }
 
             if (sender.isPlayer()) {
-                if (looking.get()) {
-                    sender.sendMessage("A Search is already running, please wait!");
-                }
-
                 Player p = sender.player();
                 World world = p.getWorld();
 
@@ -90,12 +84,10 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
                 IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
 
-                looking.set(true);
                 if (b != null) {
                     J.a(() -> {
                         Location l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-                        looking.set(false);
                         if (l == null) {
                             sender.sendMessage("Couldn't find " + b.getName() + ".");
                         } else {
@@ -107,7 +99,6 @@ public class CommandIrisStudioGoto extends MortarCommand {
                     J.a(() -> {
                         Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-                        looking.set(false);
                         if (l == null) {
                             sender.sendMessage("Couldn't find " + r.getName() + ".");
                         } else {

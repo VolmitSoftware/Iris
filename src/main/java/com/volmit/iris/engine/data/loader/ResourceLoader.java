@@ -36,6 +36,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -288,5 +289,19 @@ public class ResourceLoader<T extends IrisRegistrant> {
         folderCache = null;
         possibleKeys = null;
         lock.unlock();
+    }
+
+    public KList<String> getPossibleKeys(String arg) {
+        KList<String> f = new KList<>();
+
+        for(String i : getPossibleKeys())
+        {
+            if(i.equalsIgnoreCase(arg) || i.toLowerCase(Locale.ROOT).startsWith(arg.toLowerCase(Locale.ROOT)) || i.toLowerCase(Locale.ROOT).contains(arg.toLowerCase(Locale.ROOT)) || arg.toLowerCase(Locale.ROOT).contains(i.toLowerCase(Locale.ROOT)))
+            {
+                f.add(i);
+            }
+        }
+
+        return f;
     }
 }

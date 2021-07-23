@@ -78,6 +78,11 @@ public class CommandIrisVerify extends MortarCommand {
                                 {
                                     sender.sendMessage("Found Missing Chunk " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
                                 }
+
+                                if(c.sectionCount() == 0)
+                                {
+                                    sender.sendMessage("Found Missing Chunk (valid, but 0 sections) " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
+                                }
                             }
                         }
                     } catch (IOException ioException) {

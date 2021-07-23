@@ -61,6 +61,9 @@ public class CommandIris extends MortarCommand {
     private CommandIrisUpdateWorld updateWorld;
 
     @Command
+    private CommandIrisBitwise bitwise;
+
+    @Command
     private CommandIrisWhat what;
 
     @Command

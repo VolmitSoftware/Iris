@@ -681,4 +681,8 @@ public class Chunk {
         level.put("Sections", sections);
         return data;
     }
+
+    public int sectionCount() {
+        return sections.length;
+    }
 }

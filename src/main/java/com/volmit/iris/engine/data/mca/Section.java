@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLongArray;
 
 public class Section {
-    private static final Field longArrayStealer = getLongArrayValueField();
     private CompoundTag data;
     private Map<String, List<PaletteIndex>> valueIndexedPalette = new KMap<>();
     private ListTag<CompoundTag> palette;
@@ -430,27 +429,18 @@ public class Section {
             data.putByteArray("BlockLight", blockLight);
         }
         if (blockStates != null) {
-            try {
-                data.putLongArray("BlockStates", (long[]) longArrayStealer.get(blockStates));
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
+            long[] c = new long[blockStates.length()];
+
+            for(int i = 0; i < c.length; i++)
+            {
+                c[i] = blockStates.get(i);
             }
+
+            data.putLongArray("BlockStates", c);
         }
         if (skyLight != null) {
             data.putByteArray("SkyLight", skyLight);
         }
         return data;
-    }
-
-    private static Field getLongArrayValueField() {
-        Field f = null;
-        try {
-            f = AtomicLongArray.class.getDeclaredField("array");
-            f.setAccessible(true);
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-
-        return f;
     }
 }

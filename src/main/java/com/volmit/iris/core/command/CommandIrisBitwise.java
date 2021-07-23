@@ -48,56 +48,70 @@ public class CommandIrisBitwise extends MortarCommand {
             sender.sendMessage("/iris bw " + getArgsUsage());
         }
 
-        if(args[0].contains(","))
+        try
         {
-            KList<Integer> r = new KList<>();
-
-            for(String i : args[0].split("\\Q,\\E"))
+            if(args[0].contains(","))
             {
-                int a = Integer.valueOf(i);
+                KList<Integer> r = new KList<>();
+
+                for(String i : args[0].split("\\Q,\\E"))
+                {
+                    int a = Integer.parseInt(i);
+                    String op = args[1];
+                    int b = Integer.parseInt(args[2]);
+                    int v = 0;
+
+                    switch (op) {
+                        case "|" -> v = a | b;
+                        case "&" -> v = a & b;
+                        case "^" -> v = a ^ b;
+                        case "%" -> v = a % b;
+                        case ">>" -> v = a >> b;
+                        case "<<" -> v = a << b;
+                        default -> {
+                            {
+                                sender.sendMessage("Error Invalid operation");
+                                return true;
+                            }
+                        }
+                    }
+                    ;
+
+                    r.add(v);
+                    sender.sendMessage("Result: " + r.toString(","));
+                }
+            }
+
+            else
+            {
+                int a = Integer.parseInt(args[0]);
                 String op = args[1];
-                int b = Integer.valueOf(args[2]);
+                int b = Integer.parseInt(args[2]);
                 int v = 0;
 
-                switch(op)
-                {
-                    case "|": v = a | b;
-                    case "&": v = a & b;
-                    case "^": v = a ^ b;
-                    case "%": v = a ^ b;
-                    case ">>": v = a >> b;
-                    case "<<": v = a << b;
-                    default: {
-                        sender.sendMessage("Error Invalid operation");
-                    };
-                };
+                switch (op) {
+                    case "|" -> v = a | b;
+                    case "&" -> v = a & b;
+                    case "^" -> v = a ^ b;
+                    case "%" -> v = a % b;
+                    case ">>" -> v = a >> b;
+                    case "<<" -> v = a << b;
+                    default -> {
+                        {
+                            sender.sendMessage("Error Invalid operation");
+                            return true;
+                        }
+                    }
+                }
+                ;
 
-                r.add(v);
-                sender.sendMessage("Result: " + r.toString(","));
+                sender.sendMessage("Result: " + v);
             }
         }
 
-        else
+        catch(Throwable ignored)
         {
-            int a = Integer.valueOf(args[0]);
-            String op = args[1];
-            int b = Integer.valueOf(args[2]);
-            int v = 0;
 
-            switch(op)
-            {
-                case "|": v = a | b;
-                case "&": v = a & b;
-                case "^": v = a ^ b;
-                case "%": v = a ^ b;
-                case ">>": v = a >> b;
-                case "<<": v = a << b;
-                default: {
-                    sender.sendMessage("Error Invalid operation");
-                };
-            };
-
-            sender.sendMessage("Result: " + v);
         }
 
         return true;

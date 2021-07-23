@@ -31,6 +31,11 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
+    public boolean supportsCustomBiomes() {
+        return false;
+    }
+
+    @Override
     public int getTrueBiomeBaseId(Object biomeBase) {
         return 0;
     }

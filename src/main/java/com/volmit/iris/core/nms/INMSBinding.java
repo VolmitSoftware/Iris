@@ -27,6 +27,8 @@ import org.bukkit.generator.ChunkGenerator;
 public interface INMSBinding {
     Object getBiomeBaseFromId(int id);
 
+    boolean supportsCustomBiomes();
+
     int getTrueBiomeBaseId(Object biomeBase);
 
     Object getTrueBiomeBase(Location location);

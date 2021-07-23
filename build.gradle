@@ -76,7 +76,6 @@ shadowJar
             minimize()
             dependencies {
                 include(dependency('org.zeroturnaround:zt-zip:1.14'))
-                include(dependency('io.papermc:paperlib:1.0.5'))
                 include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
             }
         }
@@ -87,11 +86,14 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
     implementation 'org.zeroturnaround:zt-zip:1.14'
-    implementation 'io.papermc:paperlib:1.0.5'
+    implementation 'net.pl3x.purpur:purpur-api:1.17.1-R0.1-SNAPSHOT'
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
     implementation 'org.bukkit.craftbukkit:1.17:1.17'
     implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
+    implementation 'org.bukkit.craftbukkit:1.16.5:1.16.5'
+    implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
+    implementation 'org.bukkit.craftbukkit:1.16.1:1.16.1'
     implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'

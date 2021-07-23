@@ -16,30 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.nms.v17_1;
+package com.volmit.iris.core.nms.v16_2;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.collection.KMap;
-import net.minecraft.core.IRegistry;
-import net.minecraft.core.IRegistryWritable;
-import net.minecraft.resources.MinecraftKey;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.biome.BiomeBase;
-import net.minecraft.world.level.chunk.BiomeStorage;
+import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R2.CraftWorld;
 import org.bukkit.generator.ChunkGenerator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NMSBinding17_1 implements INMSBinding {
+public class NMSBinding16_2 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private Field biomeStorageCache = null;
 
@@ -80,7 +75,7 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     private IRegistryWritable<BiomeBase> getCustomBiomeRegistry() {
-        return ((CraftServer) Bukkit.getServer()).getHandle().getServer().getCustomRegistry().b(IRegistry.aO);
+        return ((CraftServer) Bukkit.getServer()).getHandle().getServer().getCustomRegistry().b(IRegistry.ay);
     }
 
     @Override
@@ -90,7 +85,7 @@ public class NMSBinding17_1 implements INMSBinding {
 
     @Override
     public int getTrueBiomeBaseId(Object biomeBase) {
-        return getCustomBiomeRegistry().getId((BiomeBase) biomeBase);
+        return getCustomBiomeRegistry().a((BiomeBase) biomeBase);
     }
 
     @Override
@@ -104,14 +99,9 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
-    public boolean supportsCustomBiomes() {
-        return true;
-    }
-
-    @Override
     public Object getCustomBiomeBaseFor(String mckey) {
         try {
-            return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
+            return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.ay, new MinecraftKey(mckey)));
         } catch (Throwable e) {
             Iris.reportError(e);
         }
@@ -127,7 +117,12 @@ public class NMSBinding17_1 implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return getBiomeBase(((CraftWorld) world).getHandle().t().d(IRegistry.aO), biome);
+        return getBiomeBase(((CraftWorld) world).getHandle().r().b(IRegistry.ay), biome);
+    }
+
+    @Override
+    public boolean supportsCustomBiomes() {
+        return false;
     }
 
     private Class<?>[] classify(Object... par) {
@@ -203,13 +198,13 @@ public class NMSBinding17_1 implements INMSBinding {
             return v;
         }
         //noinspection unchecked
-        v = org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
+        v = org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
             //noinspection unchecked
-            return org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, Biome.PLAINS);
+            return org.bukkit.craftbukkit.v1_16_R2.block.CraftBlock.biomeToBiomeBase((IRegistry<BiomeBase>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
         return v;
@@ -219,10 +214,8 @@ public class NMSBinding17_1 implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-
-                IRegistry<BiomeBase> registry = ((CraftWorld) i).getHandle().t().d(IRegistry.aO);
-
-                return registry.getId((BiomeBase) getBiomeBase(registry, biome));
+                IRegistry<BiomeBase> registry = ((CraftWorld) i).getHandle().r().b(IRegistry.ay);
+                return registry.a((BiomeBase) getBiomeBase(registry, biome));
             }
         }
 

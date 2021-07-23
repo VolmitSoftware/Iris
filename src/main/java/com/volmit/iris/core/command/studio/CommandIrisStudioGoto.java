@@ -51,14 +51,16 @@ public class CommandIrisStudioGoto extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if (args.length == 0 && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
             IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
-            } else {
+            } else if(args.length == 0) {
                 list.add(data.getBiomeLoader().getPossibleKeys());
                 list.add(data.getRegionLoader().getPossibleKeys());
-                //TODO: Remove comment here -> list.add(data.getObjectLoader().getPossibleKeys());
+            }else if(args.length == 1) {
+                list.add(data.getBiomeLoader().getPossibleKeys(args[0]));
+                list.add(data.getRegionLoader().getPossibleKeys(args[0]));
             }
         }
     }

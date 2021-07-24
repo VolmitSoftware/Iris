@@ -415,17 +415,7 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public KList<IrisBiome> getAllBiomes(DataProvider g) {
-        KList<IrisBiome> r = new KList<>();
-
-        for (IrisRegion i : getAllRegions(g)) {
-            if (i == null) {
-                continue;
-            }
-
-            r.addAll(i.getAllBiomes(g));
-        }
-
-        return r;
+        return g.getData().getBiomeLoader().loadAll(g.getData().getBiomeLoader().getPossibleKeys());
     }
 
     public KList<IrisBiome> getAllAnyBiomes() {

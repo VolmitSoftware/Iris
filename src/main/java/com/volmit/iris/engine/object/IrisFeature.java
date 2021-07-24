@@ -22,10 +22,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,6 +45,15 @@ public class IrisFeature {
     @MaxNumber(1)
     @Desc("The chance an object that should be place actually will place. Set to below 1 to affect objects in this zone")
     private double objectChance = 1;
+
+    @RegistryListBiome
+    @Desc("Apply a custom biome here")
+    private String customBiome = null;
+
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("How much strength before the biome is applied.")
+    private double biomeStrengthThreshold = 0.75;
 
     @Desc("The interpolation radius of this zone")
     private double interpolationRadius = 7;
@@ -78,8 +84,6 @@ public class IrisFeature {
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
 
     public double getActualRadius() {
-
-
         return actualRadius.aquire(() -> {
             double o = 0;
 

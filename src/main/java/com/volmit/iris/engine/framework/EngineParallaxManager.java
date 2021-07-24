@@ -212,10 +212,21 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             return;
         }
 
+        for (IrisFeaturePositional ipf : forEachFeature(x, z)) {
+            f.accept(ipf);
+        }
+    }
+
+    @BlockCoordinates
+    default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
         KList<IrisFeaturePositional> pos = new KList<>();
 
+        if (!getEngine().getDimension().hasFeatures(getEngine())) {
+            return pos;
+        }
+
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z)) {
+            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
                 pos.add(i);
             }
         }
@@ -231,7 +242,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                 try {
                     for (IrisFeaturePositional k : m.getFeatures()) {
-                        if (k.shouldFilter(x, z)) {
+                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
                             pos.add(k);
                         }
                     }
@@ -243,9 +254,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        for (IrisFeaturePositional ipf : pos) {
-            f.accept(ipf);
-        }
+        return pos;
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
@@ -261,7 +270,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int i, j;
             KList<Runnable> after = new KList<>();
             int bs = (int) Math.pow((s * 2) + 1, 2);
-            BurstExecutor burst = getEngine().getTarget().getParallaxBurster().burst(bs);
+            BurstExecutor burst = getEngine().getTarget().getBurster().burst(bs);
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {
                     int xx = i + x;
@@ -283,7 +292,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             burst.complete();
 
             if (getEngine().getDimension().isPlaceObjects()) {
-                burst = getEngine().getTarget().getParallaxBurster().burst(bs);
+                burst = getEngine().getTarget().getBurster().burst(bs);
 
                 for (i = -s; i <= s; i++) {
                     int ii = i;
@@ -299,7 +308,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
 
                 burst.complete();
-                burst = getEngine().getTarget().getParallaxBurster().burst(bs);
+                burst = getEngine().getTarget().getBurster().burst(bs);
 
                 for (i = -s; i <= s; i++) {
                     int ii = i;
@@ -312,7 +321,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 burst.complete();
             }
 
-            getEngine().getTarget().getParallaxBurster().burst(after);
+            getEngine().getTarget().getBurster().burst(after);
             getParallaxAccess().setChunkGenerated(x, z);
             p.end();
             getEngine().getMetrics().getParallax().put(p.getMilliseconds());
@@ -666,7 +675,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
-            BurstExecutor e = getEngine().getTarget().getParallaxBurster().burst(objects.size());
+            BurstExecutor e = getEngine().getTarget().getBurster().burst(objects.size());
             KMap<String, BlockVector> sizeCache = new KMap<>();
             for (String i : objects) {
                 e.queue(() -> {

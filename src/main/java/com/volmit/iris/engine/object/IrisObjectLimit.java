@@ -32,7 +32,6 @@ import lombok.experimental.Accessors;
 @Desc("Translate objects")
 @Data
 public class IrisObjectLimit {
-
     @MinNumber(0)
     @MaxNumber(255)
     @Desc("The minimum height for placement (bottom of object)")

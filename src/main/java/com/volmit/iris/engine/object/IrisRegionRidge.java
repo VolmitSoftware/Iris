@@ -33,27 +33,20 @@ import lombok.experimental.Accessors;
 @Desc("A ridge config")
 @Data
 public class IrisRegionRidge {
-
     @RegistryListBiome
     @Required
-
     @Desc("The biome name")
     private String biome = "";
 
-
     @Required
-
     @Desc("The type this biome should override (land sea or shore)")
     private InferredType type = InferredType.LAND;
-
 
     @Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
     private InferredType as = InferredType.DEFER;
 
-
     @Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
     private double noiseMultiplier = 0;
-
 
     @Required
     @MinNumber(0)
@@ -61,37 +54,29 @@ public class IrisRegionRidge {
     @Desc("The chance this biome will be placed in a given spot")
     private double chance = 0.75;
 
-
     @MinNumber(0)
     @Desc("The scale of the biome ridge. Higher values = wider veins & bigger connected cells")
     private double scale = 5;
 
-
     @Desc("The chance scale (cell chances)")
     private double chanceScale = 4;
-
 
     @MinNumber(0)
     @Desc("The shuffle, how 'natural' this looks. Compared to pure polygons")
     private double shuffle = 16;
 
-
     @MinNumber(0)
     @Desc("The chance shuffle (polygon cell chances)")
     private double chanceShuffle = 128;
-
 
     @MinNumber(0)
     @Desc("The thickness of the vein")
     private double thickness = 0.125;
 
-
     @Desc("If the noise multiplier is below zero, what should the air be filled with?")
     private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();
-
     private final transient AtomicCache<CellGenerator> spot = new AtomicCache<>();
     private final transient AtomicCache<CellGenerator> ridge = new AtomicCache<>();
-
 
     public CellGenerator getSpotGenerator(RNG rng) {
         return spot.aquire(() ->

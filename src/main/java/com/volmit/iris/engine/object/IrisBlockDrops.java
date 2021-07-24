@@ -43,19 +43,15 @@ public class IrisBlockDrops {
     @Desc("The blocks that drop loot")
     private KList<IrisBlockData> blocks = new KList<>();
 
-
     @Desc("If exact blocks is set to true, minecraft:barrel[axis=x] will only drop for that axis. When exact is false (default) any barrel will drop the defined drops.")
     private boolean exactBlocks = false;
-
 
     @Desc("Add in specific items to drop")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> drops = new KList<>();
 
-
     @Desc("If this is in a biome, setting skipParents to true will ignore the drops in the region and dimension for this block type. The default (false) will allow all three nodes to fire and add to a list of drops.")
     private boolean skipParents = false;
-
 
     @Desc("Removes the default vanilla block drops and only drops the given items & any parent loot tables specified for this block type.")
     private boolean replaceVanillaDrops = false;

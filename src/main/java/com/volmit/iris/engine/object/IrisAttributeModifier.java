@@ -40,14 +40,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 @Data
 public class IrisAttributeModifier {
     @Required
-
     @Desc("The Attribute type. This type is pulled from the game attributes. Zombie & Horse attributes will not work on non-zombie/horse entities.\nUsing an attribute on an item will have affects when held, or worn. There is no way to specify further granularity as the game picks this depending on the item type.")
     private Attribute attribute = null;
 
     @MinNumber(2)
     @Required
-
-
     @Desc("The Attribute Name is used internally only for the game. This value should be unique to all other attributes applied to this item/entity. It is not shown in game.")
     private String name = "";
 

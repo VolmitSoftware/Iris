@@ -35,7 +35,6 @@ import lombok.experimental.Accessors;
 public class IrisBiomeGeneratorLink {
 
     @RegistryListGenerator
-
     @Desc("The generator id")
     private String generator = "default";
 
@@ -43,7 +42,6 @@ public class IrisBiomeGeneratorLink {
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The min block value (value + fluidHeight)")
     private int min = 0;
 
@@ -51,7 +49,6 @@ public class IrisBiomeGeneratorLink {
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The max block value (value + fluidHeight)")
     private int max = 0;
 

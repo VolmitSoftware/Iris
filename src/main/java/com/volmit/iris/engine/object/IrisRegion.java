@@ -52,14 +52,12 @@ import java.util.Random;
 public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(2)
     @Required
-
     @Desc("The name of the region")
     private String name = "A Region";
 
     @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
     @Desc("Jigsaw structures")
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
-
 
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
@@ -69,11 +67,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
     private KList<IrisEffect> effects = new KList<>();
 
-
     @Desc("Entity spawns to override or add to this region")
     @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
     private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
-
 
     @Desc("Entity spawns during generation")
     @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
@@ -100,7 +96,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0)
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;
-
 
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
@@ -187,22 +182,17 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Define regional deposit generators that add onto the global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
 
-
     @Desc("The style of rivers")
     private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
-
 
     @Desc("The style of lakes")
     private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
 
-
     @Desc("The style of river chances")
     private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
 
-
     @Desc("Generate lakes in this region")
     private boolean lakes = true;
-
 
     @Desc("Generate rivers in this region")
     private boolean rivers = true;
@@ -219,7 +209,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MaxNumber(1)
     @Desc("Generate rivers in this region")
     private double riverThickness = 0.1;
-
 
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;

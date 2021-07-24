@@ -33,15 +33,12 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCaveLayer {
     @Required
-
     @Desc("The vertical slope this cave layer follows")
     private IrisShapedGeneratorStyle verticalSlope = new IrisShapedGeneratorStyle();
 
     @Required
-
     @Desc("The horizontal slope this cave layer follows")
     private IrisShapedGeneratorStyle horizontalSlope = new IrisShapedGeneratorStyle();
-
 
     @Desc("If defined, a cave fluid will fill this cave below (or above) the specified fluidHeight in this object.")
     private IrisCaveFluid fluid = new IrisCaveFluid();
@@ -53,7 +50,6 @@ public class IrisCaveLayer {
     @MinNumber(0.001)
     @Desc("The cave thickness.")
     private double caveThickness = 1D;
-
 
     @Desc("If set to true, this cave layer can break the surface")
     private boolean canBreakSurface = false;

@@ -36,22 +36,17 @@ import lombok.experimental.Accessors;
 @Desc("A spot config")
 @Data
 public class IrisRegionSpot {
-
     @RegistryListBiome
     @Required
-
     @Desc("The biome to be placed")
     private String biome = "";
 
     @Required
-
     @Desc("Where this spot overrides. Land sea or shore")
     private InferredType type = InferredType.LAND;
 
-
     @Desc("What type this spot is (i.e. target SEA but as LAND) like an island. Default matches the target type")
     private InferredType as = InferredType.DEFER;
-
 
     @Desc("Use the distance from cell value to add or remove noise value. (Forces depth or height)")
     private double noiseMultiplier = 0;
@@ -68,7 +63,6 @@ public class IrisRegionSpot {
     @MinNumber(0)
     @Desc("The shuffle or how natural the splotch looks like (anti-polygon)")
     private double shuffle = 128;
-
 
     @Desc("If the noise multiplier is below zero, what should the air be filled with?")
     private IrisBiomePaletteLayer air = new IrisBiomePaletteLayer().zero();

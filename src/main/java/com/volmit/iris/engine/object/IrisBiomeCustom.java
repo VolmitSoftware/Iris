@@ -63,6 +63,7 @@ public class IrisBiomeCustom {
     @Desc("Define an ambient particle to be rendered clientside (no server cost!)")
     private IrisBiomeCustomParticle ambientParticle = null;
 
+    @Required
     @Desc("The biome's category type")
     private IrisBiomeCustomCategory category = IrisBiomeCustomCategory.plains;
 

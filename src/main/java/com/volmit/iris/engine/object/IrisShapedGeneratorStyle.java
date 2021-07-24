@@ -35,23 +35,18 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisShapedGeneratorStyle {
     @Required
-
     @Desc("The generator id")
-
     private IrisGeneratorStyle generator = new IrisGeneratorStyle(NoiseStyle.IRIS);
 
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
-
     @Desc("The min block value")
     private int min = 0;
 
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The max block value")
     private int max = 0;
 

@@ -37,14 +37,11 @@ import org.bukkit.block.data.BlockData;
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisDecorator {
-
     @Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
     private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
 
-
     @Desc("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
     private boolean forcePlace = false;
-
 
     @Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
@@ -52,7 +49,6 @@ public class IrisDecorator {
     @DependsOn({"stackMin", "stackMax"})
     @Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
     private IrisGeneratorStyle heightVariance = NoiseStyle.STATIC.style();
-
 
     @Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")
     private DecorationPart partOf = DecorationPart.NONE;

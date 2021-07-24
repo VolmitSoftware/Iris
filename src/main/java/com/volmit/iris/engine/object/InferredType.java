@@ -23,23 +23,18 @@ import com.volmit.iris.engine.object.annotations.Desc;
 @Desc("Represents a biome type")
 public enum InferredType {
     @Desc("Represents any shore biome type")
-
     SHORE,
 
     @Desc("Represents any land biome type")
-
     LAND,
 
     @Desc("Represents any sea biome type")
-
     SEA,
 
     @Desc("Represents any cave biome type")
-
     CAVE,
 
     @Desc("Represents any river biome type")
-
     RIVER,
 
     @Desc("Represents any lake biome type")

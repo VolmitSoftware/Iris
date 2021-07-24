@@ -34,14 +34,11 @@ import org.bukkit.util.Vector;
 @Desc("Represents a position")
 @Data
 public class IrisPosition {
-
     @Desc("The x position")
     private int x = 0;
 
-
     @Desc("The y position")
     private int y = 0;
-
 
     @Desc("The z position")
     private int z = 0;

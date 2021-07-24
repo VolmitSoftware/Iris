@@ -31,10 +31,8 @@ import lombok.experimental.Accessors;
 @Desc("Represents a range")
 @Data
 public class IrisRange {
-
     @Desc("The minimum value")
     private double min = 16;
-
 
     @Desc("The maximum value")
     private double max = 32;

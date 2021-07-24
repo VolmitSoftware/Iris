@@ -36,7 +36,6 @@ import lombok.experimental.Accessors;
 @Desc("A gen style")
 @Data
 public class IrisGeneratorStyle {
-
     @Required
     @Desc("The chance is 1 in CHANCE per interval")
     private NoiseStyle style = NoiseStyle.IRIS;

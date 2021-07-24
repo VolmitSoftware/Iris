@@ -28,15 +28,12 @@ import lombok.Data;
 
 @Desc("Represents a potential Iris zone")
 public class IrisFeaturePotential {
-
     @MinNumber(0)
     @Required
-
     @Desc("The rarity is 1 in X chance per chunk")
     private int rarity = 100;
 
     @Required
-
     @Desc("")
     private IrisFeature zone = new IrisFeature();
 

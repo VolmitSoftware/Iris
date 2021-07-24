@@ -53,7 +53,6 @@ public class IrisObjectPlacement {
     @Desc("Rotate this objects placement")
     private IrisObjectRotation rotation = new IrisObjectRotation();
 
-
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
 
@@ -87,50 +86,38 @@ public class IrisObjectPlacement {
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
 
-
     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;
-
 
     @Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
 
-
     @Desc("If this is defined, this object wont place on the terrain heightmap, but instead on this virtual heightmap")
     private IrisNoiseGenerator heightmap;
-
 
     @Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
     private boolean smartBore = false;
 
-
     @Desc("If set to true, Blocks placed underwater that could be waterlogged are waterlogged.")
     private boolean waterloggable = false;
-
 
     @Desc("If set to true, objects will place on the fluid height level Such as boats.")
     private boolean onwater = false;
 
-
     @Desc("If set to true, this object will only place parts of itself where blocks already exist. Warning: Melding is very performance intensive!")
     private boolean meld = false;
-
 
     @Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface. This is not compatable with X and Z axis rotations (it may look off)")
     private boolean bottom = false;
 
-
     @Desc("If set to true, air will be placed before the schematic places.")
     private boolean bore = false;
-
 
     @Desc("Use a generator to warp the field of coordinates. Using simplex for example would make a square placement warp like a flag")
     private IrisGeneratorStyle warp = new IrisGeneratorStyle(NoiseStyle.FLAT);
 
-
     @Desc("If the place mode is set to CENTER_HEIGHT_RIGID and you have an X/Z translation, Turning on translate center will also translate the center height check.")
     private boolean translateCenter = false;
-
 
     @Desc("The placement mode")
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
@@ -139,10 +126,8 @@ public class IrisObjectPlacement {
     @Desc("Find and replace blocks")
     private KList<IrisObjectReplace> edit = new KList<>();
 
-
     @Desc("Translate this object's placement")
     private IrisObjectTranslate translate = new IrisObjectTranslate();
-
 
     @Desc("Scale Objects")
     private IrisObjectScale scale = new IrisObjectScale();

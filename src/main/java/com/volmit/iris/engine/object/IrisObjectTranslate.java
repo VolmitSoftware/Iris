@@ -34,29 +34,24 @@ import org.bukkit.util.BlockVector;
 @Desc("Translate objects")
 @Data
 public class IrisObjectTranslate {
-
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-
     @Desc("The x shift in blocks")
     private int x = 0;
 
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The x shift in blocks")
     private int y = 0;
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-
     @Desc("Adds an additional amount of height randomly (translateY + rand(0 - yRandom))")
     private int yRandom = 0;
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-
     @Desc("The x shift in blocks")
     private int z = 0;
 

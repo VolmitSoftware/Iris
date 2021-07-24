@@ -31,7 +31,6 @@ import lombok.experimental.Accessors;
 @Desc("Represents a rotation axis with intervals and maxes. The x and z axis values are defaulted to disabled. The Y axis defaults to on, rotating by 90 degree increments.")
 @Data
 public class IrisAxisRotationClamp {
-
     @Desc("Should this axis be rotated at all?")
     private boolean enabled = false;
     private transient boolean forceLock = false;

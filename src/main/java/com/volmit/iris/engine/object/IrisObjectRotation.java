@@ -39,18 +39,14 @@ import java.util.List;
 @Desc("Configures rotation for iris")
 @Data
 public class IrisObjectRotation {
-
     @Desc("If this rotator is enabled or not")
     private boolean enabled = true;
-
 
     @Desc("The x axis rotation")
     private IrisAxisRotationClamp xAxis = new IrisAxisRotationClamp();
 
-
     @Desc("The y axis rotation")
     private IrisAxisRotationClamp yAxis = new IrisAxisRotationClamp(true, false, 0, 0, 90);
-
 
     @Desc("The z axis rotation")
     private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();

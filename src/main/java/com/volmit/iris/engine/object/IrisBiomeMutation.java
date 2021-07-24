@@ -34,7 +34,6 @@ import lombok.experimental.Accessors;
 @Desc("A biome mutation if a condition is met")
 @Data
 public class IrisBiomeMutation {
-
     @RegistryListBiome
     @Required
     @ArrayType(min = 1, type = String.class)

@@ -37,16 +37,13 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisRareObject {
-
     @Required
     @MinNumber(1)
     @Desc("The rarity is 1 in X")
-
     private int rarity = 1;
 
     @RegistryListObject
     @Required
     @Desc("The object to place if rarity check passed")
-
     private String object = "";
 }

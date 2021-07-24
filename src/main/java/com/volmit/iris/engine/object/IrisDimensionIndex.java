@@ -37,18 +37,14 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = false)
 public class IrisDimensionIndex {
     @Required
-
     @Desc("The weight of this dimension. If there are 2 dimensions, if the weight is the same on both, both dimensions will take up 128 blocks of height.")
     private double weight = 1D;
-
 
     @Desc("If inverted is set to true, the dimension will be updide down in the world")
     private boolean inverted = false;
 
-
     @Desc("Only one dimension layer should be set to primary. The primary dimension layer is where players spawn, and the biomes that the vanilla structure system uses to figure out what structures to place.")
     private boolean primary = false;
-
 
     @Required
     @RegistryListDimension

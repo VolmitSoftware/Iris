@@ -34,7 +34,6 @@ import lombok.experimental.Accessors;
 @Desc("Represents a range styled with a custom generator")
 @Data
 public class IrisStyledRange {
-
     @Desc("The minimum value")
     private double min = 16;
 

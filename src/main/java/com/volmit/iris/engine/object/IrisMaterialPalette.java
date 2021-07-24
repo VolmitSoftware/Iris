@@ -39,7 +39,6 @@ import org.bukkit.block.data.BlockData;
 @Desc("A palette of materials")
 @Data
 public class IrisMaterialPalette {
-
     @Desc("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 

@@ -23,15 +23,12 @@ import com.volmit.iris.engine.object.annotations.Desc;
 @Desc("Defines if an object is allowed to place in carvings, surfaces or both.")
 public enum CarvingMode {
     @Desc("Only place this object on surfaces (NOT under carvings)")
-
     SURFACE_ONLY,
 
     @Desc("Only place this object under carvings (NOT on the surface)")
-
     CARVING_ONLY,
 
     @Desc("This object can place anywhere")
-
     ANYWHERE;
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

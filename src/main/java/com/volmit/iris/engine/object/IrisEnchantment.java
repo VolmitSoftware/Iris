@@ -40,9 +40,7 @@ import java.lang.reflect.Field;
 @Desc("Represents an enchantment & level")
 @Data
 public class IrisEnchantment {
-
     @Required
-
     @Desc("The enchantment")
     private String enchantment = "";
 

@@ -69,11 +69,13 @@ public class HeadlessWorld {
     }
 
     public World load() {
-        return new WorldCreator(worldName)
+        World w = new WorldCreator(worldName)
                 .environment(dimension.getEnvironment())
                 .seed(world.seed())
                 .generator(new EngineCompositeGenerator(dimension.getLoadKey(), !studio))
                 .createWorld();
+        world.realWorld(w);
+        return w;
     }
 
     public static HeadlessWorld from(World world) {

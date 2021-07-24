@@ -78,7 +78,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onEntitySpawn(EntitySpawnEvent e) {
-        if (getTarget().getWorld() == null || !getTarget().getWorld().equals(e.getEntity().getWorld())) {
+        if (getTarget().getWorld() == null || !e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
             return;
         }
 

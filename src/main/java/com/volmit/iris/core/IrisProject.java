@@ -247,10 +247,7 @@ public class IrisProject {
                         .name("iris/" + UUID.randomUUID())
                         .dimension(d.getLoadKey())
                         .seed(1337)
-                        .headless(!IrisSettings.get().getGenerator().isDisableMCA())
-                        .pregen(PregenTask.builder()
-                                .radius(1)
-                                .build())
+                        .headless(false)
                         .create();
                 World world = a.getCompound().getWorld().realWorld();
 

@@ -160,8 +160,11 @@ public class IrisCreator {
                 sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
             });
 
-            wc.createWorld();
-            done.set(true);
+            try {
+                J.sfut(wc::createWorld).get();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
         }
 
         if (access == null) {

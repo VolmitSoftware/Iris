@@ -92,13 +92,26 @@ public class IrisFeature {
     @Required
 
     @Desc("Add additional noise to this spot")
-    private IrisGeneratorStyle addNoise = NoiseStyle.FLAT.style();
+    private IrisGeneratorStyle addNoise = null;
 
+    @Desc("Fracture the radius ring with additional noise")
+    private IrisGeneratorStyle fractureRadius = null;
 
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
 
     public double getActualRadius() {
-        return actualRadius.aquire(() -> IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius()));
+
+
+        return actualRadius.aquire(() -> {
+            double o = 0;
+
+            if(fractureRadius != null)
+            {
+                o+=fractureRadius.getMaxFractureDistance();
+            }
+
+            return o + IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius());
+        });
     }
 
     public static IrisFeature read(DataInputStream s) throws IOException {

@@ -89,4 +89,8 @@ public class IrisGeneratorStyle {
     public boolean isFlat() {
         return style.equals(NoiseStyle.FLAT);
     }
+
+    public double getMaxFractureDistance() {
+        return multiplier;
+    }
 }

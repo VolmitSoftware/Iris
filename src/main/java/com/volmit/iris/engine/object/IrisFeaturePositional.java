@@ -25,6 +25,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -82,9 +83,11 @@ public class IrisFeaturePositional {
         return !(dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2));
     }
 
-    public double getStrength(double x, double z) {
+    public double getStrength(double x, double z, RNG rng) {
         double actualRadius = getFeature().getActualRadius();
-        double dist2 = distance2(x, z);
+        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getFracture().getMultiplier()/2 : 1;
+        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
+        double dist2 = distance2(x, z) + mod;
 
         if (getFeature().isInvertZone()) {
             if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2)) {
@@ -115,16 +118,16 @@ public class IrisFeaturePositional {
         }
     }
 
-    public double getObjectChanceModifier(double x, double z) {
+    public double getObjectChanceModifier(double x, double z, RNG rng) {
         if (getFeature().getObjectChance() >= 1) {
             return getFeature().getObjectChance();
         }
 
-        return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z));
+        return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z, rng));
     }
 
-    public double filter(double x, double z, double noise) {
-        double s = getStrength(x, z);
+    public double filter(double x, double z, double noise, RNG rng) {
+        double s = getStrength(x, z, rng);
 
         if (s <= 0) {
             return noise;

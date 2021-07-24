@@ -83,4 +83,8 @@ public class Position2 {
     public Position2 add(int x, int z) {
         return new Position2(this.x + x, this.z + z);
     }
+
+    public Position2 blockToChunk() {
+        return new Position2(x >> 4, z >> 4);
+    }
 }

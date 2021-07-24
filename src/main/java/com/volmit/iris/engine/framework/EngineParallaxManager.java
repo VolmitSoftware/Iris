@@ -489,7 +489,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     place(rng, x << 4, z << 4, i);
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    Iris.error("Failed to place objects in the following biome: " + biome.getName());
+                    Iris.error("Failed to place objects in the following region: " + region.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
                     e.printStackTrace();

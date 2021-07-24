@@ -85,8 +85,8 @@ public class IrisFeaturePositional {
 
     public double getStrength(double x, double z, RNG rng) {
         double actualRadius = getFeature().getActualRadius();
-        double mul = getFeature().getFractureRadius().getFracture() != null ? getFeature().getFractureRadius().getFracture().getMultiplier()/2 : 1;
-        double mod = getFeature().getFractureRadius().getFracture() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
+        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier()/2 : 1;
+        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
         double dist2 = distance2(x, z) + mod;
 
         if (getFeature().isInvertZone()) {

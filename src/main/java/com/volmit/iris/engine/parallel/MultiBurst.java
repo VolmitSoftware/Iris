@@ -39,7 +39,7 @@ public class MultiBurst {
             tid++;
             Thread t = new Thread(r);
             t.setName(name + " " + tid);
-            t.setPriority(6);
+            t.setPriority(priority);
             t.setUncaughtExceptionHandler((et, e) ->
             {
                 Iris.info("Exception encountered in " + et.getName());

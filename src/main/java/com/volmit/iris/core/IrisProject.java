@@ -21,15 +21,19 @@ package com.volmit.iris.core;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -171,13 +175,13 @@ public class IrisProject {
         return collectFiles(path, json);
     }
 
-    public void open(VolmitSender sender) {
+    public void open(VolmitSender sender) throws IrisException {
         open(sender, () ->
         {
         });
     }
 
-    public void open(VolmitSender sender, Runnable onDone) {
+    public void open(VolmitSender sender, Runnable onDone) throws IrisException {
         if (isOpen()) {
             close();
         }
@@ -186,8 +190,6 @@ public class IrisProject {
         if (d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
             return;
-        } else if (sender.isPlayer()) {
-            sender.player().setGameMode(GameMode.SPECTATOR);
         }
 
         J.attemptAsync(() ->
@@ -237,73 +239,50 @@ public class IrisProject {
             }
         });
 
-        String wfp = "iris/" + UUID.randomUUID();
+        MultiBurst.burst.lazy(() -> {
+            try {
+                IrisAccess a = IrisToolbelt.createWorld()
+                        .studio(true)
+                        .sender(sender)
+                        .name("iris/" + UUID.randomUUID())
+                        .dimension(d.getLoadKey())
+                        .seed(1337)
+                        .headless(!IrisSettings.get().getGenerator().isDisableMCA())
+                        .pregen(PregenTask.builder()
+                                .radius(1)
+                                .build())
+                        .create();
+                World world = a.getCompound().getWorld().realWorld();
 
-        WorldCreator c = new IrisWorldCreator().dimension(getName())
-                .seed(1337)
-                .name(wfp)
-                .studioMode()
-                .create();
+                J.s(() -> {
+                    activeProvider = a;
+                    if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
+                        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+                        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+                        world.setTime(6000);
+                    }
+                    Iris.linkMultiverseCore.removeFromConfig(world);
 
-        IrisAccess gx = ((IrisAccess) c.generator());
-        O<Boolean> done = new O<>();
-        done.set(false);
-        activeProvider = gx;
+                    if (sender.isPlayer()) {
+                        assert world != null;
+                        sender.player().teleport(world.getSpawnLocation());
+                    } else {
+                        sender.sendMessage(C.WHITE + "Generating Complete!");
+                    }
 
-        J.a(() ->
-        {
-            double last = 0;
-            int req = 400;
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+                    {
+                        if (sender.isPlayer()) {
+                            sender.player().setGameMode(GameMode.SPECTATOR);
+                        }
 
-            while (gx.getGenerated() < req) {
-                assert gx != null;
-                double v = (double) gx.getGenerated() / (double) req;
-
-                if (sender.isPlayer()) {
-                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)"))));
-                    J.sleep(50);
-                } else {
-                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
-                    J.sleep(1000);
-                }
-
-                if (gx.isFailing()) {
-
-                    sender.sendMessage("Generation Failed!");
-                    break;
-                }
-            }
-            if (sender.isPlayer()) {
-                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+                        onDone.run();
+                    }, 0);
+                });
+            } catch (IrisException e) {
+                e.printStackTrace();
             }
         });
-
-        //@builder
-        World world = INMS.get().createWorld(c);
-        if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-            world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-            world.setTime(6000);
-        }
-        Iris.linkMultiverseCore.removeFromConfig(world);
-
-        done.set(true);
-
-        if (sender.isPlayer()) {
-            assert world != null;
-            sender.player().teleport(world.getSpawnLocation());
-        } else {
-            sender.sendMessage(C.WHITE + "Generating Complete!");
-        }
-
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-        {
-            if (sender.isPlayer()) {
-                sender.player().setGameMode(GameMode.SPECTATOR);
-            }
-
-            onDone.run();
-        }, 0);
     }
 
     public void close() {

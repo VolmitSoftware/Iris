@@ -24,6 +24,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
@@ -333,7 +334,7 @@ public class ProjectManager {
         }
     }
 
-    public void open(VolmitSender sender, String dimm, Runnable onDone) {
+    public void open(VolmitSender sender, String dimm, Runnable onDone) throws IrisException {
         if (isProjectOpen()) {
             close();
         }

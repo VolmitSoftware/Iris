@@ -219,6 +219,15 @@ public class J {
         return f;
     }
 
+    public static CompletableFuture afut(Runnable r) {
+        CompletableFuture f = new CompletableFuture();
+        J.a(() -> {
+            r.run();
+            f.complete(null);
+        });
+        return f;
+    }
+
     /**
      * Queue a sync task
      *

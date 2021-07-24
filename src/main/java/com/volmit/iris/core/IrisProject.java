@@ -190,6 +190,8 @@ public class IrisProject {
         if (d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
             return;
+        } else if (sender.isPlayer()) {
+            sender.player().setGameMode(GameMode.SPECTATOR);
         }
 
         J.attemptAsync(() ->
@@ -239,47 +241,73 @@ public class IrisProject {
             }
         });
 
-        MultiBurst.burst.lazy(() -> {
-            try {
-                IrisAccess a = IrisToolbelt.createWorld()
-                        .studio(true)
-                        .sender(sender)
-                        .name("iris/" + UUID.randomUUID())
-                        .dimension(d.getLoadKey())
-                        .seed(1337)
-                        .headless(false)
-                        .create();
-                World world = a.getCompound().getWorld().realWorld();
+        String wfp = "iris/" + UUID.randomUUID();
 
-                J.s(() -> {
-                    activeProvider = a;
-                    if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-                        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-                        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-                        world.setTime(6000);
-                    }
-                    Iris.linkMultiverseCore.removeFromConfig(world);
+        WorldCreator c = new IrisWorldCreator().dimension(getName())
+                .seed(1337)
+                .name(wfp)
+                .studioMode()
+                .create();
 
-                    if (sender.isPlayer()) {
-                        assert world != null;
-                        sender.player().teleport(world.getSpawnLocation());
-                    } else {
-                        sender.sendMessage(C.WHITE + "Generating Complete!");
-                    }
+        IrisAccess gx = ((IrisAccess) c.generator());
+        O<Boolean> done = new O<>();
+        done.set(false);
+        activeProvider = gx;
 
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-                    {
-                        if (sender.isPlayer()) {
-                            sender.player().setGameMode(GameMode.SPECTATOR);
-                        }
+        J.a(() ->
+        {
+            double last = 0;
+            int req = 400;
 
-                        onDone.run();
-                    }, 0);
-                });
-            } catch (IrisException e) {
-                e.printStackTrace();
+            while (gx.getGenerated() < req) {
+                assert gx != null;
+                double v = (double) gx.getGenerated() / (double) req;
+
+                if (sender.isPlayer()) {
+                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)"))));
+                    J.sleep(50);
+                } else {
+                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getGenerated()) + " Left)")));
+                    J.sleep(1000);
+                }
+
+                if (gx.isFailing()) {
+
+                    sender.sendMessage("Generation Failed!");
+                    break;
+                }
+            }
+            if (sender.isPlayer()) {
+                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
             }
         });
+
+        //@builder
+        World world = INMS.get().createWorld(c);
+        if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
+            world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+            world.setTime(6000);
+        }
+        Iris.linkMultiverseCore.removeFromConfig(world);
+
+        done.set(true);
+
+        if (sender.isPlayer()) {
+            assert world != null;
+            sender.player().teleport(world.getSpawnLocation());
+        } else {
+            sender.sendMessage(C.WHITE + "Generating Complete!");
+        }
+
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+        {
+            if (sender.isPlayer()) {
+                sender.player().setGameMode(GameMode.SPECTATOR);
+            }
+
+            onDone.run();
+        }, 0);
     }
 
     public void close() {
@@ -399,7 +427,27 @@ public class IrisProject {
         }
 
         //TODO: EXPORT JIGSAW PIECES FROM STRUCTURES
+        dimension.getFeatures().forEach((i) -> {
+            if (i.getZone().getCustomBiome() != null)
+            {
+                biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+            }
+        });
+        dimension.getSpecificFeatures().forEach((i) -> {
+            if (i.getFeature().getCustomBiome() != null)
+            {
+                biomes.add(dm.getBiomeLoader().load(i.getFeature().getCustomBiome()));
+            }
+        });
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
+        regions.forEach((r) -> {
+            r.getFeatures().forEach((i) -> {
+                if (i.getZone().getCustomBiome() != null)
+                {
+                    biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+                }
+            });
+        });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
@@ -409,6 +457,19 @@ public class IrisProject {
         regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
         dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
         biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
+
+        for(int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++)
+        {
+            biomes.copy().forEach((r) -> {
+                r.getFeatures().forEach((i) -> {
+                    if (i.getZone().getCustomBiome() != null)
+                    {
+                        biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+                    }
+                });
+            });
+        }
+
         regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
         dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
         KMap<String, String> renameObjects = new KMap<>();

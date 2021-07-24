@@ -97,7 +97,7 @@ public class IrisCreator {
         IrisDimension d = IrisToolbelt.getDimension(dimension());
         IrisAccess access = null;
         Consumer<Double> prog = (pxx) -> {
-            double px = (headless && pregen != null) ? pxx / 2 : pxx;
+            double px = pxx;
 
             if (pregen != null && !headless) {
                 px = (px / 2) + 0.5;

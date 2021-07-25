@@ -249,8 +249,6 @@ public class IrisEntity extends IrisRegistrant {
             villager.setRemoveWhenFarAway(false);
             Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
                 villager.setPersistent(true);
-                villager.setCustomName(" ");
-                villager.setCustomNameVisible(false);
             }, 1);
         }
 

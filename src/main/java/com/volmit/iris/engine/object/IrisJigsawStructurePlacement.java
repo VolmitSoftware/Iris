@@ -38,10 +38,8 @@ import lombok.experimental.Accessors;
 public class IrisJigsawStructurePlacement extends IrisRegistrant {
     @RegistryListJigsaw
     @Required
-
     @Desc("The structure to place")
     private String structure;
-
 
     @Required
     @Desc("The 1 in X chance rarity")

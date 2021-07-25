@@ -37,22 +37,17 @@ import org.bukkit.block.data.BlockData;
 @Desc("Represents loot within this object or jigsaw piece")
 @Data
 public class IrisObjectLoot {
-
-
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The list of blocks this loot table should apply to")
     private KList<IrisBlockData> filter = new KList<>();
 
     @Desc("Exactly match the block data or not")
-
     private boolean exact = false;
-
 
     @Desc("The loot table name")
     @Required
     @RegistryListLoot
     private String name;
-
 
     @Desc("The weight of this loot table being chosen")
     private int weight = 1;

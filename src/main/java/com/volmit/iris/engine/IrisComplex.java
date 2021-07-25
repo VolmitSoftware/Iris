@@ -39,6 +39,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Data
 public class IrisComplex implements DataProvider {
@@ -115,6 +116,12 @@ public class IrisComplex implements DataProvider {
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KList<>();
         focus = engine.getFocus();
+
+        if(focus != null)
+        {
+            focus.setInferredType(InferredType.LAND);
+        }
+
         IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
         RNG rng = new RNG(engine.getWorld().seed());
         //@builder
@@ -195,13 +202,13 @@ public class IrisComplex implements DataProvider {
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getWorld().seed());
-        }, Interpolated.DOUBLE).cache2D(cacheSize);
+        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);
                 engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
-                        -> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z))));
+                        -> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng))));
                 return str.get();
             }
 
@@ -209,10 +216,39 @@ public class IrisComplex implements DataProvider {
         });
 
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                b -> focus)) : heightStream
+                b -> focus)).convertAware2D((b, x,z) -> {
+                    for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
+                    {
+                        IrisBiome bx = i.filter(x, z, b, rng);
+
+                        if(bx != null)
+                        {
+                            bx.setInferredType(b.getInferredType());
+                            return bx;
+                        }
+                    }
+
+                    return b;
+                })
+                .cache2D(cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),
-                                regionStream.get(x, z), x, z, fluidHeight)).cache2D(cacheSize);
+                                regionStream.get(x, z), x, z, fluidHeight))
+                .convertAware2D((b, x,z) -> {
+                    for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
+                    {
+                        IrisBiome bx = i.filter(x, z, b, rng);
+
+                        if(bx != null)
+                        {
+                            bx.setInferredType(b.getInferredType());
+                            return bx;
+                        }
+                    }
+
+                    return b;
+                })
+                .cache2D(cacheSize);
         trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D(cacheSize);
         heightFluidStream = heightStream.max(fluidHeight).cache2D(cacheSize);
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
@@ -380,7 +416,7 @@ public class IrisComplex implements DataProvider {
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
         engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
-                -> noise.set(i.filter(x, z, noise.get())));
+                -> noise.set(i.filter(x, z, noise.get(), rng)));
         return Math.min(engine.getHeight(), Math.max(noise.get(), 0));
     }
 

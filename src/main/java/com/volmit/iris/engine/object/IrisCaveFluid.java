@@ -43,12 +43,10 @@ public class IrisCaveFluid {
     @Desc("The fluid height of the cave")
     private int fluidHeight = 35;
 
-
     @Desc("Insead of fluidHeight & below being fluid, turning inverse height on will simply spawn fluid in this cave layer from min(max_height, cave_height) to the fluid height. Basically, fluid will spawn above the fluidHeight value instead of below the fluidHeight.")
     private boolean inverseHeight = false;
 
     @Required
-
     @Desc("The fluid type that should spawn here")
     private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 

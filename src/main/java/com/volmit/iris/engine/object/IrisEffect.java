@@ -42,11 +42,8 @@ import org.bukkit.potion.PotionEffectType;
 @Desc("An iris effect")
 @Data
 public class IrisEffect {
-
-
     @Desc("The potion effect to apply in this area")
     private String potionEffect = "";
-
 
     @Desc("The particle effect to apply in the area")
     private Particle particleEffect = null;
@@ -86,7 +83,6 @@ public class IrisEffect {
     @DependsOn({"particleEffect"})
     @Desc("Randomize the altZ by -altZ to altZ")
     private boolean randomAltZ = true;
-
 
     @Desc("The sound to play")
     private Sound sound = null;

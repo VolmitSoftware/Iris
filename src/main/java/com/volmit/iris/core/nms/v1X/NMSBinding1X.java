@@ -24,10 +24,47 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
+import java.lang.reflect.Method;
+
 public class NMSBinding1X implements INMSBinding {
+    private static final boolean supportsCustomHeight = testCustomHeight();
+
+    @SuppressWarnings("ConstantConditions")
+    private static boolean testCustomHeight() {
+        try
+        {
+            if(World.class.getDeclaredMethod("getMaxHeight") != null && World.class.getDeclaredMethod("getMinHeight") != null);
+            {
+                return true;
+            }
+        }
+
+        catch(Throwable ignored)
+        {
+
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean supportsCustomHeight() {
+        return supportsCustomHeight;
+    }
+
     @Override
     public Object getBiomeBaseFromId(int id) {
         return null;
+    }
+
+    @Override
+    public int getMinHeight(World world) {
+        return supportsCustomHeight ? world.getMinHeight() : 0;
+    }
+
+    @Override
+    public boolean supportsCustomBiomes() {
+        return false;
     }
 
     @Override

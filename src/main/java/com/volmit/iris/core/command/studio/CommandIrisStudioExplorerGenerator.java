@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
@@ -38,7 +39,16 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            if (data == null) {
+                sender.sendMessage("Issue when loading tab completions. No data found (?)");
+            } else if(args.length == 0) {
+                list.add(data.getGeneratorLoader().getPossibleKeys());
+            }else if(args.length == 1) {
+                list.add(data.getGeneratorLoader().getPossibleKeys(args[0]));
+            }
+        }
     }
 
     @Override

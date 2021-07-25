@@ -39,35 +39,35 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler
     public void on(WorldSaveEvent e) {
-        if (e.getWorld().equals(getTarget().getWorld())) {
+        if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
             onSave();
         }
     }
 
     @EventHandler
     public void on(WorldUnloadEvent e) {
-        if (e.getWorld().equals(getTarget().getWorld())) {
+        if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
             getEngine().close();
         }
     }
 
     @EventHandler
     public void on(EntitySpawnEvent e) {
-        if (e.getEntity().getWorld().equals(getTarget().getWorld())) {
+        if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
             onEntitySpawn(e);
         }
     }
 
     @EventHandler
     public void on(BlockBreakEvent e) {
-        if (e.getPlayer().getWorld().equals(getTarget().getWorld())) {
+        if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
             onBlockBreak(e);
         }
     }
 
     @EventHandler
     public void on(BlockPlaceEvent e) {
-        if (e.getPlayer().getWorld().equals(getTarget().getWorld())) {
+        if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
             onBlockPlace(e);
         }
     }

@@ -39,7 +39,6 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCarveLayer {
     @Required
-
     @Desc("The 4d slope this carve layer follows")
     private IrisGeneratorStyle style = new IrisGeneratorStyle();
 

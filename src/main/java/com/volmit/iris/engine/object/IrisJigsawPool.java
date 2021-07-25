@@ -40,7 +40,6 @@ import lombok.experimental.Accessors;
 public class IrisJigsawPool extends IrisRegistrant {
     @RegistryListJigsawPiece
     @Required
-
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of structure piece pools")
     private KList<String> pieces = new KList<>();

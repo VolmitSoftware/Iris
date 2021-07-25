@@ -560,7 +560,25 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean isMCA() {
-        return IrisSettings.get().getGenerator().isMcaPregenerator();
+        return !IrisSettings.get().getGenerator().isDisableMCA();
+    }
+
+    public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
+        if (IrisSettings.get().getGeneral().isDebug()) {
+            File f = instance.getDataFile("debug", "chunk-errors", "chunk."+ x + "." + z + ".txt");
+
+            if (!f.exists()) {
+                J.attempt(() -> {
+                    PrintWriter pw = new PrintWriter(f);
+                    pw.println("Thread: " + Thread.currentThread().getName());
+                    pw.println("First: " + new Date(M.ms()));
+                    e.printStackTrace(pw);
+                    pw.close();
+                });
+            }
+
+            Iris.debug("Chunk " + x + "," + z + " Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
+        }
     }
 
     public static synchronized void reportError(Throwable e) {

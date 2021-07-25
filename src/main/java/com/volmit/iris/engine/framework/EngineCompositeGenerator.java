@@ -27,10 +27,14 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.engine.data.B;
+import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.engine.data.mca.MCAUtil;
 import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.lighting.LightingChunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
@@ -71,6 +75,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class EngineCompositeGenerator extends ChunkGenerator implements IrisAccess {
+    private static final BlockData ERROR_BLOCK = Material.RED_GLAZED_TERRACOTTA.createBlockData();
     private final AtomicReference<EngineCompound> compound = new AtomicReference<>();
     private final AtomicBoolean initialized;
     private final String dimensionQuery;
@@ -310,6 +315,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.addAll(compound.get().getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
 
+//            if(world.hasRealWorld())
+//            {
+//                placeStrongholds(world.realWorld());
+//            }
+
             if(isStudio())
             {
                 dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
@@ -448,23 +458,46 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
-        PrecisionStopwatch ps = PrecisionStopwatch.start();
-        TerrainChunk tc = TerrainChunk.create(world, biome);
-        IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
-        generateChunkRawData(ww, x, z, tc).run();
+        try
+        {
+            PrecisionStopwatch ps = PrecisionStopwatch.start();
+            TerrainChunk tc = TerrainChunk.create(world, biome);
+            IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
+            generateChunkRawData(ww, x, z, tc).run();
 
-        if (!getComposite().getWorld().hasRealWorld()) {
-            getComposite().getWorld().bind(world);
+            if (!getComposite().getWorld().hasRealWorld()) {
+                getComposite().getWorld().bind(world);
+            }
+
+            generated++;
+            ps.end();
+
+            if (IrisSettings.get().getGeneral().isDebug()) {
+                Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
+            }
+
+            return tc.getRaw();
         }
 
-        generated++;
-        ps.end();
+        catch(Throwable e)
+        {
+            Iris.error("======================================");
+            e.printStackTrace();
+            Iris.reportErrorChunk(x, z, e, "CHUNK");
+            Iris.error("======================================");
 
-        if (IrisSettings.get().getGeneral().isDebug()) {
-            Iris.debug("Chunk " + C.GREEN + x + "," + z + C.LIGHT_PURPLE + " in " + C.YELLOW + Form.duration(ps.getMillis(), 2) + C.LIGHT_PURPLE + " Rate: " + C.BLUE + Form.f(getGeneratedPerSecond(), 0) + "/s");
+            ChunkData d = Bukkit.createChunkData(world);
+
+            for(int i = 0; i < 16; i++)
+            {
+                for(int j = 0; j < 16; j++)
+                {
+                    d.setBlock(i, 0, j, ERROR_BLOCK);
+                }
+            }
+
+            return d;
         }
-
-        return tc.getRaw();
     }
 
     public void assignHeadlessGenerator(HeadlessGenerator headlessGenerator) {
@@ -509,132 +542,34 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer) {
-        int ox = x << 4;
-        int oz = z << 4;
-        com.volmit.iris.engine.data.mca.Chunk cc = writer.getChunk(x, z);
-        BiomeBaseInjector injector = (xx, yy, zz, biomeBase) -> cc.setBiomeAt(ox + xx, yy, oz + zz, INMS.get().getTrueBiomeBaseId(biomeBase));
-        //noinspection deprecation
-        generateChunkRawData(w, x, z, new TerrainChunk() {
-            @Override
-            public BiomeBaseInjector getBiomeBaseInjector() {
-                return injector;
-            }
+        try
+        {int ox = x << 4;
+            int oz = z << 4;
+            com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
+            generateChunkRawData(w, x, z, MCATerrainChunk.builder()
+                    .writer(writer).ox(ox).oz(oz).mcaChunk(chunk)
+                    .minHeight(w.minHeight()).maxHeight(w.maxHeight())
+                    .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
+                            INMS.get().getTrueBiomeBaseId(biomeBase)))
+                    .build()).run();
+        }
 
-            @Override
-            public void setRaw(ChunkData data) {
-
-            }
-
-            @NotNull
-            @Override
-            public Biome getBiome(int x, int z) {
-                return Biome.THE_VOID;
-            }
-
-            @NotNull
-            @Override
-            public Biome getBiome(int x, int y, int z) {
-                return Biome.THE_VOID;
-            }
-
-            @Override
-            public void setBiome(int x, int z, Biome bio) {
-                setBiome(ox + x, 0, oz + z, bio);
-            }
-
-            @Override
-            public void setBiome(int x, int y, int z, Biome bio) {
-                writer.setBiome(ox + x, y, oz + z, bio);
-            }
-
-            @Override
-            public int getMinHeight() {
-                return w.minHeight();
-            }
-
-            @Override
-            public int getMaxHeight() {
-                return w.maxHeight();
-            }
-
-            @Override
-            public void setBlock(int x, int y, int z, BlockData blockData) {
-                int xx = (x + ox) & 15;
-                int zz = (z + oz) & 15;
-
-                if (y > 255 || y < 0) {
-                    return;
+        catch(Throwable e)
+        {
+            Iris.error("======================================");
+            e.printStackTrace();
+            Iris.reportErrorChunk(x, z, e, "MCA");
+            Iris.error("======================================");
+            com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
+            CompoundTag c = NBTWorld.getCompound(ERROR_BLOCK);
+            for(int i = 0; i < 16; i++)
+            {
+                for(int j = 0; j < 16; j++)
+                {
+                    chunk.setBlockStateAt(i, 0, j, c, false);
                 }
-
-                cc.setBlockStateAt(xx, y, zz, NBTWorld.getCompound(blockData), false);
             }
-
-            @NotNull
-            @Override
-            public BlockData getBlockData(int x, int y, int z) {
-                if (y > getMaxHeight()) {
-                    y = getMaxHeight();
-                }
-
-                if (y < 0) {
-                    y = 0;
-                }
-
-                return NBTWorld.getBlockData(cc.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));
-            }
-
-            @Override
-            public ChunkData getRaw() {
-                return null;
-            }
-
-            @Override
-            public void inject(BiomeGrid biome) {
-
-            }
-
-            @Override
-            public void setBlock(int x, int y, int z, @NotNull Material material) {
-
-            }
-
-            @Override
-            public void setBlock(int x, int y, int z, @NotNull MaterialData material) {
-
-            }
-
-            @Override
-            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
-
-            }
-
-            @Override
-            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
-
-            }
-
-            @Override
-            public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
-
-            }
-
-            @NotNull
-            @Override
-            public Material getType(int x, int y, int z) {
-                return null;
-            }
-
-            @NotNull
-            @Override
-            public MaterialData getTypeAndData(int x, int y, int z) {
-                return null;
-            }
-
-            @Override
-            public byte getData(int x, int y, int z) {
-                return 0;
-            }
-        }).run();
+        }
     }
 
     public Runnable generateChunkRawData(IrisWorld world, int x, int z, TerrainChunk tc) {

@@ -121,7 +121,7 @@ public class ParallaxRegion extends HunkRegion {
 
             if ((t instanceof ByteArrayTag)) {
                 try {
-                    meta = metaAdapter.read((x, y, z) -> Hunk.newArrayHunk(32, 1, 32), (ByteArrayTag) t);
+                    meta = metaAdapter.read((x, y, z) -> Hunk.newAtomicHunk(32, 1, 32), (ByteArrayTag) t);
                 } catch (IOException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
@@ -129,7 +129,7 @@ public class ParallaxRegion extends HunkRegion {
             }
 
             if (meta == null) {
-                meta = Hunk.newArrayHunk(32, 1, 32);
+                meta = Hunk.newAtomicHunk(32, 1, 32);
             }
         }
 

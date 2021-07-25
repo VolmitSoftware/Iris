@@ -48,7 +48,6 @@ import java.awt.*;
 @Desc("Represents a loot entry")
 @Data
 public class IrisLoot {
-
     @Desc("The target inventory slot types to fill this loot with")
     private InventorySlotType slotTypes = InventorySlotType.STORAGE;
 
@@ -78,10 +77,8 @@ public class IrisLoot {
     @Desc("Maximum durability percent")
     private double maxDurability = 1;
 
-
     @Desc("Define a custom model identifier 1.14+ only")
     private Integer customModel = null;
-
 
     @Desc("Set this to true to prevent it from being broken")
     private boolean unbreakable = false;
@@ -90,11 +87,9 @@ public class IrisLoot {
     @Desc("The item flags to add")
     private KList<ItemFlag> itemFlags = new KList<>();
 
-
     @Desc("Apply enchantments to this item")
     @ArrayType(min = 1, type = IrisEnchantment.class)
     private KList<IrisEnchantment> enchantments = new KList<>();
-
 
     @Desc("Apply attribute modifiers to this item")
     @ArrayType(min = 1, type = IrisAttributeModifier.class)
@@ -106,14 +101,11 @@ public class IrisLoot {
 
     @RegistryListItemType
     @Required
-
     @Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
     private String type = "";
 
-
     @Desc("The dye color")
     private DyeColor dyeColor = null;
-
 
     @Desc("The leather armor color")
     private String leatherColor = null;

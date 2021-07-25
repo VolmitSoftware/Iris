@@ -36,7 +36,9 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant> {
@@ -91,6 +93,32 @@ public class ResourceLoader<T extends IrisRegistrant> {
         J.a(() -> Iris.warn("Couldn't Load " + resourceTypeName + " file: " + path.getPath() + ": " + e.getMessage()));
     }
 
+    private KList<File> matchAllFiles(File root, Predicate<File> f)
+    {
+        KList<File> fx = new KList<>();
+        matchFiles(root, fx, f);
+        return fx;
+    }
+
+    private void matchFiles(File at, KList<File> files, Predicate<File> f)
+    {
+        if(at.isDirectory())
+        {
+            for(File i : at.listFiles())
+            {
+                matchFiles(i, files, f);
+            }
+        }
+
+        else
+        {
+            if(f.test(at))
+            {
+                files.add(at);
+            }
+        }
+    }
+
     public String[] getPossibleKeys() {
         if (possibleKeys != null) {
             return possibleKeys;
@@ -99,17 +127,11 @@ public class ResourceLoader<T extends IrisRegistrant> {
         Iris.info("Building " + resourceTypeName + " Registry Lists");
         KSet<String> m = new KSet<>();
 
-        for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".json")) {
-                    m.add(j.getName().replaceAll("\\Q.json\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".json")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.json\\E", ""));
-                        }
-                    }
-                }
+        for(File i : getFolders())
+        {
+            for(File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json")))
+            {
+                m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
             }
         }
 
@@ -143,6 +165,20 @@ public class ResourceLoader<T extends IrisRegistrant> {
     }
 
     public KList<T> loadAll(KList<String> s) {
+        KList<T> m = new KList<>();
+
+        for (String i : s) {
+            T t = load(i);
+
+            if (t != null) {
+                m.add(t);
+            }
+        }
+
+        return m;
+    }
+
+    public KList<T> loadAll(String[] s) {
         KList<T> m = new KList<>();
 
         for (String i : s) {
@@ -267,5 +303,19 @@ public class ResourceLoader<T extends IrisRegistrant> {
         folderCache = null;
         possibleKeys = null;
         lock.unlock();
+    }
+
+    public KList<String> getPossibleKeys(String arg) {
+        KList<String> f = new KList<>();
+
+        for(String i : getPossibleKeys())
+        {
+            if(i.equalsIgnoreCase(arg) || i.toLowerCase(Locale.ROOT).startsWith(arg.toLowerCase(Locale.ROOT)) || i.toLowerCase(Locale.ROOT).contains(arg.toLowerCase(Locale.ROOT)) || arg.toLowerCase(Locale.ROOT).contains(i.toLowerCase(Locale.ROOT)))
+            {
+                f.add(i);
+            }
+        }
+
+        return f;
     }
 }

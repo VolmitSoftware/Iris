@@ -27,13 +27,8 @@ import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,6 +72,11 @@ public class CommandIrisVerify extends MortarCommand {
                                 if(c == null)
                                 {
                                     sender.sendMessage("Found Missing Chunk " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
+                                }
+
+                                else if(c.sectionCount() == 0)
+                                {
+                                    sender.sendMessage("Found Missing Chunk (valid, but 0 sections) " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
                                 }
                             }
                         }

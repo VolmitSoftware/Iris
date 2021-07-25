@@ -53,7 +53,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @MinNumber(2)
     @Required
-
     @Desc("The human readable name of this dimension")
     private String name = "A Dimension";
 
@@ -61,17 +60,12 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisDimensionIndex.class)
     private KList<IrisDimensionIndex> dimensionalComposite = new KList<>();
 
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
-    @Desc("Objects define what schematics (iob files) iris will place in this biome. ONLY FOR SAPLINGS UNTIL FURTHER NOTICE!")
-    private KList<IrisObjectPlacement> objects = new KList<>();
-
     @Desc("Create an inverted dimension in the sky (like the nether)")
     private IrisDimension sky = null;
 
     @RegistryListJigsaw
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
-
 
     @Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
     private boolean aggressiveBiomeReshuffle = false;
@@ -83,30 +77,24 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
     private IrisShapedGeneratorStyle undercarriage = null;
 
-
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
-
 
     @Desc("Entity spawns to override or add to this dimension")
     @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
     private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
-
     @Desc("Add specific features in exact positions")
     @ArrayType(min = 1, type = IrisFeaturePositional.class)
     private KList<IrisFeaturePositional> specificFeatures = new KList<>();
-
 
     @Desc("Entity spawns during generation")
     @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
     private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
-
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
     private KList<IrisFeaturePotential> features = new KList<>();
-
 
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
@@ -119,7 +107,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Define custom block drops for this dimension")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
 
-
     @Desc("Should bedrock be generated or not.")
     private boolean bedrock = true;
 
@@ -128,70 +115,53 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")
     private double landChance = 0.625;
 
-
     @Desc("The placement style of regions")
     private IrisGeneratorStyle regionStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("The placement style of land/sea")
     private IrisGeneratorStyle continentalStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle landBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle shoreBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle seaBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle riverBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle lakeBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle islandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle islandBiomeChanceStyle = NoiseStyle.CELLULAR_HEIGHT_IRIS_DOUBLE.style();
 
-
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
 
     @Desc("Generate caves or not.")
     private boolean caves = true;
 
-
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
-
 
     @Desc("Carve terrain or not")
     private boolean carving = true;
 
-
     @Desc("If defined, If air is defined below the area, this fluid will always place")
     private IrisCaveFluid forceFluid = new IrisCaveFluid();
 
-
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-
 
     @Desc("Generate ravines or not")
     private boolean ravines = false;
@@ -204,22 +174,17 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The rarity of ravines. Each chunk has a 1 in X chance")
     private int ravineRarity = 50;
 
-
     @Desc("Use post processing or not")
     private boolean postProcessing = true;
-
 
     @Desc("Add slabs in post processing")
     private boolean postProcessingSlabs = true;
 
-
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
 
-
     @Desc("Use post processing for caves or not")
     private boolean postProcessCaves = true;
-
 
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
@@ -241,12 +206,10 @@ public class IrisDimension extends IrisRegistrant {
     private int fluidHeight = 63;
 
     @RegistryListBiome
-
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
 
     @RegistryListBiome
-
     @Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
     private String focusRegion = "";
 
@@ -304,7 +267,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Disable this to stop placing schematics in biomes")
     private boolean placeObjects = true;
 
-
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;
 
@@ -329,10 +291,8 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The rock zoom mostly for zooming in on a wispy palette")
     private double rockZoom = 5;
 
-
     @Desc("The palette of blocks for 'stone'")
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
-
 
     @Desc("The palette of blocks for 'water'")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
@@ -420,17 +380,7 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public KList<IrisBiome> getAllBiomes(DataProvider g) {
-        KList<IrisBiome> r = new KList<>();
-
-        for (IrisRegion i : getAllRegions(g)) {
-            if (i == null) {
-                continue;
-            }
-
-            r.addAll(i.getAllBiomes(g));
-        }
-
-        return r;
+        return g.getData().getBiomeLoader().loadAll(g.getData().getBiomeLoader().getPossibleKeys());
     }
 
     public KList<IrisBiome> getAllAnyBiomes() {

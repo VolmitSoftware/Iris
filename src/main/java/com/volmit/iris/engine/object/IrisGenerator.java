@@ -50,7 +50,6 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("The opacity, essentially a multiplier on the output.")
     private double opacity = 1;
 
-
     @Desc("Multiply the compsites instead of adding them")
     private boolean multiplicitive = false;
 
@@ -62,7 +61,6 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("Cell Fracture Coordinate Shuffling")
     private double cellFractureShuffle = 12D;
 
-
     @Desc("The height of fracture cells. Set to 0 to disable")
     private double cellFractureHeight = 0D;
 
@@ -71,21 +69,17 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
     private double cellPercentSize = 0.75D;
 
-
     @Desc("The offset to shift this noise x")
     private double offsetX = 0;
-
 
     @Desc("The offset to shift this noise z")
     private double offsetZ = 0;
 
     @Required
-
     @Desc("The seed for this generator")
     private long seed = 1;
 
     @Required
-
     @Desc("The interpolator to use when smoothing this generator into other regions & generators")
     private IrisInterpolator interpolator = new IrisInterpolator();
 
@@ -102,7 +96,6 @@ public class IrisGenerator extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
     @Desc("The list of noise gens this gen contains.")
     private KList<IrisNoiseGenerator> composite = new KList<>();
-
 
     @Desc("The noise gen for cliff height.")
     private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
@@ -227,12 +220,11 @@ public class IrisGenerator extends IrisRegistrant {
         }
 
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
-        double h = 0;
-        double tp = multiplicitive ? 1 : 0;
+        double h = multiplicitive ? 1 : 0;
+        double tp = 0;
 
         for (IrisNoiseGenerator i : composite) {
             if (multiplicitive) {
-                tp *= i.getOpacity();
                 h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
             } else {
                 tp += i.getOpacity();

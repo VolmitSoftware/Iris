@@ -21,6 +21,7 @@ package com.volmit.iris.core.command.jigsaw;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisPosition;
@@ -41,7 +42,16 @@ public class CommandIrisJigsawPlace extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            if (data == null) {
+                sender.sendMessage("Tab complete options only work for jigsaw structures while in an Iris world.");
+            } else if(args.length == 0) {
+                list.add(data.getJigsawStructureLoader().getPossibleKeys());
+            }else if(args.length == 1) {
+                list.add(data.getJigsawStructureLoader().getPossibleKeys(args[0]));
+            }
+        }
     }
 
     @Override

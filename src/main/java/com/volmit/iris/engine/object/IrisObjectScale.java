@@ -50,7 +50,6 @@ public class IrisObjectScale {
     @Desc("The maximum height for placement (top of object)")
     private double maximumScale = 1;
 
-
     @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
     private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
 

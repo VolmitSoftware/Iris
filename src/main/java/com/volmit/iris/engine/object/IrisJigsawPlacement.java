@@ -35,7 +35,6 @@ import lombok.experimental.Accessors;
 public class IrisJigsawPlacement {
     @RegistryListJigsaw
     @Required
-
     @Desc("The jigsaw structure to use")
     private String structure = "";
 

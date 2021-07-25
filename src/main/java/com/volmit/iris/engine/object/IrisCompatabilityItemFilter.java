@@ -34,12 +34,10 @@ import org.bukkit.Material;
 @Data
 public class IrisCompatabilityItemFilter {
     @Required
-
     @Desc("When iris sees this block, and it's not reconized")
     private String when = "";
 
     @Required
-
     @Desc("Replace it with this block. Dont worry if this block is also not reconized, iris repeat this compat check.")
     private String supplement = "";
 

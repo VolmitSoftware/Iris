@@ -35,11 +35,11 @@ public class MultiBurst {
     }
 
     public MultiBurst(String name, int priority, int tc) {
-        service = Executors.newFixedThreadPool(tc, r -> {
+        service = Executors.newFixedThreadPool(Math.max(tc, 1), r -> {
             tid++;
             Thread t = new Thread(r);
             t.setName(name + " " + tid);
-            t.setPriority(6);
+            t.setPriority(priority);
             t.setUncaughtExceptionHandler((et, e) ->
             {
                 Iris.info("Exception encountered in " + et.getName());

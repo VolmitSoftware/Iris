@@ -41,7 +41,6 @@ import org.bukkit.entity.Entity;
 public class IrisEntityInitialSpawn {
     @RegistryListEntity
     @Required
-
     @Desc("The entity")
     private String entity = "";
 

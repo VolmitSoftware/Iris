@@ -21,7 +21,9 @@ package com.volmit.iris.core;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
@@ -29,6 +31,7 @@ import com.volmit.iris.util.board.ScoreDirection;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -103,6 +106,12 @@ public class IrisBoardManager implements BoardProvider, Listener {
         int y = player.getLocation().getBlockY();
         int z = player.getLocation().getBlockZ();
 
+        if(g.getCompound() == null)
+        {
+            v.add("Loading...");
+            return v;
+        }
+
         Engine engine = g.getCompound().getEngineForHeight(y);
 
         int parallaxChunks = 0;
@@ -128,11 +137,15 @@ public class IrisBoardManager implements BoardProvider, Listener {
 
         if (engine != null) {
             v.add("&7&m------------------");
+            KList<IrisFeaturePositional> f = new KList<>();
+            engine.getFramework().getEngineParallax().forEachFeature(x, z, f::add);
+
             v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
             v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getFramework().getComplex().getSlopeStream().get(x, z), 2));
+            v.add(C.AQUA + "Features " + C.GRAY + ": " + Form.f(f.size()));
         }
 
         if (Iris.jobCount() > 0) {

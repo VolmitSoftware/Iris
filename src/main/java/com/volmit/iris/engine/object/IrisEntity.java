@@ -60,105 +60,80 @@ import java.util.concurrent.atomic.AtomicReference;
 @EqualsAndHashCode(callSuper = false)
 public class IrisEntity extends IrisRegistrant {
     @Required
-
     @Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
     private EntityType type = EntityType.UNKNOWN;
 
     @RegistryListMythical
     @Desc("The type of mythic mob (if mythic mobs is installed). If this is set, make sure to set 'type' to UNKNOWN")
-
     private String mythicalType = "";
-
 
     @Desc("The custom name of this entity")
     private String customName = "";
 
-
     @Desc("Should the name on this entity be visible even if you arent looking at it.")
     private boolean customNameVisible = false;
-
 
     @Desc("If this entity type is a mob, should it be aware of it's surroundings & interact with the world.")
     private boolean aware = true;
 
-
     @Desc("If this entity type is a creature, should it have ai goals.")
     private boolean ai = true;
-
 
     @Desc("Should this entity be glowing")
     private boolean glowing = false;
 
-
     @Desc("Should gravity apply to this entity")
     private boolean gravity = true;
-
 
     @Desc("When an entity is invulnerable it can only be damaged by players increative mode.")
     private boolean invulnerable = false;
 
-
     @Desc("When an entity is silent it will not produce any sound.")
     private boolean silent = false;
-
 
     @Desc("Should this entity be allowed to pickup items")
     private boolean pickupItems = false;
 
-
     @Desc("Should this entity be removed when far away")
     private boolean removable = true;
-
 
     @Desc("Entity helmet equipment")
     private IrisLoot helmet = null;
 
-
     @Desc("Entity chestplate equipment")
     private IrisLoot chestplate = null;
-
 
     @Desc("Entity boots equipment")
     private IrisLoot boots = null;
 
-
     @Desc("Entity leggings equipment")
     private IrisLoot leggings = null;
-
 
     @Desc("Entity main hand equipment")
     private IrisLoot mainHand = null;
 
-
     @Desc("Entity off hand equipment")
     private IrisLoot offHand = null;
-
 
     @Desc("Make other entities ride this entity")
     @ArrayType(min = 1, type = IrisEntity.class)
     private KList<IrisEntity> passengers = new KList<>();
 
-
     @Desc("Attribute modifiers for this entity")
     @ArrayType(min = 1, type = IrisAttributeModifier.class)
     private KList<IrisAttributeModifier> attributes = new KList<>();
 
-
     @Desc("Loot tables for drops")
     private IrisLootReference loot = new IrisLootReference();
-
 
     @Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
     private IrisEntity leashHolder = null;
 
-
     @Desc("The main gene for a panda if the entity type is a panda")
     private Gene pandaMainGene = Gene.NORMAL;
 
-
     @Desc("The hidden gene for a panda if the entity type is a panda")
     private Gene pandaHiddenGene = Gene.NORMAL;
-
 
     @Desc("The this entity is ageable, set it's baby status")
     private boolean baby = false;

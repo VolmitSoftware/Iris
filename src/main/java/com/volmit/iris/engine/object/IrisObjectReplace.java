@@ -39,22 +39,18 @@ public class IrisObjectReplace {
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Desc("Find this block")
-
     private KList<IrisBlockData> find = new KList<>();
 
     @Required
     @Desc("Replace it with this block palette")
-
     private IrisMaterialPalette replace = new IrisMaterialPalette();
 
     @Desc("Exactly match the block data or not")
-
     private boolean exact = false;
 
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Modifies the chance the block is replaced")
-
     private float chance = 1;
 
     private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();

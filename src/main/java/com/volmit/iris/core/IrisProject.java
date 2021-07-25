@@ -21,15 +21,19 @@ package com.volmit.iris.core;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -171,13 +175,13 @@ public class IrisProject {
         return collectFiles(path, json);
     }
 
-    public void open(VolmitSender sender) {
+    public void open(VolmitSender sender) throws IrisException {
         open(sender, () ->
         {
         });
     }
 
-    public void open(VolmitSender sender, Runnable onDone) {
+    public void open(VolmitSender sender, Runnable onDone) throws IrisException {
         if (isOpen()) {
             close();
         }
@@ -381,6 +385,7 @@ public class IrisProject {
         schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisMod.class, dm, "/mods/*.json", "/mods/*/*.json", "/mods/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json", "/regions/*/*.json", "/regions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisGenerator.class, dm, "/generators/*.json", "/generators/*/*.json", "/generators/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json", "/jigsaw-pieces/*/*.json", "/jigsaw-pieces/*/*/*.json"));
@@ -422,7 +427,27 @@ public class IrisProject {
         }
 
         //TODO: EXPORT JIGSAW PIECES FROM STRUCTURES
+        dimension.getFeatures().forEach((i) -> {
+            if (i.getZone().getCustomBiome() != null)
+            {
+                biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+            }
+        });
+        dimension.getSpecificFeatures().forEach((i) -> {
+            if (i.getFeature().getCustomBiome() != null)
+            {
+                biomes.add(dm.getBiomeLoader().load(i.getFeature().getCustomBiome()));
+            }
+        });
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
+        regions.forEach((r) -> {
+            r.getFeatures().forEach((i) -> {
+                if (i.getZone().getCustomBiome() != null)
+                {
+                    biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+                }
+            });
+        });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
@@ -432,6 +457,19 @@ public class IrisProject {
         regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
         dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
         biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
+
+        for(int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++)
+        {
+            biomes.copy().forEach((r) -> {
+                r.getFeatures().forEach((i) -> {
+                    if (i.getZone().getCustomBiome() != null)
+                    {
+                        biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
+                    }
+                });
+            });
+        }
+
         regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
         dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
         KMap<String, String> renameObjects = new KMap<>();

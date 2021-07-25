@@ -57,25 +57,20 @@ import java.awt.*;
 public class IrisBiome extends IrisRegistrant implements IRare {
     @MinNumber(2)
     @Required
-
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
     private String name = "A Biome";
-
 
     @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")
     private KList<IrisBiomeCustom> customDerivitives;
 
-
     @Desc("Entity spawns to override or add to this biome. Anytime an entity spawns, it has a chance to be replaced as one of these overrides.")
     @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
     private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
 
-
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
     private KList<IrisFeaturePotential> features = new KList<>();
-
 
     @Desc("Entity spawns during generation")
     @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
@@ -85,7 +80,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
     private KList<IrisEffect> effects = new KList<>();
 
-
     @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
     @Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
     private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
@@ -94,20 +88,16 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Define custom block drops for this biome")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
 
-
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
 
     @MinNumber(0.0001)
-
     @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
     @Desc("This zooms in the biome colors if multiple derivatives are chosen")
     private double biomeZoom = 1;
 
-
     @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
     private boolean lockLayers = false;
-
 
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
@@ -117,17 +107,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("The rarity of this biome (integer)")
     private int rarity = 1;
 
-
     @Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
 
     @Required
-
     @Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
     private Biome derivative = Biome.THE_VOID;
 
     @Required
-
     @Desc("Override the derivative when vanilla places structures to this derivative. This is useful for example if you have an ocean biome, but you have set the derivative to desert to get a brown-ish color. To prevent desert structures from spawning on top of your ocean, you can set your vanillaDerivative to ocean, to allow for vanilla structures. Not defining this value will simply select the derivative.")
     private Biome vanillaDerivative = null;
 
@@ -139,11 +126,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Since 1.13 supports 3D biomes, you can add different derivative colors for anything above the terrain. (Think swampy tree leaves with a desert looking grass surface)")
     private KList<Biome> biomeSkyScatter = new KList<>();
 
-
     @DependsOn({"children"})
     @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
     private double childShrinkFactor = 1.5;
-
 
     @DependsOn({"children"})
     @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
@@ -159,14 +144,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
 
     @RegistryListBiome
-
     @Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
     private String carvingBiome = "";
 
-
     @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
     private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
-
 
     @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
     private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();

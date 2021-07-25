@@ -64,6 +64,17 @@ public class IrisSettings {
         return Math.max(2, c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c);
     }
 
+    public void forceSave() {
+        File s = Iris.instance.getDataFile("settings.json");
+
+        try {
+            IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+    }
+
     @Data
     public static class IrisSettingsCache {
         public int complexCacheSize = 131072;
@@ -108,7 +119,7 @@ public class IrisSettings {
     public static class IrisSettingsGenerator {
 
         public String defaultWorldType = "overworld";
-        public boolean mcaPregenerator = false;
+        public boolean disableMCA = false;
         public boolean systemEffects = true;
         public boolean systemEntitySpawnOverrides = true;
         public boolean systemEntityInitialSpawns = true;

@@ -40,23 +40,17 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 @Desc("Represents an entity spawn")
 @Data
 public class IrisEntitySpawnOverride {
-
     @RegistryListEntity
     @Required
-
     @Desc("The entity")
     private String entity = "";
 
-
     @Required
-
     @Desc("If the following entity type spawns, spawn this entity. Set to unknown for any entity spawn")
     private EntityType trigger = EntityType.UNKNOWN;
 
-
     @Desc("If the source is triggered, cancel spawning the original entity instead of ADDING a new entity.")
     private boolean cancelSourceSpawn = false;
-
 
     @MinNumber(1)
     @Desc("The 1 in RARITY chance for this entity to spawn")

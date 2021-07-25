@@ -41,9 +41,7 @@ import org.bukkit.inventory.ItemStack;
 @EqualsAndHashCode(callSuper = false)
 public class IrisLootTable extends IrisRegistrant {
     @Required
-
     @Desc("The name of this loot table")
-
     @MinNumber(2)
     private String name = "";
 
@@ -58,7 +56,6 @@ public class IrisLootTable extends IrisRegistrant {
     @MinNumber(0)
     @Desc("The minimum amount of loot that can be picked in this table at a time.")
     private int minPicked = 1;
-
 
     @Desc("The loot in this table")
     @ArrayType(min = 1, type = IrisLoot.class)

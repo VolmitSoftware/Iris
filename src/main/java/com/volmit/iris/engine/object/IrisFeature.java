@@ -22,10 +22,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,64 +38,62 @@ import java.io.IOException;
 @Desc("Represents an Iris zone")
 public class IrisFeature {
     @Required
-
     @Desc("The block radius of this zone")
     private double blockRadius = 32;
 
     @MinNumber(0)
     @MaxNumber(1)
-    @Required
-
     @Desc("The chance an object that should be place actually will place. Set to below 1 to affect objects in this zone")
     private double objectChance = 1;
 
-    @Required
+    @RegistryListBiome
+    @Desc("Apply a custom biome here")
+    private String customBiome = null;
+
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("How much strength before the biome is applied.")
+    private double biomeStrengthThreshold = 0.75;
 
     @Desc("The interpolation radius of this zone")
     private double interpolationRadius = 7;
 
-    @Required
-
     @MaxNumber(1)
     @MinNumber(0)
     @Desc("The strength of this effect")
-    private double strength = 0.75;
-
-    @Required
+    private double strength = 1;
 
     @Desc("The interpolator to use for smoothing the strength")
     private InterpolationMethod interpolator = InterpolationMethod.BILINEAR_STARCAST_9;
 
-    @Required
-
     @Desc("If set, this will shift the terrain height in blocks (up or down)")
     private double shiftHeight = 0;
-
-    @Required
 
     @Desc("If set, this will force the terrain closer to the specified height.")
     private double convergeToHeight = -1;
 
-    @Required
-
     @Desc("Multiplies the input noise")
     private double multiplyHeight = 1;
-
-    @Required
 
     @Desc("Invert the zone so that anything outside this zone is affected.")
     private boolean invertZone = false;
 
-    @Required
-
-    @Desc("Add additional noise to this spot")
-    private IrisGeneratorStyle addNoise = NoiseStyle.FLAT.style();
-
+    @Desc("Fracture the radius ring with additional noise")
+    private IrisGeneratorStyle fractureRadius = null;
 
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
 
     public double getActualRadius() {
-        return actualRadius.aquire(() -> IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius()));
+        return actualRadius.aquire(() -> {
+            double o = 0;
+
+            if(fractureRadius != null)
+            {
+                o+=fractureRadius.getMaxFractureDistance();
+            }
+
+            return o + IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius());
+        });
     }
 
     public static IrisFeature read(DataInputStream s) throws IOException {

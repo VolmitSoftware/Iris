@@ -30,6 +30,7 @@ import java.io.File;
 
 @Data
 public class EngineTarget {
+    private final MultiBurst parallaxBurster;
     private final MultiBurst burster;
     private final IrisDimension dimension;
     private IrisWorld world;
@@ -45,7 +46,8 @@ public class EngineTarget {
         this.data = data;
         this.inverted = inverted;
         this.burster = new MultiBurst("Iris Engine " + dimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(), threads);
-        this.parallaxWorld = new ParallaxWorld(burster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
+        this.parallaxBurster = new MultiBurst("Iris Parallax Engine " + dimension.getName(), 3, 4);
+        this.parallaxWorld = new ParallaxWorld(parallaxBurster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 
     public EngineTarget(IrisWorld world, IrisDimension dimension, IrisDataManager data, int height, int threads) {
@@ -53,6 +55,7 @@ public class EngineTarget {
     }
 
     public void close() {
+        parallaxBurster.shutdownAndAwait();
         burster.shutdownAndAwait();
     }
 }

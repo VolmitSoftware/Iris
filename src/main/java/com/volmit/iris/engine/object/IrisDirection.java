@@ -39,11 +39,17 @@ import java.util.Map;
  */
 @Desc("A direction object")
 public enum IrisDirection {
+    @Desc("0, 1, 0")
     UP_POSITIVE_Y(0, 1, 0, CuboidDirection.Up),
+    @Desc("0, -1, 0")
     DOWN_NEGATIVE_Y(0, -1, 0, CuboidDirection.Down),
+    @Desc("0, 0, -1")
     NORTH_NEGATIVE_Z(0, 0, -1, CuboidDirection.North),
+    @Desc("0, 0, 1")
     SOUTH_POSITIVE_Z(0, 0, 1, CuboidDirection.South),
+    @Desc("1, 0, 0")
     EAST_POSITIVE_X(1, 0, 0, CuboidDirection.East),
+    @Desc("-1, 0, 0")
     WEST_NEGATIVE_X(-1, 0, 0, CuboidDirection.West);
 
     private static KMap<GBiset<IrisDirection, IrisDirection>, DOP> permute = null;

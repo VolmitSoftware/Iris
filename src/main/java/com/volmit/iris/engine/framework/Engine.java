@@ -38,15 +38,23 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.loot.LootContext;
+import org.bukkit.loot.LootTable;
+import org.bukkit.loot.Lootable;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Random;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     void close();
@@ -163,10 +171,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         }
 
         if (B.isUpdatable(data)) {
-            synchronized (getParallax()) {
-                getParallax().updateBlock(x, y, z);
-                getParallax().getMetaRW(x >> 4, z >> 4).setUpdates(true);
-            }
+            getParallax().updateBlock(x, y, z);
+            getParallax().getMetaRW(x >> 4, z >> 4).setUpdates(true);
         }
     }
 
@@ -233,7 +239,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                     addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
                 } catch (Throwable e) {
                     Iris.reportError(e);
-
                 }
             }
         }

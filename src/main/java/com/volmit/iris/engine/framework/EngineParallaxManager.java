@@ -37,13 +37,16 @@ import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import io.lumine.xikage.mythicmobs.utils.serialize.ChunkPosition;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
@@ -203,57 +206,55 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     IrisLock getFeatureLock();
 
+    @BlockCoordinates
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
         if (!getEngine().getDimension().hasFeatures(getEngine())) {
             return;
         }
 
-        long key = Cache.key(((int) x) >> 4, ((int) z) >> 4);
-
-        for (IrisFeaturePositional ipf : getFeatureCache().compute(key, (ke, v) -> {
-            if (v != null) {
-                return v;
-            }
-
-            getFeatureLock().lock();
-            KList<IrisFeaturePositional> pos = new KList<>();
-
-            for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-                if (i.shouldFilter(x, z)) {
-                    pos.add(i);
-                }
-            }
-
-            int s = (int) Math.ceil(getParallaxSize() / 2D);
-            int i, j;
-            int cx = (int) x >> 4;
-            int cz = (int) z >> 4;
-
-            for (i = -s; i <= s; i++) {
-                for (j = -s; j <= s; j++) {
-                    ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
-
-                    synchronized (m) {
-                        try {
-                            for (IrisFeaturePositional k : m.getFeatures()) {
-                                if (k.shouldFilter(x, z)) {
-                                    pos.add(k);
-                                }
-                            }
-                        } catch (Throwable e) {
-                            Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
-                            e.printStackTrace();
-                            Iris.reportError(e);
-                        }
-                    }
-                }
-            }
-            getFeatureLock().unlock();
-
-            return pos;
-        })) {
+        for (IrisFeaturePositional ipf : forEachFeature(x, z)) {
             f.accept(ipf);
         }
+    }
+
+    @BlockCoordinates
+    default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
+        KList<IrisFeaturePositional> pos = new KList<>();
+
+        if (!getEngine().getDimension().hasFeatures(getEngine())) {
+            return pos;
+        }
+
+        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
+            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+                pos.add(i);
+            }
+        }
+
+        int s = (int) Math.ceil(getParallaxSize() / 2D);
+        int i, j;
+        int cx = (int) x >> 4;
+        int cz = (int) z >> 4;
+
+        for (i = -s; i <= s; i++) {
+            for (j = -s; j <= s; j++) {
+                ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
+
+                try {
+                    for (IrisFeaturePositional k : m.getFeatures()) {
+                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+                            pos.add(k);
+                        }
+                    }
+                } catch (Throwable e) {
+                    Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            }
+        }
+
+        return pos;
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
@@ -277,8 +278,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     int xxx = xx << 4;
                     int zzz = zz << 4;
                     if (!getParallaxAccess().isFeatureGenerated(xx, zz)) {
+                        getParallaxAccess().setFeatureGenerated(xx, zz);
                         burst.queue(() -> {
-                            getParallaxAccess().setFeatureGenerated(xx, zz);
                             RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
                             IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
                             IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
@@ -497,7 +498,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     place(rng, x << 4, z << 4, i);
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    Iris.error("Failed to place objects in the following biome: " + biome.getName());
+                    Iris.error("Failed to place objects in the following region: " + region.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
                     Iris.error("Are these objects missing?");
                     e.printStackTrace();

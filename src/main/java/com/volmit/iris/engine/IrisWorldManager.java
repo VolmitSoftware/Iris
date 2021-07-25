@@ -74,13 +74,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         trySpawn(above.getEntityInitialSpawns(), c, rng);
         trySpawn(region.getEntityInitialSpawns(), c, rng);
         trySpawn(dim.getEntityInitialSpawns(), c, rng);
-
-
     }
 
     @Override
     public void onEntitySpawn(EntitySpawnEvent e) {
-        if (getTarget().getWorld() == null || !getTarget().getWorld().equals(e.getEntity().getWorld())) {
+        if (getTarget().getWorld() == null || !e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
             return;
         }
 

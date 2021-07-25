@@ -30,10 +30,8 @@ import lombok.experimental.Accessors;
 @Desc("Represents a position")
 @Data
 public class IrisPosition2D {
-
     @Desc("The x position")
     private int x = 0;
-
 
     @Desc("The z position")
     private int z = 0;

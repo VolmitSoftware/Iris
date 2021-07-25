@@ -70,7 +70,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {
-
                 ib = getComplex().getTrueBiomeStream().get(modX(xf + x), modZ(zf + z));
                 maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
                 if (ib.isCustom()) {
@@ -78,7 +77,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
                         Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
 
-                        if (!injectBiome(h, x, 0, z, biomeBase)) {
+                        if (biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
                             throw new RuntimeException("Cant inject biome!");
                         }
 
@@ -87,7 +86,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         }
                     } catch (Throwable e) {
                         Iris.reportError(e);
-                        e.printStackTrace();
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
                         for (int i = 0; i < maxHeight; i++) {
                             h.set(xf, i, zf, v);

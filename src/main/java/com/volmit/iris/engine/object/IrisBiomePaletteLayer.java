@@ -36,7 +36,6 @@ import org.bukkit.block.data.BlockData;
 @Desc("A layer of surface / subsurface material in biomes")
 @Data
 public class IrisBiomePaletteLayer {
-
     @Desc("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
 

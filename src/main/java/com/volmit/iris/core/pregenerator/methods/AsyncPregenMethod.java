@@ -63,20 +63,20 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             PaperLib.getChunkAtAsync(world, x, z, true).get();
             listener.onChunkGenerated(x, z);
         } catch (Throwable e) {
-            e.printStackTrace();
+            J.sleep(5);
+            future.add(burst.complete(() -> completeChunk(x, z, listener)));
         }
     }
 
     private void waitForChunks() {
-        for (CompletableFuture<?> i : future) {
+        for (CompletableFuture<?> i : future.copy()) {
             try {
                 i.get();
+                future.remove(i);
             } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
-
-        future.clear();
     }
 
     @Override

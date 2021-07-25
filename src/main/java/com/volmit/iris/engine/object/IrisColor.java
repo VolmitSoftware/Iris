@@ -29,31 +29,26 @@ import lombok.experimental.Accessors;
 
 import java.awt.*;
 
-@Deprecated()
 @Accessors(chain = true)
 @NoArgsConstructor
 @Desc("Represents a color")
 @Data
 public class IrisColor {
-
     @MaxNumber(7)
     @MinNumber(6)
     @Desc("Pass in a 6 digit hexadecimal color to fill R G and B values. You can also include the # symbol, but it's not required.")
     private String hex = null;
-
 
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the red channel. Only define this if you are not defining the hex value.")
     private int red = 0;
 
-
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the green channel. Only define this if you are not defining the hex value.")
     private int green = 0;
-
-
+    
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the blue channel. Only define this if you are not defining the hex value.")

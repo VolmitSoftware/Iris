@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.5.6'
+version '1.5.10'
 def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -76,8 +76,8 @@ shadowJar
             minimize()
             dependencies {
                 include(dependency('org.zeroturnaround:zt-zip:1.14'))
-                include(dependency('io.papermc:paperlib:1.0.5'))
                 include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
+                include(dependency('io.papermc:paperlib:1.0.5'))
             }
         }
 
@@ -92,6 +92,9 @@ dependencies {
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
     implementation 'org.bukkit.craftbukkit:1.17:1.17'
     implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
+    implementation 'org.bukkit.craftbukkit:1.16.5:1.16.5'
+    implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
+    implementation 'org.bukkit.craftbukkit:1.16.1:1.16.1'
     implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'

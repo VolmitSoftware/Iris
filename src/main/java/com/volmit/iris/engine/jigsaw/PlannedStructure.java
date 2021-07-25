@@ -377,7 +377,7 @@ public class PlannedStructure {
         return false;
     }
 
-    public synchronized IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
+    public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
         if (objectRotationCache.containsKey(key)) {

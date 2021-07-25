@@ -37,6 +37,9 @@ public class CommandIris extends MortarCommand {
     private CommandIrisVerify verify;
 
     @Command
+    private CommandIrisDebug debug;
+
+    @Command
     private CommandIrisFix fix;
 
     @Command
@@ -49,9 +52,6 @@ public class CommandIris extends MortarCommand {
     private CommandIrisObject object;
 
     @Command
-    private CommandIrisRegen regen;
-
-    @Command
     private CommandIrisDownload download;
 
     @Command
@@ -59,6 +59,9 @@ public class CommandIris extends MortarCommand {
 
     @Command
     private CommandIrisUpdateWorld updateWorld;
+
+    @Command
+    private CommandIrisBitwise bitwise;
 
     @Command
     private CommandIrisWhat what;

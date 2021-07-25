@@ -40,6 +40,7 @@ public class IrisDataManager {
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
     private ResourceLoader<IrisEntity> entityLoader;
+    private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
     private ObjectResourceLoader objectLoader;
     private boolean closed;
@@ -64,6 +65,7 @@ public class IrisDataManager {
         this.entityLoader = null;
         this.regionLoader = null;
         this.biomeLoader = null;
+        this.modLoader = null;
         this.dimensionLoader = null;
         this.jigsawPoolLoader = null;
         this.jigsawPieceLoader = null;
@@ -92,6 +94,7 @@ public class IrisDataManager {
         this.entityLoader = new ResourceLoader<>(packs, this, "entities", "Entity", IrisEntity.class);
         this.regionLoader = new ResourceLoader<>(packs, this, "regions", "Region", IrisRegion.class);
         this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
+        this.modLoader = new ResourceLoader<>(packs, this, "mods", "Mod", IrisMod.class);
         this.dimensionLoader = new ResourceLoader<>(packs, this, "dimensions", "Dimension", IrisDimension.class);
         this.jigsawPoolLoader = new ResourceLoader<>(packs, this, "jigsaw-pools", "Jigsaw Pool", IrisJigsawPool.class);
         this.jigsawStructureLoader = new ResourceLoader<>(packs, this, "jigsaw-structures", "Jigsaw Structure", IrisJigsawStructure.class);
@@ -111,6 +114,7 @@ public class IrisDataManager {
         objectLoader.clearCache();
         jigsawPieceLoader.clearCache();
         jigsawPoolLoader.clearCache();
+        modLoader.clearCache();
         jigsawStructureLoader.clearCache();
         regionLoader.clearCache();
         dimensionLoader.clearCache();
@@ -127,6 +131,7 @@ public class IrisDataManager {
         blockLoader.clearList();
         entityLoader.clearList();
         biomeLoader.clearList();
+        modLoader.clearList();
         regionLoader.clearList();
         dimensionLoader.clearList();
         generatorLoader.clearList();
@@ -142,6 +147,10 @@ public class IrisDataManager {
 
     public static IrisBiome loadAnyBiome(String key) {
         return loadAny(key, (dm) -> dm.getBiomeLoader().load(key, false));
+    }
+
+    public static IrisMod loadAnyMod(String key) {
+        return loadAny(key, (dm) -> dm.getModLoader().load(key, false));
     }
 
     public static IrisJigsawPiece loadAnyJigsawPiece(String key) {

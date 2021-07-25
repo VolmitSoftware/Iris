@@ -37,6 +37,8 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.WorldCreator;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 /**
@@ -95,7 +97,7 @@ public class IrisCreator {
         IrisDimension d = IrisToolbelt.getDimension(dimension());
         IrisAccess access = null;
         Consumer<Double> prog = (pxx) -> {
-            double px = (headless && pregen != null) ? pxx / 2 : pxx;
+            double px = pxx;
 
             if (pregen != null && !headless) {
                 px = (px / 2) + 0.5;
@@ -158,61 +160,72 @@ public class IrisCreator {
                 sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
             });
 
-            wc.createWorld();
-            done.set(true);
+            try {
+                J.sfut(wc::createWorld).get();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
         }
 
         if (access == null) {
             throw new IrisException("Access is null. Something bad happened.");
         }
 
-        IrisAccess finalAccess = access;
-        Runnable loadup = () -> {
+        CompletableFuture<Boolean> ff = new CompletableFuture<>();
+
+        if (pregen != null) {
+            IrisToolbelt.pregenerate(pregen, access)
+                    .onProgress(prog)
+                    .whenDone(() -> ff.complete(true));
+
             try {
-                J.sfut(() -> {
-                    if (headless) {
-                        O<Boolean> done = new O<>();
-                        done.set(false);
-
-                        J.a(() ->
-                        {
-                            int req = 400;
-
-                            while (finalAccess.getGenerated() < req && !done.get()) {
-                                double v = (double) finalAccess.getGenerated() / (double) req;
-                                v = (v / 2) + 0.5;
-
-                                if (sender.isPlayer()) {
-                                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)"))));
-                                    J.sleep(50);
-                                } else {
-                                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)")));
-                                    J.sleep(1000);
-                                }
-
-                                if (finalAccess.isFailing()) {
-
-                                    sender.sendMessage("Generation Failed!");
-                                    break;
-                                }
-                            }
-
-                            sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
-                        });
-
-                        finalAccess.getHeadlessGenerator().getWorld().load();
-                        done.set(true);
-                    }
-                }).get();
+                ff.get();
             } catch (Throwable e) {
                 e.printStackTrace();
             }
-        };
+        }
 
-        if (pregen != null) {
-            IrisToolbelt.pregenerate(pregen, access).onProgress(prog).whenDone(loadup);
-        } else {
-            loadup.run();
+        try {
+
+            IrisAccess finalAccess = access;
+            J.sfut(() -> {
+                if (headless) {
+                    O<Boolean> done = new O<>();
+                    done.set(false);
+
+                    J.a(() ->
+                    {
+                        int req = 400;
+
+                        while (finalAccess.getGenerated() < req && !done.get()) {
+                            double v = (double) finalAccess.getGenerated() / (double) req;
+                            v = (v / 2) + 0.5;
+
+                            if (sender.isPlayer()) {
+                                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)"))));
+                                J.sleep(50);
+                            } else {
+                                sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)")));
+                                J.sleep(1000);
+                            }
+
+                            if (finalAccess.isFailing()) {
+
+                                sender.sendMessage("Generation Failed!");
+                                break;
+                            }
+                        }
+
+                        sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
+                    });
+
+                    finalAccess.getHeadlessGenerator().getWorld().load();
+                    done.set(true);
+                }
+            }).get();
+
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
 
         return access;

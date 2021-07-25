@@ -39,9 +39,7 @@ import org.bukkit.potion.PotionEffectType;
 @Desc("An iris potion effect")
 @Data
 public class IrisPotionEffect {
-
     @Required
-
     @Desc("The potion effect to apply in this area")
     private String potionEffect = "";
 
@@ -56,10 +54,8 @@ public class IrisPotionEffect {
     @Desc("The time the potion will last for")
     private int ticks = 200;
 
-
     @Desc("Is the effect ambient")
     private boolean ambient = false;
-
 
     @Desc("Is the effect showing particles")
     private boolean particles = true;

@@ -45,18 +45,15 @@ import java.io.IOException;
 public class IrisJigsawPiece extends IrisRegistrant {
     @RegistryListObject
     @Required
-
     @Desc("The object this piece represents")
     private String object = "";
 
     @Required
-
     @ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
     @Desc("The connectors this object contains")
     private KList<IrisJigsawPieceConnector> connectors = new KList<>();
 
     @Desc("Configure everything about the object placement. Please don't define this unless you actually need it as using this option will slow down the jigsaw deign stage. Use this where you need it, just avoid using it everywhere to keep things fast.")
-
     private IrisObjectPlacement placementOptions = new IrisObjectPlacement().setMode(ObjectPlaceMode.FAST_MAX_HEIGHT);
 
     private transient AtomicCache<Integer> max2dDim = new AtomicCache<>();

@@ -52,9 +52,6 @@ public class CommandIris extends MortarCommand {
     private CommandIrisObject object;
 
     @Command
-    private CommandIrisRegen regen;
-
-    @Command
     private CommandIrisDownload download;
 
     @Command

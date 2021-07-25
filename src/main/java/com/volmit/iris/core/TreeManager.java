@@ -14,12 +14,14 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Vector2d;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -156,6 +158,12 @@ public class TreeManager implements Listener {
 
         // Cancel the vanilla placement
         event.setCancelled(true);
+
+        // Send out a new event
+        List<BlockState> blockStateList = new KList<>();
+        saplingPlane.forEach(b -> blockStateList.add(b.getState()));
+        StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
+        Bukkit.getServer().getPluginManager().callEvent(iGrow);
 
         // Place the object with the placer
         object.place(

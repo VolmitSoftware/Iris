@@ -21,6 +21,7 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -48,21 +49,26 @@ public class CommandIrisStudioHotload extends MortarCommand {
             return true;
         }
 
-        if (sender.isPlayer()) {
-            Player p = sender.player();
-            World world = p.getWorld();
-            if (!IrisWorlds.isIrisWorld(world)) {
-                sender.sendMessage("You must be in an iris world.");
-                return true;
-            }
-
-            IrisWorlds.access(world).hotload();
-            sender.sendMessage("Hotloaded!");
-            return true;
-        } else {
+        if (!sender.isPlayer()) {
             sender.sendMessage("Players only.");
+            return true;
         }
 
+        Player p = sender.player();
+        World world = p.getWorld();
+
+        if (!IrisWorlds.isIrisWorld(world)) {
+            sender.sendMessage("You must be in an iris world.");
+            return true;
+        }
+
+        IrisAccess worldAccess = IrisWorlds.access(world);
+        if (worldAccess == null){
+            sender.sendMessage("Could not gain access to the world you are in");
+        } else {
+            worldAccess.hotload();
+        }
+        
         return true;
     }
 

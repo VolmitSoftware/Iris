@@ -68,6 +68,7 @@ public class TreeManager implements Listener {
         Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
 
         // Calculate size, type & placement
+        // TODO: Patch algorithm to retrieve saplings, as it's not working as intended (only ever returns 1x1)
         Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> event.getLocation().getBlock().getBlockData().equals(blockData), event.getWorld());
         Iris.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
 

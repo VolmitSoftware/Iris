@@ -21,9 +21,7 @@ package com.volmit.iris.engine.parallel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
 
 @SuppressWarnings("ALL")
 public class BurstExecutor {
@@ -80,5 +78,27 @@ public class BurstExecutor {
                 Iris.reportError(e);
             }
         }
+    }
+
+    public boolean complete(long maxDur) {
+        synchronized (futures) {
+            if (futures.isEmpty()) {
+                return true;
+            }
+
+            try {
+                try {
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(maxDur, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    return false;
+                }
+                futures.clear();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                Iris.reportError(e);
+            }
+        }
+
+        return false;
     }
 }

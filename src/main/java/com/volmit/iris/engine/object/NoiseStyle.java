@@ -31,14 +31,128 @@ public enum NoiseStyle {
     @Desc("White Noise is like static. Useful for block scattering but not terrain.")
     STATIC(rng -> new CNG(rng, NoiseType.WHITE, 1D, 1)),
 
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    STATIC_BILINEAR(rng -> new CNG(rng, NoiseType.WHITE_BILINEAR, 1D, 1)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    STATIC_BICUBIC(rng -> new CNG(rng, NoiseType.WHITE_BICUBIC, 1D, 1)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    STATIC_HERMITE(rng -> new CNG(rng, NoiseType.WHITE_HERMITE, 1D, 1)),
+
     @Desc("Wispy Perlin-looking simplex noise. The 'iris' style noise.")
     IRIS(rng -> CNG.signature(rng).scale(1)),
 
+    @Desc("Clover Noise")
+    CLOVER(rng -> new CNG(rng, NoiseType.CLOVER, 1D, 1).scale(0.06).bake()),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_STARCAST_3(rng -> new CNG(rng, NoiseType.CLOVER_STARCAST_3, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_STARCAST_6(rng -> new CNG(rng, NoiseType.CLOVER_STARCAST_6, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_STARCAST_9(rng -> new CNG(rng, NoiseType.CLOVER_STARCAST_9, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_STARCAST_12(rng -> new CNG(rng, NoiseType.CLOVER_STARCAST_12, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BILINEAR_STARCAST_3(rng -> new CNG(rng, NoiseType.CLOVER_BILINEAR_STARCAST_3, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BILINEAR_STARCAST_6(rng -> new CNG(rng, NoiseType.CLOVER_BILINEAR_STARCAST_6, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BILINEAR_STARCAST_9(rng -> new CNG(rng, NoiseType.CLOVER_BILINEAR_STARCAST_9, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BILINEAR_STARCAST_12(rng -> new CNG(rng, NoiseType.CLOVER_BILINEAR_STARCAST_12, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_HERMITE_STARCAST_3(rng -> new CNG(rng, NoiseType.CLOVER_HERMITE_STARCAST_3, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_HERMITE_STARCAST_6(rng -> new CNG(rng, NoiseType.CLOVER_HERMITE_STARCAST_6, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_HERMITE_STARCAST_9(rng -> new CNG(rng, NoiseType.CLOVER_HERMITE_STARCAST_9, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_HERMITE_STARCAST_12(rng -> new CNG(rng, NoiseType.CLOVER_HERMITE_STARCAST_12, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BILINEAR(rng -> new CNG(rng, NoiseType.CLOVER_BILINEAR, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_BICUBIC(rng -> new CNG(rng, NoiseType.CLOVER_BICUBIC, 1D, 1)),
+
+    @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
+    CLOVER_HERMITE(rng -> new CNG(rng, NoiseType.CLOVER_HERMITE, 1D, 1)),
+
+    @Desc("Vascular noise gets higher as the position nears a cell border.")
+    VASCULAR(rng -> new CNG(rng, NoiseType.VASCULAR, 1D, 1)),
+
+    @Desc("It always returns 0.5")
+    FLAT(rng -> new CNG(rng, NoiseType.FLAT, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR(rng -> new CNG(rng, NoiseType.CELLULAR, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_STARCAST_3(rng -> new CNG(rng, NoiseType.CELLULAR_STARCAST_3, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_STARCAST_6(rng -> new CNG(rng, NoiseType.CELLULAR_STARCAST_6, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_STARCAST_9(rng -> new CNG(rng, NoiseType.CELLULAR_STARCAST_9, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_STARCAST_12(rng -> new CNG(rng, NoiseType.CELLULAR_STARCAST_12, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BILINEAR_STARCAST_3(rng -> new CNG(rng, NoiseType.CELLULAR_BILINEAR_STARCAST_3, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BILINEAR_STARCAST_6(rng -> new CNG(rng, NoiseType.CELLULAR_BILINEAR_STARCAST_6, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BILINEAR_STARCAST_9(rng -> new CNG(rng, NoiseType.CELLULAR_BILINEAR_STARCAST_9, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BILINEAR_STARCAST_12(rng -> new CNG(rng, NoiseType.CELLULAR_BILINEAR_STARCAST_12, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_HERMITE_STARCAST_3(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE_STARCAST_3, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_HERMITE_STARCAST_6(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE_STARCAST_6, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_HERMITE_STARCAST_9(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE_STARCAST_9, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_HERMITE_STARCAST_12(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE_STARCAST_12, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BILINEAR(rng -> new CNG(rng, NoiseType.CELLULAR_BILINEAR, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_BICUBIC(rng -> new CNG(rng, NoiseType.CELLULAR_BICUBIC, 1D, 1)),
+
+    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
+    CELLULAR_HERMITE(rng -> new CNG(rng, NoiseType.CELLULAR_HERMITE, 1D, 1)),
+
     @Desc("Classic German Engineering")
     NOWHERE(rng -> CNG.signaturePerlin(rng).scale(0.776).bake()),
-    @Desc("Classic German Engineering")
 
+    @Desc("Classic German Engineering")
     NOWHERE_CELLULAR(rng -> CNG.signaturePerlin(rng, NoiseType.CELLULAR).scale(1).bake()),
+
+    @Desc("Classic German Engineering")
+    NOWHERE_CLOVER(rng -> CNG.signaturePerlin(rng, NoiseType.CLOVER).scale(1).bake()),
 
     @Desc("Classic German Engineering")
     NOWHERE_SIMPLEX(rng -> CNG.signaturePerlin(rng, NoiseType.SIMPLEX).scale(1).bake()),
@@ -295,9 +409,6 @@ public enum NoiseStyle {
     @Desc("Cubic Noise")
     CUBIC_IRIS_THICK(rng -> CNG.signatureThick(rng, NoiseType.CUBIC).scale(256)),
 
-    @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders.")
-    CELLULAR(rng -> new CNG(rng, NoiseType.CELLULAR, 1D, 1)),
-
     @Desc("Cellular noise creates the same noise level for cells, changes noise level on cell borders. Cells are distorted using Iris styled wispy noise.")
     CELLULAR_IRIS(rng -> CNG.signature(rng, NoiseType.CELLULAR)),
 
@@ -324,12 +435,6 @@ public enum NoiseStyle {
 
     @Desc("Inverse of vascular, height gets to 1.0 as it approaches the center of a cell, using the iris style.")
     CELLULAR_HEIGHT_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.CELLULAR_HEIGHT)),
-
-    @Desc("Vascular noise gets higher as the position nears a cell border.")
-    VASCULAR(rng -> new CNG(rng, NoiseType.VASCULAR, 1D, 1)),
-
-    @Desc("It always returns 0.5")
-    FLAT(rng -> new CNG(rng, NoiseType.FLAT, 1D, 1)),
 
     @Desc("Vascular noise gets higher as the position nears a cell border. Cells are distorted using Iris styled wispy noise.")
     VASCULAR_IRIS(rng -> CNG.signature(rng, NoiseType.VASCULAR)),

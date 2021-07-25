@@ -49,7 +49,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
 
     static JComboBox<String> combo;
     @SuppressWarnings("CanBeFinal")
-    RollingSequence r = new RollingSequence(290);
+    RollingSequence r = new RollingSequence(20);
     @SuppressWarnings("CanBeFinal")
     boolean colorMode = true;
     double scale = 1;
@@ -190,7 +190,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
                 int finalAccuracy = accuracy;
                 e.queue(() -> {
                     for (int z = 0; z < h/finalAccuracy; z++) {
-                        double n = generator != null ? generator.apply(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp) : cng.noise(((xx*finalAccuracy) * ascale) + oxp, tz, ((z*finalAccuracy) * ascale) + ozp);
+                        double n = generator != null ? generator.apply(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp) : cng.noise(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp);
                         n = n > 1 ? 1 : n < 0 ? 0 : n;
 
                         try
@@ -208,7 +208,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
                 });
             }
 
-            e.complete();
+            e.complete(1000);
             gg.drawImage(img, 0, 0, getParent().getWidth()*accuracy, getParent().getHeight()*accuracy, (img, infoflags, x, y, width, height) -> true);
         }
 

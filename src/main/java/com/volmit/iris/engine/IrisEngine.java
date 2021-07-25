@@ -162,12 +162,13 @@ public class IrisEngine extends BlockPopulator implements Engine {
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            BurstExecutor b = burst().burst(16);
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
             // This is a very weird optimization, but it works
             // Basically we precache multicore the biome stream which effectivley
             // makes the biome stream, interpolation & noise engine run in parallel without mca
+            BurstExecutor b = burst().burst(16);
+
             for(int i = 0; i < vblocks.getWidth(); i++)
             {
                 int finalI = i;

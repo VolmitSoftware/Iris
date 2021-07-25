@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -89,6 +90,12 @@ public class IrisEntityInitialSpawn {
     }
 
     private Entity spawn100(Engine g, Location at) {
-        return getRealEntity(g).spawn(g, at.clone().add(0.5, 1, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+        try {
+            return getRealEntity(g).spawn(g, at.clone().add(0.5, 1, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+        } catch (Throwable e){
+            Iris.reportError(e);
+            Iris.debug("Failed to retrieve real entity @ " + at);
+            return null;
+        }
     }
 }

@@ -107,7 +107,7 @@ public class TreeManager implements Listener {
                 b.setBlockData(d, false);
 
                 // Tell bukkit what you're doing here
-                //TODO event.getBlockStates().add(b.getState());
+                event.getBlocks().add(b.getState());
             }
 
             @Override

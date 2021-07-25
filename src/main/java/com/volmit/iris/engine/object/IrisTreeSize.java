@@ -28,6 +28,6 @@ public class IrisTreeSize {
      * @return true if it matches (fits within width and depth)
      */
     public boolean doesMatch(IrisTreeSize size){
-        return (width <= size.getWidth() && depth <= size.getDepth()) || (depth <= size.getWidth() && width <= size.getDepth());
+        return (width == size.getWidth() && depth == size.getDepth()) || (depth == size.getWidth() && width == size.getDepth());
     }
 }

@@ -49,7 +49,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
 
         if (decorator != null) {
             if (!decorator.isStacking()) {
-                bd = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+                bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 
                 if (!underwater) {
                     if (!canGoOn(bd, bdx)) {
@@ -81,17 +81,18 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     int maxStack = max - height;
                     stack = (int) Math.ceil((double)maxStack * ((double)stack / 100));
                 } else stack = Math.min(height - max, stack);
-                BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
-                BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
 
                 if (stack == 1) {
-                    data.set(x, height, z, top);
+                    data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
                     return;
                 }
 
                 for (int i = 0; i < stack; i++) {
+                    int h = height + i;
                     double threshold = ((double) i) / (stack - 1);
-                    bd = threshold >= decorator.getTopThreshold() ? top : fill;
+                    bd = threshold >= decorator.getTopThreshold() ?
+                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
+                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
 
                     if (bd == null) {
                         break;

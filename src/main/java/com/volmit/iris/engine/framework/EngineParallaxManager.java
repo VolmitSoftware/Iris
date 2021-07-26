@@ -603,6 +603,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
                 f.setStrength(1D);
 
+                for(IrisFeaturePositional j : rw.getFeatures())
+                {
+                    if(j.getX() == xx && j.getZ() == zz)
+                    {
+                        continue placing;
+                    }
+                }
+
                 rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
         }

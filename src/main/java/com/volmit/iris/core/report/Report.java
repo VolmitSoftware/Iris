@@ -19,7 +19,9 @@
 package com.volmit.iris.core.report;
 
 import lombok.Builder;
+import lombok.Data;
 
+@Data
 @Builder
 public class Report {
     @Builder.Default

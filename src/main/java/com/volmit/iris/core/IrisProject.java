@@ -53,6 +53,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
@@ -72,11 +73,43 @@ public class IrisProject {
     public KList<Report> scanForErrors() {
         KList<Report> reports = new KList<>();
         IrisDataManager data = new IrisDataManager(path);
+        Gson g = new Gson();
+        MultiBurst.burst.burst(collectFiles("json").convert((i) -> () -> {
+            try {
+                new JSONObject(IO.readAll(i));
+            }
 
-        for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
-            Engine e = getActiveProvider().getCompound().getEngine(i);
-            IrisDimension dim = e.getDimension();
-            reports.add(scanForErrors(dim));
+            catch(Throwable e)
+            {
+                synchronized (reports)
+                {
+                    reports.add(Report.builder()
+                            .title("Invalid Json: " + i.getName())
+                            .message(i.getAbsolutePath() + e.getMessage())
+                            .suggestion("Correct the json")
+                            .type(ReportType.ERROR)
+                            .build());
+                }
+            }
+        }));
+
+        try {
+            for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
+                Engine e = getActiveProvider().getCompound().getEngine(i);
+                IrisDimension dim = e.getDimension();
+                reports.add(scanForErrors(dim));
+            }
+        }
+
+        catch(Throwable e)
+        {
+            reports.add(Report.builder()
+                    .title("Failed to check all errors")
+                    .message("There may be some json errors, correct those first")
+                    .suggestion("Correct the json, or see exception below")
+                    .type(ReportType.SEVERE_WARNING)
+                    .build());
+            e.printStackTrace();
         }
 
         return reports;
@@ -157,14 +190,14 @@ public class IrisProject {
         return activeProvider != null;
     }
 
-    public KList<File> collectFiles(File f, String json) {
+    public KList<File> collectFiles(File f, String fileExtension) {
         KList<File> l = new KList<>();
 
         if (f.isDirectory()) {
             for (File i : f.listFiles()) {
-                l.addAll(collectFiles(i, json));
+                l.addAll(collectFiles(i, fileExtension));
             }
-        } else if (f.getName().endsWith("." + json)) {
+        } else if (f.getName().endsWith("." + fileExtension)) {
             l.add(f);
         }
 
@@ -184,6 +217,41 @@ public class IrisProject {
     public void open(VolmitSender sender, Runnable onDone) throws IrisException {
         if (isOpen()) {
             close();
+        }
+
+        boolean hasError = false;
+
+        try {
+            KList<Report> reports = scanForErrors();
+            sender.sendMessage("There are " + reports.size() + " problems detected with this project. See console!");
+            Iris.error("===========================================================");
+            for(Report i : reports)
+            {
+                if(i.getType().equals(ReportType.ERROR))
+                {
+                    hasError = true;
+                }
+
+                switch (i.getType())
+                {
+                    case ERROR -> Iris.error(i.toString());
+                    case SEVERE_WARNING -> Iris.warn(i.toString());
+                    case WARNING -> Iris.warn(i.toString());
+                    case NOTICE -> Iris.warn(i.toString());
+                }
+            }
+            Iris.error("===========================================================");
+        }
+
+        catch(Throwable e)
+        {
+            hasError = true;
+            e.printStackTrace();
+        }
+
+        if(hasError)
+        {
+            return;
         }
 
         IrisDimension d = IrisDataManager.loadAnyDimension(getName());

@@ -29,7 +29,6 @@ public class TreeManager implements Listener {
 
     public TreeManager() {
         Iris.instance.registerListener(this);
-        Iris.info("Loading Sapling Manager");
     }
 
     /**This function does the following

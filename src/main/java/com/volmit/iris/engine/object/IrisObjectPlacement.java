@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -85,6 +86,16 @@ public class IrisObjectPlacement {
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
+
+    @MaxNumber(64)
+    @MinNumber(4)
+    @Desc("When vacuum is enabled, define the interpolation radius")
+    private int vacuumInterpolationRadius = 16;
+
+    @MaxNumber(64)
+    @MinNumber(4)
+    @Desc("When vacuum is enabled, define the interpolation method")
+    private InterpolationMethod vacuumInterpolationMethod = InterpolationMethod.BILINEAR_STARCAST_9;
 
     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;

@@ -572,7 +572,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement) {
-        for (int i = 0; i < objectPlacement.getDensity(); i++) {
+        placing: for (int i = 0; i < objectPlacement.getDensity(); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
                 return;
@@ -580,10 +580,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int xx = rng.i(x, x + 16);
             int zz = rng.i(z, z + 16);
             int id = rng.i(0, Integer.MAX_VALUE);
-            int maxf = 10000;
-            AtomicBoolean pl = new AtomicBoolean(false);
-            AtomicInteger max = new AtomicInteger(-1);
-            AtomicInteger min = new AtomicInteger(maxf);
+
             int h = v.place(xx, forceY, zz, this, objectPlacement, rng, (b) -> {
                 int xf = b.getX();
                 int yf = b.getY();
@@ -597,14 +594,16 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }, null, getData());
 
             if (objectPlacement.isVacuum()) {
+                ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
                 double a = Math.max(v.getW(), v.getD());
                 IrisFeature f = new IrisFeature();
                 f.setConvergeToHeight(h - (v.getH() >> 1));
                 f.setBlockRadius(a);
-                f.setInterpolationRadius(a / 4);
-                f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
+                f.setInterpolationRadius(objectPlacement.getVacuumInterpolationRadius());
+                f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
                 f.setStrength(1D);
-                getParallaxAccess().getMetaRW(xx >> 4, zz >> 4).getFeatures().add(new IrisFeaturePositional(xx, zz, f));
+
+                rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
         }
     }

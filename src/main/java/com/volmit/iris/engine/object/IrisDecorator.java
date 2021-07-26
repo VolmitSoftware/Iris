@@ -56,16 +56,19 @@ public class IrisDecorator {
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
     private int stackMin = 1;
 
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The maximum repeat stack height")
     private int stackMax = 1;
+
+    @DependsOn({"stackMin", "stackMax"})
+    @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
+            "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
+    private boolean scaleStack = false;
 
     @Required
     @MinNumber(0)
@@ -168,7 +171,7 @@ public class IrisDecorator {
 
     public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data) {
         if (getBlockDataTops(data).isEmpty()) {
-            return null;
+            return getBlockData100(b, rng, x, z, data);
         }
 
         double xx = x / style.getZoom();

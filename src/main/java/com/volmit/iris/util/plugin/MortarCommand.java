@@ -72,7 +72,7 @@ public abstract class MortarCommand implements ICommand {
         }
 
         if (sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds()) {
-            sender.player().getWorld().playSound(sender.player().getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 0.25f, 1.7f);
+            sender.player().playSound(sender.player().getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 0.25f, 1.7f);
         }
 
         return v;

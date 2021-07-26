@@ -44,10 +44,18 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                stack = Math.min(max + 1, stack);
+                if (decorator.isScaleStack()) {
+                    int maxStack = max - height;
+                    stack = (int) Math.ceil((double)maxStack * ((double)stack / 100));
+                } else stack = Math.min(max + 1, stack);
 
                 BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                 BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+
+                if (stack == 1) {
+                    data.set(x, height, z, top);
+                    return;
+                }
 
                 for (int i = 0; i < stack; i++) {
                     if (height - i < 0 || height - i > getEngine().getHeight()) {

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.decorator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.hunk.Hunk;
@@ -44,10 +45,18 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                stack = Math.min(stack, max - height + 2);
+                if (decorator.isScaleStack()) {
+                    int maxStack = max - height;
+                    stack = (int)Math.ceil((double)maxStack * ((double)stack / 100));
+                } else stack = Math.min(stack, max - height);
 
                 BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                 BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+
+                if (stack == 1) {
+                    data.set(x, height, z, top);
+                    return;
+                }
 
                 for (int i = 0; i < stack; i++) {
                     if (height + i > max || height + i > getEngine().getHeight()) {

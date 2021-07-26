@@ -118,10 +118,11 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                             realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
                             output, biome, height, getEngine().getHeight());
                 } else if (height < getDimension().getFluidHeight()) {
-                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight());
+                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight() + 1);
                 }
 
                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
+
 
                 if (cave != null && cave.getDecorators().isNotEmpty()) {
                     for (int k = height; k > 0; k--) {
@@ -131,7 +132,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                         if (solid) {
                             if (emptyFor > 0) {
                                 if (liquid) {
-                                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor);
+                                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor + 1);
                                     getSeaSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
                                 } else {
                                     getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, lastSolid);

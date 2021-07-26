@@ -39,7 +39,7 @@ public class CommandIrisPregen extends MortarCommand {
         setDescription(
                 """
                         Pregen this world with optional parameters:\s
-                        '1k' = 1000 by 1000 blocks, '1c' = 1 by 1 chunks, and '1r' = 32 by 32 chunks.
+                        '1k' = 1000 * 2 by 1000 * 2 blocks, '1c' = 2 by 2 chunks, and '1r' = 64 by 64 chunks.
                         If you are using the console or want to pregen a world you're not in:
                         also specify the name of the world. E.g. /ir pregen 5k world"""
         );
@@ -68,7 +68,7 @@ public class CommandIrisPregen extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("/iris pregen <blocks-wide|stop>");
+            sender.sendMessage("/iris pregen <radius|stop|pause|resume>");
             return true;
         }
 

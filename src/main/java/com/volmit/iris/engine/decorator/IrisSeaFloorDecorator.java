@@ -44,7 +44,7 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                stack = Math.min(stack, max - height + 1);
+                stack = Math.min(stack, max - height + 2);
 
                 BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                 BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());

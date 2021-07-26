@@ -134,7 +134,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                                     getSeaFloorDecorator().decorate(i, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor);
                                     getSeaSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
                                 } else {
-                                    getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, emptyFor);
+                                    getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, lastSolid);
                                     getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
                                 }
                                 emptyFor = 0;

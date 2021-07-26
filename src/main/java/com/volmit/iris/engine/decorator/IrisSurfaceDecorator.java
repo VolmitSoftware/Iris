@@ -77,7 +77,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 }
 
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                stack = Math.min(height - max + 1, stack);
+                stack = Math.min(height - max, stack);
                 BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
                 BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
 

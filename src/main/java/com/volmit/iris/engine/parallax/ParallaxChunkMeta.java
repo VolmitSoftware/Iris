@@ -22,38 +22,60 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 @AllArgsConstructor
 @Data
 public class ParallaxChunkMeta {
+    private static final Gson gson = new Gson();
     public static final Function<CompoundTag, HunkIOAdapter<ParallaxChunkMeta>> adapter = (c) -> new PaletteHunkIOAdapter<>() {
         @Override
         public void write(ParallaxChunkMeta parallaxChunkMeta, DataOutputStream dos) throws IOException {
-            try
-            {
-                dos.writeUTF(new Gson().toJson(parallaxChunkMeta));
-            }
+            dos.writeBoolean(parallaxChunkMeta.updates);
+            dos.writeBoolean(parallaxChunkMeta.generated);
+            dos.writeBoolean(parallaxChunkMeta.tilesGenerated);
+            dos.writeBoolean(parallaxChunkMeta.parallaxGenerated);
+            dos.writeBoolean(parallaxChunkMeta.featureGenerated);
+            dos.writeBoolean(parallaxChunkMeta.objects);
+            dos.writeInt(parallaxChunkMeta.maxObject);
+            dos.writeInt(parallaxChunkMeta.minObject);
+            dos.writeInt(parallaxChunkMeta.count);
+            dos.writeInt(parallaxChunkMeta.features.size());
 
-            catch(Throwable e)
+            for(IrisFeaturePositional i : parallaxChunkMeta.features)
             {
-                IO.writeAll(new File("WTF", UUID.randomUUID().toString() + ".json"), new Gson().toJson(parallaxChunkMeta));
+                dos.writeUTF(gson.toJson(i));
             }
         }
 
         @Override
         public ParallaxChunkMeta read(DataInputStream din) throws IOException {
-            return new Gson().fromJson(din.readUTF(), ParallaxChunkMeta.class);
+            ParallaxChunkMeta pcm = new ParallaxChunkMeta();
+            pcm.setUpdates(din.readBoolean());
+            pcm.setGenerated(din.readBoolean());
+            pcm.setTilesGenerated(din.readBoolean());
+            pcm.setParallaxGenerated(din.readBoolean());
+            pcm.setFeatureGenerated(din.readBoolean());
+            pcm.setObjects(din.readBoolean());
+            pcm.setMaxObject(din.readInt());
+            pcm.setMinObject(din.readInt());
+            pcm.setCount(din.readInt());
+            pcm.setFeatures(new CopyOnWriteArrayList<>());
+            int c = din.readInt();
+
+            for(int i = 0; i < c; i++)
+            {
+                pcm.getFeatures().add(gson.fromJson(din.readUTF(), IrisFeaturePositional.class));
+            }
+
+            return pcm;
         }
     };
 

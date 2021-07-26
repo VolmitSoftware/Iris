@@ -47,7 +47,7 @@ public class ParallaxChunkMeta {
 
             catch(Throwable e)
             {
-                IO.writeAll(new File("WTF", UUID.randomUUID().toString() + ".json"), new Gson().toJson(parallaxChunkMeta));
+                IO.writeAll(new File("WTF", UUID.randomUUID().toString()), new Gson().toJson(parallaxChunkMeta));
             }
         }
 

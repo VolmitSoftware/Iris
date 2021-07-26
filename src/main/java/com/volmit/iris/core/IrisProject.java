@@ -94,10 +94,13 @@ public class IrisProject {
         }));
 
         try {
-            for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
-                Engine e = getActiveProvider().getCompound().getEngine(i);
-                IrisDimension dim = e.getDimension();
-                reports.add(scanForErrors(dim));
+            if(activeProvider != null && activeProvider.getCompound() != null)
+            {
+                for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
+                    Engine e = getActiveProvider().getCompound().getEngine(i);
+                    IrisDimension dim = e.getDimension();
+                    reports.add(scanForErrors(dim));
+                }
             }
         }
 

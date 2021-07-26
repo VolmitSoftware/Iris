@@ -68,7 +68,7 @@ public class CommandIrisPregen extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("/iris pregen <radius|stop|x|pause|resume>");
+            sender.sendMessage("/iris pregen <radius|stop|pause|resume>");
             return true;
         }
 

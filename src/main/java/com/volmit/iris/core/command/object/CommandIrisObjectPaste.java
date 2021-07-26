@@ -49,9 +49,9 @@ public class CommandIrisObjectPaste extends MortarCommand {
             IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for objects while in an Iris world.");
-            } else if(args.length == 0) {
+            } else if (args.length == 0) {
                 list.add(data.getObjectLoader().getPossibleKeys());
-            }else if(args.length == 1) {
+            } else {
                 list.add(data.getObjectLoader().getPossibleKeys(args[0]));
             }
         }
@@ -65,7 +65,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
         }
 
         if (!sender.isPlayer()) {
-            sender.sendMessage("You don't have a wand");
+            sender.sendMessage("Only players can spawn objects with this command");
             return true;
         }
 
@@ -77,13 +77,12 @@ public class CommandIrisObjectPaste extends MortarCommand {
         Player p = sender.player();
         IrisObject obj = IrisDataManager.loadAnyObject(args[0]);
 
-        if (obj == null) {
+        if (obj == null || obj.getLoadFile() == null) {
 
             sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
             return true;
         }
 
-        File file = obj.getLoadFile();
         boolean intoWand = false;
 
         for (String i : args) {
@@ -93,31 +92,23 @@ public class CommandIrisObjectPaste extends MortarCommand {
             }
         }
 
-        if (file == null || !file.exists()) {
-            sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
-            return true;
-        }
-
         ItemStack wand = sender.player().getInventory().getItemInMainHand();
 
-        IrisObject o = IrisDataManager.loadAnyObject(args[0]);
-        if (o == null) {
-            sender.sendMessage("Error, cant find");
-            return true;
-        }
-        sender.sendMessage("Loaded " + "objects/" + args[0] + ".iob");
+        Iris.debug("Loaded object for placement: " + "objects/" + args[0] + ".iob");
 
         sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
         Location block = sender.player().getTargetBlock(null, 256).getLocation().clone().add(0, 1, 0);
 
+        WandManager.pasteSchematic(obj, block);
+
         if (intoWand && WandManager.isWand(wand)) {
-            wand = WandManager.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1, o.getH(), o.getD() - 1), block.clone().subtract(o.getCenter()));
+            wand = WandManager.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1, obj.getH(), obj.getD() - 1), block.clone().subtract(obj.getCenter()));
             p.getInventory().setItemInMainHand(wand);
             sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
+        } else {
+            sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
         }
 
-        WandManager.pasteSchematic(o, block);
-        sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
 
         return true;
     }

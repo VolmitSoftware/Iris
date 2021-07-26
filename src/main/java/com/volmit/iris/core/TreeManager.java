@@ -12,6 +12,7 @@ import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Vector2d;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -86,6 +87,10 @@ public class TreeManager implements Listener {
         // Get object from placer
         IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
 
+        // List of new blocks
+        List<BlockState> blockStateList = new KList<>();
+        saplingPlane.forEach(b -> blockStateList.add(b.getState()));
+
         // Create object placer
         IObjectPlacer placer = new IObjectPlacer() {
 
@@ -102,12 +107,9 @@ public class TreeManager implements Listener {
             @Override
             public void set(int x, int y, int z, BlockData d) {
                 Block b = event.getWorld().getBlockAt(x, y, z);
-
-                // Set the block
-                b.setBlockData(d, false);
-
-                // Tell bukkit what you're doing here
-                event.getBlocks().add(b.getState());
+                BlockState state = b.getState();
+                state.setBlockData(d);
+                blockStateList.add(b.getState());
             }
 
             @Override
@@ -156,15 +158,6 @@ public class TreeManager implements Listener {
 
         // TODO: Prevent placing object when overriding blocks
 
-        // Cancel the vanilla placement
-        event.setCancelled(true);
-
-        // Send out a new event
-        List<BlockState> blockStateList = new KList<>();
-        saplingPlane.forEach(b -> blockStateList.add(b.getState()));
-        StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
-        Bukkit.getServer().getPluginManager().callEvent(iGrow);
-
         // Place the object with the placer
         object.place(
                 saplingPlane.getCenter(),
@@ -173,6 +166,24 @@ public class TreeManager implements Listener {
                 RNG.r,
                 Objects.requireNonNull(worldAccess).getData()
         );
+
+        // Cancel the vanilla placement
+        event.setCancelled(true);
+
+        // Queue sync task
+        J.s(() -> {
+
+            // Send out a new event
+            StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
+            Bukkit.getServer().getPluginManager().callEvent(iGrow);
+
+            // Check if blocks need to be updated
+            if(!iGrow.isCancelled()){
+                for (BlockState block : iGrow.getBlocks()) {
+                   block.update(true, false);
+                }
+            }
+        });
     }
 
     /**

@@ -200,10 +200,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    ConcurrentLinkedHashMap<Long, KList<IrisFeaturePositional>> getFeatureCache();
-
-    IrisLock getFeatureLock();
-
     @BlockCoordinates
     default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
         if (!getEngine().getDimension().hasFeatures(getEngine())) {

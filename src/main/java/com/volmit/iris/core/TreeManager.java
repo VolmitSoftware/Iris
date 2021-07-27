@@ -64,12 +64,10 @@ public class TreeManager implements Listener {
      * @param event Checks the given event for sapling overrides
      */
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onStructureGrowEvent(StructureGrowEvent event) {
+    public void on(StructureGrowEvent event) {
         if (block || event.isCancelled()) {
             return;
         }
-        Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> blockData instanceof Sapling, event.getWorld());
-
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
         if (!IrisToolbelt.isIrisWorld(event.getWorld())) {
@@ -89,8 +87,10 @@ public class TreeManager implements Listener {
             return;
         }
 
+        BlockData first = event.getLocation().getBlock().getBlockData().clone();
+        Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> blockData instanceof Sapling && blockData.getMaterial().equals(first.getMaterial()), event.getWorld());
+
         Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
-        Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> event.getLocation().getBlock().getBlockData().equals(blockData), event.getWorld());
         Iris.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
         IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
 
@@ -264,6 +264,9 @@ public class TreeManager implements Listener {
             a.max(blockPosition);
             b.min(blockPosition);
         }
+
+        Iris.debug("Blocks: " + blockPositions.size());
+        Iris.debug("Min: " + a.toString() + " Max: " + b.toString());
 
         // Create a cuboid with the size calculated before
         Cuboid cuboid = new Cuboid(a.toBlock(world).getLocation(), b.toBlock(world).getLocation());

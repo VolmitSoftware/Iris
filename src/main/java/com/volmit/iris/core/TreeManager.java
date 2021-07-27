@@ -8,7 +8,6 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
@@ -16,7 +15,6 @@ import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.Structure;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
@@ -36,18 +34,19 @@ public class TreeManager implements Listener {
         Iris.instance.registerListener(this);
     }
 
-    /**This function does the following
+    /**
+     * This function does the following
      * <br>1. Is the sapling growing in an Iris world? No -> exit</br>
      * <br>2. Is the Iris world accessible? No -> exit</br>
      * <br>3. Is the sapling overwriting setting on in that dimension? No -> exit</br>
      * <br>4. Check biome, region and dimension for overrides for that sapling type -> Found -> use</br>
      * <br>5. Exit if none are found, cancel event if one or more are.</br>
+     *
      * @param event Checks the given event for sapling overrides
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onStructureGrowEvent(StructureGrowEvent event) {
-        if(block || event.isCancelled())
-        {
+        if (block || event.isCancelled()) {
             return;
         }
 
@@ -115,7 +114,7 @@ public class TreeManager implements Listener {
 
             @Override
             public boolean isSolid(int x, int y, int z) {
-                return get(x,y,z).getMaterial().isSolid();
+                return get(x, y, z).getMaterial().isSolid();
             }
 
             @Override
@@ -162,9 +161,9 @@ public class TreeManager implements Listener {
             Bukkit.getServer().getPluginManager().callEvent(iGrow);
             block = false;
 
-            if(!iGrow.isCancelled()){
+            if (!iGrow.isCancelled()) {
                 for (BlockState block : iGrow.getBlocks()) {
-                   block.update(true, false);
+                    block.update(true, false);
                 }
             }
         });
@@ -172,17 +171,18 @@ public class TreeManager implements Listener {
 
     /**
      * Finds a single object placement (which may contain more than one object) for the requirements species, location & size
+     *
      * @param worldAccess The world to access (check for biome, region, dimension, etc)
-     * @param location The location of the growth event (For biome/region finding)
-     * @param type The bukkit TreeType to match
-     * @param size The size of the sapling area
+     * @param location    The location of the growth event (For biome/region finding)
+     * @param type        The bukkit TreeType to match
+     * @param size        The size of the sapling area
      * @return An object placement which contains the matched tree, or null if none were found / it's disabled.
      */
     private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, Location location, TreeType type, IrisTreeSize size) {
 
         KList<IrisObjectPlacement> placements = new KList<>();
         KList<IrisObjectPlacement> allObjects = new KList<>();
-        boolean isUseAll = ((Engine)worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
+        boolean isUseAll = ((Engine) worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
         IrisBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
@@ -190,7 +190,7 @@ public class TreeManager implements Listener {
         allObjects.addAll(biome.getObjects());
 
         // Add more or find any in the region
-        if (isUseAll || placements.isEmpty()){
+        if (isUseAll || placements.isEmpty()) {
             IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
             allObjects.addAll(region.getObjects());
@@ -208,9 +208,10 @@ public class TreeManager implements Listener {
 
     /**
      * Filters out mismatches and returns matches
+     *
      * @param objects The object placements to check
-     * @param size The size of the sapling area to filter with
-     * @param type The type of the tree to filter with
+     * @param size    The size of the sapling area to filter with
+     * @param type    The type of the tree to filter with
      * @return A list of objectPlacements that matched. May be empty.
      */
     private KList<IrisObjectPlacement> matchObjectPlacements(KList<IrisObjectPlacement> objects, IrisTreeSize size, TreeType type) {
@@ -226,7 +227,8 @@ public class TreeManager implements Listener {
 
     /**
      * Get the Cuboid of sapling sizes at a location & blockData predicate
-     * @param at this location
+     *
+     * @param at    this location
      * @param valid with this blockData predicate
      * @param world the world to check in
      * @return A cuboid containing only saplings
@@ -238,8 +240,7 @@ public class TreeManager implements Listener {
         BlockPosition b = new BlockPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 
         // Maximise the block position in x and z to get max cuboid bounds
-        for(BlockPosition blockPosition : blockPositions)
-        {
+        for (BlockPosition blockPosition : blockPositions) {
             a.max(blockPosition);
             b.min(blockPosition);
         }
@@ -249,17 +250,12 @@ public class TreeManager implements Listener {
         boolean cuboidIsValid = true;
 
         // Loop while the cuboid is larger than 2
-        while(Math.min(cuboid.getSizeX(), cuboid.getSizeZ()) > 0)
-        {
+        while (Math.min(cuboid.getSizeX(), cuboid.getSizeZ()) > 0) {
             checking:
-            for(int i = cuboid.getLowerX(); i < cuboid.getUpperX(); i++)
-            {
-                for(int j = cuboid.getLowerY(); j < cuboid.getUpperY(); j++)
-                {
-                    for(int k = cuboid.getLowerZ(); k < cuboid.getUpperZ(); k++)
-                    {
-                        if(!blockPositions.contains(new BlockPosition(i,j,k)))
-                        {
+            for (int i = cuboid.getLowerX(); i < cuboid.getUpperX(); i++) {
+                for (int j = cuboid.getLowerY(); j < cuboid.getUpperY(); j++) {
+                    for (int k = cuboid.getLowerZ(); k < cuboid.getUpperZ(); k++) {
+                        if (!blockPositions.contains(new BlockPosition(i, j, k))) {
                             cuboidIsValid = false;
                             break checking;
                         }
@@ -268,8 +264,7 @@ public class TreeManager implements Listener {
             }
 
             // Return this cuboid if it's valid
-            if(cuboidIsValid)
-            {
+            if (cuboidIsValid) {
                 return cuboid;
             }
 
@@ -283,15 +278,15 @@ public class TreeManager implements Listener {
 
     /**
      * Grows the blockPosition list by means of checking neighbours in
-     * @param world the world to check in
+     *
+     * @param world  the world to check in
      * @param center the location of this position
-     * @param valid validation on blockData to check block with
-     * @param l list of block positions to add new neighbors too
+     * @param valid  validation on blockData to check block with
+     * @param l      list of block positions to add new neighbors too
      */
     private void grow(World world, BlockPosition center, Predicate<BlockData> valid, KList<BlockPosition> l) {
         // Make sure size is less than 50, the block to check isn't already in, and make sure the blockData still matches
-        if(l.size() <= 50 && !l.contains(center) && valid.test(center.toBlock(world).getBlockData()))
-        {
+        if (l.size() <= 50 && !l.contains(center) && valid.test(center.toBlock(world).getBlockData())) {
             l.add(center);
             grow(world, center.add(1, 0, 0), valid, l);
             grow(world, center.add(-1, 0, 0), valid, l);

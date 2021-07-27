@@ -26,6 +26,7 @@ import com.volmit.iris.engine.noise.FastNoiseDouble;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisCaveLayer;
 import com.volmit.iris.engine.object.common.CaveResult;
+import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -54,39 +55,44 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
+        BurstExecutor e = getEngine().burst().burst(a.getWidth());
         for (int i = 0; i < a.getWidth(); i++) {
-            for (int j = 0; j < a.getDepth(); j++) {
-                KList<CaveResult> caves = genCaves(x + i, z + j, i, j, a);
-                int he = (int) Math.round(getComplex().getHeightStream().get(x + i, z + j));
-                if (caves != null && caves.isNotEmpty()) {
-                    IrisBiome cave = getComplex().getCaveBiomeStream().get(x + i, z + j);
+            int finalI = i;
+            e.queue(() -> {
+                for (int j = 0; j < a.getDepth(); j++) {
+                    KList<CaveResult> caves = genCaves(x + finalI, z + j, finalI, j, a);
+                    int he = (int) Math.round(getComplex().getHeightStream().get(x + finalI, z + j));
+                    if (caves != null && caves.isNotEmpty()) {
+                        IrisBiome cave = getComplex().getCaveBiomeStream().get(x + finalI, z + j);
 
-                    if (cave == null) {
-                        continue;
-                    }
-
-                    for (CaveResult cl : caves) {
-                        if (cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0) {
+                        if (cave == null) {
                             continue;
                         }
 
-                        KList<BlockData> floor = cave.generateLayers(x + i, z + j, rng, cl.getFloor(), cl.getFloor(), getData(), getComplex());
-                        KList<BlockData> ceiling = cave.generateLayers(x + i + 656, z + j - 656, rng,
-                                he - cl.getCeiling(),
-                                he - cl.getCeiling(), getData(), getComplex());
+                        for (CaveResult cl : caves) {
+                            if (cl.getFloor() < 0 || cl.getFloor() > getEngine().getHeight() || cl.getCeiling() > getEngine().getHeight() || cl.getCeiling() < 0) {
+                                continue;
+                            }
 
-                        for (int g = 0; g < floor.size(); g++) {
-                            a.set(i, cl.getFloor() - g, j, floor.get(g));
-                        }
+                            KList<BlockData> floor = cave.generateLayers(x + finalI, z + j, rng, cl.getFloor(), cl.getFloor(), getData(), getComplex());
+                            KList<BlockData> ceiling = cave.generateLayers(x + finalI + 656, z + j - 656, rng,
+                                    he - cl.getCeiling(),
+                                    he - cl.getCeiling(), getData(), getComplex());
 
-                        for (int g = ceiling.size() - 1; g > 0; g--) {
-                            a.set(i, cl.getCeiling() + g, j, ceiling.get(g));
+                            for (int g = 0; g < floor.size(); g++) {
+                                a.set(finalI, cl.getFloor() - g, j, floor.get(g));
+                            }
+
+                            for (int g = ceiling.size() - 1; g > 0; g--) {
+                                a.set(finalI, cl.getCeiling() + g, j, ceiling.get(g));
+                            }
                         }
                     }
                 }
-            }
+            });
         }
 
+        e.complete();
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 

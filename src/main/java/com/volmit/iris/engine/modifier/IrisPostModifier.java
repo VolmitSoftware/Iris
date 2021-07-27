@@ -47,20 +47,33 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor e = getEngine().burst().burst(output.getWidth());
         int i;
         AtomicInteger j = new AtomicInteger();
-        for (i = 0; i < output.getWidth(); i++) {
-            int finalI = i;
-            e.queue(() -> {
-                for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
-                    post(finalI, j.get(), output, finalI + x, j.get() + z);
-                }
-            });
+        if(multicore)
+        {
+            BurstExecutor e = getEngine().burst().burst(output.getWidth());
+            for (i = 0; i < output.getWidth(); i++) {
+                int finalI = i;
+                e.queue(() -> {
+                    for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                        post(finalI, j.get(), output, finalI + x, j.get() + z);
+                    }
+                });
+            }
+            e.complete();
         }
-        e.complete();
+
+        else
+        {
+            for (i = 0; i < output.getWidth(); i++) {
+                for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                    post(i, j.get(), output, i + x, j.get() + z);
+                }
+            }
+        }
+
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 

@@ -46,7 +46,7 @@ public class IrisRavineModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
         if (!getDimension().isRavines()) {
             return;
         }

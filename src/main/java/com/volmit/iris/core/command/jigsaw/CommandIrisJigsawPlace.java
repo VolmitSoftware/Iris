@@ -46,9 +46,9 @@ public class CommandIrisJigsawPlace extends MortarCommand {
             IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for jigsaw structures while in an Iris world.");
-            } else if(args.length == 0) {
+            } else if (args.length == 0) {
                 list.add(data.getJigsawStructureLoader().getPossibleKeys());
-            }else if(args.length == 1) {
+            } else if (args.length == 1) {
                 list.add(data.getJigsawStructureLoader().getPossibleKeys(args[0]));
             }
         }

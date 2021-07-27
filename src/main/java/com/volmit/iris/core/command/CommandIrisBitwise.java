@@ -20,12 +20,8 @@ package com.volmit.iris.core.command;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
-
-import java.util.Arrays;
 
 public class CommandIrisBitwise extends MortarCommand {
     public CommandIrisBitwise() {
@@ -43,19 +39,15 @@ public class CommandIrisBitwise extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        if(args.length != 3)
-        {
+        if (args.length != 3) {
             sender.sendMessage("/iris bw " + getArgsUsage());
         }
 
-        try
-        {
-            if(args[0].contains(","))
-            {
+        try {
+            if (args[0].contains(",")) {
                 KList<Integer> r = new KList<>();
 
-                for(String i : args[0].split("\\Q,\\E"))
-                {
+                for (String i : args[0].split("\\Q,\\E")) {
                     int a = Integer.parseInt(i);
                     String op = args[1];
                     int b = Integer.parseInt(args[2]);
@@ -75,15 +67,11 @@ public class CommandIrisBitwise extends MortarCommand {
                             }
                         }
                     }
-                    ;
 
                     r.add(v);
                     sender.sendMessage("Result: " + r.toString(","));
                 }
-            }
-
-            else
-            {
+            } else {
                 int a = Integer.parseInt(args[0]);
                 String op = args[1];
                 int b = Integer.parseInt(args[2]);
@@ -103,14 +91,10 @@ public class CommandIrisBitwise extends MortarCommand {
                         }
                     }
                 }
-                ;
 
                 sender.sendMessage("Result: " + v);
             }
-        }
-
-        catch(Throwable ignored)
-        {
+        } catch (Throwable ignored) {
 
         }
 

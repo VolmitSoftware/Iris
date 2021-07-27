@@ -87,9 +87,8 @@ public class IrisFeature {
         return actualRadius.aquire(() -> {
             double o = 0;
 
-            if(fractureRadius != null)
-            {
-                o+=fractureRadius.getMaxFractureDistance();
+            if (fractureRadius != null) {
+                o += fractureRadius.getMaxFractureDistance();
             }
 
             return o + IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius());

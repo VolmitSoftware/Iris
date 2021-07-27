@@ -33,13 +33,13 @@ import org.jetbrains.annotations.NotNull;
 @Builder
 @AllArgsConstructor
 public class MCATerrainChunk implements TerrainChunk {
-    private NBTWorld writer;
-    private BiomeBaseInjector injector;
-    private int ox;
-    private int oz;
-    private int minHeight;
-    private int maxHeight;
-    private Chunk mcaChunk;
+    private final NBTWorld writer;
+    private final BiomeBaseInjector injector;
+    private final int ox;
+    private final int oz;
+    private final int minHeight;
+    private final int maxHeight;
+    private final Chunk mcaChunk;
 
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {

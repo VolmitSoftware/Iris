@@ -100,9 +100,8 @@ public class NibbleArray implements Writable {
         }
     }
 
-    public byte get(int x, int y, int z)
-    {
-        return get(index(x,y,z));
+    public byte get(int x, int y, int z) {
+        return get(index(x, y, z));
     }
 
     public int index(int x, int y, int z) {
@@ -111,9 +110,8 @@ public class NibbleArray implements Writable {
 
     private transient int bitIndex, byteIndex, bitInByte;
 
-    public void set(int x, int y, int z, int nibble)
-    {
-        set(index(x,y,z), nibble);
+    public void set(int x, int y, int z, int nibble) {
+        set(index(x, y, z), nibble);
     }
 
     public void set(int index, int nibble) {

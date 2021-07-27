@@ -79,7 +79,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                 if (decorator.isScaleStack()) {
                     int maxStack = max - height;
-                    stack = (int) Math.ceil((double)maxStack * ((double)stack / 100));
+                    stack = (int) Math.ceil((double) maxStack * ((double) stack / 100));
                 } else stack = Math.min(height - max, stack);
 
                 if (stack == 1) {

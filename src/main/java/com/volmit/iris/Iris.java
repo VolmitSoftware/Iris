@@ -565,7 +565,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
         if (IrisSettings.get().getGeneral().isDebug()) {
-            File f = instance.getDataFile("debug", "chunk-errors", "chunk."+ x + "." + z + ".txt");
+            File f = instance.getDataFile("debug", "chunk-errors", "chunk." + x + "." + z + ".txt");
 
             if (!f.exists()) {
                 J.attempt(() -> {

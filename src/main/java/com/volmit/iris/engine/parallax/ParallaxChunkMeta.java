@@ -25,6 +25,7 @@ import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -49,8 +50,7 @@ public class ParallaxChunkMeta {
             dos.writeInt(parallaxChunkMeta.count);
             dos.writeInt(parallaxChunkMeta.features.size());
 
-            for(IrisFeaturePositional i : parallaxChunkMeta.features)
-            {
+            for (IrisFeaturePositional i : parallaxChunkMeta.features) {
                 dos.writeUTF(gson.toJson(i));
             }
         }
@@ -70,8 +70,7 @@ public class ParallaxChunkMeta {
             pcm.setFeatures(new CopyOnWriteArrayList<>());
             int c = din.readInt();
 
-            for(int i = 0; i < c; i++)
-            {
+            for (int i = 0; i < c; i++) {
                 pcm.getFeatures().add(gson.fromJson(din.readUTF(), IrisFeaturePositional.class));
             }
 

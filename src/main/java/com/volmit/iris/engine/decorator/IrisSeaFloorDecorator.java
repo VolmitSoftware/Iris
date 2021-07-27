@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.hunk.Hunk;
@@ -47,7 +46,7 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                 if (decorator.isScaleStack()) {
                     int maxStack = max - height;
-                    stack = (int)Math.ceil((double)maxStack * ((double)stack / 100));
+                    stack = (int) Math.ceil((double) maxStack * ((double) stack / 100));
                 } else stack = Math.min(stack, max - height);
 
                 if (stack == 1) {

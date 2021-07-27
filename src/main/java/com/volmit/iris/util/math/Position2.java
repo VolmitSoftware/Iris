@@ -18,11 +18,6 @@
 
 package com.volmit.iris.util.math;
 
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-
 public class Position2 {
     private int x;
     private int z;

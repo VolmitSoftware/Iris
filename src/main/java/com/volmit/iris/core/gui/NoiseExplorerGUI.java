@@ -19,8 +19,6 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.hunk.storage.ArrayHunk;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.engine.parallel.BurstExecutor;
@@ -30,7 +28,6 @@ import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.scheduling.GroupedExecutor;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
@@ -179,29 +176,25 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
             }
 
             if (img == null) {
-                img = new BufferedImage(w/accuracy, h/accuracy, BufferedImage.TYPE_INT_RGB);
+                img = new BufferedImage(w / accuracy, h / accuracy, BufferedImage.TYPE_INT_RGB);
             }
 
             BurstExecutor e = gx.burst(w);
 
-            for (int x = 0; x < w/accuracy; x ++) {
+            for (int x = 0; x < w / accuracy; x++) {
                 int xx = x;
 
                 int finalAccuracy = accuracy;
                 e.queue(() -> {
-                    for (int z = 0; z < h/finalAccuracy; z++) {
-                        double n = generator != null ? generator.apply(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp) : cng.noise(((xx*finalAccuracy) * ascale) + oxp, ((z*finalAccuracy) * ascale) + ozp);
+                    for (int z = 0; z < h / finalAccuracy; z++) {
+                        double n = generator != null ? generator.apply(((xx * finalAccuracy) * ascale) + oxp, ((z * finalAccuracy) * ascale) + ozp) : cng.noise(((xx * finalAccuracy) * ascale) + oxp, ((z * finalAccuracy) * ascale) + ozp);
                         n = n > 1 ? 1 : n < 0 ? 0 : n;
 
-                        try
-                        {
+                        try {
                             Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
                             int rgb = color.getRGB();
                             img.setRGB(xx, z, rgb);
-                        }
-
-                        catch(Throwable xxx)
-                        {
+                        } catch (Throwable xxx) {
 
                         }
                     }
@@ -209,7 +202,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
             }
 
             e.complete(1000);
-            gg.drawImage(img, 0, 0, getParent().getWidth()*accuracy, getParent().getHeight()*accuracy, (img, infoflags, x, y, width, height) -> true);
+            gg.drawImage(img, 0, 0, getParent().getWidth() * accuracy, getParent().getHeight() * accuracy, (img, infoflags, x, y, width, height) -> true);
         }
 
         p.end();

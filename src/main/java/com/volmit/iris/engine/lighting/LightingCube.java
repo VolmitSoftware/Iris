@@ -24,7 +24,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.ChunkSection;
 import com.bergerkiller.generated.net.minecraft.server.NibbleArrayHandle;
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.data.NibbleArray;
 
 import java.util.concurrent.CompletableFuture;
 

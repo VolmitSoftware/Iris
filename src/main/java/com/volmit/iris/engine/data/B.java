@@ -144,8 +144,7 @@ public class B {
 
             BlockData bx = Bukkit.createBlockData(ix);
 
-            if(bx instanceof Leaves)
-            {
+            if (bx instanceof Leaves) {
                 ((Leaves) bx).setPersistent(true);
             }
 

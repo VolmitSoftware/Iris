@@ -21,7 +21,6 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
@@ -29,12 +28,10 @@ import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
-import com.volmit.iris.engine.data.mca.MCAUtil;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.lighting.LightingChunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
@@ -61,7 +58,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -320,8 +316,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 //                placeStrongholds(world.realWorld());
 //            }
 
-            if(isStudio())
-            {
+            if (isStudio()) {
                 dim.installDataPack(() -> data, Iris.instance.getDatapacksFolder());
             }
         } catch (Throwable e) {
@@ -458,8 +453,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     @NotNull
     @Override
     public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
-        try
-        {
+        try {
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
@@ -477,10 +471,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             }
 
             return tc.getRaw();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
@@ -488,10 +479,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             ChunkData d = Bukkit.createChunkData(world);
 
-            for(int i = 0; i < 16; i++)
-            {
-                for(int j = 0; j < 16; j++)
-                {
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
                     d.setBlock(i, 0, j, ERROR_BLOCK);
                 }
             }
@@ -542,8 +531,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void directWriteChunk(IrisWorld w, int x, int z, NBTWorld writer) {
-        try
-        {int ox = x << 4;
+        try {
+            int ox = x << 4;
             int oz = z << 4;
             com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
             generateChunkRawData(w, x, z, MCATerrainChunk.builder()
@@ -552,20 +541,15 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build()).run();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "MCA");
             Iris.error("======================================");
             com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
             CompoundTag c = NBTWorld.getCompound(ERROR_BLOCK);
-            for(int i = 0; i < 16; i++)
-            {
-                for(int j = 0; j < 16; j++)
-                {
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
                     chunk.setBlockStateAt(i, 0, j, c, false);
                 }
             }

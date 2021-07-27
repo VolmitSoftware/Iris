@@ -55,28 +55,21 @@ public class CommandIrisVerify extends MortarCommand {
             File r = new File(folder, "region");
             BurstExecutor e = MultiBurst.burst.burst(r.listFiles().length);
             AtomicInteger f = new AtomicInteger(0);
-            for(File i : r.listFiles())
-            {
+            for (File i : r.listFiles()) {
                 e.queue(() -> {
                     MCAFile file = null;
                     try {
                         file = MCAUtil.read(i);
                         int rx = Integer.valueOf(i.getName().split("\\Q.\\E")[1]);
                         int rz = Integer.valueOf(i.getName().split("\\Q.\\E")[2]);
-                        for(int j = 0; j < 32; j++)
-                        {
-                            for(int k = 0; k < 32; k++)
-                            {
+                        for (int j = 0; j < 32; j++) {
+                            for (int k = 0; k < 32; k++) {
                                 f.incrementAndGet();
                                 Chunk c = file.getChunk(j, k);
-                                if(c == null)
-                                {
-                                    sender.sendMessage("Found Missing Chunk " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
-                                }
-
-                                else if(c.sectionCount() == 0)
-                                {
-                                    sender.sendMessage("Found Missing Chunk (valid, but 0 sections) " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5)<<4)+(j<<4)) + "," + (((rz << 5)<<4)+(k<<4)));
+                                if (c == null) {
+                                    sender.sendMessage("Found Missing Chunk " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5) << 4) + (j << 4)) + "," + (((rz << 5) << 4) + (k << 4)));
+                                } else if (c.sectionCount() == 0) {
+                                    sender.sendMessage("Found Missing Chunk (valid, but 0 sections) " + i.getName() + ", chunk #" + j + "," + k + " (see " + (((rx << 5) << 4) + (j << 4)) + "," + (((rz << 5) << 4) + (k << 4)));
                                 }
                             }
                         }

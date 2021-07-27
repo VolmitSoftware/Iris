@@ -41,12 +41,10 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.lumine.xikage.mythicmobs.utils.serialize.ChunkPosition;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
@@ -572,7 +570,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement) {
-        placing: for (int i = 0; i < objectPlacement.getDensity(); i++) {
+        placing:
+        for (int i = 0; i < objectPlacement.getDensity(); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
                 return;
@@ -603,10 +602,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
                 f.setStrength(1D);
 
-                for(IrisFeaturePositional j : rw.getFeatures())
-                {
-                    if(j.getX() == xx && j.getZ() == zz)
-                    {
+                for (IrisFeaturePositional j : rw.getFeatures()) {
+                    if (j.getX() == xx && j.getZ() == zz) {
                         continue placing;
                     }
                 }

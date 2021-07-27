@@ -32,10 +32,9 @@ public class INMS {
     //@builder
     private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
             .qput("v1_17_R1", NMSBinding17_1.class)
-            .qput("v1_16_R3", NMSBinding16_3 .class)
+            .qput("v1_16_R3", NMSBinding16_3.class)
             .qput("v1_16_R2", NMSBinding16_2.class)
-            .qput("v1_16_R1", NMSBinding16_1.class)
-            ;
+            .qput("v1_16_R1", NMSBinding16_1.class);
     //@done
     private static final INMSBinding binding = bind();
 

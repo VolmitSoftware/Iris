@@ -39,7 +39,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Data
 public class IrisComplex implements DataProvider {
@@ -117,8 +116,7 @@ public class IrisComplex implements DataProvider {
         generators = new KList<>();
         focus = engine.getFocus();
 
-        if(focus != null)
-        {
+        if (focus != null) {
             focus.setInferredType(InferredType.LAND);
         }
 
@@ -216,31 +214,27 @@ public class IrisComplex implements DataProvider {
         });
 
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                b -> focus)).convertAware2D((b, x,z) -> {
-                    for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
-                    {
-                        IrisBiome bx = i.filter(x, z, b, rng);
+                b -> focus)).convertAware2D((b, x, z) -> {
+            for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
+                IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if(bx != null)
-                        {
-                            bx.setInferredType(b.getInferredType());
-                            return bx;
-                        }
-                    }
+                if (bx != null) {
+                    bx.setInferredType(b.getInferredType());
+                    return bx;
+                }
+            }
 
-                    return b;
-                })
+            return b;
+        })
                 .cache2D(cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),
                                 regionStream.get(x, z), x, z, fluidHeight))
-                .convertAware2D((b, x,z) -> {
-                    for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
-                    {
+                .convertAware2D((b, x, z) -> {
+                    for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
                         IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if(bx != null)
-                        {
+                        if (bx != null) {
                             bx.setInferredType(b.getInferredType());
                             return bx;
                         }

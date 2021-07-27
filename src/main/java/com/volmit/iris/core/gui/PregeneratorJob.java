@@ -48,14 +48,14 @@ public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
     private JFrame frame;
     private final PregenTask task;
-    private boolean saving;
-    private KList<Consumer<Double>> onProgress = new KList<>();
-    private KList<Runnable> whenDone = new KList<>();
+    private final boolean saving;
+    private final KList<Consumer<Double>> onProgress = new KList<>();
+    private final KList<Runnable> whenDone = new KList<>();
     private final IrisPregenerator pregenerator;
     private PregenRenderer renderer;
     private String[] info;
-    private Position2 min;
-    private Position2 max;
+    private final Position2 min;
+    private final Position2 max;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method) {
         instance = this;

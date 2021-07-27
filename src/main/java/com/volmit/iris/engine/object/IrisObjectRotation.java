@@ -64,8 +64,7 @@ public class IrisObjectRotation {
     }
 
     public IrisObject rotateCopy(IrisObject e) {
-        if(e == null)
-        {
+        if (e == null) {
             return null;
         }
 

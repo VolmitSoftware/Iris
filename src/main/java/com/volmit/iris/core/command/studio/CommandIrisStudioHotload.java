@@ -63,12 +63,12 @@ public class CommandIrisStudioHotload extends MortarCommand {
         }
 
         IrisAccess worldAccess = IrisWorlds.access(world);
-        if (worldAccess == null){
+        if (worldAccess == null) {
             sender.sendMessage("Could not gain access to the world you are in");
         } else {
             worldAccess.hotload();
         }
-        
+
         return true;
     }
 

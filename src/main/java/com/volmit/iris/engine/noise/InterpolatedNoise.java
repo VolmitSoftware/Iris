@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.noise;
 
-import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.util.function.NoiseProvider;
@@ -40,16 +39,15 @@ public class InterpolatedNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double z) {
-        return IrisInterpolation.getNoise(method, (int)x, (int)z, 32, p);
+        return IrisInterpolation.getNoise(method, (int) x, (int) z, 32, p);
     }
 
     @Override
     public double noise(double x, double y, double z) {
-        if(z == 0)
-        {
+        if (z == 0) {
             return noise(x, y);
         }
 
-        return IrisInterpolation.getNoise(method, (int)x, (int)z, 32, p);
+        return IrisInterpolation.getNoise(method, (int) x, (int) z, 32, p);
     }
 }

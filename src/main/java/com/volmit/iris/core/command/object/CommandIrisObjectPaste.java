@@ -33,8 +33,6 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.File;
-
 public class CommandIrisObjectPaste extends MortarCommand {
     public CommandIrisObjectPaste() {
         super("paste", "pasta", "place", "p");

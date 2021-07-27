@@ -38,7 +38,6 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.WorldCreator;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 /**

@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;

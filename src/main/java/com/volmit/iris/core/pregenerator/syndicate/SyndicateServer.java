@@ -35,15 +35,15 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SyndicateServer extends Thread implements PregenListener {
-    private int port;
-    private String password;
+    private final int port;
+    private final String password;
     private boolean busy;
-    private int tc;
+    private final int tc;
     private HeadlessGenerator generator;
-    private ServerSocket server;
-    private File cache;
+    private final ServerSocket server;
+    private final File cache;
     private UUID currentId = null;
-    private AtomicInteger g = new AtomicInteger(0);
+    private final AtomicInteger g = new AtomicInteger(0);
     private File lastGeneratedRegion = null;
 
     public SyndicateServer(File cache, int port, String password, int tc) throws IOException {
@@ -115,7 +115,7 @@ public class SyndicateServer extends Thread implements PregenListener {
             fos.close();
             ZipUtil.unpack(cacheload, cachestore);
             cacheload.deleteOnExit();
-            HeadlessWorld w = new HeadlessWorld("turbo/" + id.toString(), ((SyndicateInstallPack) command).getDimension(), ((SyndicateInstallPack) command).getSeed());
+            HeadlessWorld w = new HeadlessWorld("turbo/" + id, ((SyndicateInstallPack) command).getDimension(), ((SyndicateInstallPack) command).getSeed());
             w.setStudio(true);
             generator = w.generate();
             return new SyndicateOK();

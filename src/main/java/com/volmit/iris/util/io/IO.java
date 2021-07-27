@@ -323,9 +323,7 @@ public class IO {
     public static void writeAll(File f, Object c) throws IOException {
         try {
             f.getParentFile().mkdirs();
-        }
-        catch(Throwable ignored)
-        {
+        } catch (Throwable ignored) {
 
         }
 

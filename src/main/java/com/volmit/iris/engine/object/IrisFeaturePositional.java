@@ -22,8 +22,6 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.M;
@@ -123,12 +121,9 @@ public class IrisFeaturePositional {
         return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z, rng));
     }
 
-    public IrisBiome filter(double x, double z, IrisBiome biome, RNG rng)
-    {
-        if(getFeature().getCustomBiome() != null)
-        {
-            if(getStrength(x, z, rng) >= getFeature().getBiomeStrengthThreshold())
-            {
+    public IrisBiome filter(double x, double z, IrisBiome biome, RNG rng) {
+        if (getFeature().getCustomBiome() != null) {
+            if (getStrength(x, z, rng) >= getFeature().getBiomeStrengthThreshold()) {
                 IrisBiome b = biome.getLoader().getBiomeLoader().load(getFeature().getCustomBiome());
                 b.setInferredType(biome.getInferredType());
                 return b;
@@ -158,16 +153,16 @@ public class IrisFeaturePositional {
     }
 
     public double distance(double x, double z, RNG rng) {
-        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier()/2 : 1;
+        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier() / 2 : 1;
         double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
         return Math.sqrt(Math.pow(this.x - (x + mod), 2) + Math.pow(this.z - (z + mod), 2));
     }
 
     public double distance2(double x, double z, RNG rng) {
-        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier()/2 : 1;
+        double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier() / 2 : 1;
         double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
 
-        return Math.pow(this.x - (x+mod), 2) + Math.pow(this.z - (z+mod), 2);
+        return Math.pow(this.x - (x + mod), 2) + Math.pow(this.z - (z + mod), 2);
     }
 
     private NoiseProvider getNoiseProvider(RNG rng) {

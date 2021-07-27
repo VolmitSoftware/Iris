@@ -42,7 +42,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
     private final boolean carving;
     private final boolean hasUnder;
     @Getter
-    private int lastBedrock = -1;
+    private final int lastBedrock = -1;
 
     public IrisTerrainIslandActuator(Engine engine) {
         super(engine, "TerrainIsland");

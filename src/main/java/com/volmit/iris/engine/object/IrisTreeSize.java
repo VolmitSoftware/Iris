@@ -24,10 +24,11 @@ public class IrisTreeSize {
 
     /**
      * Does the size match
+     *
      * @param size the size to check match
      * @return true if it matches (fits within width and depth)
      */
-    public boolean doesMatch(IrisTreeSize size){
+    public boolean doesMatch(IrisTreeSize size) {
         return (width == size.getWidth() && depth == size.getDepth()) || (depth == size.getWidth() && width == size.getDepth());
     }
 }

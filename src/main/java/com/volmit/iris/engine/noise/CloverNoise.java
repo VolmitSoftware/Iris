@@ -22,8 +22,7 @@ public class CloverNoise implements NoiseGenerator {
     private final Noise2D n2;
     private final Noise3D n3;
 
-    public CloverNoise(long seed)
-    {
+    public CloverNoise(long seed) {
         n2 = new CloverNoise.Noise2D(seed);
         n3 = new CloverNoise.Noise3D(seed);
     }
@@ -40,9 +39,8 @@ public class CloverNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double y, double z) {
-        if(z == 0)
-        {
-            return n2.noise(x,y);
+        if (z == 0) {
+            return n2.noise(x, y);
         }
 
         return n3.noise(x, y, z);
@@ -52,10 +50,11 @@ public class CloverNoise implements NoiseGenerator {
      * Java implementation of 2D Clover Noise. See https://github.com/ValgoBoi/clover-noise
      */
     public static class Noise2D {
-        private long seed;
+        private final long seed;
 
         /**
          * Constructs a new 2D Clover Noise generator with a specific seed.
+         *
          * @param seed The seed for the noise generator.
          */
         public Noise2D(long seed) {
@@ -109,6 +108,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Clover Noise at a specific point.
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -205,6 +205,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Clover Noise at a specific point.
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
@@ -215,7 +216,8 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal 2D Clover Noise at a specific point.
-         * @param p The point to generate noise at.
+         *
+         * @param p          The point to generate noise at.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
@@ -236,8 +238,9 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal 2D Clover Noise at a specific point.
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         *
+         * @param x          The x coordinate of the point.
+         * @param y          The y coordinate of the point.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
@@ -249,6 +252,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates curl 2D Clover Noise at a specific point.
+         *
          * @param p The point to generate noise at.
          * @return The value of curl noise, a normalized 2D vector.
          */
@@ -262,6 +266,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates curl 2D Clover Noise at a specific point.
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @return The value of curl noise, a normalized 2D vector.
@@ -272,7 +277,8 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal curl 2D Clover Noise at a specific point.
-         * @param p The point to generate noise at.
+         *
+         * @param p          The point to generate noise at.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 2D vector.
          */
@@ -286,8 +292,9 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal curl 2D Clover Noise at a specific point.
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         *
+         * @param x          The x coordinate of the point.
+         * @param y          The y coordinate of the point.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 2D vector.
          */
@@ -297,6 +304,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -311,6 +319,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
@@ -321,6 +330,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -345,6 +355,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 2D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
@@ -355,7 +366,7 @@ public class CloverNoise implements NoiseGenerator {
     }
 
     public static class Noise3D {
-        private long seed;
+        private final long seed;
 
         public Noise3D(long seed) {
             this.seed = seed;
@@ -469,6 +480,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Clover Noise at a specific point.
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -663,6 +675,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Clover Noise at a specific point.
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @param z The z coordinate of the point.
@@ -674,7 +687,8 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal 3D Clover Noise at a specific point.
-         * @param p The point to generate noise at.
+         *
+         * @param p          The point to generate noise at.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
@@ -695,9 +709,10 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal 3D Clover Noise at a specific point.
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         *
+         * @param x          The x coordinate of the point.
+         * @param y          The y coordinate of the point.
+         * @param z          The z coordinate of the point.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
@@ -709,6 +724,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates curl 3D Clover Noise at a specific point.
+         *
          * @param p The point to generate noise at.
          * @return The value of curl noise, a normalized 3D vector.
          */
@@ -723,6 +739,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates curl 3D Clover Noise at a specific point.
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @param z The z coordinate of the point.
@@ -734,7 +751,8 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal curl 3D Clover Noise at a specific point.
-         * @param p The point to generate noise at.
+         *
+         * @param p          The point to generate noise at.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 3D vector.
          */
@@ -749,9 +767,10 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates fractal curl 3D Clover Noise at a specific point.
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         *
+         * @param x          The x coordinate of the point.
+         * @param y          The y coordinate of the point.
+         * @param z          The z coordinate of the point.
          * @param iterations The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 3D vector.
          */
@@ -761,6 +780,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -775,6 +795,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @param z The z coordinate of the point.
@@ -786,6 +807,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
+         *
          * @param p The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
@@ -810,6 +832,7 @@ public class CloverNoise implements NoiseGenerator {
 
         /**
          * Generates 3D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
+         *
          * @param x The x coordinate of the point.
          * @param y The y coordinate of the point.
          * @param z The z coordinate of the point.

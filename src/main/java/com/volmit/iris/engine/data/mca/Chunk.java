@@ -634,8 +634,7 @@ public class Chunk {
     }
 
     public void cleanupPalettesAndBlockStates() {
-        for (int i = 0; i < sections.length(); i++)
-        {
+        for (int i = 0; i < sections.length(); i++) {
             Section section = sections.get(i);
             if (section != null) {
                 section.cleanupPaletteAndBlockStates();
@@ -691,12 +690,10 @@ public class Chunk {
     }
 
     public void runLighting() {
-        for(int s = 15; s >= 0; s--)
-        {
+        for (int s = 15; s >= 0; s--) {
             Section section = getSection(s);
 
-            if(section != null)
-            {
+            if (section != null) {
                 section.runLighting();
             }
         }

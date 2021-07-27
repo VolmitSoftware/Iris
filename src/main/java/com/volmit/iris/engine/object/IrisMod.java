@@ -18,27 +18,13 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.data.DataProvider;
-import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Material;
-import org.bukkit.World.Environment;
-import org.bukkit.block.data.BlockData;
-
-import java.io.File;
-import java.io.IOException;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)

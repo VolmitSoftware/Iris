@@ -38,15 +38,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SyndicatePregenMethod implements PregeneratorMethod {
     @Getter
-    private String address;
+    private final String address;
     private String nickname;
-    private int port;
-    private String password;
-    private IrisDimension dimension;
+    private final int port;
+    private final String password;
+    private final IrisDimension dimension;
     private boolean ready = false;
-    private File worldFolder;
-    private UUID pack = UUID.randomUUID();
-    private long seed;
+    private final File worldFolder;
+    private final UUID pack = UUID.randomUUID();
+    private final long seed;
 
     public SyndicatePregenMethod(String nickname, File worldFolder, String address, int port, String password, IrisDimension dimension, long seed) {
         this.seed = seed;

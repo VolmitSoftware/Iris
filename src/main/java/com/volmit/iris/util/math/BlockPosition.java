@@ -92,13 +92,12 @@ public class BlockPosition {
         return var3;
     }
 
-    public Block toBlock(World world)
-    {
-        return world.getBlockAt(x,y,z);
+    public Block toBlock(World world) {
+        return world.getBlockAt(x, y, z);
     }
 
     public BlockPosition add(int x, int y, int z) {
-        return new BlockPosition(x,y,z);
+        return new BlockPosition(x, y, z);
     }
 
     public void min(BlockPosition i) {

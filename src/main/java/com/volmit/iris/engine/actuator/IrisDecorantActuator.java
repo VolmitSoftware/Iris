@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.decorator.*;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;

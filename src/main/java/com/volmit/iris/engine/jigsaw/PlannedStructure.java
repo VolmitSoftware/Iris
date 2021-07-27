@@ -245,7 +245,8 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
-        if (!idea.getPlacementOptions().getRotation().isEnabled()) rotation = piece.getRotation(); //Inherit parent rotation
+        if (!idea.getPlacementOptions().getRotation().isEnabled())
+            rotation = piece.getRotation(); //Inherit parent rotation
 
         PlannedPiece test = new PlannedPiece(this, piece.getPosition(), idea, rotation);
 

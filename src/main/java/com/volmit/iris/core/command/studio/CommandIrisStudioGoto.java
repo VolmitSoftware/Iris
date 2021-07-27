@@ -37,7 +37,6 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CommandIrisStudioGoto extends MortarCommand {
     public CommandIrisStudioGoto() {
@@ -53,10 +52,10 @@ public class CommandIrisStudioGoto extends MortarCommand {
             IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
-            } else if(args.length == 0) {
+            } else if (args.length == 0) {
                 list.add(data.getBiomeLoader().getPossibleKeys());
                 list.add(data.getRegionLoader().getPossibleKeys());
-            }else if(args.length == 1) {
+            } else if (args.length == 1) {
                 list.add(data.getBiomeLoader().getPossibleKeys(args[0]));
                 list.add(data.getRegionLoader().getPossibleKeys(args[0]));
             }

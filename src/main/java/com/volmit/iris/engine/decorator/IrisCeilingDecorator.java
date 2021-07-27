@@ -45,7 +45,7 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                 if (decorator.isScaleStack()) {
-                    stack = (int) Math.ceil((double)max * ((double)stack / 100));
+                    stack = (int) Math.ceil((double) max * ((double) stack / 100));
                 } else stack = Math.min(max, stack);
 
                 if (stack == 1) {

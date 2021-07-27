@@ -25,7 +25,6 @@ import com.volmit.iris.engine.data.nbt.tag.ListTag;
 import com.volmit.iris.engine.data.nbt.tag.LongArrayTag;
 import com.volmit.iris.util.collection.KMap;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -108,12 +107,9 @@ public class Section {
     }
 
     public void runLighting() {
-        for(int x = 1; x < 14; x++)
-        {
-            for(int z = 1; z < 14; z++)
-            {
-                for(int y = 0; y < 16; y++)
-                {
+        for (int x = 1; x < 14; x++) {
+            for (int z = 1; z < 14; z++) {
+                for (int y = 0; y < 16; y++) {
 
                 }
             }
@@ -444,8 +440,7 @@ public class Section {
         if (blockStates != null) {
             long[] c = new long[blockStates.length()];
 
-            for(int i = 0; i < c.length; i++)
-            {
+            for (int i = 0; i < c.length; i++) {
                 c[i] = blockStates.get(i);
             }
 

@@ -26,7 +26,6 @@ import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.parallel.BurstExecutor;
-import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
@@ -169,13 +168,11 @@ public class IrisEngine extends BlockPopulator implements Engine {
             // makes the biome stream, interpolation & noise engine run in parallel without mca
             BurstExecutor b = burst().burst(16);
 
-            for(int i = 0; i < vblocks.getWidth(); i++)
-            {
+            for (int i = 0; i < vblocks.getWidth(); i++) {
                 int finalI = i;
                 b.queue(() -> {
-                    for(int j = 0; j < vblocks.getDepth(); j++)
-                    {
-                        getFramework().getComplex().getTrueBiomeStream().get(x+ finalI,z+j);
+                    for (int j = 0; j < vblocks.getDepth(); j++) {
+                        getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
                     }
                 });
             }

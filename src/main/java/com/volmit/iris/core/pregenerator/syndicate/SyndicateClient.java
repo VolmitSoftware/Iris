@@ -29,10 +29,10 @@ import java.util.function.Consumer;
 
 @Builder
 public class SyndicateClient {
-    private String address;
-    private int port;
-    private SyndicateCommand command;
-    private Consumer<DataOutputStream> output;
+    private final String address;
+    private final int port;
+    private final SyndicateCommand command;
+    private final Consumer<DataOutputStream> output;
 
     public void go(Consumer2<SyndicateCommand, DataInputStream> handler) throws Throwable {
         Socket socket = new Socket(address, port);

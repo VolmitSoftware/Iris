@@ -43,9 +43,9 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
             IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
-            } else if(args.length == 0) {
+            } else if (args.length == 0) {
                 list.add(data.getGeneratorLoader().getPossibleKeys());
-            }else if(args.length == 1) {
+            } else if (args.length == 1) {
                 list.add(data.getGeneratorLoader().getPossibleKeys(args[0]));
             }
         }

@@ -51,7 +51,7 @@ import java.util.List;
 
 public class IrisEngineCompound implements EngineCompound {
     @Getter
-    private IrisWorld world;
+    private final IrisWorld world;
 
     private final AtomicRollingSequence wallClock;
 

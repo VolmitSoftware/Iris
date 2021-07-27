@@ -21,7 +21,6 @@ package com.volmit.iris.core;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.board.BoardManager;
@@ -31,7 +30,6 @@ import com.volmit.iris.util.board.ScoreDirection;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -106,8 +104,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
         int y = player.getLocation().getBlockY();
         int z = player.getLocation().getBlockZ();
 
-        if(g.getCompound() == null)
-        {
+        if (g.getCompound() == null) {
             v.add("Loading...");
             return v;
         }

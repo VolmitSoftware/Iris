@@ -93,27 +93,19 @@ public class ResourceLoader<T extends IrisRegistrant> {
         J.a(() -> Iris.warn("Couldn't Load " + resourceTypeName + " file: " + path.getPath() + ": " + e.getMessage()));
     }
 
-    private KList<File> matchAllFiles(File root, Predicate<File> f)
-    {
+    private KList<File> matchAllFiles(File root, Predicate<File> f) {
         KList<File> fx = new KList<>();
         matchFiles(root, fx, f);
         return fx;
     }
 
-    private void matchFiles(File at, KList<File> files, Predicate<File> f)
-    {
-        if(at.isDirectory())
-        {
-            for(File i : at.listFiles())
-            {
+    private void matchFiles(File at, KList<File> files, Predicate<File> f) {
+        if (at.isDirectory()) {
+            for (File i : at.listFiles()) {
                 matchFiles(i, files, f);
             }
-        }
-
-        else
-        {
-            if(f.test(at))
-            {
+        } else {
+            if (f.test(at)) {
                 files.add(at);
             }
         }
@@ -127,10 +119,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
         Iris.info("Building " + resourceTypeName + " Registry Lists");
         KSet<String> m = new KSet<>();
 
-        for(File i : getFolders())
-        {
-            for(File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json")))
-            {
+        for (File i : getFolders()) {
+            for (File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json"))) {
                 m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
             }
         }
@@ -308,10 +298,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
     public KList<String> getPossibleKeys(String arg) {
         KList<String> f = new KList<>();
 
-        for(String i : getPossibleKeys())
-        {
-            if(i.equalsIgnoreCase(arg) || i.toLowerCase(Locale.ROOT).startsWith(arg.toLowerCase(Locale.ROOT)) || i.toLowerCase(Locale.ROOT).contains(arg.toLowerCase(Locale.ROOT)) || arg.toLowerCase(Locale.ROOT).contains(i.toLowerCase(Locale.ROOT)))
-            {
+        for (String i : getPossibleKeys()) {
+            if (i.equalsIgnoreCase(arg) || i.toLowerCase(Locale.ROOT).startsWith(arg.toLowerCase(Locale.ROOT)) || i.toLowerCase(Locale.ROOT).contains(arg.toLowerCase(Locale.ROOT)) || arg.toLowerCase(Locale.ROOT).contains(i.toLowerCase(Locale.ROOT))) {
                 f.add(i);
             }
         }

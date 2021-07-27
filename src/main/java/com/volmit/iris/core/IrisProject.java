@@ -21,10 +21,8 @@ package com.volmit.iris.core;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
-import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -53,7 +51,6 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
@@ -77,12 +74,8 @@ public class IrisProject {
         MultiBurst.burst.burst(collectFiles("json").convert((i) -> () -> {
             try {
                 new JSONObject(IO.readAll(i));
-            }
-
-            catch(Throwable e)
-            {
-                synchronized (reports)
-                {
+            } catch (Throwable e) {
+                synchronized (reports) {
                     reports.add(Report.builder()
                             .title("Invalid Json: " + i.getName())
                             .message(i.getAbsolutePath() + e.getMessage())
@@ -94,18 +87,14 @@ public class IrisProject {
         }));
 
         try {
-            if(activeProvider != null && activeProvider.getCompound() != null)
-            {
+            if (activeProvider != null && activeProvider.getCompound() != null) {
                 for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
                     Engine e = getActiveProvider().getCompound().getEngine(i);
                     IrisDimension dim = e.getDimension();
                     reports.add(scanForErrors(dim));
                 }
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             reports.add(Report.builder()
                     .title("Failed to check all errors")
                     .message("There may be some json errors, correct those first")
@@ -228,15 +217,12 @@ public class IrisProject {
             KList<Report> reports = scanForErrors();
             sender.sendMessage("There are " + reports.size() + " problems detected with this project. See console!");
             Iris.error("===========================================================");
-            for(Report i : reports)
-            {
-                if(i.getType().equals(ReportType.ERROR))
-                {
+            for (Report i : reports) {
+                if (i.getType().equals(ReportType.ERROR)) {
                     hasError = true;
                 }
 
-                switch (i.getType())
-                {
+                switch (i.getType()) {
                     case ERROR -> Iris.error(i.toString());
                     case SEVERE_WARNING -> Iris.warn(i.toString());
                     case WARNING -> Iris.warn(i.toString());
@@ -244,16 +230,12 @@ public class IrisProject {
                 }
             }
             Iris.error("===========================================================");
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             hasError = true;
             e.printStackTrace();
         }
 
-        if(hasError)
-        {
+        if (hasError) {
             return;
         }
 
@@ -499,22 +481,19 @@ public class IrisProject {
 
         //TODO: EXPORT JIGSAW PIECES FROM STRUCTURES
         dimension.getFeatures().forEach((i) -> {
-            if (i.getZone().getCustomBiome() != null)
-            {
+            if (i.getZone().getCustomBiome() != null) {
                 biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
             }
         });
         dimension.getSpecificFeatures().forEach((i) -> {
-            if (i.getFeature().getCustomBiome() != null)
-            {
+            if (i.getFeature().getCustomBiome() != null) {
                 biomes.add(dm.getBiomeLoader().load(i.getFeature().getCustomBiome()));
             }
         });
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
         regions.forEach((r) -> {
             r.getFeatures().forEach((i) -> {
-                if (i.getZone().getCustomBiome() != null)
-                {
+                if (i.getZone().getCustomBiome() != null) {
                     biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
                 }
             });
@@ -529,12 +508,10 @@ public class IrisProject {
         dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
         biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
 
-        for(int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++)
-        {
+        for (int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++) {
             biomes.copy().forEach((r) -> {
                 r.getFeatures().forEach((i) -> {
-                    if (i.getZone().getCustomBiome() != null)
-                    {
+                    if (i.getZone().getCustomBiome() != null) {
                         biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
                     }
                 });

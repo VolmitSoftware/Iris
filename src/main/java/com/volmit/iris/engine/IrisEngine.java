@@ -185,7 +185,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
                     getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks.synchronize());
+                    getFramework().getTerrainActuator().actuate(x, z, vblocks);
                     getFramework().getBiomeActuator().actuate(x, z, vbiomes);
                     getFramework().getCaveModifier().modify(x, z, vblocks);
                     getFramework().getRavineModifier().modify(x, z, vblocks);

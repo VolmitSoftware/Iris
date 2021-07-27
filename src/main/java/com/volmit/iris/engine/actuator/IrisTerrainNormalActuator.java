@@ -22,6 +22,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -52,75 +53,90 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int i, zf, depth, realX, realZ, hf, he, b, fdepth;
+        BurstExecutor e = getEngine().burst().burst(h.getWidth());
+        for (int xf = 0; xf < h.getWidth(); xf++) {
+            int finalXf = xf;
+            e.queue(() -> terrainSliver(x, z, finalXf, h));
+        }
+
+        e.complete();
+        getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
+    }
+
+    /**
+     * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
+     * @param x the chunk x in blocks
+     * @param z the chunk z in blocks
+     * @param xf the current x slice
+     * @param h the blockdata
+     */
+    @BlockCoordinates
+    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
+        int i, depth, realX, realZ, hf, he, b, fdepth;
         IrisBiome biome;
         KList<BlockData> blocks, fblocks;
 
-        for (int xf = 0; xf < h.getWidth(); xf++) {
-            for (zf = 0; zf < h.getDepth(); zf++) {
-                realX = (int) modX(xf + x);
-                realZ = (int) modZ(zf + z);
-                b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, realX, realZ)) : 0;
-                he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
-                hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
-                biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-                blocks = null;
-                fblocks = null;
+        for (int zf = 0; zf < h.getDepth(); zf++) {
+            realX = (int) modX(xf + x);
+            realZ = (int) modZ(zf + z);
+            b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, realX, realZ)) : 0;
+            he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
+            hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
+            biome = getComplex().getTrueBiomeStream().get(realX, realZ);
+            blocks = null;
+            fblocks = null;
 
-                if (hf < b) {
+            if (hf < b) {
+                continue;
+            }
+
+            for (i = hf; i >= b; i--) {
+                if (i >= h.getHeight()) {
                     continue;
                 }
 
-                for (i = hf; i >= b; i--) {
-                    if (i >= h.getHeight()) {
+                if (i == b) {
+                    if (getDimension().isBedrock()) {
+                        h.set(xf, i, zf, BEDROCK);
+                        lastBedrock = i;
+                        continue;
+                    }
+                }
+
+                if (carving && getDimension().isCarved(realX, i, realZ, rng, he)) {
+                    continue;
+                }
+
+                if (i > he && i <= hf) {
+                    fdepth = hf - i;
+
+                    if (fblocks == null) {
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
+                    }
+
+                    if (fblocks.hasIndex(fdepth)) {
+                        h.set(xf, i, zf, fblocks.get(fdepth));
                         continue;
                     }
 
-                    if (i == b) {
-                        if (getDimension().isBedrock()) {
-                            h.set(xf, i, zf, BEDROCK);
-                            lastBedrock = i;
-                            continue;
-                        }
+                    h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
+                    continue;
+                }
+
+                if (i <= he) {
+                    depth = he - i;
+                    if (blocks == null) {
+                        blocks = biome.generateLayers(realX, realZ, rng, he, he, getData(), getComplex());
                     }
 
-                    if (carving && getDimension().isCarved(realX, i, realZ, rng, he)) {
+                    if (blocks.hasIndex(depth)) {
+                        h.set(xf, i, zf, blocks.get(depth));
                         continue;
                     }
 
-                    if (i > he && i <= hf) {
-                        fdepth = hf - i;
-
-                        if (fblocks == null) {
-                            fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
-                        }
-
-                        if (fblocks.hasIndex(fdepth)) {
-                            h.set(xf, i, zf, fblocks.get(fdepth));
-                            continue;
-                        }
-
-                        h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
-                        continue;
-                    }
-
-                    if (i <= he) {
-                        depth = he - i;
-                        if (blocks == null) {
-                            blocks = biome.generateLayers(realX, realZ, rng, he, he, getData(), getComplex());
-                        }
-
-                        if (blocks.hasIndex(depth)) {
-                            h.set(xf, i, zf, blocks.get(depth));
-                            continue;
-                        }
-
-                        h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
-                    }
+                    h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
                 }
             }
         }
-
-        getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }
 }

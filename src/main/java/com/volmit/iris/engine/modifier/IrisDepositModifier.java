@@ -40,7 +40,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         generateDeposits(rng, output, Math.floorDiv(x, 16), Math.floorDiv(z, 16));
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());

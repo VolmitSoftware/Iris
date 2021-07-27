@@ -23,5 +23,5 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 
 public interface EngineModifier<T> extends EngineComponent {
     @BlockCoordinates
-    void modify(int x, int z, Hunk<T> t);
+    void modify(int x, int z, Hunk<T> t, boolean multicore);
 }

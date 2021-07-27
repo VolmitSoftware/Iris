@@ -25,10 +25,10 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
         super(engine, name);
     }
 
-    public abstract void onModify(int x, int z, Hunk<T> output);
+    public abstract void onModify(int x, int z, Hunk<T> output, boolean multicore);
 
     @Override
-    public void modify(int x, int z, Hunk<T> output) {
-        onModify(x, z, output);
+    public void modify(int x, int z, Hunk<T> output, boolean multicore) {
+        onModify(x, z, output, multicore);
     }
 }

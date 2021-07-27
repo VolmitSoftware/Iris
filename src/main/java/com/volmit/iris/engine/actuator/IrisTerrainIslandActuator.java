@@ -53,7 +53,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<BlockData> h) {
+    public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int i, zf, depth, surface, realX, realZ;
         IrisBiome biome;

@@ -213,11 +213,11 @@ public class IrisEngineCompound implements EngineCompound {
     }
 
     @Override
-    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes) {
+    public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes, boolean multicore) {
         recycle();
         PrecisionStopwatch p = PrecisionStopwatch.start();
         if (engines.length == 1 && !getEngine(0).getTarget().isInverted()) {
-            engines[0].generate(x, z, blocks, biomes);
+            engines[0].generate(x, z, blocks, biomes, multicore);
         } else {
             int i;
             int offset = 0;
@@ -234,7 +234,7 @@ public class IrisEngineCompound implements EngineCompound {
                     cbiome = cbiome.invertY();
                 }
 
-                engine.generate(x, z, cblock, cbiome);
+                engine.generate(x, z, cblock, cbiome, multicore);
                 blocks.insert(0, doffset, 0, cblock);
                 biomes.insert(0, doffset, 0, cbiome);
                 offset += height;

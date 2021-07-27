@@ -80,7 +80,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<BlockData> output) {
+    public void onActuate(int x, int z, Hunk<BlockData> output, boolean multicore) {
         if (!getEngine().getDimension().isDecorate()) {
             return;
         }

@@ -19,6 +19,7 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -26,7 +27,11 @@ import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.parallel.BurstExecutor;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -158,44 +163,63 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @ChunkCoordinates
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
+            PrecisionStopwatch px = PrecisionStopwatch.start();
 
-            // This is a very weird optimization, but it works
-            // Basically we precache multicore the biome stream which effectivley
-            // makes the biome stream, interpolation & noise engine run in parallel without mca
-            BurstExecutor b = burst().burst(16);
+            if(multicore)
+            {
+                BurstExecutor b = burst().burst(16);
+                for (int i = 0; i < vblocks.getWidth(); i++) {
+                    int finalI = i;
+                    b.queue(() -> {
+                        for (int j = 0; j < vblocks.getDepth(); j++) {
+                            getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
+                            getFramework().getComplex().getTrueHeightStream().get(x + finalI, z + j);
+                        }
+                    });
+                }
 
-            for (int i = 0; i < vblocks.getWidth(); i++) {
-                int finalI = i;
-                b.queue(() -> {
-                    for (int j = 0; j < vblocks.getDepth(); j++) {
-                        getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
-                    }
-                });
+                b.complete();
             }
 
-            b.complete();
+            getMetrics().getPrecache().put(px.getMilliseconds());
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
                     getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks);
-                    getFramework().getBiomeActuator().actuate(x, z, vbiomes);
-                    getFramework().getCaveModifier().modify(x, z, vblocks);
-                    getFramework().getRavineModifier().modify(x, z, vblocks);
-                    getFramework().getPostModifier().modify(x, z, vblocks);
-                    getFramework().getDecorantActuator().actuate(x, z, blocks);
+                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
+                    getFramework().getBiomeActuator().actuate(x, z, vbiomes, multicore);
+                    getFramework().getCaveModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getRavineModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getPostModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getDecorantActuator().actuate(x, z, blocks, multicore);
                     getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
-                    getFramework().getDepositModifier().modify(x, z, blocks);
+                    getFramework().getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks);
+                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
                 }
             }
             getMetrics().getTotal().put(p.getMilliseconds());
+
+            if(IrisSettings.get().getGeneral().isDebug())
+            {
+                KList<String> v = new KList<>();
+                KMap<String, Double> g = getMetrics().pull();
+
+                for(String i : g.sortKNumber())
+                {
+                    if(g.get(i) != null)
+                    {
+                        v.add(C.RESET + "" + C.LIGHT_PURPLE + i + ": " + C.UNDERLINE + C.BLUE + Form.duration(g.get(i), 0) + C.RESET + C.GRAY + "");
+                    }
+                }
+
+                Iris.debug(v.toString(", "));
+            }
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

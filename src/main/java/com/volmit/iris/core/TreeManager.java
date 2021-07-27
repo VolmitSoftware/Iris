@@ -89,7 +89,6 @@ public class TreeManager implements Listener {
 
         // List of new blocks
         List<BlockState> blockStateList = new KList<>();
-        saplingPlane.forEach(b -> blockStateList.add(b.getState()));
 
         // Create object placer
         IObjectPlacer placer = new IObjectPlacer() {

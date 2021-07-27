@@ -38,7 +38,7 @@ import java.util.function.Predicate;
 
 public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     private static final Predicate<BlockData> PREDICATE_SOLID = (b) -> b != null && !b.getMaterial().isAir() && !b.getMaterial().equals(Material.WATER) && !b.getMaterial().equals(Material.LAVA);
-    private BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID = null;
+    private final BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID;
     private final RNG rng;
     @Getter
     private final EngineDecorator surfaceDecorator;
@@ -62,7 +62,6 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         shoreLineDecorator = new IrisShoreLineDecorator(getEngine());
         seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
 
-        //Can't be created without an instance of the actuator due to referencing the engine
         PREDICATE_CAVELIQUID = (b, y) -> {
             for (IrisCaveLayer layer : getEngine().getDimension().getCaveLayers()) {
                 if (!layer.getFluid().hasFluid(getData())) {

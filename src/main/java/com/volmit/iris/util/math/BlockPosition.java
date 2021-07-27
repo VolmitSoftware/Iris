@@ -97,7 +97,7 @@ public class BlockPosition {
     }
 
     public BlockPosition add(int x, int y, int z) {
-        return new BlockPosition(x, y, z);
+        return new BlockPosition(this.x + x, this.y + y, this.z + z);
     }
 
     public void min(BlockPosition i) {

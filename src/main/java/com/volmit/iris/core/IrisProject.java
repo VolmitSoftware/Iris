@@ -216,8 +216,7 @@ public class IrisProject {
         try {
             KList<Report> reports = scanForErrors();
 
-            if(reports.isNotEmpty())
-            {
+            if (reports.isNotEmpty()) {
                 sender.sendMessage("There are " + reports.size() + " problems detected with this project. See console!");
                 Iris.error("===========================================================");
                 for (Report i : reports) {

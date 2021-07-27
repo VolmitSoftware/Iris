@@ -75,7 +75,7 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
                     .seed(seed)
                     .build())
                     .output((o) -> {
-                        File to = new File(Iris.getTemp(), "send-" + pack.toString() + ".zip");
+                        File to = new File(Iris.getTemp(), "send-" + pack + ".zip");
                         ZipUtil.pack(dimension.getLoader().getDataFolder(), to);
 
                         try {

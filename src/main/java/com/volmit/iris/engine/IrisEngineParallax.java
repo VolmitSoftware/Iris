@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
-import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.Getter;
 import org.bukkit.util.Consumer;
 
@@ -62,13 +61,12 @@ public class IrisEngineParallax implements EngineParallaxManager {
     @Override
     @BlockCoordinates
     public KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        int cx = ((int)x) >> 4;
-        int cz = ((int)x) >> 4;
+        int cx = ((int) x) >> 4;
+        int cz = ((int) x) >> 4;
         long key = Cache.key(cx, cz);
 
         return featureCache.compute(key, (k, v) -> {
-            if(v != null)
-            {
+            if (v != null) {
                 return v;
             }
 

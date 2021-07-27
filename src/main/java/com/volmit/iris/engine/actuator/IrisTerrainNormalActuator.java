@@ -54,8 +54,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        if(multicore)
-        {
+        if (multicore) {
             BurstExecutor e = getEngine().burst().burst(h.getWidth());
             for (int xf = 0; xf < h.getWidth(); xf++) {
                 int finalXf = xf;
@@ -63,10 +62,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             }
 
             e.complete();
-        }
-
-        else
-        {
+        } else {
             for (int xf = 0; xf < h.getWidth(); xf++) {
                 terrainSliver(x, z, xf, h);
             }
@@ -77,10 +73,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
     /**
      * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
-     * @param x the chunk x in blocks
-     * @param z the chunk z in blocks
+     *
+     * @param x  the chunk x in blocks
+     * @param z  the chunk z in blocks
      * @param xf the current x slice
-     * @param h the blockdata
+     * @param h  the blockdata
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
@@ -56,8 +55,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        if(multicore)
-        {
+        if (multicore) {
             BurstExecutor e = getEngine().burst().burst(a.getWidth());
             for (int i = 0; i < a.getWidth(); i++) {
                 int finalI = i;
@@ -65,10 +63,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
             }
 
             e.complete();
-        }
-
-        else
-        {
+        } else {
             for (int i = 0; i < a.getWidth(); i++) {
                 modifySliver(x, z, i, a);
             }
@@ -77,8 +72,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 
-    public void modifySliver(int x, int z, int finalI, Hunk<BlockData> a)
-    {
+    public void modifySliver(int x, int z, int finalI, Hunk<BlockData> a) {
         for (int j = 0; j < a.getDepth(); j++) {
             KList<CaveResult> caves = genCaves(x + finalI, z + j, finalI, j, a);
             int he = (int) Math.round(getComplex().getHeightStream().get(x + finalI, z + j));

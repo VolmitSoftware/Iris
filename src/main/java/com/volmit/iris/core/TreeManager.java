@@ -122,7 +122,7 @@ public class TreeManager implements Listener {
                 BlockState state = b.getState();
                 state.setBlockData(d);
                 blockStateList.add(b.getState());
-                dataCache.put(new Location(event.getWorld(), x,y,z), d);
+                dataCache.put(new Location(event.getWorld(), x, y, z), d);
             }
 
             @Override
@@ -188,8 +188,7 @@ public class TreeManager implements Listener {
                 for (BlockState block : iGrow.getBlocks()) {
                     Location l = block.getLocation();
 
-                    if(dataCache.containsKey(l))
-                    {
+                    if (dataCache.containsKey(l)) {
                         l.getBlock().setBlockData(dataCache.get(l), false);
                     }
                 }
@@ -274,7 +273,7 @@ public class TreeManager implements Listener {
         }
 
         Iris.debug("Blocks: " + blockPositions.size());
-        Iris.debug("Min: " + a.toString() + " Max: " + b.toString());
+        Iris.debug("Min: " + a + " Max: " + b);
 
         // Create a cuboid with the size calculated before
         Cuboid cuboid = new Cuboid(a.toBlock(world).getLocation(), b.toBlock(world).getLocation());

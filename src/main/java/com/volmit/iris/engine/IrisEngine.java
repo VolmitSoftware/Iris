@@ -169,8 +169,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
             PrecisionStopwatch px = PrecisionStopwatch.start();
 
-            if(multicore)
-            {
+            if (multicore) {
                 BurstExecutor b = burst().burst(16);
                 for (int i = 0; i < vblocks.getWidth(); i++) {
                     int finalI = i;
@@ -205,15 +204,12 @@ public class IrisEngine extends BlockPopulator implements Engine {
             }
             getMetrics().getTotal().put(p.getMilliseconds());
 
-            if(IrisSettings.get().getGeneral().isDebug())
-            {
+            if (IrisSettings.get().getGeneral().isDebug()) {
                 KList<String> v = new KList<>();
                 KMap<String, Double> g = getMetrics().pull();
 
-                for(String i : g.sortKNumber())
-                {
-                    if(g.get(i) != null)
-                    {
+                for (String i : g.sortKNumber()) {
+                    if (g.get(i) != null) {
                         v.add(C.RESET + "" + C.LIGHT_PURPLE + i + ": " + C.UNDERLINE + C.BLUE + Form.duration(g.get(i), 0) + C.RESET + C.GRAY + "");
                     }
                 }

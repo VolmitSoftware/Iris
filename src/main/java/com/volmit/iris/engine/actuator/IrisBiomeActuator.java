@@ -63,7 +63,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<Biome> h) {
+    public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int zf, maxHeight;
         IrisBiome ib;

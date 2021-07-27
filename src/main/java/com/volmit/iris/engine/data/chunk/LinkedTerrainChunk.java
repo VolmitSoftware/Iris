@@ -111,7 +111,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public void setBlock(int x, int y, int z, BlockData blockData) {
+    public synchronized void setBlock(int x, int y, int z, BlockData blockData) {
         rawChunkData.setBlock(x, y, z, blockData);
     }
 
@@ -123,37 +123,37 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Deprecated
     @Override
-    public void setBlock(int x, int y, int z, @NotNull Material material) {
+    public synchronized void setBlock(int x, int y, int z, @NotNull Material material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public void setBlock(int x, int y, int z, @NotNull MaterialData material) {
+    public synchronized void setBlock(int x, int y, int z, @NotNull MaterialData material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Deprecated
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, blockData);
     }
 
     @NotNull
     @Deprecated
     @Override
-    public Material getType(int x, int y, int z) {
+    public synchronized Material getType(int x, int y, int z) {
         return rawChunkData.getType(x, y, z);
     }
 

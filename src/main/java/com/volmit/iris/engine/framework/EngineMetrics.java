@@ -28,6 +28,7 @@ public class EngineMetrics {
     private final AtomicRollingSequence updates;
     private final AtomicRollingSequence terrain;
     private final AtomicRollingSequence biome;
+    private final AtomicRollingSequence precache;
     private final AtomicRollingSequence parallax;
     private final AtomicRollingSequence parallaxInsert;
     private final AtomicRollingSequence post;
@@ -37,6 +38,7 @@ public class EngineMetrics {
     private final AtomicRollingSequence deposit;
 
     public EngineMetrics(int mem) {
+        this.precache = new AtomicRollingSequence(mem);
         this.total = new AtomicRollingSequence(mem);
         this.terrain = new AtomicRollingSequence(mem);
         this.biome = new AtomicRollingSequence(mem);
@@ -52,6 +54,8 @@ public class EngineMetrics {
 
     public KMap<String, Double> pull() {
         KMap<String, Double> v = new KMap<>();
+        v.put("total", total.getAverage());
+        v.put("precache", precache.getAverage());
         v.put("terrain", terrain.getAverage());
         v.put("biome", biome.getAverage());
         v.put("parallax", parallax.getAverage());

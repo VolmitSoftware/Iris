@@ -49,7 +49,6 @@ public class PlannedPiece {
     private IrisDataManager data;
     private KList<IrisJigsawPieceConnector> connected;
     private boolean dead = false;
-    private int rotationKey;
     private AxisAlignedBB box;
     private PlannedStructure structure;
 
@@ -58,11 +57,14 @@ public class PlannedPiece {
     }
 
     public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz) {
+        this(structure, position, piece, IrisObjectRotation.of(rx * 90D, ry * 90D, rz * 90D));
+    }
+
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, IrisObjectRotation rot) {
         this.structure = structure;
         this.position = position;
-        rotationKey = (rz * 100) + (rx * 10) + ry;
         this.data = piece.getLoader();
-        this.rotation = IrisObjectRotation.of(rx * 90D, ry * 90D, rz * 90D);
+        this.setRotation(rot);
         this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
@@ -76,7 +78,7 @@ public class PlannedPiece {
     }
 
     public String toString() {
-        return piece.getLoadKey() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")[rot:" + rotationKey + "]";
+        return piece.getLoadKey() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")[rot:" + rotation.toString() + "]";
     }
 
     public AxisAlignedBB getBox() {

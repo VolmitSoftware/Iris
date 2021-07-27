@@ -40,22 +40,29 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
         if (decorator != null) {
             if (!decorator.isStacking()) {
                 if (height >= 0 || height < getEngine().getHeight()) {
-                    data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+                    data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                stack = Math.min(max + 1, stack);
+                if (decorator.isScaleStack()) {
+                    stack = (int) Math.ceil((double)max * ((double)stack / 100));
+                } else stack = Math.min(max, stack);
 
-                BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
-                BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
+                if (stack == 1) {
+                    data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                    return;
+                }
 
                 for (int i = 0; i < stack; i++) {
-                    if (height - i < 0 || height - i > getEngine().getHeight()) {
+                    int h = height - i;
+                    if (h < getEngine().getMinHeight()) {
                         continue;
                     }
 
                     double threshold = (((double) i) / (double) (stack - 1));
-                    data.set(x, height - i, z, threshold >= decorator.getTopThreshold() ? top : fill);
+                    data.set(x, h, z, threshold >= decorator.getTopThreshold() ?
+                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
+                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData()));
                 }
             }
         }

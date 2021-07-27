@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.decorator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.hunk.Hunk;
@@ -35,36 +36,38 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
-        if (height <= getDimension().getFluidHeight()) {
+        IrisDecorator decorator = getDecorator(biome, realX, realZ);
 
-            IrisDecorator decorator = getDecorator(biome, realX, realZ);
+        if (decorator != null) {
+            if (!decorator.isStacking()) {
+                if (height >= 0 || height < getEngine().getHeight()) {
+                    data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                }
+            } else {
+                int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
+                if (decorator.isScaleStack()) {
+                    int maxStack = max - height;
+                    stack = (int)Math.ceil((double)maxStack * ((double)stack / 100));
+                } else stack = Math.min(stack, max - height);
 
-            if (decorator != null) {
-                if (!decorator.isStacking()) {
-                    if (height >= 0 || height < getEngine().getHeight()) {
-                        data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, realZ, getData()));
+                if (stack == 1) {
+                    data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                    return;
+                }
+
+                for (int i = 0; i < stack; i++) {
+                    int h = height + i;
+                    if (h > max || h > getEngine().getHeight()) {
+                        continue;
                     }
-                } else {
-                    int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                    stack = Math.min(stack, getDimension().getFluidHeight() - height + 2);
 
-                    BlockData top = decorator.getBlockDataForTop(biome, getRng(), realX, realZ, getData());
-                    BlockData fill = decorator.getBlockData100(biome, getRng(), realX, realZ, getData());
-
-                    for (int i = 0; i < stack; i++) {
-                        if (height - i < 0 || height - i > getEngine().getHeight()) {
-                            continue;
-                        }
-
-                        if (height + i > getDimension().getFluidHeight()) {
-                            continue;
-                        }
-
-                        double threshold = ((double) i) / (stack - 1);
-                        data.set(x, height + i, z, threshold >= decorator.getTopThreshold() ? top : fill);
-                    }
+                    double threshold = ((double) i) / (stack - 1);
+                    data.set(x, h, z, threshold >= decorator.getTopThreshold() ?
+                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
+                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData()));
                 }
             }
         }
+
     }
 }

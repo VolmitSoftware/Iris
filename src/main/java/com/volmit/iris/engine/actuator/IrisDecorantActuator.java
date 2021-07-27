@@ -18,12 +18,14 @@
 
 package com.volmit.iris.engine.actuator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.decorator.*;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisCaveLayer;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -31,10 +33,12 @@ import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     private static final Predicate<BlockData> PREDICATE_SOLID = (b) -> b != null && !b.getMaterial().isAir() && !b.getMaterial().equals(Material.WATER) && !b.getMaterial().equals(Material.LAVA);
+    private BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID = null;
     private final RNG rng;
     @Getter
     private final EngineDecorator surfaceDecorator;
@@ -57,6 +61,23 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(getEngine());
         shoreLineDecorator = new IrisShoreLineDecorator(getEngine());
         seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
+
+        //Can't be created without an instance of the actuator due to referencing the engine
+        PREDICATE_CAVELIQUID = (b, y) -> {
+            for (IrisCaveLayer layer : getEngine().getDimension().getCaveLayers()) {
+                if (!layer.getFluid().hasFluid(getData())) {
+                    continue;
+                }
+
+                if (layer.getFluid().isInverseHeight() && y >= layer.getFluid().getFluidHeight()) {
+                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
+                } else if (!layer.getFluid().isInverseHeight() && y <= layer.getFluid().getFluidHeight()) {
+                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
+                }
+            }
+            return false;
+        };
+
     }
 
     @BlockCoordinates
@@ -71,10 +92,12 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         int j, realX, realZ, height;
         IrisBiome biome, cave;
 
+
         for (int i = 0; i < output.getWidth(); i++) {
             for (j = 0; j < output.getDepth(); j++) {
-                boolean solid;
+                boolean solid, liquid;
                 int emptyFor = 0;
+                int liquidFor = 0;
                 int lastSolid = 0;
                 realX = (int) Math.round(modX(x + i));
                 realZ = (int) Math.round(modZ(z + j));
@@ -90,31 +113,40 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                     getShoreLineDecorator().decorate(i, j,
                             realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
                             realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
-                            output, biome, height, getEngine().getHeight() - height);
+                            output, biome, height, getEngine().getHeight());
                 } else if (height == getDimension().getFluidHeight() + 1) {
                     getSeaSurfaceDecorator().decorate(i, j,
                             realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
                             realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
-                            output, biome, height, getEngine().getHeight() - getDimension().getFluidHeight());
+                            output, biome, height, getEngine().getHeight());
                 } else if (height < getDimension().getFluidHeight()) {
-                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight());
+                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight() + 1);
                 }
 
                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
 
+
                 if (cave != null && cave.getDecorators().isNotEmpty()) {
                     for (int k = height; k > 0; k--) {
                         solid = PREDICATE_SOLID.test(output.get(i, k, j));
+                        liquid = PREDICATE_CAVELIQUID.test(output.get(i, k + 1, j), k + 1);
 
                         if (solid) {
                             if (emptyFor > 0) {
-                                getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, emptyFor);
-                                getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
+                                if (liquid) {
+                                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor + 1);
+                                    getSeaSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
+                                } else {
+                                    getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, lastSolid);
+                                    getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
+                                }
                                 emptyFor = 0;
+                                liquidFor = 0;
                             }
                             lastSolid = k;
                         } else {
                             emptyFor++;
+                            if (liquid) liquidFor++;
                         }
                     }
                 }

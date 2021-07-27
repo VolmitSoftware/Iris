@@ -56,16 +56,19 @@ public class IrisDecorator {
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
     private int stackMin = 1;
 
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
-
     @Desc("The maximum repeat stack height")
     private int stackMax = 1;
+
+    @DependsOn({"stackMin", "stackMax"})
+    @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
+            "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
+    private boolean scaleStack = false;
 
     @Required
     @MinNumber(0)
@@ -145,17 +148,19 @@ public class IrisDecorator {
         return null;
     }
 
-    public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double z, IrisDataManager data) {
+    public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisDataManager data) {
         if (getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
         }
 
         double xx = x;
+        double yy = y;
         double zz = z;
 
         if (!getVarianceGenerator(rng, data).isStatic()) {
             xx = x / style.getZoom();
+            yy = y / style.getZoom();
             zz = z / style.getZoom();
         }
 
@@ -163,23 +168,23 @@ public class IrisDecorator {
             return getBlockData(data).get(0);
         }
 
-        return getVarianceGenerator(rng, data).fit(getBlockData(data), z, x).clone(); //X and Z must be switched
+        return getVarianceGenerator(rng, data).fit(getBlockData(data), z, y, x).clone(); //X and Z must be switched
     }
 
-    public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double z, IrisDataManager data) {
+    public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisDataManager data) {
         if (getBlockDataTops(data).isEmpty()) {
-            return null;
+            return getBlockData100(b, rng, x, y, z, data);
         }
 
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
 
-        if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) {
+        if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
             if (getBlockData(data).size() == 1) {
                 return getBlockDataTops(data).get(0);
             }
 
-            return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), z, x); //X and Z must be switched
+            return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), z, y, x); //X and Z must be switched
         }
 
         return null;

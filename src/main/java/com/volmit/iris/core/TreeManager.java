@@ -35,6 +35,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -67,6 +68,7 @@ public class TreeManager implements Listener {
         if (block || event.isCancelled()) {
             return;
         }
+        Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> blockData instanceof Sapling, event.getWorld());
 
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 

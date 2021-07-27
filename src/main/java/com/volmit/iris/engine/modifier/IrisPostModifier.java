@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
+import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;
@@ -32,6 +33,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData AIR = B.get("CAVE_AIR");
@@ -46,12 +49,18 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int i, j;
+        BurstExecutor e = getEngine().burst().burst(output.getWidth());
+        int i;
+        AtomicInteger j = new AtomicInteger();
         for (i = 0; i < output.getWidth(); i++) {
-            for (j = 0; j < output.getDepth(); j++) {
-                post(i, j, output, i + x, j + z);
-            }
+            int finalI = i;
+            e.queue(() -> {
+                for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                    post(finalI, j.get(), output, finalI + x, j.get() + z);
+                }
+            });
         }
+        e.complete();
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 

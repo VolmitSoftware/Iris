@@ -41,7 +41,7 @@ import java.util.List;
 public interface EngineCompound extends Listener, Hotloadable, DataProvider {
     IrisDimension getRootDimension();
 
-    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes);
+    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes, boolean multicore);
 
     IrisWorld getWorld();
 

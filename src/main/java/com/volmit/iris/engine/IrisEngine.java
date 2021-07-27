@@ -163,39 +163,44 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @ChunkCoordinates
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes) {
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-            BurstExecutor b = burst().burst(16);
             PrecisionStopwatch px = PrecisionStopwatch.start();
-            for (int i = 0; i < vblocks.getWidth(); i++) {
-                int finalI = i;
-                b.queue(() -> {
-                    for (int j = 0; j < vblocks.getDepth(); j++) {
-                        getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
-                        getFramework().getComplex().getTrueHeightStream().get(x + finalI, z + j);
-                    }
-                });
+
+            if(multicore)
+            {
+                BurstExecutor b = burst().burst(16);
+                for (int i = 0; i < vblocks.getWidth(); i++) {
+                    int finalI = i;
+                    b.queue(() -> {
+                        for (int j = 0; j < vblocks.getDepth(); j++) {
+                            getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
+                            getFramework().getComplex().getTrueHeightStream().get(x + finalI, z + j);
+                        }
+                    });
+                }
+
+                b.complete();
             }
 
-            b.complete();
             getMetrics().getPrecache().put(px.getMilliseconds());
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
                     getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks);
-                    getFramework().getBiomeActuator().actuate(x, z, vbiomes);
-                    getFramework().getCaveModifier().modify(x, z, vblocks);
-                    getFramework().getRavineModifier().modify(x, z, vblocks);
-                    getFramework().getPostModifier().modify(x, z, vblocks);
-                    getFramework().getDecorantActuator().actuate(x, z, blocks);
+                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
+                    getFramework().getBiomeActuator().actuate(x, z, vbiomes, multicore);
+                    getFramework().getCaveModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getRavineModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getPostModifier().modify(x, z, vblocks, multicore);
+                    getFramework().getDecorantActuator().actuate(x, z, blocks, multicore);
                     getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
-                    getFramework().getDepositModifier().modify(x, z, blocks);
+                    getFramework().getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks);
+                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
                 }
             }
             getMetrics().getTotal().put(p.getMilliseconds());

@@ -26,11 +26,11 @@ public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent 
         super(engine, name);
     }
 
-    public abstract void onActuate(int x, int z, Hunk<T> output);
+    public abstract void onActuate(int x, int z, Hunk<T> output, boolean multicore);
 
     @BlockCoordinates
     @Override
-    public void actuate(int x, int z, Hunk<T> output) {
-        onActuate(x, z, output);
+    public void actuate(int x, int z, Hunk<T> output, boolean multicore) {
+        onActuate(x, z, output, multicore);
     }
 }

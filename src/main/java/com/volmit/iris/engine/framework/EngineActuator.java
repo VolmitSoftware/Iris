@@ -23,5 +23,5 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 
 public interface EngineActuator<O> extends EngineComponent {
     @BlockCoordinates
-    void actuate(int x, int z, Hunk<O> output);
+    void actuate(int x, int z, Hunk<O> output, boolean multicore);
 }

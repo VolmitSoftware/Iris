@@ -457,7 +457,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             IrisWorld ww = (getComposite() == null || getComposite().getWorld() == null) ? IrisWorld.fromWorld(world) : getComposite().getWorld();
-            generateChunkRawData(ww, x, z, tc).run();
+            generateChunkRawData(ww, x, z, tc, true).run();
 
             if (!getComposite().getWorld().hasRealWorld()) {
                 getComposite().getWorld().bind(world);
@@ -540,7 +540,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                     .minHeight(w.minHeight()).maxHeight(w.maxHeight())
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
-                    .build()).run();
+                    .build(), false).run();
         } catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
@@ -556,12 +556,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
     }
 
-    public Runnable generateChunkRawData(IrisWorld world, int x, int z, TerrainChunk tc) {
+    public Runnable generateChunkRawData(IrisWorld world, int x, int z, TerrainChunk tc, boolean multicore) {
         initialize(world);
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
         Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
-        compound.get().generate(x * 16, z * 16, blocks, post, biomes);
+        compound.get().generate(x * 16, z * 16, blocks, post, biomes, multicore);
 
         return () -> blocks.insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
     }

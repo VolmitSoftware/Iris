@@ -38,7 +38,7 @@ import java.util.function.Predicate;
 
 public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     private static final Predicate<BlockData> PREDICATE_SOLID = (b) -> b != null && !b.getMaterial().isAir() && !b.getMaterial().equals(Material.WATER) && !b.getMaterial().equals(Material.LAVA);
-    private static BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID = (d, i) -> false;
+    private static BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID = null;
     private final RNG rng;
     @Getter
     private final EngineDecorator surfaceDecorator;
@@ -62,20 +62,23 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         shoreLineDecorator = new IrisShoreLineDecorator(getEngine());
         seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
 
-        PREDICATE_CAVELIQUID = (b, y) -> {
-            for (IrisCaveLayer layer : getEngine().getDimension().getCaveLayers()) {
-                if (!layer.getFluid().hasFluid(getData())) {
-                    continue;
-                }
+        //Can't be created without an instance of the actuator due to referencing the engine
+        if (PREDICATE_CAVELIQUID == null) {
+            PREDICATE_CAVELIQUID = (b, y) -> {
+                for (IrisCaveLayer layer : getEngine().getDimension().getCaveLayers()) {
+                    if (!layer.getFluid().hasFluid(getData())) {
+                        continue;
+                    }
 
-                if (layer.getFluid().isInverseHeight() && y >= layer.getFluid().getFluidHeight()) {
-                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
-                } else if (!layer.getFluid().isInverseHeight() && y <= layer.getFluid().getFluidHeight()) {
-                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
+                    if (layer.getFluid().isInverseHeight() && y >= layer.getFluid().getFluidHeight()) {
+                        if (b.matches(layer.getFluid().getFluid(getData()))) return true;
+                    } else if (!layer.getFluid().isInverseHeight() && y <= layer.getFluid().getFluidHeight()) {
+                        if (b.matches(layer.getFluid().getFluid(getData()))) return true;
+                    }
                 }
-            }
-            return false;
-        };
+                return false;
+            };
+        }
     }
 
     @BlockCoordinates

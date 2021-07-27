@@ -53,13 +53,11 @@ public class TreeManager implements Listener {
 
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
-        // Must be iris world
         if (!IrisToolbelt.isIrisWorld(event.getWorld())) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla since not an Iris world");
             return;
         }
 
-        // Get world access
         IrisAccess worldAccess = IrisToolbelt.access(event.getWorld());
         if (worldAccess == null) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
@@ -67,38 +65,24 @@ public class TreeManager implements Listener {
             return;
         }
 
-        // Return null if not enabled
         if (!worldAccess.getCompound().getRootDimension().getTreeSettings().isEnabled()) {
             Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }
 
         Iris.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
-
-        // Calculate size, type & placement
-        // TODO: Patch algorithm to retrieve saplings, as it's not working as intended (only ever returns 1x1)
         Cuboid saplingPlane = getSaplings(event.getLocation(), blockData -> event.getLocation().getBlock().getBlockData().equals(blockData), event.getWorld());
         Iris.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
-
-        // Find best object placement based on sizes
         IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
 
-        // If none were found, just exit
         if (placement == null) {
             Iris.debug(this.getClass().getName() + " had options but did not manage to find objectPlacements for them");
             return;
         }
 
-        // Delete existing saplings
         saplingPlane.forEach(block -> block.setType(Material.AIR));
-
-        // Get object from placer
         IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
-
-        // List of new blocks
         List<BlockState> blockStateList = new KList<>();
-
-        // Create object placer
         IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
@@ -161,11 +145,6 @@ public class TreeManager implements Listener {
             }
         };
 
-        // TODO: Prevent placing on claimed blocks (however that's defined, idk)
-
-        // TODO: Prevent placing object when overriding blocks
-
-        // Place the object with the placer
         object.place(
                 saplingPlane.getCenter(),
                 placer,
@@ -174,19 +153,15 @@ public class TreeManager implements Listener {
                 Objects.requireNonNull(worldAccess).getData()
         );
 
-        // Cancel the vanilla placement
         event.setCancelled(true);
 
-        // Queue sync task
         J.s(() -> {
 
-            // Send out a new event
             StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
             block = true;
             Bukkit.getServer().getPluginManager().callEvent(iGrow);
             block = false;
 
-            // Check if blocks need to be updated
             if(!iGrow.isCancelled()){
                 for (BlockState block : iGrow.getBlocks()) {
                    block.update(true, false);

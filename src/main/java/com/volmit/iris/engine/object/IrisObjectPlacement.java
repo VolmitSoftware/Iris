@@ -62,7 +62,6 @@ public class IrisObjectPlacement {
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
     private double snow = 0;
 
-    @Required
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
@@ -146,6 +145,10 @@ public class IrisObjectPlacement {
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
+
+    @Desc("This object / these objects override the following trees when they grow...")
+    @ArrayType(min = 1, type = IrisTree.class)
+    private KList<IrisTree> trees = new KList<>();
 
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();

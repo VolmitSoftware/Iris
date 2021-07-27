@@ -70,6 +70,10 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
     private boolean aggressiveBiomeReshuffle = false;
 
+    @Desc("Tree growth override settings")
+    private IrisTreeSettings treeSettings = new IrisTreeSettings();
+
+
     @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
     private IrisShapedGeneratorStyle undercarriage = null;
 

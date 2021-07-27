@@ -215,21 +215,25 @@ public class IrisProject {
 
         try {
             KList<Report> reports = scanForErrors();
-            sender.sendMessage("There are " + reports.size() + " problems detected with this project. See console!");
-            Iris.error("===========================================================");
-            for (Report i : reports) {
-                if (i.getType().equals(ReportType.ERROR)) {
-                    hasError = true;
-                }
 
-                switch (i.getType()) {
-                    case ERROR -> Iris.error(i.toString());
-                    case SEVERE_WARNING -> Iris.warn(i.toString());
-                    case WARNING -> Iris.warn(i.toString());
-                    case NOTICE -> Iris.warn(i.toString());
+            if(reports.isNotEmpty())
+            {
+                sender.sendMessage("There are " + reports.size() + " problems detected with this project. See console!");
+                Iris.error("===========================================================");
+                for (Report i : reports) {
+                    if (i.getType().equals(ReportType.ERROR)) {
+                        hasError = true;
+                    }
+
+                    switch (i.getType()) {
+                        case ERROR -> Iris.error(i.toString());
+                        case SEVERE_WARNING -> Iris.warn(i.toString());
+                        case WARNING -> Iris.warn(i.toString());
+                        case NOTICE -> Iris.warn(i.toString());
+                    }
                 }
+                Iris.error("===========================================================");
             }
-            Iris.error("===========================================================");
         } catch (Throwable e) {
             hasError = true;
             e.printStackTrace();

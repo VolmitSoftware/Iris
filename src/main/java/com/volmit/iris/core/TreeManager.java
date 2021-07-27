@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
@@ -102,6 +103,7 @@ public class TreeManager implements Listener {
         saplingPlane.forEach(block -> block.setType(Material.AIR));
         IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
         List<BlockState> blockStateList = new KList<>();
+        KMap<Location, BlockData> dataCache = new KMap<>();
         IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
@@ -120,6 +122,7 @@ public class TreeManager implements Listener {
                 BlockState state = b.getState();
                 state.setBlockData(d);
                 blockStateList.add(b.getState());
+                dataCache.put(new Location(event.getWorld(), x,y,z), d);
             }
 
             @Override
@@ -183,7 +186,12 @@ public class TreeManager implements Listener {
 
             if (!iGrow.isCancelled()) {
                 for (BlockState block : iGrow.getBlocks()) {
-                    block.update(true, false);
+                    Location l = block.getLocation();
+
+                    if(dataCache.containsKey(l))
+                    {
+                        l.getBlock().setBlockData(dataCache.get(l), false);
+                    }
                 }
             }
         });

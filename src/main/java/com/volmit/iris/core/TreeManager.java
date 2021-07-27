@@ -8,17 +8,19 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.math.Vector2d;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Structure;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
 
@@ -27,6 +29,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 public class TreeManager implements Listener {
+
+    private boolean block = false;
 
     public TreeManager() {
         Iris.instance.registerListener(this);
@@ -40,8 +44,12 @@ public class TreeManager implements Listener {
      * <br>5. Exit if none are found, cancel event if one or more are.</br>
      * @param event Checks the given event for sapling overrides
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onStructureGrowEvent(StructureGrowEvent event) {
+        if(block || event.isCancelled())
+        {
+            return;
+        }
 
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
@@ -174,7 +182,9 @@ public class TreeManager implements Listener {
 
             // Send out a new event
             StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
+            block = true;
             Bukkit.getServer().getPluginManager().callEvent(iGrow);
+            block = false;
 
             // Check if blocks need to be updated
             if(!iGrow.isCancelled()){

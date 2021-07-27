@@ -44,14 +44,6 @@ public abstract class PaletteHunkIOAdapter<T> implements HunkIOAdapter<T> {
             }
         });
 
-        for (int i = 0; i < t.getWidth(); i++) {
-            for (int j = 0; j < t.getHeight(); j++) {
-                for (int k = 0; k < t.getDepth(); k++) {
-                    T w = t.get(i, j, k);
-                }
-            }
-        }
-
         palette.write(this, dos);
         dos.writeInt(nonNull.get() + Integer.MIN_VALUE);
         AtomicBoolean failure = new AtomicBoolean(false);

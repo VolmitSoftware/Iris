@@ -283,6 +283,12 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener {
         }
         frame.setSize(1440, 820);
         frame.setVisible(true);
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                nv.gx.shutdownLater();
+            }
+        });
     }
 
     public static void launch(Function2<Double, Double, Double> gen, String genName) {

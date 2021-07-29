@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.parallax;
 
 import com.google.gson.Gson;
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
@@ -28,6 +29,7 @@ import lombok.Data;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
@@ -71,7 +73,11 @@ public class ParallaxChunkMeta {
             int c = din.readInt();
 
             for (int i = 0; i < c; i++) {
-                pcm.getFeatures().add(gson.fromJson(din.readUTF(), IrisFeaturePositional.class));
+                try {
+                    pcm.getFeatures().add(gson.fromJson(din.readUTF(), IrisFeaturePositional.class));
+                } catch (EOFException e){
+                    Iris.reportError(e);
+                }
             }
 
             return pcm;

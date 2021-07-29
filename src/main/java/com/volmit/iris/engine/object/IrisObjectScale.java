@@ -53,10 +53,10 @@ public class IrisObjectScale {
     @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
     private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
 
-    private transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
+    private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
             = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
-            .maximumWeightedCapacity(64)
+            .maximumWeightedCapacity(1024)
             .concurrencyLevel(32)
             .build();
 

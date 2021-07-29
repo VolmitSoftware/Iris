@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.jigsaw;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.tools.IrisWorlds;
@@ -29,6 +30,7 @@ import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
@@ -42,14 +44,20 @@ public class PlannedStructure {
     private IrisJigsawStructure structure;
     private IrisPosition position;
     private IrisDataManager data;
-    private static KMap<String, IrisObject> objectRotationCache;
+    private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
+            = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
+            .initialCapacity(64)
+            .maximumWeightedCapacity(1024)
+            .concurrencyLevel(32)
+            .build();
     private RNG rng;
     private boolean verbose;
     private boolean terminating;
+    private static int hit = 0;
+    private static int miss = 0;
 
     public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng) {
         terminating = false;
-        objectRotationCache = new KMap<>();
         verbose = true;
         this.pieces = new KList<>();
         this.structure = structure;
@@ -393,16 +401,20 @@ public class PlannedStructure {
     public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
-        if (objectRotationCache.containsKey(key)) {
-            IrisObject o = objectRotationCache.get(key);
-
-            if (o != null) {
-                return o;
+        return objectRotationCache.compute(key, (k, v) -> {
+            if(v == null)
+            {
+                miss++;
+                return rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
             }
-        }
 
-        IrisObject o = rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
-        objectRotationCache.put(key, o);
-        return o;
+            hit++;
+            printCacheHit();
+            return v;
+        });
+    }
+
+    private void printCacheHit() {
+        System.out.println("Cache Hit " + Form.pc((double) hit / (double) (hit + miss), 2) + " Cache Hit: " + hit + " hits " + miss + " misses.");
     }
 }

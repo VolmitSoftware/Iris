@@ -473,7 +473,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);
         return d instanceof Levelled;
     }
-    
+
     public void setPostBlock(int x, int y, int z, BlockData d, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
         if (y < currentData.getHeight()) {
             currentData.set(x & 15, y, z & 15, d);

@@ -349,8 +349,7 @@ public class CNG {
     private double getNoise(double... dim) {
         double scale = noscale ? 1 : this.bakedScale * this.scale;
 
-        if(fracture == null || noscale)
-        {
+        if (fracture == null || noscale) {
             return generator.noise(
                     (dim.length > 0 ? dim[0] : 0D) * scale,
                     (dim.length > 1 ? dim[1] : 0D) * scale,
@@ -372,18 +371,11 @@ public class CNG {
     }
 
     public double invertNoise(double... dim) {
-        if(dim.length == 1)
-        {
+        if (dim.length == 1) {
             return noise(-dim[0]);
-        }
-
-        else if(dim.length == 2)
-        {
+        } else if (dim.length == 2) {
             return noise(dim[1], dim[0]);
-        }
-
-        else if(dim.length == 3)
-        {
+        } else if (dim.length == 3) {
             return noise(dim[1], dim[2], dim[0]);
         }
 

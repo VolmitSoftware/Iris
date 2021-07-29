@@ -167,24 +167,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-            PrecisionStopwatch px = PrecisionStopwatch.start();
-
-            if (multicore) {
-                BurstExecutor b = burst().burst(16);
-                for (int i = 0; i < vblocks.getWidth(); i++) {
-                    int finalI = i;
-                    b.queue(() -> {
-                        for (int j = 0; j < vblocks.getDepth(); j++) {
-                            getFramework().getComplex().getTrueBiomeStream().get(x + finalI, z + j);
-                            getFramework().getComplex().getTrueHeightStream().get(x + finalI, z + j);
-                        }
-                    });
-                }
-
-                b.complete();
-            }
-
-            getMetrics().getPrecache().put(px.getMilliseconds());
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {

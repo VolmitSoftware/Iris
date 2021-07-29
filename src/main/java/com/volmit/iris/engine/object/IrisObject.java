@@ -71,10 +71,10 @@ public class IrisObject extends IrisRegistrant {
     private transient BlockVector center;
     private transient volatile boolean smartBored = false;
     private transient IrisLock lock = new IrisLock("Preloadcache");
-    private transient AtomicCache<AxisAlignedBB> aabb;
+    private transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
 
     public AxisAlignedBB getAABB() {
-        return getAABBFor(new BlockVector(w, h, d));
+        return aabb.aquire(() -> getAABBFor(new BlockVector(w, h, d)));
     }
 
     public static BlockVector getCenterForSize(BlockVector size) {

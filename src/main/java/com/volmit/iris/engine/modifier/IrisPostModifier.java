@@ -51,19 +51,11 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int i;
         AtomicInteger j = new AtomicInteger();
-        if (false) { // TODO FIX DESYNCS
-            BurstExecutor e = getEngine().burst().burst(output.getWidth());
-            for (i = 0; i < output.getWidth(); i++) {
-                int finalI = i;
-                e.queue(() -> {
-                    for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
-                        post(finalI, j.get(), output, finalI + x, j.get() + z);
-                    }
-                });
-            }
-            e.complete();
-        } else {
 
+        for (i = 0; i < output.getWidth(); i++) {
+            for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                post(i, j.get(), output, i + x, j.get() + z);
+            }
         }
 
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
@@ -71,7 +63,6 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
-
         int h = getFramework().getEngineParallax().trueHeight(x, z);
         int ha = getFramework().getEngineParallax().trueHeight(x + 1, z);
         int hb = getFramework().getEngineParallax().trueHeight(x, z + 1);

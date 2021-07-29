@@ -42,15 +42,15 @@ public class PlannedStructure {
     private IrisJigsawStructure structure;
     private IrisPosition position;
     private IrisDataManager data;
+    private RNG rng;
+    private boolean verbose;
+    private boolean terminating;
     private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
             = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)
             .concurrencyLevel(32)
             .build();
-    private RNG rng;
-    private boolean verbose;
-    private boolean terminating;
 
     public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng) {
         terminating = false;
@@ -286,17 +286,9 @@ public class PlannedStructure {
 
         IrisPosition shift = test.getWorldPosition(testConnector);
         test.setPosition(desiredPosition.sub(shift));
-        KList<PlannedPiece> collision = collidesWith(test);
 
-        if (pieceConnector.isInnerConnector() && collision.isNotEmpty()) {
-            for (PlannedPiece i : collision) {
-                if (i.equals(piece)) {
-                    continue;
-                }
-
-                return false;
-            }
-        } else if (collision.isNotEmpty()) {
+        if(collidesWith(test, piece))
+        {
             return false;
         }
 
@@ -354,17 +346,6 @@ public class PlannedStructure {
 
         for (PlannedPiece i : pieces) {
             v += i.getObject().getBlocks().size();
-        }
-
-        return v;
-    }
-
-    public KList<PlannedPiece> collidesWith(PlannedPiece piece) {
-        KList<PlannedPiece> v = new KList<>();
-        for (PlannedPiece i : pieces) {
-            if (i.collidesWith(piece)) {
-                v.add(i);
-            }
         }
 
         return v;

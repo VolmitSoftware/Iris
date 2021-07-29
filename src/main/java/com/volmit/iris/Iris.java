@@ -211,8 +211,12 @@ public class Iris extends VolmitPlugin implements Listener {
             proj.close();
 
             for (World i : Bukkit.getWorlds()) {
-                if (IrisWorlds.isIrisWorld(i)) {
-                    IrisWorlds.access(i).close();
+                try {
+                    if (IrisWorlds.isIrisWorld(i)) {
+                        IrisWorlds.access(i).close();
+                    }
+                } catch (Throwable ignored){
+
                 }
             }
 

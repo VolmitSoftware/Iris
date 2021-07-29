@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.Spiraled;
@@ -26,6 +27,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.Comparator;
+import java.util.function.Consumer;
 
 @Builder
 @Data
@@ -35,6 +37,9 @@ public class PregenTask {
 
     @Builder.Default
     private int radius = 1;
+
+    @Builder.Default
+    private Consumer<Double> onProgress = b -> Iris.info("Pregen is " + b + "% complete");
 
     private static final KList<Position2> order = computeChunkOrder();
 

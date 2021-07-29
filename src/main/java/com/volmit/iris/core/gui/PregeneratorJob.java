@@ -47,7 +47,6 @@ public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
     private JFrame frame;
-    private final PregenTask task;
     private final boolean saving;
     private final KList<Consumer<Double>> onProgress = new KList<>();
     private final KList<Runnable> whenDone = new KList<>();
@@ -61,11 +60,13 @@ public class PregeneratorJob implements PregenListener {
         instance = this;
         saving = false;
         info = new String[]{"Initializing..."};
-        this.task = task;
+        if (task.getOnProgress() != null){
+            Iris.info("Added onprogress, dab");
+            onProgress.add(task.getOnProgress());
+        }
         this.pregenerator = new IrisPregenerator(task, method, this);
         max = new Position2(0, 0);
         min = new Position2(0, 0);
-        KList<Runnable> draw = new KList<>();
         task.iterateRegions((xx, zz) -> {
             min.setX(Math.min(xx << 5, min.getX()));
             min.setZ(Math.min(zz << 5, min.getZ()));
@@ -155,7 +156,7 @@ public class PregeneratorJob implements PregenListener {
             try {
                 J.sleep(3000);
                 frame.setVisible(false);
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         });
@@ -179,7 +180,7 @@ public class PregeneratorJob implements PregenListener {
                 frame.add(renderer);
                 frame.setSize(1000, 1000);
                 frame.setVisible(true);
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
 
             }
         });

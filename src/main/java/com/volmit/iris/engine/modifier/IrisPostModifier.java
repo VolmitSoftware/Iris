@@ -51,7 +51,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int i;
         AtomicInteger j = new AtomicInteger();
-        if (multicore) {
+        if (false) {
             BurstExecutor e = getEngine().burst().burst(output.getWidth());
             for (i = 0; i < output.getWidth(); i++) {
                 int finalI = i;
@@ -479,11 +479,8 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     }
     
     public void setPostBlock(int x, int y, int z, BlockData d, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
-        synchronized (currentData)
-        {
-            if (y < currentData.getHeight()) {
-                currentData.set(x & 15, y, z & 15, d);
-            }
+        if (y < currentData.getHeight()) {
+            currentData.set(x & 15, y, z & 15, d);
         }
     }
 

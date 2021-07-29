@@ -49,7 +49,7 @@ public class IrisGeneratorStyle {
     private double multiplier = 1;
 
     @Desc("If set to true, each dimension will be fractured with a different order of input coordinates. This is usually 2 or 3 times slower than normal.")
-    private boolean maxFractureAccuracy = false;
+    private boolean axialFracturing = false;
 
     @Desc("Apply a generator to the coordinate field fed into this parent generator. I.e. Distort your generator with another generator.")
     private IrisGeneratorStyle fracture = null;
@@ -74,7 +74,7 @@ public class IrisGeneratorStyle {
         return cng.aquire(() ->
         {
             CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
-            cng.setTrueFracturing(maxFractureAccuracy);
+            cng.setTrueFracturing(axialFracturing);
 
             if (fracture != null) {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934)), fracture.getMultiplier());

@@ -347,33 +347,47 @@ public class CNG {
     }
 
     private double getNoise(double... dim) {
-        if (isTrueFracturing()) {
-            if (dim.length == 2) {
-                double scale = noscale ? 1 : this.bakedScale * this.scale;
-                double f1 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[0], dim[1]) - 0.5) * fscale : 0D);
-                double f2 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[1], dim[0]) - 0.5) * fscale : 0D);
-                double x = dim[0] + f1;
-                double y = dim[1] + -f1;
-                double z = 0D;
-                return generator.noise(x * scale, y * scale, z * scale) * opacity;
-            } else if (dim.length == 3) {
-                double scale = noscale ? 1 : this.bakedScale * this.scale;
-                double f1 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[0], dim[2], dim[1]) - 0.5) * fscale : 0D);
-                double f2 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[1], dim[0], dim[2]) - 0.5) * fscale : 0D);
-                double f3 = noscale ? 0 : (fracture != null ? (fracture.noise(dim[2], dim[1], dim[0]) - 0.5) * fscale : 0D);
-                double x = dim[0] + f1;
-                double y = dim[1] + f3;
-                double z = dim[2] + f2;
-                return generator.noise(x * scale, y * scale, z * scale) * opacity;
-            }
+        double scale = noscale ? 1 : this.bakedScale * this.scale;
+
+        if(fracture == null || noscale)
+        {
+            return generator.noise(
+                    (dim.length > 0 ? dim[0] : 0D) * scale,
+                    (dim.length > 1 ? dim[1] : 0D) * scale,
+                    (dim.length > 2 ? dim[2] : 0D) * scale) * opacity;
         }
 
-        double scale = noscale ? 1 : this.bakedScale * this.scale;
-        double f = noscale ? 0 : (fracture != null ? (fracture.noise(dim) - 0.5) * fscale : 0D);
+        if (fracture.isTrueFracturing()) {
+            double x = dim.length > 0 ? dim[0] + ((fracture.noise(dim) - 0.5) * fscale) : 0D;
+            double y = dim.length > 1 ? dim[1] + ((fracture.noise(dim[1], dim[0]) - 0.5) * fscale) : 0D;
+            double z = dim.length > 2 ? dim[2] + ((fracture.noise(dim[2], dim[0], dim[1]) - 0.5) * fscale) : 0D;
+            return generator.noise(x * scale, y * scale, z * scale) * opacity;
+        }
+
+        double f = fracture.noise(dim) * fscale;
         double x = dim.length > 0 ? dim[0] + f : 0D;
-        double y = dim.length > 1 ? dim[1] + -f : 0D;
-        double z = dim.length > 2 ? dim[2] + -f : 0D;
+        double y = dim.length > 1 ? dim[1] - f : 0D;
+        double z = dim.length > 2 ? dim[2] - f : 0D;
         return generator.noise(x * scale, y * scale, z * scale) * opacity;
+    }
+
+    public double invertNoise(double... dim) {
+        if(dim.length == 1)
+        {
+            return noise(-dim[0]);
+        }
+
+        else if(dim.length == 2)
+        {
+            return noise(dim[1], dim[0]);
+        }
+
+        else if(dim.length == 3)
+        {
+            return noise(dim[1], dim[2], dim[0]);
+        }
+
+        return noise(dim);
     }
 
     public double noise(double... dim) {

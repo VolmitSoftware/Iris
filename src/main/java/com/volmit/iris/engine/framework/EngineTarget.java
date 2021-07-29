@@ -55,7 +55,7 @@ public class EngineTarget {
     }
 
     public void close() {
-        parallaxBurster.shutdownAndAwait();
-        burster.shutdownAndAwait();
+        parallaxBurster.shutdownLater();
+        burster.shutdownLater();
     }
 }

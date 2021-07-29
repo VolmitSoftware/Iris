@@ -21,6 +21,7 @@ package com.volmit.iris.engine.parallel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.scheduling.J;
 
 import java.util.concurrent.*;
 
@@ -94,6 +95,10 @@ public class MultiBurst {
 
     public void shutdown() {
         service.shutdown();
+    }
+
+    public void shutdownLater() {
+        J.a(service::shutdown, 100);
     }
 
     public void shutdownAndAwait() {

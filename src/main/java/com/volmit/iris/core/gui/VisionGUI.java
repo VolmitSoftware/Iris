@@ -168,14 +168,13 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                 try
                 {
                     engine = IrisWorlds.access(world.realWorld()).getCompound().getEngine(index);
+                    return !engine.isClosed();
                 }
 
                 catch(Throwable e)
                 {
-                    engine = IrisWorlds.access(world.realWorld()).getCompound().getDefaultEngine();
-                }
 
-                return true;
+                }
             }
         }
 

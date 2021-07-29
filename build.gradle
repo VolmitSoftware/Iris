@@ -50,8 +50,6 @@ def registerCustomOutputTask(name, path) {
     }
 }
 
-file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParentFile().getAbsolutePath() + '/build/resources/main/plugin.yml').delete()
-
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
@@ -72,14 +70,15 @@ repositories {
 }
 
 shadowJar
-        {
-            minimize()
-            dependencies {
-                include(dependency('org.zeroturnaround:zt-zip:1.14'))
-                include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
-                include(dependency('io.papermc:paperlib:1.0.5'))
-            }
-        }
+{
+    append("plugin.yml")
+    minimize()
+    dependencies {
+        include(dependency('org.zeroturnaround:zt-zip:1.14'))
+        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
+        include(dependency('io.papermc:paperlib:1.0.5'))
+    }
+}
 
 manifest()
 

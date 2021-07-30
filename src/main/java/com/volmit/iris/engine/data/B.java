@@ -141,8 +141,17 @@ public class B {
             if (bb != null) {
                 return bb;
             }
+            BlockData bx = null;
 
-            BlockData bx = Bukkit.createBlockData(ix);
+            if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported())
+            {
+                bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
+            }
+
+            if(bx == null)
+            {
+                bx = Bukkit.createBlockData(ix);
+            }
 
             if (bx instanceof Leaves) {
                 ((Leaves) bx).setPersistent(true);
@@ -529,6 +538,14 @@ public class B {
         for (Material i : Material.values()) {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
+        }
+
+        if(Iris.linkOraxen.supported())
+        {
+            for(String i : Iris.linkOraxen.getItemTypes())
+            {
+                bt.add("oraxen:" + i);
+            }
         }
 
         return bt.toArray(new String[0]);

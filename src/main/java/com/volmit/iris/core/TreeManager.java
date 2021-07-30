@@ -232,7 +232,7 @@ public class TreeManager implements Listener {
 
         // Add more or find any in the region
         if (isUseAll || placements.isEmpty()) {
-            IrisRegion region = worldAccess.getCompound().getDefaultEngine().getRegion(location.getBlockX(), location.getBlockZ());
+            IrisRegion region = worldAccess.getCompound().getEngineForHeight(location.getBlockY()).getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
             allObjects.addAll(region.getObjects());
         }

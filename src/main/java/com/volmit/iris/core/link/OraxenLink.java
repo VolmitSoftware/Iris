@@ -51,7 +51,7 @@ public class OraxenLink {
         try {
             return supported() ? (String[]) Class.forName("io.th0rgal.oraxen.items.OraxenItems").getDeclaredMethod("getItemNames").invoke(null) : new String[0];
         } catch (Throwable e) {
-
+            e.printStackTrace();
         }
 
         return new String[0];

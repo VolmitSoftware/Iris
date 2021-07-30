@@ -66,7 +66,7 @@ public class HunkRegionSlice<T> {
     public synchronized int cleanup(long t) {
         int v = 0;
         if (loadedChunks.size() != lastUse.size()) {
-            Iris.warn("Incorrect chunk use counts in " + key);
+            Iris.warn("Incorrect chunk use counts in " + key + " region slice.");
 
             for (Position2 i : lastUse.k()) {
                 if (!loadedChunks.containsKey(i)) {

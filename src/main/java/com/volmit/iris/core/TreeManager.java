@@ -83,6 +83,18 @@ public class TreeManager implements Listener {
             return;
         }
 
+        if (worldAccess.getCompound() == null) {
+            Iris.debug(this.getClass().getName() + " passed off to vanilla because dimension compound is null");
+            Iris.reportError(new NullPointerException(event.getWorld().getName() + " is accessible but does not have compound"));
+            return;
+        }
+
+        if (worldAccess.getCompound().getRootDimension() == null) {
+            Iris.debug(this.getClass().getName() + " passed off to vanilla because compound's root dimension is null");
+            Iris.reportError(new NullPointerException(event.getWorld().getName() + " is accessible & has compound but has no root dimension"));
+            return;
+        }
+
         if (!worldAccess.getCompound().getRootDimension().getTreeSettings().isEnabled()) {
             Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;

@@ -180,7 +180,9 @@ public class TreeManager implements Listener {
         };
 
         object.place(
-                saplingPlane.getCenter(),
+                saplingPlane.getCenter().getBlockX(),
+                (int) (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
+                saplingPlane.getCenter().getBlockZ(),
                 placer,
                 placement,
                 RNG.r,

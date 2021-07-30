@@ -22,11 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.parallel.BurstExecutor;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -184,6 +180,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
                 }
             }
+
             getMetrics().getTotal().put(p.getMilliseconds());
 
             if (IrisSettings.get().getGeneral().isDebug()) {

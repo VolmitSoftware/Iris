@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
-import com.volmit.iris.engine.parallel.BurstExecutor;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;

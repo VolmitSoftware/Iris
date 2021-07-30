@@ -287,8 +287,7 @@ public class PlannedStructure {
         IrisPosition shift = test.getWorldPosition(testConnector);
         test.setPosition(desiredPosition.sub(shift));
 
-        if(collidesWith(test, piece))
-        {
+        if (collidesWith(test, piece)) {
             return false;
         }
 

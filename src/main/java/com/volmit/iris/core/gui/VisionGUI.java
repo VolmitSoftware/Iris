@@ -23,10 +23,7 @@ import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
@@ -157,22 +154,15 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         });
     }
 
-    public boolean updateEngine()
-    {
-        if(engine.isClosed())
-        {
+    public boolean updateEngine() {
+        if (engine.isClosed()) {
             int index = engine.getIndex();
 
-            if(world.hasRealWorld())
-            {
-                try
-                {
+            if (world.hasRealWorld()) {
+                try {
                     engine = IrisWorlds.access(world.realWorld()).getCompound().getEngine(index);
                     return !engine.isClosed();
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
 
                 }
             }
@@ -413,8 +403,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void paint(Graphics gx) {
-        if(updateEngine())
-        {
+        if (updateEngine()) {
             dump();
         }
 

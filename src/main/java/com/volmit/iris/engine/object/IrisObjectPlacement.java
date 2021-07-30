@@ -36,6 +36,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Material;
+import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 
 @EqualsAndHashCode()
@@ -213,6 +214,18 @@ public class IrisObjectPlacement {
     }
 
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
+
+    public boolean matches(IrisTreeSize size, TreeType type) {
+        for(IrisTree i : getTrees())
+        {
+            if(i.matches(size, type))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static class TableCache {
         final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();

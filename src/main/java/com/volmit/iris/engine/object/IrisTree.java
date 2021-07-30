@@ -50,4 +50,29 @@ public class IrisTree {
 
     @Desc("If enabled, overrides trees of any size")
     private boolean anySize;
+
+    public boolean matches(IrisTreeSize size, TreeType type) {
+        if(!matchesSize(size))
+        {
+            return false;
+        }
+
+        return matchesType(type);
+    }
+
+    private boolean matchesSize(IrisTreeSize size) {
+        for(IrisTreeSize i : getSizes())
+        {
+            if((i.getDepth() == size.getDepth() && i.getWidth() == size.getWidth()) || (i.getDepth() == size.getWidth() && i.getWidth() == size.getDepth()))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean matchesType(TreeType type) {
+        return getTreeTypes().contains(type);
+    }
 }

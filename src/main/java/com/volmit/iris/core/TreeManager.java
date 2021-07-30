@@ -222,29 +222,20 @@ public class TreeManager implements Listener {
     private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, Location location, TreeType type, IrisTreeSize size) {
 
         KList<IrisObjectPlacement> placements = new KList<>();
-        KList<IrisObjectPlacement> allObjects = new KList<>();
         boolean isUseAll = ((Engine) worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
         IrisBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
-        allObjects.addAll(biome.getObjects());
 
         // Add more or find any in the region
         if (isUseAll || placements.isEmpty()) {
             IrisRegion region = worldAccess.getCompound().getEngineForHeight(location.getBlockY()).getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
-            allObjects.addAll(region.getObjects());
         }
 
-        // TODO: Add more or find any in the dimension
-        //      Add object placer to dimension
-        //        if (isUseAll || placements.isEmpty()){
-        //            placements.addAll(matchObjectPlacements(worldAccess.getCompound().getRootDimension().getObjects(), size, type));
-        //        }
-
         // Check if no matches were found, return a random one if they are
-        return placements.isNotEmpty() ? placements.getRandom(RNG.r) : null;
+        return placements.isNotEmpty() ? placements.getRandom() : null;
     }
 
     /**
@@ -257,13 +248,17 @@ public class TreeManager implements Listener {
      */
     private KList<IrisObjectPlacement> matchObjectPlacements(KList<IrisObjectPlacement> objects, IrisTreeSize size, TreeType type) {
 
-        Predicate<IrisTree> isValid = irisTree -> (
-                irisTree.isAnySize() || irisTree.getSizes().stream().anyMatch(treeSize -> treeSize.doesMatch(size))) && (
-                irisTree.isAnyTree() || irisTree.getTreeTypes().stream().anyMatch(treeType -> treeType.equals(type)));
+        KList<IrisObjectPlacement> p = new KList<>();
 
-        objects.removeIf(objectPlacement -> objectPlacement.getTrees().stream().noneMatch(isValid));
+        for(IrisObjectPlacement i : objects)
+        {
+            if(i.matches(size, type))
+            {
+                p.add(i);
+            }
+        }
 
-        return objects;
+        return p;
     }
 
     /**

@@ -22,6 +22,7 @@ import com.volmit.iris.core.*;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
 import com.volmit.iris.core.command.world.CommandLocate;
+import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.nms.INMS;
@@ -94,6 +95,46 @@ public class Iris extends VolmitPlugin implements Listener {
         installDataPacks();
     }
 
+
+    public void onEnable() {
+        instance = this;
+        try {
+            compat = IrisCompat.configured(getDataFile("compat.json"));
+        } catch (IOException e) {
+            Iris.reportError(e);
+        }
+        proj = new ProjectManager();
+        convert = new ConversionManager();
+        wand = new WandManager();
+        board = new IrisBoardManager();
+        linkMultiverseCore = new MultiverseCoreLink();
+        linkMythicMobs = new MythicMobsLink();
+        saplingManager = new TreeManager();
+        edit = new EditManager();
+        configWatcher = new FileWatcher(getDataFile("settings.json"));
+        getServer().getPluginManager().registerEvents(new CommandLocate(), this);
+        getServer().getPluginManager().registerEvents(new WandManager(), this);
+        super.onEnable();
+        Bukkit.getPluginManager().registerEvents(this, this);
+        J.s(this::lateBind);
+    }
+
+    private void lateBind() {
+        J.a(() -> PaperLib.suggestPaper(this));
+        J.a(() -> IO.delete(getTemp()));
+        J.a(this::bstats);
+        J.a(this::splash, 20);
+        J.ar(this::checkConfigHotload, 60);
+        J.sr(this::tickQueue, 0);
+        J.a(this::setupPapi);
+    }
+
+    private void setupPapi() {
+        if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new IrisPapiExpansion().register();
+        }
+    }
+
     public File getDatapacksFolder() {
         File props = new File("server.properties");
 
@@ -164,34 +205,6 @@ public class Iris extends VolmitPlugin implements Listener {
     @Override
     public String getTag(String subTag) {
         return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.GREEN + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
-    }
-
-    public void onEnable() {
-        instance = this;
-        try {
-            compat = IrisCompat.configured(getDataFile("compat.json"));
-        } catch (IOException e) {
-            Iris.reportError(e);
-        }
-        proj = new ProjectManager();
-        convert = new ConversionManager();
-        wand = new WandManager();
-        board = new IrisBoardManager();
-        linkMultiverseCore = new MultiverseCoreLink();
-        linkMythicMobs = new MythicMobsLink();
-        saplingManager = new TreeManager();
-        edit = new EditManager();
-        configWatcher = new FileWatcher(getDataFile("settings.json"));
-        J.a(() -> IO.delete(getTemp()));
-        J.a(this::bstats);
-        J.s(this::splash, 20);
-        J.sr(this::tickQueue, 0);
-        J.ar(this::checkConfigHotload, 40);
-        PaperLib.suggestPaper(this);
-        getServer().getPluginManager().registerEvents(new CommandLocate(), this);
-        getServer().getPluginManager().registerEvents(new WandManager(), this);
-        super.onEnable();
-        Bukkit.getPluginManager().registerEvents(this, this);
     }
 
     private void checkConfigHotload() {

@@ -36,6 +36,7 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +65,31 @@ public interface IrisAccess extends Hotloadable, DataProvider {
     double getGeneratedPerSecond();
 
     void printMetrics(CommandSender sender);
+
+    /**
+     * Ignores the world, just uses the position
+     * @param l the location
+     * @return the biome
+     */
+    default IrisBiome getBiome(Location l)
+    {
+        return getBiome(l.toVector());
+    }
+
+    default IrisRegion getRegion(int x, int y, int z)
+    {
+        return getEngineAccess(y).getRegion(x, z);
+    }
+
+    default IrisRegion getRegion(Location l)
+    {
+        return getRegion(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
+
+    default IrisBiome getBiome(Vector l)
+    {
+        return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
 
     IrisBiome getBiome(int x, int y, int z);
 
@@ -265,5 +291,10 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         }
 
         return v;
+    }
+
+    default double getHeight(Location l)
+    {
+        return getHeight(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 }

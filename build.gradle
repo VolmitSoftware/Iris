@@ -99,4 +99,5 @@ dependencies {
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'
     implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'me.clip:placeholderapi:2.10.10'
 }

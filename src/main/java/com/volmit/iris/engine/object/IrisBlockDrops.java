@@ -83,8 +83,6 @@ public class IrisBlockDrops {
         return false;
     }
 
-    // TODO: WARNING USES RNG.R
-    @Deprecated
     public void fillDrops(boolean debug, KList<ItemStack> d) {
         for (IrisLoot i : getDrops()) {
             if (RNG.r.i(1, i.getRarity()) == i.getRarity()) {

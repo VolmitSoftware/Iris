@@ -32,6 +32,7 @@ import org.bukkit.Location;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean spawnable;
@@ -155,7 +156,71 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onBlockBreak(BlockBreakEvent e) {
+        if(e.getBlock().getWorld().equals(getTarget().getWorld().realWorld()) && getEngine().contains(e.getBlock().getLocation()))
+        {
+            KList<ItemStack> d = new KList<>();
+            Runnable drop = () -> J.s(() -> d.forEach((i) -> e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().clone().add(0.5, 0.5, 0.5), i)));
+            IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());
 
+            for(IrisBlockDrops i : b.getBlockDrops())
+            {
+                if(i.shouldDropFor(e.getBlock().getBlockData(), getData()))
+                {
+                    if(i.isReplaceVanillaDrops())
+                    {
+                        e.setDropItems(false);
+                    }
+
+                    i.fillDrops(false, d);
+
+                    if(i.isSkipParents())
+                    {
+                        drop.run();
+                        return;
+                    }
+                }
+            }
+
+            IrisRegion r = getEngine().getRegion(e.getBlock().getLocation());
+
+            for(IrisBlockDrops i : r.getBlockDrops())
+            {
+                if(i.shouldDropFor(e.getBlock().getBlockData(), getData()))
+                {
+                    if(i.isReplaceVanillaDrops())
+                    {
+                        e.setDropItems(false);
+                    }
+
+                    i.fillDrops(false, d);
+
+                    if(i.isSkipParents())
+                    {
+                        drop.run();
+                        return;
+                    }
+                }
+            }
+
+            for(IrisBlockDrops i : getEngine().getDimension().getBlockDrops())
+            {
+                if(i.shouldDropFor(e.getBlock().getBlockData(), getData()))
+                {
+                    if(i.isReplaceVanillaDrops())
+                    {
+                        e.setDropItems(false);
+                    }
+
+                    i.fillDrops(false, d);
+
+                    if(i.isSkipParents())
+                    {
+                        drop.run();
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     @Override

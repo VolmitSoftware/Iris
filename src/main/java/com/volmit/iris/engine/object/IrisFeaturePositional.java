@@ -23,6 +23,7 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -67,6 +68,7 @@ public class IrisFeaturePositional {
         s.writeUTF(new Gson().toJson(this));
     }
 
+    @BlockCoordinates
     public boolean shouldFilter(double x, double z, RNG rng) {
         double actualRadius = getFeature().getActualRadius();
         double dist2 = distance2(x, z, rng);

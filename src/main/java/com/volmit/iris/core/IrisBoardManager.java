@@ -33,6 +33,8 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -136,7 +138,6 @@ public class IrisBoardManager implements BoardProvider, Listener {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
             engine.getFramework().getEngineParallax().forEachFeature(x, z, f::add);
-
             v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());

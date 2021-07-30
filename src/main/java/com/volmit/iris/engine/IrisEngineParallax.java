@@ -18,15 +18,9 @@
 
 package com.volmit.iris.engine;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.documentation.BlockCoordinates;
 import lombok.Getter;
-import org.bukkit.util.Consumer;
 
 public class IrisEngineParallax implements EngineParallaxManager {
     @Getter
@@ -35,48 +29,8 @@ public class IrisEngineParallax implements EngineParallaxManager {
     @Getter
     private final int parallaxSize;
 
-    private final ConcurrentLinkedHashMap<Long, KList<IrisFeaturePositional>> featureCache = new ConcurrentLinkedHashMap.Builder<Long, KList<IrisFeaturePositional>>()
-            .initialCapacity(1024)
-            .maximumWeightedCapacity(1024)
-            .concurrencyLevel(32)
-            .build();
-
     public IrisEngineParallax(Engine engine) {
         this.engine = engine;
         parallaxSize = computeParallaxSize();
-    }
-
-    @Override
-    @BlockCoordinates
-    public void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        if (!getEngine().getDimension().hasFeatures(getEngine())) {
-            return;
-        }
-
-        for (IrisFeaturePositional ipf : forEachFeature(x, z)) {
-            f.accept(ipf);
-        }
-    }
-
-    @Override
-    @BlockCoordinates
-    public KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        int cx = ((int) x) >> 4;
-        int cz = ((int) x) >> 4;
-        long key = Cache.key(cx, cz);
-
-        return featureCache.compute(key, (k, v) -> {
-            if (v != null) {
-                return v;
-            }
-
-            KList<IrisFeaturePositional> pos = new KList<>();
-            pos.addAll(EngineParallaxManager.super.forEachFeature(cx << 4, cz << 4));
-            pos.addAll(EngineParallaxManager.super.forEachFeature((cx << 4) + 15, cz << 4));
-            pos.addAll(EngineParallaxManager.super.forEachFeature(cx << 4, (cz << 4) + 15));
-            pos.addAll(EngineParallaxManager.super.forEachFeature((cx << 4) + 15, (cz << 4) + 15));
-            pos.removeDuplicates();
-            return pos;
-        });
     }
 }

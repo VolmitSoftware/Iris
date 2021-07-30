@@ -18,7 +18,10 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
@@ -51,9 +54,11 @@ public class IrisPregenerator {
     private final KSet<Position2> generatedRegions;
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
+    private final ChronoLatch cl;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
+        cl = new ChronoLatch(5000);
         generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
@@ -93,6 +98,11 @@ public class IrisPregenerator {
                         generated.get(), totalChunks.get(),
                         totalChunks.get() - generated.get(),
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
+
+                if(cl.flip())
+                {
+                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ") " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double)eta, 2));
+                }
 
                 return 1000;
             }

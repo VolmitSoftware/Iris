@@ -19,14 +19,17 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 
 public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent implements EngineModifier<T> {
     public EngineAssignedModifier(Engine engine, String name) {
         super(engine, name);
     }
 
+    @BlockCoordinates
     public abstract void onModify(int x, int z, Hunk<T> output, boolean multicore);
 
+    @BlockCoordinates
     @Override
     public void modify(int x, int z, Hunk<T> output, boolean multicore) {
         onModify(x, z, output, multicore);

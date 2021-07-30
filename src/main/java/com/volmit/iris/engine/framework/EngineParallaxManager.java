@@ -226,9 +226,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             int s = (int) Math.ceil(getParallaxSize() / 2D);
+
             int i, j;
-            int cx = (int)Math.round(x) >> 4;
-            int cz = (int)Math.round(z) >> 4;
+            int cx = (int)x >> 4;
+            int cz = (int)z >> 4;
 
             for (i = -s; i <= s; i++) {
                 for (j = -s; j <= s; j++) {

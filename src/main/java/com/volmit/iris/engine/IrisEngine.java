@@ -25,6 +25,7 @@ import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -147,11 +148,13 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getFramework().recycle();
     }
 
+    @BlockCoordinates
     @Override
     public double modifyX(double x) {
         return x / getDimension().getTerrainZoom();
     }
 
+    @BlockCoordinates
     @Override
     public double modifyZ(double z) {
         return z / getDimension().getTerrainZoom();
@@ -215,6 +218,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         close();
     }
 
+    @ChunkCoordinates
     @Override
     public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c) {
         getWorldManager().spawnInitialEntities(c);

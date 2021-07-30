@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
@@ -52,6 +53,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         getEngine().getParallax().saveAll();
     }
 
+    @ChunkCoordinates
     @Override
     public void spawnInitialEntities(Chunk c) {
         RNG rng = new RNG(Cache.key(c));
@@ -148,6 +150,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         return false;
     }
 
+    @ChunkCoordinates
     private void trySpawn(KList<IrisEntityInitialSpawn> s, Chunk c, RNG rng) {
         for (IrisEntityInitialSpawn i : s) {
             i.spawn(getEngine(), c, rng);

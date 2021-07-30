@@ -31,6 +31,8 @@ import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -77,10 +79,13 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     int getMinHeight();
 
+    @BlockCoordinates
     double modifyX(double x);
 
+    @BlockCoordinates
     double modifyZ(double z);
 
+    @ChunkCoordinates
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore);
 
     EngineMetrics getMetrics();
@@ -117,6 +122,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getParallaxWorld();
     }
 
+    @BlockCoordinates
     default Color draw(double x, double z) {
         IrisRegion region = getRegion((int) x, (int) z);
         IrisBiome biome = getSurfaceBiome((int) x, (int) z);
@@ -131,6 +137,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return IrisColor.blend(rc, bc, bc, Color.getHSBColor(0, 0, (float) heightFactor));
     }
 
+    @BlockCoordinates
     @Override
     default IrisRegion getRegion(int x, int z) {
         return getFramework().getComplex().getRegionStream().get(x, z);
@@ -141,21 +148,25 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getParallax();
     }
 
+    @BlockCoordinates
     @Override
     default IrisBiome getCaveBiome(int x, int z) {
         return getFramework().getComplex().getCaveBiomeStream().get(x, z);
     }
 
+    @BlockCoordinates
     @Override
     default IrisBiome getSurfaceBiome(int x, int z) {
         return getFramework().getComplex().getTrueBiomeStream().get(x, z);
     }
 
+    @BlockCoordinates
     @Override
     default int getHeight(int x, int z) {
         return getFramework().getEngineParallax().getHighest(x, z, true);
     }
 
+    @BlockCoordinates
     @Override
     default void catchBlockUpdates(int x, int y, int z, BlockData data) {
         if (data == null) {
@@ -168,10 +179,12 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         }
     }
 
+    @ChunkCoordinates
     default void placeTiles(Chunk c) {
 
     }
 
+    @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -195,6 +208,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         getMetrics().getUpdates().put(p.getMilliseconds());
     }
 
+    @BlockCoordinates
     default void updateLighting(int x, int y, int z, Chunk c) {
         Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
@@ -210,6 +224,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         }
     }
 
+    @BlockCoordinates
     @Override
     default void update(int x, int y, int z, Chunk c, RNG rf) {
         Block block = c.getBlock(x, y, z);
@@ -285,6 +300,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         list.addAll(r.getLootTables(getFramework().getComplex()));
     }
 
+    @BlockCoordinates
     @Override
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
@@ -362,14 +378,17 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         burst().lazy(() -> getParallax().cleanup());
     }
 
+    @BlockCoordinates
     default IrisBiome getBiome(Location l) {
         return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
+    @BlockCoordinates
     default IrisRegion getRegion(Location l) {
         return getRegion(l.getBlockX(), l.getBlockZ());
     }
 
+    @BlockCoordinates
     default boolean contains(Location l) {
         return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
     }

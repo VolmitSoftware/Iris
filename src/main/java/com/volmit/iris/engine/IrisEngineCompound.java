@@ -34,6 +34,8 @@ import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -212,6 +214,7 @@ public class IrisEngineCompound implements EngineCompound {
         return new File(world.worldFolder(), "iris/engine-metadata.json");
     }
 
+    @ChunkCoordinates
     @Override
     public void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes, boolean multicore) {
         recycle();
@@ -259,6 +262,7 @@ public class IrisEngineCompound implements EngineCompound {
         engineMetadata.save(getEngineMetadataFile());
     }
 
+    @BlockCoordinates
     @Override
     public IrisDataManager getData(int height) {
         return getEngineForHeight(height).getData();

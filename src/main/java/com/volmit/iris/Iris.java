@@ -22,7 +22,6 @@ import com.volmit.iris.core.*;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
 import com.volmit.iris.core.command.world.CommandLocate;
-import com.volmit.iris.core.link.BKLink;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.nms.INMS;
@@ -75,7 +74,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static WandManager wand;
     public static EditManager edit;
     public static IrisBoardManager board;
-    public static BKLink linkBK;
     public static MultiverseCoreLink linkMultiverseCore;
     public static MythicMobsLink linkMythicMobs;
     public static TreeManager saplingManager;
@@ -180,7 +178,6 @@ public class Iris extends VolmitPlugin implements Listener {
         wand = new WandManager();
         board = new IrisBoardManager();
         linkMultiverseCore = new MultiverseCoreLink();
-        linkBK = new BKLink();
         linkMythicMobs = new MythicMobsLink();
         saplingManager = new TreeManager();
         edit = new EditManager();

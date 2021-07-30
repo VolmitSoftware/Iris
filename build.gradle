@@ -96,7 +96,6 @@ dependencies {
     implementation 'org.bukkit.craftbukkit:1.16.5:1.16.5'
     implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
     implementation 'org.bukkit.craftbukkit:1.16.1:1.16.1'
-    implementation 'com.bergerkiller.bukkit:BKCommonLib:1.16.4-v2'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'
     implementation 'com.google.code.gson:gson:2.8.5'

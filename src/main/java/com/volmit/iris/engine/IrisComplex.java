@@ -33,11 +33,13 @@ import com.volmit.iris.engine.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
@@ -61,8 +63,10 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisBiome> shoreBiomeStream;
     private ProceduralStream<IrisBiome> baseBiomeStream;
     private ProceduralStream<IrisBiome> trueBiomeStream;
+    private ProceduralStream<IrisBiome> trueBiomeStreamNoFeatures;
     private ProceduralStream<Biome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> heightStream;
+    private ProceduralStream<Double> heightStreamNoFeatures;
     private ProceduralStream<Double> objectChanceStream;
     private ProceduralStream<Double> maxHeightStream;
     private ProceduralStream<Double> overlayStream;
@@ -199,7 +203,11 @@ public class IrisComplex implements DataProvider {
                         .convertAware2D(this::implode).cache2D(cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().seed());
+            return getHeight(engine, b, x, z, engine.getWorld().seed(), true);
+        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
+        heightStreamNoFeatures = ProceduralStream.of((x, z) -> {
+            IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
+            return getHeight(engine, b, x, z, engine.getWorld().seed(), false);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
@@ -245,6 +253,45 @@ public class IrisComplex implements DataProvider {
 
                     return b;
                 })
+                .cache2D(cacheSize);
+
+        trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
+                b -> focus)).convertAware2D((b, x, z) -> {
+            for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
+                IrisBiome bx = i.filter(x, z, b, rng);
+
+                if (bx != null) {
+                    bx.setInferredType(b.getInferredType());
+                    return bx;
+                }
+            }
+
+            return b;
+        })
+                .cache2D(cacheSize) : heightStream
+                .convertAware2D((h, x, z) ->
+                        fixBiomeType(h, baseBiomeStream.get(x, z),
+                                regionStream.get(x, z), x, z, fluidHeight))
+                .convertAware2D((b, x, z) -> {
+                    for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
+                        IrisBiome bx = i.filter(x, z, b, rng);
+
+                        if (bx != null) {
+                            bx.setInferredType(b.getInferredType());
+                            return bx;
+                        }
+                    }
+
+                    return b;
+                })
+                .cache2D(cacheSize);
+
+        trueBiomeStreamNoFeatures = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
+                b -> focus))
+                : heightStreamNoFeatures
+                .convertAware2D((h, x, z) ->
+                        fixBiomeType(h, baseBiomeStream.get(x, z),
+                                regionStream.get(x, z), x, z, fluidHeight))
                 .cache2D(cacheSize);
         trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D(cacheSize);
         heightFluidStream = heightStream.max(fluidHeight).cache2D(cacheSize);
@@ -374,7 +421,7 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
+    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed, boolean features) {
         double h = 0;
 
         for (IrisGenerator gen : generators) {
@@ -413,9 +460,14 @@ public class IrisComplex implements DataProvider {
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
 
-        for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
+        if(features)
         {
-            noise.set(i.filter(x, z, noise.get(), rng));
+            List<IrisFeaturePositional> p = engine.getFramework().getEngineParallax().forEachFeature(x, z);
+
+            for(IrisFeaturePositional i : p)
+            {
+                noise.set(i.filter(x, z, noise.get(), rng));
+            }
         }
 
         return Math.min(engine.getHeight(), Math.max(noise.get(), 0));

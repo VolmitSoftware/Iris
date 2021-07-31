@@ -265,7 +265,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         burst.queue(() -> {
                             RNG rng = new RNG(Cache.key(xx, zz) + getEngine().getTarget().getWorld().seed());
                             IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-                            IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+                            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
                             generateParallaxFeatures(rng, xx, zz, region, biome);
                         });
                     }
@@ -327,7 +327,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int zz = z << 4;
             RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
             IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
-            IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
             after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
             generateParallaxSurface(rng, x, z, biome, region, true);
             generateParallaxMutations(rng, x, z, true);
@@ -345,7 +345,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int zz = z << 4;
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
         IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
         generateParallaxSurface(rng, x, z, biome, region, false);
         generateParallaxMutations(rng, x, z, false);
@@ -504,8 +504,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         searching:
         for (IrisBiomeMutation k : getEngine().getDimension().getMutations()) {
             for (int l = 0; l < k.getChecks(); l++) {
-                IrisBiome sa = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
-                IrisBiome sb = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sa = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sb = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
 
                 if (sa.getLoadKey().equals(sb.getLoadKey())) {
                     continue;

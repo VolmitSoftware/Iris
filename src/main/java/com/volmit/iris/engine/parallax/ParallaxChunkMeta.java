@@ -94,7 +94,7 @@ public class ParallaxChunkMeta {
 
     private static List<IrisFeaturePositional> newList()
     {
-        return Collections.synchronizedList(new KList<>());
+        return new CopyOnWriteArrayList<>();
     }
 
     public ParallaxChunkMeta() {

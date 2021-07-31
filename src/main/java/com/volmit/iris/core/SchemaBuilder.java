@@ -187,7 +187,21 @@ public class SchemaBuilder {
                     fancyType = "Mythic Mob Type";
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
-                } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
+                }
+                else if (k.isAnnotationPresent(RegistryListSpawner.class)) {
+                    String key = "enum-reg-spawner";
+
+                    if (!definitions.containsKey(key)) {
+                        JSONObject j = new JSONObject();
+                        j.put("enum", new JSONArray(data.getSpawnerLoader().getPossibleKeys()));
+                        definitions.put(key, j);
+                    }
+
+                    fancyType = "Iris Spawner";
+                    prop.put("$ref", "#/definitions/" + key);
+                    description.add(SYMBOL_TYPE__N + "  Must be a valid Spawner (use ctrl+space for auto complete!)");
+                }
+                else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                     String key = "enum-block-type";
 
                     if (!definitions.containsKey(key)) {
@@ -463,7 +477,23 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Biome (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
+                            }
+                            else if (k.isAnnotationPresent(RegistryListSpawner.class)) {
+                                fancyType = "List of Iris Spawners";
+                                String key = "enum-reg-spawner";
+
+                                if (!definitions.containsKey(key)) {
+                                    JSONObject j = new JSONObject();
+                                    j.put("enum", new JSONArray(data.getSpawnerLoader().getPossibleKeys()));
+                                    definitions.put(key, j);
+                                }
+
+                                JSONObject items = new JSONObject();
+                                items.put("$ref", "#/definitions/" + key);
+                                prop.put("items", items);
+                                description.add(SYMBOL_TYPE__N + "  Must be a valid Spawner (use ctrl+space for auto complete!)");
+                            }
+                            else if (k.isAnnotationPresent(RegistryListMythical.class)) {
                                 fancyType = "List of Mythic Mob Types";
                                 String key = "enum-reg-mythical";
 

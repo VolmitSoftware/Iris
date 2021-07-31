@@ -19,28 +19,129 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean spawnable;
+    private final int art;
+    private final KMap<UUID, Long> spawnCooldowns;
 
     public IrisWorldManager(Engine engine) {
         super(engine);
+        spawnCooldowns = new KMap<>();
         spawnable = true;
+        art = J.ar(this::onAsyncTick, 200);
+    }
+
+    private void onAsyncTick() {
+        int biomeBaseCooldownMinutes = 2;
+        int biomeSpawnedCooldownMinutes = 3;
+        int biomeNotSpawnedCooldownMinutes = 5;
+
+        for(UUID i : spawnCooldowns.k())
+        {
+            if(M.ms() - spawnCooldowns.get(i) > TimeUnit.MINUTES.toMillis(biomeBaseCooldownMinutes))
+            {
+                spawnCooldowns.remove(i);
+            }
+        }
+
+        KMap<UUID, KList<Chunk>> data = new KMap<>();
+        int spawnBuffer = 8;
+
+        for(UUID i : data.k().shuffleCopy(RNG.r))
+        {
+            if(spawnCooldowns.containsKey(i))
+            {
+                continue;
+            }
+
+            if(spawnBuffer-- < 0)
+            {
+                break;
+            }
+
+            spawnCooldowns.put(i, spawnIn(data.get(i).getRandom(), i) ?
+                    (M.ms() + TimeUnit.MINUTES.toMillis(biomeSpawnedCooldownMinutes)) :
+                    (M.ms() + TimeUnit.MINUTES.toMillis(biomeNotSpawnedCooldownMinutes)));
+        }
+    }
+
+    private boolean spawnIn(Chunk c, UUID id) {
+        if(c.getEntities().length > 16)
+        {
+            return false;
+        }
+
+        return new KList<Supplier<Boolean>>(() -> {
+            IrisBiome biome = getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4);
+
+            for(IrisSpawner i : getData().getSpawnerLoader().loadAll(biome.getEntitySpawners()).shuffleCopy(RNG.r))
+            {
+                if(i.spawnInChunk(getEngine(), c))
+                {
+                    Iris.debug("Spawning Biome Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    return true;
+                }
+            }
+
+            return false;
+        }, () -> {
+            IrisRegion region = getEngine().getRegion(c.getX() << 4, c.getZ() << 4);
+
+            for(IrisSpawner i : getData().getSpawnerLoader().loadAll(region.getEntitySpawners()).shuffleCopy(RNG.r))
+            {
+                if(i.spawnInChunk(getEngine(), c))
+                {
+                    Iris.debug("Spawning Region Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    return true;
+                }
+            }
+
+            return false;
+        }, () -> {
+            for(IrisSpawner i : getData().getSpawnerLoader().loadAll(getDimension().getEntitySpawners()).shuffleCopy(RNG.r))
+            {
+                if(i.spawnInChunk(getEngine(), c))
+                {
+                    Iris.debug("Spawning Dimension Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    return true;
+                }
+            }
+
+            return false;
+        }).getRandom().get();
+    }
+
+    public KMap<UUID, KList<Chunk>> mapChunkBiomes()
+    {
+        KMap<UUID, KList<Chunk>> data = new KMap<>();
+
+        for(Chunk i : getEngine().getWorld().realWorld().getLoadedChunks())
+        {
+            data.compute(getEngine().getBiomeID(i.getX() << 4, i.getZ() << 4),
+                    (k,v) -> v != null ? v : new KList<>()).add(i);
+        }
+
+        return data;
     }
 
     @Override
@@ -51,87 +152,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void onSave() {
         getEngine().getParallax().saveAll();
-    }
-
-    @ChunkCoordinates
-    @Override
-    public void spawnInitialEntities(Chunk c) {
-        RNG rng = new RNG(Cache.key(c));
-
-        getEngine().getParallaxAccess().getEntitiesR(c.getX(), c.getZ()).iterateSync((x, y, z, e) -> {
-            if (e != null) {
-                IrisEntity en = getData().getEntityLoader().load(e);
-
-                if (en != null) {
-                    en.spawn(getEngine(), new Location(c.getWorld(), x + (c.getX() << 4), y, z + (c.getZ() << 4)));
-                }
-            }
-        });
-
-        int x = (c.getX() * 16) + rng.nextInt(15);
-        int z = (c.getZ() * 16) + rng.nextInt(15);
-        int y = getEngine().getHeight(x, z) + 1;
-        IrisDimension dim = getDimension();
-        IrisRegion region = getEngine().getRegion(x, z);
-        IrisBiome above = getEngine().getSurfaceBiome(x, z);
-        trySpawn(above.getEntityInitialSpawns(), c, rng);
-        trySpawn(region.getEntityInitialSpawns(), c, rng);
-        trySpawn(dim.getEntityInitialSpawns(), c, rng);
-    }
-
-    @Override
-    public void onEntitySpawn(EntitySpawnEvent e) {
-        if (getTarget().getWorld() == null || !e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
-            return;
-        }
-
-        try {
-            if (!IrisSettings.get().getGenerator().isSystemEntitySpawnOverrides()) {
-                return;
-            }
-
-            int x = e.getEntity().getLocation().getBlockX();
-            int y = e.getEntity().getLocation().getBlockY();
-            int z = e.getEntity().getLocation().getBlockZ();
-
-            J.a(() ->
-            {
-                if (spawnable) {
-                    IrisDimension dim = getDimension();
-                    IrisRegion region = getEngine().getRegion(x, z);
-                    IrisBiome above = getEngine().getSurfaceBiome(x, z);
-                    IrisBiome bbelow = getEngine().getBiome(x, y, z);
-                    if (above.getLoadKey().equals(bbelow.getLoadKey())) {
-                        bbelow = null;
-                    }
-
-                    IrisBiome below = bbelow;
-
-                    J.s(() ->
-                    {
-                        if (below != null) {
-                            if (trySpawn(below.getEntitySpawnOverrides(), e)) {
-                                return;
-                            }
-                        }
-
-                        if (trySpawn(above.getEntitySpawnOverrides(), e)) {
-                            return;
-                        }
-
-                        if (trySpawn(region.getEntitySpawnOverrides(), e)) {
-                            return;
-                        }
-
-                        if (trySpawn(dim.getEntitySpawnOverrides(), e)) {
-                            return;
-                        }
-                    });
-                }
-            });
-        } catch (Throwable ee) {
-            Iris.reportError(ee);
-        }
     }
 
     private boolean trySpawn(KList<IrisEntitySpawnOverride> s, EntitySpawnEvent e) {
@@ -151,8 +171,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     @ChunkCoordinates
-    private void trySpawn(KList<IrisEntityInitialSpawn> s, Chunk c, RNG rng) {
-        for (IrisEntityInitialSpawn i : s) {
+    private void trySpawn(KList<IrisEntitySpawn> s, Chunk c, RNG rng) {
+        for (IrisEntitySpawn i : s) {
             i.spawn(getEngine(), c, rng);
         }
     }
@@ -229,5 +249,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void onBlockPlace(BlockPlaceEvent e) {
 
+    }
+
+    @Override
+    public void close()
+    {
+        super.close();
+        J.car(art);
     }
 }

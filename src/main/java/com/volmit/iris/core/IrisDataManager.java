@@ -40,6 +40,7 @@ public class IrisDataManager {
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
     private ResourceLoader<IrisEntity> entityLoader;
+    private ResourceLoader<IrisSpawner> spawnerLoader;
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
     private ObjectResourceLoader objectLoader;
@@ -67,6 +68,7 @@ public class IrisDataManager {
         this.biomeLoader = null;
         this.modLoader = null;
         this.dimensionLoader = null;
+        this.spawnerLoader = null;
         this.jigsawPoolLoader = null;
         this.jigsawPieceLoader = null;
         this.generatorLoader = null;
@@ -91,6 +93,7 @@ public class IrisDataManager {
         File packs = dataFolder;
         packs.mkdirs();
         this.lootLoader = new ResourceLoader<>(packs, this, "loot", "Loot", IrisLootTable.class);
+        this.spawnerLoader = new ResourceLoader<>(packs, this, "spawners", "Spawner", IrisSpawner.class);
         this.entityLoader = new ResourceLoader<>(packs, this, "entities", "Entity", IrisEntity.class);
         this.regionLoader = new ResourceLoader<>(packs, this, "regions", "Region", IrisRegion.class);
         this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
@@ -112,6 +115,7 @@ public class IrisDataManager {
         blockLoader.clearCache();
         lootLoader.clearCache();
         objectLoader.clearCache();
+        spawnerLoader.clearCache();
         jigsawPieceLoader.clearCache();
         jigsawPoolLoader.clearCache();
         modLoader.clearCache();
@@ -132,6 +136,7 @@ public class IrisDataManager {
         entityLoader.clearList();
         biomeLoader.clearList();
         modLoader.clearList();
+        spawnerLoader.clearList();
         regionLoader.clearList();
         dimensionLoader.clearList();
         generatorLoader.clearList();
@@ -171,6 +176,10 @@ public class IrisDataManager {
 
     public static IrisBlockData loadAnyBlock(String key) {
         return loadAny(key, (dm) -> dm.getBlockLoader().load(key, false));
+    }
+
+    public static IrisSpawner loadAnySpaner(String key) {
+        return loadAny(key, (dm) -> dm.getSpawnerLoader().load(key, false));
     }
 
     public static IrisRegion loadAnyRegion(String key) {

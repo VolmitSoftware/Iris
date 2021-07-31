@@ -210,7 +210,7 @@ public class IrisComplex implements DataProvider {
         baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
                 Interpolated.of(a -> 0D, a -> focus)) :
                 bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
-                        .cache2D(cacheSize);
+                        .convertAware2D(this::implode).cache2D(cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getWorld().seed(), true);
@@ -469,5 +469,30 @@ public class IrisComplex implements DataProvider {
         }
 
         generators.add(cachedGenerator);
+    }
+
+    private IrisBiome implode(IrisBiome b, Double x, Double z) {
+        if (b.getChildren().isEmpty()) {
+            return b;
+        }
+
+        return implode(b, x, z, 3);
+    }
+
+    private IrisBiome implode(IrisBiome b, Double x, Double z, int max) {
+        if (max < 0) {
+            return b;
+        }
+
+        if (b.getChildren().isEmpty()) {
+            return b;
+        }
+
+        CNG childCell = b.getChildrenGenerator(rng, 123, b.getChildShrinkFactor());
+        KList<IrisBiome> chx = b.getRealChildren(this).copy();
+        chx.add(b);
+        IrisBiome biome = childCell.fitRarity(chx, x, z);
+        biome.setInferredType(b.getInferredType());
+        return implode(biome, x, z, max - 1);
     }
 }

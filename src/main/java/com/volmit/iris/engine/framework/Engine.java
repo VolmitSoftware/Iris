@@ -49,6 +49,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
 import java.util.Arrays;
+import java.util.UUID;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     void close();
@@ -64,6 +65,11 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     EngineWorldManager getWorldManager();
 
     void setParallelism(int parallelism);
+
+    default UUID getBiomeID(int x, int z)
+    {
+        return getFramework().getComplex().getBaseBiomeIDStream().get(x, z);
+    }
 
     int getParallelism();
 

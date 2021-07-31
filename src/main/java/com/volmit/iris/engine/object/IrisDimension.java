@@ -80,17 +80,14 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
 
-    @Desc("Entity spawns to override or add to this dimension")
-    @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
-    private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
+    @Desc("Spawn Entities in this dimension over time. Iris will continually replenish these mobs just like vanilla does.")
+    @ArrayType(min = 1, type = String.class)
+    @RegistryListSpawner
+    private KList<String> entitySpawners = new KList<>();
 
     @Desc("Add specific features in exact positions")
     @ArrayType(min = 1, type = IrisFeaturePositional.class)
     private KList<IrisFeaturePositional> specificFeatures = new KList<>();
-
-    @Desc("Entity spawns during generation")
-    @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
-    private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
 
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)

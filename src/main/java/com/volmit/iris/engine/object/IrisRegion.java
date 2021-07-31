@@ -67,13 +67,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
     private KList<IrisEffect> effects = new KList<>();
 
-    @Desc("Entity spawns to override or add to this region")
-    @ArrayType(min = 1, type = IrisEntitySpawnOverride.class)
-    private KList<IrisEntitySpawnOverride> entitySpawnOverrides = new KList<>();
-
-    @Desc("Entity spawns during generation")
-    @ArrayType(min = 1, type = IrisEntityInitialSpawn.class)
-    private KList<IrisEntityInitialSpawn> entityInitialSpawns = new KList<>();
+    @Desc("Spawn Entities in this region over time. Iris will continually replenish these mobs just like vanilla does.")
+    @ArrayType(min = 1, type = String.class)
+    @RegistryListSpawner
+    private KList<String> entitySpawners = new KList<>();
 
     @MinNumber(1)
     @MaxNumber(128)

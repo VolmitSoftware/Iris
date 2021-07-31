@@ -474,6 +474,7 @@ public class IrisProject {
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
         KSet<IrisEntity> entities = new KSet<>();
+        KSet<IrisSpawner> spawners = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
         KSet<IrisLootTable> loot = new KSet<>();
         KSet<IrisBlockData> blocks = new KSet<>();
@@ -503,13 +504,9 @@ public class IrisProject {
         });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
-        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-        biomes.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
-        biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
+        regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
+        dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
 
         for (int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++) {
             biomes.copy().forEach((r) -> {
@@ -521,8 +518,10 @@ public class IrisProject {
             });
         }
 
-        regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
+        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
+        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
+        biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
+        spawners.forEach((i) -> i.getSpawns().forEach((j) -> entities.add(dm.getEntityLoader().load(j.getEntity()))));
         KMap<String, String> renameObjects = new KMap<>();
         String a;
         StringBuilder b = new StringBuilder();

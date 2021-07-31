@@ -16,20 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.framework;
+package com.volmit.iris.engine.object.annotations;
 
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-@SuppressWarnings("EmptyMethod")
-public interface EngineWorldManager {
-    void close();
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-    void onTick();
+@Retention(RUNTIME)
+@Target({PARAMETER, TYPE, FIELD})
+public @interface RegistryListSpawner {
 
-    void onSave();
-
-    void onBlockBreak(BlockBreakEvent e);
-
-    void onBlockPlace(BlockPlaceEvent e);
 }

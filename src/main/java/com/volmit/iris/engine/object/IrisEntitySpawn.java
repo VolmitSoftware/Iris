@@ -39,7 +39,7 @@ import org.bukkit.entity.Entity;
 @AllArgsConstructor
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
-public class IrisEntityInitialSpawn {
+public class IrisEntitySpawn {
     @RegistryListEntity
     @Required
     @Desc("The entity")
@@ -60,7 +60,7 @@ public class IrisEntityInitialSpawn {
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-    public void spawn(Engine gen, Chunk c, RNG rng) {
+    public boolean spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
 
         if (spawns > 0) {
@@ -70,7 +70,11 @@ public class IrisEntityInitialSpawn {
                 int h = gen.getHeight(x, z) + gen.getMinHeight();
                 spawn100(gen, new Location(c.getWorld(), x, h, z));
             }
+
+            return true;
         }
+
+        return false;
     }
 
     public IrisEntity getRealEntity(Engine g) {
@@ -91,10 +95,12 @@ public class IrisEntityInitialSpawn {
 
     private Entity spawn100(Engine g, Location at) {
         try {
-            return getRealEntity(g).spawn(g, at.clone().add(0.5, 1, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            Location l = at.clone().add(0.5, 1, 0.5);
+            Iris.debug("    Spawned " + "Entity<" + getEntity() + "> at " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
+            return getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
         } catch (Throwable e) {
             Iris.reportError(e);
-            Iris.debug("Failed to retrieve real entity @ " + at);
+            Iris.error("Failed to retrieve real entity @ " + at);
             return null;
         }
     }

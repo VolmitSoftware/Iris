@@ -221,7 +221,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @ChunkCoordinates
     @Override
     public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c) {
-        getWorldManager().spawnInitialEntities(c);
         updateChunk(c);
         placeTiles(c);
     }

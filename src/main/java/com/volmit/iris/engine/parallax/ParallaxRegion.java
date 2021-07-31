@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.parallax;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.io.HunkRegion;
@@ -26,6 +27,7 @@ import com.volmit.iris.engine.hunk.io.HunkRegionSlice;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallel.GridLock;
 import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.engine.parallel.NOOPGridLock;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
@@ -56,7 +58,7 @@ public class ParallaxRegion extends HunkRegion {
         this.burst = burst;
         this.height = height;
         setupSlices();
-        lock = new GridLock(32, 32);
+        lock = newGridLock();
     }
 
     public ParallaxRegion(MultiBurst burst, int height, File folder, int x, int z) {
@@ -64,7 +66,11 @@ public class ParallaxRegion extends HunkRegion {
         this.burst = burst;
         this.height = height;
         setupSlices();
-        lock = new GridLock(32, 32);
+        lock = newGridLock();
+    }
+
+    private GridLock newGridLock() {
+        return IrisSettings.get().getConcurrency().isUnstableLockingHeuristics() ? new NOOPGridLock(1, 1) : new GridLock(32, 32);
     }
 
     private void setupSlices() {

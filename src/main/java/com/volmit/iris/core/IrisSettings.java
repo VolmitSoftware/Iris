@@ -88,6 +88,7 @@ public class IrisSettings {
         public int pregenThreadPriority = 8;
         public int miscThreadCount = -4;
         public int miscThreadPriority = 3;
+        public boolean unstableLockingHeuristics = false;
     }
 
     @Data

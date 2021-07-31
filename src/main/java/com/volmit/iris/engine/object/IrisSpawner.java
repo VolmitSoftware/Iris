@@ -18,10 +18,16 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.engine.stream.convert.SelectionStream;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.reflect.V;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -40,12 +46,23 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
+    private AtomicCache<KList<IrisEntitySpawn>> selection = new AtomicCache<>();
+
     public boolean spawnInChunk(Engine engine, Chunk c) {
         if(spawns.isEmpty())
         {
+            Iris.warn("    Spawner " + getLoadKey() + " has an empty spawn list! (" + getLoadFile().getPath() + ")");
             return false;
         }
 
-        return spawns.getRandom().spawn(engine, c, RNG.r);
+        return selection.aquire(() -> {
+            KList<IrisEntitySpawn> rarityTypes = new KList<>();
+
+            for (IrisEntitySpawn i : spawns) {
+                rarityTypes.addMultiple(i, IRare.get(i));
+            }
+
+            return rarityTypes;
+        }).getRandom(RNG.r).spawn(engine, c, RNG.r);
     }
 }

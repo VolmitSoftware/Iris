@@ -438,6 +438,7 @@ public class IrisProject {
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
         IrisDataManager dm = new IrisDataManager(getPath());
+        // TODO Cleanup
         schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
@@ -449,6 +450,7 @@ public class IrisProject {
         schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json", "/jigsaw-structures/*/*/*.json", "/jigsaw-structures/*/*.json"));
         schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json", "/blocks/*/*.json", "/blocks/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json", "/loot/*/*.json", "/loot/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisSpawner.class, dm, "/spawners/*.json", "/spawners/*/*.json", "/spawners/*/*/*.json"));
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 

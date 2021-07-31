@@ -19,13 +19,16 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListEntity;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,7 +42,7 @@ import org.bukkit.entity.Entity;
 @AllArgsConstructor
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
-public class IrisEntitySpawn {
+public class IrisEntitySpawn implements IRare {
     @RegistryListEntity
     @Required
     @Desc("The entity")
@@ -61,13 +64,13 @@ public class IrisEntitySpawn {
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
     public boolean spawn(Engine gen, Chunk c, RNG rng) {
-        int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
+        int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
 
         if (spawns > 0) {
             for (int i = 0; i < spawns; i++) {
                 int x = (c.getX() * 16) + rng.i(15);
                 int z = (c.getZ() * 16) + rng.i(15);
-                int h = gen.getHeight(x, z) + gen.getMinHeight();
+                int h = c.getWorld().getHighestBlockYAt(x, z);
                 spawn100(gen, new Location(c.getWorld(), x, h, z));
             }
 
@@ -96,11 +99,11 @@ public class IrisEntitySpawn {
     private Entity spawn100(Engine g, Location at) {
         try {
             Location l = at.clone().add(0.5, 1, 0.5);
-            Iris.debug("    Spawned " + "Entity<" + getEntity() + "> at " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
+            Iris.debug("      Spawned " + "Entity<" + getEntity() + "> at " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
             return getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
         } catch (Throwable e) {
             Iris.reportError(e);
-            Iris.error("Failed to retrieve real entity @ " + at);
+            Iris.error("      Failed to retrieve real entity @ " + at);
             return null;
         }
     }

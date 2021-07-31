@@ -27,6 +27,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -36,36 +37,55 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean spawnable;
     private final int art;
     private final KMap<UUID, Long> spawnCooldowns;
+    private int entityCount = 0;
+    private ChronoLatch cl = new ChronoLatch(5000);
 
     public IrisWorldManager(Engine engine) {
         super(engine);
         spawnCooldowns = new KMap<>();
         spawnable = true;
-        art = J.ar(this::onAsyncTick, 200);
+        art = J.ar(this::onAsyncTick, 7);
     }
 
     private void onAsyncTick() {
-        int biomeBaseCooldownMinutes = 2;
-        int biomeSpawnedCooldownMinutes = 3;
-        int biomeNotSpawnedCooldownMinutes = 5;
+        if (!getEngine().getWorld().hasRealWorld()) {
+            return;
+        }
+
+        if ((double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length+1) > 1)
+        {
+            return;
+        }
+
+        if(cl.flip())
+        {
+            J.s(() -> entityCount = getEngine().getWorld().realWorld().getEntities().size());
+        }
+
+        int biomeBaseCooldownSeconds = 1;
+        int biomeSpawnedCooldownSeconds = 0;
+        int biomeNotSpawnedCooldownSeconds = 1;
+        int actuallySpawned = 0;
 
         for(UUID i : spawnCooldowns.k())
         {
-            if(M.ms() - spawnCooldowns.get(i) > TimeUnit.MINUTES.toMillis(biomeBaseCooldownMinutes))
+            if(M.ms() - spawnCooldowns.get(i) > TimeUnit.SECONDS.toMillis(biomeBaseCooldownSeconds))
             {
                 spawnCooldowns.remove(i);
+                Iris.debug("Biome " + i.toString() + " is off cooldown");
             }
         }
 
-        KMap<UUID, KList<Chunk>> data = new KMap<>();
-        int spawnBuffer = 8;
+        KMap<UUID, KList<Chunk>> data = mapChunkBiomes();
+        int spawnBuffer = 32;
+
+        Iris.debug("Checking " + data.size() + " Loaded Biomes for new spawns...");
 
         for(UUID i : data.k().shuffleCopy(RNG.r))
         {
@@ -79,15 +99,32 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 break;
             }
 
-            spawnCooldowns.put(i, spawnIn(data.get(i).getRandom(), i) ?
-                    (M.ms() + TimeUnit.MINUTES.toMillis(biomeSpawnedCooldownMinutes)) :
-                    (M.ms() + TimeUnit.MINUTES.toMillis(biomeNotSpawnedCooldownMinutes)));
+            Iris.debug("  Spawning for " + i.toString());
+
+            for(int ig = 0; ig < data.get(i).size() / 8; ig++)
+            {
+                boolean g = spawnIn(data.get(i).getRandom(), i);
+                spawnCooldowns.put(i, g ?
+                        (M.ms() + TimeUnit.SECONDS.toMillis(biomeSpawnedCooldownSeconds)) :
+                        (M.ms() + TimeUnit.SECONDS.toMillis(biomeNotSpawnedCooldownSeconds)));
+
+                if(g)
+                {
+                    actuallySpawned++;
+                }
+            }
+        }
+
+        if(actuallySpawned <= 0)
+        {
+            J.sleep(5000);
         }
     }
 
     private boolean spawnIn(Chunk c, UUID id) {
-        if(c.getEntities().length > 16)
+        if(c.getEntities().length > 2)
         {
+            Iris.debug("    Not spawning in " + id.toString() + " (" + c.getX() + ", " + c.getZ() + "). More than 2 entities in this chunk.");
             return false;
         }
 
@@ -98,7 +135,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             {
                 if(i.spawnInChunk(getEngine(), c))
                 {
-                    Iris.debug("Spawning Biome Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    Iris.debug("  Spawning Biome Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
                     return true;
                 }
             }
@@ -111,7 +148,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             {
                 if(i.spawnInChunk(getEngine(), c))
                 {
-                    Iris.debug("Spawning Region Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    Iris.debug("  Spawning Region Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
                     return true;
                 }
             }
@@ -122,7 +159,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             {
                 if(i.spawnInChunk(getEngine(), c))
                 {
-                    Iris.debug("Spawning Dimension Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
+                    Iris.debug("    Spawning Dimension Entities in Chunk " + c.getX() + "," + c.getZ() + " Biome ID: " + id);
                     return true;
                 }
             }

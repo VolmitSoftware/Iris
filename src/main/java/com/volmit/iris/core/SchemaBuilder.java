@@ -162,6 +162,7 @@ public class SchemaBuilder {
                     prop.put("maxLength", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum Length allowed is " + max);
                 }
+                // TODO Automate registry lists
                 if (k.isAnnotationPresent(RegistryListBiome.class)) {
                     String key = "enum-reg-biome";
 

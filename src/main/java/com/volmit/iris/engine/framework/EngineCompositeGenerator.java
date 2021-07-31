@@ -99,7 +99,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         this.production = production;
         this.dimensionQuery = query;
         initialized = new AtomicBoolean(false);
-        art = J.ar(this::tick, 20);
+        art = J.ar(this::tick, 40);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
@@ -143,9 +143,18 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             return;
         }
 
+        int pri = Thread.currentThread().getPriority();
+        Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+
+        if (M.ms() - mst > 1000) {
+            generatedPerSecond = (double) (generated - lgenerated) / ((double) (M.ms() - mst) / 1000D);
+            mst = M.ms();
+            lgenerated = generated;
+        }
+
         try {
             if (hotloader != null) {
-                J.a(() -> hotloader.check());
+                hotloader.check();
                 getComposite().clean();
             }
         } catch (Throwable e) {
@@ -153,11 +162,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         }
 
-        if (M.ms() - mst > 1000) {
-            generatedPerSecond = (double) (generated - lgenerated) / ((double) (M.ms() - mst) / 1000D);
-            mst = M.ms();
-            lgenerated = generated;
-        }
+        Thread.currentThread().setPriority(pri);
     }
 
     private synchronized IrisDimension getDimension(IrisWorld world) {

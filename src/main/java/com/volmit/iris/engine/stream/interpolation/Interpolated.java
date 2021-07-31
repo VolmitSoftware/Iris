@@ -24,6 +24,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.data.BlockData;
 
+import java.util.UUID;
 import java.util.function.Function;
 
 public interface Interpolated<T> {
@@ -34,6 +35,7 @@ public interface Interpolated<T> {
     Interpolated<Boolean> BOOLEAN = of((t) -> 0D, (t) -> false);
     Interpolated<Integer> INT = of(Double::valueOf, Double::intValue);
     Interpolated<Long> LONG = of(Double::valueOf, Double::longValue);
+    Interpolated<UUID> UUID = of((i) -> Double.longBitsToDouble(i.getMostSignificantBits()), (i) -> new UUID(Double.doubleToLongBits(i), i.longValue()));
 
     double toDouble(T t);
 

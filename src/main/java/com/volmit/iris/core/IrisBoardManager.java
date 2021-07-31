@@ -145,6 +145,8 @@ public class IrisBoardManager implements BoardProvider, Listener {
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
             v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getFramework().getComplex().getSlopeStream().get(x, z), 2));
             v.add(C.AQUA + "Features " + C.GRAY + ": " + Form.f(f.size()));
+            v.add(C.AQUA + "R:  " + C.GRAY + ": " + engine.getFramework().getComplex().getRegionIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
+            v.add(C.AQUA + "B:  " + C.GRAY + ": " + engine.getFramework().getComplex().getBaseBiomeIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
         }
 
         if (Iris.jobCount() > 0) {

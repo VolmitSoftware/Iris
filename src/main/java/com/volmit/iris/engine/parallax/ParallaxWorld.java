@@ -22,6 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.parallel.GridLock;
+import com.volmit.iris.engine.parallel.HyperLock;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -38,12 +40,14 @@ import java.io.IOException;
 public class ParallaxWorld implements ParallaxAccess {
     private final KMap<Long, ParallaxRegion> loadedRegions;
     private final KList<Long> save;
+    private final HyperLock hlock;
     private final File folder;
     private final MultiBurst burst;
     private final int height;
 
     public ParallaxWorld(MultiBurst burst, int height, File folder) {
         this.height = height;
+        this.hlock = new HyperLock(1024);
         this.burst = burst;
         this.folder = folder;
         save = new KList<>();
@@ -81,7 +85,7 @@ public class ParallaxWorld implements ParallaxAccess {
 
     public void save(ParallaxRegion region) {
         try {
-            region.save();
+            hlock.withIO(region.getX(), region.getZ(), () -> region.save());
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -95,60 +99,70 @@ public class ParallaxWorld implements ParallaxAccess {
 
     @RegionCoordinates
     public void save(int x, int z) {
-        if (isLoaded(x, z)) {
-            save(getR(x, z));
-        }
+        hlock.with(x, z, () -> {
+            if (isLoaded(x, z)) {
+                save(getR(x, z));
+            }
+        });
     }
 
     @RegionCoordinates
     public int unload(int x, int z) {
-        long key = key(x, z);
-        int v = 0;
-        if (isLoaded(x, z)) {
-            if (save.contains(key)) {
-                save(x, z);
-                save.remove(key);
+        return hlock.withResult(x, z, () -> {
+            long key = key(x, z);
+            int v = 0;
+            if (isLoaded(x, z)) {
+                if (save.contains(key)) {
+                    save(x, z);
+                    save.remove(key);
+                }
+
+                ParallaxRegion lr = loadedRegions.remove(key);
+
+                if (lr != null) {
+                    v += lr.unload();
+                }
             }
 
-            ParallaxRegion lr = loadedRegions.remove(key);
-
-            if (lr != null) {
-                v += lr.unload();
-            }
-        }
-
-        return v;
+            return v;
+        });
     }
 
     @RegionCoordinates
     public ParallaxRegion load(int x, int z) {
-        if (isLoaded(x, z)) {
-            return loadedRegions.get(key(x, z));
-        }
+        return hlock.withResult(x, z, () -> {
+            if (isLoaded(x, z)) {
+                return loadedRegions.get(key(x, z));
+            }
 
-        ParallaxRegion v = new ParallaxRegion(burst, height, folder, x, z);
-        loadedRegions.put(key(x, z), v);
+            ParallaxRegion v = new ParallaxRegion(burst, height, folder, x, z);
+            loadedRegions.put(key(x, z), v);
 
-        return v;
+            return v;
+        });
     }
 
     @RegionCoordinates
     public ParallaxRegion getR(int x, int z) {
-        long key = key(x, z);
+        return hlock.withResult(x, z, () -> {
+            long key = key(x, z);
 
-        ParallaxRegion region = loadedRegions.get(key);
+            ParallaxRegion region = loadedRegions.get(key);
 
-        if (region == null) {
-            region = load(x, z);
-        }
+            if (region == null) {
+                region = load(x, z);
+            }
 
-        return region;
+            return region;
+        });
     }
 
     @RegionCoordinates
     public ParallaxRegion getRW(int x, int z) {
-        save.addIfMissing(key(x, z));
-        return getR(x, z);
+        return hlock.withResult(x, z, () -> {
+            save.addIfMissing(key(x, z));
+            return getR(x, z);
+        });
     }
 
     @RegionCoordinates

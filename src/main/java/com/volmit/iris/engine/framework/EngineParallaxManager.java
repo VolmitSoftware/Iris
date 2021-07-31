@@ -199,58 +199,44 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     @BlockCoordinates
-    default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        if (!getEngine().getDimension().hasFeatures(getEngine())) {
-            return;
-        }
-
-        for (IrisFeaturePositional ipf : forEachFeature(x, z)) {
-            f.accept(ipf);
-        }
-    }
-
-    @BlockCoordinates
     default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        synchronized (getEngine())
-        {
-            KList<IrisFeaturePositional> pos = new KList<>();
+        KList<IrisFeaturePositional> pos = new KList<>();
 
-            if (!getEngine().getDimension().hasFeatures(getEngine())) {
-                return pos;
-            }
-
-            for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-                if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
-                    pos.add(i);
-                }
-            }
-
-            int s = (int) Math.ceil(getParallaxSize() / 2D);
-
-            int i, j;
-            int cx = (int)x >> 4;
-            int cz = (int)z >> 4;
-
-            for (i = -s; i <= s; i++) {
-                for (j = -s; j <= s; j++) {
-                    ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
-
-                    try {
-                        for (IrisFeaturePositional k : m.getFeatures()) {
-                            if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
-                                pos.add(k);
-                            }
-                        }
-                    } catch (Throwable e) {
-                        Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
-                        e.printStackTrace();
-                        Iris.reportError(e);
-                    }
-                }
-            }
-
+        if (!getEngine().getDimension().hasFeatures(getEngine())) {
             return pos;
         }
+
+        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
+            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+                pos.add(i);
+            }
+        }
+
+        int s = (int) Math.ceil(getParallaxSize() / 2D);
+
+        int i, j;
+        int cx = (int)x >> 4;
+        int cz = (int)z >> 4;
+
+        for (i = -s; i <= s; i++) {
+            for (j = -s; j <= s; j++) {
+                ParallaxChunkMeta m = getParallaxAccess().getMetaR(i + cx, j + cz);
+
+                try {
+                    for (IrisFeaturePositional k : m.getFeatures()) {
+                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+                            pos.add(k);
+                        }
+                    }
+                } catch (Throwable e) {
+                    Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            }
+        }
+
+        return pos;
     }
 
     @ChunkCoordinates

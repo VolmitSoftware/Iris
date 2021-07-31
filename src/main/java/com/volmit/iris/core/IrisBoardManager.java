@@ -138,7 +138,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
         if (engine != null) {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
-            engine.getFramework().getEngineParallax().forEachFeature(x, z, f::add);
+            f.add(engine.getFramework().getEngineParallax().forEachFeature(x, z));
             v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());

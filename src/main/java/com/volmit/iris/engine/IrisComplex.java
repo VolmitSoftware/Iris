@@ -205,8 +205,11 @@ public class IrisComplex implements DataProvider {
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);
-                engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
-                        -> str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng))));
+                for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
+                {
+                    str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng)));
+                }
+
                 return str.get();
             }
 
@@ -409,8 +412,12 @@ public class IrisComplex implements DataProvider {
         }
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
-        engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)
-                -> noise.set(i.filter(x, z, noise.get(), rng)));
+
+        for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
+        {
+            noise.set(i.filter(x, z, noise.get(), rng));
+        }
+
         return Math.min(engine.getHeight(), Math.max(noise.get(), 0));
     }
 

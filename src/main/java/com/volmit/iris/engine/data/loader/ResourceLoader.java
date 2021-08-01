@@ -116,7 +116,6 @@ public class ResourceLoader<T extends IrisRegistrant> {
             return possibleKeys;
         }
 
-        Iris.info("Building " + resourceTypeName + " Registry Lists");
         KSet<String> m = new KSet<>();
 
         for (File i : getFolders()) {

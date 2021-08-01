@@ -97,8 +97,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
-        getEngineData();
         this.target = target;
+        getEngineData();
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
         this.compound = compound;
@@ -264,12 +264,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         return getData().getBiomeLoader().load(getDimension().getFocus());
     }
 
-    @Override
-    public void hotloading() {
-        getEngineData().getStatistics().hotloaded();
-        close();
-    }
-
     @ChunkCoordinates
     @Override
     public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c) {
@@ -296,6 +290,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void hotload() {
+        getEngineData().getStatistics().hotloaded();
         cacheId = RNG.r.nextInt();
     }
 }

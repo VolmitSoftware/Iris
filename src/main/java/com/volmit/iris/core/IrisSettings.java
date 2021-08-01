@@ -106,6 +106,7 @@ public class IrisSettings {
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
+        public String forceMainWorld = "";
     }
 
     @Data

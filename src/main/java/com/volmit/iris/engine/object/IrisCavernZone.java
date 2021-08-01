@@ -1,0 +1,59 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.volmit.iris.engine.object;
+
+import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.util.math.RNG;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+@Accessors(chain = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Desc("Represents a cavern zone")
+@Data
+public class IrisCavernZone implements IRare {
+    @Desc("Use carving in this zone if defined")
+    private IrisCarveLayer carver = null;
+
+    @Desc("Use worley styled caves if defined")
+    private IrisGeneratorStyle worley = null;
+
+    @MinNumber(1)
+    @MaxNumber(100)
+    private int rarity = 1;
+
+    public boolean isCarved(RNG rng, double xx, double yy, double zz) {
+        if(carver != null)
+        {
+            return carver.isCarved(rng, xx,yy,zz);
+        }
+
+        return false;
+    }
+}

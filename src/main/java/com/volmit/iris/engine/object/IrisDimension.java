@@ -73,6 +73,8 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
 
+    @Desc("Define iris cavern zones")
+    private IrisCaverns caverns = new IrisCaverns();
 
     @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
     private IrisShapedGeneratorStyle undercarriage = null;

@@ -139,6 +139,11 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public File getDatapacksFolder() {
+        if(!IrisSettings.get().getGeneral().forceMainWorld.isEmpty())
+        {
+            return new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks");
+        }
+        
         File props = new File("server.properties");
 
         if (props.exists()) {

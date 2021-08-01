@@ -59,7 +59,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         super(engine);
         spawnCooldowns = new KMap<>();
         spawnable = true;
-        art = J.ar(this::onAsyncTick, 20);
+        art = J.ar(this::onAsyncTick, 7);
     }
 
     private void onAsyncTick() {

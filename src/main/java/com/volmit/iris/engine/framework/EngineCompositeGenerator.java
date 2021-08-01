@@ -87,6 +87,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private double generatedPerSecond = 0;
     private final int art;
     private ReactiveFolder hotloader = null;
+    private IrisWorld cworld = null;
 
     public EngineCompositeGenerator() {
         this(null, true);
@@ -131,6 +132,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
             getComposite().close();
             initialized.lazySet(false);
+
+            if(cworld != null)
+            {
+                initialize(cworld);
+            }
         }
     }
 
@@ -315,7 +321,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             populators.clear();
             populators.addAll(compound.get().getPopulators());
             hotloader = new ReactiveFolder(data.getDataFolder(), (a, c, d) -> hotload());
-
+            cworld = world;
 //            if(world.hasRealWorld())
 //            {
 //                placeStrongholds(world.realWorld());

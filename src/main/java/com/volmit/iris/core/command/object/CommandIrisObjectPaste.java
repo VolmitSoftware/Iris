@@ -84,7 +84,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
         boolean intoWand = false;
 
         for (String i : args) {
-            if (i.equalsIgnoreCase("-edit")) {
+            if (i.equalsIgnoreCase("-edit") || i.equalsIgnoreCase("-e")) {
                 intoWand = true;
                 break;
             }
@@ -99,10 +99,23 @@ public class CommandIrisObjectPaste extends MortarCommand {
 
         WandManager.pasteSchematic(obj, block);
 
-        if (intoWand && WandManager.isWand(wand)) {
-            wand = WandManager.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1, obj.getH(), obj.getD() - 1), block.clone().subtract(obj.getCenter()));
-            p.getInventory().setItemInMainHand(wand);
-            sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
+        if (intoWand) {
+            ItemStack newWand = WandManager.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1,
+                    obj.getH() + obj.getCenter().clone().getY() - 1, obj.getD() - 1), block.clone().subtract(obj.getCenter().clone().setY(0)));
+            if (WandManager.isWand(wand)) {
+                wand = newWand;
+                p.getInventory().setItemInMainHand(wand);
+                sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
+            } else {
+                int slot = WandManager.findWand(sender.player().getInventory());
+                if (slot == -1) {
+                    p.getInventory().addItem(newWand);
+                    sender.sendMessage("Given new wand for " + "objects/" + args[0] + ".iob");
+                } else {
+                    sender.player().getInventory().setItem(slot, newWand);
+                    sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
+                }
+            }
         } else {
             sender.sendMessage("Placed " + "objects/" + args[0] + ".iob");
         }

@@ -34,6 +34,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -41,6 +42,8 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class WandManager implements Listener {
@@ -262,6 +265,24 @@ public class WandManager implements Listener {
         }
 
         return createWand(left ? a : other, left ? other : a);
+    }
+
+    public static int findWand(Inventory inventory) {
+        ItemStack wand = createWand();
+        ItemMeta meta = wand.getItemMeta();
+        meta.setLore(new ArrayList<String>());
+        wand.setItemMeta(meta);
+
+        for (int s = 0; s < inventory.getSize(); s++) {
+            ItemStack stack = inventory.getItem(s);
+            if (stack == null) continue;
+            meta = stack.getItemMeta();
+            meta.setLore(new ArrayList<String>());
+            stack.setItemMeta(meta);
+
+            if (wand.isSimilar(stack)) return s;
+        }
+        return -1;
     }
 
     public static ItemStack createWand(Location a, Location b) {

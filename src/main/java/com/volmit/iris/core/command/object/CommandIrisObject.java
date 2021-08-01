@@ -59,6 +59,9 @@ public class CommandIrisObject extends MortarCommand {
     @Command
     private CommandIrisObjectPaste paste;
 
+    @Command
+    private CommandIrisObjectAnalyze analyze;
+
     public CommandIrisObject() {
         super("object", "iob", "o", "obj");
         requiresPermission(Iris.perm);

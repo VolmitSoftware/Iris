@@ -99,11 +99,15 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     default void save() {
         getParallax().saveAll();
+        saveEngineData();
     }
 
     default void saveNow() {
         getParallax().saveAllNOW();
+        saveEngineData();
     }
+
+    void saveEngineData();
 
     default String getName() {
         return getDimension().getName();
@@ -403,8 +407,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     IrisBiome getFocus();
 
     void hotloading();
-
-    void saveProperties();
 
     IrisEngineData getEngineData();
 }

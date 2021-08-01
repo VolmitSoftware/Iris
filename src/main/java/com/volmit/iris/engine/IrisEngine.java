@@ -18,8 +18,10 @@
 
 package com.volmit.iris.engine;
 
+import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
@@ -30,6 +32,7 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -42,6 +45,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
 public class IrisEngine extends BlockPopulator implements Engine {
@@ -87,12 +92,12 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @Getter
     private double maxBiomeDecoratorDensity;
 
-    private IrisEngineData engineData;
+    private AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
-        engineData = new IrisEngineData();
+        getEngineData();
         this.target = target;
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
@@ -105,6 +110,35 @@ public class IrisEngine extends BlockPopulator implements Engine {
         effects = new IrisEngineEffects(this);
         art = J.ar(effects::tickRandomPlayer, 0);
         J.a(this::computeBiomeMaxes);
+    }
+
+    @Override
+    public IrisEngineData getEngineData() {
+        return engineData.aquire(() -> {
+            File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + "-" + getIndex() + ".json");
+
+            if(!f.exists())
+            {
+                try {
+                    f.getParentFile().mkdirs();
+                    IO.writeAll(f, new Gson().toJson(new IrisEngineData()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try
+            {
+                return new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
+            }
+
+            return new IrisEngineData();
+        });
     }
 
     private void computeBiomeMaxes() {
@@ -140,6 +174,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getWorldManager().close();
         getFramework().close();
         getTarget().close();
+        saveEngineData();
     }
 
     @Override
@@ -167,6 +202,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @ChunkCoordinates
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) {
+        getEngineData().getStatistics().generatedChunk();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
@@ -209,6 +245,17 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     @Override
+    public void saveEngineData() {
+        File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + "-" + getIndex() + ".json");
+        f.getParentFile().mkdirs();
+        try {
+            IO.writeAll(f, new Gson().toJson(getEngineData()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public IrisBiome getFocus() {
         if (getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
             return null;
@@ -219,17 +266,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void hotloading() {
+        getEngineData().getStatistics().hotloaded();
         close();
-    }
-
-    @Override
-    public void saveProperties() {
-
-    }
-
-    @Override
-    public IrisEngineData getEngineData() {
-        return engineData;
     }
 
     @ChunkCoordinates

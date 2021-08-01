@@ -18,12 +18,18 @@
 
 package com.volmit.iris.engine.object.engine;
 
-import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 @Data
-public class IrisEngineData
-{
-    private IrisEngineStatistics statistics = new IrisEngineStatistics();
-    private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
+public class IrisEngineStatistics {
+    private int totalHotloads = 0;
+    private int chunksGenerated = 0;
+
+    public void generatedChunk() {
+        chunksGenerated++;
+    }
+
+    public void hotloaded() {
+        totalHotloads++;
+    }
 }

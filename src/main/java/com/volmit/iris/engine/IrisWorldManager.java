@@ -48,17 +48,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IrisWorldManager extends EngineAssignedWorldManager {
-    private boolean spawnable;
     private final int art;
     private final KMap<UUID, Long> spawnCooldowns;
     private int entityCount = 0;
-    private ChronoLatch cl = new ChronoLatch(5000);
+    private final ChronoLatch cl;
     private int actuallySpawned = 0;
 
     public IrisWorldManager(Engine engine) {
         super(engine);
+        cl = new ChronoLatch(5000);
         spawnCooldowns = new KMap<>();
-        spawnable = true;
         art = J.ar(this::onAsyncTick, 7);
     }
 

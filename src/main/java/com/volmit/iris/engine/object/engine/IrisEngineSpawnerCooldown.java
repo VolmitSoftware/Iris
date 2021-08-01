@@ -32,7 +32,6 @@ public class IrisEngineSpawnerCooldown
     public void spawn(Engine engine)
     {
         lastSpawn = M.ms();
-        engine.saveProperties();
     }
 
     public boolean canSpawn(IrisRate s)

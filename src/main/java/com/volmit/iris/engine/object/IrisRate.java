@@ -19,31 +19,36 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.scheduling.ChronoLatch;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.bukkit.World;
+import lombok.NoArgsConstructor;
 
-@Desc("Represents a weather type")
-public enum IrisWeather {
-    @Desc("Represents when weather is not causing downfall")
-    NONE,
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+@Desc("Represents a count of something per time duration")
+public class IrisRate {
+    @Desc("The amount of things. Leave 0 for infinite (meaning always spawn whenever)")
+    private int amount = 0;
 
-    @Desc("Represents rain or snow")
-    DOWNFALL,
+    @Desc("The time interval. Leave blank for infinite 0 (meaning always spawn all the time)")
+    private IrisDuration per = new IrisDuration();
 
-    @Desc("Represents rain or snow with thunder")
-    DOWNFALL_WITH_THUNDER,
-
-    @Desc("Any weather")
-    ANY;
-
-    public boolean is(World world)
+    public String toString()
     {
-        return switch(this)
-        {
-            case NONE -> world.isClearWeather();
-            case DOWNFALL -> world.hasStorm() && world.isThundering();
-            case DOWNFALL_WITH_THUNDER -> world.hasStorm();
-            case ANY -> true;
-        };
+        return Form.f(amount) + "/" + per;
+    }
+
+    public long getInterval()
+    {
+        long t = per.getMilliseconds() / amount;
+        return Math.abs(t <= 0 ? 1 : t);
+    }
+
+    public ChronoLatch toChronoLatch()
+    {
+        return new ChronoLatch(getInterval());
     }
 }

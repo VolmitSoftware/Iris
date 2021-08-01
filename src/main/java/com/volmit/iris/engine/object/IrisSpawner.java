@@ -34,6 +34,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Chunk;
+import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -46,23 +47,17 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
-    private AtomicCache<KList<IrisEntitySpawn>> selection = new AtomicCache<>();
+    @Desc("The block of 24 hour time to contain this spawn in.")
+    private IrisTimeBlock timeBlock = new IrisTimeBlock();
 
-    public boolean spawnInChunk(Engine engine, Chunk c) {
-        if(spawns.isEmpty())
-        {
-            Iris.warn("    Spawner " + getLoadKey() + " has an empty spawn list! (" + getLoadFile().getPath() + ")");
-            return false;
-        }
+    @Desc("The block of 24 hour time to contain this spawn in.")
+    private IrisWeather weather = IrisWeather.ANY;
 
-        return selection.aquire(() -> {
-            KList<IrisEntitySpawn> rarityTypes = new KList<>();
+    @Desc("The maximum rate this spawner can fire")
+    private IrisRate maximumRate = new IrisRate();
 
-            for (IrisEntitySpawn i : spawns) {
-                rarityTypes.addMultiple(i, IRare.get(i));
-            }
-
-            return rarityTypes;
-        }).getRandom(RNG.r).spawn(engine, c, RNG.r);
+    public boolean isValid(World world)
+    {
+        return timeBlock.isWithin(world) && weather.is(world);
     }
 }

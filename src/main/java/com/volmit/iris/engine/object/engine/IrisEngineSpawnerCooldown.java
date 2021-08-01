@@ -16,34 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.engine.object.engine;
 
-import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisRate;
+import com.volmit.iris.util.math.M;
 import lombok.Data;
-import org.bukkit.World;
 
-@Desc("Represents a weather type")
-public enum IrisWeather {
-    @Desc("Represents when weather is not causing downfall")
-    NONE,
+@Data
+public class IrisEngineSpawnerCooldown
+{
+    private long lastSpawn;
+    private String spawner;
 
-    @Desc("Represents rain or snow")
-    DOWNFALL,
-
-    @Desc("Represents rain or snow with thunder")
-    DOWNFALL_WITH_THUNDER,
-
-    @Desc("Any weather")
-    ANY;
-
-    public boolean is(World world)
+    public void spawn(Engine engine)
     {
-        return switch(this)
-        {
-            case NONE -> world.isClearWeather();
-            case DOWNFALL -> world.hasStorm() && world.isThundering();
-            case DOWNFALL_WITH_THUNDER -> world.hasStorm();
-            case ANY -> true;
-        };
+        lastSpawn = M.ms();
+        engine.saveProperties();
+    }
+
+    public boolean canSpawn(IrisRate s)
+    {
+        return M.ms() - lastSpawn > s.getInterval();
     }
 }

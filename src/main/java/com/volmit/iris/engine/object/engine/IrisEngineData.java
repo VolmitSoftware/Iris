@@ -16,22 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.engine.object.engine;
 
-import com.volmit.iris.engine.object.annotations.Desc;
 import lombok.Data;
 
 @Data
-@Desc("Represents a time of day (24h time, not 12h am/pm)")
-public class IrisTime {
-    @Desc("The beginning hour")
-    private double startHour = 0;
+public class IrisEngineData
+{
 
-    @Desc("The ending hour")
-    private double endHour = 24;
-
-    public boolean isWithin(double hour)
-    {
-
-    }
 }

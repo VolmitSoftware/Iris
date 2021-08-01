@@ -60,7 +60,7 @@ public class CommandIrisObjectXAY extends MortarCommand {
 
         Player p = sender.player();
 
-        if (!WandManager.isWand(p)) {
+        if (!WandManager.isHoldingWand(p)) {
             sender.sendMessage("Ready your Wand.");
             return true;
         }

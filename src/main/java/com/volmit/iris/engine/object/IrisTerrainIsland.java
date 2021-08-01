@@ -42,4 +42,7 @@ public class IrisTerrainIsland {
     @MaxNumber(10000)
     @Desc("How often are regions islands instead of nothing?")
     private double islandChance = 0.5;
+
+    @Desc("Interpolate the edges of islands")
+    private IrisInterpolator islandEdgeInterpolator = new IrisInterpolator();
 }

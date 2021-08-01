@@ -24,6 +24,8 @@ import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.interpolation.InterpolationMethod;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.*;
@@ -77,6 +79,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Integer> trueHeightStream;
     private ProceduralStream<Double> slopeStream;
+    private ProceduralStream<Integer> islandTopStream;
+    private ProceduralStream<Integer> islandBottomStream;
     private ProceduralStream<RNG> rngStream;
     private ProceduralStream<RNG> chunkRngStream;
     private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
@@ -157,7 +161,7 @@ public class IrisComplex implements DataProvider {
                 .convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
          islandStream = regionStyleStream
                 .seededChance(rng.nextParallelRNG(29349), 23968888888L,
-                        engine.getDimension().getIslandMode().getIslandChance());
+                        1D/engine.getDimension().getIslandMode().getIslandChance());
          islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight());
          islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888));
          regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
@@ -356,7 +360,27 @@ public class IrisComplex implements DataProvider {
                     d.hashCode());
         })
                 .cache2D(cacheSize);
+        islandTopStream = islandStream.convertAware2D((i, x, z) ->
+            i ? heightStream.round()
+                    .subtract(fluidHeight)
+                    .add((xx, zz) -> getIslandHeight(xx.intValue(), zz.intValue(), engine.getDimension()
+                            .getIslandMode().getIslandEdgeInterpolator()))
+                    .get(x, z) : 0);
+        islandBottomStream = islandStream.convertAware2D((i, x, z) ->
+                i ? islandHeightStream.subtract(islandDepthStream).round().get(x, z) : 0);
         //@done
+    }
+
+    private double getIslandHeight(int x, int z, IrisInterpolator interp)
+    {
+        return interp.interpolate(x, z, (xx, zz) -> {
+            if(getIslandStream().get(xx, zz))
+            {
+                return getIslandHeightStream().get(xx, zz);
+            }
+
+            return 0;
+        });
     }
 
     private IrisRegion findRegion(IrisBiome focus, Engine engine) {

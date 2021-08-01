@@ -98,8 +98,20 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new AddingStream<>(this, a);
     }
 
+    default ProceduralStream<T> add(ProceduralStream<Double> a) {
+        return add2D((x, z) -> a.get(x, z));
+    }
+
+    default ProceduralStream<T> subtract(ProceduralStream<Double> a) {
+        return subtract2D((x, z) -> a.get(x, z));
+    }
+
     default ProceduralStream<T> add2D(Function2<Double, Double, Double> a) {
         return new AddingStream<>(this, a);
+    }
+
+    default ProceduralStream<T> subtract2D(Function2<Double, Double, Double> a) {
+        return new SubtractingStream<T>(this, a);
     }
 
     default ProceduralStream<T> add(double a) {

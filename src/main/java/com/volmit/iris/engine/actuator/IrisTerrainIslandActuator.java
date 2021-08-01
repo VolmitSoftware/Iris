@@ -21,6 +21,8 @@ package com.volmit.iris.engine.actuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.engine.interpolation.InterpolationMethod;
+import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -58,6 +60,8 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
         int i, zf, depth, surface, realX, realZ;
         IrisBiome biome;
         KList<BlockData> blocks, fblocks;
+        int hi,lo;
+        double hh;
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {
@@ -65,11 +69,26 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
                 realZ = (int) modZ(zf + z);
 
                 if (getComplex().getIslandStream().get(realX, realZ)) {
-                    surface = getComplex().getIslandHeightStream().get(realX, realZ).intValue();
-                    depth = getComplex().getIslandDepthStream().get(realX, realZ).intValue();
+                    biome =  getComplex().getTrueBiomeStream().get(realX, realZ);
+                    hh = getComplex().getTrueHeightStream().get(realX, realZ) - getComplex().getFluidHeight();
+                    depth = (int) (getComplex().getIslandDepthStream().get(realX, realZ).intValue() + hh);
+                    blocks = biome.generateLayers(realX, realZ, rng, depth, depth, getData(), getComplex());
+                    hi = getComplex().getIslandTopStream().get(realX, realZ);
+                    lo = getComplex().getIslandBottomStream().get(realX, realZ);
 
-                    for (i = surface - depth; i < surface; i++) {
-                        h.set(xf, i, zf, BEDROCK);
+                    // 10
+                    // 6
+
+                    // hf = 4
+
+                    for (i = hi; i >= lo; i--) {
+                        int hf = (i - hi);
+                        if (blocks.hasIndex(hf)) {
+                            h.set(xf, i, zf, blocks.get(hf));
+                            continue;
+                        }
+
+                        h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
                     }
                 }
             }

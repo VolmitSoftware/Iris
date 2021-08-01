@@ -43,7 +43,7 @@ public class IrisRate {
 
     public long getInterval()
     {
-        long t = per.getMilliseconds() / amount;
+        long t = per.getMilliseconds() / (amount == 0 ? 1 : amount);
         return Math.abs(t <= 0 ? 1 : t);
     }
 

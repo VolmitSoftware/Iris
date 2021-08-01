@@ -18,10 +18,11 @@
 
 package com.volmit.iris.engine.object.engine;
 
+import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 @Data
 public class IrisEngineData
 {
-
+    private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
 }

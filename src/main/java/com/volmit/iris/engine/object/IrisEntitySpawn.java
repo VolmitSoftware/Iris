@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListEntity;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
@@ -60,6 +61,7 @@ public class IrisEntitySpawn implements IRare {
     @Desc("The max of this entity to spawn")
     private int maxSpawns = 1;
 
+    private transient IrisSpawner referenceSpawner;
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
@@ -99,8 +101,13 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at) {
         try {
             Location l = at.clone().add(0.5, 1, 0.5);
-            Iris.debug("      Spawned " + "Entity<" + getEntity() + "> at " + l.getBlockX() + "," + l.getBlockY() + "," + l.getBlockZ());
-            return getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            Entity e = getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            if(e != null)
+            {
+                Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
+            }
+
+            return e;
         } catch (Throwable e) {
             Iris.reportError(e);
             Iris.error("      Failed to retrieve real entity @ " + at);

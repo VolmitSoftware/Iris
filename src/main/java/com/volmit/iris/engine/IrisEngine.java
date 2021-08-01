@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -86,9 +87,12 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @Getter
     private double maxBiomeDecoratorDensity;
 
+    private IrisEngineData engineData;
+
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
+        engineData = new IrisEngineData();
         this.target = target;
         this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
@@ -216,6 +220,16 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @Override
     public void hotloading() {
         close();
+    }
+
+    @Override
+    public void saveProperties() {
+
+    }
+
+    @Override
+    public IrisEngineData getEngineData() {
+        return engineData;
     }
 
     @ChunkCoordinates

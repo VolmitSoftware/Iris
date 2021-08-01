@@ -305,9 +305,13 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     @SuppressWarnings("unchecked")
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
+        int totalRarity = 0;
+        for (V i : types) {
+            totalRarity += IRare.get(i);
+        }
 
         for (V i : types) {
-            rarityTypes.addMultiple(i, IRare.get(i));
+            rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
         }
 
         return new SelectionStream<V>(this, rarityTypes);

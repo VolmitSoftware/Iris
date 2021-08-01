@@ -129,6 +129,9 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("If specified, this entity will be leashed by this entity. I.e. THIS ENTITY Leashed by SPECIFIED. This has no effect on EnderDragons, Withers, Players, or Bats.Non-living entities excluding leashes will not persist as leashholders.")
     private IrisEntity leashHolder = null;
 
+    @Desc("If specified, this entity will spawn with an effect")
+    private IrisEffect spawnEffect = null;
+
     @Desc("The main gene for a panda if the entity type is a panda")
     private Gene pandaMainGene = Gene.NORMAL;
 
@@ -150,7 +153,6 @@ public class IrisEntity extends IrisRegistrant {
         e.setGravity(isGravity());
         e.setInvulnerable(isInvulnerable());
         e.setSilent(isSilent());
-        e.setPersistent(true);
 
         int gg = 0;
         for (IrisEntity i : passengers) {
@@ -255,6 +257,11 @@ public class IrisEntity extends IrisRegistrant {
         if (e instanceof Mob) {
             Mob m = (Mob) e;
             m.setAware(isAware());
+        }
+
+        if(spawnEffect != null)
+        {
+            spawnEffect.apply(e);
         }
 
         return e;

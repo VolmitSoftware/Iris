@@ -32,9 +32,11 @@ import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -252,6 +254,42 @@ public class IrisEffect {
                             Math.max(potionTicksMax, potionTicksMin)),
                     getPotionStrength(),
                     true, false, false)));
+        }
+    }
+
+    public void apply(Entity p) {
+        if (!canTick()) {
+            return;
+        }
+
+        if (RNG.r.nextInt(chance) != 0) {
+            return;
+        }
+
+        if (sound != null) {
+            Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
+
+            J.s(() -> p.getWorld().playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
+        }
+
+        if (particleEffect != null) {
+            Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1,1,1).multiply(RNG.r.d())).subtract(new Vector(1,1,1).multiply(RNG.r.d()));
+            part.add(RNG.r.d(), 0, RNG.r.d());
+            if (extra != 0) {
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
+                        part.getZ(),
+                        particleCount,
+                        randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+                        randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+                        randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
+                        extra));
+            } else {
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
+                        particleCount,
+                        randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
+                        randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
+                        randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ));
+            }
         }
     }
 }

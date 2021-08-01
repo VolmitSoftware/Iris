@@ -472,6 +472,18 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         return remove(M.irand(0, last()));
     }
 
+    public T popRandom(RNG rng) {
+        if (isEmpty()) {
+            return null;
+        }
+
+        if (size() == 1) {
+            return pop();
+        }
+
+        return remove(rng.i(0, last()));
+    }
+
     public static KList<String> fromJSONAny(JSONArray oo) {
         KList<String> s = new KList<String>();
 
@@ -611,6 +623,23 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         }
 
         return get(M.irand(0, last()));
+    }
+
+    public KList<T> popRandom(RNG rng, int c)
+    {
+        KList<T> m = new KList<>();
+
+        for(int i = 0; i < c; i++)
+        {
+            if(isEmpty())
+            {
+                break;
+            }
+
+            m.add(popRandom());
+        }
+
+        return m;
     }
 
     public T getRandom(RNG rng) {

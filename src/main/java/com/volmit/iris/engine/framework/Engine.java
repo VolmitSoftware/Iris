@@ -28,6 +28,7 @@ import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IrisWorld;
+import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -403,8 +404,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     void hotloading();
 
-    default void saveProperties()
-    {
+    void saveProperties();
 
-    }
+    IrisEngineData getEngineData();
 }

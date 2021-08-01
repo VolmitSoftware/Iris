@@ -41,8 +41,8 @@ public enum IrisWeather {
         return switch(this)
         {
             case NONE -> world.isClearWeather();
-            case DOWNFALL -> world.hasStorm() && world.isThundering();
-            case DOWNFALL_WITH_THUNDER -> world.hasStorm();
+            case DOWNFALL -> world.hasStorm();
+            case DOWNFALL_WITH_THUNDER -> world.hasStorm() && world.isThundering();
             case ANY -> true;
         };
     }

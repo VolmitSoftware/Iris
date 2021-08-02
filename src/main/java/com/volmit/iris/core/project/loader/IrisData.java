@@ -19,6 +19,7 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
@@ -47,6 +48,7 @@ public class IrisData {
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
+    private Engine engine;
     private final int id;
 
     public IrisData(File dataFolder) {
@@ -54,6 +56,7 @@ public class IrisData {
     }
 
     public IrisData(File dataFolder, boolean oneshot) {
+        this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
         closed = false;

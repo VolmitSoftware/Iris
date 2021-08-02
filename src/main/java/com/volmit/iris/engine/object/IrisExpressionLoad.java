@@ -19,8 +19,10 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,10 +45,29 @@ public class IrisExpressionLoad {
     @Desc("If the style value is not defined, this value will be used")
     private double staticValue = -1;
 
-    @Desc("If defined, this variable will use a generator style as it's result")
+    @Desc("If defined, this variable will use a generator style as it's value")
     private IrisGeneratorStyle styleValue = null;
 
+    @Desc("If defined, iris will use an internal stream from the engine as it's value")
+    private IrisEngineStreamType engineStreamValue = null;
+
+    @Desc("If defined, iris will use an internal value from the engine as it's value")
+    private IrisEngineValueType engineValue = null;
+
+    private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
+    private transient AtomicCache<Double> valueCache = new AtomicCache<>();
+
     public double getValue(RNG rng, IrisData data, double x, double z) {
+        if(engineValue != null)
+        {
+            return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
+        }
+
+        if(engineStreamValue != null)
+        {
+            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
+        }
+
         if (styleValue != null) {
             return styleValue.create(rng, data).noise(x, z);
         }
@@ -55,6 +76,16 @@ public class IrisExpressionLoad {
     }
 
     public double getValue(RNG rng, IrisData data, double x, double y, double z) {
+        if(engineValue != null)
+        {
+            return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
+        }
+
+        if(engineStreamValue != null)
+        {
+            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
+        }
+
         if (styleValue != null) {
             return styleValue.create(rng, data).noise(x, y, z);
         }

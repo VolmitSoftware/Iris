@@ -19,11 +19,16 @@
 package com.volmit.iris.engine.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.engine.object.IrisInterpolator3D;
 import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
 import com.volmit.iris.util.math.RNG;
+
+import java.util.HashMap;
 
 public class IrisInterpolation {
     public static double bezier(double t) {
@@ -157,10 +162,6 @@ public class IrisInterpolation {
         a3 = p1;
 
         return a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3;
-    }
-
-    public static double getTriStarcast(int x, int y, int z, double rad, double checks, NoiseProvider n) {
-        return (getStarcast(x, z, rad, checks, n) + getStarcast(x, y, rad, checks, n) + getStarcast(y, z, rad, checks, n)) / 3D;
     }
 
     public static double bicubic(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy) {
@@ -314,6 +315,12 @@ public class IrisInterpolation {
         }
 
         return v / checks;
+    }
+
+    public static double getStarcast3D(int x, int y, int z, double rad, double checks, NoiseProvider3 n) {
+        return (getStarcast(x, z, rad, checks, (xx,zz) -> n.noise(xx, y, zz))
+                + getStarcast(x, y, rad, checks, (xx,yy) -> n.noise(xx, yy, z))
+                + getStarcast(y, z, rad, checks, (yy,zz) -> n.noise(x, yy, zz)))/3D;
     }
 
     public static double getBilinearBezierNoise(int x, int z, double rad, NoiseProvider n) {
@@ -844,16 +851,65 @@ public class IrisInterpolation {
             case TRILINEAR -> getTrilinear(x, y, z, radx, rady, radz, n);
             case TRICUBIC -> getTricubic(x, y, z, radx, rady, radz, n);
             case TRIHERMITE -> getTrihermite(x, y, z, radx, rady, radz, n);
+            case TRISTARCAST_3 -> getStarcast3D(x,y,z,radx,3D,n);
+            case TRISTARCAST_6 -> getStarcast3D(x,y,z,radx,6D,n);
+            case TRISTARCAST_9 -> getStarcast3D(x,y,z,radx,9D,n);
+            case TRISTARCAST_12 -> getStarcast3D(x,y,z,radx,12D,n);
+            case TRILINEAR_TRISTARCAST_3 -> getStarcast3D(x,y,z,radx,3D, (xx,yy,zz) -> getTrilinear((int)xx,(int)yy,(int)zz,radx, rady,radz,n));
+            case TRILINEAR_TRISTARCAST_6 -> getStarcast3D(x,y,z,radx,6D, (xx,yy,zz) -> getTrilinear((int)xx,(int)yy,(int)zz,radx, rady,radz,n));
+            case TRILINEAR_TRISTARCAST_9 -> getStarcast3D(x,y,z,radx,9D, (xx,yy,zz) -> getTrilinear((int)xx,(int)yy,(int)zz,radx, rady,radz,n));
+            case TRILINEAR_TRISTARCAST_12 -> getStarcast3D(x,y,z,radx,12D, (xx,yy,zz) -> getTrilinear((int)xx,(int)yy,(int)zz,radx, rady,radz,n));
+            case NONE -> n.noise(x,y,z);
         };
     }
 
+    public static Hunk<Double> getNoise3D(InterpolationMethod3D method, int xo, int yo, int zo, int w, int h, int d, double rad, NoiseProvider3 n)
+    {
+        return getNoise3D(method, xo, yo, zo, w,h,d,rad,rad,rad,n);
+    }
+
+    /**
+     * Get the interpolated 3D noise within a given cuboid size with offsets
+     * @param method the interpolation method to use
+     * @param xo the x offset for noise
+     * @param yo the y offset for noise
+     * @param zo the z offset for noise
+     * @param w the width of the result
+     * @param h the height of the result
+     * @param d the depth of the result
+     * @param radX the interpolation radius for the x axis
+     * @param radY the interpolation radius for the y axis
+     * @param radZ the interpolation radius for the z axis
+     * @param n the noise provider
+     * @return the resulting hunk of noise
+     */
+    public static Hunk<Double> getNoise3D(InterpolationMethod3D method, int xo, int yo, int zo, int w, int h, int d, double radX, double radY, double radZ, NoiseProvider3 n)
+    {
+        Hunk<Double> hunk = Hunk.newAtomicDoubleHunk(w,h,d);
+        HashMap<Integer, Double> cache = new HashMap<>();
+        int i,j,k;
+
+        for(i = 0; i < w; i++)
+        {
+            int fi = i;
+            for(j = 0; j < h; j++)
+            {
+                int fj = j;
+                for(k = 0; k < d; k++)
+                {
+                    int fk = k;
+                    hunk.set(i, j, k, cache.compute((k * w * h) + (j * w) + i, (p, v)
+                            -> getNoise3D(method, fi + xo, fj + yo, fk + zo,
+                            radX, radY, radZ, n)));
+                }
+            }
+        }
+
+        return hunk;
+    }
 
     public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double rad, NoiseProvider3 n) {
-        return switch (method) {
-            case TRILINEAR -> getTrilinear(x, y, z, rad, rad, rad, n);
-            case TRICUBIC -> getTricubic(x, y, z, rad, rad, rad, n);
-            case TRIHERMITE -> getTrihermite(x, y, z, rad, rad, rad, n);
-        };
+        return getNoise3D(method, x,y,z,rad,rad,rad,n);
     }
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n) {

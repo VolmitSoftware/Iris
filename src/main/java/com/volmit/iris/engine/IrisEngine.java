@@ -46,7 +46,6 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.BlockPopulator;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -266,7 +265,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @ChunkCoordinates
     @Override
-    public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk c) {
+    public void populate(World world, Random random, Chunk c) {
         updateChunk(c);
         placeTiles(c);
     }

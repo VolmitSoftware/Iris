@@ -18,8 +18,6 @@
 
 package com.volmit.iris.engine.data.nbt.tag;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -64,7 +62,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
+    public <T> T[] toArray(T[] a) {
         return set.toArray(a);
     }
 
@@ -79,22 +77,22 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> c) {
+    public boolean containsAll(Collection<?> c) {
         return set.containsAll(c);
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends Map.Entry<K, V>> c) {
+    public boolean addAll(Collection<? extends Map.Entry<K, V>> c) {
         return set.addAll(c);
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> c) {
+    public boolean retainAll(Collection<?> c) {
         return set.retainAll(c);
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> c) {
+    public boolean removeAll(Collection<?> c) {
         return set.removeAll(c);
     }
 

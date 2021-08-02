@@ -28,7 +28,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.material.MaterialData;
-import org.jetbrains.annotations.NotNull;
 
 @Builder
 @AllArgsConstructor
@@ -51,13 +50,13 @@ public class MCATerrainChunk implements TerrainChunk {
 
     }
 
-    @NotNull
+
     @Override
     public Biome getBiome(int x, int z) {
         return Biome.THE_VOID;
     }
 
-    @NotNull
+
     @Override
     public Biome getBiome(int x, int y, int z) {
         return Biome.THE_VOID;
@@ -95,7 +94,7 @@ public class MCATerrainChunk implements TerrainChunk {
         mcaChunk.setBlockStateAt(xx, y, zz, NBTWorld.getCompound(blockData), false);
     }
 
-    @NotNull
+
     @Override
     public org.bukkit.block.data.BlockData getBlockData(int x, int y, int z) {
         if (y > getMaxHeight()) {
@@ -120,37 +119,37 @@ public class MCATerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public void setBlock(int x, int y, int z, @NotNull Material material) {
+    public void setBlock(int x, int y, int z, Material material) {
 
     }
 
     @Override
-    public void setBlock(int x, int y, int z, @NotNull MaterialData material) {
+    public void setBlock(int x, int y, int z, MaterialData material) {
 
     }
 
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material) {
 
     }
 
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material) {
 
     }
 
     @Override
-    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
+    public void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData) {
 
     }
 
-    @NotNull
+
     @Override
     public Material getType(int x, int y, int z) {
         return null;
     }
 
-    @NotNull
+
     @Override
     public MaterialData getTypeAndData(int x, int y, int z) {
         return null;

@@ -24,7 +24,6 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -158,7 +157,6 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         z2 = (Integer) map.get("z2");
     }
 
-    @NotNull
     @Override
     public Map<String, Object> serialize() {
         Map<String, Object> map = new HashMap<>();

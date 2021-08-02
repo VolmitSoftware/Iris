@@ -28,8 +28,6 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -108,49 +106,49 @@ public class VolmitSender implements CommandSender {
     }
 
     @Override
-    public boolean isPermissionSet(@NotNull String name) {
+    public boolean isPermissionSet(String name) {
         return s.isPermissionSet(name);
     }
 
     @Override
-    public boolean isPermissionSet(@NotNull Permission perm) {
+    public boolean isPermissionSet(Permission perm) {
         return s.isPermissionSet(perm);
     }
 
     @Override
-    public boolean hasPermission(@NotNull String name) {
+    public boolean hasPermission(String name) {
         return s.hasPermission(name);
     }
 
     @Override
-    public boolean hasPermission(@NotNull Permission perm) {
+    public boolean hasPermission(Permission perm) {
         return s.hasPermission(perm);
     }
 
-    @NotNull
+
     @Override
-    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value) {
+    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
         return s.addAttachment(plugin, name, value);
     }
 
-    @NotNull
+
     @Override
-    public PermissionAttachment addAttachment(@NotNull Plugin plugin) {
+    public PermissionAttachment addAttachment(Plugin plugin) {
         return s.addAttachment(plugin);
     }
 
     @Override
-    public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value, int ticks) {
+    public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
         return s.addAttachment(plugin, name, value, ticks);
     }
 
     @Override
-    public PermissionAttachment addAttachment(@NotNull Plugin plugin, int ticks) {
+    public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
         return s.addAttachment(plugin, ticks);
     }
 
     @Override
-    public void removeAttachment(@NotNull PermissionAttachment attachment) {
+    public void removeAttachment(PermissionAttachment attachment) {
         s.removeAttachment(attachment);
     }
 
@@ -159,7 +157,7 @@ public class VolmitSender implements CommandSender {
         s.recalculatePermissions();
     }
 
-    @NotNull
+
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
         return s.getEffectivePermissions();
@@ -180,7 +178,7 @@ public class VolmitSender implements CommandSender {
     }
 
     @Override
-    public void sendMessage(@NotNull String message) {
+    public void sendMessage(String message) {
         s.sendMessage(C.translateAlternateColorCodes('&', getTag()) + message);
     }
 
@@ -191,28 +189,28 @@ public class VolmitSender implements CommandSender {
     }
 
     @Override
-    public void sendMessage(@Nullable UUID uuid, @NotNull String message) {
+    public void sendMessage(UUID uuid, String message) {
         sendMessage(message);
     }
 
     @Override
-    public void sendMessage(@Nullable UUID uuid, @NotNull String[] messages) {
+    public void sendMessage(UUID uuid, String[] messages) {
         sendMessage(messages);
     }
 
-    @NotNull
+
     @Override
     public Server getServer() {
         return s.getServer();
     }
 
-    @NotNull
+
     @Override
     public String getName() {
         return s.getName();
     }
 
-    @NotNull
+
     @Override
     public Spigot spigot() {
         return s.spigot();

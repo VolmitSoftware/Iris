@@ -58,8 +58,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -103,7 +101,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         art = J.ar(this::tick, 40);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
-            public void populate(@NotNull World world, @NotNull Random random, @NotNull Chunk chunk) {
+            public void populate(World world, Random random, Chunk chunk) {
                 if (compound.get() != null) {
                     for (BlockPopulator i : compound.get().getPopulators()) {
                         i.populate(world, random, chunk);
@@ -456,9 +454,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return new File(world + "/iris/pack");
     }
 
-    @NotNull
+
     @Override
-    public ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+    public ChunkData generateChunkData(World world, Random ignored, int x, int z, BiomeGrid biome) {
         try {
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
@@ -573,19 +571,19 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public boolean canSpawn(@NotNull World world, int x, int z) {
+    public boolean canSpawn(World world, int x, int z) {
         return super.canSpawn(world, x, z);
     }
 
-    @NotNull
+
     @Override
-    public List<BlockPopulator> getDefaultPopulators(@NotNull World world) {
+    public List<BlockPopulator> getDefaultPopulators(World world) {
         return populators;
     }
 
-    @Nullable
+
     @Override
-    public Location getFixedSpawnLocation(@NotNull World world, @NotNull Random random) {
+    public Location getFixedSpawnLocation(World world, Random random) {
         return super.getFixedSpawnLocation(world, random);
     }
 

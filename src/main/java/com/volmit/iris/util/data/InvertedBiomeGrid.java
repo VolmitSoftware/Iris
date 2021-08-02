@@ -20,7 +20,6 @@ package com.volmit.iris.util.data;
 
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
-import org.jetbrains.annotations.NotNull;
 
 public class InvertedBiomeGrid implements BiomeGrid {
     private final BiomeGrid grid;
@@ -29,14 +28,14 @@ public class InvertedBiomeGrid implements BiomeGrid {
         this.grid = real;
     }
 
-    @NotNull
+
     @SuppressWarnings("deprecation")
     @Override
     public Biome getBiome(int arg0, int arg1) {
         return grid.getBiome(arg0, arg1);
     }
 
-    @NotNull
+
     @Override
     public Biome getBiome(int arg0, int arg1, int arg2) {
         return grid.getBiome(arg0, 255 - arg1, arg2);
@@ -44,12 +43,12 @@ public class InvertedBiomeGrid implements BiomeGrid {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void setBiome(int arg0, int arg1, @NotNull Biome arg2) {
+    public void setBiome(int arg0, int arg1, Biome arg2) {
         grid.setBiome(arg0, arg1, arg2);
     }
 
     @Override
-    public void setBiome(int arg0, int arg1, int arg2, @NotNull Biome arg3) {
+    public void setBiome(int arg0, int arg1, int arg2, Biome arg3) {
         grid.setBiome(arg0, 255 - arg1, arg2, arg3);
     }
 }

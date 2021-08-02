@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.util.collection.KList;
@@ -31,7 +30,6 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
-import java.io.IOException;
 
 @Data
 public class IrisCompat {
@@ -151,7 +149,7 @@ public class IrisCompat {
         }
     }
 
-    public static IrisCompat configured(File f) throws IOException {
+    public static IrisCompat configured(File f) {
         IrisCompat def = new IrisCompat();
         String defa = new JSONObject(new Gson().toJson(def)).toString(4);
         J.attemptAsync(() -> IO.writeAll(new File(f.getParentFile(), "compat.default.json"), defa));
@@ -170,7 +168,7 @@ public class IrisCompat {
             for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
                 def.getItemFilters().add(i);
             }
-        } catch (JsonSyntaxException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);
         }

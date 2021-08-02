@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListMythical;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
@@ -62,10 +61,6 @@ public class IrisEntity extends IrisRegistrant {
     @Required
     @Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
     private EntityType type = EntityType.UNKNOWN;
-
-    @RegistryListMythical
-    @Desc("The type of mythic mob (if mythic mobs is installed). If this is set, make sure to set 'type' to UNKNOWN")
-    private String mythicalType = "";
 
     @Desc("The custom name of this entity")
     private String customName = "";
@@ -281,15 +276,8 @@ public class IrisEntity extends IrisRegistrant {
             return ae.get();
         }
 
-        if (isMythical()) {
-            return Iris.linkMythicMobs.spawn(getMythicalType(), at);
-        }
 
         return at.getWorld().spawnEntity(at, getType());
-    }
-
-    public boolean isMythical() {
-        return Iris.linkMythicMobs.supported() && !getMythicalType().trim().isEmpty();
     }
 
     public boolean isCitizens() {

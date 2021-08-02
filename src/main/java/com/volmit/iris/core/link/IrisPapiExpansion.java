@@ -25,25 +25,21 @@ import com.volmit.iris.engine.framework.IrisAccess;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
-import org.jetbrains.annotations.NotNull;
 
 // See/update https://app.gitbook.com/@volmitsoftware/s/iris/compatability/papi/
 public class IrisPapiExpansion extends PlaceholderExpansion {
     @Override
-    public @NotNull
-    String getIdentifier() {
+    public String getIdentifier() {
         return "iris";
     }
 
     @Override
-    public @NotNull
-    String getAuthor() {
+    public String getAuthor() {
         return "Volmit Software";
     }
 
     @Override
-    public @NotNull
-    String getVersion() {
+    public String getVersion() {
         return Iris.instance.getDescription().getVersion();
     }
 

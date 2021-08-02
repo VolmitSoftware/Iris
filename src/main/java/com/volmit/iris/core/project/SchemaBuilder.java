@@ -185,18 +185,6 @@ public class SchemaBuilder {
                     } else {
                         Iris.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                     }
-                } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
-                    String key = "enum-reg-mythical";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(Iris.linkMythicMobs.getMythicMobTypes()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Mythic Mob Type";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
                 } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                     String key = "enum-block-type";
 
@@ -368,26 +356,6 @@ public class SchemaBuilder {
                                 } else {
                                     Iris.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
-                            } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
-                                fancyType = "List of Mythic Mob Types";
-                                String key = "enum-reg-mythical";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    JSONArray ja = new JSONArray();
-
-                                    for (String i : Iris.linkMythicMobs.getMythicMobTypes()) {
-                                        ja.put(i);
-                                    }
-
-                                    j.put("enum", ja);
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Configure mob types in the mythic mobs plugin configuration files.");
                             } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                                 fancyType = "List of Block Types";
                                 String key = "enum-block-type";

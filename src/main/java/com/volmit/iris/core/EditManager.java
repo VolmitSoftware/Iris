@@ -21,10 +21,8 @@ package com.volmit.iris.core;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.BlockEditor;
 import com.volmit.iris.core.edit.BukkitBlockEditor;
-import com.volmit.iris.core.edit.WEBlockEditor;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
-import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -93,17 +91,7 @@ public class EditManager implements Listener {
         }
 
         BlockEditor e = null;
-
-        if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit") && !PaperLib.isPaper() && !IrisSettings.get().getGeneral().isIgnoreWorldEdit()) {
-            try {
-                e = new WEBlockEditor(world);
-            } catch (Throwable ex) {
-                Iris.reportError(ex);
-                e = new BukkitBlockEditor(world);
-            }
-        } else {
-            e = new BukkitBlockEditor(world);
-        }
+        e = new BukkitBlockEditor(world);
 
         editors.put(world, e);
 

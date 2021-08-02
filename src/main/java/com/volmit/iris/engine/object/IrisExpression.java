@@ -26,6 +26,8 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.engine.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -53,6 +55,7 @@ public class IrisExpression extends IrisRegistrant {
     private String expression;
 
     private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
+    private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
 
     private Expression expression() {
         return expressionCache.aquire(() -> {
@@ -80,6 +83,12 @@ public class IrisExpression extends IrisRegistrant {
 
             return null;
         });
+    }
+
+    public ProceduralStream<Double> stream(RNG rng)
+    {
+        return streamCache.aquire(() -> ProceduralStream.of((x, z) -> evaluate(rng, x, z),
+                (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
     }
 
     public double evaluate(RNG rng, double x, double z) {

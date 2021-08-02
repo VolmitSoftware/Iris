@@ -442,10 +442,8 @@ public class IrisProject {
         JSONArray schemas = new JSONArray();
         IrisData dm = new IrisData(getPath());
 
-        for(ResourceLoader<?> r : dm.getLoaders().v())
-        {
-            if(r.supportsSchemas())
-            {
+        for (ResourceLoader<?> r : dm.getLoaders().v()) {
+            if (r.supportsSchemas()) {
                 schemas.put(r.buildSchema());
             }
         }

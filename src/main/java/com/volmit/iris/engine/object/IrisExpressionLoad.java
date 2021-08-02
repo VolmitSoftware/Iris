@@ -34,12 +34,12 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Desc("Represents Block Data")
+@Desc("Represents a variable to use in your expression. Do not set the name to x, y, or z, also don't duplicate names.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisExpressionLoad {
     @Required
-    @Desc("The variable to assign this value to")
+    @Desc("The variable to assign this value to. Do not set the name to x, y, or z")
     private String name = "";
 
     @Desc("If the style value is not defined, this value will be used")
@@ -58,13 +58,11 @@ public class IrisExpressionLoad {
     private transient AtomicCache<Double> valueCache = new AtomicCache<>();
 
     public double getValue(RNG rng, IrisData data, double x, double z) {
-        if(engineValue != null)
-        {
+        if (engineValue != null) {
             return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
         }
 
-        if(engineStreamValue != null)
-        {
+        if (engineStreamValue != null) {
             return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
         }
 
@@ -76,13 +74,11 @@ public class IrisExpressionLoad {
     }
 
     public double getValue(RNG rng, IrisData data, double x, double y, double z) {
-        if(engineValue != null)
-        {
+        if (engineValue != null) {
             return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
         }
 
-        if(engineStreamValue != null)
-        {
+        if (engineStreamValue != null) {
             return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
         }
 

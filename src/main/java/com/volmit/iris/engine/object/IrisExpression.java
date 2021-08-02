@@ -40,13 +40,13 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Desc("Represents Block Data")
+@Desc("Represents an Iris Expression")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisExpression extends IrisRegistrant {
     private static final Parser parser = new Parser();
 
-    @ArrayType(type = IrisExpression.class, min = 1)
+    @ArrayType(type = IrisExpressionLoad.class, min = 1)
     @Desc("Variables to use in this expression")
     private KList<IrisExpressionLoad> variables = new KList<>();
 
@@ -85,8 +85,7 @@ public class IrisExpression extends IrisRegistrant {
         });
     }
 
-    public ProceduralStream<Double> stream(RNG rng)
-    {
+    public ProceduralStream<Double> stream(RNG rng) {
         return streamCache.aquire(() -> ProceduralStream.of((x, z) -> evaluate(rng, x, z),
                 (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
     }

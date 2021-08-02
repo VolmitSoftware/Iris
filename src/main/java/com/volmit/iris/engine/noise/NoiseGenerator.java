@@ -29,8 +29,7 @@ public interface NoiseGenerator {
         return false;
     }
 
-    default boolean isNoScale()
-    {
+    default boolean isNoScale() {
         return false;
     }
 }

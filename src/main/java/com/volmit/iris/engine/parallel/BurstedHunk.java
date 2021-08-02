@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.parallel;
 
+
 import com.volmit.iris.engine.hunk.Hunk;
 
 public interface BurstedHunk<T> extends Hunk<T> {

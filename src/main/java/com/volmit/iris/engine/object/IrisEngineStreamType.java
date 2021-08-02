@@ -25,8 +25,7 @@ import com.volmit.iris.engine.stream.ProceduralStream;
 import java.util.function.Function;
 
 @Desc("Represents a stream from the engine")
-public enum IrisEngineStreamType
-{
+public enum IrisEngineStreamType {
     @Desc("Represents the given slope at the x, z coordinates")
     SLOPE((f) -> f.getComplex().getSlopeStream()),
 
@@ -57,15 +56,13 @@ public enum IrisEngineStreamType
     @Desc("Represents the identity of regions. Each region has a unique number (very large numbers)")
     REGION_IDENTITY((f) -> f.getComplex().getRegionIdentityStream());
 
-    private Function<EngineFramework, ProceduralStream<Double>> getter;
+    private final Function<EngineFramework, ProceduralStream<Double>> getter;
 
-    private IrisEngineStreamType(Function<EngineFramework, ProceduralStream<Double>> getter)
-    {
+    IrisEngineStreamType(Function<EngineFramework, ProceduralStream<Double>> getter) {
         this.getter = getter;
     }
 
-    public ProceduralStream<Double> get(EngineFramework engine)
-    {
+    public ProceduralStream<Double> get(EngineFramework engine) {
         return getter.apply(engine);
     }
 }

@@ -77,29 +77,20 @@ public class IrisData {
         return new IrisData(dataFolder);
     }
 
-    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant)
-    {
-        try
-        {
+    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
+        try {
             IrisRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
-            if(registrant.equals(IrisObject.class))
-            {
+            if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            }
-
-            else
-            {
+            } else {
                 r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
             }
 
             loaders.put(registrant, r);
 
             return r;
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.error("Failed to create loader! " + registrant.getCanonicalName());
         }
@@ -136,8 +127,7 @@ public class IrisData {
             return;
         }
 
-        for(ResourceLoader<?> i : loaders.values())
-        {
+        for (ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
     }
@@ -147,8 +137,7 @@ public class IrisData {
             return;
         }
 
-        for(ResourceLoader<?> i : loaders.values())
-        {
+        for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }
     }

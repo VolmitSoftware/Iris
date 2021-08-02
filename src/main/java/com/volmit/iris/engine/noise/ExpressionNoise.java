@@ -21,12 +21,11 @@ package com.volmit.iris.engine.noise;
 import com.volmit.iris.engine.object.IrisExpression;
 import com.volmit.iris.util.math.RNG;
 
-public class ExpressionNoise implements NoiseGenerator{
+public class ExpressionNoise implements NoiseGenerator {
     private final RNG rng;
     private final IrisExpression expression;
 
-    public ExpressionNoise(RNG rng, IrisExpression expression)
-    {
+    public ExpressionNoise(RNG rng, IrisExpression expression) {
         this.rng = rng;
         this.expression = expression;
     }

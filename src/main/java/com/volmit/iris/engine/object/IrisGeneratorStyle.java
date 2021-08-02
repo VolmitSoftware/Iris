@@ -22,7 +22,10 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.noise.ExpressionNoise;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -75,12 +78,10 @@ public class IrisGeneratorStyle {
     public CNG create(RNG rng, IrisData data) {
         return cng.aquire(() ->
         {
-            if(getExpression() != null)
-            {
+            if (getExpression() != null) {
                 IrisExpression e = data.getExpressionLoader().load(getExpression());
 
-                if(e != null)
-                {
+                if (e != null) {
                     CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
                             .bake().scale(1D / zoom).pow(exponent).bake();
                     cng.setTrueFracturing(axialFracturing);

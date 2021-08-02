@@ -175,7 +175,7 @@ public class CNG {
     }
 
     public CNG(RNG random, NoiseType type, double opacity, int octaves) {
-        this(random,  type.create(random.nextParallelRNG((long) ((1113334944L * opacity) + 12922 + octaves)).lmax()), opacity, octaves);
+        this(random, type.create(random.nextParallelRNG((long) ((1113334944L * opacity) + 12922 + octaves)).lmax()), opacity, octaves);
     }
 
     public CNG(RNG random, NoiseGenerator generator, double opacity, int octaves) {

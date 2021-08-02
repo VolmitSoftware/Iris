@@ -74,15 +74,13 @@ public class ResourceLoader<T extends IrisRegistrant> {
         Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.WHITE + manager.getDataFolder().getPath());
     }
 
-    public JSONObject buildSchema()
-    {
+    public JSONObject buildSchema() {
         Iris.debug("Building Schema " + objectClass.getSimpleName() + " " + root.getPath());
         JSONObject o = new JSONObject();
         KList<String> fm = new KList<>();
 
-        for(int g = 1; g < 8; g++)
-        {
-            fm.add("/" + root.getName() + Form.repeat("/*", g) + ".json");
+        for (int g = 1; g < 8; g++) {
+            fm.add("/" + folderName + Form.repeat("/*", g) + ".json");
         }
 
         o.put("fileMatch", new JSONArray(fm.toArray()));

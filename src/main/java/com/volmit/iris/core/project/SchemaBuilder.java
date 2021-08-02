@@ -166,13 +166,11 @@ public class SchemaBuilder {
                 }
 
 
-                if(k.isAnnotationPresent(RegistryListResource.class))
-                {
+                if (k.isAnnotationPresent(RegistryListResource.class)) {
                     RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
                     ResourceLoader<?> loader = data.getLoaders().get(rr.value());
 
-                    if(loader != null)
-                    {
+                    if (loader != null) {
                         String key = "erz" + loader.getFolderName();
 
                         if (!definitions.containsKey(key)) {
@@ -184,15 +182,10 @@ public class SchemaBuilder {
                         fancyType = "Iris " + loader.getResourceTypeName();
                         prop.put("$ref", "#/definitions/" + key);
                         description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getFolderName() + " (use ctrl+space for auto complete!)");
-                    }
-
-                    else
-                    {
+                    } else {
                         Iris.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                     }
-                }
-
-                else if (k.isAnnotationPresent(RegistryListMythical.class)) {
+                } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
                     String key = "enum-reg-mythical";
 
                     if (!definitions.containsKey(key)) {
@@ -354,13 +347,11 @@ public class SchemaBuilder {
                         case "string" -> {
                             fancyType = "List of Text";
 
-                            if(k.isAnnotationPresent(RegistryListResource.class))
-                            {
+                            if (k.isAnnotationPresent(RegistryListResource.class)) {
                                 RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
                                 ResourceLoader<?> loader = data.getLoaders().get(rr.value());
 
-                                if(loader != null)
-                                {
+                                if (loader != null) {
                                     fancyType = "List<" + loader.getResourceTypeName() + ">";
                                     String key = "erz" + loader.getFolderName();
 
@@ -374,14 +365,10 @@ public class SchemaBuilder {
                                     items.put("$ref", "#/definitions/" + key);
                                     prop.put("items", items);
                                     description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getResourceTypeName() + " (use ctrl+space for auto complete!)");
-                                }
-
-                                else
-                                {
+                                } else {
                                     Iris.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
-                            }
-                            else if (k.isAnnotationPresent(RegistryListMythical.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
                                 fancyType = "List of Mythic Mob Types";
                                 String key = "enum-reg-mythical";
 

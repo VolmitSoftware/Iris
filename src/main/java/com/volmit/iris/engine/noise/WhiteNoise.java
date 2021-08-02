@@ -31,8 +31,7 @@ public class WhiteNoise implements NoiseGenerator {
         return true;
     }
 
-    public boolean isNoScale()
-    {
+    public boolean isNoScale() {
         return true;
     }
 

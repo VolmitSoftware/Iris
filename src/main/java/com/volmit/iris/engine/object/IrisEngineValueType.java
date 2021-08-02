@@ -24,8 +24,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import java.util.function.Function;
 
 @Desc("Represents a value from the engine")
-public enum IrisEngineValueType
-{
+public enum IrisEngineValueType {
     @Desc("Represents actual height of the engine")
     ENGINE_HEIGHT((f) -> Double.valueOf(f.getEngine().getHeight())),
 
@@ -42,15 +41,13 @@ public enum IrisEngineValueType
     FLUID_HEIGHT((f) -> Double.valueOf(f.getComplex().getFluidHeight())),
     ;
 
-    private Function<EngineFramework, Double> getter;
+    private final Function<EngineFramework, Double> getter;
 
-    private IrisEngineValueType(Function<EngineFramework, Double> getter)
-    {
+    IrisEngineValueType(Function<EngineFramework, Double> getter) {
         this.getter = getter;
     }
 
-    public Double get(EngineFramework engine)
-    {
+    public Double get(EngineFramework engine) {
         return getter.apply(engine);
     }
 }

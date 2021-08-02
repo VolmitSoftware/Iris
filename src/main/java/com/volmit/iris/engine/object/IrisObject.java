@@ -75,7 +75,6 @@ public class IrisObject extends IrisRegistrant {
     private transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
 
 
-
     public IrisObject(int w, int h, int d) {
         blocks = new KMap<>();
         states = new KMap<>();
@@ -86,7 +85,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public IrisObject() {
-        this(0,0,0);
+        this(0, 0, 0);
     }
 
     public AxisAlignedBB getAABB() {

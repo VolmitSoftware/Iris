@@ -127,7 +127,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(this::splash, 20);
         J.ar(this::checkConfigHotload, 60);
         J.sr(this::tickQueue, 0);
-        J.a(this::setupPapi);
+        J.s(this::setupPapi);
     }
 
     private void setupPapi() {

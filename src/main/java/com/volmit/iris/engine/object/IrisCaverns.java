@@ -22,10 +22,9 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.engine.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -54,7 +53,11 @@ public class IrisCaverns {
     @Desc("Threshold defined")
     private double topBleed = 16;
 
+    @Desc("If set to true (default) iris will interpolate the noise before checking if it meets the threshold.")
+    private boolean preThresholdInterpolation = true;
+
     private transient AtomicCache<ProceduralStream<IrisCavernZone>> zonesRarity = new AtomicCache<>();
+    private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
 
     public IrisCavernZone getZone(double x, double y, double z, RNG rng)
     {
@@ -62,36 +65,34 @@ public class IrisCaverns {
                 .stream().selectRarity(getZones())).get(x,y,z);
     }
 
-    private double threshold(double y, double th)
+    private double threshold(double y)
     {
-        double m = 0;
-        double a = 0;
-        double top = th - topBleed;
-        double bot = 0 + bottomBleed;
-
-        if(y >= top && y <= th)
-        {
-            m++;
-            a+= IrisInterpolation.lerpBezier(1, 0, M.lerpInverse(top, th, y));
-        }
-
-        if(y <= bottomBleed && y >= 0)
-        {
-            m++;
-            a+= IrisInterpolation.lerpBezier(1, 0, M.lerpInverse(top, th, y));
-        }
-
-        return m==0 ? 1 : (a/m);
+        return 0.5;
     }
 
-    public <T> void apply(double ox, double oy, double oz, Hunk<T> hunk, T cave, RNG rng, ProceduralStream<Double> height)
+    public ProceduralStream<Double> stream(RNG rng)
     {
-        hunk.iterateSync((x,y,z) -> {
-            if(getInterpolator().interpolate(ox+x,oy+y,oz+z,(xx,yy,zz)
-                    -> getZone(xx,yy,zz, rng).isCarved(rng, xx,yy,zz) ? 1 : 0) > threshold(y + oy, height.get(ox + x, oz + z)))
-            {
-                hunk.set(x,y,z,cave);
-            }
-        });
+        if(preThresholdInterpolation)
+        {
+            return streamCache.aquire(() -> ProceduralStream.of((xx,yy,zz)
+                    -> (getZone(xx, yy, zz, rng)
+                    .getCarved(rng, xx,yy,zz)), Interpolated.DOUBLE)
+                    .cache3D(65535));
+        }
+
+        return streamCache.aquire(() -> ProceduralStream.of((xx,yy,zz)
+                -> (getZone(xx, yy, zz, rng)
+                .isCarved(rng, xx,yy,zz) ? 1D : 0D), Interpolated.DOUBLE)
+                .cache3D(65535));
+    }
+
+    public boolean isCavern(RNG rng, double x, double y, double z, double height) {
+        if(zones.isEmpty())
+        {
+            return false;
+        }
+
+        return getInterpolator().interpolate(x, y, z, (xx, yy, zz)
+                -> stream(rng).get(xx,yy,zz)) > threshold(height);
     }
 }

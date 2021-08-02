@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.noise.CNG;
@@ -63,7 +63,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Create an inverted dimension in the sky (like the nether)")
     private IrisDimension sky = null;
 
-    @RegistryListJigsaw
+    @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
 
@@ -84,7 +84,7 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Spawn Entities in this dimension over time. Iris will continually replenish these mobs just like vanilla does.")
     @ArrayType(min = 1, type = String.class)
-    @RegistryListSpawner
+    @RegistryListResource(IrisSpawner.class)
     private KList<String> entitySpawners = new KList<>();
 
     @Desc("Add specific features in exact positions")
@@ -188,7 +188,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
 
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("Define all of the regions to include in this dimension. Dimensions -> Regions -> Biomes -> Objects etc")
@@ -204,11 +204,11 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The fluid height for this dimension")
     private int fluidHeight = 63;
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
     private String focusRegion = "";
 
@@ -372,7 +372,7 @@ public class IrisDimension extends IrisRegistrant {
         KList<IrisRegion> r = new KList<>();
 
         for (String i : getRegions()) {
-            r.add(IrisDataManager.loadAnyRegion(i));
+            r.add(IrisData.loadAnyRegion(i));
         }
 
         return r;

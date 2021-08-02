@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.jigsaw;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -46,7 +46,7 @@ public class PlannedPiece {
     private IrisObject object;
     private IrisJigsawPiece piece;
     private IrisObjectRotation rotation;
-    private IrisDataManager data;
+    private IrisData data;
     private KList<IrisJigsawPieceConnector> connected;
     private boolean dead = false;
     private AxisAlignedBB box;

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -58,7 +58,7 @@ public class IrisBlockDrops {
 
     private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
 
-    public boolean shouldDropFor(BlockData data, IrisDataManager rdata) {
+    public boolean shouldDropFor(BlockData data, IrisData rdata) {
         KList<BlockData> list = this.data.aquire(() ->
         {
             KList<BlockData> b = new KList<>();

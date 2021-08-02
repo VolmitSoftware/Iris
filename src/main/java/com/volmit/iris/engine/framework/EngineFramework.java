@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import org.bukkit.block.Biome;
@@ -31,7 +31,7 @@ public interface EngineFramework extends DataProvider {
 
     EngineParallaxManager getEngineParallax();
 
-    default IrisDataManager getData() {
+    default IrisData getData() {
         return getComplex().getData();
     }
 

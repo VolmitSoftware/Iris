@@ -23,7 +23,7 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListEntity;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.format.C;
@@ -42,7 +42,7 @@ import org.bukkit.entity.Entity;
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisEntitySpawn implements IRare {
-    @RegistryListEntity
+    @RegistryListResource(IrisEntity.class)
     @Required
     @Desc("The entity")
     private String entity = "";

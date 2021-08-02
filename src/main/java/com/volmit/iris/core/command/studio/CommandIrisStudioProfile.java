@@ -19,9 +19,9 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.*;
@@ -80,7 +80,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
             }
 
             IrisProject p = new IrisProject(f);
-            IrisDataManager data = new IrisDataManager(f);
+            IrisData data = new IrisData(f);
             KMap<NoiseStyle, Double> styleTimings = new KMap<>();
             KMap<InterpolationMethod, Double> interpolatorTimings = new KMap<>();
             KMap<String, Double> generatorTimings = new KMap<>();

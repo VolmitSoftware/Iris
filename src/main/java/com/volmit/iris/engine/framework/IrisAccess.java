@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.pregenerator.PregenListener;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
@@ -98,7 +98,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     GeneratorAccess getEngineAccess(int y);
 
-    IrisDataManager getData();
+    IrisData getData();
 
     int getHeight(int x, int y, int z);
 

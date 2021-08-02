@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.noise.CNG;
@@ -69,7 +69,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     @Desc("Spawn Entities in this region over time. Iris will continually replenish these mobs just like vanilla does.")
     @ArrayType(min = 1, type = String.class)
-    @RegistryListSpawner
+    @RegistryListResource(IrisSpawner.class)
     private KList<String> entitySpawners = new KList<>();
 
     @MinNumber(1)
@@ -134,35 +134,35 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
     private double biomeImplosionRatio = 0.4;
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> landBiomes = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> seaBiomes = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> shoreBiomes = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> riverBiomes = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> lakeBiomes = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> caveBiomes = new KList<>();
@@ -493,7 +493,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                IrisBiome biome = IrisDataManager.loadAnyBiome(i);
+                IrisBiome biome = IrisData.loadAnyBiome(i);
 
                 names.remove(i);
                 if (biome == null) {

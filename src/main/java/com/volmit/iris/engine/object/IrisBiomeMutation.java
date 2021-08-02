@@ -34,13 +34,13 @@ import lombok.experimental.Accessors;
 @Desc("A biome mutation if a condition is met")
 @Data
 public class IrisBiomeMutation {
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("One of The following biomes or regions must show up")
     private KList<String> sideA = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("One of The following biomes or regions must show up")
@@ -58,7 +58,7 @@ public class IrisBiomeMutation {
     @Desc("How many tries per chunk to check for this mutation")
     private int checks = 2;
 
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this biome mutation")
     private KList<IrisObjectPlacement> objects = new KList<>();

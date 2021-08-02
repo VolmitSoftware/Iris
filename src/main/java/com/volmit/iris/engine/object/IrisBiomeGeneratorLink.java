@@ -34,7 +34,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisBiomeGeneratorLink {
 
-    @RegistryListGenerator
+    @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
 

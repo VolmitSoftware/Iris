@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListDimension;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -47,7 +47,7 @@ public class IrisDimensionIndex {
     private boolean primary = false;
 
     @Required
-    @RegistryListDimension
+    @RegistryListResource(IrisDimension.class)
     @MinNumber(1)
     @Desc("Name of dimension")
     private String dimension = "";

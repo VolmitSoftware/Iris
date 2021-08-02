@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListObject;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -43,7 +43,7 @@ import java.io.IOException;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawPiece extends IrisRegistrant {
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @Required
     @Desc("The object this piece represents")
     private String object = "";

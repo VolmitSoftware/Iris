@@ -19,9 +19,9 @@
 package com.volmit.iris.core.command.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.JigsawEditor;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -59,11 +59,11 @@ public class CommandIrisJigsawEdit extends MortarCommand {
             return true;
         }
 
-        IrisJigsawPiece piece = IrisDataManager.loadAnyJigsawPiece(args[0]);
+        IrisJigsawPiece piece = IrisData.loadAnyJigsawPiece(args[0]);
 
         if (piece != null) {
             File dest = piece.getLoadFile();
-            new JigsawEditor(sender.player(), piece, IrisDataManager.loadAnyObject(piece.getObject()), dest);
+            new JigsawEditor(sender.player(), piece, IrisData.loadAnyObject(piece.getObject()), dest);
             return true;
         }
 

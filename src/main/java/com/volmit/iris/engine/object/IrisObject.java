@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.framework.placer.HeightmapObjectPlacer;
@@ -404,23 +404,23 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata) {
+    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
         return place(x, -1, z, placer, config, rng, rdata);
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisDataManager rdata) {
+    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
         return place(x, -1, z, placer, config, rng, null, c, rdata);
     }
 
-    public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
         return place(x, yv, z, placer, config, rng, null, null, rdata);
     }
 
-    public int place(Location loc, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisDataManager rdata) {
+    public int place(Location loc, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
         return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
     }
 
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisDataManager rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(rng, x, yv, z, config, oplacer) : oplacer;
 
         if (config.isSmartBore()) {

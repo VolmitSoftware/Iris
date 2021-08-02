@@ -19,11 +19,11 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisEngineCompound;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
@@ -207,11 +207,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             query = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
-        dim = IrisDataManager.loadAnyDimension(query);
+        dim = IrisData.loadAnyDimension(query);
 
         if (dim == null) {
             Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
-            dim = IrisDataManager.loadAnyDimension(query);
+            dim = IrisData.loadAnyDimension(query);
 
             if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + query);
@@ -222,12 +222,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         if (production) {
             IrisDimension od = dim;
-            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+            dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
                 Iris.info("Installing Iris pack " + od.getName() + " into world " + world.name() + "...");
                 Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), world.worldFolder());
-                dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+                dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
                 if (dim == null) {
                     throw new RuntimeException("Cannot find dimension: " + query);
@@ -273,11 +273,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             query = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
 
-        dim = IrisDataManager.loadAnyDimension(query);
+        dim = IrisData.loadAnyDimension(query);
 
         if (dim == null) {
             Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), query, false);
-            dim = IrisDataManager.loadAnyDimension(query);
+            dim = IrisData.loadAnyDimension(query);
 
             if (dim == null) {
                 throw new RuntimeException("Cannot find dimension: " + query);
@@ -288,12 +288,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         if (production) {
             IrisDimension od = dim;
-            dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+            dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
                 Iris.info("Installing Iris pack " + od.getName() + " into world " + world + "...");
                 Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), od.getLoadKey(), new File(world));
-                dim = new IrisDataManager(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
+                dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
                 if (dim == null) {
                     throw new RuntimeException("Cannot find dimension: " + query);
@@ -314,7 +314,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         try {
             initialized.set(true);
             IrisDimension dim = getDimension(world);
-            IrisDataManager data = production ? new IrisDataManager(getDataFolder(world)) : dim.getLoader().copy();
+            IrisData data = production ? new IrisData(getDataFolder(world)) : dim.getLoader().copy();
             compound.set(new IrisEngineCompound(world, dim, data, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount())));
             compound.get().setStudio(!production);
             populators.clear();
@@ -667,7 +667,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public IrisDataManager getData() {
+    public IrisData getData() {
         if (getCompound() == null) {
             return null;
         }
@@ -755,7 +755,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             dim.getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i));
 
             try {
-                dim.getDimensionalComposite().forEach((m) -> IrisDataManager.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
+                dim.getDimensionalComposite().forEach((m) -> IrisData.loadAnyDimension(m.getDimension()).getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i)));
             } catch (Throwable ignored) {
                 Iris.reportError(ignored);
 

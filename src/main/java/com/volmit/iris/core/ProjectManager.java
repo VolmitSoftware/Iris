@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KMap;
@@ -95,7 +96,7 @@ public class ProjectManager {
         sender.sendMessage("Looking for Package: " + type);
         File iris = new File(folder, "iris");
         File irispack = new File(folder, "iris/pack");
-        IrisDimension dim = IrisDataManager.loadAnyDimension(type);
+        IrisDimension dim = IrisData.loadAnyDimension(type);
 
         if (dim == null) {
             for (File i : Iris.proj.getWorkspaceFolder().listFiles()) {
@@ -148,7 +149,7 @@ public class ProjectManager {
             return null;
         }
 
-        IrisDataManager dm = new IrisDataManager(irispack);
+        IrisData dm = new IrisData(irispack);
         dim = dm.getDimensionLoader().load(type);
 
         if (dim == null) {
@@ -269,7 +270,7 @@ public class ProjectManager {
             IO.delete(packEntry);
         }
 
-        if (IrisDataManager.loadAnyDimension(key) != null) {
+        if (IrisData.loadAnyDimension(key) != null) {
             sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
             return;
         }

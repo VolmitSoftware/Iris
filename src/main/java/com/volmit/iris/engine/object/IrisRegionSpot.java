@@ -22,7 +22,7 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CellGenerator;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListBiome;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -36,7 +36,7 @@ import lombok.experimental.Accessors;
 @Desc("A spot config")
 @Data
 public class IrisRegionSpot {
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @Desc("The biome to be placed")
     private String biome = "";

@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
@@ -70,7 +70,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return getEngine().getParallax();
     }
 
-    default IrisDataManager getData() {
+    default IrisData getData() {
         return getEngine().getData();
     }
 

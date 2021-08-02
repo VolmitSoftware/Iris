@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListBiome;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -44,6 +44,6 @@ public class IrisModNoiseStyleReplacer {
 
     @Required
     @Desc("A noise style to replace it with")
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     private IrisGeneratorStyle replace = new IrisGeneratorStyle();
 }

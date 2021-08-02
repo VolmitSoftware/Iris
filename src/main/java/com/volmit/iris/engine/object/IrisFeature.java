@@ -46,7 +46,7 @@ public class IrisFeature {
     @Desc("The chance an object that should be place actually will place. Set to below 1 to affect objects in this zone")
     private double objectChance = 1;
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Desc("Apply a custom biome here")
     private String customBiome = null;
 

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
@@ -70,11 +70,11 @@ public class IrisBiomePaletteLayer {
     private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-    public CNG getHeightGenerator(RNG rng, IrisDataManager data) {
+    public CNG getHeightGenerator(RNG rng, IrisData data) {
         return heightGenerator.aquire(() -> CNG.signature(rng.nextParallelRNG(minHeight * maxHeight + getBlockData(data).size())));
     }
 
-    public BlockData get(RNG rng, double x, double y, double z, IrisDataManager data) {
+    public BlockData get(RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             return null;
         }
@@ -86,7 +86,7 @@ public class IrisBiomePaletteLayer {
         return getLayerGenerator(rng, data).fit(getBlockData(data), x / zoom, y / zoom, z / zoom);
     }
 
-    public CNG getLayerGenerator(RNG rng, IrisDataManager data) {
+    public CNG getLayerGenerator(RNG rng, IrisData data) {
         return layerGenerator.aquire(() ->
         {
             RNG rngx = rng.nextParallelRNG(minHeight + maxHeight + getBlockData(data).size());
@@ -100,7 +100,7 @@ public class IrisBiomePaletteLayer {
         return palette;
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager data) {
+    public KList<BlockData> getBlockData(IrisData data) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();

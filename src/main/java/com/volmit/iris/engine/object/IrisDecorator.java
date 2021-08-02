@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
@@ -98,7 +98,7 @@ public class IrisDecorator {
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     private final transient AtomicCache<KList<BlockData>> blockDataTops = new AtomicCache<>();
 
-    public int getHeight(RNG rng, double x, double z, IrisDataManager data) {
+    public int getHeight(RNG rng, double x, double z, IrisData data) {
         if (stackMin == stackMax) {
             return stackMin;
         }
@@ -106,16 +106,16 @@ public class IrisDecorator {
         return getHeightGenerator(rng, data).fit(stackMin, stackMax, x / heightVariance.getZoom(), z / heightVariance.getZoom()) + 1;
     }
 
-    public CNG getHeightGenerator(RNG rng, IrisDataManager data) {
+    public CNG getHeightGenerator(RNG rng, IrisData data) {
         return heightGenerator.aquire(() ->
                 heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin)));
     }
 
-    public CNG getGenerator(RNG rng, IrisDataManager data) {
+    public CNG getGenerator(RNG rng, IrisData data) {
         return layerGenerator.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size())));
     }
 
-    public CNG getVarianceGenerator(RNG rng, IrisDataManager data) {
+    public CNG getVarianceGenerator(RNG rng, IrisData data) {
         return varianceGenerator.aquire(() ->
                 variance.create(
                         rng.nextParallelRNG(getBlockData(data).size()))
@@ -128,7 +128,7 @@ public class IrisDecorator {
         return palette;
     }
 
-    public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisDataManager data) {
+    public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
@@ -148,7 +148,7 @@ public class IrisDecorator {
         return null;
     }
 
-    public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisDataManager data) {
+    public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
@@ -171,7 +171,7 @@ public class IrisDecorator {
         return getVarianceGenerator(rng, data).fit(getBlockData(data), z, y, x).clone(); //X and Z must be switched
     }
 
-    public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisDataManager data) {
+    public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockDataTops(data).isEmpty()) {
             return getBlockData100(b, rng, x, y, z, data);
         }
@@ -190,7 +190,7 @@ public class IrisDecorator {
         return null;
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager data) {
+    public KList<BlockData> getBlockData(IrisData data) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
@@ -207,7 +207,7 @@ public class IrisDecorator {
         });
     }
 
-    public KList<BlockData> getBlockDataTops(IrisDataManager data) {
+    public KList<BlockData> getBlockDataTops(IrisData data) {
         return blockDataTops.aquire(() ->
         {
             KList<BlockData> blockDataTops = new KList<>();

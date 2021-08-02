@@ -19,13 +19,13 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -61,7 +61,7 @@ public class IrisToolbelt {
             return null;
         }
 
-        return new IrisDataManager(pack).getDimensionLoader().load(dimension);
+        return new IrisData(pack).getDimensionLoader().load(dimension);
     }
 
     /**

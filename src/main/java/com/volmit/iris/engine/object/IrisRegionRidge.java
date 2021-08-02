@@ -33,7 +33,7 @@ import lombok.experimental.Accessors;
 @Desc("A ridge config")
 @Data
 public class IrisRegionRidge {
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Required
     @Desc("The biome name")
     private String biome = "";

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
@@ -57,7 +57,7 @@ public class IrisObjectReplace {
     private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
     private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
 
-    public KList<BlockData> getFind(IrisDataManager rdata) {
+    public KList<BlockData> getFind(IrisData rdata) {
         return findData.aquire(() ->
         {
             KList<BlockData> b = new KList<>();
@@ -74,7 +74,7 @@ public class IrisObjectReplace {
         });
     }
 
-    public BlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata) {
+    public BlockData getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
         return getReplace().get(seed, x, y, z, rdata);
     }
 }

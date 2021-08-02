@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.data;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 
 public interface DataProvider {
-    IrisDataManager getData();
+    IrisData getData();
 }

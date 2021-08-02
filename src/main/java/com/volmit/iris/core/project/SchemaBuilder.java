@@ -19,12 +19,12 @@
 package com.volmit.iris.core.project;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
@@ -46,9 +46,9 @@ public class SchemaBuilder {
     private final KMap<String, JSONObject> definitions;
     private final Class<?> root;
     private final KList<String> warnings;
-    private final IrisDataManager data;
+    private final IrisData data;
 
-    public SchemaBuilder(Class<?> root, IrisDataManager data) {
+    public SchemaBuilder(Class<?> root, IrisData data) {
         this.data = data;
         warnings = new KList<>();
         this.definitions = new KMap<>();
@@ -164,21 +164,35 @@ public class SchemaBuilder {
                     prop.put("maxLength", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum Length allowed is " + max);
                 }
-                // TODO Automate registry lists
-                if (k.isAnnotationPresent(RegistryListBiome.class)) {
-                    String key = "enum-reg-biome";
 
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getBiomeLoader().getPossibleKeys()));
-                        definitions.put(key, j);
+
+                if(k.isAnnotationPresent(RegistryListResource.class))
+                {
+                    RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
+                    ResourceLoader<?> loader = data.getLoaders().get(rr.value());
+
+                    if(loader != null)
+                    {
+                        String key = "erz" + loader.getFolderName();
+
+                        if (!definitions.containsKey(key)) {
+                            JSONObject j = new JSONObject();
+                            j.put("enum", new JSONArray(loader.getPossibleKeys()));
+                            definitions.put(key, j);
+                        }
+
+                        fancyType = "Iris " + loader.getResourceTypeName();
+                        prop.put("$ref", "#/definitions/" + key);
+                        description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getFolderName() + " (use ctrl+space for auto complete!)");
                     }
 
-                    fancyType = "Iris Biome";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Biome (use ctrl+space for auto complete!)");
+                    else
+                    {
+                        Iris.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
+                    }
+                }
 
-                } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
+                else if (k.isAnnotationPresent(RegistryListMythical.class)) {
                     String key = "enum-reg-mythical";
 
                     if (!definitions.containsKey(key)) {
@@ -190,18 +204,6 @@ public class SchemaBuilder {
                     fancyType = "Mythic Mob Type";
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
-                } else if (k.isAnnotationPresent(RegistryListSpawner.class)) {
-                    String key = "enum-reg-spawner";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getSpawnerLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Spawner";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Spawner (use ctrl+space for auto complete!)");
                 } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                     String key = "enum-block-type";
 
@@ -238,19 +240,6 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Item Type (use ctrl+space for auto complete!)");
 
-                } else if (k.isAnnotationPresent(RegistryListEntity.class)) {
-                    String key = "enum-reg-entity";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getEntityLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Entity";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Iris Entity (use ctrl+space for auto complete!)");
-
                 } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                     String key = "enum-font";
 
@@ -264,106 +253,6 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
 
-                } else if (k.isAnnotationPresent(RegistryListLoot.class)) {
-                    String key = "enum-reg-loot-table";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getLootLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Loot Table";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Loot Table (use ctrl+space for auto complete!)");
-                } else if (k.isAnnotationPresent(RegistryListDimension.class)) {
-                    String key = "enum-reg-dimension";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getDimensionLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Dimension";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Dimension (use ctrl+space for auto complete!)");
-
-                } else if (k.isAnnotationPresent(RegistryListGenerator.class)) {
-                    String key = "enum-reg-generator";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getGeneratorLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Generator";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Generator (use ctrl+space for auto complete!)");
-
-                } else if (k.isAnnotationPresent(RegistryListObject.class)) {
-                    String key = "enum-reg-object";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getObjectLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Object";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Object (use ctrl+space for auto complete!)");
-
-                } else if (k.isAnnotationPresent(RegistryListRegion.class)) {
-                    String key = "enum-reg-region";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getRegionLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Region";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Region (use ctrl+space for auto complete!)");
-
-                } else if (k.isAnnotationPresent(RegistryListJigsawPiece.class)) {
-                    String key = "enum-reg-structure-piece";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getJigsawPieceLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Jigsaw Piece";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
-                } else if (k.isAnnotationPresent(RegistryListJigsaw.class)) {
-                    String key = "enum-reg-jigsaw";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getJigsawStructureLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Jigsaw";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw (use ctrl+space for auto complete!)");
-                } else if (k.isAnnotationPresent(RegistryListJigsawPool.class)) {
-                    String key = "enum-reg-structure-pool";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(data.getJigsawPoolLoader().getPossibleKeys()));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Iris Jigsaw Pool";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
                 } else if (k.getType().equals(Enchantment.class)) {
                     String key = "enum-enchantment";
 
@@ -464,35 +353,35 @@ public class SchemaBuilder {
                         }
                         case "string" -> {
                             fancyType = "List of Text";
-                            if (k.isAnnotationPresent(RegistryListBiome.class)) {
-                                fancyType = "List of Iris Biomes";
-                                String key = "enum-reg-biome";
 
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getBiomeLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
+                            if(k.isAnnotationPresent(RegistryListResource.class))
+                            {
+                                RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
+                                ResourceLoader<?> loader = data.getLoaders().get(rr.value());
+
+                                if(loader != null)
+                                {
+                                    fancyType = "List<" + loader.getResourceTypeName() + ">";
+                                    String key = "erz" + loader.getFolderName();
+
+                                    if (!definitions.containsKey(key)) {
+                                        JSONObject j = new JSONObject();
+                                        j.put("enum", new JSONArray(loader.getPossibleKeys()));
+                                        definitions.put(key, j);
+                                    }
+
+                                    JSONObject items = new JSONObject();
+                                    items.put("$ref", "#/definitions/" + key);
+                                    prop.put("items", items);
+                                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getResourceTypeName() + " (use ctrl+space for auto complete!)");
                                 }
 
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Biome (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListSpawner.class)) {
-                                fancyType = "List of Iris Spawners";
-                                String key = "enum-reg-spawner";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getSpawnerLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
+                                else
+                                {
+                                    Iris.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Spawner (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListMythical.class)) {
+                            }
+                            else if (k.isAnnotationPresent(RegistryListMythical.class)) {
                                 fancyType = "List of Mythic Mob Types";
                                 String key = "enum-reg-mythical";
 
@@ -550,20 +439,6 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Item Type (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListEntity.class)) {
-                                fancyType = "List of Iris Entities";
-                                String key = "enum-reg-entity";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getEntityLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Iris Entity (use ctrl+space for auto complete!)");
                             } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                                 String key = "enum-font";
                                 fancyType = "List of Font Families";
@@ -578,118 +453,6 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListLoot.class)) {
-                                fancyType = "List of Iris Loot Tables";
-                                String key = "enum-reg-loot-table";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getLootLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Loot Table (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListDimension.class)) {
-                                fancyType = "List of Iris Dimensions";
-                                String key = "enum-reg-dimension";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getDimensionLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Dimension (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListGenerator.class)) {
-                                fancyType = "List of Iris Generators";
-                                String key = "enum-reg-generator";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getGeneratorLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Generator (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListObject.class)) {
-                                fancyType = "List of Iris Objects";
-                                String key = "enum-reg-object";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getObjectLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Object (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListRegion.class)) {
-                                fancyType = "List of Iris Regions";
-                                String key = "enum-reg-region";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getRegionLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Region (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListJigsawPiece.class)) {
-                                fancyType = "List of Iris Jigsaw Pieces";
-                                String key = "enum-reg-structure-piece";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getJigsawPieceLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Piece (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListJigsawPool.class)) {
-                                fancyType = "List of Iris Jigsaw Pools";
-                                String key = "enum-reg-structure-pool";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getJigsawPoolLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw Pool (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListJigsaw.class)) {
-                                fancyType = "List of Iris Jigsaw Structures";
-                                String key = "enum-reg-jigsaw";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(data.getJigsawStructureLoader().getPossibleKeys()));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid Jigsaw (use ctrl+space for auto complete!)");
                             } else if (t.type().equals(Enchantment.class)) {
                                 fancyType = "List of Enchantment Types";
                                 String key = "enum-enchantment";

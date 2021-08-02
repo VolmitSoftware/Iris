@@ -18,11 +18,11 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListLoot;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -46,7 +46,7 @@ public class IrisObjectLoot {
 
     @Desc("The loot table name")
     @Required
-    @RegistryListLoot
+    @RegistryListResource(IrisLootTable.class)
     private String name;
 
     @Desc("The weight of this loot table being chosen")
@@ -54,7 +54,7 @@ public class IrisObjectLoot {
 
     private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();
 
-    public KList<BlockData> getFilter(IrisDataManager rdata) {
+    public KList<BlockData> getFilter(IrisData rdata) {
         return filterCache.aquire(() ->
         {
             KList<BlockData> b = new KList<>();
@@ -71,7 +71,7 @@ public class IrisObjectLoot {
         });
     }
 
-    public boolean matchesFilter(IrisDataManager manager, BlockData data) {
+    public boolean matchesFilter(IrisData manager, BlockData data) {
         for (BlockData filterData : getFilter(manager)) {
             if (filterData.matches(data)) return true;
         }

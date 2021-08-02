@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.components.Renderer;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
@@ -31,7 +31,7 @@ public interface GeneratorAccess extends DataProvider, Renderer {
 
     ParallaxAccess getParallaxAccess();
 
-    IrisDataManager getData();
+    IrisData getData();
 
     IrisBiome getCaveBiome(int x, int z);
 

@@ -19,7 +19,7 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -49,7 +49,7 @@ public class CommandIrisStudioGoto extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
         if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
             } else if (args.length == 0) {
@@ -80,8 +80,8 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 }
 
                 IrisAccess g = IrisWorlds.access(world);
-                IrisBiome b = IrisDataManager.loadAnyBiome(args[0]);
-                IrisRegion r = IrisDataManager.loadAnyRegion(args[0]);
+                IrisBiome b = IrisData.loadAnyBiome(args[0]);
+                IrisRegion r = IrisData.loadAnyRegion(args[0]);
 
                 if (b != null) {
                     J.a(() -> {

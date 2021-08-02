@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.headless;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -83,6 +83,6 @@ public class HeadlessWorld {
     }
 
     public static HeadlessWorld from(String name, String dimension, long seed) {
-        return new HeadlessWorld(name, IrisDataManager.loadAnyDimension(dimension), seed);
+        return new HeadlessWorld(name, IrisData.loadAnyDimension(dimension), seed);
     }
 }

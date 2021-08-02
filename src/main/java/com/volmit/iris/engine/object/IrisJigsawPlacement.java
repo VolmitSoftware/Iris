@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListJigsaw;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,7 +33,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a jigsaw placement")
 @Data
 public class IrisJigsawPlacement {
-    @RegistryListJigsaw
+    @RegistryListResource(IrisJigsawStructure.class)
     @Required
     @Desc("The jigsaw structure to use")
     private String structure = "";

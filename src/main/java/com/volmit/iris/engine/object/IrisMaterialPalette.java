@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -55,7 +55,7 @@ public class IrisMaterialPalette {
     private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
-    public BlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata) {
+    public BlockData get(RNG rng, double x, double y, double z, IrisData rdata) {
         if (getBlockData(rdata).isEmpty()) {
             return null;
         }
@@ -67,7 +67,7 @@ public class IrisMaterialPalette {
         return getLayerGenerator(rng, rdata).fit(getBlockData(rdata), x / zoom, y / zoom, z / zoom);
     }
 
-    public CNG getLayerGenerator(RNG rng, IrisDataManager rdata) {
+    public CNG getLayerGenerator(RNG rng, IrisData rdata) {
         return layerGenerator.aquire(() ->
         {
             RNG rngx = rng.nextParallelRNG(-23498896 + getBlockData(rdata).size());
@@ -92,7 +92,7 @@ public class IrisMaterialPalette {
         return this;
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager rdata) {
+    public KList<BlockData> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();

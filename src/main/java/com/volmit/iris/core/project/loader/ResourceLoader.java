@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.data.loader;
+package com.volmit.iris.core.project.loader;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.project.SchemaBuilder;
 import com.volmit.iris.engine.object.IrisRegistrant;
 import com.volmit.iris.util.collection.KList;
@@ -56,11 +55,11 @@ public class ResourceLoader<T extends IrisRegistrant> {
     protected String cname;
     protected IrisLock lock;
     protected String[] possibleKeys = null;
-    protected IrisDataManager manager;
+    protected IrisData manager;
     protected AtomicInteger loads;
     protected ChronoLatch sec;
 
-    public ResourceLoader(File root, IrisDataManager manager, String folderName, String resourceTypeName, Class<? extends T> objectClass) {
+    public ResourceLoader(File root, IrisData manager, String folderName, String resourceTypeName, Class<? extends T> objectClass) {
         lock = new IrisLock("Res");
         this.manager = manager;
         sec = new ChronoLatch(5000);

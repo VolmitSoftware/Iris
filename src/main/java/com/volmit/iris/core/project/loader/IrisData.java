@@ -16,11 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.loader.ObjectResourceLoader;
-import com.volmit.iris.engine.data.loader.ResourceLoader;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
@@ -31,7 +29,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 @Data
-public class IrisDataManager {
+public class IrisData {
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -51,11 +49,11 @@ public class IrisDataManager {
     private final File dataFolder;
     private final int id;
 
-    public IrisDataManager(File dataFolder) {
+    public IrisData(File dataFolder) {
         this(dataFolder, false);
     }
 
-    public IrisDataManager(File dataFolder, boolean oneshot) {
+    public IrisData(File dataFolder, boolean oneshot) {
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
         closed = false;
@@ -72,8 +70,8 @@ public class IrisDataManager {
         Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().size() + " Folders=" + rl.getFolders().size());
     }
 
-    public IrisDataManager copy() {
-        return new IrisDataManager(dataFolder);
+    public IrisData copy() {
+        return new IrisData(dataFolder);
     }
 
     private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant)
@@ -207,11 +205,11 @@ public class IrisDataManager {
         return loadAny(key, (dm) -> dm.getGeneratorLoader().load(key, false));
     }
 
-    public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisDataManager, T> v) {
+    public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisData, T> v) {
         try {
             for (File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles())) {
                 if (i.isDirectory()) {
-                    IrisDataManager dm = new IrisDataManager(i, true);
+                    IrisData dm = new IrisData(i, true);
                     T t = v.apply(dm);
 
                     if (t != null) {

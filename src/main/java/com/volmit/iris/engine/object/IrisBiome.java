@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
@@ -66,7 +66,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     @Desc("Spawn Entities in this area over time. Iris will continually replenish these mobs just like vanilla does.")
     @ArrayType(min = 1, type = String.class)
-    @RegistryListSpawner
+    @RegistryListResource(IrisSpawner.class)
     private KList<String> entitySpawners = new KList<>();
 
     @Desc("Add random chances for terrain features")
@@ -132,7 +132,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
     private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
     private KList<String> children = new KList<>();
@@ -141,7 +141,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Jigsaw structures")
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
     private String carvingBiome = "";
 
@@ -249,7 +249,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }).get(loadKey);
     }
 
-    public IrisBiome getRealCarvingBiome(IrisDataManager data) {
+    public IrisBiome getRealCarvingBiome(IrisData data) {
         return realCarveBiome.aquire(() ->
         {
             IrisBiome biome = data.getBiomeLoader().load(getCarvingBiome());
@@ -311,7 +311,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
     }
 
-    public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata, IrisComplex complex) {
+    public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         if (isLockLayers()) {
             return generateLockedLayers(wx, wz, random, maxDepth, height, rdata, complex);
         }
@@ -359,7 +359,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return data;
     }
 
-    public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata, IrisComplex complex) {
+    public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
         KList<BlockData> data = new KList<>();
         KList<BlockData> real = new KList<>();
         int maxDepth = Math.min(maxDepthf, getLockLayersMax());
@@ -419,7 +419,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public int getMaxWithObjectHeight(IrisDataManager data) {
+    public int getMaxWithObjectHeight(IrisData data) {
         return maxWithObjectHeight.aquire(() ->
         {
             int maxHeight = 0;
@@ -445,7 +445,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return this;
     }
 
-    public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisDataManager rdata) {
+    public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
         KList<BlockData> data = new KList<>();
 
         for (int i = 0; i < seaLayers.size(); i++) {
@@ -477,7 +477,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return data;
     }
 
-    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisDataManager rdata) {
+    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisData rdata) {
         return layerHeightGenerators.aquire(() ->
         {
             KList<CNG> layerHeightGenerators = new KList<>();
@@ -492,7 +492,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisDataManager data) {
+    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisData data) {
         return layerSeaHeightGenerators.aquire(() ->
         {
             KList<CNG> layerSeaHeightGenerators = new KList<>();
@@ -609,7 +609,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return getBiomeGenerator(rng).fit(biomeScatter, x, y, z);
     }
 
-    public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisDataManager idm) {
+    public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
         if (getLayers().isEmpty()) {
             return B.get("AIR");
         }

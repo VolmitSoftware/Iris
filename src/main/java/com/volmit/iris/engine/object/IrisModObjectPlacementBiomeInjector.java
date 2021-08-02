@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListBiome;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -36,7 +36,7 @@ import lombok.experimental.Accessors;
 public class IrisModObjectPlacementBiomeInjector {
     @Required
     @Desc("The biome to find")
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     private String biome = "";
 
     @Required

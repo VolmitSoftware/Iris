@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListRegion;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -36,12 +36,12 @@ import lombok.experimental.Accessors;
 public class IrisModRegionReplacer {
     @Required
     @Desc("A list of regions to find")
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> find = new KList<>();
 
     @Required
     @Desc("A region to replace it with")
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     private String replace = "";
 }

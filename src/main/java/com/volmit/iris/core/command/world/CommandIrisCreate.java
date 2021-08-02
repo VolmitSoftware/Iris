@@ -19,10 +19,10 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -184,7 +184,7 @@ public class CommandIrisCreate extends MortarCommand {
         };
 
         if (multiverse) {
-            dim = IrisDataManager.loadAnyDimension(type);
+            dim = IrisData.loadAnyDimension(type);
 
             if (dim == null) {
                 sender.sendMessage("Cant find dimension type: " + type + ". Did you forget to /ir download " + type + "?");

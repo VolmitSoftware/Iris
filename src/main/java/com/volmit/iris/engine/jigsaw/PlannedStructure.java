@@ -20,7 +20,7 @@ package com.volmit.iris.engine.jigsaw;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -41,7 +41,7 @@ public class PlannedStructure {
     private KList<PlannedPiece> pieces;
     private IrisJigsawStructure structure;
     private IrisPosition position;
-    private IrisDataManager data;
+    private IrisData data;
     private RNG rng;
     private boolean verbose;
     private boolean terminating;

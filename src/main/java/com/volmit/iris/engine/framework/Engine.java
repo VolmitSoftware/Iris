@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
@@ -117,7 +117,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getHeight();
     }
 
-    default IrisDataManager getData() {
+    default IrisData getData() {
         return getTarget().getData();
     }
 

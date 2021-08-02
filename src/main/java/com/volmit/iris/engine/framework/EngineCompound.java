@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
@@ -105,9 +105,9 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
         }
     }
 
-    IrisDataManager getData(int height);
+    IrisData getData(int height);
 
-    default IrisDataManager getData() {
+    default IrisData getData() {
         return getData(0);
     }
 

@@ -19,9 +19,9 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -40,7 +40,7 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
         if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
             } else if (args.length == 0) {
@@ -75,7 +75,7 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
             generator = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
             seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().seed();
         } else {
-            generator = IrisDataManager.loadAnyGenerator(args[0]);
+            generator = IrisData.loadAnyGenerator(args[0]);
         }
 
         if (generator != null) {

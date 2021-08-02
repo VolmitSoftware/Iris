@@ -22,7 +22,7 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListEntity;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -40,7 +40,7 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 @Desc("Represents an entity spawn")
 @Data
 public class IrisEntitySpawnOverride {
-    @RegistryListEntity
+    @RegistryListResource(IrisEntity.class)
     @Required
     @Desc("The entity")
     private String entity = "";

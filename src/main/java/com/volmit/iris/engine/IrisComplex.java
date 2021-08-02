@@ -20,7 +20,7 @@ package com.volmit.iris.engine;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.framework.Engine;
@@ -48,7 +48,7 @@ public class IrisComplex implements DataProvider {
     public static AtomicBoolean cacheLock = new AtomicBoolean(false);
     private RNG rng;
     private double fluidHeight;
-    private IrisDataManager data;
+    private IrisData data;
     private KList<IrisGenerator> generators;
     private static final BlockData AIR = Material.AIR.createBlockData();
     private ProceduralStream<IrisRegion> regionStream;

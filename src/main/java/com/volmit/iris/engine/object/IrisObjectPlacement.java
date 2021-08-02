@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
@@ -46,7 +46,7 @@ import org.bukkit.block.data.BlockData;
 @Desc("Represents an iris object placer. It places objects.")
 @Data
 public class IrisObjectPlacement {
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("List of objects to place")
@@ -231,7 +231,7 @@ public class IrisObjectPlacement {
         final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
     }
 
-    private TableCache getCache(IrisDataManager manager) {
+    private TableCache getCache(IrisData manager) {
         return cache.aquire(() -> {
             TableCache tc = new TableCache();
 
@@ -280,7 +280,7 @@ public class IrisObjectPlacement {
      * @param dataManager Iris Data Manager
      * @return The loot table it should use.
      */
-    public IrisLootTable getTable(BlockData data, IrisDataManager dataManager) {
+    public IrisLootTable getTable(BlockData data, IrisData dataManager) {
         TableCache cache = getCache(dataManager);
 
         if (B.isStorageChest(data)) {

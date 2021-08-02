@@ -27,6 +27,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -178,7 +179,7 @@ public class Iris extends VolmitPlugin implements Listener {
             for (File i : packs.listFiles()) {
                 if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisDataManager data = new IrisDataManager(i);
+                    IrisData data = new IrisData(i);
                     File dims = new File(i, "dimensions");
 
                     if (dims.exists()) {
@@ -301,7 +302,7 @@ public class Iris extends VolmitPlugin implements Listener {
             for (File i : packs.listFiles()) {
                 if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisDataManager data = new IrisDataManager(i);
+                    IrisData data = new IrisData(i);
                     File dims = new File(i, "dimensions");
 
                     if (dims.exists()) {
@@ -338,7 +339,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean verifyDataPackInstalled(IrisDimension dimension) {
-        IrisDataManager idm = new IrisDataManager(getDataFolder("packs", dimension.getLoadKey()));
+        IrisData idm = new IrisData(getDataFolder("packs", dimension.getLoadKey()));
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 

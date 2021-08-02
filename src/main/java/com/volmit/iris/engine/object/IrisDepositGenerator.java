@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -85,7 +85,7 @@ public class IrisDepositGenerator {
     private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
-    public IrisObject getClump(RNG rng, IrisDataManager rdata) {
+    public IrisObject getClump(RNG rng, IrisData rdata) {
         KList<IrisObject> objects = this.objects.aquire(() ->
         {
             RNG rngv = rng.nextParallelRNG(3957778);
@@ -104,7 +104,7 @@ public class IrisDepositGenerator {
         return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
     }
 
-    private IrisObject generateClumpObject(RNG rngv, IrisDataManager rdata) {
+    private IrisObject generateClumpObject(RNG rngv, IrisData rdata) {
         int s = rngv.i(minSize, maxSize);
         int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
         int w = dim / 2;
@@ -124,11 +124,11 @@ public class IrisDepositGenerator {
         return o;
     }
 
-    private BlockData nextBlock(RNG rngv, IrisDataManager rdata) {
+    private BlockData nextBlock(RNG rngv, IrisData rdata) {
         return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager rdata) {
+    public KList<BlockData> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();

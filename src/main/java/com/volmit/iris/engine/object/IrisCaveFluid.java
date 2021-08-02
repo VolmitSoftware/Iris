@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -52,11 +52,11 @@ public class IrisCaveFluid {
 
     private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 
-    public boolean hasFluid(IrisDataManager rdata) {
+    public boolean hasFluid(IrisData rdata) {
         return !B.isAir(getFluid(rdata));
     }
 
-    public BlockData getFluid(IrisDataManager rdata) {
+    public BlockData getFluid(IrisData rdata) {
         return fluidData.aquire(() ->
         {
             BlockData b = getFluidType().getBlockData(rdata);

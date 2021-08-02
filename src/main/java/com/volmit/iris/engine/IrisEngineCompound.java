@@ -19,8 +19,8 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineCompound;
 import com.volmit.iris.engine.framework.EngineData;
@@ -80,7 +80,7 @@ public class IrisEngineCompound implements EngineCompound {
     @Setter
     private boolean studio;
 
-    public IrisEngineCompound(IrisWorld world, IrisDimension rootDimension, IrisDataManager data, int maximumThreads) {
+    public IrisEngineCompound(IrisWorld world, IrisDimension rootDimension, IrisData data, int maximumThreads) {
         wallClock = new AtomicRollingSequence(32);
         this.rootDimension = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.name());
@@ -264,7 +264,7 @@ public class IrisEngineCompound implements EngineCompound {
 
     @BlockCoordinates
     @Override
-    public IrisDataManager getData(int height) {
+    public IrisData getData(int height) {
         return getEngineForHeight(height).getData();
     }
 

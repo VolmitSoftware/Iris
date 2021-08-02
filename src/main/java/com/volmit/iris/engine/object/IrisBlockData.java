@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.object.annotations.*;
@@ -89,7 +89,7 @@ public class IrisBlockData extends IrisRegistrant {
         return computeProperties(getData());
     }
 
-    public BlockData getBlockData(IrisDataManager data) {
+    public BlockData getBlockData(IrisData data) {
         return blockdata.aquire(() ->
         {
             BlockData b = null;

@@ -20,13 +20,13 @@ package com.volmit.iris.core.project;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
 import com.volmit.iris.core.tools.IrisWorldCreator;
-import com.volmit.iris.engine.data.loader.ResourceLoader;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
@@ -72,7 +72,7 @@ public class IrisProject {
 
     public KList<Report> scanForErrors() {
         KList<Report> reports = new KList<>();
-        IrisDataManager data = new IrisDataManager(path);
+        IrisData data = new IrisData(path);
         Gson g = new Gson();
         MultiBurst.burst.burst(collectFiles("json").convert((i) -> () -> {
             try {
@@ -245,7 +245,7 @@ public class IrisProject {
             return;
         }
 
-        IrisDimension d = IrisDataManager.loadAnyDimension(getName());
+        IrisDimension d = IrisData.loadAnyDimension(getName());
         if (d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
             return;
@@ -440,7 +440,7 @@ public class IrisProject {
         settings.put("[json]", jc);
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
-        IrisDataManager dm = new IrisDataManager(getPath());
+        IrisData dm = new IrisData(getPath());
 
         for(ResourceLoader<?> r : dm.getLoaders().v())
         {
@@ -458,7 +458,7 @@ public class IrisProject {
 
     public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {
         String dimm = getName();
-        IrisDataManager dm = new IrisDataManager(path);
+        IrisData dm = new IrisData(path);
         IrisDimension dimension = dm.getDimensionLoader().load(dimm);
         File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
         folder.mkdirs();

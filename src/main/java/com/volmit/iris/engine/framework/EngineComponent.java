@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
@@ -52,7 +52,7 @@ public interface EngineComponent {
         return getEngine().modifyZ(z);
     }
 
-    default IrisDataManager getData() {
+    default IrisData getData() {
         return getEngine().getData();
     }
 

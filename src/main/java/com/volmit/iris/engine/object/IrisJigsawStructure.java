@@ -37,7 +37,7 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawStructure extends IrisRegistrant {
-    @RegistryListJigsawPiece
+    @RegistryListResource(IrisJigsawPiece.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("The starting pieces. Randomly chooses a starting piece, then connects pieces using the pools define in the starting piece.")

@@ -46,7 +46,7 @@ public class IrisCavernZone implements IRare {
     @MaxNumber(100)
     private int rarity = 1;
 
-    private AtomicCache<ProceduralStream<Boolean>> carveCache = new AtomicCache<>();
+    private transient AtomicCache<ProceduralStream<Boolean>> carveCache = new AtomicCache<>();
 
     public boolean isCarved(RNG rng, double xx, double yy, double zz) {
         if (carver != null) {

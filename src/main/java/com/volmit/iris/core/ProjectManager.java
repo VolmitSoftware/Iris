@@ -21,6 +21,7 @@ package com.volmit.iris.core;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KMap;

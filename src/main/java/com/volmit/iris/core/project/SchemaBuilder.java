@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.project;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;

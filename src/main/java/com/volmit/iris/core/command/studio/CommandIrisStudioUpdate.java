@@ -19,7 +19,7 @@
 package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisProject;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;

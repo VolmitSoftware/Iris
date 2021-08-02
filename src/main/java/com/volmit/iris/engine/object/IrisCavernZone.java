@@ -44,6 +44,7 @@ public class IrisCavernZone implements IRare {
 
     @MinNumber(1)
     @MaxNumber(100)
+    @Desc("The rarity of this zone")
     private int rarity = 1;
 
     private transient AtomicCache<ProceduralStream<Boolean>> carveCache = new AtomicCache<>();

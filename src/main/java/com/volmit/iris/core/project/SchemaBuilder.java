@@ -593,7 +593,7 @@ public class SchemaBuilder {
             return r.getDeclaredAnnotation(Desc.class).value();
         }
 
-        warnings.addIfMissing("Missing @Desc on field " + r.getName() + " (" + r.getType() + ")");
+        warnings.addIfMissing("Missing @Desc on field " + r.getName() + " (" + r.getType() + ") in " + r.getDeclaringClass().getCanonicalName());
         return "No Field Description";
     }
 
@@ -603,7 +603,7 @@ public class SchemaBuilder {
         }
 
         if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {
-            warnings.addIfMissing("Missing @Desc on " + r.getSimpleName());
+            warnings.addIfMissing("Missing @Desc on " + r.getSimpleName() + " in " + r.getDeclaringClass().getCanonicalName());
         }
         return "";
     }

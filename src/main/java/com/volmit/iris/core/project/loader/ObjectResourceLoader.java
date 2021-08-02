@@ -142,7 +142,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             return possibleKeys;
         }
 
-        Iris.info("Building " + resourceTypeName + " Possibility Lists");
+        Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
 
         for (File i : getFolders()) {

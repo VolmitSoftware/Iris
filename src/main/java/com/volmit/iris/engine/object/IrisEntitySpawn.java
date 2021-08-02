@@ -38,7 +38,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Chunk;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 @Accessors(chain = true)

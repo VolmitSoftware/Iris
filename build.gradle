@@ -79,6 +79,8 @@ shadowJar
         include(dependency('org.zeroturnaround:zt-zip:1.14'))
         include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
         include(dependency('io.papermc:paperlib:1.0.5'))
+        include(dependency('com.dfsek:Paralithic:0.4.0'))
+        include(dependency('org.ow2.asm:asm:9.0'))
     }
 }
 
@@ -87,6 +89,7 @@ manifest()
 dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    implementation 'com.dfsek:Paralithic:0.4.0'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'io.papermc:paperlib:1.0.5'
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
@@ -100,4 +103,5 @@ dependencies {
     implementation 'io.lumine.xikage:MythicMobs:4.9.1'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'me.clip:placeholderapi:2.10.10'
+    implementation 'org.ow2.asm:asm:9.0'
 }

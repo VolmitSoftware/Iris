@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.loader.ObjectResourceLoader;
 import com.volmit.iris.engine.data.loader.ResourceLoader;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
@@ -43,7 +44,9 @@ public class IrisDataManager {
     private ResourceLoader<IrisSpawner> spawnerLoader;
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
-    private ObjectResourceLoader objectLoader;
+    private ResourceLoader<IrisExpression> expressionLoader;
+    private ResourceLoader<IrisObject> objectLoader;
+    private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
     private final int id;
@@ -62,19 +65,7 @@ public class IrisDataManager {
     public void close() {
         closed = true;
         dump();
-        this.lootLoader = null;
-        this.entityLoader = null;
-        this.regionLoader = null;
-        this.biomeLoader = null;
-        this.modLoader = null;
-        this.dimensionLoader = null;
-        this.spawnerLoader = null;
-        this.jigsawPoolLoader = null;
-        this.jigsawPieceLoader = null;
-        this.generatorLoader = null;
-        this.jigsawStructureLoader = null;
-        this.blockLoader = null;
-        this.objectLoader = null;
+        loaders.clear();
     }
 
     private static void printData(ResourceLoader<?> rl) {
@@ -85,45 +76,68 @@ public class IrisDataManager {
         return new IrisDataManager(dataFolder);
     }
 
-    public void hotloaded() {
+    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant)
+    {
+        try
+        {
+            IrisRegistrant rr = registrant.getConstructor().newInstance();
+            ResourceLoader<T> r = null;
+            if(registrant.equals(IrisObject.class))
+            {
+                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            }
+
+            else
+            {
+                r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
+            }
+
+            loaders.put(registrant, r);
+
+            return r;
+        }
+
+        catch(Throwable e)
+        {
+
+        }
+
+        return null;
+    }
+
+    public synchronized void hotloaded() {
         if (closed) {
             return;
         }
 
+        loaders.clear();
         File packs = dataFolder;
         packs.mkdirs();
-        this.lootLoader = new ResourceLoader<>(packs, this, "loot", "Loot", IrisLootTable.class);
-        this.spawnerLoader = new ResourceLoader<>(packs, this, "spawners", "Spawner", IrisSpawner.class);
-        this.entityLoader = new ResourceLoader<>(packs, this, "entities", "Entity", IrisEntity.class);
-        this.regionLoader = new ResourceLoader<>(packs, this, "regions", "Region", IrisRegion.class);
-        this.biomeLoader = new ResourceLoader<>(packs, this, "biomes", "Biome", IrisBiome.class);
-        this.modLoader = new ResourceLoader<>(packs, this, "mods", "Mod", IrisMod.class);
-        this.dimensionLoader = new ResourceLoader<>(packs, this, "dimensions", "Dimension", IrisDimension.class);
-        this.jigsawPoolLoader = new ResourceLoader<>(packs, this, "jigsaw-pools", "Jigsaw Pool", IrisJigsawPool.class);
-        this.jigsawStructureLoader = new ResourceLoader<>(packs, this, "jigsaw-structures", "Jigsaw Structure", IrisJigsawStructure.class);
-        this.jigsawPieceLoader = new ResourceLoader<>(packs, this, "jigsaw-pieces", "Jigsaw Piece", IrisJigsawPiece.class);
-        this.generatorLoader = new ResourceLoader<>(packs, this, "generators", "Generator", IrisGenerator.class);
-        this.blockLoader = new ResourceLoader<>(packs, this, "blocks", "Block", IrisBlockData.class);
-        this.objectLoader = new ObjectResourceLoader(packs, this, "objects", "Object");
+        this.lootLoader = registerLoader(IrisLootTable.class);
+        this.spawnerLoader = registerLoader(IrisSpawner.class);
+        this.entityLoader = registerLoader(IrisEntity.class);
+        this.regionLoader = registerLoader(IrisRegion.class);
+        this.biomeLoader = registerLoader(IrisBiome.class);
+        this.modLoader = registerLoader(IrisMod.class);
+        this.dimensionLoader = registerLoader(IrisDimension.class);
+        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class);
+        this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
+        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
+        this.generatorLoader = registerLoader(IrisGenerator.class);
+        this.blockLoader = registerLoader(IrisBlockData.class);
+        this.expressionLoader = registerLoader(IrisExpression.class);
+        this.objectLoader = registerLoader(IrisObject.class);
     }
 
     public void dump() {
         if (closed) {
             return;
         }
-        biomeLoader.clearCache();
-        blockLoader.clearCache();
-        lootLoader.clearCache();
-        objectLoader.clearCache();
-        spawnerLoader.clearCache();
-        jigsawPieceLoader.clearCache();
-        jigsawPoolLoader.clearCache();
-        modLoader.clearCache();
-        jigsawStructureLoader.clearCache();
-        regionLoader.clearCache();
-        dimensionLoader.clearCache();
-        entityLoader.clearCache();
-        generatorLoader.clearCache();
+
+        for(ResourceLoader<?> i : loaders.values())
+        {
+            i.clearCache();
+        }
     }
 
     public void clearLists() {
@@ -131,19 +145,10 @@ public class IrisDataManager {
             return;
         }
 
-        lootLoader.clearList();
-        blockLoader.clearList();
-        entityLoader.clearList();
-        biomeLoader.clearList();
-        modLoader.clearList();
-        spawnerLoader.clearList();
-        regionLoader.clearList();
-        dimensionLoader.clearList();
-        generatorLoader.clearList();
-        jigsawStructureLoader.clearList();
-        jigsawPoolLoader.clearList();
-        jigsawPieceLoader.clearList();
-        objectLoader.clearList();
+        for(ResourceLoader<?> i : loaders.values())
+        {
+            i.clearList();
+        }
     }
 
     public static IrisObject loadAnyObject(String key) {
@@ -152,6 +157,10 @@ public class IrisDataManager {
 
     public static IrisBiome loadAnyBiome(String key) {
         return loadAny(key, (dm) -> dm.getBiomeLoader().load(key, false));
+    }
+
+    public static IrisExpression loadAnyExpression(String key) {
+        return loadAny(key, (dm) -> dm.getExpressionLoader().load(key, false));
     }
 
     public static IrisMod loadAnyMod(String key) {

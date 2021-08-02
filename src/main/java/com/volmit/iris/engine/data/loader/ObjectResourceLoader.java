@@ -46,6 +46,10 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         unload = new AtomicInteger(0);
     }
 
+    public boolean supportsSchemas() {
+        return false;
+    }
+
     public int getSize() {
         return loadCache.size();
     }

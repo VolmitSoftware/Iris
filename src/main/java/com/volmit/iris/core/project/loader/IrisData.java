@@ -97,7 +97,8 @@ public class IrisData {
 
         catch(Throwable e)
         {
-
+            e.printStackTrace();
+            Iris.error("Failed to create loader! " + registrant.getCanonicalName());
         }
 
         return null;

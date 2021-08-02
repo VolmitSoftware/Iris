@@ -74,6 +74,21 @@ public class IrisObject extends IrisRegistrant {
     private transient IrisLock lock = new IrisLock("Preloadcache");
     private transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
 
+
+
+    public IrisObject(int w, int h, int d) {
+        blocks = new KMap<>();
+        states = new KMap<>();
+        this.w = w;
+        this.h = h;
+        this.d = d;
+        center = new BlockVector(w / 2, h / 2, d / 2);
+    }
+
+    public IrisObject() {
+        this(0,0,0);
+    }
+
     public AxisAlignedBB getAABB() {
         return aabb.aquire(() -> getAABBFor(new BlockVector(w, h, d)));
     }
@@ -212,15 +227,6 @@ public class IrisObject extends IrisRegistrant {
         }
 
         return o;
-    }
-
-    public IrisObject(int w, int h, int d) {
-        blocks = new KMap<>();
-        states = new KMap<>();
-        this.w = w;
-        this.h = h;
-        this.d = d;
-        center = new BlockVector(w / 2, h / 2, d / 2);
     }
 
     @SuppressWarnings({"resource", "RedundantSuppression"})

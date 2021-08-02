@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.hunk;
 
+import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
 import com.volmit.iris.engine.hunk.storage.*;
 import com.volmit.iris.engine.hunk.view.*;
@@ -42,6 +43,7 @@ import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @SuppressWarnings("ALL")
@@ -56,6 +58,21 @@ public interface Hunk<T> {
      */
     static <T> Hunk<T> view(Hunk<T> src) {
         return new HunkView<T>(src);
+    }
+
+    static <A,B> Hunk<B> convertedReadView(Hunk<A> src, Function<A, B> reader)
+    {
+        return new FunctionalHunkView<A, B>(src, reader, null);
+    }
+
+    static <A,B> Hunk<B> convertedWriteView(Hunk<A> src, Function<B, A> writer)
+    {
+        return new FunctionalHunkView<A, B>(src, null, writer);
+    }
+
+    static <A,B> Hunk<B> convertedReadWriteView(Hunk<A> src, Function<A, B> reader, Function<B, A> writer)
+    {
+        return new FunctionalHunkView<A, B>(src, reader, writer);
     }
 
     static Hunk<Biome> view(BiomeGrid biome) {

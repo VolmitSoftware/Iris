@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.interpolation.InterpolationMethod3D;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;

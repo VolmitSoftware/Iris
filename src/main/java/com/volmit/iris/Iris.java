@@ -133,17 +133,16 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     private void setupPapi() {
-        if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new IrisPapiExpansion().register();
         }
     }
 
     public File getDatapacksFolder() {
-        if(!IrisSettings.get().getGeneral().forceMainWorld.isEmpty())
-        {
+        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
             return new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks");
         }
-        
+
         File props = new File("server.properties");
 
         if (props.exists()) {

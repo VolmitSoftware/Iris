@@ -250,10 +250,8 @@ public class TreeManager implements Listener {
 
         KList<IrisObjectPlacement> p = new KList<>();
 
-        for(IrisObjectPlacement i : objects)
-        {
-            if(i.matches(size, type))
-            {
+        for (IrisObjectPlacement i : objects) {
+            if (i.matches(size, type)) {
                 p.add(i);
             }
         }

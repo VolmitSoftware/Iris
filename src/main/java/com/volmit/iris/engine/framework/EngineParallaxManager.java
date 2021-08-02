@@ -48,7 +48,6 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
-import org.bukkit.util.Consumer;
 
 import java.io.IOException;
 import java.util.List;
@@ -215,8 +214,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int s = (int) Math.ceil(getParallaxSize() / 2D);
 
         int i, j;
-        int cx = (int)x >> 4;
-        int cz = (int)z >> 4;
+        int cx = (int) x >> 4;
+        int cz = (int) z >> 4;
 
         for (i = -s; i <= s; i++) {
             for (j = -s; j <= s; j++) {

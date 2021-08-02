@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.interpolation.InterpolationMethod3D;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -52,6 +51,6 @@ public class IrisInterpolator3D {
     }
 
     public double interpolate(int x, int y, int z, NoiseProvider3 provider) {
-        return IrisInterpolation.getNoise3D(getFunction(), x,y, z, getScale(), provider);
+        return IrisInterpolation.getNoise3D(getFunction(), x, y, z, getScale(), provider);
     }
 }

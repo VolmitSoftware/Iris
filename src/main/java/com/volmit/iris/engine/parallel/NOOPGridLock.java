@@ -24,7 +24,7 @@ import com.volmit.iris.util.io.IORunnable;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-public class NOOPGridLock extends GridLock{
+public class NOOPGridLock extends GridLock {
     public NOOPGridLock(int x, int z) {
         super(x, z);
     }

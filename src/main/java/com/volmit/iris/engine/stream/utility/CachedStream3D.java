@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.stream.BasicStream;
 import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.util.math.BlockPosition;
@@ -50,11 +49,11 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.compute(new BlockPosition((int)x, -1, (int)z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
+        return cache.compute(new BlockPosition((int) x, -1, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
     }
 
     @Override
     public T get(double x, double y, double z) {
-        return cache.compute(new BlockPosition((int)x, (int)y, (int)z), (k, v) -> v != null ? v : stream.get((int) x, (int) y, (int) z));
+        return cache.compute(new BlockPosition((int) x, (int) y, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) y, (int) z));
     }
 }

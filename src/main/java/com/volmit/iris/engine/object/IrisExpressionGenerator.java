@@ -22,13 +22,10 @@ import com.dfsek.paralithic.Expression;
 import com.dfsek.paralithic.eval.parser.Parser;
 import com.dfsek.paralithic.eval.parser.Scope;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -57,36 +54,26 @@ public class IrisExpressionGenerator extends IrisRegistrant {
 
     private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
 
-    private Expression expression()
-    {
+    private Expression expression() {
         return expressionCache.aquire(() -> {
             Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
 
-            try
-            {
-                for(IrisExpressionLoad i : variables)
-                {
+            try {
+                for (IrisExpressionLoad i : variables) {
                     scope.addInvocationVariable(i.getName());
                 }
 
                 scope.addInvocationVariable("x");
                 scope.addInvocationVariable("y");
                 scope.addInvocationVariable("z");
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 Iris.error("Script Variable load error in " + getLoadFile().getPath());
             }
 
-            try
-            {
+            try {
                 return parser.parse(getExpression(), scope);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 Iris.error("Script load error in " + getLoadFile().getPath());
             }
@@ -95,12 +82,10 @@ public class IrisExpressionGenerator extends IrisRegistrant {
         });
     }
 
-    public double evaluate(RNG rng, double x, double z)
-    {
+    public double evaluate(RNG rng, double x, double z) {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
-        for(IrisExpressionLoad i : getVariables())
-        {
+        for (IrisExpressionLoad i : getVariables()) {
             g[m++] = i.getValue(rng, x, z);
         }
 
@@ -111,12 +96,10 @@ public class IrisExpressionGenerator extends IrisRegistrant {
         return expression().evaluate(g);
     }
 
-    public double evaluate(RNG rng, double x, double y, double z)
-    {
+    public double evaluate(RNG rng, double x, double y, double z) {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
-        for(IrisExpressionLoad i : getVariables())
-        {
+        for (IrisExpressionLoad i : getVariables()) {
             g[m++] = i.getValue(rng, x, y, z);
         }
 

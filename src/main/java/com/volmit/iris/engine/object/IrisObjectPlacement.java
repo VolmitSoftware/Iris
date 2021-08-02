@@ -216,10 +216,8 @@ public class IrisObjectPlacement {
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public boolean matches(IrisTreeSize size, TreeType type) {
-        for(IrisTree i : getTrees())
-        {
-            if(i.matches(size, type))
-            {
+        for (IrisTree i : getTrees()) {
+            if (i.matches(size, type)) {
                 return true;
             }
         }

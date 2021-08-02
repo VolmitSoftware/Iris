@@ -259,8 +259,7 @@ public class IrisEntity extends IrisRegistrant {
             m.setAware(isAware());
         }
 
-        if(spawnEffect != null)
-        {
+        if (spawnEffect != null) {
             spawnEffect.apply(e);
         }
 

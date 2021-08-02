@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -30,9 +29,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -53,18 +49,16 @@ public class IrisCavernZone implements IRare {
     private AtomicCache<ProceduralStream<Boolean>> carveCache = new AtomicCache<>();
 
     public boolean isCarved(RNG rng, double xx, double yy, double zz) {
-        if(carver != null)
-        {
-            return carver.isCarved(rng, xx,yy,zz);
+        if (carver != null) {
+            return carver.isCarved(rng, xx, yy, zz);
         }
 
         return false;
     }
 
     public double getCarved(RNG rng, double xx, double yy, double zz) {
-        if(carver != null)
-        {
-            return carver.rawStream(rng).get(xx,yy,zz) / (carver.getThreshold() * 2);
+        if (carver != null) {
+            return carver.rawStream(rng).get(xx, yy, zz) / (carver.getThreshold() * 2);
         }
 
         return -1;

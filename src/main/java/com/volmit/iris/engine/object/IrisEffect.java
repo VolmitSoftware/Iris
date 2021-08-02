@@ -273,7 +273,7 @@ public class IrisEffect {
         }
 
         if (particleEffect != null) {
-            Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1,1,1).multiply(RNG.r.d())).subtract(new Vector(1,1,1).multiply(RNG.r.d()));
+            Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1, 1, 1).multiply(RNG.r.d())).subtract(new Vector(1, 1, 1).multiply(RNG.r.d()));
             part.add(RNG.r.d(), 0, RNG.r.d());
             if (extra != 0) {
                 J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),

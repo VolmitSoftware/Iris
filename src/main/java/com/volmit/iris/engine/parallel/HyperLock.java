@@ -47,14 +47,13 @@ public class HyperLock {
                 .initialCapacity(capacity)
                 .maximumWeightedCapacity(capacity)
                 .listener((k, v) -> {
-                    if(v.isLocked() || v.isHeldByCurrentThread())
-                    {
+                    if (v.isLocked() || v.isHeldByCurrentThread()) {
                         Iris.warn("InfiniLock Eviction of " + k + " still has locks on it!");
                     }
                 })
                 .concurrencyLevel(32)
                 .build();
-        accessor = (k,v) -> v == null ? new ReentrantLock(fair) : v;
+        accessor = (k, v) -> v == null ? new ReentrantLock(fair) : v;
     }
 
     public void with(int x, int z, Runnable r) {
@@ -96,8 +95,7 @@ public class HyperLock {
         return false;
     }
 
-    private ReentrantLock getLock(int x, int z)
-    {
+    private ReentrantLock getLock(int x, int z) {
         return locks.compute(Cache.key(x, z), accessor);
     }
 

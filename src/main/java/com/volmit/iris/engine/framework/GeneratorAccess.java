@@ -26,8 +26,6 @@ import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 
-import java.util.UUID;
-
 public interface GeneratorAccess extends DataProvider, Renderer {
     IrisRegion getRegion(int x, int z);
 

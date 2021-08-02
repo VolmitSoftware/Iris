@@ -19,9 +19,8 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.engine.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
@@ -59,40 +58,35 @@ public class IrisCaverns {
     private transient AtomicCache<ProceduralStream<IrisCavernZone>> zonesRarity = new AtomicCache<>();
     private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
 
-    public IrisCavernZone getZone(double x, double y, double z, RNG rng)
-    {
+    public IrisCavernZone getZone(double x, double y, double z, RNG rng) {
         return zonesRarity.aquire(() -> zoneStyle.create(rng)
-                .stream().selectRarity(getZones())).get(x,y,z);
+                .stream().selectRarity(getZones())).get(x, y, z);
     }
 
-    private double threshold(double y)
-    {
+    private double threshold(double y) {
         return 0.5;
     }
 
-    public ProceduralStream<Double> stream(RNG rng)
-    {
-        if(preThresholdInterpolation)
-        {
-            return streamCache.aquire(() -> ProceduralStream.of((xx,yy,zz)
+    public ProceduralStream<Double> stream(RNG rng) {
+        if (preThresholdInterpolation) {
+            return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
                     -> (getZone(xx, yy, zz, rng)
-                    .getCarved(rng, xx,yy,zz)), Interpolated.DOUBLE)
+                    .getCarved(rng, xx, yy, zz)), Interpolated.DOUBLE)
                     .cache3D(65535));
         }
 
-        return streamCache.aquire(() -> ProceduralStream.of((xx,yy,zz)
+        return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
                 -> (getZone(xx, yy, zz, rng)
-                .isCarved(rng, xx,yy,zz) ? 1D : 0D), Interpolated.DOUBLE)
+                .isCarved(rng, xx, yy, zz) ? 1D : 0D), Interpolated.DOUBLE)
                 .cache3D(65535));
     }
 
     public boolean isCavern(RNG rng, double x, double y, double z, double height) {
-        if(zones.isEmpty())
-        {
+        if (zones.isEmpty()) {
             return false;
         }
 
         return getInterpolator().interpolate(x, y, z, (xx, yy, zz)
-                -> stream(rng).get(xx,yy,zz)) > threshold(height);
+                -> stream(rng).get(xx, yy, zz)) > threshold(height);
     }
 }

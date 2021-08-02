@@ -24,18 +24,15 @@ import com.volmit.iris.util.math.M;
 import lombok.Data;
 
 @Data
-public class IrisEngineSpawnerCooldown
-{
+public class IrisEngineSpawnerCooldown {
     private long lastSpawn;
     private String spawner;
 
-    public void spawn(Engine engine)
-    {
+    public void spawn(Engine engine) {
         lastSpawn = M.ms();
     }
 
-    public boolean canSpawn(IrisRate s)
-    {
+    public boolean canSpawn(IrisRate s) {
         return M.ms() - lastSpawn > s.getInterval();
     }
 }

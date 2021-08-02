@@ -625,14 +625,11 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         return get(M.irand(0, last()));
     }
 
-    public KList<T> popRandom(RNG rng, int c)
-    {
+    public KList<T> popRandom(RNG rng, int c) {
         KList<T> m = new KList<>();
 
-        for(int i = 0; i < c; i++)
-        {
-            if(isEmpty())
-            {
+        for (int i = 0; i < c; i++) {
+            if (isEmpty()) {
                 break;
             }
 

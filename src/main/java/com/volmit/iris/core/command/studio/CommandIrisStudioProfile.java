@@ -20,8 +20,8 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.*;

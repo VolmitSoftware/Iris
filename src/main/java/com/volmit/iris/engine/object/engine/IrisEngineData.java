@@ -22,8 +22,7 @@ import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 @Data
-public class IrisEngineData
-{
+public class IrisEngineData {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
     private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
 }

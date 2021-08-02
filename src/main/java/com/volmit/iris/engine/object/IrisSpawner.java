@@ -18,22 +18,14 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.engine.stream.convert.SelectionStream;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.V;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Chunk;
 import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)
@@ -56,8 +48,7 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The maximum rate this spawner can fire")
     private IrisRate maximumRate = new IrisRate();
 
-    public boolean isValid(World world)
-    {
+    public boolean isValid(World world) {
         return timeBlock.isWithin(world) && weather.is(world);
     }
 }

@@ -20,7 +20,6 @@ package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -99,9 +98,8 @@ public class IrisPregenerator {
                         totalChunks.get() - generated.get(),
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
 
-                if(cl.flip())
-                {
-                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ") " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double)eta, 2));
+                if (cl.flip()) {
+                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ") " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
                 }
 
                 return 1000;

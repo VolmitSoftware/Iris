@@ -77,20 +77,17 @@ public class IrisCarveLayer {
         return getCng(rng).fitDouble(0D, 1D, x, y, z) * opacity > getThreshold();
     }
 
-    public ProceduralStream<Boolean> stream(RNG rng)
-    {
-        return streamCache.aquire(() -> ProceduralStream.of((x,y,z) -> isCarved(rng, x,y,z), Interpolated.BOOLEAN));
+    public ProceduralStream<Boolean> stream(RNG rng) {
+        return streamCache.aquire(() -> ProceduralStream.of((x, y, z) -> isCarved(rng, x, y, z), Interpolated.BOOLEAN));
     }
 
-    public ProceduralStream<Double> rawStream(RNG rng)
-    {
-        return rawStreamCache.aquire(() -> ProceduralStream.of((x,y,z) -> {
+    public ProceduralStream<Double> rawStream(RNG rng) {
+        return rawStreamCache.aquire(() -> ProceduralStream.of((x, y, z) -> {
             return getCng(rng).fitDouble(0D, 1D, x, y, z) * Math.pow(IrisInterpolation.sinCenter(M.lerpInverse(getMinHeight(), getMaxHeight(), y)), 4);
         }, Interpolated.DOUBLE));
     }
 
-    public CNG getCng(RNG rng)
-    {
+    public CNG getCng(RNG rng) {
         return cng.aquire(() -> getStyle().create(rng.nextParallelRNG(-2340 * getMaxHeight() * getMinHeight())));
     }
 

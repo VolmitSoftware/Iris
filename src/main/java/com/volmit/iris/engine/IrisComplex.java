@@ -24,8 +24,6 @@ import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.*;
@@ -36,7 +34,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
@@ -159,13 +156,13 @@ public class IrisComplex implements DataProvider {
                 : regionStyleStream
                 .selectRarity(engine.getDimension().getRegions(), (i) -> data.getRegionLoader().load(i))
                 .convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
-         islandStream = regionStyleStream
+        islandStream = regionStyleStream
                 .seededChance(rng.nextParallelRNG(29349), 23968888888L,
-                        1D/engine.getDimension().getIslandMode().getIslandChance());
-         islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight());
-         islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888));
-         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
-         caveBiomeStream = regionStream.convert((r)
+                        1D / engine.getDimension().getIslandMode().getIslandChance());
+        islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight());
+        islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888));
+        regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
+        caveBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal())).stream()
                 .zoom(r.getCaveBiomeZoom())
                 .selectRarity(r.getCaveBiomes(), (i) -> data.getBiomeLoader().load(i))
@@ -227,8 +224,7 @@ public class IrisComplex implements DataProvider {
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);
-                for(IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z))
-                {
+                for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
                     str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng)));
                 }
 
@@ -354,28 +350,26 @@ public class IrisComplex implements DataProvider {
 
             return m;
         }, Interpolated.INT).cache2D(cacheSize);
-        baseBiomeIDStream = trueBiomeStream.convertAware2D((b,x,z) ->{
+        baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {
             UUID d = regionIDStream.get(x, z);
             return new UUID(b.getLoadKey().hashCode() * 818223L,
                     d.hashCode());
         })
                 .cache2D(cacheSize);
         islandTopStream = islandStream.convertAware2D((i, x, z) ->
-            i ? heightStream.round()
-                    .subtract(fluidHeight)
-                    .add((xx, zz) -> getIslandHeight(xx.intValue(), zz.intValue(), engine.getDimension()
-                            .getIslandMode().getIslandEdgeInterpolator()))
-                    .get(x, z) : 0);
+                i ? heightStream.round()
+                        .subtract(fluidHeight)
+                        .add((xx, zz) -> getIslandHeight(xx.intValue(), zz.intValue(), engine.getDimension()
+                                .getIslandMode().getIslandEdgeInterpolator()))
+                        .get(x, z) : 0);
         islandBottomStream = islandStream.convertAware2D((i, x, z) ->
                 i ? islandHeightStream.subtract(islandDepthStream).round().get(x, z) : 0);
         //@done
     }
 
-    private double getIslandHeight(int x, int z, IrisInterpolator interp)
-    {
+    private double getIslandHeight(int x, int z, IrisInterpolator interp) {
         return interp.interpolate(x, z, (xx, zz) -> {
-            if(getIslandStream().get(xx, zz))
-            {
+            if (getIslandStream().get(xx, zz)) {
                 return getIslandHeightStream().get(xx, zz);
             }
 
@@ -472,12 +466,10 @@ public class IrisComplex implements DataProvider {
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
 
-        if(features)
-        {
+        if (features) {
             List<IrisFeaturePositional> p = engine.getFramework().getEngineParallax().forEachFeature(x, z);
 
-            for(IrisFeaturePositional i : p)
-            {
+            for (IrisFeaturePositional i : p) {
                 noise.set(i.filter(x, z, noise.get(), rng));
             }
         }

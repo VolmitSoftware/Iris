@@ -24,7 +24,10 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -92,7 +95,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @Getter
     private double maxBiomeDecoratorDensity;
 
-    private AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
+    private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
@@ -117,8 +120,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         return engineData.aquire(() -> {
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + "-" + getIndex() + ".json");
 
-            if(!f.exists())
-            {
+            if (!f.exists()) {
                 try {
                     f.getParentFile().mkdirs();
                     IO.writeAll(f, new Gson().toJson(new IrisEngineData()));
@@ -127,13 +129,9 @@ public class IrisEngine extends BlockPopulator implements Engine {
                 }
             }
 
-            try
-            {
+            try {
                 return new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
 

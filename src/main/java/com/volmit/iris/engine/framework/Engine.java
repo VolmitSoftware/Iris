@@ -67,8 +67,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     void setParallelism(int parallelism);
 
-    default UUID getBiomeID(int x, int z)
-    {
+    default UUID getBiomeID(int x, int z) {
         return getFramework().getComplex().getBaseBiomeIDStream().get(x, z);
     }
 

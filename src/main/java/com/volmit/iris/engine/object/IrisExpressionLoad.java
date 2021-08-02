@@ -46,8 +46,7 @@ public class IrisExpressionLoad {
     private IrisGeneratorStyle styleValue = null;
 
     public double getValue(RNG rng, double x, double z) {
-        if(styleValue != null)
-        {
+        if (styleValue != null) {
             return styleValue.create(rng).noise(x, z);
         }
 
@@ -55,8 +54,7 @@ public class IrisExpressionLoad {
     }
 
     public double getValue(RNG rng, double x, double y, double z) {
-        if(styleValue != null)
-        {
+        if (styleValue != null) {
             return styleValue.create(rng).noise(x, y, z);
         }
 

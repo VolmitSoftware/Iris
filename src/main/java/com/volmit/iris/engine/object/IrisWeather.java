@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
-import lombok.Data;
 import org.bukkit.World;
 
 @Desc("Represents a weather type")
@@ -36,10 +35,8 @@ public enum IrisWeather {
     @Desc("Any weather")
     ANY;
 
-    public boolean is(World world)
-    {
-        return switch(this)
-        {
+    public boolean is(World world) {
+        return switch (this) {
             case NONE -> world.isClearWeather();
             case DOWNFALL -> world.hasStorm();
             case DOWNFALL_WITH_THUNDER -> world.hasStorm() && world.isThundering();

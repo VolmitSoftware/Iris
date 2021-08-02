@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.common.IrisWorld;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -31,17 +30,20 @@ import org.jetbrains.annotations.NotNull;
 // See/update https://app.gitbook.com/@volmitsoftware/s/iris/compatability/papi/
 public class IrisPapiExpansion extends PlaceholderExpansion {
     @Override
-    public @NotNull String getIdentifier() {
+    public @NotNull
+    String getIdentifier() {
         return "iris";
     }
 
     @Override
-    public @NotNull String getAuthor() {
+    public @NotNull
+    String getAuthor() {
         return "Volmit Software";
     }
 
     @Override
-    public @NotNull String getVersion() {
+    public @NotNull
+    String getVersion() {
         return Iris.instance.getDescription().getVersion();
     }
 
@@ -55,98 +57,55 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         Location l = null;
         IrisAccess a = null;
 
-        if(player.isOnline())
-        {
+        if (player.isOnline()) {
             l = player.getPlayer().getLocation();
             a = IrisWorlds.access(l.getWorld());
         }
 
-        if (p.equalsIgnoreCase("biome_name"))
-        {
-            if(a != null)
-            {
+        if (p.equalsIgnoreCase("biome_name")) {
+            if (a != null) {
                 return a.getBiome(l).getName();
             }
-        }
-
-        else if (p.equalsIgnoreCase("biome_id"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("biome_id")) {
+            if (a != null) {
                 return a.getBiome(l).getLoadKey();
             }
-        }
-
-        else if (p.equalsIgnoreCase("biome_file"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("biome_file")) {
+            if (a != null) {
                 return a.getBiome(l).getLoadFile().getPath();
             }
-        }
-
-        else if (p.equalsIgnoreCase("region_name"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("region_name")) {
+            if (a != null) {
                 return a.getRegion(l).getName();
             }
-        }
-
-        else if (p.equalsIgnoreCase("region_id"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("region_id")) {
+            if (a != null) {
                 return a.getRegion(l).getLoadKey();
             }
-        }
-
-        else if (p.equalsIgnoreCase("region_file"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("region_file")) {
+            if (a != null) {
                 return a.getRegion(l).getLoadFile().getPath();
             }
-        }
-
-        else if (p.equalsIgnoreCase("terrain_slope"))
-        {
-            if(a != null)
-            {
-                return ((Engine)a.getEngineAccess(l.getBlockY()))
+        } else if (p.equalsIgnoreCase("terrain_slope")) {
+            if (a != null) {
+                return ((Engine) a.getEngineAccess(l.getBlockY()))
                         .getFramework().getComplex().getSlopeStream()
                         .get(l.getX(), l.getZ()) + "";
             }
-        }
-
-        else if (p.equalsIgnoreCase("terrain_height"))
-        {
-            if(a != null)
-            {
-                return (int)Math.round(a.getHeight(l)) + "";
+        } else if (p.equalsIgnoreCase("terrain_height")) {
+            if (a != null) {
+                return (int) Math.round(a.getHeight(l)) + "";
             }
-        }
-
-        else if (p.equalsIgnoreCase("world_mode"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("world_mode")) {
+            if (a != null) {
                 return a.isStudio() ? "Studio" : "Production";
             }
-        }
-
-        else if (p.equalsIgnoreCase("world_seed"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("world_seed")) {
+            if (a != null) {
                 return a.getTarget().getWorld().seed() + "";
             }
-        }
-
-        else if (p.equalsIgnoreCase("world_speed"))
-        {
-            if(a != null)
-            {
+        } else if (p.equalsIgnoreCase("world_speed")) {
+            if (a != null) {
                 return a.getGeneratedPerSecond() + "/s";
             }
         }

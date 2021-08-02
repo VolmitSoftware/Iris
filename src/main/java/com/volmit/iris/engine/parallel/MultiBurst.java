@@ -50,8 +50,7 @@ public class MultiBurst {
         heartbeat = new Looper() {
             @Override
             protected long loop() {
-                if(M.ms() - last.get() > TimeUnit.MINUTES.toMillis(1) && service != null)
-                {
+                if (M.ms() - last.get() > TimeUnit.MINUTES.toMillis(1) && service != null) {
                     service.shutdown();
                     service = null;
                     Iris.debug("Shutting down MultiBurst Pool " + getName() + " to conserve resource.");
@@ -64,11 +63,9 @@ public class MultiBurst {
         heartbeat.start();
     }
 
-    private synchronized ExecutorService getService()
-    {
+    private synchronized ExecutorService getService() {
         last.set(M.ms());
-        if(service == null || service.isShutdown())
-        {
+        if (service == null || service.isShutdown()) {
             service = Executors.newFixedThreadPool(Math.max(tc, 1), r -> {
                 tid++;
                 Thread t = new Thread(r);
@@ -130,8 +127,7 @@ public class MultiBurst {
         Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
         heartbeat.interrupt();
 
-        if(service != null)
-        {
+        if (service != null) {
             service.shutdownNow().forEach(Runnable::run);
         }
     }
@@ -140,34 +136,30 @@ public class MultiBurst {
         Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
         heartbeat.interrupt();
 
-        if(service != null)
-        {
+        if (service != null) {
             service.shutdown();
         }
     }
 
     public void shutdownLater() {
-       if(service != null)
-       {
-           service.submit(() -> {
-               J.sleep(3000);
-               Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
+        if (service != null) {
+            service.submit(() -> {
+                J.sleep(3000);
+                Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
 
-               if(service != null)
-               {
-                   service.shutdown();
-               }
-           });
+                if (service != null) {
+                    service.shutdown();
+                }
+            });
 
-           heartbeat.interrupt();
-       }
+            heartbeat.interrupt();
+        }
     }
 
     public void shutdownAndAwait() {
         Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
         heartbeat.interrupt();
-        if(service != null)
-        {
+        if (service != null) {
             service.shutdown();
             try {
                 while (!service.awaitTermination(10, TimeUnit.SECONDS)) {

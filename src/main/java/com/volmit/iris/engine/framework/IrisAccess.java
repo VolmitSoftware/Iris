@@ -68,26 +68,23 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     /**
      * Ignores the world, just uses the position
+     *
      * @param l the location
      * @return the biome
      */
-    default IrisBiome getBiome(Location l)
-    {
+    default IrisBiome getBiome(Location l) {
         return getBiome(l.toVector());
     }
 
-    default IrisRegion getRegion(int x, int y, int z)
-    {
+    default IrisRegion getRegion(int x, int y, int z) {
         return getEngineAccess(y).getRegion(x, z);
     }
 
-    default IrisRegion getRegion(Location l)
-    {
+    default IrisRegion getRegion(Location l) {
         return getRegion(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default IrisBiome getBiome(Vector l)
-    {
+    default IrisBiome getBiome(Vector l) {
         return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
@@ -293,8 +290,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         return v;
     }
 
-    default double getHeight(Location l)
-    {
+    default double getHeight(Location l) {
         return getHeight(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 }

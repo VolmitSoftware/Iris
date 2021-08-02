@@ -23,7 +23,6 @@ import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.parallel.BurstExecutor;
-import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -117,8 +116,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     continue;
                 }
 
-                if(getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he))
-                {
+                if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he)) {
                     continue;
                 }
 

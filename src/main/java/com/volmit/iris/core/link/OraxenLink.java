@@ -29,14 +29,12 @@ public class OraxenLink {
         return getOraxen() != null;
     }
 
-    public BlockData getBlockDataFor(String id)
-    {
+    public BlockData getBlockDataFor(String id) {
         // TODO: Unimplemented
         return B.get("AIR");
     }
 
-    public ItemStack getItemStackForType(String item)
-    {
+    public ItemStack getItemStackForType(String item) {
         try {
             Object itemBuilder = Class.forName("io.th0rgal.oraxen.items.OraxenItems").getDeclaredMethod("getItemById", String.class).invoke(null, item);
             return (ItemStack) itemBuilder.getClass().getDeclaredMethod("getReferenceClone").invoke(itemBuilder);

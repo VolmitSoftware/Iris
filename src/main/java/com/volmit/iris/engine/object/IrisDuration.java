@@ -21,7 +21,6 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.format.Form;
 import lombok.Data;
-import org.bukkit.World;
 
 import java.util.concurrent.TimeUnit;
 
@@ -58,13 +57,11 @@ public class IrisDuration {
     @Desc("REAL (not minecraft) Days")
     private int days = 0;
 
-    public String toString()
-    {
+    public String toString() {
         return Form.duration((double) toMilliseconds(), 2);
     }
 
-    public long toMilliseconds()
-    {
+    public long toMilliseconds() {
         return getMilliseconds()
                 + TimeUnit.SECONDS.toMillis(getSeconds())
                 + TimeUnit.MINUTES.toMillis(getMinutes())

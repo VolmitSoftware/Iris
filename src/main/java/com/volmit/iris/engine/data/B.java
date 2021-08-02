@@ -143,13 +143,11 @@ public class B {
             }
             BlockData bx = null;
 
-            if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported())
-            {
+            if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
                 bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
             }
 
-            if(bx == null)
-            {
+            if (bx == null) {
                 bx = Bukkit.createBlockData(ix);
             }
 
@@ -540,10 +538,8 @@ public class B {
             bt.add(v);
         }
 
-        if(Iris.linkOraxen.supported())
-        {
-            for(String i : Iris.linkOraxen.getItemTypes())
-            {
+        if (Iris.linkOraxen.supported()) {
+            for (String i : Iris.linkOraxen.getItemTypes()) {
                 bt.add("oraxen:" + i);
             }
         }

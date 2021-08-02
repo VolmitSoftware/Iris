@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -29,7 +28,6 @@ import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -102,8 +100,7 @@ public class IrisEntitySpawn implements IRare {
         try {
             Location l = at.clone().add(0.5, 1, 0.5);
             Entity e = getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
-            if(e != null)
-            {
+            if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
 

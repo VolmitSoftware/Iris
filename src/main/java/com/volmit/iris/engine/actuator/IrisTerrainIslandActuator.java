@@ -21,8 +21,6 @@ package com.volmit.iris.engine.actuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -60,7 +58,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
         int i, zf, depth, surface, realX, realZ;
         IrisBiome biome;
         KList<BlockData> blocks, fblocks;
-        int hi,lo;
+        int hi, lo;
         double hh;
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
@@ -69,7 +67,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
                 realZ = (int) modZ(zf + z);
 
                 if (getComplex().getIslandStream().get(realX, realZ)) {
-                    biome =  getComplex().getTrueBiomeStream().get(realX, realZ);
+                    biome = getComplex().getTrueBiomeStream().get(realX, realZ);
                     hh = getComplex().getTrueHeightStream().get(realX, realZ) - getComplex().getFluidHeight();
                     depth = (int) (getComplex().getIslandDepthStream().get(realX, realZ).intValue() + hh);
                     blocks = biome.generateLayers(realX, realZ, rng, depth, depth, getData(), getComplex());

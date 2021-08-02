@@ -84,4 +84,14 @@ public class IrisLootTable extends IrisRegistrant {
 
         return lootf;
     }
+
+    @Override
+    public String getFolderName() {
+        return "loot";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Loot";
+    }
 }

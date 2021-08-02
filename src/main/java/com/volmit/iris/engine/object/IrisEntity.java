@@ -297,4 +297,14 @@ public class IrisEntity extends IrisRegistrant {
 
         // TODO: return Iris.linkCitizens.supported() && someType is not empty;
     }
+
+    @Override
+    public String getFolderName() {
+        return "entities";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Entity";
+    }
 }

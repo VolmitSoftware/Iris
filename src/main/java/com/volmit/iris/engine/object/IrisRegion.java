@@ -548,4 +548,14 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     public void pickRandomColor(DataProvider data) {
 
     }
+
+    @Override
+    public String getFolderName() {
+        return "regions";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Region";
+    }
 }

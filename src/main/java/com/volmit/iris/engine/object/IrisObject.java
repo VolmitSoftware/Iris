@@ -964,4 +964,14 @@ public class IrisObject extends IrisRegistrant {
     public int volume() {
         return blocks.size();
     }
+
+    @Override
+    public String getFolderName() {
+        return "objects";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Object";
+    }
 }

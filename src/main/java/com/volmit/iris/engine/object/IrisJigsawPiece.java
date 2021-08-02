@@ -121,4 +121,14 @@ public class IrisJigsawPiece extends IrisRegistrant {
     public ObjectPlaceMode getPlaceMode() {
         return getPlacementOptions().getMode();
     }
+
+    @Override
+    public String getFolderName() {
+        return "jigsaw-pieces";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Jigsaw Piece";
+    }
 }

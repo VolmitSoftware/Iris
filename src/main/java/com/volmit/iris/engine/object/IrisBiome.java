@@ -672,4 +672,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
         return Color.black;
     }
+
+    @Override
+    public String getFolderName() {
+        return "biomes";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Biome";
+    }
 }

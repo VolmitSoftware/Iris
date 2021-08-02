@@ -43,4 +43,14 @@ public class IrisJigsawPool extends IrisRegistrant {
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of structure piece pools")
     private KList<String> pieces = new KList<>();
+
+    @Override
+    public String getFolderName() {
+        return "jigsaw-pools";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Jigsaw Pool";
+    }
 }

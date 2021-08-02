@@ -98,4 +98,14 @@ public class IrisMod extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisModNoiseStyleReplacer.class)
     @Desc("Replace noise styles with other styles")
     private KList<IrisModNoiseStyleReplacer> styleReplacers = new KList<>();
+
+    @Override
+    public String getFolderName() {
+        return "mods";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Mod";
+    }
 }

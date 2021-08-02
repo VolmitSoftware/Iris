@@ -26,12 +26,16 @@ import java.awt.*;
 import java.io.File;
 
 @Data
-public class IrisRegistrant {
+public abstract class IrisRegistrant {
     private transient IrisDataManager loader;
 
     private transient String loadKey;
 
     private transient File loadFile;
+
+    public abstract String getFolderName();
+
+    public abstract String getTypeName();
 
     public File openInVSCode() {
         try {

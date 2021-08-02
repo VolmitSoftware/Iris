@@ -41,10 +41,10 @@ import lombok.experimental.Accessors;
 @Desc("Represents Block Data")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisExpressionGenerator extends IrisRegistrant {
+public class IrisExpression extends IrisRegistrant {
     private static final Parser parser = new Parser();
 
-    @ArrayType(type = IrisExpressionGenerator.class, min = 1)
+    @ArrayType(type = IrisExpression.class, min = 1)
     @Desc("Variables to use in this expression")
     private KList<IrisExpressionLoad> variables = new KList<>();
 
@@ -108,5 +108,15 @@ public class IrisExpressionGenerator extends IrisRegistrant {
         g[m] = z;
 
         return expression().evaluate(g);
+    }
+
+    @Override
+    public String getFolderName() {
+        return "expressions";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Expression";
     }
 }

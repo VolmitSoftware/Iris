@@ -51,4 +51,14 @@ public class IrisSpawner extends IrisRegistrant {
     public boolean isValid(World world) {
         return timeBlock.isWithin(world) && weather.is(world);
     }
+
+    @Override
+    public String getFolderName() {
+        return "spawners";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Spawner";
+    }
 }

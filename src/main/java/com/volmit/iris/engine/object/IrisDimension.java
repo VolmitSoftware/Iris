@@ -501,4 +501,14 @@ public class IrisDimension extends IrisRegistrant {
             return false;
         });
     }
+
+    @Override
+    public String getFolderName() {
+        return "dimensions";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Dimension";
+    }
 }

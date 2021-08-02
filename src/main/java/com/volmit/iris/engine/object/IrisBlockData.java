@@ -209,4 +209,14 @@ public class IrisBlockData extends IrisRegistrant {
 
         return string;
     }
+
+    @Override
+    public String getFolderName() {
+        return "blocks";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Block";
+    }
 }

@@ -129,4 +129,14 @@ public class IrisJigsawStructure extends IrisRegistrant {
             }
         });
     }
+
+    @Override
+    public String getFolderName() {
+        return "jigsaw-structures";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Jigsaw Structure";
+    }
 }

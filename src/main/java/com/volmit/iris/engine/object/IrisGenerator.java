@@ -278,4 +278,14 @@ public class IrisGenerator extends IrisRegistrant {
 
         return g;
     }
+
+    @Override
+    public String getFolderName() {
+        return "generators";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Generator";
+    }
 }

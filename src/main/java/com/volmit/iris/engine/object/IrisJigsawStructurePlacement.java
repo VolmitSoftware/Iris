@@ -35,7 +35,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a jigsaw structure placer")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisJigsawStructurePlacement extends IrisRegistrant {
+public class IrisJigsawStructurePlacement {
     @RegistryListJigsaw
     @Required
     @Desc("The structure to place")

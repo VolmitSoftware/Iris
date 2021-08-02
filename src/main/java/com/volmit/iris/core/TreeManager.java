@@ -19,6 +19,7 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -116,15 +117,16 @@ public class TreeManager implements Listener {
         IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
         List<BlockState> blockStateList = new KList<>();
         KMap<Location, BlockData> dataCache = new KMap<>();
+        // TODO: REAL CLASSES!!!!
         IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
-            public int getHighest(int x, int z) {
+            public int getHighest(int x, int z, IrisData data) {
                 return event.getWorld().getHighestBlockYAt(x, z);
             }
 
             @Override
-            public int getHighest(int x, int z, boolean ignoreFluid) {
+            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
                 return event.getWorld().getHighestBlockYAt(x, z, ignoreFluid ? HeightMap.OCEAN_FLOOR : HeightMap.WORLD_SURFACE);
             }
 

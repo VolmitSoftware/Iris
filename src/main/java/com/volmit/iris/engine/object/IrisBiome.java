@@ -304,11 +304,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getBiomeGenerator(RNG random) {
         return biomeGenerator.aquire(() ->
-                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())));
+                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()), getLoader()));
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
+        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
     }
 
     public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {

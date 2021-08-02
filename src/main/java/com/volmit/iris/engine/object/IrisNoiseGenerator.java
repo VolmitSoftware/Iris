@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.noise.CNG;
@@ -94,15 +95,15 @@ public class IrisNoiseGenerator {
         this.enabled = enabled;
     }
 
-    protected CNG getGenerator(long superSeed) {
-        return generator.aquire(() -> style.create(new RNG(superSeed + 33955677 - seed)).oct(octaves));
+    protected CNG getGenerator(long superSeed, IrisData data) {
+        return generator.aquire(() -> style.create(new RNG(superSeed + 33955677 - seed), data).oct(octaves));
     }
 
     public double getMax() {
         return getOffsetY() + opacity;
     }
 
-    public double getNoise(long superSeed, double xv, double zv) {
+    public double getNoise(long superSeed, double xv, double zv, IrisData data) {
         if (!enabled) {
             return offsetY;
         }
@@ -113,13 +114,13 @@ public class IrisNoiseGenerator {
 
         for (IrisNoiseGenerator i : fracture) {
             if (i.isEnabled()) {
-                x += i.getNoise(superSeed + seed + g, xv, zv) - (opacity / 2D);
-                z -= i.getNoise(superSeed + seed + g, zv, xv) - (opacity / 2D);
+                x += i.getNoise(superSeed + seed + g, xv, zv, data) - (opacity / 2D);
+                z -= i.getNoise(superSeed + seed + g, zv, xv, data) - (opacity / 2D);
             }
             g += 819;
         }
 
-        double n = getGenerator(superSeed).fitDouble(0, opacity, (x / zoom) + offsetX, (z / zoom) + offsetZ);
+        double n = getGenerator(superSeed, data).fitDouble(0, opacity, (x / zoom) + offsetX, (z / zoom) + offsetZ);
         n = negative ? (-n + opacity) : n;
         n = (exponent != 1 ? n < 0 ? -Math.pow(-n, exponent) : Math.pow(n, exponent) : n) + offsetY;
         n = parametric ? IrisInterpolation.parametric(n, 1) : n;

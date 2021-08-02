@@ -95,7 +95,7 @@ public class IrisExpression extends IrisRegistrant {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
         for (IrisExpressionLoad i : getVariables()) {
-            g[m++] = i.getValue(rng, x, z);
+            g[m++] = i.getValue(rng, getLoader(), x, z);
         }
 
         g[m++] = x;
@@ -109,7 +109,7 @@ public class IrisExpression extends IrisRegistrant {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
         for (IrisExpressionLoad i : getVariables()) {
-            g[m++] = i.getValue(rng, x, y, z);
+            g[m++] = i.getValue(rng, getLoader(), x, y, z);
         }
 
         g[m++] = x;

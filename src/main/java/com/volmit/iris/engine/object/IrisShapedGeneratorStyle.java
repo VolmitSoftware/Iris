@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -50,8 +51,8 @@ public class IrisShapedGeneratorStyle {
     @Desc("The max block value")
     private int max = 0;
 
-    public double get(RNG rng, double... dim) {
-        return generator.create(rng).fitDouble(min, max, dim);
+    public double get(RNG rng, IrisData data, double... dim) {
+        return generator.create(rng, data).fitDouble(min, max, dim);
     }
 
     public IrisShapedGeneratorStyle(NoiseStyle style, int min, int max) {

@@ -206,7 +206,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
@@ -223,7 +223,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                 try {
                     for (IrisFeaturePositional k : m.getFeatures()) {
-                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng())) {
+                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng(), getData())) {
                             pos.add(k);
                         }
                     }
@@ -815,13 +815,21 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    @Override
     default int getHighest(int x, int z) {
-        return getHighest(x, z, false);
+        return getHighest(x, z, getData());
+    }
+
+    default int getHighest(int x, int z, boolean ignoreFluid) {
+        return getHighest(x, z, getData(), ignoreFluid);
     }
 
     @Override
-    default int getHighest(int x, int z, boolean ignoreFluid) {
+    default int getHighest(int x, int z, IrisData data) {
+        return getHighest(x, z, data, false);
+    }
+
+    @Override
+    default int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
         return ignoreFluid ? trueHeight(x, z) : Math.max(trueHeight(x, z), getEngine().getDimension().getFluidHeight());
     }
 

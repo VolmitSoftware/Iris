@@ -326,10 +326,10 @@ public class IrisDimension extends IrisRegistrant {
         return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
     }
 
-    public boolean isCarved(int x, int y, int z, RNG rng, int terrainHeight) {
+    public boolean isCarved(IrisData data, int x, int y, int z, RNG rng, int terrainHeight) {
         if (isCarving() && terrainHeight > getFluidHeight() || y < terrainHeight) {
             for (IrisCarveLayer j : getCarveLayers()) {
-                if (j.isCarved(rng, x, y, z)) {
+                if (j.isCarved(rng, data, x, y, z)) {
                     return true;
                 }
             }

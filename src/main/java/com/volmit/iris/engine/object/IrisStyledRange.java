@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.stream.ProceduralStream;
 import com.volmit.iris.engine.stream.interpolation.Interpolated;
@@ -43,7 +44,7 @@ public class IrisStyledRange {
     @Desc("The style to pick the range")
     private IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.STATIC);
 
-    public double get(RNG rng, double x, double z) {
+    public double get(RNG rng, double x, double z, IrisData data) {
         if (min == max) {
             return min;
         }
@@ -52,10 +53,10 @@ public class IrisStyledRange {
             return M.lerp(min, max, 0.5);
         }
 
-        return style.create(rng).fitDouble(min, max, x, z);
+        return style.create(rng, data).fitDouble(min, max, x, z);
     }
 
-    public ProceduralStream<Double> stream(RNG rng) {
-        return ProceduralStream.of((x, z) -> get(rng, x, z), Interpolated.DOUBLE);
+    public ProceduralStream<Double> stream(RNG rng, IrisData data) {
+        return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE);
     }
 }

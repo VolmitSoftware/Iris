@@ -225,10 +225,10 @@ public class IrisGenerator extends IrisRegistrant {
 
         for (IrisNoiseGenerator i : composite) {
             if (multiplicitive) {
-                h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+                h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             } else {
                 tp += i.getOpacity();
-                h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+                h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             }
         }
 
@@ -255,7 +255,7 @@ public class IrisGenerator extends IrisRegistrant {
 
     public double getCliffHeight(double rx, double rz, double superSeed) {
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
-        double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+        double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
         return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
     }
 

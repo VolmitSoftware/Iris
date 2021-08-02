@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
@@ -49,17 +50,17 @@ public class IrisCavernZone implements IRare {
 
     private transient AtomicCache<ProceduralStream<Boolean>> carveCache = new AtomicCache<>();
 
-    public boolean isCarved(RNG rng, double xx, double yy, double zz) {
+    public boolean isCarved(RNG rng, IrisData data, double xx, double yy, double zz) {
         if (carver != null) {
-            return carver.isCarved(rng, xx, yy, zz);
+            return carver.isCarved(rng, data, xx, yy, zz);
         }
 
         return false;
     }
 
-    public double getCarved(RNG rng, double xx, double yy, double zz) {
+    public double getCarved(RNG rng, IrisData data, double xx, double yy, double zz) {
         if (carver != null) {
-            return carver.rawStream(rng).get(xx, yy, zz) / (carver.getThreshold() * 2);
+            return carver.rawStream(rng, data).get(xx, yy, zz) / (carver.getThreshold() * 2);
         }
 
         return -1;

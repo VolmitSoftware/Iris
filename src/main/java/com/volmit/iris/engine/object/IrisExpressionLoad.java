@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.math.RNG;
@@ -45,17 +46,17 @@ public class IrisExpressionLoad {
     @Desc("If defined, this variable will use a generator style as it's result")
     private IrisGeneratorStyle styleValue = null;
 
-    public double getValue(RNG rng, double x, double z) {
+    public double getValue(RNG rng, IrisData data, double x, double z) {
         if (styleValue != null) {
-            return styleValue.create(rng).noise(x, z);
+            return styleValue.create(rng, data).noise(x, z);
         }
 
         return staticValue;
     }
 
-    public double getValue(RNG rng, double x, double y, double z) {
+    public double getValue(RNG rng, IrisData data, double x, double y, double z) {
         if (styleValue != null) {
-            return styleValue.create(rng).noise(x, y, z);
+            return styleValue.create(rng, data).noise(x, y, z);
         }
 
         return staticValue;

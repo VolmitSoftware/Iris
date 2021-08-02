@@ -88,7 +88,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         for (int zf = 0; zf < h.getDepth(); zf++) {
             realX = (int) modX(xf + x);
             realZ = (int) modZ(zf + z);
-            b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, realX, realZ)) : 0;
+            b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, getData(), realX, realZ)) : 0;
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
@@ -112,11 +112,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
                 }
 
-                if (carving && getDimension().isCarved(realX, i, realZ, rng, he)) {
+                if (carving && getDimension().isCarved(getData(), realX, i, realZ, rng, he)) {
                     continue;
                 }
 
-                if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he)) {
+                if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he, getData())) {
                     continue;
                 }
 

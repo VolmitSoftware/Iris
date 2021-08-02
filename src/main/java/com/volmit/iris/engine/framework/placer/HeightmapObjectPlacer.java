@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework.placer;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
@@ -36,12 +37,12 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
         this.oplacer = oplacer;
     }
 
-    public int getHighest(int param1Int1, int param1Int2) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+    public int getHighest(int param1Int1, int param1Int2, IrisData data) {
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
     }
 
-    public int getHighest(int param1Int1, int param1Int2, boolean param1Boolean) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+    public int getHighest(int param1Int1, int param1Int2, IrisData data, boolean param1Boolean) {
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
     }
 
     public void set(int param1Int1, int param1Int2, int param1Int3, BlockData param1BlockData) {

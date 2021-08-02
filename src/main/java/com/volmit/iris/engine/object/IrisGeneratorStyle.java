@@ -18,12 +18,11 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.noise.ExpressionNoise;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,13 +35,16 @@ import lombok.experimental.Accessors;
 @Desc("A gen style")
 @Data
 public class IrisGeneratorStyle {
-    @Required
     @Desc("The chance is 1 in CHANCE per interval")
-    private NoiseStyle style = NoiseStyle.IRIS;
+    private NoiseStyle style = NoiseStyle.FLAT;
 
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;
+
+    @Desc("Instead of using the style property, use a custom expression to represent this style.")
+    @RegistryListResource(IrisExpression.class)
+    private String expression = null;
 
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
@@ -70,14 +72,30 @@ public class IrisGeneratorStyle {
         return this;
     }
 
-    public CNG create(RNG rng) {
+    public CNG create(RNG rng, IrisData data) {
         return cng.aquire(() ->
         {
+            if(getExpression() != null)
+            {
+                IrisExpression e = data.getExpressionLoader().load(getExpression());
+
+                if(e != null)
+                {
+                    CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
+                            .bake().scale(1D / zoom).pow(exponent).bake();
+                    cng.setTrueFracturing(axialFracturing);
+
+                    if (fracture != null) {
+                        cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+                    }
+                }
+            }
+
             CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
             cng.setTrueFracturing(axialFracturing);
 
             if (fracture != null) {
-                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934)), fracture.getMultiplier());
+                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }
 
             return cng;

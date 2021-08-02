@@ -139,7 +139,7 @@ public class IrisComplex implements DataProvider {
                         .getGenerators()
                         .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
-        engine.getDimension().getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, x, z)));
+        engine.getDimension().getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rngStream = ProceduralStream.of((x, z) -> new RNG(((x.longValue()) << 32) | (z.longValue() & 0xffffffffL))
                 .nextParallelRNG(engine.getWorld().seed()), Interpolated.RNG);
         chunkRngStream = rngStream.blockToChunkCoords();
@@ -147,7 +147,7 @@ public class IrisComplex implements DataProvider {
                 .select(engine.getDimension().getRockPalette().getBlockData(data));
         fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
                 .select(engine.getDimension().getFluidPalette().getBlockData(data));
-        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883)).stream()
+        regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
                 .zoom(engine.getDimension().getRegionZoom());
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);
         regionStream = focusRegion != null ?
@@ -159,11 +159,11 @@ public class IrisComplex implements DataProvider {
         islandStream = regionStyleStream
                 .seededChance(rng.nextParallelRNG(29349), 23968888888L,
                         1D / engine.getDimension().getIslandMode().getIslandChance());
-        islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight());
-        islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888));
+        islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight(), data);
+        islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888), data);
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal())).stream()
+                -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
                 .zoom(r.getCaveBiomeZoom())
                 .selectRarity(r.getCaveBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .onNull("")
@@ -178,7 +178,7 @@ public class IrisComplex implements DataProvider {
         ).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal())).stream()
+                -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
                 .zoom(r.getLandBiomeZoom())
                 .selectRarity(r.getLandBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
@@ -187,7 +187,7 @@ public class IrisComplex implements DataProvider {
                 .cache2D(cacheSize);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
         seaBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal())).stream()
+                -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
                 .zoom(r.getSeaBiomeZoom())
                 .selectRarity(r.getSeaBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
@@ -196,7 +196,7 @@ public class IrisComplex implements DataProvider {
                 .cache2D(cacheSize);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         shoreBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal())).stream()
+                -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
                 .zoom(r.getShoreBiomeZoom())
                 .selectRarity(r.getShoreBiomes(), (i) -> data.getBiomeLoader().load(i))
                 .convertCached((s) -> data.getBiomeLoader().load(s)
@@ -205,7 +205,7 @@ public class IrisComplex implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focus != null ? ProceduralStream.of((x, z) -> focus.getInferredType(),
                 Interpolated.of(a -> 0D, a -> focus.getInferredType())) :
-                engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565))
+                engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND).cache2D(cacheSize);
         baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
@@ -225,7 +225,7 @@ public class IrisComplex implements DataProvider {
             if (engine.getDimension().hasFeatures(engine)) {
                 AtomicDouble str = new AtomicDouble(1D);
                 for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
-                    str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng)));
+                    str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng, getData())));
                 }
 
                 return str.get();
@@ -324,10 +324,10 @@ public class IrisComplex implements DataProvider {
             int m = heightf;
 
             if (engine.getDimension().isCarving() && engine.getDimension().getTerrainMode().equals(IrisTerrainMode.NORMAL)) {
-                if (engine.getDimension().isCarved(rx, m, rz, ((IrisTerrainNormalActuator) engine.getFramework().getTerrainActuator()).getRng(), heightf)) {
+                if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getFramework().getTerrainActuator()).getRng(), heightf)) {
                     m--;
 
-                    while (engine.getDimension().isCarved(rx, m, rz, ((IrisTerrainNormalActuator) engine.getFramework().getTerrainActuator()).getRng(), heightf)) {
+                    while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getFramework().getTerrainActuator()).getRng(), heightf)) {
                         m--;
                     }
                 }
@@ -470,7 +470,7 @@ public class IrisComplex implements DataProvider {
             List<IrisFeaturePositional> p = engine.getFramework().getEngineParallax().forEachFeature(x, z);
 
             for (IrisFeaturePositional i : p) {
-                noise.set(i.filter(x, z, noise.get(), rng));
+                noise.set(i.filter(x, z, noise.get(), rng, getData()));
             }
         }
 

@@ -71,7 +71,7 @@ public class IrisMaterialPalette {
         return layerGenerator.aquire(() ->
         {
             RNG rngx = rng.nextParallelRNG(-23498896 + getBlockData(rdata).size());
-            return style.create(rngx);
+            return style.create(rngx, rdata);
         });
     }
 

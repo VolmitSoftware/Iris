@@ -180,13 +180,13 @@ public class IrisObjectPlacement {
 
     private final transient AtomicCache<CNG> surfaceWarp = new AtomicCache<>();
 
-    public CNG getSurfaceWarp(RNG rng) {
+    public CNG getSurfaceWarp(RNG rng, IrisData data) {
         return surfaceWarp.aquire(() ->
-                getWarp().create(rng));
+                getWarp().create(rng, data));
     }
 
-    public double warp(RNG rng, double x, double y, double z) {
-        return getSurfaceWarp(rng).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
+    public double warp(RNG rng, double x, double y, double z, IrisData data) {
+        return getSurfaceWarp(rng, data).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
     }
 
     public int getTriesForChunk(RNG random) {

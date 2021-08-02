@@ -448,14 +448,14 @@ public class IrisObject extends IrisRegistrant {
 
         if (yv < 0) {
             if (config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT)) {
-                y = (c != null ? c.getSurface() : placer.getHighest(x, z, config.isUnderwater())) + rty;
+                y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
             } else if (config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
-                        int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
                         if (h > y) {
                             y = h;
@@ -468,7 +468,7 @@ public class IrisObject extends IrisRegistrant {
 
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2) + 1) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
-                        int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
                         if (h > y) {
                             y = h;
@@ -482,7 +482,7 @@ public class IrisObject extends IrisRegistrant {
 
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
-                        int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
                         if (h < y) {
                             y = h;
@@ -496,7 +496,7 @@ public class IrisObject extends IrisRegistrant {
 
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2) + 1) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
-                        int h = placer.getHighest(i, j, config.isUnderwater()) + rty;
+                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
                         if (h < y) {
                             y = h;
@@ -504,7 +504,7 @@ public class IrisObject extends IrisRegistrant {
                     }
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.PAINT)) {
-                y = placer.getHighest(x, z, config.isUnderwater()) + rty;
+                y = placer.getHighest(x, z, getLoader(), config.isUnderwater()) + rty;
             }
         } else {
             y = yv;
@@ -600,12 +600,12 @@ public class IrisObject extends IrisRegistrant {
                 zz = z + (int) Math.round(i.getZ());
 
                 if (warped) {
-                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
-                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
+                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z, getLoader());
+                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
                 if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT))) {
-                    yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, config.isUnderwater());
+                    yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, getLoader(), config.isUnderwater());
                 }
 
                 if (heightmap != null) {
@@ -680,11 +680,11 @@ public class IrisObject extends IrisRegistrant {
                 zz = z + (int) Math.round(i.getZ());
 
                 if (warped) {
-                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z);
-                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x);
+                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z, getLoader());
+                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
-                int yg = placer.getHighest(xx, zz, config.isUnderwater());
+                int yg = placer.getHighest(xx, zz, getLoader(), config.isUnderwater());
 
                 if (yv >= 0 && config.isBottom()) {
                     y += Math.floorDiv(h, 2);

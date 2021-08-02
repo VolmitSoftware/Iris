@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -58,8 +59,8 @@ public class IrisCaverns {
     private transient AtomicCache<ProceduralStream<IrisCavernZone>> zonesRarity = new AtomicCache<>();
     private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
 
-    public IrisCavernZone getZone(double x, double y, double z, RNG rng) {
-        return zonesRarity.aquire(() -> zoneStyle.create(rng)
+    public IrisCavernZone getZone(double x, double y, double z, RNG rng, IrisData data) {
+        return zonesRarity.aquire(() -> zoneStyle.create(rng, data)
                 .stream().selectRarity(getZones())).get(x, y, z);
     }
 
@@ -67,26 +68,26 @@ public class IrisCaverns {
         return 0.5;
     }
 
-    public ProceduralStream<Double> stream(RNG rng) {
+    public ProceduralStream<Double> stream(RNG rng, IrisData data) {
         if (preThresholdInterpolation) {
             return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
-                    -> (getZone(xx, yy, zz, rng)
-                    .getCarved(rng, xx, yy, zz)), Interpolated.DOUBLE)
+                    -> (getZone(xx, yy, zz, rng, data)
+                    .getCarved(rng, data, xx, yy, zz)), Interpolated.DOUBLE)
                     .cache3D(65535));
         }
 
         return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
-                -> (getZone(xx, yy, zz, rng)
-                .isCarved(rng, xx, yy, zz) ? 1D : 0D), Interpolated.DOUBLE)
+                -> (getZone(xx, yy, zz, rng, data)
+                .isCarved(rng, data, xx, yy, zz) ? 1D : 0D), Interpolated.DOUBLE)
                 .cache3D(65535));
     }
 
-    public boolean isCavern(RNG rng, double x, double y, double z, double height) {
+    public boolean isCavern(RNG rng, double x, double y, double z, double height, IrisData data) {
         if (zones.isEmpty()) {
             return false;
         }
 
         return getInterpolator().interpolate(x, y, z, (xx, yy, zz)
-                -> stream(rng).get(xx, yy, zz)) > threshold(height);
+                -> stream(rng, data).get(xx, yy, zz)) > threshold(height);
     }
 }

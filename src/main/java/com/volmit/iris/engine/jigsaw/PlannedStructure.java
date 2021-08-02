@@ -102,7 +102,7 @@ public class PlannedStructure {
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
         int offset = i.getPosition().getY() - startHeight;
-        int height = placer.getHighest(xx, zz) + offset + (v.getH() / 2);
+        int height = placer.getHighest(xx, zz, getData()) + offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
             height = -1;
@@ -133,7 +133,7 @@ public class PlannedStructure {
                 }
 
                 if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
-                    p.setY(placer.getHighest(xx, zz) + offset + (v.getH() / 2));
+                    p.setY(placer.getHighest(xx, zz, getData()) + offset + (v.getH() / 2));
                 } else {
                     p.setY(height);
                 }

@@ -174,7 +174,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @BlockCoordinates
     @Override
     default int getHeight(int x, int z) {
-        return getFramework().getEngineParallax().getHighest(x, z, true);
+        return getFramework().getEngineParallax().getHighest(x, z, getData(), true);
     }
 
     @BlockCoordinates

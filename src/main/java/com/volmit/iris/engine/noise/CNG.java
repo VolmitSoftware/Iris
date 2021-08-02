@@ -61,6 +61,7 @@ public class CNG {
     private double up;
     private double down;
     private double power;
+    private ProceduralStream<Double> customGenerator;
 
     public NoiseGenerator getGen() {
         return generator;
@@ -173,9 +174,14 @@ public class CNG {
         this(random, NoiseType.SIMPLEX, opacity, octaves);
     }
 
-    public CNG(RNG random, NoiseType t, double opacity, int octaves) {
+    public CNG(RNG random, NoiseType type, double opacity, int octaves) {
+        this(random,  type.create(random.nextParallelRNG((long) ((1113334944L * opacity) + 12922 + octaves)).lmax()), opacity, octaves);
+    }
+
+    public CNG(RNG random, NoiseGenerator generator, double opacity, int octaves) {
+        customGenerator = null;
         creates++;
-        noscale = t.equals(NoiseType.WHITE);
+        noscale = generator.isNoScale();
         this.oct = octaves;
         this.rng = random;
         power = 1;
@@ -186,7 +192,7 @@ public class CNG {
         down = 0;
         up = 0;
         fracture = null;
-        generator = t.create(random.nextParallelRNG(33).lmax());
+        this.generator = generator;
         this.opacity = opacity;
         this.injector = ADD;
 

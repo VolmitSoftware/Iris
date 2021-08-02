@@ -108,18 +108,17 @@ public class IrisDecorator {
 
     public CNG getHeightGenerator(RNG rng, IrisData data) {
         return heightGenerator.aquire(() ->
-                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin)));
+                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), data));
     }
 
     public CNG getGenerator(RNG rng, IrisData data) {
-        return layerGenerator.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size())));
+        return layerGenerator.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), data));
     }
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
         return varianceGenerator.aquire(() ->
                 variance.create(
-                        rng.nextParallelRNG(getBlockData(data).size()))
-
+                        rng.nextParallelRNG(getBlockData(data).size()), data)
                         .scale(1D / variance.getZoom()));
     }
 

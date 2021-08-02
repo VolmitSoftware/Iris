@@ -90,7 +90,7 @@ public class IrisBiomePaletteLayer {
         return layerGenerator.aquire(() ->
         {
             RNG rngx = rng.nextParallelRNG(minHeight + maxHeight + getBlockData(data).size());
-            return style.create(rngx);
+            return style.create(rngx, data);
         });
     }
 

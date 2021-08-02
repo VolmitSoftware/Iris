@@ -269,11 +269,11 @@ public class IrisRegion extends IrisRegistrant implements IRare {
             return false;
         }
 
-        if (getRiverChanceGen().aquire(() -> getRiverChanceStyle().create(rng)).fit(1, getRiverRarity(), x, z) != 1) {
+        if (getRiverChanceGen().aquire(() -> getRiverChanceStyle().create(rng, getLoader())).fit(1, getRiverRarity(), x, z) != 1) {
             return false;
         }
 
-        return getRiverGen().aquire(() -> getRiverStyle().create(rng)).fitDouble(0, 1, x, z) < getRiverThickness();
+        return getRiverGen().aquire(() -> getRiverStyle().create(rng, getLoader())).fitDouble(0, 1, x, z) < getRiverThickness();
     }
 
     public boolean isLake(RNG rng, double x, double z) {
@@ -285,7 +285,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
             return false;
         }
 
-        return getLakeGen().aquire(() -> getLakeStyle().create(rng)).fit(1, getLakeRarity(), x, z) == 1;
+        return getLakeGen().aquire(() -> getLakeStyle().create(rng, getLoader())).fit(1, getLakeRarity(), x, z) == 1;
     }
 
     public double getBiomeZoom(InferredType t) {

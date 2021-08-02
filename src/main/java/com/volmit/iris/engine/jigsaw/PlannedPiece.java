@@ -153,14 +153,15 @@ public class PlannedPiece {
         getPiece().getPlacementOptions().getRotation().setEnabled(false);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);
+        // TODO: REAL CLASSES!!!!!!!
         getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
-            public int getHighest(int x, int z) {
+            public int getHighest(int x, int z, IrisData data) {
                 return position.getY();
             }
 
             @Override
-            public int getHighest(int x, int z, boolean ignoreFluid) {
+            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
                 return position.getY();
             }
 

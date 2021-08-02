@@ -16,31 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.common;
+package com.volmit.iris.engine.noise;
 
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.tile.TileData;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
+import com.volmit.iris.engine.object.IrisExpression;
+import com.volmit.iris.util.math.RNG;
 
-public interface IObjectPlacer {
-    int getHighest(int x, int z, IrisData data);
+public class ExpressionNoise implements NoiseGenerator{
+    private final RNG rng;
+    private final IrisExpression expression;
 
-    int getHighest(int x, int z, IrisData data, boolean ignoreFluid);
+    public ExpressionNoise(RNG rng, IrisExpression expression)
+    {
+        this.rng = rng;
+        this.expression = expression;
+    }
 
-    void set(int x, int y, int z, BlockData d);
+    @Override
+    public double noise(double x) {
+        return expression.evaluate(rng, x, -1);
+    }
 
-    BlockData get(int x, int y, int z);
+    @Override
+    public double noise(double x, double z) {
+        return expression.evaluate(rng, x, z);
+    }
 
-    boolean isPreventingDecay();
-
-    boolean isSolid(int x, int y, int z);
-
-    boolean isUnderwater(int x, int z);
-
-    int getFluidHeight();
-
-    boolean isDebugSmartBore();
-
-    void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile);
+    @Override
+    public double noise(double x, double y, double z) {
+        return expression.evaluate(rng, x, y, z);
+    }
 }

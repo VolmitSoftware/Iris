@@ -26,6 +26,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
 import com.volmit.iris.core.tools.IrisWorldCreator;
+import com.volmit.iris.engine.data.loader.ResourceLoader;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
@@ -440,32 +441,19 @@ public class IrisProject {
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
         IrisDataManager dm = new IrisDataManager(getPath());
-        // TODO Cleanup
-        schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisMod.class, dm, "/mods/*.json", "/mods/*/*.json", "/mods/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisRegion.class, dm, "/regions/*.json", "/regions/*/*.json", "/regions/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisGenerator.class, dm, "/generators/*.json", "/generators/*/*.json", "/generators/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawPiece.class, dm, "/jigsaw-pieces/*.json", "/jigsaw-pieces/*/*.json", "/jigsaw-pieces/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawPool.class, dm, "/jigsaw-pools/*.json", "/jigsaw-pools/*/*.json", "/jigsaw-pools/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json", "/jigsaw-structures/*/*/*.json", "/jigsaw-structures/*/*.json"));
-        schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json", "/blocks/*/*.json", "/blocks/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json", "/loot/*/*.json", "/loot/*/*/*.json"));
-        schemas.put(getSchemaEntry(IrisSpawner.class, dm, "/spawners/*.json", "/spawners/*/*.json", "/spawners/*/*/*.json"));
+
+        for(ResourceLoader<?> r : dm.getLoaders().v())
+        {
+            if(r.supportsSchemas())
+            {
+                schemas.put(r.buildSchema());
+            }
+        }
+
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 
         return ws;
-    }
-
-    public JSONObject getSchemaEntry(Class<?> i, IrisDataManager dat, String... fileMatch) {
-        Iris.verbose("Processing Folder " + i.getSimpleName() + " " + fileMatch[0]);
-        JSONObject o = new JSONObject();
-        o.put("fileMatch", new JSONArray(fileMatch));
-        o.put("schema", new SchemaBuilder(i, dat).compute());
-
-        return o;
     }
 
     public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {

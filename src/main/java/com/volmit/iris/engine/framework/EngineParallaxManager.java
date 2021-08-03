@@ -212,6 +212,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
+        pos.add(forEachFeature(x<<4, z<<4));
+        pos.add(forEachFeature(((x+1)<<4)-1, z<<4));
+        pos.add(forEachFeature(x<<4, ((z+1)<<4)-1));
+        pos.add(forEachFeature(((x+1)<<4)-1, ((z+1)<<4)-1));
+        pos.removeDuplicates();
         return pos;
     }
 

@@ -431,12 +431,14 @@ public class IrisComplex implements DataProvider {
         double h = 0;
 
         for (IrisGenerator gen : generators) {
-            double hi = gen.getInterpolator().interpolate(x, z, (xx, zz) ->
+            h += gen.getInterpolator().interpolate(x, z, (xx, zz) ->
             {
                 try {
                     IrisBiome bx = baseBiomeStream.get(xx, zz);
 
-                    return bx.getGenLinkMax(gen.getLoadKey());
+                    return M.lerp(bx.getGenLinkMin(gen.getLoadKey()),
+                            bx.getGenLinkMax(gen.getLoadKey()),
+                            gen.getHeight(x, z, seed + 239945));
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
@@ -445,23 +447,6 @@ public class IrisComplex implements DataProvider {
 
                 return 0;
             });
-
-            double lo = gen.getInterpolator().interpolate(x, z, (xx, zz) ->
-            {
-                try {
-                    IrisBiome bx = baseBiomeStream.get(xx, zz);
-
-                    return bx.getGenLinkMin(gen.getLoadKey());
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                    Iris.warn("Failed to sample lo biome at " + xx + " " + zz + " using the generator " + gen.getLoadKey());
-                }
-
-                return 0;
-            });
-
-            h += M.lerp(lo, hi, gen.getHeight(x, z, seed + 239945));
         }
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));

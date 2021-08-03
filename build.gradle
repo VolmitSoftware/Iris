@@ -33,7 +33,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.5.18'
+version '1.6'
 def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
@@ -58,7 +58,6 @@ task copyDepends(type: Copy) {
 }
 
 task release(type: proguard.gradle.ProGuardTask) {
-    System.out.println("Java Mod: " + "${System.getProperty('java.home')}\\jmods\\java.base.jmod")
     dependsOn(":copyDepends")
     group('proguard')
     configuration 'proguard.pro'
@@ -115,27 +114,18 @@ shadowJar
     minimize()
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
-    relocate 'org.objectweb.asm', 'com.volmit.iris.util.asm'
-    relocate 'org.zeroturnaround.zip', 'com.volmit.iris.util.zlib'
-    relocate 'com.googlecode.concurrentlinkedhashmap', 'com.volmit.iris.util.collection'
     dependencies {
-        include(dependency('org.zeroturnaround:zt-zip:1.14'))
-        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
         include(dependency('io.papermc:paperlib:1.0.5'))
         include(dependency('com.dfsek:Paralithic:0.4.0'))
-        include(dependency('org.ow2.asm:asm:9.0'))
     }
 }
 
 manifest()
 
 dependencies {
+    // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
-    implementation 'com.dfsek:Paralithic:0.4.0'
-    implementation 'org.zeroturnaround:zt-zip:1.14'
-    implementation 'io.papermc:paperlib:1.0.5'
-    implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
     implementation 'org.bukkit.craftbukkit:1.17:1.17'
     implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
@@ -143,7 +133,17 @@ dependencies {
     implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
     implementation 'org.bukkit.craftbukkit:1.16.1:1.16.1'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
-    implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'me.clip:placeholderapi:2.10.10'
+
+    // Shaded
+    implementation 'com.dfsek:Paralithic:0.4.0'
+    implementation 'io.papermc:paperlib:1.0.5'
+
+    // Dynamically Loaded
+    implementation 'it.unimi.dsi:fastutil:8.5.4'
+    implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
+    implementation 'org.zeroturnaround:zt-zip:1.14'
+    implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'org.ow2.asm:asm:9.0'
+    implementation 'com.google.guava:guava:30.1.1-jre'
 }

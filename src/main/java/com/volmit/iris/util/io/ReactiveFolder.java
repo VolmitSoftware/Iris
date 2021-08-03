@@ -27,6 +27,7 @@ public class ReactiveFolder {
     private final File folder;
     private final Consumer3<KList<File>, KList<File>, KList<File>> hotload;
     private FolderWatcher fw;
+    private int checkCycle = 0;
 
     public ReactiveFolder(File folder, Consumer3<KList<File>, KList<File>, KList<File>> hotload) {
         this.folder = folder;
@@ -39,10 +40,11 @@ public class ReactiveFolder {
         fw = new FolderWatcher(folder);
     }
 
-    public void check() {
+    public boolean check() {
+        checkCycle++;
         boolean modified = false;
 
-        if (fw.checkModified()) {
+        if (checkCycle % 3 == 0 ? fw.checkModified() : fw.checkModifiedFast()) {
             for (File i : fw.getCreated()) {
                 if (i.getName().endsWith(".iob") || i.getName().endsWith(".json")) {
                     modified = true;
@@ -73,6 +75,6 @@ public class ReactiveFolder {
             hotload.accept(fw.getCreated(), fw.getChanged(), fw.getDeleted());
         }
 
-        fw.checkModified();
+        return fw.checkModified();
     }
 }

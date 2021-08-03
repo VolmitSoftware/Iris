@@ -48,6 +48,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import io.netty.util.internal.ConcurrentSet;
 import lombok.Getter;
@@ -83,9 +84,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     private final ChronoLatch hotloadcd;
     @Getter
     private double generatedPerSecond = 0;
-    private final int art;
     private ReactiveFolder hotloader = null;
     private IrisWorld cworld = null;
+    private final Looper ticker;
+    private final Looper cleaner;
+    private int hotloaderMisses = 0;
+    private long lastHotloadTime = 100;
 
     public EngineCompositeGenerator() {
         this(null, true);
@@ -93,12 +97,53 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public EngineCompositeGenerator(String query, boolean production) {
         super();
+        ticker = new Looper() {
+            @Override
+            protected long loop() {
+                PrecisionStopwatch p = PrecisionStopwatch.start();
+                if(!tickHotloader())
+                {
+                    hotloaderMisses++;
+                }
+
+                else
+                {
+                    hotloaderMisses = 0;
+                }
+                lastHotloadTime+= p.getMilliseconds();
+                lastHotloadTime /= 2;
+
+                return 120 + (long)(lastHotloadTime/2) + Math.min(hotloaderMisses * 125, 1375);
+            }
+        };
+        ticker.setPriority(Thread.MIN_PRIORITY);
+        ticker.setName("Iris Project Manager");
+
+        cleaner = new Looper() {
+            @Override
+            protected long loop() {
+                if(getComposite() != null)
+                {
+                    getComposite().clean();
+                }
+
+                return 10000;
+            }
+        };
+        cleaner.setPriority(Thread.MIN_PRIORITY);
+        cleaner.setName("Iris Parallax Manager");
+        cleaner.start();
+
+        if(isStudio())
+        {
+            ticker.start();
+        }
+
         hotloadcd = new ChronoLatch(3500);
         mst = M.ms();
         this.production = production;
         this.dimensionQuery = query;
         initialized = new AtomicBoolean(false);
-        art = J.ar(this::tick, 40);
         populators = new KList<BlockPopulator>().qadd(new BlockPopulator() {
             @Override
             public void populate(World world, Random random, Chunk chunk) {
@@ -137,35 +182,24 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
     }
 
-    public void tick() {
+    public boolean tickHotloader() {
         if (getComposite() == null || isClosed()) {
-            return;
+            return false;
         }
 
         if (!initialized.get()) {
-            return;
-        }
-
-        int pri = Thread.currentThread().getPriority();
-        Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-
-        if (M.ms() - mst > 1000) {
-            generatedPerSecond = (double) (generated - lgenerated) / ((double) (M.ms() - mst) / 1000D);
-            mst = M.ms();
-            lgenerated = generated;
+            return false;
         }
 
         try {
             if (hotloader != null) {
-                hotloader.check();
-                getComposite().clean();
+                return hotloader.check();
             }
         } catch (Throwable e) {
             Iris.reportError(e);
-
         }
 
-        Thread.currentThread().setPriority(pri);
+        return false;
     }
 
     private synchronized IrisDimension getDimension(IrisWorld world) {
@@ -562,12 +596,22 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     public Runnable generateChunkRawData(IrisWorld world, int x, int z, TerrainChunk tc, boolean multicore) {
         initialize(world);
+        tickMetrics();
+
         Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
         Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
         Hunk<BlockData> post = Hunk.newAtomicHunk(biomes.getWidth(), biomes.getHeight(), biomes.getDepth());
         compound.get().generate(x * 16, z * 16, blocks, post, biomes, multicore);
 
         return () -> blocks.insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
+    }
+
+    private void tickMetrics() {
+        if (M.ms() - mst > 1000) {
+            generatedPerSecond = (double) (generated - lgenerated) / ((double) (M.ms() - mst) / 1000D);
+            mst = M.ms();
+            lgenerated = generated;
+        }
     }
 
     @Override
@@ -689,7 +733,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
     @Override
     public void close() {
-        J.car(art);
+        if(isStudio())
+        {
+            ticker.interrupt();
+        }
+
         if (getComposite() != null) {
             getComposite().close();
 

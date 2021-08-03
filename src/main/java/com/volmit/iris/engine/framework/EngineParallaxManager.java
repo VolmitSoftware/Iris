@@ -586,16 +586,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             for (IrisFeaturePotential j : p.getAddFeatures()) {
-                ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                double a = Math.max(v.getW(), v.getD());
+                if(j.hasZone(rng, xx >> 4, zz >> 4))
+                {
+                    ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
+                    double a = Math.max(v.getW(), v.getD());
 
-                for (IrisFeaturePositional k : rw.getFeatures()) {
-                    if (k.getX() == xx && k.getZ() == zz) {
-                        break;
+                    for (IrisFeaturePositional k : rw.getFeatures()) {
+                        if (k.getX() == xx && k.getZ() == zz) {
+                            break;
+                        }
                     }
-                }
 
-                rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                    rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                }
             }
         }
 
@@ -646,16 +649,19 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
 
                 for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
-                    ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                    double a = Math.max(v.getW(), v.getD());
+                    if(j.hasZone(rng, xx >> 4, zz >> 4))
+                    {
+                        ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
+                        double a = Math.max(v.getW(), v.getD());
 
-                    for (IrisFeaturePositional k : rw.getFeatures()) {
-                        if (k.getX() == xx && k.getZ() == zz) {
-                            continue placing;
+                        for (IrisFeaturePositional k : rw.getFeatures()) {
+                            if (k.getX() == xx && k.getZ() == zz) {
+                                continue placing;
+                            }
                         }
-                    }
 
-                    rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                        rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                    }
                 }
             }
         }

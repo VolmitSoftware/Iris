@@ -70,7 +70,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         int maxGroups = 3;
-        int biomeBaseCooldownSeconds = 15;
+        int biomeBaseCooldownSeconds = 0;
 
         for (UUID i : spawnCooldowns.k()) {
             if (M.ms() - spawnCooldowns.get(i) > TimeUnit.SECONDS.toMillis(biomeBaseCooldownSeconds)) {

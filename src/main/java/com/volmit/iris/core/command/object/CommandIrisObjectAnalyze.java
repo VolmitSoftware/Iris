@@ -1,12 +1,9 @@
 package com.volmit.iris.core.command.object;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ProjectManager;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
@@ -17,19 +14,16 @@ import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.ints.IntComparators;
 import org.bukkit.entity.Player;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -45,7 +39,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
         if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisDataManager data = IrisWorlds.access(sender.player().getWorld()).getData();
+            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for objects while in an Iris world.");
             } else if (args.length == 0) {
@@ -81,7 +75,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
         Player p = sender.player();
 
         J.a(() -> {
-            IrisObject obj = IrisDataManager.loadAnyObject(args[0]);
+            IrisObject obj = IrisData.loadAnyObject(args[0]);
 
             if (obj == null || obj.getLoadFile() == null) {
                 sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");

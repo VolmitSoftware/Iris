@@ -135,7 +135,11 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at) {
         try {
             Location l = at.clone().add(0.5, 1, 0.5);
-            Entity e = getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            IrisEntity irisEntity = getRealEntity(g);
+
+            if (!irisEntity.getSurface().matches(at.getBlock().getState())) return null; //Make sure it can spawn on the block
+
+            Entity e = irisEntity.spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }

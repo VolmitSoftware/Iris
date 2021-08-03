@@ -19,30 +19,16 @@
 package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ProjectManager;
-import com.volmit.iris.core.WandManager;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.object.IrisAxisRotationClamp;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisObjectRotation;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;

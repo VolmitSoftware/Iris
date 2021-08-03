@@ -228,12 +228,12 @@ public class CommandIrisObjectPaste extends MortarCommand {
 
         return new IObjectPlacer() {
             @Override
-            public int getHighest(int x, int z) {
+            public int getHighest(int x, int z, IrisData data) {
                 return world.getHighestBlockYAt(x, z);
             }
 
             @Override
-            public int getHighest(int x, int z, boolean ignoreFluid) {
+            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
                 return world.getHighestBlockYAt(x, z, ignoreFluid ? HeightMap.OCEAN_FLOOR: HeightMap.MOTION_BLOCKING);
             }
 

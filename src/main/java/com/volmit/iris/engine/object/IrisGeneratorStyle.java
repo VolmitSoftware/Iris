@@ -89,6 +89,8 @@ public class IrisGeneratorStyle {
                     if (fracture != null) {
                         cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                     }
+
+                    return cng;
                 }
             }
 

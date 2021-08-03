@@ -4,4 +4,4 @@
 
 -keepclassmembers public class * {
    public * ;
-}
+}  

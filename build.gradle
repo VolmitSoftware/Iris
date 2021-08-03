@@ -57,7 +57,8 @@ task copyDepends(type: Copy) {
     into "${dependsDir}"
 }
 
-task proguard(type: proguard.gradle.ProGuardTask) {
+task release(type: proguard.gradle.ProGuardTask) {
+    System.out.println("Java Mod: " + "${System.getProperty('java.home')}\\jmods\\java.base.jmod")
     dependsOn(":copyDepends")
     group('proguard')
     configuration 'proguard.pro'
@@ -68,6 +69,9 @@ task proguard(type: proguard.gradle.ProGuardTask) {
     libraryjars "${dependsDir}"
     dontobfuscate()
     dontwarn()
+    dontshrink()
+    dontoptimize()
+    dontnote()
     verbose()
 }
 
@@ -109,6 +113,18 @@ shadowJar
 {
     append("plugin.yml")
     minimize()
+    relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
+    relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+    relocate 'org.objectweb.asm', 'com.volmit.iris.util.asm'
+    relocate 'org.zeroturnaround.zip', 'com.volmit.iris.util.zlib'
+    relocate 'com.googlecode.concurrentlinkedhashmap', 'com.volmit.iris.util.collection'
+    dependencies {
+        include(dependency('org.zeroturnaround:zt-zip:1.14'))
+        include(dependency('com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'))
+        include(dependency('io.papermc:paperlib:1.0.5'))
+        include(dependency('com.dfsek:Paralithic:0.4.0'))
+        include(dependency('org.ow2.asm:asm:9.0'))
+    }
 }
 
 manifest()

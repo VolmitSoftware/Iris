@@ -787,6 +787,8 @@ public class IrisObject extends IrisRegistrant {
 
         IrisPosition l1 = getAABB().max();
         IrisPosition l2 = getAABB().min();
+        @SuppressWarnings({"unchecked", "rawtypes"}) HashMap<BlockVector, BlockData> placeBlock = new HashMap();
+
         Vector center = getCenter();
         if (getH() == 2) {
             center = center.setY(center.getBlockY() + 0.5);
@@ -797,14 +799,13 @@ public class IrisObject extends IrisRegistrant {
         if (getD() == 2) {
             center = center.setZ(center.getBlockZ() + 0.5);
         }
-        @SuppressWarnings({"unchecked", "rawtypes"}) HashMap<BlockVector, BlockData> placeBlock = new HashMap();
 
         IrisObject oo = new IrisObject((int) Math.ceil((w * scale) + (scale * 2)), (int) Math.ceil((h * scale) + (scale * 2)), (int) Math.ceil((d * scale) + (scale * 2)));
 
         for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
             BlockData bd = entry.getValue();
             placeBlock.put(entry.getKey().clone().add(HALF).subtract(center)
-                    .multiply(scale).toBlockVector(), bd);
+                    .multiply(scale).add(sm1).toBlockVector(), bd);
         }
 
         for (Map.Entry<BlockVector, BlockData> entry : placeBlock.entrySet()) {

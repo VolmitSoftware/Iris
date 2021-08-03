@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
@@ -70,7 +71,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         int maxGroups = 3;
-        int biomeBaseCooldownSeconds = 0;
+        int biomeBaseCooldownSeconds = IrisSettings.get().getGeneral().isDebug() ? 0 : 15;
 
         for (UUID i : spawnCooldowns.k()) {
             if (M.ms() - spawnCooldowns.get(i) > TimeUnit.SECONDS.toMillis(biomeBaseCooldownSeconds)) {

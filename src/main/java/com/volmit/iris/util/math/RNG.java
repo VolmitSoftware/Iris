@@ -114,8 +114,7 @@ public class RNG extends Random {
     }
 
     public double d(double lowerBound, double upperBound) {
-        if(lowerBound > upperBound)
-        {
+        if (lowerBound > upperBound) {
             return M.lerp(upperBound, lowerBound, nextDouble());
         }
 

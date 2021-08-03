@@ -30,7 +30,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class CommandIrisStudioExplorerGenerator extends MortarCommand {
@@ -73,7 +72,6 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
         }
 
 
-
         Supplier<Function2<Double, Double, Double>> l = () -> {
             long seed = 12345;
             IrisGenerator generator;
@@ -84,15 +82,13 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
                 generator = IrisData.loadAnyGenerator(args[0]);
             }
 
-            if(generator == null)
-            {
+            if (generator == null) {
                 return (x, z) -> 0D;
             }
 
             long finalSeed = seed;
             return (x, z) -> generator.getHeight(x, z, new RNG(finalSeed).nextParallelRNG(3245).lmax());
         };
-
 
 
         NoiseExplorerGUI.launch(l, "Custom Generator");

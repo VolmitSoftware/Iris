@@ -22,7 +22,6 @@ import com.volmit.iris.core.*;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
 import com.volmit.iris.core.command.world.CommandLocate;
-import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.OraxenLink;

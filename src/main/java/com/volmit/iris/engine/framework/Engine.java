@@ -413,13 +413,11 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     IrisEngineData getEngineData();
 
-    default IrisBiome getSurfaceBiome(Chunk c)
-    {
-        return getSurfaceBiome((c.getX()<<4) + 8, (c.getZ()<<4) + 8);
+    default IrisBiome getSurfaceBiome(Chunk c) {
+        return getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
 
-    default IrisRegion getRegion(Chunk c)
-    {
-        return getRegion((c.getX()<<4) + 8, (c.getZ()<<4) + 8);
+    default IrisRegion getRegion(Chunk c) {
+        return getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
 }

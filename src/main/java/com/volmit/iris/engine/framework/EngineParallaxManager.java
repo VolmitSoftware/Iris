@@ -25,7 +25,6 @@ import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
@@ -198,18 +197,17 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z)
-    {
+    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
         KList<IrisFeaturePositional> pos = new KList<>();
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter((x<<4) + 8, (z<<4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
+            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
 
         for (IrisFeaturePositional i : getParallaxAccess().getMetaR(x, z).getFeatures()) {
-            if (i.shouldFilter((x<<4) + 8, (z<<4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
+            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
@@ -567,8 +565,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
         }, null, getData());
 
-        if(p.usesFeatures())
-        {
+        if (p.usesFeatures()) {
             if (p.isVacuum()) {
                 ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
                 double a = Math.max(v.getW(), v.getD());
@@ -588,8 +585,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
 
-            for(IrisFeaturePotential j : p.getAddFeatures())
-            {
+            for (IrisFeaturePotential j : p.getAddFeatures()) {
                 ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
                 double a = Math.max(v.getW(), v.getD());
 
@@ -629,8 +625,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
             }, null, getData());
 
-            if(objectPlacement.usesFeatures())
-            {
+            if (objectPlacement.usesFeatures()) {
                 if (objectPlacement.isVacuum()) {
                     ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
                     double a = Math.max(v.getW(), v.getD());
@@ -650,8 +645,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
                 }
 
-                for(IrisFeaturePotential j : objectPlacement.getAddFeatures())
-                {
+                for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
                     ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
                     double a = Math.max(v.getW(), v.getD());
 
@@ -952,8 +946,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c)
-    {
+    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
         return getFeaturesInChunk(c.getX(), c.getZ());
     }
 }

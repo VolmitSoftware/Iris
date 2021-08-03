@@ -26,7 +26,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Location;
 import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)
@@ -52,24 +51,22 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("Where should these spawns be placed")
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;
 
-    public boolean isValid(IrisBiome biome)
-    {
-        return switch (group)
-                {
-                    case NORMAL -> switch(biome.getInferredType()) {
-                        case SHORE, SEA, CAVE, RIVER, LAKE, DEFER -> false;
-                        case LAND -> true;
-                    };
-                    case CAVE -> true;
-                    case UNDERWATER -> switch(biome.getInferredType()) {
-                        case SHORE, LAND, CAVE, RIVER, LAKE, DEFER -> false;
-                        case SEA -> true;
-                    };
-                    case BEACH -> switch(biome.getInferredType()) {
-                        case SHORE -> true;
-                        case LAND, CAVE, RIVER, LAKE, SEA, DEFER -> false;
-                    };
-                };
+    public boolean isValid(IrisBiome biome) {
+        return switch (group) {
+            case NORMAL -> switch (biome.getInferredType()) {
+                case SHORE, SEA, CAVE, RIVER, LAKE, DEFER -> false;
+                case LAND -> true;
+            };
+            case CAVE -> true;
+            case UNDERWATER -> switch (biome.getInferredType()) {
+                case SHORE, LAND, CAVE, RIVER, LAKE, DEFER -> false;
+                case SEA -> true;
+            };
+            case BEACH -> switch (biome.getInferredType()) {
+                case SHORE -> true;
+                case LAND, CAVE, RIVER, LAKE, SEA, DEFER -> false;
+            };
+        };
     }
 
     public boolean isValid(World world) {

@@ -42,7 +42,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, Listener {
@@ -108,8 +107,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
     }
 
     @EventHandler
-    public void on(IrisEngineHotloadEvent e)
-    {
+    public void on(IrisEngineHotloadEvent e) {
         generator = loader.get();
     }
 

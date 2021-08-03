@@ -218,8 +218,7 @@ public class IrisObjectPlacement {
         return getMode().equals(ObjectPlaceMode.VACUUM);
     }
 
-    public boolean usesFeatures()
-    {
+    public boolean usesFeatures() {
         return isVacuum() || getAddFeatures().isNotEmpty();
     }
 

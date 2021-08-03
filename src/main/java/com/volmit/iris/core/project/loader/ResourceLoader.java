@@ -195,8 +195,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
         }
     }
 
-    public Stream<T> streamAll(Stream<String> s)
-    {
+    public Stream<T> streamAll(Stream<String> s) {
         return s.map(this::load);
     }
 

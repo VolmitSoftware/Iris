@@ -21,11 +21,9 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
-import com.volmit.iris.engine.modifier.IrisPostModifier;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -41,14 +39,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionType;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -87,9 +78,8 @@ public class IrisEntitySpawn implements IRare {
                 int z = (c.getZ() * 16) + rng.i(15);
                 int h = gen.getHeight(x, z, true);
                 int hf = gen.getHeight(x, z, false);
-                Location l = switch(getReferenceSpawner().getGroup())
-                {
-                    case NORMAL -> new Location(c.getWorld(), x, hf+1, z);
+                Location l = switch (getReferenceSpawner().getGroup()) {
+                    case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
                     case CAVE -> {
                         IrisComplex comp = gen.getFramework().getComplex();
                         EngineFramework frame = gen.getFramework();
@@ -97,7 +87,7 @@ public class IrisEntitySpawn implements IRare {
                         KList<Location> r = new KList<>();
                         if (cave != null) {
                             for (CaveResult i : ((IrisCaveModifier) frame.getCaveModifier()).genCaves(x, z)) {
-                                if (i.getCeiling() >= gen.getHeight() || i.getFloor() < 0 || i.getCeiling()-2 <= i.getFloor()) {
+                                if (i.getCeiling() >= gen.getHeight() || i.getFloor() < 0 || i.getCeiling() - 2 <= i.getFloor()) {
                                     continue;
                                 }
 
@@ -108,18 +98,17 @@ public class IrisEntitySpawn implements IRare {
                         yield r.getRandom(rng);
                     }
 
-                    case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h+1, hf), z);
+                    case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
                 };
 
-                if(l != null)
-                {
+                if (l != null) {
                     spawn100(gen, l);
                     s++;
                 }
             }
         }
 
-        return s>0;
+        return s > 0;
     }
 
     public IrisEntity getRealEntity(Engine g) {

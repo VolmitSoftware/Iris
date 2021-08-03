@@ -174,7 +174,12 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @BlockCoordinates
     @Override
     default int getHeight(int x, int z) {
-        return getFramework().getEngineParallax().getHighest(x, z, getData(), true);
+        return getHeight(x, z, true);
+    }
+
+    @BlockCoordinates
+    default int getHeight(int x, int z, boolean ignoreFluid) {
+        return getFramework().getEngineParallax().getHighest(x, z, getData(), ignoreFluid);
     }
 
     @BlockCoordinates
@@ -407,4 +412,14 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     IrisBiome getFocus();
 
     IrisEngineData getEngineData();
+
+    default IrisBiome getSurfaceBiome(Chunk c)
+    {
+        return getSurfaceBiome((c.getX()<<4) + 8, (c.getZ()<<4) + 8);
+    }
+
+    default IrisRegion getRegion(Chunk c)
+    {
+        return getRegion((c.getX()<<4) + 8, (c.getZ()<<4) + 8);
+    }
 }

@@ -20,26 +20,17 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 
-@Desc("Represents a biome type")
-public enum InferredType {
-    @Desc("Represents any shore biome type")
-    SHORE,
+@Desc("Terrain modes are used to decide the generator type currently used")
+public enum IrisSpawnGroup {
+    @Desc("Spawns on the terrain surface")
+    NORMAL,
 
-    @Desc("Represents any land biome type")
-    LAND,
-
-    @Desc("Represents any sea biome type")
-    SEA,
-
-    @Desc("Represents any cave biome type")
+    @Desc("Spawns in cave-air and low light level areas")
     CAVE,
 
-    @Desc("Represents any river biome type")
-    RIVER,
+    @Desc("Spawns underwater")
+    UNDERWATER,
 
-    @Desc("Represents any lake biome type")
-    LAKE,
-
-    @Desc("Defers the type to whatever another biome type that already exists is.")
-    DEFER
+    @Desc("Spawns in beaches")
+    BEACH
 }

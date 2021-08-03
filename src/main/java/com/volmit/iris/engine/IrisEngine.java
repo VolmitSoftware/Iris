@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.hunk.Hunk;
@@ -113,6 +114,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         effects = new IrisEngineEffects(this);
         art = J.ar(effects::tickRandomPlayer, 0);
         J.a(this::computeBiomeMaxes);
+        Iris.callEvent(new IrisEngineHotloadEvent(this));
     }
 
     @Override
@@ -289,6 +291,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void hotload() {
+        Iris.callEvent(new IrisEngineHotloadEvent(this));
         getEngineData().getStatistics().hotloaded();
         cacheId = RNG.r.nextInt();
     }

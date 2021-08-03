@@ -22,6 +22,7 @@ import com.volmit.iris.core.*;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
 import com.volmit.iris.core.command.world.CommandLocate;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.OraxenLink;
@@ -57,6 +58,7 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
@@ -93,6 +95,10 @@ public class Iris extends VolmitPlugin implements Listener {
         INMS.get();
         IO.delete(new File("iris"));
         installDataPacks();
+    }
+
+    public static void callEvent(Event e) {
+        J.s(() -> Bukkit.getPluginManager().callEvent(e));
     }
 
 

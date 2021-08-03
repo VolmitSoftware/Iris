@@ -41,6 +41,7 @@ import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant> {
@@ -192,6 +193,11 @@ public class ResourceLoader<T extends IrisRegistrant> {
             failLoad(j, e);
             return null;
         }
+    }
+
+    public Stream<T> streamAll(Stream<String> s)
+    {
+        return s.map(this::load);
     }
 
     public KList<T> loadAll(KList<String> s) {

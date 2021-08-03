@@ -210,10 +210,15 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double getHeight(double rx, double rz, long superSeed) {
-        return getHeight(rx, 0, rz, superSeed);
+        return getHeight(rx, 0, rz, superSeed, true);
     }
 
+
     public double getHeight(double rx, double ry, double rz, long superSeed) {
+        return getHeight(rx, ry, rz, superSeed, false);
+    }
+
+    public double getHeight(double rx, double ry, double rz, long superSeed, boolean no3d) {
         if (composite.isEmpty()) {
             Iris.warn("Useless Generator: Composite is empty in " + getLoadKey());
             return 0;
@@ -235,7 +240,7 @@ public class IrisGenerator extends IrisRegistrant {
         double v = multiplicitive ? h * opacity : (h / tp) * opacity;
 
         if (Double.isNaN(v)) {
-            Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity + " ZOOM = " + zoom);
+            v = 0;
         }
 
         v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;

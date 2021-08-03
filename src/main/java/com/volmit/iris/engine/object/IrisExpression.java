@@ -98,8 +98,8 @@ public class IrisExpression extends IrisRegistrant {
         }
 
         g[m++] = x;
-        g[m++] = -1;
-        g[m] = z;
+        g[m++] = z;
+        g[m] = -1;
 
         return expression().evaluate(g);
     }

@@ -58,6 +58,10 @@ public class IrisObjectPlacement {
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
 
+    @ArrayType(min = 1, type = IrisFeaturePotential.class)
+    @Desc("Place additional noise features in the object's place location")
+    private KList<IrisFeaturePotential> addFeatures = new KList<>();
+
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -161,6 +165,7 @@ public class IrisObjectPlacement {
         p.setWarp(warp);
         p.setBore(bore);
         p.setMeld(meld);
+        p.setAddFeatures(addFeatures.copy());
         p.setWaterloggable(waterloggable);
         p.setOnwater(onwater);
         p.setSmartBore(smartBore);
@@ -211,6 +216,11 @@ public class IrisObjectPlacement {
 
     public boolean isVacuum() {
         return getMode().equals(ObjectPlaceMode.VACUUM);
+    }
+
+    public boolean usesFeatures()
+    {
+        return isVacuum() || getAddFeatures().isNotEmpty();
     }
 
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();

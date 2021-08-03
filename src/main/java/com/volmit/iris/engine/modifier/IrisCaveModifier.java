@@ -105,6 +105,10 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         }
     }
 
+    public KList<CaveResult> genCaves(double wxx, double wzz) {
+        return genCaves(wxx, wzz, 0, 0, null);
+    }
+
     public KList<CaveResult> genCaves(double wxx, double wzz, int x, int z, Hunk<BlockData> data) {
         if (!getDimension().isCaves()) {
             return EMPTY;

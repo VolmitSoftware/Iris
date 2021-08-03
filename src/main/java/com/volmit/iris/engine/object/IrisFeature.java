@@ -23,6 +23,7 @@ import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -80,6 +81,11 @@ public class IrisFeature {
 
     @Desc("Fracture the radius ring with additional noise")
     private IrisGeneratorStyle fractureRadius = null;
+
+    @RegistryListResource(IrisSpawner.class)
+    @ArrayType(min = 1, type = String.class)
+    @Desc("Within this noise feature, use the following spawners")
+    private KList<String> entitySpawners = new KList<>();
 
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
 

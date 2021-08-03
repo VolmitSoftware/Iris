@@ -16,30 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.core.events;
 
-import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.framework.Engine;
+import org.bukkit.event.HandlerList;
 
-@Desc("Represents a biome type")
-public enum InferredType {
-    @Desc("Represents any shore biome type")
-    SHORE,
+public class IrisEngineHotloadEvent extends IrisEngineEvent {
+    private static final HandlerList handlers = new HandlerList();
 
-    @Desc("Represents any land biome type")
-    LAND,
+    public IrisEngineHotloadEvent(Engine engine) {
+        super(engine);
+    }
 
-    @Desc("Represents any sea biome type")
-    SEA,
+    @Override
+    public HandlerList getHandlers() {
+        return handlers;
+    }
 
-    @Desc("Represents any cave biome type")
-    CAVE,
-
-    @Desc("Represents any river biome type")
-    RIVER,
-
-    @Desc("Represents any lake biome type")
-    LAKE,
-
-    @Desc("Defers the type to whatever another biome type that already exists is.")
-    DEFER
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
 }

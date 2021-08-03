@@ -91,7 +91,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
 
             for (int ig = 0; ig < data.get(i).size() / 8; ig++) {
-                spawnIn(data.get(i).getRandom(), i, maxGroups);
+                Chunk c =  data.get(i).getRandom();
+                IrisBiome biome = getEngine().getSurfaceBiome(c);
+                IrisRegion region = getEngine().getRegion(c);
+                spawnIn(c, biome, region, i, maxGroups);
                 spawnCooldowns.put(i, M.ms());
             }
         }
@@ -101,25 +104,32 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
     }
 
-    private void spawnIn(Chunk c, UUID id, int max) {
+    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, UUID id, int max) {
         if (c.getEntities().length > 2) {
             return;
         }
 
         //@builder
-        puffen(Stream.concat(getData().getSpawnerLoader().loadAll(getDimension().getEntitySpawners())
-                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                        .flatMap(this::stream),
-                Stream.concat(getData().getSpawnerLoader()
-                                .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                                .flatMap(this::stream),
-                        getData().getSpawnerLoader()
-                                .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                                .flatMap(this::stream)))
-                .collect(Collectors.toList()))
-                .popRandom(RNG.r, max).forEach((i) -> spawn(c, id, i));
+        spawnRandomly(Stream.concat(Stream.concat(
+            getData().getSpawnerLoader()
+                .loadAll(getDimension().getEntitySpawners())
+                .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
+            getData().getSpawnerLoader().streamAll(getEngine().getFramework().getEngineParallax()
+                .getFeaturesInChunk(c).stream()
+                .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
+                .filter(this::canSpawn))
+            .filter((i) -> i.isValid(biome))
+            .flatMap(this::stream),
+            Stream.concat(getData().getSpawnerLoader()
+                .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
+                .flatMap(this::stream),
+            getData().getSpawnerLoader()
+                .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
+                .flatMap(this::stream)))
+            .collect(Collectors.toList()))
+            .popRandom(RNG.r, max).forEach((i) -> spawn(c, id, i));
         //@done
     }
 
@@ -138,7 +148,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         return s.getSpawns().stream();
     }
 
-    private KList<IrisEntitySpawn> puffen(List<IrisEntitySpawn> types) {
+    private KList<IrisEntitySpawn> spawnRandomly(List<IrisEntitySpawn> types) {
         KList<IrisEntitySpawn> rarityTypes = new KList<>();
         int totalRarity = 0;
         for (IrisEntitySpawn i : types) {
@@ -153,7 +163,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     public boolean canSpawn(IrisSpawner i) {
-        return i.isValid(getEngine().getWorld().realWorld()) && getCooldown(i).canSpawn(i.getMaximumRate());
+        return i.isValid(getEngine().getWorld().realWorld())
+                && getCooldown(i).canSpawn(i.getMaximumRate());
     }
 
     private IrisEngineSpawnerCooldown getCooldown(IrisSpawner i) {

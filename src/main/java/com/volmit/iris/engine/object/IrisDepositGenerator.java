@@ -50,15 +50,15 @@ public class IrisDepositGenerator {
 
     @Required
     @MinNumber(1)
-    @MaxNumber(32)
+    @MaxNumber(8192)
     @Desc("The minimum amount of deposit blocks per clump")
     private int minSize = 3;
 
     @Required
     @MinNumber(1)
-    @MaxNumber(32)
+    @MaxNumber(8192)
     @Desc("The maximum amount of deposit blocks per clump")
-    private int maxSize = 5;
+    private int maxSize = 64;
 
     @Required
     @MinNumber(1)

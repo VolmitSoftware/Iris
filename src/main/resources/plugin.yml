@@ -4,7 +4,7 @@ main: ${main}
 load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho ]
 website: volmit.com
-description: More than a Dimenson!
+description: More than a Dimension!
 commands:
   iris:
     aliases: [ ir, irs ]

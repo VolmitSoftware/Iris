@@ -42,7 +42,7 @@ public class IrisToolbelt {
     /**
      * Will find / download / search for the dimension or return null
      * <p>
-     * - You can provide a dimenson in the packs folder by the folder name
+     * - You can provide a Dimension in the packs folder by the folder name
      * - You can provide a github repo by using (assumes branch is master unless specified)
      * - GithubUsername/repository
      * - GithubUsername/repository/branch

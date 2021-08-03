@@ -208,8 +208,8 @@ public class B {
 
             //Combine all the "good" states again
             state = newStates.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
-
-            String newBlock = block + (state.equals("") ? "" : "[" + state + "]");
+            if (!state.equals("")) state = "[" + state + "]";
+            String newBlock = block + state;
             Iris.debug("Converting " + ix + " to " + newBlock);
 
             try {

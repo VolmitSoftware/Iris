@@ -26,6 +26,7 @@ import com.volmit.iris.engine.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -66,6 +67,12 @@ public class IrisDimension extends IrisRegistrant {
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
+
+    @Desc("The average distance between strongholds")
+    private int strongholdJumpDistance = 1280;
+
+    @Desc("Define the maximum strongholds to place")
+    private int maxStrongholds = 14;
 
     @Desc("Improves the biome grid variation by shuffling the cell grid more depending on the seed. This makes biomes across multiple seeds look far different than before.")
     private boolean aggressiveBiomeReshuffle = false;
@@ -308,6 +315,27 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
+    private final transient AtomicCache<KList<Position2>> strongholdsCache = new AtomicCache<>();
+
+    public KList<Position2> getStrongholds(long seed)
+    {
+        return strongholdsCache.aquire(() -> {
+            KList<Position2> pos = new KList<>();
+            int jump = strongholdJumpDistance;
+            RNG rng = new RNG((seed * 223) + 12945);
+
+            for(int i = 0; i < maxStrongholds; i++)
+            {
+                int m = i + 1;
+                pos.add(new Position2(
+                        (int) ((rng.i( jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
+                        (int) ((rng.i( jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
+                ));
+            }
+
+            return pos;
+        });
+    }
 
     public boolean hasSky() {
         return getSky() != null;

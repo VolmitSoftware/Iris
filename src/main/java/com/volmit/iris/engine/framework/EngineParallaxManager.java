@@ -597,12 +597,12 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     double a = Math.max(v.getW(), v.getD());
 
                     for (IrisFeaturePositional k : rw.getFeatures()) {
-                        if (k.getX() == xx && k.getZ() == zz) {
+                        if (k.getX() == xx+1 && k.getZ() == zz-1) {
                             break;
                         }
                     }
 
-                    rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                    rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
                 }
             }
         }
@@ -660,12 +660,12 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         double a = Math.max(v.getW(), v.getD());
 
                         for (IrisFeaturePositional k : rw.getFeatures()) {
-                            if (k.getX() == xx && k.getZ() == zz) {
+                            if (k.getX() == xx+1 && k.getZ() == zz-1) {
                                 continue placing;
                             }
                         }
 
-                        rw.getFeatures().add(new IrisFeaturePositional(xx, zz, j.getZone()));
+                        rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
                     }
                 }
             }

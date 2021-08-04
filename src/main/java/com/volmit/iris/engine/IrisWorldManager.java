@@ -19,6 +19,7 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
@@ -44,7 +45,7 @@ import java.util.stream.Stream;
 
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private final int art;
-    private final KMap<UUID, Long> spawnCooldowns;
+    private final KMap<Long, Long> chunkCooldowns;
     private int entityCount = 0;
     private final ChronoLatch cl;
     private int actuallySpawned = 0;
@@ -52,7 +53,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public IrisWorldManager(Engine engine) {
         super(engine);
         cl = new ChronoLatch(5000);
-        spawnCooldowns = new KMap<>();
+        chunkCooldowns = new KMap<>();
         art = J.ar(this::onAsyncTick, 7);
     }
 
@@ -71,33 +72,26 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         int maxGroups = 3;
-        int biomeBaseCooldownSeconds = IrisSettings.get().getGeneral().isDebug() ? 0 : 15;
+        int chunkCooldownSeconds = 60;
 
-        for (UUID i : spawnCooldowns.k()) {
-            if (M.ms() - spawnCooldowns.get(i) > TimeUnit.SECONDS.toMillis(biomeBaseCooldownSeconds)) {
-                spawnCooldowns.remove(i);
+        for (Long i : chunkCooldowns.k()) {
+            if (M.ms() - chunkCooldowns.get(i) > TimeUnit.SECONDS.toMillis(chunkCooldownSeconds)) {
+                chunkCooldowns.remove(i);
             }
         }
 
-        KMap<UUID, KList<Chunk>> data = mapChunkBiomes();
         int spawnBuffer = 32;
 
-        for (UUID i : data.k().shuffleCopy(RNG.r)) {
-            if (spawnCooldowns.containsKey(i)) {
-                continue;
-            }
+        for (Chunk c : getEngine().getWorld().realWorld().getLoadedChunks()) {
 
             if (spawnBuffer-- < 0) {
                 break;
             }
 
-            for (int ig = 0; ig < data.get(i).size() / 8; ig++) {
-                Chunk c = data.get(i).getRandom();
-                IrisBiome biome = getEngine().getSurfaceBiome(c);
-                IrisRegion region = getEngine().getRegion(c);
-                spawnIn(c, biome, region, i, maxGroups);
-                spawnCooldowns.put(i, M.ms());
-            }
+            IrisBiome biome = getEngine().getSurfaceBiome(c);
+            IrisRegion region = getEngine().getRegion(c);
+            spawnIn(c, biome, region, maxGroups);
+            chunkCooldowns.put(Cache.key(c), M.ms());
         }
 
         if (actuallySpawned <= 0) {
@@ -105,7 +99,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
     }
 
-    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, UUID id, int max) {
+    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, int max) {
         if (c.getEntities().length > 2) {
             return;
         }
@@ -130,11 +124,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                                 .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
                                 .flatMap(this::stream)))
                 .collect(Collectors.toList()))
-                .popRandom(RNG.r, max).forEach((i) -> spawn(c, id, i));
+                .popRandom(RNG.r, max).forEach((i) -> spawn(c, i));
         //@done
     }
 
-    private void spawn(Chunk c, UUID id, IrisEntitySpawn i) {
+    private void spawn(Chunk c, IrisEntitySpawn i) {
         if (i.spawn(getEngine(), c, RNG.r)) {
             actuallySpawned++;
             getCooldown(i.getReferenceSpawner()).spawn(getEngine());

@@ -82,7 +82,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 {
                     if(ecl.flip())
                     {
-                        energy *= 1.03;
+                        energy *= 1 + (0.02 * M.clip((1D - getEntitySaturation()), 0D, 1D));
                         fixEnergy();
                     }
                 }

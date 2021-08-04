@@ -581,12 +581,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 f.setInterpolator(p.getVacuumInterpolationMethod());
                 f.setStrength(1D);
 
-                for (IrisFeaturePositional j : rw.getFeatures()) {
-                    if (j.getX() == xx && j.getZ() == zz) {
-                        break;
-                    }
-                }
-
                 rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
             }
 
@@ -594,14 +588,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 if(j.hasZone(rng, xx >> 4, zz >> 4))
                 {
                     ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                    double a = Math.max(v.getW(), v.getD());
-
-                    for (IrisFeaturePositional k : rw.getFeatures()) {
-                        if (k.getX() == xx+1 && k.getZ() == zz-1) {
-                            break;
-                        }
-                    }
-
                     rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
                 }
             }
@@ -643,13 +629,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     f.setInterpolationRadius(objectPlacement.getVacuumInterpolationRadius());
                     f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
                     f.setStrength(1D);
-
-                    for (IrisFeaturePositional j : rw.getFeatures()) {
-                        if (j.getX() == xx && j.getZ() == zz) {
-                            continue placing;
-                        }
-                    }
-
                     rw.getFeatures().add(new IrisFeaturePositional(xx, zz, f));
                 }
 
@@ -657,14 +636,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     if(j.hasZone(rng, xx >> 4, zz >> 4))
                     {
                         ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                        double a = Math.max(v.getW(), v.getD());
-
-                        for (IrisFeaturePositional k : rw.getFeatures()) {
-                            if (k.getX() == xx+1 && k.getZ() == zz-1) {
-                                continue placing;
-                            }
-                        }
-
                         rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
                     }
                 }

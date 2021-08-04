@@ -131,6 +131,12 @@ public class CommandIrisCreate extends MortarCommand {
             pregen.set(i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen.get());
         }
 
+        if (worldName.equalsIgnoreCase("iris")) {
+            sender.sendMessage("You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
+            sender.sendMessage("May we suggest the name \"IrisWorld\" instead?");
+            return true;
+        }
+
         Iris.linkMultiverseCore.assignWorldType(worldName, type);
         final AtomicReference<World> world = new AtomicReference<>();
         IrisDimension dim;

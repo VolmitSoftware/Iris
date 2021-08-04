@@ -27,6 +27,11 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public class B {
     private static final Material AIR_MATERIAL = Material.AIR;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
@@ -157,26 +162,67 @@ public class B {
 
             blockDataCache.put(ix, bx);
             return bx;
-        } catch (Throwable e) {
-            Iris.reportError(e);
+        } catch (Exception e) {
+            //Iris.reportError(e);
+            Iris.debug("Failed to load block \"" + ix + "\"");
 
+            String block = ix.contains(":") ? ix.split(":")[1].toLowerCase() : ix.toLowerCase();
+            String state = block.contains("[") ? block.split("\\[")[1].split("\\]")[0] : "";
+            Map<String, String> stateMap = new HashMap<>();
+            if (!state.equals("")) {
+                Arrays.stream(state.split(",")).forEach(s -> {
+                    stateMap.put(s.split("=")[0], s.split("=")[1]);
+                });
+            }
+            block = block.split("\\[")[0];
+
+            switch (block) {
+                case "cauldron" -> block = "water_cauldron"; //Would fail to load if it has a level parameter
+                case "grass_path" -> block = "dirt_path";
+                case "concrete" -> block = "white_concrete";
+                case "wool" -> block = "white_wool";
+                case "beetroots" -> {
+                    if (stateMap.containsKey("age")) {
+                        String updated = stateMap.get("age");
+                        switch (updated) {
+                            case "7" -> updated = "3";
+                            case "3", "4", "5" -> updated = "2";
+                            case "1", "2" -> updated = "1";
+                        }
+                        stateMap.put("age", updated);
+                    }
+                }
+            }
+
+            Map<String, String> newStates = new HashMap<>();
+            for (String key : stateMap.keySet()) { //Iterate through every state and check if its valid
+                try {
+                    String newState = block + "[" + key + "=" + stateMap.get(key) + "]";
+                    Bukkit.createBlockData(newState);
+
+                    //If we get to here, the state is okay so we can use it
+                    newStates.put(key, stateMap.get(key));
+
+                } catch (IllegalArgumentException ignored) { }
+            }
+
+            //Combine all the "good" states again
+            state = newStates.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
+            if (!state.equals("")) state = "[" + state + "]";
+            String newBlock = block + state;
+            Iris.debug("Converting " + ix + " to " + newBlock);
+
+            try {
+                BlockData bd = Bukkit.createBlockData(newBlock);
+                blockDataCache.put(ix, bd);
+                return bd;
+            } catch (Throwable e1) {
+                Iris.reportError(e1);
+            }
+
+            nullBlockDataCache.add(ix);
+            return null;
         }
-
-        String i = ix.toUpperCase().trim();
-        i = i.equals("GRASS_PATH") ? "DIRT_PATH" : i;
-        i = i.equals("WOOL") ? "WHITE_WOOL" : i;
-        i = i.equals("CONCRETE") ? "WHITE_CONCRETE" : i;
-
-        try {
-            BlockData bd = Material.valueOf(i).createBlockData();
-            blockDataCache.put(ix, bd);
-        } catch (Throwable e) {
-            Iris.reportError(e);
-
-        }
-
-        nullBlockDataCache.add(ix);
-        return null;
     }
 
     private static BlockData parseBlockData(String ix) {

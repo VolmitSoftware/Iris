@@ -34,6 +34,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -41,6 +42,7 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class WandManager implements Listener {
@@ -70,10 +72,20 @@ public class WandManager implements Listener {
         }
     }
 
+    /**
+     * Draw the outline of a selected region
+     * @param d The cuboid
+     * @param p The player to show it to
+     */
     public void draw(Cuboid d, Player p) {
         draw(new Location[]{d.getLowerNE(), d.getUpperSW()}, p);
     }
 
+    /**
+     * Draw the outline of a selected region
+     * @param d A pair of locations
+     * @param p The player to show them to
+     */
     public void draw(Location[] d, Player p) {
         Vector gx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
         d[0].getWorld().spawnParticle(Particle.CRIT_MAGIC, d[0], 1, 0.5 + gx.getX(), 0.5 + gx.getY(), 0.5 + gx.getZ(), 0, null, false);
@@ -146,7 +158,7 @@ public class WandManager implements Listener {
     @EventHandler
     public void on(PlayerInteractEvent e) {
         try {
-            if (isWand(e.getPlayer())) {
+            if (isHoldingWand(e.getPlayer())) {
                 if (e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().getInventory().setItemInMainHand(update(true, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
@@ -160,7 +172,7 @@ public class WandManager implements Listener {
                 }
             }
 
-            if (isDust(e.getPlayer())) {
+            if (isHoldingDust(e.getPlayer())) {
                 if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
@@ -177,6 +189,11 @@ public class WandManager implements Listener {
         s.place(at);
     }
 
+    /**
+     * Creates an Iris Object from the 2 coordinates selected with a wand
+     * @param wand The wand itemstack
+     * @return The new object
+     */
     public static IrisObject createSchematic(ItemStack wand) {
         if (!isWand(wand)) {
             return null;
@@ -204,6 +221,11 @@ public class WandManager implements Listener {
         return null;
     }
 
+    /**
+     * Converts a user friendly location string to an actual Location
+     * @param s The string
+     * @return The location
+     */
     public static Location stringToLocation(String s) {
         try {
             String[] f = s.split("\\Q in \\E");
@@ -215,18 +237,31 @@ public class WandManager implements Listener {
         }
     }
 
-    public static String locationToString(Location s) {
-        if (s == null) {
+    /**
+     * Get a user friendly string of a location
+     * @param loc The location
+     * @return The string
+     */
+    public static String locationToString(Location loc) {
+        if (loc == null) {
             return "<#>";
         }
 
-        return s.getBlockX() + "," + s.getBlockY() + "," + s.getBlockZ() + " in " + s.getWorld().getName();
+        return loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " in " + loc.getWorld().getName();
     }
 
+    /**
+     * Create a new blank Iris wand
+     * @return The wand itemstack
+     */
     public static ItemStack createWand() {
         return createWand(null, null);
     }
 
+    /**
+     * Create a new dust itemstack
+     * @return The stack
+     */
     public static ItemStack createDust() {
         ItemStack is = new ItemStack(Material.GLOWSTONE_DUST);
         is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
@@ -240,15 +275,32 @@ public class WandManager implements Listener {
         return is;
     }
 
-    public boolean isDust(Player p) {
+    /**
+     * Is the player holding Dust?
+     * @param p The player
+     * @return True if they are
+     */
+    public boolean isHoldingDust(Player p) {
         ItemStack is = p.getInventory().getItemInMainHand();
         return is != null && isDust(is);
     }
 
+    /**
+     * Is the itemstack passed Iris dust?
+     * @param is The itemstack
+     * @return True if it is
+     */
     public boolean isDust(ItemStack is) {
-        return is.equals(dust);
+        return is.isSimilar(dust);
     }
 
+    /**
+     * Update the location on an Iris wand
+     * @param left True for first location, false for second
+     * @param a The location
+     * @param item The wand
+     * @return The updated wand
+     */
     public ItemStack update(boolean left, Location a, ItemStack item) {
         if (!isWand(item)) {
             return item;
@@ -264,6 +316,35 @@ public class WandManager implements Listener {
         return createWand(left ? a : other, left ? other : a);
     }
 
+    /**
+     * Finds an existing wand in a users inventory
+     * @param inventory The inventory to search
+     * @return The slot number the wand is in. Or -1 if none are found
+     */
+    public static int findWand(Inventory inventory) {
+        ItemStack wand = createWand(); //Create blank wand
+        ItemMeta meta = wand.getItemMeta();
+        meta.setLore(new ArrayList<>()); //We are resetting the lore as the lore differs between wands
+        wand.setItemMeta(meta);
+
+        for (int s = 0; s < inventory.getSize(); s++) {
+            ItemStack stack = inventory.getItem(s);
+            if (stack == null) continue;
+            meta = stack.getItemMeta();
+            meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
+            stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
+
+            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
+        }
+        return -1;
+    }
+
+    /**
+     * Creates an Iris wand. The locations should be the currently selected locations, or null
+     * @param a Location A
+     * @param b Location B
+     * @return A new wand
+     */
     public static ItemStack createWand(Location a, Location b) {
         ItemStack is = new ItemStack(Material.BLAZE_ROD);
         is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
@@ -277,16 +358,31 @@ public class WandManager implements Listener {
         return is;
     }
 
+    /**
+     * Get a pair of locations that are selected in an Iris wand
+     * @param is The wand item
+     * @return An array with the 2 locations
+     */
     public static Location[] getCuboid(ItemStack is) {
         ItemMeta im = is.getItemMeta();
         return new Location[]{stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
     }
 
-    public static boolean isWand(Player p) {
+    /**
+     * Is a player holding an Iris wand
+     * @param p The player
+     * @return True if they are
+     */
+    public static boolean isHoldingWand(Player p) {
         ItemStack is = p.getInventory().getItemInMainHand();
         return is != null && isWand(is);
     }
 
+    /**
+     * Is the itemstack passed an Iris wand
+     * @param is The itemstack
+     * @return True if it is
+     */
     public static boolean isWand(ItemStack is) {
         ItemStack wand = createWand();
         if (is.getItemMeta() == null) return false;

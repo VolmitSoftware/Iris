@@ -136,6 +136,12 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("The this entity is ageable, set it's baby status")
     private boolean baby = false;
 
+    @Desc("If the entity should never be culled. Useful for Jigsaws")
+    private boolean keepEntity = false;
+
+    @Desc("The surface type to spawn this mob on")
+    private IrisSurface surface = IrisSurface.LAND;
+
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
     }
@@ -154,10 +160,14 @@ public class IrisEntity extends IrisRegistrant {
         e.setGravity(isGravity());
         e.setInvulnerable(isInvulnerable());
         e.setSilent(isSilent());
+        e.setPersistent(isKeepEntity());
 
         int gg = 0;
         for (IrisEntity i : passengers) {
-            e.addPassenger(i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++)));
+            Entity passenger = i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++));
+            if (!Bukkit.isPrimaryThread()) {
+                J.s(() -> e.addPassenger(passenger));
+            }
         }
 
         if (e instanceof Attributable) {

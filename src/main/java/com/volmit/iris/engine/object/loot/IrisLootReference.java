@@ -37,7 +37,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisLootReference {
     @Desc("Add = add on top of parent tables, Replace = clear first then add these. Clear = Remove all and dont add loot from this or parent.")
-    private LootMode mode = LootMode.ADD;
+    private IrisLootMode mode = IrisLootMode.ADD;
 
     @RegistryListResource(LoaderLootTable.class)
     @ArrayType(min = 1, type = String.class)

@@ -30,7 +30,7 @@ import com.volmit.iris.engine.object.biome.LoaderBiome;
 import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.loot.LoaderLootTable;
-import com.volmit.iris.engine.object.loot.LootMode;
+import com.volmit.iris.engine.object.loot.IrisLootMode;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.regional.LoaderRegion;
 import com.volmit.iris.util.hunk.Hunk;
@@ -316,7 +316,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @Override
     default void injectTables(KList<LoaderLootTable> list, IrisLootReference r) {
-        if (r.getMode().equals(LootMode.CLEAR) || r.getMode().equals(LootMode.REPLACE)) {
+        if (r.getMode().equals(IrisLootMode.CLEAR) || r.getMode().equals(IrisLootMode.REPLACE)) {
             list.clear();
         }
 

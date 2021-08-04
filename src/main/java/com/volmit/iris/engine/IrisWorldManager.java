@@ -100,7 +100,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean onAsyncTick() {
         actuallySpawned = 0;
 
-        if(energy < 35)
+        if(energy < 100)
         {
             J.sleep(200);
             return false;
@@ -196,7 +196,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         actuallySpawned+= s;
         if (s > 0) {
             getCooldown(i.getReferenceSpawner()).spawn(getEngine());
-            energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1) - 1);
+            energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
         }
     }
 

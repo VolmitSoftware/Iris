@@ -90,7 +90,7 @@ public class IrisEntity extends IrisRegistrant {
     private boolean pickupItems = false;
 
     @Desc("Should this entity be removed when far away")
-    private boolean removable = true;
+    private boolean removable = false;
 
     @Desc("Entity helmet equipment")
     private IrisLoot helmet = null;
@@ -266,11 +266,25 @@ public class IrisEntity extends IrisRegistrant {
             // Someone called spawn (worldedit maybe?) on a non server thread
             // Due to the structure of iris, we will call it sync and busy wait until it's done.
             AtomicReference<Entity> ae = new AtomicReference<>();
-            J.s(() -> ae.set(doSpawn(at)));
+
+            try
+            {
+                J.s(() -> ae.set(doSpawn(at)));
+            }
+
+            catch(Throwable e)
+            {
+                return null;
+            }
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
             while (ae.get() == null) {
-                J.sleep(3);
+                J.sleep(25);
+
+                if(p.getMilliseconds() > 500)
+                {
+                    return null;
+                }
             }
 
             return ae.get();

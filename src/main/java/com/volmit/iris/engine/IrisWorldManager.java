@@ -60,6 +60,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final ChronoLatch ecl;
     private int actuallySpawned = 0;
     private int cooldown = 0;
+    private List<Entity> precount = new KList<>();
 
     public IrisWorldManager() {
         super(null);
@@ -71,13 +72,30 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     public IrisWorldManager(Engine engine) {
         super(engine);
-        cl = new ChronoLatch(1000);
+        cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
         chunkCooldowns = new KMap<>();
         energy = 25;
         looper = new Looper() {
             @Override
             protected long loop() {
+                if(precount != null)
+                {
+                    entityCount = 0;
+                    for(Entity i : precount)
+                    {
+                        if(i instanceof LivingEntity)
+                        {
+                            if(!i.isDead())
+                            {
+                                entityCount++;
+                            }
+                        }
+                    }
+
+                    precount = null;
+                }
+
                 if(energy < 650)
                 {
                     if(ecl.flip())
@@ -120,7 +138,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         if (cl.flip()) {
-            J.s(() -> entityCount = getEngine().getWorld().realWorld().getEntities().size());
+            J.s(() -> precount = getEngine().getWorld().realWorld().getEntities());
         }
 
         int maxGroups = 1;
@@ -346,6 +364,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public double getEntitySaturation() {
-        return (double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length + 1) * 1.665;
+        if(!getEngine().getWorld().hasRealWorld())
+        {
+            return 1;
+        }
+
+        return (double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length + 1) * 1.28;
     }
 }

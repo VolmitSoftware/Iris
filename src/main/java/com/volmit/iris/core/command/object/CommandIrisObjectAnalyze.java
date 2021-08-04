@@ -92,11 +92,6 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
             while (queue.hasNext()) {
                 BlockData block = queue.next();
 
-                if (block == null) {
-                    System.out.println("Null???");
-                    continue;
-                }
-
                 //unsorted.put(block.getMaterial(), block);
 
                 if (!amounts.containsKey(block)) {

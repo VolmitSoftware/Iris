@@ -70,7 +70,6 @@ public class PlannedStructure {
     }
 
     public KList<Runnable> place(IObjectPlacer placer, EngineParallaxManager e) {
-        Iris.info("PLACED JIGSAW");
         KList<Runnable> after = new KList<>();
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);

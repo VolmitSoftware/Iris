@@ -81,7 +81,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
                 if(pr != null)
                 {
-                    e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.2f);
+                    e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.ITEM_TRIDENT_THROW, 1f, 1.6f);
                     ((EnderSignal) e.getEntity()).setTargetLocation(new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ()));
                 }
             }

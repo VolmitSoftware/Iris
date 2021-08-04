@@ -39,6 +39,7 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -429,13 +430,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             boolean placed = false;
 
             if (getEngine().getDimension().getStronghold() != null) {
-                List<IrisPosition> poss = getEngine().getCompound().getStrongholdPositions();
+                List<Position2> poss = getEngine().getDimension().getStrongholds(getEngine().getWorld().seed());
 
                 if (poss != null) {
-                    for (IrisPosition pos : poss) {
+                    for (Position2 pos : poss) {
                         if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                             IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
-                            placeAfter.addAll(placeStructure(pos, structure, rng));
+                            placeAfter.addAll(placeStructure(pos.toIris(), structure, rng));
                             placed = true;
                         }
                     }

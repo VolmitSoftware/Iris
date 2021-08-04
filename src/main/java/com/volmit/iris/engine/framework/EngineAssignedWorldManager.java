@@ -31,6 +31,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
@@ -58,7 +59,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     }
 
     @EventHandler
-    public void on(ProjectileLaunchEvent e) {
+    public void on(EntitySpawnEvent e) {
         if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
             if(e.getEntityType().equals(EntityType.ENDER_SIGNAL))
             {

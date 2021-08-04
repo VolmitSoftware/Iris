@@ -26,7 +26,7 @@ import com.volmit.iris.engine.framework.EngineCompound;
 import com.volmit.iris.engine.framework.EngineData;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.dimensional.IrisDimensionIndex;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IrisWorld;
@@ -71,7 +71,7 @@ public class IrisEngineCompound implements EngineCompound {
     private final KList<BlockPopulator> populators;
 
     @Getter
-    private final LoaderDimension rootDimension;
+    private final IrisDimension rootDimension;
 
     @Getter
     private final int threadCount = -1;
@@ -80,7 +80,7 @@ public class IrisEngineCompound implements EngineCompound {
     @Setter
     private boolean studio;
 
-    public IrisEngineCompound(IrisWorld world, LoaderDimension rootDimension, IrisData data, int maximumThreads) {
+    public IrisEngineCompound(IrisWorld world, IrisDimension rootDimension, IrisData data, int maximumThreads) {
         wallClock = new AtomicRollingSequence(32);
         this.rootDimension = rootDimension;
         Iris.info("Initializing Engine Composite for " + world.name());
@@ -115,7 +115,7 @@ public class IrisEngineCompound implements EngineCompound {
 
             for (int i = 0; i < engines.length; i++) {
                 IrisDimensionIndex index = rootDimension.getDimensionalComposite().get(i);
-                LoaderDimension dimension = data.getDimensionLoader().load(index.getDimension());
+                IrisDimension dimension = data.getDimensionLoader().load(index.getDimension());
                 // TODO: WARNING HEIGHT
                 engines[i] = new IrisEngine(new EngineTarget(world, dimension, data.copy(), (int) Math.floor(256D * (index.getWeight() / totalWeight)), index.isInverted(), threadDist), this, i);
                 engines[i].setMinHeight(buf);

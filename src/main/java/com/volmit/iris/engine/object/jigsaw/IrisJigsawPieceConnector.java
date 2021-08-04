@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.jigsaw;
 
 import com.volmit.iris.engine.object.objects.IrisDirection;
-import com.volmit.iris.engine.object.entity.LoaderEntity;
+import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -52,13 +52,13 @@ public class IrisJigsawPieceConnector {
     @Desc("If set to true, this connector is allowed to place pieces inside of it's own piece. For example if you are adding a light post, or house on top of a path piece, you would set this to true to allow the piece to collide with the path bounding box.")
     private boolean innerConnector = false;
 
-    @RegistryListResource(LoaderJigsawPool.class)
+    @RegistryListResource(IrisJigsawPool.class)
     @Desc("Pick piece pools to place onto this connector")
     @ArrayType(type = String.class, min = 1)
     @Required
     private KList<String> pools = new KList<>();
 
-    @RegistryListResource(LoaderEntity.class)
+    @RegistryListResource(IrisEntity.class)
     @Desc("Pick an entity to spawn on this connector")
     private String spawnEntity;
 

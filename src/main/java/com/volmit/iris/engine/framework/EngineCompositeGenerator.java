@@ -25,15 +25,15 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisEngineCompound;
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
-import com.volmit.iris.engine.data.mca.NBTWorld;
-import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.framework.headless.HeadlessGenerator;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -202,11 +202,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return false;
     }
 
-    private synchronized LoaderDimension getDimension(IrisWorld world) {
+    private synchronized IrisDimension getDimension(IrisWorld world) {
         String query = dimensionQuery;
         query = Iris.linkMultiverseCore.getWorldNameType(world.name(), query);
 
-        LoaderDimension dim = null;
+        IrisDimension dim = null;
 
         if (query == null) {
             File iris = new File(world.worldFolder(), "iris");
@@ -253,7 +253,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (production) {
-            LoaderDimension od = dim;
+            IrisDimension od = dim;
             dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
@@ -270,9 +270,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
-    private synchronized LoaderDimension getDimension(String world) {
+    private synchronized IrisDimension getDimension(String world) {
         String query = dimensionQuery;
-        LoaderDimension dim = null;
+        IrisDimension dim = null;
 
         if (query == null) {
             File iris = new File(world + "/iris");
@@ -319,7 +319,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (production) {
-            LoaderDimension od = dim;
+            IrisDimension od = dim;
             dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
@@ -345,7 +345,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         try {
             initialized.set(true);
-            LoaderDimension dim = getDimension(world);
+            IrisDimension dim = getDimension(world);
             IrisData data = production ? new IrisData(getDataFolder(world)) : dim.getLoader().copy();
             compound.set(new IrisEngineCompound(world, dim, data, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount())));
             compound.get().setStudio(!production);
@@ -572,7 +572,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         try {
             int ox = x << 4;
             int oz = z << 4;
-            com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
+            com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(x, z);
             generateChunkRawData(w, x, z, MCATerrainChunk.builder()
                     .writer(writer).ox(ox).oz(oz).mcaChunk(chunk)
                     .minHeight(w.minHeight()).maxHeight(w.maxHeight())
@@ -584,7 +584,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "MCA");
             Iris.error("======================================");
-            com.volmit.iris.engine.data.mca.Chunk chunk = writer.getChunk(x, z);
+            com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(x, z);
             CompoundTag c = NBTWorld.getCompound(ERROR_BLOCK);
             for (int i = 0; i < 16; i++) {
                 for (int j = 0; j < 16; j++) {
@@ -673,12 +673,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public LoaderBiome getBiome(int x, int z) {
+    public IrisBiome getBiome(int x, int z) {
         return getBiome(x, 0, z);
     }
 
     @Override
-    public LoaderBiome getCaveBiome(int x, int z) {
+    public IrisBiome getCaveBiome(int x, int z) {
         return getCaveBiome(x, 0, z);
     }
 
@@ -693,13 +693,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public LoaderBiome getBiome(int x, int y, int z) {
+    public IrisBiome getBiome(int x, int y, int z) {
         // TODO: REMOVE GET ABS BIOME OR THIS ONE
         return getEngineAccess(y).getBiome(x, y - getComposite().getEngineForHeight(y).getMinHeight(), z);
     }
 
     @Override
-    public LoaderBiome getCaveBiome(int x, int y, int z) {
+    public IrisBiome getCaveBiome(int x, int y, int z) {
         return getEngineAccess(y).getCaveBiome(x, z);
     }
 
@@ -792,12 +792,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return false;
     }
 
-    public KList<LoaderBiome> getAllBiomes(String worldName) {
+    public KList<IrisBiome> getAllBiomes(String worldName) {
         if (getComposite() != null) {
             return getComposite().getAllBiomes();
         } else {
-            KMap<String, LoaderBiome> v = new KMap<>();
-            LoaderDimension dim = getDimension(worldName);
+            KMap<String, IrisBiome> v = new KMap<>();
+            IrisDimension dim = getDimension(worldName);
             dim.getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i));
 
             try {

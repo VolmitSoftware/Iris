@@ -21,8 +21,8 @@ package com.volmit.iris.engine.object.deposits;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -75,23 +75,23 @@ public class IrisDepositGenerator {
     private int minPerChunk = 1;
 
     @Required
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this deposit generator")
-    private KList<LoaderBlockData> palette = new KList<>();
+    private KList<IrisBlockData> palette = new KList<>();
 
     @MinNumber(1)
     @MaxNumber(64)
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
 
-    private final transient AtomicCache<KList<LoaderObject>> objects = new AtomicCache<>();
+    private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
 
-    public LoaderObject getClump(RNG rng, IrisData rdata) {
-        KList<LoaderObject> objects = this.objects.aquire(() ->
+    public IrisObject getClump(RNG rng, IrisData rdata) {
+        KList<IrisObject> objects = this.objects.aquire(() ->
         {
             RNG rngv = rng.nextParallelRNG(3957778);
-            KList<LoaderObject> objectsf = new KList<>();
+            KList<IrisObject> objectsf = new KList<>();
 
             for (int i = 0; i < varience; i++) {
                 objectsf.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598), rdata));
@@ -106,11 +106,11 @@ public class IrisDepositGenerator {
         return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
     }
 
-    private LoaderObject generateClumpObject(RNG rngv, IrisData rdata) {
+    private IrisObject generateClumpObject(RNG rngv, IrisData rdata) {
         int s = rngv.i(minSize, maxSize);
         int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
         int w = dim / 2;
-        LoaderObject o = new LoaderObject(dim, dim, dim);
+        IrisObject o = new IrisObject(dim, dim, dim);
 
         if (s == 1) {
             o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
@@ -135,7 +135,7 @@ public class IrisDepositGenerator {
         {
             KList<BlockData> blockData = new KList<>();
 
-            for (LoaderBlockData ix : palette) {
+            for (IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(rdata);
 
                 if (bx != null) {

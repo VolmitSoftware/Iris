@@ -20,8 +20,8 @@ package com.volmit.iris.engine.object.carve;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -49,7 +49,7 @@ public class IrisCaveFluid {
 
     @Required
     @Desc("The fluid type that should spawn here")
-    private LoaderBlockData fluidType = new LoaderBlockData("CAVE_AIR");
+    private IrisBlockData fluidType = new IrisBlockData("CAVE_AIR");
 
     private final transient AtomicCache<BlockData> fluidData = new AtomicCache<>();
 

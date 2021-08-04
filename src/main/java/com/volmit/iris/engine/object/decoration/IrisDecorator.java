@@ -21,8 +21,8 @@ package com.volmit.iris.engine.object.decoration;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.noise.CNG;
@@ -82,13 +82,13 @@ public class IrisDecorator {
     private double chance = 0.1;
 
     @Required
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to pick from when this decorator needs to place.")
-    private KList<LoaderBlockData> palette = new KList<LoaderBlockData>().qadd(new LoaderBlockData("grass"));
+    private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("grass"));
 
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
-    private KList<LoaderBlockData> topPalette = new KList<>();
+    private KList<IrisBlockData> topPalette = new KList<>();
 
     @DependsOn("topPalette")
     @MinNumber(0.01)
@@ -126,12 +126,12 @@ public class IrisDecorator {
                         .scale(1D / variance.getZoom()));
     }
 
-    public KList<LoaderBlockData> add(String b) {
-        palette.add(new LoaderBlockData(b));
+    public KList<IrisBlockData> add(String b) {
+        palette.add(new IrisBlockData(b));
         return palette;
     }
 
-    public BlockData getBlockData(LoaderBiome b, RNG rng, double x, double z, IrisData data) {
+    public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
@@ -151,7 +151,7 @@ public class IrisDecorator {
         return null;
     }
 
-    public BlockData getBlockData100(LoaderBiome b, RNG rng, double x, double y, double z, IrisData data) {
+    public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
@@ -174,7 +174,7 @@ public class IrisDecorator {
         return getVarianceGenerator(rng, data).fit(getBlockData(data), z, y, x).clone(); //X and Z must be switched
     }
 
-    public BlockData getBlockDataForTop(LoaderBiome b, RNG rng, double x, double y, double z, IrisData data) {
+    public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
         if (getBlockDataTops(data).isEmpty()) {
             return getBlockData100(b, rng, x, y, z, data);
         }
@@ -197,7 +197,7 @@ public class IrisDecorator {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (LoaderBlockData i : palette) {
+            for (IrisBlockData i : palette) {
                 BlockData bx = i.getBlockData(data);
                 if (bx != null) {
                     for (int n = 0; n < i.getWeight(); n++) {
@@ -214,7 +214,7 @@ public class IrisDecorator {
         return blockDataTops.aquire(() ->
         {
             KList<BlockData> blockDataTops = new KList<>();
-            for (LoaderBlockData i : topPalette) {
+            for (IrisBlockData i : topPalette) {
                 BlockData bx = i.getBlockData(data);
                 if (bx != null) {
                     for (int n = 0; n < i.getWeight(); n++) {

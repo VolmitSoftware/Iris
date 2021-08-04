@@ -23,13 +23,13 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.noise.LoaderGenerator;
+import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.noise.IrisInterpolator;
 import com.volmit.iris.engine.object.noise.IrisNoiseGenerator;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -158,7 +158,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
 
             for (String i : data.getGeneratorLoader().getPossibleKeys()) {
                 KList<String> vv = new KList<>();
-                LoaderGenerator g = data.getGeneratorLoader().load(i);
+                IrisGenerator g = data.getGeneratorLoader().load(i);
                 KList<IrisNoiseGenerator> composites = g.getAllComposites();
                 double score = 0;
                 int m = 0;
@@ -188,7 +188,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
 
             for (String i : data.getBiomeLoader().getPossibleKeys()) {
                 KList<String> vv = new KList<>();
-                LoaderBiome b = data.getBiomeLoader().load(i);
+                IrisBiome b = data.getBiomeLoader().load(i);
                 double score = 0;
 
                 int m = 0;
@@ -217,7 +217,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
             v.add("");
 
             for (String i : data.getRegionLoader().getPossibleKeys()) {
-                LoaderRegion b = data.getRegionLoader().load(i);
+                IrisRegion b = data.getRegionLoader().load(i);
                 double score = 0;
 
                 score += styleTimings.get(b.getLakeStyle().getStyle());

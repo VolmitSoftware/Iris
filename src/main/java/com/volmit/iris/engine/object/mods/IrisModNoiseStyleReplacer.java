@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.mods;
 
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -47,6 +47,6 @@ public class IrisModNoiseStyleReplacer {
 
     @Required
     @Desc("A noise style to replace it with")
-    @RegistryListResource(LoaderBiome.class)
+    @RegistryListResource(IrisBiome.class)
     private IrisGeneratorStyle replace = new IrisGeneratorStyle();
 }

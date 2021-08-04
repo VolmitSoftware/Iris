@@ -19,7 +19,7 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -33,14 +33,14 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ObjectResourceLoader extends ResourceLoader<LoaderObject> {
+public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     private final ChronoLatch useFlip = new ChronoLatch(2222);
     private final KMap<String, Long> useCache = new KMap<>();
     private final ChronoLatch cl;
     private final AtomicInteger unload;
 
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
-        super(root, idm, folderName, resourceTypeName, LoaderObject.class);
+        super(root, idm, folderName, resourceTypeName, IrisObject.class);
         cl = new ChronoLatch(30000);
         unload = new AtomicInteger(0);
     }
@@ -56,7 +56,7 @@ public class ObjectResourceLoader extends ResourceLoader<LoaderObject> {
     public int getTotalStorage() {
         int m = 0;
 
-        for (LoaderObject i : loadCache.values()) {
+        for (IrisObject i : loadCache.values()) {
             m += i.getBlocks().size();
         }
 
@@ -115,11 +115,11 @@ public class ObjectResourceLoader extends ResourceLoader<LoaderObject> {
         }
     }
 
-    public LoaderObject loadFile(File j, String key, String name) {
+    public IrisObject loadFile(File j, String key, String name) {
         lock.lock();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            LoaderObject t = new LoaderObject(0, 0, 0);
+            IrisObject t = new IrisObject(0, 0, 0);
             t.read(j);
             loadCache.put(key, t);
             t.setLoadKey(name);
@@ -194,15 +194,15 @@ public class ObjectResourceLoader extends ResourceLoader<LoaderObject> {
         return null;
     }
 
-    public LoaderObject load(String name) {
+    public IrisObject load(String name) {
         return load(name, true);
     }
 
-    public LoaderObject load(String name, boolean warn) {
+    public IrisObject load(String name, boolean warn) {
         String key = name + "-" + objectClass.getCanonicalName();
 
         if (loadCache.containsKey(key)) {
-            LoaderObject t = loadCache.get(key);
+            IrisObject t = loadCache.get(key);
             useCache.put(key, M.ms());
             return t;
         }

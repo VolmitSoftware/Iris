@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.hunk.io;
 
-import com.volmit.iris.engine.data.IOAdapter;
+import com.volmit.iris.util.data.IOAdapter;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.io.CustomOutputStream;

@@ -24,7 +24,7 @@ import com.volmit.iris.core.ProjectManager;
 import com.volmit.iris.core.WandManager;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
 import com.volmit.iris.engine.object.objects.IrisObjectRotation;
@@ -91,7 +91,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
         }
 
         Player p = sender.player();
-        LoaderObject obj = IrisData.loadAnyObject(args[0]);
+        IrisObject obj = IrisData.loadAnyObject(args[0]);
 
         if (obj == null || obj.getLoadFile() == null) {
 

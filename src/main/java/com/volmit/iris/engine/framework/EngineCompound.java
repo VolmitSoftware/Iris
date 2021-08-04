@@ -21,10 +21,10 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -39,7 +39,7 @@ import org.bukkit.generator.BlockPopulator;
 import java.util.List;
 
 public interface EngineCompound extends Listener, Hotloadable, DataProvider {
-    LoaderDimension getRootDimension();
+    IrisDimension getRootDimension();
 
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<BlockData> postblocks, Hunk<Biome> biomes, boolean multicore);
 
@@ -133,10 +133,10 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
 
     Engine getDefaultEngine();
 
-    default KList<LoaderBiome> getAllBiomes() {
-        KMap<String, LoaderBiome> v = new KMap<>();
+    default KList<IrisBiome> getAllBiomes() {
+        KMap<String, IrisBiome> v = new KMap<>();
 
-        LoaderDimension dim = getRootDimension();
+        IrisDimension dim = getRootDimension();
         dim.getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i));
 
         try {

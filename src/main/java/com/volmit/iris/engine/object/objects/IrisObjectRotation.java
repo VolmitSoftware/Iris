@@ -21,7 +21,7 @@ package com.volmit.iris.engine.object.objects;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.basic.IrisPosition;
-import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
@@ -66,7 +66,7 @@ public class IrisObjectRotation {
         return getRotation(spin, zAxis);
     }
 
-    public LoaderObject rotateCopy(LoaderObject e) {
+    public IrisObject rotateCopy(IrisObject e) {
         if (e == null) {
             return null;
         }
@@ -74,8 +74,8 @@ public class IrisObjectRotation {
         return e.rotateCopy(this);
     }
 
-    public LoaderJigsawPiece rotateCopy(LoaderJigsawPiece v) {
-        LoaderJigsawPiece piece = v.copy();
+    public IrisJigsawPiece rotateCopy(IrisJigsawPiece v) {
+        IrisJigsawPiece piece = v.copy();
         for (IrisJigsawPieceConnector i : piece.getConnectors()) {
             i.setPosition(rotate(i.getPosition()));
             i.setDirection(rotate(i.getDirection()));

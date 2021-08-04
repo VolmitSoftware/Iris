@@ -36,7 +36,7 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawStructurePlacement {
-    @RegistryListResource(LoaderJigsawStructure.class)
+    @RegistryListResource(IrisJigsawStructure.class)
     @Required
     @Desc("The structure to place")
     private String structure;

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.pregenerator.syndicate.command;
 
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,5 +38,5 @@ public class SyndicateInstallPack implements SyndicateCommand {
     private long seed = 1337;
 
     @Builder.Default
-    private LoaderDimension dimension = null;
+    private IrisDimension dimension = null;
 }

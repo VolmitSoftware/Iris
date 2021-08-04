@@ -53,8 +53,8 @@ public class IrisObjectScale {
     @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
     private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
 
-    private static transient ConcurrentLinkedHashMap<LoaderObject, KList<LoaderObject>> cache
-            = new ConcurrentLinkedHashMap.Builder<LoaderObject, KList<LoaderObject>>()
+    private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
+            = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)
             .concurrencyLevel(32)
@@ -78,7 +78,7 @@ public class IrisObjectScale {
         return mx;
     }
 
-    public LoaderObject get(RNG rng, LoaderObject origin) {
+    public IrisObject get(RNG rng, IrisObject origin) {
         if (shouldScale()) {
             return origin;
         }
@@ -88,7 +88,7 @@ public class IrisObjectScale {
                 return v;
             }
 
-            KList<LoaderObject> c = new KList<>();
+            KList<IrisObject> c = new KList<>();
             for (double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
                 c.add(origin.scaled(i, getInterpolation()));
             }

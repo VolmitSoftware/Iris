@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.loot;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -39,7 +39,7 @@ public class IrisLootReference {
     @Desc("Add = add on top of parent tables, Replace = clear first then add these. Clear = Remove all and dont add loot from this or parent.")
     private IrisLootMode mode = IrisLootMode.ADD;
 
-    @RegistryListResource(LoaderLootTable.class)
+    @RegistryListResource(IrisLootTable.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("Add loot table registries here")
     private KList<String> tables = new KList<>();
@@ -48,12 +48,12 @@ public class IrisLootReference {
     @Desc("Increase the chance of loot in this area")
     private double multiplier = 1D;
 
-    private final transient AtomicCache<KList<LoaderLootTable>> tt = new AtomicCache<>();
+    private final transient AtomicCache<KList<IrisLootTable>> tt = new AtomicCache<>();
 
-    public KList<LoaderLootTable> getLootTables(DataProvider g) {
+    public KList<IrisLootTable> getLootTables(DataProvider g) {
         return tt.aquire(() ->
         {
-            KList<LoaderLootTable> t = new KList<>();
+            KList<IrisLootTable> t = new KList<>();
 
             for (String i : tables) {
                 t.add(g.getData().getLootLoader().load(i));

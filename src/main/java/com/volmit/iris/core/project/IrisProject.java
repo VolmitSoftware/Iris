@@ -29,17 +29,17 @@ import com.volmit.iris.core.report.ReportType;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeMutation;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
-import com.volmit.iris.engine.object.entity.LoaderEntity;
-import com.volmit.iris.engine.object.loot.LoaderLootTable;
-import com.volmit.iris.engine.object.noise.LoaderGenerator;
+import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.entity.IrisEntity;
+import com.volmit.iris.engine.object.loot.IrisLootTable;
+import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
-import com.volmit.iris.engine.object.spawners.LoaderSpawner;
+import com.volmit.iris.engine.object.regional.IrisRegion;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -103,7 +103,7 @@ public class IrisProject {
             if (activeProvider != null && activeProvider.getCompound() != null) {
                 for (int i = 0; i < getActiveProvider().getCompound().getSize(); i++) {
                     Engine e = getActiveProvider().getCompound().getEngine(i);
-                    LoaderDimension dim = e.getDimension();
+                    IrisDimension dim = e.getDimension();
                     reports.add(scanForErrors(dim));
                 }
             }
@@ -120,7 +120,7 @@ public class IrisProject {
         return reports;
     }
 
-    private KList<Report> scanForErrors(LoaderDimension dim) {
+    private KList<Report> scanForErrors(IrisDimension dim) {
         KList<Report> reports = new KList<>();
 
         if (dim.getFocus() != null && !dim.getFocus().isEmpty()) {
@@ -132,14 +132,14 @@ public class IrisProject {
                     .build());
         }
 
-        for (LoaderRegion i : dim.getAllRegions(getActiveProvider())) {
+        for (IrisRegion i : dim.getAllRegions(getActiveProvider())) {
             scanForErrors(i);
         }
 
         return reports;
     }
 
-    private KList<Report> scanForErrors(LoaderRegion region) {
+    private KList<Report> scanForErrors(IrisRegion region) {
         KList<Report> reports = new KList<>();
 
         if (region.getRarity() > 60) {
@@ -151,14 +151,14 @@ public class IrisProject {
                     .build());
         }
 
-        for (LoaderBiome i : region.getAllBiomes(getActiveProvider())) {
+        for (IrisBiome i : region.getAllBiomes(getActiveProvider())) {
             reports.add(scanForErrors(i));
         }
 
         return reports;
     }
 
-    private KList<Report> scanForErrors(LoaderBiome biome) {
+    private KList<Report> scanForErrors(IrisBiome biome) {
         KList<Report> reports = new KList<>();
 
         for (IrisObjectPlacement i : biome.getObjects()) {
@@ -176,17 +176,17 @@ public class IrisProject {
         return reports;
     }
 
-    private KList<Report> scanForErrors(LoaderBiome biome, IrisObjectPlacement i) {
+    private KList<Report> scanForErrors(IrisBiome biome, IrisObjectPlacement i) {
 
         return new KList<>();
     }
 
-    private KList<Report> scanForErrors(LoaderBiome biome, IrisBiomePaletteLayer i) {
+    private KList<Report> scanForErrors(IrisBiome biome, IrisBiomePaletteLayer i) {
 
         return new KList<>();
     }
 
-    private KList<Report> scanForErrorsSeaLayers(LoaderBiome biome, IrisBiomePaletteLayer i) {
+    private KList<Report> scanForErrorsSeaLayers(IrisBiome biome, IrisBiomePaletteLayer i) {
 
         return new KList<>();
     }
@@ -255,7 +255,7 @@ public class IrisProject {
             return;
         }
 
-        LoaderDimension d = IrisData.loadAnyDimension(getName());
+        IrisDimension d = IrisData.loadAnyDimension(getName());
         if (d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
             return;
@@ -467,17 +467,17 @@ public class IrisProject {
     public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {
         String dimm = getName();
         IrisData dm = new IrisData(path);
-        LoaderDimension dimension = dm.getDimensionLoader().load(dimm);
+        IrisDimension dimension = dm.getDimensionLoader().load(dimm);
         File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
         folder.mkdirs();
         Iris.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
-        KSet<LoaderRegion> regions = new KSet<>();
-        KSet<LoaderBiome> biomes = new KSet<>();
-        KSet<LoaderEntity> entities = new KSet<>();
-        KSet<LoaderSpawner> spawners = new KSet<>();
-        KSet<LoaderGenerator> generators = new KSet<>();
-        KSet<LoaderLootTable> loot = new KSet<>();
-        KSet<LoaderBlockData> blocks = new KSet<>();
+        KSet<IrisRegion> regions = new KSet<>();
+        KSet<IrisBiome> biomes = new KSet<>();
+        KSet<IrisEntity> entities = new KSet<>();
+        KSet<IrisSpawner> spawners = new KSet<>();
+        KSet<IrisGenerator> generators = new KSet<>();
+        KSet<IrisLootTable> loot = new KSet<>();
+        KSet<IrisBlockData> blocks = new KSet<>();
 
         for (String i : dm.getDimensionLoader().getPossibleKeys()) {
             blocks.add(dm.getBlockLoader().load(i));
@@ -528,7 +528,7 @@ public class IrisProject {
         StringBuilder c = new StringBuilder();
         sender.sendMessage("Serializing Objects");
 
-        for (LoaderBiome i : biomes) {
+        for (IrisBiome i : biomes) {
             for (IrisObjectPlacement j : i.getObjects()) {
                 b.append(j.hashCode());
                 KList<String> newNames = new KList<>();
@@ -622,7 +622,7 @@ public class IrisProject {
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
             b.append(IO.hash(a));
 
-            for (LoaderGenerator i : generators) {
+            for (IrisGenerator i : generators) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
@@ -631,31 +631,31 @@ public class IrisProject {
             c.append(IO.hash(b.toString()));
             b = new StringBuilder();
 
-            for (LoaderRegion i : regions) {
+            for (IrisRegion i : regions) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (LoaderBlockData i : blocks) {
+            for (IrisBlockData i : blocks) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "blocks/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (LoaderBiome i : biomes) {
+            for (IrisBiome i : biomes) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (LoaderEntity i : entities) {
+            for (IrisEntity i : entities) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "entities/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (LoaderLootTable i : loot) {
+            for (IrisLootTable i : loot) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));

@@ -25,7 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -66,7 +66,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int zf, maxHeight;
-        LoaderBiome ib;
+        IrisBiome ib;
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             for (zf = 0; zf < h.getDepth(); zf++) {

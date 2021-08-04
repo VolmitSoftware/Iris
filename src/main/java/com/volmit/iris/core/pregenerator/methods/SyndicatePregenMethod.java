@@ -25,7 +25,7 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.syndicate.SyndicateClient;
 import com.volmit.iris.core.pregenerator.syndicate.command.*;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
@@ -42,13 +42,13 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
     private String nickname;
     private final int port;
     private final String password;
-    private final LoaderDimension dimension;
+    private final IrisDimension dimension;
     private boolean ready = false;
     private final File worldFolder;
     private final UUID pack = UUID.randomUUID();
     private final long seed;
 
-    public SyndicatePregenMethod(String nickname, File worldFolder, String address, int port, String password, LoaderDimension dimension, long seed) {
+    public SyndicatePregenMethod(String nickname, File worldFolder, String address, int port, String password, IrisDimension dimension, long seed) {
         this.seed = seed;
         this.worldFolder = worldFolder;
         this.address = address;

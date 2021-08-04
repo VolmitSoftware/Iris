@@ -22,21 +22,21 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.basic.IrisPosition;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeMutation;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
-import com.volmit.iris.engine.object.jigsaw.LoaderJigsawStructure;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.IrisObjectScale;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
@@ -90,8 +90,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return getEngine().getFramework().getComplex();
     }
 
-    default KList<LoaderRegion> getAllRegions() {
-        KList<LoaderRegion> r = new KList<>();
+    default KList<IrisRegion> getAllRegions() {
+        KList<IrisRegion> r = new KList<>();
 
         for (String i : getEngine().getDimension().getRegions()) {
             r.add(getEngine().getData().getRegionLoader().load(i));
@@ -108,10 +108,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return r;
     }
 
-    default KList<LoaderBiome> getAllBiomes() {
-        KList<LoaderBiome> r = new KList<>();
+    default KList<IrisBiome> getAllBiomes() {
+        KList<IrisBiome> r = new KList<>();
 
-        for (LoaderRegion i : getAllRegions()) {
+        for (IrisRegion i : getAllRegions()) {
             r.addAll(i.getAllBiomes(this));
         }
 
@@ -299,8 +299,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                         getParallaxAccess().setFeatureGenerated(xx, zz);
                         burst.queue(() -> {
                             RNG rng = new RNG(Cache.key(xx, zz) + getEngine().getTarget().getWorld().seed());
-                            LoaderRegion region = getComplex().getRegionStream().get(xxx, zzz);
-                            LoaderBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
+                            IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
+                            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
                             generateParallaxFeatures(rng, xx, zz, region, biome);
                         });
                     }
@@ -361,8 +361,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int xx = x << 4;
             int zz = z << 4;
             RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
-            LoaderRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
-            LoaderBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
+            IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
+            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
             after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
             generateParallaxSurface(rng, x, z, biome, region, true);
             generateParallaxMutations(rng, x, z, true);
@@ -380,14 +380,14 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int zz = z << 4;
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
-        LoaderBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
-        LoaderRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
+        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
+        IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
         generateParallaxSurface(rng, x, z, biome, region, false);
         generateParallaxMutations(rng, x, z, false);
     }
 
     @ChunkCoordinates
-    default void generateParallaxFeatures(RNG rng, int cx, int cz, LoaderRegion region, LoaderBiome biome) {
+    default void generateParallaxFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
         for (IrisFeaturePotential i : getEngine().getDimension().getFeatures()) {
             placeZone(rng, cx, cz, i);
         }
@@ -415,7 +415,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         generateParallaxLayer(x, z, false);
     }
 
-    default KList<Runnable> placeStructure(IrisPosition position, LoaderJigsawStructure structure, RNG rng) {
+    default KList<Runnable> placeStructure(IrisPosition position, IrisJigsawStructure structure, RNG rng) {
         KList<Runnable> placeAfter = new KList<>();
 
         if (structure == null) {
@@ -435,7 +435,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return placeAfter;
     }
 
-    default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, LoaderBiome biome, LoaderRegion region) {
+    default KList<Runnable> generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         KList<Runnable> placeAfter = new KList<>();
 
         if (getEngine().getDimension().isPlaceObjects()) {
@@ -447,7 +447,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 if (poss != null) {
                     for (Position2 pos : poss) {
                         if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
-                            LoaderJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
+                            IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold());
                             placeAfter.addAll(placeStructure(pos.toIris(), structure, rng));
                             placed = true;
                         }
@@ -459,7 +459,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
                     if (rng.nextInt(i.getRarity()) == 0) {
                         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                        LoaderJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                         placeAfter.addAll(placeStructure(position, structure, rng));
                         placed = true;
                     }
@@ -470,7 +470,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
                     if (rng.nextInt(i.getRarity()) == 0) {
                         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                        LoaderJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                         placeAfter.addAll(placeStructure(position, structure, rng));
                         placed = true;
                     }
@@ -481,7 +481,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 for (IrisJigsawStructurePlacement i : getEngine().getDimension().getJigsawStructures()) {
                     if (rng.nextInt(i.getRarity()) == 0) {
                         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                        LoaderJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                        IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                         placeAfter.addAll(placeStructure(position, structure, rng));
                         placed = true;
                     }
@@ -492,7 +492,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return placeAfter;
     }
 
-    default void generateParallaxSurface(RNG rng, int x, int z, LoaderBiome biome, LoaderRegion region, boolean useFeatures) {
+    default void generateParallaxSurface(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, boolean useFeatures) {
 
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (i.usesFeatures() != useFeatures) {
@@ -539,8 +539,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         searching:
         for (IrisBiomeMutation k : getEngine().getDimension().getMutations()) {
             for (int l = 0; l < k.getChecks(); l++) {
-                LoaderBiome sa = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
-                LoaderBiome sb = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sa = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sb = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
 
                 if (sa.getLoadKey().equals(sb.getLoadKey())) {
                     continue;
@@ -565,7 +565,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         place(rng, x, -1, z, objectPlacement);
     }
 
-    default void placePiece(RNG rng, int xx, int forceY, int zz, LoaderObject v, IrisObjectPlacement p) {
+    default void placePiece(RNG rng, int xx, int forceY, int zz, IrisObject v, IrisObjectPlacement p) {
         int id = rng.i(0, Integer.MAX_VALUE);
         int maxf = 10000;
         AtomicBoolean pl = new AtomicBoolean(false);
@@ -612,7 +612,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     default void place(RNG rng, int x, int forceY, int z, IrisObjectPlacement objectPlacement) {
         placing:
         for (int i = 0; i < objectPlacement.getDensity(); i++) {
-            LoaderObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
                 return;
             }
@@ -656,7 +656,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
-    default void updateParallaxChunkObjectData(int minY, int maxY, int x, int z, LoaderObject v) {
+    default void updateParallaxChunkObjectData(int minY, int maxY, int x, int z, IrisObject v) {
         ParallaxChunkMeta meta = getParallaxAccess().getMetaRW(x >> 4, z >> 4);
         meta.setObjects(true);
         meta.setMaxObject(Math.max(maxY, meta.getMaxObject()));
@@ -676,10 +676,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int z = zg.get();
 
         if (getEngine().getDimension().isPlaceObjects()) {
-            KList<LoaderRegion> r = getAllRegions();
-            KList<LoaderBiome> b = getAllBiomes();
+            KList<IrisRegion> r = getAllRegions();
+            KList<IrisBiome> b = getAllBiomes();
 
-            for (LoaderBiome i : b) {
+            for (IrisBiome i : b) {
                 for (IrisObjectPlacement j : i.getObjects()) {
                     if (j.getScale().canScaleBeyond()) {
                         scalars.put(j.getScale(), j.getPlace());
@@ -693,7 +693,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
             }
 
-            for (LoaderRegion i : r) {
+            for (IrisRegion i : r) {
                 for (IrisObjectPlacement j : i.getObjects()) {
                     if (j.getScale().canScaleBeyond()) {
                         scalars.put(j.getScale(), j.getPlace());
@@ -733,7 +733,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                             }
 
                             try {
-                                return LoaderObject.sampleSize(getData().getObjectLoader().findFile(i));
+                                return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
                             } catch (IOException ex) {
                                 Iris.reportError(ex);
                                 ex.printStackTrace();
@@ -773,7 +773,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                                 }
 
                                 try {
-                                    return LoaderObject.sampleSize(getData().getObjectLoader().findFile(j));
+                                    return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
                                 } catch (IOException ioException) {
                                     Iris.reportError(ioException);
                                     ioException.printStackTrace();
@@ -814,7 +814,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 z = Math.max(max, z);
             }
 
-            for (LoaderRegion v : r) {
+            for (IrisRegion v : r) {
                 for (IrisDepositGenerator i : v.getDeposits()) {
                     int max = i.getMaxDimension();
                     x = Math.max(max, x);
@@ -822,7 +822,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
             }
 
-            for (LoaderBiome v : b) {
+            for (IrisBiome v : b) {
                 for (IrisDepositGenerator i : v.getDeposits()) {
                     int max = i.getMaxDimension();
                     x = Math.max(max, x);

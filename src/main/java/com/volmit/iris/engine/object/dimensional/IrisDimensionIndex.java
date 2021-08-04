@@ -47,7 +47,7 @@ public class IrisDimensionIndex {
     private boolean primary = false;
 
     @Required
-    @RegistryListResource(LoaderDimension.class)
+    @RegistryListResource(IrisDimension.class)
     @MinNumber(1)
     @Desc("Name of dimension")
     private String dimension = "";

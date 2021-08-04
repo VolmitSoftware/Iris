@@ -18,14 +18,14 @@
 
 package com.volmit.iris.util.noise;
 
-import com.volmit.iris.engine.object.noise.LoaderExpression;
+import com.volmit.iris.engine.object.noise.IrisExpression;
 import com.volmit.iris.util.math.RNG;
 
 public class ExpressionNoise implements NoiseGenerator {
     private final RNG rng;
-    private final LoaderExpression expression;
+    private final IrisExpression expression;
 
-    public ExpressionNoise(RNG rng, LoaderExpression expression) {
+    public ExpressionNoise(RNG rng, IrisExpression expression) {
         this.rng = rng;
         this.expression = expression;
     }

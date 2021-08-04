@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.loot;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.meta.IrisAttributeModifier;
 import com.volmit.iris.engine.object.meta.IrisEnchantment;
@@ -195,7 +195,7 @@ public class IrisLoot {
         return new ItemStack(Material.AIR);
     }
 
-    public ItemStack get(boolean debug, boolean giveSomething, LoaderLootTable table, RNG rng, int x, int y, int z) {
+    public ItemStack get(boolean debug, boolean giveSomething, IrisLootTable table, RNG rng, int x, int y, int z) {
         if (debug) {
             chance.reset();
         }

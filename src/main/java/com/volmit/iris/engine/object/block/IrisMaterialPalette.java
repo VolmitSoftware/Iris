@@ -49,9 +49,9 @@ public class IrisMaterialPalette {
     private double zoom = 5;
 
     @Required
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this layer")
-    private KList<LoaderBlockData> palette = new KList<LoaderBlockData>().qadd(new LoaderBlockData("STONE"));
+    private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
@@ -82,14 +82,14 @@ public class IrisMaterialPalette {
         return this;
     }
 
-    public KList<LoaderBlockData> add(String b) {
-        palette.add(new LoaderBlockData(b));
+    public KList<IrisBlockData> add(String b) {
+        palette.add(new IrisBlockData(b));
 
         return palette;
     }
 
     public IrisMaterialPalette qadd(String b) {
-        palette.add(new LoaderBlockData(b));
+        palette.add(new IrisBlockData(b));
 
         return this;
     }
@@ -98,7 +98,7 @@ public class IrisMaterialPalette {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (LoaderBlockData ix : palette) {
+            for (IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(rdata);
                 if (bx != null) {
                     for (int i = 0; i < ix.getWeight(); i++) {

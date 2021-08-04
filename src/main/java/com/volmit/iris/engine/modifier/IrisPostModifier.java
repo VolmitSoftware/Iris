@@ -19,11 +19,11 @@
 package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -136,7 +136,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         }
 
         // Wall Patcher
-        LoaderBiome biome = getComplex().getTrueBiomeStream().get(x, z);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
 
         if (getDimension().isPostProcessingWalls()) {
             if (!biome.getWall().getPalette().isEmpty()) {
@@ -231,7 +231,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         }
 
         if (getDimension().isPostProcessCaves()) {
-            LoaderBiome cave = getComplex().getCaveBiomeStream().get(x, z);
+            IrisBiome cave = getComplex().getCaveBiomeStream().get(x, z);
 
             if (cave != null) {
                 for (CaveResult i : ((IrisCaveModifier) getFramework().getCaveModifier()).genCaves(x, z, 0, 0, null)) {

@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -59,7 +59,7 @@ public class CommandIrisJigsawNew extends MortarCommand {
             return true;
         }
 
-        LoaderObject object = IrisData.loadAnyObject(args[2]);
+        IrisObject object = IrisData.loadAnyObject(args[2]);
 
         if (object == null) {
             sender.sendMessage("Failed to find existing object: " + args[2]);

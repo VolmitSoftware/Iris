@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.regional;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.biome.InferredType;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.util.noise.CellGenerator;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -39,7 +39,7 @@ import lombok.experimental.Accessors;
 @Desc("A spot config")
 @Data
 public class IrisRegionSpot {
-    @RegistryListResource(LoaderBiome.class)
+    @RegistryListResource(IrisBiome.class)
     @Required
     @Desc("The biome to be placed")
     private String biome = "";

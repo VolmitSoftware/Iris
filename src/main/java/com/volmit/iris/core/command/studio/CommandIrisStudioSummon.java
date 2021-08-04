@@ -23,7 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.entity.LoaderEntity;
+import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -65,7 +65,7 @@ public class CommandIrisStudioSummon extends MortarCommand {
                     sender.sendMessage("- " + i);
                 }
             } else {
-                LoaderEntity e = g.getData().getEntityLoader().load(args[0]);
+                IrisEntity e = g.getData().getEntityLoader().load(args[0]);
 
                 if (e == null) {
                     sender.sendMessage("Couldnt find entity " + args[0] + ". Use '/iris std summon' to see a list of iris entities.");

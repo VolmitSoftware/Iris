@@ -22,8 +22,8 @@ import com.google.gson.Gson;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.spawners.LoaderSpawner;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.util.collection.KList;
@@ -50,7 +50,7 @@ public class IrisFeature {
     @Desc("The chance an object that should be place actually will place. Set to below 1 to affect objects in this zone")
     private double objectChance = 1;
 
-    @RegistryListResource(LoaderBiome.class)
+    @RegistryListResource(IrisBiome.class)
     @Desc("Apply a custom biome here")
     private String customBiome = null;
 
@@ -85,7 +85,7 @@ public class IrisFeature {
     @Desc("Fracture the radius ring with additional noise")
     private IrisGeneratorStyle fractureRadius = null;
 
-    @RegistryListResource(LoaderSpawner.class)
+    @RegistryListResource(IrisSpawner.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("Within this noise feature, use the following spawners")
     private KList<String> entitySpawners = new KList<>();

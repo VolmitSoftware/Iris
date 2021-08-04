@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.biome;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisSlopeClip;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
@@ -66,9 +66,9 @@ public class IrisBiomePaletteLayer {
     private double zoom = 5;
 
     @Required
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this layer")
-    private KList<LoaderBlockData> palette = new KList<LoaderBlockData>().qadd(new LoaderBlockData("GRASS_BLOCK"));
+    private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("GRASS_BLOCK"));
 
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
@@ -98,8 +98,8 @@ public class IrisBiomePaletteLayer {
         });
     }
 
-    public KList<LoaderBlockData> add(String b) {
-        palette.add(new LoaderBlockData(b));
+    public KList<IrisBlockData> add(String b) {
+        palette.add(new IrisBlockData(b));
 
         return palette;
     }
@@ -108,7 +108,7 @@ public class IrisBiomePaletteLayer {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (LoaderBlockData ix : palette) {
+            for (IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(data);
                 if (bx != null) {
                     for (int i = 0; i < ix.getWeight(); i++) {

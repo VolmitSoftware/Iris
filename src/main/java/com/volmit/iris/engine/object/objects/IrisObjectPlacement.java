@@ -21,11 +21,11 @@ package com.volmit.iris.engine.object.objects;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
-import com.volmit.iris.engine.object.loot.LoaderLootTable;
+import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.noise.CarvingMode;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisNoiseGenerator;
@@ -54,7 +54,7 @@ import org.bukkit.block.data.BlockData;
 @Desc("Represents an iris object placer. It places objects.")
 @Data
 public class IrisObjectPlacement {
-    @RegistryListResource(LoaderObject.class)
+    @RegistryListResource(IrisObject.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("List of objects to place")
@@ -214,7 +214,7 @@ public class IrisObjectPlacement {
         return 0;
     }
 
-    public LoaderObject getObject(DataProvider g, RNG random) {
+    public IrisObject getObject(DataProvider g, RNG random) {
         if (place.isEmpty()) {
             return null;
         }
@@ -243,9 +243,9 @@ public class IrisObjectPlacement {
     }
 
     private static class TableCache {
-        final transient WeightedRandom<LoaderLootTable> global = new WeightedRandom<>();
-        final transient KMap<Material, WeightedRandom<LoaderLootTable>> basic = new KMap<>();
-        final transient KMap<Material, KMap<BlockData, WeightedRandom<LoaderLootTable>>> exact = new KMap<>();
+        final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
+        final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
+        final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
     }
 
     private TableCache getCache(IrisData manager) {
@@ -253,7 +253,7 @@ public class IrisObjectPlacement {
             TableCache tc = new TableCache();
 
             for (IrisObjectLoot loot : getLoot()) {
-                LoaderLootTable table = manager.getLootLoader().load(loot.getName());
+                IrisLootTable table = manager.getLootLoader().load(loot.getName());
                 if (table == null) {
                     Iris.warn("Couldn't find loot table " + loot.getName());
                     continue;
@@ -297,11 +297,11 @@ public class IrisObjectPlacement {
      * @param dataManager Iris Data Manager
      * @return The loot table it should use.
      */
-    public LoaderLootTable getTable(BlockData data, IrisData dataManager) {
+    public IrisLootTable getTable(BlockData data, IrisData dataManager) {
         TableCache cache = getCache(dataManager);
 
         if (B.isStorageChest(data)) {
-            LoaderLootTable picked = null;
+            IrisLootTable picked = null;
             if (cache.exact.containsKey(data.getMaterial()) && cache.exact.containsKey(data)) {
                 picked = cache.exact.get(data.getMaterial()).get(data).pullRandom();
             } else if (cache.basic.containsKey(data.getMaterial())) {

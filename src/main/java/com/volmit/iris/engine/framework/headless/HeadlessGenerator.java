@@ -20,8 +20,8 @@ package com.volmit.iris.engine.framework.headless;
 
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
-import com.volmit.iris.engine.data.mca.MCAUtil;
-import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;

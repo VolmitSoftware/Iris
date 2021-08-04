@@ -22,7 +22,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -125,10 +125,10 @@ public class IrisFeaturePositional {
         return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z, rng, data));
     }
 
-    public LoaderBiome filter(double x, double z, LoaderBiome biome, RNG rng) {
+    public IrisBiome filter(double x, double z, IrisBiome biome, RNG rng) {
         if (getFeature().getCustomBiome() != null) {
             if (getStrength(x, z, rng, biome.getLoader()) >= getFeature().getBiomeStrengthThreshold()) {
-                LoaderBiome b = biome.getLoader().getBiomeLoader().load(getFeature().getCustomBiome());
+                IrisBiome b = biome.getLoader().getBiomeLoader().load(getFeature().getCustomBiome());
                 b.setInferredType(biome.getInferredType());
                 return b;
             }

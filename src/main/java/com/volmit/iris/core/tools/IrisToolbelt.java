@@ -27,7 +27,7 @@ import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -50,7 +50,7 @@ public class IrisToolbelt {
      * @param dimension the dimension id such as overworld or flat
      * @return the IrisDimension or null
      */
-    public static LoaderDimension getDimension(String dimension) {
+    public static IrisDimension getDimension(String dimension) {
         File pack = Iris.instance.getDataFolder("packs", dimension);
 
         if (!pack.exists()) {

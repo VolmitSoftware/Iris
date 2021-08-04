@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.object.tile;
 
-import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
-import com.volmit.iris.engine.data.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
 import lombok.Data;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;

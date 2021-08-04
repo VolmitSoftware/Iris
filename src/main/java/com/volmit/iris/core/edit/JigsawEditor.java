@@ -21,10 +21,10 @@ package com.volmit.iris.core.edit;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.basic.IrisPosition;
-import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
 import com.volmit.iris.engine.object.objects.IrisDirection;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.io.IO;
@@ -50,9 +50,9 @@ import java.io.IOException;
 public class JigsawEditor implements Listener {
     public static final KMap<Player, JigsawEditor> editors = new KMap<>();
     private final Player player;
-    private final LoaderObject object;
+    private final IrisObject object;
     private final File targetSaveLocation;
-    private final LoaderJigsawPiece piece;
+    private final IrisJigsawPiece piece;
     private final Location origin;
     private final Cuboid cuboid;
     private final int ticker;
@@ -60,7 +60,7 @@ public class JigsawEditor implements Listener {
     private final KMap<IrisPosition, Runnable> falling = new KMap<>();
     private final ChronoLatch cl = new ChronoLatch(100);
 
-    public JigsawEditor(Player player, LoaderJigsawPiece piece, LoaderObject object, File saveLocation) {
+    public JigsawEditor(Player player, IrisJigsawPiece piece, IrisObject object, File saveLocation) {
         if (editors.containsKey(player)) {
             editors.get(player).close();
         }
@@ -71,7 +71,7 @@ public class JigsawEditor implements Listener {
         origin = player.getLocation().clone().add(0, 7, 0);
         target = origin;
         this.targetSaveLocation = saveLocation;
-        this.piece = piece == null ? new LoaderJigsawPiece() : piece;
+        this.piece = piece == null ? new IrisJigsawPiece() : piece;
         this.piece.setObject(object.getLoadKey());
         cuboid = new Cuboid(origin.clone(), origin.clone().add(object.getW() - 1, object.getH() - 1, object.getD() - 1));
         ticker = J.sr(this::onTick, 0);

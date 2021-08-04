@@ -20,26 +20,26 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.data.DataProvider;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 
 public interface GeneratorAccess extends DataProvider, Renderer {
-    LoaderRegion getRegion(int x, int z);
+    IrisRegion getRegion(int x, int z);
 
     ParallaxAccess getParallaxAccess();
 
     IrisData getData();
 
-    LoaderBiome getCaveBiome(int x, int z);
+    IrisBiome getCaveBiome(int x, int z);
 
-    LoaderBiome getSurfaceBiome(int x, int z);
+    IrisBiome getSurfaceBiome(int x, int z);
 
     int getHeight(int x, int z);
 
-    default LoaderBiome getBiome(int x, int y, int z) {
+    default IrisBiome getBiome(int x, int y, int z) {
         if (y <= getHeight(x, z) - 2) {
             return getCaveBiome(x, z);
         }
@@ -57,7 +57,7 @@ public interface GeneratorAccess extends DataProvider, Renderer {
         String[] v = objectAt.split("\\Q@\\E");
         String object = v[0];
         int id = Integer.parseInt(v[1]);
-        LoaderRegion region = getRegion(x, z);
+        IrisRegion region = getRegion(x, z);
 
         for (IrisObjectPlacement i : region.getObjects()) {
             if (i.getPlace().contains(object)) {
@@ -65,7 +65,7 @@ public interface GeneratorAccess extends DataProvider, Renderer {
             }
         }
 
-        LoaderBiome biome = getBiome(x, y, z);
+        IrisBiome biome = getBiome(x, y, z);
 
         for (IrisObjectPlacement i : biome.getObjects()) {
             if (i.getPlace().contains(object)) {

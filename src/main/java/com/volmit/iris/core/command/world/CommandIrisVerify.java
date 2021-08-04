@@ -20,9 +20,9 @@ package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.data.mca.Chunk;
-import com.volmit.iris.engine.data.mca.MCAFile;
-import com.volmit.iris.engine.data.mca.MCAUtil;
+import com.volmit.iris.util.nbt.mca.Chunk;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;

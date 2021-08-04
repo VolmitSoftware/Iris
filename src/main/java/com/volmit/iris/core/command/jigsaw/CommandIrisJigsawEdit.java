@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -59,7 +59,7 @@ public class CommandIrisJigsawEdit extends MortarCommand {
             return true;
         }
 
-        LoaderJigsawPiece piece = IrisData.loadAnyJigsawPiece(args[0]);
+        IrisJigsawPiece piece = IrisData.loadAnyJigsawPiece(args[0]);
 
         if (piece != null) {
             File dest = piece.getLoadFile();

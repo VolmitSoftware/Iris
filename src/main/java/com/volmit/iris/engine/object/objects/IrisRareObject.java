@@ -42,7 +42,7 @@ public class IrisRareObject {
     @Desc("The rarity is 1 in X")
     private int rarity = 1;
 
-    @RegistryListResource(LoaderObject.class)
+    @RegistryListResource(IrisObject.class)
     @Required
     @Desc("The object to place if rarity check passed")
     private String object = "";

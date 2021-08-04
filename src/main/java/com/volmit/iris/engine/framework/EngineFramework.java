@@ -20,7 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.DataProvider;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 

@@ -21,8 +21,8 @@ package com.volmit.iris.core.command.what;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -139,8 +139,8 @@ public class CommandIrisWhatObjects extends MortarCommand {
                         for (int k = 0; k < 16; k += 3) {
 
                             assert g != null;
-                            LoaderBiome bb = g.getBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
-                            LoaderBiome bxf = g.getCaveBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
+                            IrisBiome bb = g.getBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
+                            IrisBiome bxf = g.getCaveBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
                             biomes.addIfMissing(bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")");
                             caveBiomes.addIfMissing(bxf.getName() + " (" + bxf.getLoadFile().getName() + ")");
                             exportObjects(bb, pw, g, objects);
@@ -199,7 +199,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
         return true;
     }
 
-    private void exportObjects(LoaderBiome bb, PrintWriter pw, IrisAccess g, KMap<String, KMap<String, KList<String>>> objects) {
+    private void exportObjects(IrisBiome bb, PrintWriter pw, IrisAccess g, KMap<String, KMap<String, KList<String>>> objects) {
         String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
         int m = 0;
         KSet<String> stop = new KSet<>();
@@ -216,7 +216,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
                     }
 
                     File ff = g.getData().getObjectLoader().findFile(i);
-                    BlockVector sz = LoaderObject.sampleSize(ff);
+                    BlockVector sz = IrisObject.sampleSize(ff);
                     nn3 = i + ": size=[" + sz.getBlockX() + "," + sz.getBlockY() + "," + sz.getBlockZ() + "] location=[" + ff.getPath() + "]";
                     stop.add(i);
                 } catch (Throwable e) {

@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.data.chunk;
 
 import com.volmit.iris.core.nms.BiomeBaseInjector;
-import com.volmit.iris.engine.data.mca.Chunk;
-import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.Chunk;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.bukkit.Material;

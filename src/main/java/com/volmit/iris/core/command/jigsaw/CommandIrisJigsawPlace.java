@@ -23,7 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
-import com.volmit.iris.engine.object.jigsaw.LoaderJigsawStructure;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -71,7 +71,7 @@ public class CommandIrisJigsawPlace extends MortarCommand {
             return true;
         }
 
-        LoaderJigsawStructure str = IrisData.loadAnyJigsawStructure(args[0]);
+        IrisJigsawStructure str = IrisData.loadAnyJigsawStructure(args[0]);
 
         if (str != null) {
             PrecisionStopwatch p = PrecisionStopwatch.start();

@@ -23,7 +23,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -88,7 +88,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
         int j, realX, realZ, height;
-        LoaderBiome biome, cave;
+        IrisBiome biome, cave;
 
 
         for (int i = 0; i < output.getWidth(); i++) {

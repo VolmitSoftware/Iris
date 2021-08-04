@@ -21,11 +21,11 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.data.DataProvider;
-import com.volmit.iris.engine.data.mca.NBTWorld;
+import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.engine.framework.headless.HeadlessGenerator;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
@@ -71,29 +71,29 @@ public interface IrisAccess extends Hotloadable, DataProvider {
      * @param l the location
      * @return the biome
      */
-    default LoaderBiome getBiome(Location l) {
+    default IrisBiome getBiome(Location l) {
         return getBiome(l.toVector());
     }
 
-    default LoaderRegion getRegion(int x, int y, int z) {
+    default IrisRegion getRegion(int x, int y, int z) {
         return getEngineAccess(y).getRegion(x, z);
     }
 
-    default LoaderRegion getRegion(Location l) {
+    default IrisRegion getRegion(Location l) {
         return getRegion(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default LoaderBiome getBiome(Vector l) {
+    default IrisBiome getBiome(Vector l) {
         return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    LoaderBiome getBiome(int x, int y, int z);
+    IrisBiome getBiome(int x, int y, int z);
 
-    LoaderBiome getCaveBiome(int x, int y, int z);
+    IrisBiome getCaveBiome(int x, int y, int z);
 
-    LoaderBiome getBiome(int x, int z);
+    IrisBiome getBiome(int x, int z);
 
-    LoaderBiome getCaveBiome(int x, int z);
+    IrisBiome getCaveBiome(int x, int z);
 
     GeneratorAccess getEngineAccess(int y);
 
@@ -117,7 +117,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
     boolean isStudio();
 
-    default Location lookForBiome(LoaderBiome biome, long timeout, Consumer<Integer> triesc) {
+    default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
         if (!getCompound().getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
@@ -146,7 +146,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             J.a(() -> {
                 try {
                     Engine e;
-                    LoaderBiome b;
+                    IrisBiome b;
                     int x, z;
 
                     while (!found.get() && running.get()) {
@@ -198,7 +198,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         return location.get();
     }
 
-    default Location lookForRegion(LoaderRegion reg, long timeout, Consumer<Integer> triesc) {
+    default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
         if (!getCompound().getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
@@ -227,7 +227,7 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         for (int i = 0; i < cpus; i++) {
             J.a(() -> {
                 Engine e;
-                LoaderRegion b;
+                IrisRegion b;
                 int x, z;
 
                 while (!found.get() && running.get()) {

@@ -20,8 +20,8 @@ package com.volmit.iris.engine.object.objects;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
-import com.volmit.iris.engine.object.loot.LoaderLootTable;
+import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -39,16 +39,16 @@ import org.bukkit.block.data.BlockData;
 @Desc("Represents loot within this object or jigsaw piece")
 @Data
 public class IrisObjectLoot {
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The list of blocks this loot table should apply to")
-    private KList<LoaderBlockData> filter = new KList<>();
+    private KList<IrisBlockData> filter = new KList<>();
 
     @Desc("Exactly match the block data or not")
     private boolean exact = false;
 
     @Desc("The loot table name")
     @Required
-    @RegistryListResource(LoaderLootTable.class)
+    @RegistryListResource(IrisLootTable.class)
     private String name;
 
     @Desc("The weight of this loot table being chosen")
@@ -61,7 +61,7 @@ public class IrisObjectLoot {
         {
             KList<BlockData> b = new KList<>();
 
-            for (LoaderBlockData i : filter) {
+            for (IrisBlockData i : filter) {
                 BlockData bx = i.getBlockData(rdata);
 
                 if (bx != null) {

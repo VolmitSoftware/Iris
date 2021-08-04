@@ -21,10 +21,10 @@ package com.volmit.iris.engine.modifier;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
-import com.volmit.iris.engine.object.objects.LoaderObject;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.objects.IrisObject;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.data.HeightMap;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -48,8 +48,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z) {
         RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
-        LoaderRegion region = getComplex().getRegionStream().get((x * 16) + 7, (z * 16) + 7);
-        LoaderBiome biome = getComplex().getTrueBiomeStream().get((x * 16) + 7, (z * 16) + 7);
+        IrisRegion region = getComplex().getRegionStream().get((x * 16) + 7, (z * 16) + 7);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get((x * 16) + 7, (z * 16) + 7);
 
         for (IrisDepositGenerator k : getDimension().getDeposits()) {
             generate(k, terrain, ro, x, z, false);
@@ -74,7 +74,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he) {
         for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
-            LoaderObject clump = k.getClump(rng, getData());
+            IrisObject clump = k.getClump(rng, getData());
 
             int af = (int) Math.ceil(clump.getW() / 2D);
             int bf = (int) Math.floor(16D - (clump.getW() / 2D));

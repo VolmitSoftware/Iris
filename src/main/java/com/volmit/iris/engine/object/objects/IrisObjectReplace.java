@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.objects;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.block.LoaderBlockData;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.block.IrisMaterialPalette;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
@@ -38,10 +38,10 @@ import org.bukkit.block.data.BlockData;
 @Desc("Find and replace object materials")
 @Data
 public class IrisObjectReplace {
-    @ArrayType(min = 1, type = LoaderBlockData.class)
+    @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Desc("Find this block")
-    private KList<LoaderBlockData> find = new KList<>();
+    private KList<IrisBlockData> find = new KList<>();
 
     @Required
     @Desc("Replace it with this block palette")
@@ -64,7 +64,7 @@ public class IrisObjectReplace {
         {
             KList<BlockData> b = new KList<>();
 
-            for (LoaderBlockData i : find) {
+            for (IrisBlockData i : find) {
                 BlockData bx = i.getBlockData(rdata);
 
                 if (bx != null) {

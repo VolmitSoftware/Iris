@@ -24,101 +24,67 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public abstract class DataPalette<T> implements Writable {
-    private static final int DEFAULT_BITS_PER_BLOCK = 4;
-    private static final int CAPACITY = 4096;
-    private int bpb;
-    private NibbleArray data;
-    private KList<T> palette;
+public class DataPalette<T> {
+    private final KList<T> palette;
 
-    public DataPalette(T defaultValue) {
-        palette = new KList<>();
-        bpb = DEFAULT_BITS_PER_BLOCK;
-        data = new NibbleArray(bpb, CAPACITY);
-        data.setAll(Byte.MIN_VALUE);
-        getPaletteId(defaultValue);
+    public DataPalette() {
+        this(new KList<>(16));
     }
 
-    public abstract T readType(DataInputStream i);
-
-    public abstract void writeType(T t, DataOutputStream o);
-
-    @Override
-    public void write(DataOutputStream o) throws IOException {
-        o.writeByte(bpb + Byte.MIN_VALUE);
-        o.writeByte(palette.size() + Byte.MIN_VALUE);
-
-        for (T i : palette) {
-            writeType(i, o);
-        }
-
-        data.write(o);
+    public DataPalette(KList<T> palette) {
+        this.palette = palette;
     }
 
-    @Override
-    public void read(DataInputStream i) throws IOException {
-        bpb = i.readByte() - Byte.MIN_VALUE;
-        palette = new KList<>();
-        int v = i.readByte() - Byte.MIN_VALUE;
-
-        for (int j = 0; j < v; j++) {
-            palette.add(readType(i));
-        }
-
-        data = new NibbleArray(CAPACITY, i);
+    public KList<T> getPalette() {
+        return palette;
     }
 
-    private final void expand() {
-        if (bpb < 8) {
-            changeBitsPerBlock(bpb + 1);
-        } else {
-            throw new IndexOutOfBoundsException("The Data Palette can only handle at most 256 block types per 16x16x16 region. We cannot use more than 8 bits per block!");
+    public T get(int index)
+    {
+        synchronized (palette)
+        {
+            if(!palette.hasIndex(index))
+            {
+                return null;
+            }
+
+            return palette.get(index);
         }
     }
 
-    public final void optimize() {
-        int targetBits = bpb;
-        int needed = palette.size();
+    public int getIndex(T t) {
+        int v = 0;
 
-        for (int i = 1; i < bpb; i++) {
-            if (Math.pow(2, i) > needed) {
-                targetBits = i;
-                break;
+        synchronized (palette) {
+            v = palette.indexOf(t);
+
+            if (v == -1) {
+                v = palette.size();
+                palette.add(t);
             }
         }
 
-        changeBitsPerBlock(targetBits);
+        return v;
     }
 
-    private final void changeBitsPerBlock(int bits) {
-        bpb = bits;
-        data = new NibbleArray(bpb, CAPACITY, data);
-    }
+    public void write(IOAdapter<T> adapter, DataOutputStream dos) throws IOException {
+        synchronized (palette) {
+            dos.writeShort(getPalette().size() + Short.MIN_VALUE);
 
-    public final void set(int x, int y, int z, T d) {
-        data.set(getCoordinateIndex(x, y, z), getPaletteId(d));
-    }
-
-    public final T get(int x, int y, int z) {
-        return palette.get(data.get(getCoordinateIndex(x, y, z)));
-    }
-
-    private final int getPaletteId(T d) {
-        int index = palette.indexOf(d);
-
-        if (index == -1) {
-            index = palette.size();
-            palette.add(d);
-
-            if (palette.size() > Math.pow(2, bpb)) {
-                expand();
+            for (T t : palette) {
+                adapter.write(t, dos);
             }
         }
-
-        return index + Byte.MIN_VALUE;
     }
 
-    private final int getCoordinateIndex(int x, int y, int z) {
-        return y << 8 | z << 4 | x;
+    public static <T> DataPalette<T> getPalette(IOAdapter<T> adapter, DataInputStream din) throws IOException {
+        KList<T> palette = new KList<>();
+        int s = din.readShort() - Short.MIN_VALUE;
+
+        for (int i = 0; i < s; i++) {
+            palette.add(adapter.read(din));
+        }
+
+        return new DataPalette<>(palette);
     }
 }

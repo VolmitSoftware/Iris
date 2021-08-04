@@ -23,16 +23,16 @@ import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.basic.IrisColor;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
-import com.volmit.iris.engine.object.loot.LoaderLootTable;
+import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.loot.IrisLootMode;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
-import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
@@ -132,7 +132,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getWorld();
     }
 
-    default LoaderDimension getDimension() {
+    default IrisDimension getDimension() {
         return getTarget().getDimension();
     }
 
@@ -142,8 +142,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @BlockCoordinates
     default Color draw(double x, double z) {
-        LoaderRegion region = getRegion((int) x, (int) z);
-        LoaderBiome biome = getSurfaceBiome((int) x, (int) z);
+        IrisRegion region = getRegion((int) x, (int) z);
+        IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
         double heightFactor = M.lerpInverse(0, getHeight(), height);
         Color irc = region.getColor(this.getFramework().getComplex(), RenderType.BIOME);
@@ -157,7 +157,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @BlockCoordinates
     @Override
-    default LoaderRegion getRegion(int x, int z) {
+    default IrisRegion getRegion(int x, int z) {
         return getFramework().getComplex().getRegionStream().get(x, z);
     }
 
@@ -168,13 +168,13 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @BlockCoordinates
     @Override
-    default LoaderBiome getCaveBiome(int x, int z) {
+    default IrisBiome getCaveBiome(int x, int z) {
         return getFramework().getComplex().getCaveBiomeStream().get(x, z);
     }
 
     @BlockCoordinates
     @Override
-    default LoaderBiome getSurfaceBiome(int x, int z) {
+    default IrisBiome getSurfaceBiome(int x, int z) {
         return getFramework().getComplex().getTrueBiomeStream().get(x, z);
     }
 
@@ -262,7 +262,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             }
 
             if (slot != null) {
-                KList<LoaderLootTable> tables = getLootTables(rx, block);
+                KList<IrisLootTable> tables = getLootTables(rx, block);
 
                 try {
                     InventoryHolder m = (InventoryHolder) block.getState();
@@ -315,7 +315,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    default void injectTables(KList<LoaderLootTable> list, IrisLootReference r) {
+    default void injectTables(KList<IrisLootTable> list, IrisLootReference r) {
         if (r.getMode().equals(IrisLootMode.CLEAR) || r.getMode().equals(IrisLootMode.REPLACE)) {
             list.clear();
         }
@@ -325,7 +325,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @BlockCoordinates
     @Override
-    default KList<LoaderLootTable> getLootTables(RNG rng, Block b) {
+    default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
         int rz = b.getZ();
         double he = getFramework().getComplex().getHeightStream().get(rx, rz);
@@ -333,16 +333,16 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         if (po != null && po.getPlacement() != null) {
 
             if (B.isStorageChest(b.getBlockData())) {
-                LoaderLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
+                IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
                 if (table != null) {
                     return new KList<>(table);
                 }
             }
         }
-        LoaderRegion region = getFramework().getComplex().getRegionStream().get(rx, rz);
-        LoaderBiome biomeSurface = getFramework().getComplex().getTrueBiomeStream().get(rx, rz);
-        LoaderBiome biomeUnder = b.getY() < he ? getFramework().getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
-        KList<LoaderLootTable> tables = new KList<>();
+        IrisRegion region = getFramework().getComplex().getRegionStream().get(rx, rz);
+        IrisBiome biomeSurface = getFramework().getComplex().getTrueBiomeStream().get(rx, rz);
+        IrisBiome biomeUnder = b.getY() < he ? getFramework().getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
+        KList<IrisLootTable> tables = new KList<>();
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         injectTables(tables, getDimension().getLoot());
         injectTables(tables, region.getLoot());
@@ -365,11 +365,11 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @Override
-    default void addItems(boolean debug, Inventory inv, RNG rng, KList<LoaderLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf) {
+    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf) {
         KList<ItemStack> items = new KList<>();
 
         int b = 4;
-        for (LoaderLootTable i : tables) {
+        for (IrisLootTable i : tables) {
             b++;
             items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }
@@ -402,12 +402,12 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     @BlockCoordinates
-    default LoaderBiome getBiome(Location l) {
+    default IrisBiome getBiome(Location l) {
         return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
     @BlockCoordinates
-    default LoaderRegion getRegion(Location l) {
+    default IrisRegion getRegion(Location l) {
         return getRegion(l.getBlockX(), l.getBlockZ());
     }
 
@@ -416,15 +416,15 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
     }
 
-    LoaderBiome getFocus();
+    IrisBiome getFocus();
 
     IrisEngineData getEngineData();
 
-    default LoaderBiome getSurfaceBiome(Chunk c) {
+    default IrisBiome getSurfaceBiome(Chunk c) {
         return getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
 
-    default LoaderRegion getRegion(Chunk c) {
+    default IrisRegion getRegion(Chunk c) {
         return getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
 }

@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
@@ -35,16 +35,16 @@ import java.io.File;
 @Data
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class HeadlessWorld {
-    private final LoaderDimension dimension;
+    private final IrisDimension dimension;
     private final String worldName;
     private final IrisWorld world;
     private boolean studio = false;
 
-    public HeadlessWorld(String worldName, LoaderDimension dimension, long seed) {
+    public HeadlessWorld(String worldName, IrisDimension dimension, long seed) {
         this(worldName, dimension, seed, false);
     }
 
-    public HeadlessWorld(String worldName, LoaderDimension dimension, long seed, boolean studio) {
+    public HeadlessWorld(String worldName, IrisDimension dimension, long seed, boolean studio) {
         this.worldName = worldName;
         this.dimension = dimension;
         this.studio = studio;

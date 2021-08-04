@@ -24,8 +24,8 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
-import com.volmit.iris.engine.object.spawners.LoaderSpawner;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -49,7 +49,7 @@ import org.bukkit.entity.Entity;
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisEntitySpawn implements IRare {
-    @RegistryListResource(LoaderEntity.class)
+    @RegistryListResource(IrisEntity.class)
     @Required
     @Desc("The entity")
     private String entity = "";
@@ -69,9 +69,9 @@ public class IrisEntitySpawn implements IRare {
     @Desc("The max of this entity to spawn")
     private int maxSpawns = 1;
 
-    private transient LoaderSpawner referenceSpawner;
+    private transient IrisSpawner referenceSpawner;
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
-    private final transient AtomicCache<LoaderEntity> ent = new AtomicCache<>();
+    private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
     public int spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
@@ -88,7 +88,7 @@ public class IrisEntitySpawn implements IRare {
                     case CAVE -> {
                         IrisComplex comp = gen.getFramework().getComplex();
                         EngineFramework frame = gen.getFramework();
-                        LoaderBiome cave = comp.getCaveBiomeStream().get(x, z);
+                        IrisBiome cave = comp.getCaveBiomeStream().get(x, z);
                         KList<Location> r = new KList<>();
                         if (cave != null) {
                             for (CaveResult i : ((IrisCaveModifier) frame.getCaveModifier()).genCaves(x, z)) {
@@ -116,7 +116,7 @@ public class IrisEntitySpawn implements IRare {
         return s;
     }
 
-    public LoaderEntity getRealEntity(Engine g) {
+    public IrisEntity getRealEntity(Engine g) {
         return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
     }
 
@@ -134,7 +134,7 @@ public class IrisEntitySpawn implements IRare {
 
     private Entity spawn100(Engine g, Location at) {
         try {
-            LoaderEntity irisEntity = getRealEntity(g);
+            IrisEntity irisEntity = getRealEntity(g);
 
             if (!irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock().getState())) return null; //Make sure it can spawn on the block
 

@@ -46,7 +46,7 @@ public class IrisGeneratorStyle {
     private double zoom = 1;
 
     @Desc("Instead of using the style property, use a custom expression to represent this style.")
-    @RegistryListResource(LoaderExpression.class)
+    @RegistryListResource(IrisExpression.class)
     private String expression = null;
 
     @MinNumber(0.00001)
@@ -79,7 +79,7 @@ public class IrisGeneratorStyle {
         return cng.aquire(() ->
         {
             if (getExpression() != null) {
-                LoaderExpression e = data.getExpressionLoader().load(getExpression());
+                IrisExpression e = data.getExpressionLoader().load(getExpression());
 
                 if (e != null) {
                     CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)

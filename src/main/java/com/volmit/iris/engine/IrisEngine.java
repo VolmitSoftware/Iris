@@ -25,7 +25,7 @@ import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
@@ -142,7 +142,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     private void computeBiomeMaxes() {
-        for (LoaderBiome i : getDimension().getAllBiomes(this)) {
+        for (IrisBiome i : getDimension().getAllBiomes(this)) {
             double density = 0;
 
             for (IrisObjectPlacement j : i.getObjects()) {
@@ -257,7 +257,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     @Override
-    public LoaderBiome getFocus() {
+    public IrisBiome getFocus() {
         if (getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
             return null;
         }

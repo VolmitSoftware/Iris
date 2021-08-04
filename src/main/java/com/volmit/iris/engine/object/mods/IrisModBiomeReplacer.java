@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.mods;
 
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -37,12 +37,12 @@ import lombok.experimental.Accessors;
 public class IrisModBiomeReplacer {
     @Required
     @Desc("A list of biomes to find")
-    @RegistryListResource(LoaderBiome.class)
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> find = new KList<>();
 
     @Required
     @Desc("A biome to replace it with")
-    @RegistryListResource(LoaderBiome.class)
+    @RegistryListResource(IrisBiome.class)
     private String replace = "";
 }

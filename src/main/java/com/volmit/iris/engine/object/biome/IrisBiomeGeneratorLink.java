@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.object.biome;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.noise.LoaderGenerator;
+import com.volmit.iris.engine.object.noise.IrisGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,7 +35,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisBiomeGeneratorLink {
 
-    @RegistryListResource(LoaderGenerator.class)
+    @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
 
@@ -53,15 +53,15 @@ public class IrisBiomeGeneratorLink {
     @Desc("The max block value (value + fluidHeight)")
     private int max = 0;
 
-    private final transient AtomicCache<LoaderGenerator> gen = new AtomicCache<>();
+    private final transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
-    public LoaderGenerator getCachedGenerator(DataProvider g) {
+    public IrisGenerator getCachedGenerator(DataProvider g) {
         return gen.aquire(() ->
         {
-            LoaderGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
+            IrisGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
 
             if (gen == null) {
-                gen = new LoaderGenerator();
+                gen = new IrisGenerator();
             }
 
             return gen;

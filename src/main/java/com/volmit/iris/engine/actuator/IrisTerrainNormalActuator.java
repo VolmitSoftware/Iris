@@ -21,7 +21,7 @@ package com.volmit.iris.engine.actuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -82,7 +82,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
         int i, depth, realX, realZ, hf, he, b, fdepth;
-        LoaderBiome biome;
+        IrisBiome biome;
         KList<BlockData> blocks, fblocks;
 
         for (int zf = 0; zf < h.getDepth(); zf++) {

@@ -43,7 +43,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 @Data
-public class ResourceLoader<T extends LoaderRegistrant> {
+public class ResourceLoader<T extends IrisRegistrant> {
     public static final AtomicDouble tlt = new AtomicDouble(0);
     protected File root;
     protected String folderName;

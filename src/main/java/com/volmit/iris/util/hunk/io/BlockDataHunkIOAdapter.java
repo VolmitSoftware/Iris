@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.hunk.io;
 
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import org.bukkit.block.data.BlockData;
 
 import java.io.DataInputStream;

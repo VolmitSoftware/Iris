@@ -33,7 +33,7 @@ import lombok.experimental.Accessors;
 @Desc("Represents a jigsaw placement")
 @Data
 public class IrisJigsawPlacement {
-    @RegistryListResource(LoaderJigsawStructure.class)
+    @RegistryListResource(IrisJigsawStructure.class)
     @Required
     @Desc("The jigsaw structure to use")
     private String structure = "";

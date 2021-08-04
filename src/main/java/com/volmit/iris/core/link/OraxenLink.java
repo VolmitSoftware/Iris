@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.link;
 
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;

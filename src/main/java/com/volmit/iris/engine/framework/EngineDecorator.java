@@ -18,19 +18,19 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import org.bukkit.block.data.BlockData;
 
 public interface EngineDecorator extends EngineComponent {
 
     @BlockCoordinates
-    void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, LoaderBiome biome, int height, int max);
+    void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max);
 
     @BlockCoordinates
-    default void decorate(int x, int z, int realX, int realZ, Hunk<BlockData> data, LoaderBiome biome, int height, int max) {
+    default void decorate(int x, int z, int realX, int realZ, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         decorate(x, z, realX, realX, realX, realZ, realZ, realZ, data, biome, height, max);
     }
 

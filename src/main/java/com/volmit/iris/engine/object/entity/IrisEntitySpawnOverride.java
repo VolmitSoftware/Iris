@@ -40,7 +40,7 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 @Desc("Represents an entity spawn")
 @Data
 public class IrisEntitySpawnOverride {
-    @RegistryListResource(LoaderEntity.class)
+    @RegistryListResource(IrisEntity.class)
     @Required
     @Desc("The entity")
     private String entity = "";
@@ -57,7 +57,7 @@ public class IrisEntitySpawnOverride {
     private int rarity = 1;
 
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
-    private final transient AtomicCache<LoaderEntity> ent = new AtomicCache<>();
+    private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
 
     public Entity on(Engine g, Location at, EntityType t, EntitySpawnEvent ee) {
@@ -89,7 +89,7 @@ public class IrisEntitySpawnOverride {
         return null;
     }
 
-    public LoaderEntity getRealEntity(Engine g) {
+    public IrisEntity getRealEntity(Engine g) {
         return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
     }
 }

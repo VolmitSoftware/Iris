@@ -33,11 +33,10 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.6'
+version '1.6.1'
 def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'
-
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================

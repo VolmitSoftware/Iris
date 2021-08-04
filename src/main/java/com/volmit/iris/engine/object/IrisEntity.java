@@ -142,6 +142,12 @@ public class IrisEntity extends IrisRegistrant {
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
         Entity e = doSpawn(at);
+
+        if(e == null)
+        {
+            return null;
+        }
+
         e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);
         e.setCustomNameVisible(isCustomNameVisible());
         e.setGlowing(isGlowing());

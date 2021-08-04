@@ -25,6 +25,7 @@ import com.volmit.iris.util.math.Position2;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
@@ -80,7 +81,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
                 if(pr != null)
                 {
-                    Iris.info("Taking you to " + pr.getX() + " " + pr.getZ());
+                    e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.2f);
                     ((EnderSignal) e.getEntity()).setTargetLocation(new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ()));
                 }
             }

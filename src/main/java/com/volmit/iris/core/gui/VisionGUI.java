@@ -25,8 +25,8 @@ import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -629,8 +629,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     }
 
     private void renderHoverOverlay(Graphics2D g, boolean detailed) {
-        IrisBiome biome = engine.getFramework().getComplex().getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz));
-        IrisRegion region = engine.getFramework().getComplex().getRegionStream().get(getWorldX(hx), getWorldZ(hz));
+        LoaderBiome biome = engine.getFramework().getComplex().getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz));
+        LoaderRegion region = engine.getFramework().getComplex().getRegionStream().get(getWorldX(hx), getWorldZ(hz));
         KList<String> l = new KList<>();
         l.add("Biome: " + biome.getName());
         l.add("Region: " + region.getName() + "(" + region.getLoadKey() + ")");

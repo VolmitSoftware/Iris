@@ -21,7 +21,7 @@ package com.volmit.iris.core.command.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.WandManager;
-import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.objects.LoaderObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -75,7 +75,7 @@ public class CommandIrisObjectSave extends MortarCommand {
 
             Player p = sender.player();
             ItemStack wand = p.getInventory().getItemInMainHand();
-            IrisObject o = WandManager.createSchematic(wand);
+            LoaderObject o = WandManager.createSchematic(wand);
             File file = Iris.proj.getWorkspaceFile(args[0], "objects", args[1] + ".iob");
 
             if (file.exists()) {

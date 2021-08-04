@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.annotations;
 
-import com.volmit.iris.engine.object.IrisRegistrant;
+import com.volmit.iris.core.project.loader.LoaderRegistrant;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -29,5 +29,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target({PARAMETER, TYPE, FIELD})
 public @interface RegistryListResource {
-    Class<? extends IrisRegistrant> value();
+    Class<? extends LoaderRegistrant> value();
 }

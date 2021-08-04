@@ -22,8 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.meta.InventorySlotType;
+import com.volmit.iris.engine.object.loot.LoaderLootTable;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -63,7 +63,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
                 return true;
             }
 
-            KList<IrisLootTable> tables = prov.getCompound().getEngine(p.getLocation().getBlockY()).getLootTables(RNG.r, p.getLocation().getBlock());
+            KList<LoaderLootTable> tables = prov.getCompound().getEngine(p.getLocation().getBlockY()).getLootTables(RNG.r, p.getLocation().getBlock());
             Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
             try {
@@ -76,7 +76,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
 
             p.openInventory(inv);
 
-            for (IrisLootTable i : tables) {
+            for (LoaderLootTable i : tables) {
                 sender.sendMessage("- " + i.getName());
             }
 

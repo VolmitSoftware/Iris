@@ -23,7 +23,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.math.Position2;

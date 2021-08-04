@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.math;
 
-import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 
 public class Position2 {
     private int x;

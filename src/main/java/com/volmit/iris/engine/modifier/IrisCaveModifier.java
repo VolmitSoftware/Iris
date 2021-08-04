@@ -23,8 +23,8 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.noise.FastNoiseDouble;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisCaveLayer;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.engine.object.common.CaveResult;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
@@ -77,7 +77,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
             KList<CaveResult> caves = genCaves(x + finalI, z + j, finalI, j, a);
             int he = (int) Math.round(getComplex().getHeightStream().get(x + finalI, z + j));
             if (caves != null && caves.isNotEmpty()) {
-                IrisBiome cave = getComplex().getCaveBiomeStream().get(x + finalI, z + j);
+                LoaderBiome cave = getComplex().getCaveBiomeStream().get(x + finalI, z + j);
 
                 if (cave == null) {
                     continue;

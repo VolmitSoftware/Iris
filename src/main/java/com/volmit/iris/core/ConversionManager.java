@@ -26,7 +26,12 @@ import com.volmit.iris.engine.data.nbt.io.NamedTag;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
 import com.volmit.iris.engine.data.nbt.tag.IntTag;
 import com.volmit.iris.engine.data.nbt.tag.ListTag;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPool;
+import com.volmit.iris.engine.object.objects.IrisDirection;
+import com.volmit.iris.engine.object.objects.LoaderObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
@@ -100,7 +105,7 @@ public class ConversionManager {
     }
 
     public void convertStructures(File in, File out, VolmitSender s) {
-        KMap<String, IrisJigsawPool> pools = new KMap<>();
+        KMap<String, LoaderJigsawPool> pools = new KMap<>();
         KList<File> roots = new KList<>();
         AtomicInteger total = new AtomicInteger(0);
         AtomicInteger at = new AtomicInteger(0);
@@ -118,7 +123,7 @@ public class ConversionManager {
                     b = b.substring(0, b.length() - 1);
                 }
 
-                pools.put(b, new IrisJigsawPool());
+                pools.put(b, new LoaderJigsawPool());
             }
         });
         findAllNBT(in, (folder, file) -> {
@@ -131,7 +136,7 @@ public class ConversionManager {
             if (b.endsWith("/")) {
                 b = b.substring(0, b.length() - 1);
             }
-            IrisJigsawPool jpool = pools.get(b);
+            LoaderJigsawPool jpool = pools.get(b);
             File destObjects = new File(out.getAbsolutePath() + "/objects/" + in.toURI().relativize(folder.toURI()).getPath());
             File destPieces = new File(out.getAbsolutePath() + "/jigsaw-pieces/" + in.toURI().relativize(folder.toURI()).getPath());
             destObjects.mkdirs();
@@ -153,8 +158,8 @@ public class ConversionManager {
                         CompoundTag cp = paletteList.get(i);
                         palette.add(NBTWorld.getBlockData(cp));
                     }
-                    IrisJigsawPiece piece = new IrisJigsawPiece();
-                    IrisObject object = new IrisObject(w, h, d);
+                    LoaderJigsawPiece piece = new LoaderJigsawPiece();
+                    LoaderObject object = new LoaderObject(w, h, d);
                     @SuppressWarnings("unchecked") ListTag<CompoundTag> blockList = (ListTag<CompoundTag>) compound.getListTag("blocks");
                     for (int i = 0; i < blockList.size(); i++) {
                         CompoundTag cp = blockList.get(i);
@@ -177,7 +182,7 @@ public class ConversionManager {
                             String poolId = toPoolName(pool);
                             String name = nbt.getString("name");
                             String target = nbt.getString("target");
-                            pools.computeIfAbsent(poolId, (k) -> new IrisJigsawPool());
+                            pools.computeIfAbsent(poolId, (k) -> new LoaderJigsawPool());
                             IrisJigsawPieceConnector connector = new IrisJigsawPieceConnector();
                             connector.setName(name);
                             connector.setTargetName(target);

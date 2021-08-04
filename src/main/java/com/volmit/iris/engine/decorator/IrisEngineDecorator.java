@@ -19,13 +19,13 @@
 package com.volmit.iris.engine.decorator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedComponent;
 import com.volmit.iris.engine.framework.EngineDecorator;
-import com.volmit.iris.engine.object.DecorationPart;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
@@ -36,15 +36,15 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
     private final RNG rng;
 
     @Getter
-    private final DecorationPart part;
+    private final IrisDecorationPart part;
 
-    public IrisEngineDecorator(Engine engine, String name, DecorationPart part) {
+    public IrisEngineDecorator(Engine engine, String name, IrisDecorationPart part) {
         super(engine, name + " Decorator");
         this.part = part;
         this.rng = new RNG(getSeed() + 29356788 - (part.ordinal() * 10439677L));
     }
 
-    protected IrisDecorator getDecorator(IrisBiome biome, double realX, double realZ) {
+    protected IrisDecorator getDecorator(LoaderBiome biome, double realX, double realZ) {
         KList<IrisDecorator> v = new KList<>();
         RNG rng = new RNG(Cache.key((int) realX, (int) realZ));
 

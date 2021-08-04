@@ -23,8 +23,8 @@ import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.Form;
@@ -92,11 +92,11 @@ public class ProjectManager {
         });
     }
 
-    public IrisDimension installIntoWorld(VolmitSender sender, String type, File folder) {
+    public LoaderDimension installIntoWorld(VolmitSender sender, String type, File folder) {
         sender.sendMessage("Looking for Package: " + type);
         File iris = new File(folder, "iris");
         File irispack = new File(folder, "iris/pack");
-        IrisDimension dim = IrisData.loadAnyDimension(type);
+        LoaderDimension dim = IrisData.loadAnyDimension(type);
 
         if (dim == null) {
             for (File i : Iris.proj.getWorkspaceFolder().listFiles()) {
@@ -262,7 +262,7 @@ public class ProjectManager {
         }
 
         String key = dim.getName().split("\\Q.\\E")[0];
-        IrisDimension d = new Gson().fromJson(IO.readAll(dim), IrisDimension.class);
+        LoaderDimension d = new Gson().fromJson(IO.readAll(dim), LoaderDimension.class);
         sender.sendMessage("Importing " + d.getName() + " (" + key + ")");
         File packEntry = new File(packs, key);
 

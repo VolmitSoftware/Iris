@@ -22,9 +22,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawStructure;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -81,9 +81,9 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 }
 
                 IrisAccess g = IrisWorlds.access(world);
-                IrisBiome b = IrisData.loadAnyBiome(args[0]);
-                IrisRegion r = IrisData.loadAnyRegion(args[0]);
-                IrisJigsawStructure s = IrisData.loadAnyJigsawStructure(args[0]);
+                LoaderBiome b = IrisData.loadAnyBiome(args[0]);
+                LoaderRegion r = IrisData.loadAnyRegion(args[0]);
+                LoaderJigsawStructure s = IrisData.loadAnyJigsawStructure(args[0]);
 
                 if (b != null) {
                     J.a(() -> {

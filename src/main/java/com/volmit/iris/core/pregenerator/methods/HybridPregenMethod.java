@@ -23,7 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.headless.HeadlessWorld;
+import com.volmit.iris.engine.framework.headless.HeadlessWorld;
 import com.volmit.iris.util.math.Position2;
 import org.bukkit.World;
 

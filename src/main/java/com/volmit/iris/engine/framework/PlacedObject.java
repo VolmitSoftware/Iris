@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -31,7 +31,7 @@ public class PlacedObject {
     @Nullable
     private IrisObjectPlacement placement;
     @Nullable
-    private IrisObject object;
+    private LoaderObject object;
     private int id;
     private int xx;
     private int zz;

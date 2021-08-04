@@ -19,7 +19,7 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -37,7 +37,7 @@ public class MultiverseCoreLink {
 
     }
 
-    public boolean addWorld(String worldName, IrisDimension dim, String seed) {
+    public boolean addWorld(String worldName, LoaderDimension dim, String seed) {
         if (!supported()) {
             return false;
         }

@@ -24,9 +24,16 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.entity.LoaderEntity;
+import com.volmit.iris.engine.object.feature.IrisFeature;
+import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawStructure;
+import com.volmit.iris.engine.object.objects.*;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
@@ -39,20 +46,20 @@ import org.bukkit.entity.Entity;
 @Data
 public class PlannedStructure {
     private KList<PlannedPiece> pieces;
-    private IrisJigsawStructure structure;
+    private LoaderJigsawStructure structure;
     private IrisPosition position;
     private IrisData data;
     private RNG rng;
     private boolean verbose;
     private boolean terminating;
-    private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
-            = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
+    private static transient ConcurrentLinkedHashMap<String, LoaderObject> objectRotationCache
+            = new ConcurrentLinkedHashMap.Builder<String, LoaderObject>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)
             .concurrencyLevel(32)
             .build();
 
-    public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng) {
+    public PlannedStructure(LoaderJigsawStructure structure, IrisPosition position, RNG rng) {
         terminating = false;
         verbose = true;
         this.pieces = new KList<>();
@@ -96,8 +103,8 @@ public class PlannedStructure {
             options.setMode(i.getPiece().getPlaceMode());
         }
 
-        IrisObject vo = i.getOgObject();
-        IrisObject v = i.getObject();
+        LoaderObject vo = i.getOgObject();
+        LoaderObject v = i.getObject();
         int sx = (v.getW() / 2);
         int sz = (v.getD() / 2);
         int xx = i.getPosition().getX() + sx;
@@ -169,7 +176,7 @@ public class PlannedStructure {
                             break;
                         }
                         IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
-                        IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
+                        LoaderEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
 
                         if (a != null) {
                             Entity entity = e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
@@ -206,7 +213,7 @@ public class PlannedStructure {
     }
 
     private boolean generateConnectorOutwards(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector) {
-        for (IrisJigsawPiece i : getShuffledPiecesFor(pieceConnector)) {
+        for (LoaderJigsawPiece i : getShuffledPiecesFor(pieceConnector)) {
             if (generateRotatedPiece(piece, pieceConnector, i)) {
                 return true;
             }
@@ -215,7 +222,7 @@ public class PlannedStructure {
         return false;
     }
 
-    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea) {
+    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, LoaderJigsawPiece idea) {
         if (!piece.getPiece().getPlacementOptions().getRotation().isEnabled()) {
             if (generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0)) {
                 return true;
@@ -249,7 +256,7 @@ public class PlannedStructure {
         return false;
     }
 
-    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
+    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, LoaderJigsawPiece idea, IrisObjectRotation rotation) {
         if (!idea.getPlacementOptions().getRotation().isEnabled())
             rotation = piece.getRotation(); //Inherit parent rotation
 
@@ -264,7 +271,7 @@ public class PlannedStructure {
         return false;
     }
 
-    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, int x, int y, int z) {
+    private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, LoaderJigsawPiece idea, int x, int y, int z) {
         return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
     }
 
@@ -299,12 +306,12 @@ public class PlannedStructure {
         return true;
     }
 
-    private KList<IrisJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
-        KList<IrisJigsawPiece> p = new KList<>();
+    private KList<LoaderJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
+        KList<LoaderJigsawPiece> p = new KList<>();
 
         for (String i : c.getPools().shuffleCopy(rng)) {
             for (String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
-                IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
+                LoaderJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
                 if (pi == null || (terminating && !pi.isTerminal())) {
                     continue;
@@ -375,7 +382,7 @@ public class PlannedStructure {
         return false;
     }
 
-    public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
+    public LoaderObject rotated(LoaderJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
         return objectRotationCache.compute(key, (k, v) -> {

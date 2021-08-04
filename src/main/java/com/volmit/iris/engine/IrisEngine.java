@@ -22,13 +22,13 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
-import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.decoration.IrisDecorator;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -142,7 +142,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     private void computeBiomeMaxes() {
-        for (IrisBiome i : getDimension().getAllBiomes(this)) {
+        for (LoaderBiome i : getDimension().getAllBiomes(this)) {
             double density = 0;
 
             for (IrisObjectPlacement j : i.getObjects()) {
@@ -257,7 +257,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     }
 
     @Override
-    public IrisBiome getFocus() {
+    public LoaderBiome getFocus() {
         if (getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
             return null;
         }

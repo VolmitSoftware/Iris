@@ -18,9 +18,9 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisLootReference;
-import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.meta.InventorySlotType;
+import com.volmit.iris.engine.object.loot.IrisLootReference;
+import com.volmit.iris.engine.object.loot.LoaderLootTable;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.Block;
@@ -29,9 +29,9 @@ import org.bukkit.inventory.Inventory;
 public interface LootProvider {
     void scramble(Inventory inventory, RNG rng);
 
-    void injectTables(KList<IrisLootTable> list, IrisLootReference r);
+    void injectTables(KList<LoaderLootTable> list, IrisLootReference r);
 
-    KList<IrisLootTable> getLootTables(RNG rng, Block b);
+    KList<LoaderLootTable> getLootTables(RNG rng, Block b);
 
-    void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf);
+    void addItems(boolean debug, Inventory inv, RNG rng, KList<LoaderLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf);
 }

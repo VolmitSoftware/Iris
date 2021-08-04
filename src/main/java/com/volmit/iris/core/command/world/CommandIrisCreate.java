@@ -25,7 +25,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -139,7 +139,7 @@ public class CommandIrisCreate extends MortarCommand {
 
         Iris.linkMultiverseCore.assignWorldType(worldName, type);
         final AtomicReference<World> world = new AtomicReference<>();
-        IrisDimension dim;
+        LoaderDimension dim;
         File folder = new File(worldName);
 
         Runnable onDone = () -> {

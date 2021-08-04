@@ -20,7 +20,7 @@ package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.DustRevealer;
-import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.objects.LoaderObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;
@@ -185,7 +185,7 @@ public class WandManager implements Listener {
         }
     }
 
-    public static void pasteSchematic(IrisObject s, Location at) {
+    public static void pasteSchematic(LoaderObject s, Location at) {
         s.place(at);
     }
 
@@ -194,7 +194,7 @@ public class WandManager implements Listener {
      * @param wand The wand itemstack
      * @return The new object
      */
-    public static IrisObject createSchematic(ItemStack wand) {
+    public static LoaderObject createSchematic(ItemStack wand) {
         if (!isWand(wand)) {
             return null;
         }
@@ -202,7 +202,7 @@ public class WandManager implements Listener {
         try {
             Location[] f = getCuboid(wand);
             Cuboid c = new Cuboid(f[0], f[1]);
-            IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
+            LoaderObject s = new LoaderObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
             for (Block b : c) {
                 if (b.getType().equals(Material.AIR)) {
                     continue;

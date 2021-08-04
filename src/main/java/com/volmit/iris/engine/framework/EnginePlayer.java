@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisEffect;
-import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.meta.IrisEffect;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -32,8 +32,8 @@ import org.bukkit.entity.Player;
 public class EnginePlayer {
     private final Engine engine;
     private final Player player;
-    private IrisBiome biome;
-    private IrisRegion region;
+    private LoaderBiome biome;
+    private LoaderRegion region;
     private Location lastLocation;
     private long lastSample;
 

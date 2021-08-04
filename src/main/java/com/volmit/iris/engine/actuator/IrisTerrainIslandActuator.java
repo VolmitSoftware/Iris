@@ -21,7 +21,7 @@ package com.volmit.iris.engine.actuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -56,7 +56,7 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int i, zf, depth, surface, realX, realZ;
-        IrisBiome biome;
+        LoaderBiome biome;
         KList<BlockData> blocks, fblocks;
         int hi, lo;
         double hh;

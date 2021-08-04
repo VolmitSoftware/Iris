@@ -20,7 +20,20 @@ package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.block.LoaderBlockData;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.entity.LoaderEntity;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPool;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawStructure;
+import com.volmit.iris.engine.object.loot.LoaderLootTable;
+import com.volmit.iris.engine.object.mods.LoaderMod;
+import com.volmit.iris.engine.object.noise.LoaderExpression;
+import com.volmit.iris.engine.object.noise.LoaderGenerator;
+import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.spawners.LoaderSpawner;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
@@ -31,21 +44,21 @@ import java.util.function.Function;
 
 @Data
 public class IrisData {
-    private ResourceLoader<IrisBiome> biomeLoader;
-    private ResourceLoader<IrisLootTable> lootLoader;
-    private ResourceLoader<IrisRegion> regionLoader;
-    private ResourceLoader<IrisDimension> dimensionLoader;
-    private ResourceLoader<IrisGenerator> generatorLoader;
-    private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
-    private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
-    private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
-    private ResourceLoader<IrisEntity> entityLoader;
-    private ResourceLoader<IrisSpawner> spawnerLoader;
-    private ResourceLoader<IrisMod> modLoader;
-    private ResourceLoader<IrisBlockData> blockLoader;
-    private ResourceLoader<IrisExpression> expressionLoader;
-    private ResourceLoader<IrisObject> objectLoader;
-    private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
+    private ResourceLoader<LoaderBiome> biomeLoader;
+    private ResourceLoader<LoaderLootTable> lootLoader;
+    private ResourceLoader<LoaderRegion> regionLoader;
+    private ResourceLoader<LoaderDimension> dimensionLoader;
+    private ResourceLoader<LoaderGenerator> generatorLoader;
+    private ResourceLoader<LoaderJigsawPiece> jigsawPieceLoader;
+    private ResourceLoader<LoaderJigsawPool> jigsawPoolLoader;
+    private ResourceLoader<LoaderJigsawStructure> jigsawStructureLoader;
+    private ResourceLoader<LoaderEntity> entityLoader;
+    private ResourceLoader<LoaderSpawner> spawnerLoader;
+    private ResourceLoader<LoaderMod> modLoader;
+    private ResourceLoader<LoaderBlockData> blockLoader;
+    private ResourceLoader<LoaderExpression> expressionLoader;
+    private ResourceLoader<LoaderObject> objectLoader;
+    private KMap<Class<? extends LoaderRegistrant>, ResourceLoader<? extends LoaderRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
     private Engine engine;
@@ -77,11 +90,11 @@ public class IrisData {
         return new IrisData(dataFolder);
     }
 
-    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
+    private <T extends LoaderRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
         try {
-            IrisRegistrant rr = registrant.getConstructor().newInstance();
+            LoaderRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
-            if (registrant.equals(IrisObject.class)) {
+            if (registrant.equals(LoaderObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
             } else {
                 r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
@@ -106,20 +119,20 @@ public class IrisData {
         loaders.clear();
         File packs = dataFolder;
         packs.mkdirs();
-        this.lootLoader = registerLoader(IrisLootTable.class);
-        this.spawnerLoader = registerLoader(IrisSpawner.class);
-        this.entityLoader = registerLoader(IrisEntity.class);
-        this.regionLoader = registerLoader(IrisRegion.class);
-        this.biomeLoader = registerLoader(IrisBiome.class);
-        this.modLoader = registerLoader(IrisMod.class);
-        this.dimensionLoader = registerLoader(IrisDimension.class);
-        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class);
-        this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
-        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
-        this.generatorLoader = registerLoader(IrisGenerator.class);
-        this.blockLoader = registerLoader(IrisBlockData.class);
-        this.expressionLoader = registerLoader(IrisExpression.class);
-        this.objectLoader = registerLoader(IrisObject.class);
+        this.lootLoader = registerLoader(LoaderLootTable.class);
+        this.spawnerLoader = registerLoader(LoaderSpawner.class);
+        this.entityLoader = registerLoader(LoaderEntity.class);
+        this.regionLoader = registerLoader(LoaderRegion.class);
+        this.biomeLoader = registerLoader(LoaderBiome.class);
+        this.modLoader = registerLoader(LoaderMod.class);
+        this.dimensionLoader = registerLoader(LoaderDimension.class);
+        this.jigsawPoolLoader = registerLoader(LoaderJigsawPool.class);
+        this.jigsawStructureLoader = registerLoader(LoaderJigsawStructure.class);
+        this.jigsawPieceLoader = registerLoader(LoaderJigsawPiece.class);
+        this.generatorLoader = registerLoader(LoaderGenerator.class);
+        this.blockLoader = registerLoader(LoaderBlockData.class);
+        this.expressionLoader = registerLoader(LoaderExpression.class);
+        this.objectLoader = registerLoader(LoaderObject.class);
     }
 
     public void dump() {
@@ -142,63 +155,63 @@ public class IrisData {
         }
     }
 
-    public static IrisObject loadAnyObject(String key) {
+    public static LoaderObject loadAnyObject(String key) {
         return loadAny(key, (dm) -> dm.getObjectLoader().load(key, false));
     }
 
-    public static IrisBiome loadAnyBiome(String key) {
+    public static LoaderBiome loadAnyBiome(String key) {
         return loadAny(key, (dm) -> dm.getBiomeLoader().load(key, false));
     }
 
-    public static IrisExpression loadAnyExpression(String key) {
+    public static LoaderExpression loadAnyExpression(String key) {
         return loadAny(key, (dm) -> dm.getExpressionLoader().load(key, false));
     }
 
-    public static IrisMod loadAnyMod(String key) {
+    public static LoaderMod loadAnyMod(String key) {
         return loadAny(key, (dm) -> dm.getModLoader().load(key, false));
     }
 
-    public static IrisJigsawPiece loadAnyJigsawPiece(String key) {
+    public static LoaderJigsawPiece loadAnyJigsawPiece(String key) {
         return loadAny(key, (dm) -> dm.getJigsawPieceLoader().load(key, false));
     }
 
-    public static IrisJigsawPool loadAnyJigsawPool(String key) {
+    public static LoaderJigsawPool loadAnyJigsawPool(String key) {
         return loadAny(key, (dm) -> dm.getJigsawPoolLoader().load(key, false));
     }
 
-    public static IrisEntity loadAnyEntity(String key) {
+    public static LoaderEntity loadAnyEntity(String key) {
         return loadAny(key, (dm) -> dm.getEntityLoader().load(key, false));
     }
 
-    public static IrisLootTable loadAnyLootTable(String key) {
+    public static LoaderLootTable loadAnyLootTable(String key) {
         return loadAny(key, (dm) -> dm.getLootLoader().load(key, false));
     }
 
-    public static IrisBlockData loadAnyBlock(String key) {
+    public static LoaderBlockData loadAnyBlock(String key) {
         return loadAny(key, (dm) -> dm.getBlockLoader().load(key, false));
     }
 
-    public static IrisSpawner loadAnySpaner(String key) {
+    public static LoaderSpawner loadAnySpaner(String key) {
         return loadAny(key, (dm) -> dm.getSpawnerLoader().load(key, false));
     }
 
-    public static IrisRegion loadAnyRegion(String key) {
+    public static LoaderRegion loadAnyRegion(String key) {
         return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
     }
 
-    public static IrisDimension loadAnyDimension(String key) {
+    public static LoaderDimension loadAnyDimension(String key) {
         return loadAny(key, (dm) -> dm.getDimensionLoader().load(key, false));
     }
 
-    public static IrisJigsawStructure loadAnyJigsawStructure(String key) {
+    public static LoaderJigsawStructure loadAnyJigsawStructure(String key) {
         return loadAny(key, (dm) -> dm.getJigsawStructureLoader().load(key, false));
     }
 
-    public static IrisGenerator loadAnyGenerator(String key) {
+    public static LoaderGenerator loadAnyGenerator(String key) {
         return loadAny(key, (dm) -> dm.getGeneratorLoader().load(key, false));
     }
 
-    public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisData, T> v) {
+    public static <T extends LoaderRegistrant> T loadAny(String key, Function<IrisData, T> v) {
         try {
             for (File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles())) {
                 if (i.isDirectory()) {

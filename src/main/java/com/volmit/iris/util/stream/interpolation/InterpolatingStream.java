@@ -18,8 +18,8 @@
 
 package com.volmit.iris.util.stream.interpolation;
 
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
+import com.volmit.iris.util.interpolation.InterpolationMethod;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.function.NoiseProvider;

@@ -20,7 +20,7 @@ package com.volmit.iris.util.parallel;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.IORunnable;
 

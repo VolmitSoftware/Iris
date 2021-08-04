@@ -20,7 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -32,14 +32,14 @@ import java.io.File;
 public class EngineTarget {
     private final MultiBurst parallaxBurster;
     private final MultiBurst burster;
-    private final IrisDimension dimension;
+    private final LoaderDimension dimension;
     private IrisWorld world;
     private final int height;
     private final IrisData data;
     private final ParallaxWorld parallaxWorld;
     private final boolean inverted;
 
-    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data, int height, boolean inverted, int threads) {
+    public EngineTarget(IrisWorld world, LoaderDimension dimension, IrisData data, int height, boolean inverted, int threads) {
         this.world = world;
         this.height = height;
         this.dimension = dimension;
@@ -50,7 +50,7 @@ public class EngineTarget {
         this.parallaxWorld = new ParallaxWorld(parallaxBurster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 
-    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data, int height, int threads) {
+    public EngineTarget(IrisWorld world, LoaderDimension dimension, IrisData data, int height, int threads) {
         this(world, dimension, data, height, false, threads);
     }
 

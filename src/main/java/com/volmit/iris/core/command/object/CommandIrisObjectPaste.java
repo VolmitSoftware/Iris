@@ -24,12 +24,10 @@ import com.volmit.iris.core.ProjectManager;
 import com.volmit.iris.core.WandManager;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.object.IrisAxisRotationClamp;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisObjectPlacementScaleInterpolator;
-import com.volmit.iris.engine.object.IrisObjectRotation;
-import com.volmit.iris.engine.object.IrisObjectScale;
+import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
+import com.volmit.iris.engine.object.objects.IrisObjectRotation;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
@@ -49,7 +47,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -94,7 +91,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
         }
 
         Player p = sender.player();
-        IrisObject obj = IrisData.loadAnyObject(args[0]);
+        LoaderObject obj = IrisData.loadAnyObject(args[0]);
 
         if (obj == null || obj.getLoadFile() == null) {
 

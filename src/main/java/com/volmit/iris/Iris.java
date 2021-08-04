@@ -29,10 +29,10 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisCompat;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.engine.object.compat.IrisCompat;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
@@ -182,7 +182,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     if (dims.exists()) {
                         for (File j : dims.listFiles()) {
                             if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+                                LoaderDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
                                 if (dim.installDataPack(() -> data, dpacks)) {
                                     reboot = true;
@@ -305,7 +305,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     if (dims.exists()) {
                         for (File j : dims.listFiles()) {
                             if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+                                LoaderDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
                                 if (!verifyDataPackInstalled(dim)) {
                                     bad = true;
@@ -335,12 +335,12 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    public boolean verifyDataPackInstalled(IrisDimension dimension) {
+    public boolean verifyDataPackInstalled(LoaderDimension dimension) {
         IrisData idm = new IrisData(getDataFolder("packs", dimension.getLoadKey()));
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 
-        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
+        for (LoaderBiome i : dimension.getAllBiomes(() -> idm)) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     keys.add(dimension.getLoadKey() + ":" + j.getId());

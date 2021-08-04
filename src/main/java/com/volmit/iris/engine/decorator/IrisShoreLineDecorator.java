@@ -18,23 +18,23 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.DecorationPart;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import org.bukkit.block.data.BlockData;
 
 public class IrisShoreLineDecorator extends IrisEngineDecorator {
     public IrisShoreLineDecorator(Engine engine) {
-        super(engine, "Shore Line", DecorationPart.SHORE_LINE);
+        super(engine, "Shore Line", IrisDecorationPart.SHORE_LINE);
     }
 
     @BlockCoordinates
     @Override
-    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
+    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, LoaderBiome biome, int height, int max) {
 
         if (height == getDimension().getFluidHeight()) {
             if (Math.round(getComplex().getHeightStream().get(realX1, realZ)) < getComplex().getFluidHeight() ||

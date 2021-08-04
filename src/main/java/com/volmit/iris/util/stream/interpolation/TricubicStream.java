@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.stream.interpolation;
 
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 

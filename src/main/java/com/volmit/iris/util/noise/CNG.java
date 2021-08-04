@@ -19,7 +19,7 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.arithmetic.FittedStream;

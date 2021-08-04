@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.stream.interpolation;
 
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
+import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 @SuppressWarnings("ClassCanBeRecord")

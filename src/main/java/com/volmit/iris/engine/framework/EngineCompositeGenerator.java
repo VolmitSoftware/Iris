@@ -30,11 +30,11 @@ import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.data.nbt.tag.CompoundTag;
-import com.volmit.iris.engine.headless.HeadlessGenerator;
+import com.volmit.iris.engine.framework.headless.HeadlessGenerator;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -202,11 +202,11 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return false;
     }
 
-    private synchronized IrisDimension getDimension(IrisWorld world) {
+    private synchronized LoaderDimension getDimension(IrisWorld world) {
         String query = dimensionQuery;
         query = Iris.linkMultiverseCore.getWorldNameType(world.name(), query);
 
-        IrisDimension dim = null;
+        LoaderDimension dim = null;
 
         if (query == null) {
             File iris = new File(world.worldFolder(), "iris");
@@ -253,7 +253,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (production) {
-            IrisDimension od = dim;
+            LoaderDimension od = dim;
             dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
@@ -270,9 +270,9 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return dim;
     }
 
-    private synchronized IrisDimension getDimension(String world) {
+    private synchronized LoaderDimension getDimension(String world) {
         String query = dimensionQuery;
-        IrisDimension dim = null;
+        LoaderDimension dim = null;
 
         if (query == null) {
             File iris = new File(world + "/iris");
@@ -319,7 +319,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         }
 
         if (production) {
-            IrisDimension od = dim;
+            LoaderDimension od = dim;
             dim = new IrisData(getDataFolder(world)).getDimensionLoader().load(od.getLoadKey());
 
             if (dim == null) {
@@ -345,7 +345,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
 
         try {
             initialized.set(true);
-            IrisDimension dim = getDimension(world);
+            LoaderDimension dim = getDimension(world);
             IrisData data = production ? new IrisData(getDataFolder(world)) : dim.getLoader().copy();
             compound.set(new IrisEngineCompound(world, dim, data, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount())));
             compound.get().setStudio(!production);
@@ -673,12 +673,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public IrisBiome getBiome(int x, int z) {
+    public LoaderBiome getBiome(int x, int z) {
         return getBiome(x, 0, z);
     }
 
     @Override
-    public IrisBiome getCaveBiome(int x, int z) {
+    public LoaderBiome getCaveBiome(int x, int z) {
         return getCaveBiome(x, 0, z);
     }
 
@@ -693,13 +693,13 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
     }
 
     @Override
-    public IrisBiome getBiome(int x, int y, int z) {
+    public LoaderBiome getBiome(int x, int y, int z) {
         // TODO: REMOVE GET ABS BIOME OR THIS ONE
         return getEngineAccess(y).getBiome(x, y - getComposite().getEngineForHeight(y).getMinHeight(), z);
     }
 
     @Override
-    public IrisBiome getCaveBiome(int x, int y, int z) {
+    public LoaderBiome getCaveBiome(int x, int y, int z) {
         return getEngineAccess(y).getCaveBiome(x, z);
     }
 
@@ -792,12 +792,12 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
         return false;
     }
 
-    public KList<IrisBiome> getAllBiomes(String worldName) {
+    public KList<LoaderBiome> getAllBiomes(String worldName) {
         if (getComposite() != null) {
             return getComposite().getAllBiomes();
         } else {
-            KMap<String, IrisBiome> v = new KMap<>();
-            IrisDimension dim = getDimension(worldName);
+            KMap<String, LoaderBiome> v = new KMap<>();
+            LoaderDimension dim = getDimension(worldName);
             dim.getAllAnyBiomes().forEach((i) -> v.put(i.getLoadKey(), i));
 
             try {

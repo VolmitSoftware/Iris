@@ -22,8 +22,14 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.jigsaw.LoaderJigsawPiece;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
+import com.volmit.iris.engine.object.loot.LoaderLootTable;
+import com.volmit.iris.engine.object.meta.InventorySlotType;
+import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObjectRotation;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.AxisAlignedBB;
@@ -43,9 +49,9 @@ import org.bukkit.util.BlockVector;
 @Data
 public class PlannedPiece {
     private IrisPosition position;
-    private IrisObject object;
-    private IrisObject ogObject;
-    private IrisJigsawPiece piece;
+    private LoaderObject object;
+    private LoaderObject ogObject;
+    private LoaderJigsawPiece piece;
     private IrisObjectRotation rotation;
     private IrisData data;
     private KList<IrisJigsawPieceConnector> connected;
@@ -53,15 +59,15 @@ public class PlannedPiece {
     private AxisAlignedBB box;
     private PlannedStructure structure;
 
-    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece) {
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, LoaderJigsawPiece piece) {
         this(structure, position, piece, 0, 0, 0);
     }
 
-    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, int rx, int ry, int rz) {
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, LoaderJigsawPiece piece, int rx, int ry, int rz) {
         this(structure, position, piece, IrisObjectRotation.of(rx * 90D, ry * 90D, rz * 90D));
     }
 
-    public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece, IrisObjectRotation rot) {
+    public PlannedPiece(PlannedStructure structure, IrisPosition position, LoaderJigsawPiece piece, IrisObjectRotation rot) {
         this.structure = structure;
         this.position = position;
         this.data = piece.getLoader();
@@ -181,7 +187,7 @@ public class PlannedPiece {
                 if (a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
                         block.getState() instanceof InventoryHolder) {
 
-                    IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
+                    LoaderLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
                     if (table == null) return;
                     Engine engine = a.getCompound().getEngineForHeight(y);
                     engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),

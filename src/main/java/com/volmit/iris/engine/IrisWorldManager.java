@@ -19,13 +19,17 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.engine.IrisEngineSpawnerCooldown;
+import com.volmit.iris.engine.object.entity.IrisEntitySpawn;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
+import com.volmit.iris.engine.object.spawners.LoaderSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
@@ -44,7 +48,6 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -162,8 +165,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
 
             Chunk c = cc[RNG.r.nextInt(cc.length)];
-            IrisBiome biome = getEngine().getSurfaceBiome(c);
-            IrisRegion region = getEngine().getRegion(c);
+            LoaderBiome biome = getEngine().getSurfaceBiome(c);
+            LoaderRegion region = getEngine().getRegion(c);
             spawnIn(c, biome, region, maxGroups);
             chunkCooldowns.put(Cache.key(c), M.ms());
         }
@@ -176,7 +179,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         energy = M.clip(energy, 1D, 1000D);
     }
 
-    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, int max) {
+    private void spawnIn(Chunk c, LoaderBiome biome, LoaderRegion region, int max) {
         for(Entity i : c.getEntities())
         {
             if(i instanceof LivingEntity)
@@ -218,7 +221,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
     }
 
-    private Stream<IrisEntitySpawn> stream(IrisSpawner s) {
+    private Stream<IrisEntitySpawn> stream(LoaderSpawner s) {
         for (IrisEntitySpawn i : s.getSpawns()) {
             i.setReferenceSpawner(s);
         }
@@ -240,12 +243,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         return rarityTypes;
     }
 
-    public boolean canSpawn(IrisSpawner i) {
+    public boolean canSpawn(LoaderSpawner i) {
         return i.isValid(getEngine().getWorld().realWorld())
                 && getCooldown(i).canSpawn(i.getMaximumRate());
     }
 
-    private IrisEngineSpawnerCooldown getCooldown(IrisSpawner i) {
+    private IrisEngineSpawnerCooldown getCooldown(LoaderSpawner i) {
         IrisEngineData ed = getEngine().getEngineData();
         IrisEngineSpawnerCooldown cd = null;
 
@@ -295,7 +298,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         if (e.getBlock().getWorld().equals(getTarget().getWorld().realWorld()) && getEngine().contains(e.getBlock().getLocation())) {
             KList<ItemStack> d = new KList<>();
             Runnable drop = () -> J.s(() -> d.forEach((i) -> e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().clone().add(0.5, 0.5, 0.5), i)));
-            IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());
+            LoaderBiome b = getEngine().getBiome(e.getBlock().getLocation());
 
             for (IrisBlockDrops i : b.getBlockDrops()) {
                 if (i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
@@ -312,7 +315,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
             }
 
-            IrisRegion r = getEngine().getRegion(e.getBlock().getLocation());
+            LoaderRegion r = getEngine().getRegion(e.getBlock().getLocation());
 
             for (IrisBlockDrops i : r.getBlockDrops()) {
                 if (i.shouldDropFor(e.getBlock().getBlockData(), getData())) {

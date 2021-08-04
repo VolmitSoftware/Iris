@@ -21,8 +21,8 @@ package com.volmit.iris.core.tools;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.headless.HeadlessWorld;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.framework.headless.HeadlessWorld;
+import com.volmit.iris.engine.object.dimensional.LoaderDimension;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.exceptions.MissingDimensionException;
 import com.volmit.iris.util.format.C;
@@ -93,7 +93,7 @@ public class IrisCreator {
      * @throws IrisException shit happens
      */
     public IrisAccess create() throws IrisException {
-        IrisDimension d = IrisToolbelt.getDimension(dimension());
+        LoaderDimension d = IrisToolbelt.getDimension(dimension());
         IrisAccess access = null;
         Consumer<Double> prog = (pxx) -> {
             double px = pxx;

@@ -18,20 +18,20 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
 
 public class BiomeMap {
-    private final IrisBiome[] height;
+    private final LoaderBiome[] height;
 
     public BiomeMap() {
-        height = new IrisBiome[256];
+        height = new LoaderBiome[256];
     }
 
-    public void setBiome(int x, int z, IrisBiome h) {
+    public void setBiome(int x, int z, LoaderBiome h) {
         height[x * 16 + z] = h;
     }
 
-    public IrisBiome getBiome(int x, int z) {
+    public LoaderBiome getBiome(int x, int z) {
         return height[x * 16 + z];
     }
 }

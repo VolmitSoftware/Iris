@@ -5,7 +5,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ProjectManager;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.objects.LoaderObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -75,7 +75,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
         Player p = sender.player();
 
         J.a(() -> {
-            IrisObject obj = IrisData.loadAnyObject(args[0]);
+            LoaderObject obj = IrisData.loadAnyObject(args[0]);
 
             if (obj == null || obj.getLoadFile() == null) {
                 sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");

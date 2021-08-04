@@ -25,7 +25,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.objects.LoaderObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,7 +37,7 @@ public class SKConversion {
         try (ClipboardReader reader = format.getReader(new FileInputStream(in))) {
             Clipboard clipboard = reader.read();
             BlockVector3 size = clipboard.getMaximumPoint().subtract(clipboard.getMinimumPoint());
-            IrisObject o = new IrisObject(size.getBlockX() + 1, size.getBlockY() + 1, size.getBlockZ() + 1);
+            LoaderObject o = new LoaderObject(size.getBlockX() + 1, size.getBlockY() + 1, size.getBlockZ() + 1);
 
             for (int i = clipboard.getMinimumPoint().getBlockX(); i <= clipboard.getMaximumPoint().getBlockX(); i++) {
                 for (int j = clipboard.getMinimumPoint().getBlockY(); j <= clipboard.getMaximumPoint().getBlockY(); j++) {

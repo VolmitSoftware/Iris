@@ -23,9 +23,14 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.objects.LoaderObject;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
+import com.volmit.iris.engine.object.regional.LoaderRegion;
 import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.object.trees.IrisTreeModes;
+import com.volmit.iris.engine.object.trees.IrisTreeSize;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
@@ -114,7 +119,7 @@ public class TreeManager implements Listener {
         }
 
         saplingPlane.forEach(block -> block.setType(Material.AIR));
-        IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
+        LoaderObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
         List<BlockState> blockStateList = new KList<>();
         KMap<Location, BlockData> dataCache = new KMap<>();
         // TODO: REAL CLASSES!!!!
@@ -227,12 +232,12 @@ public class TreeManager implements Listener {
         boolean isUseAll = ((Engine) worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
-        IrisBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        LoaderBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region
         if (isUseAll || placements.isEmpty()) {
-            IrisRegion region = worldAccess.getCompound().getEngineForHeight(location.getBlockY()).getRegion(location.getBlockX(), location.getBlockZ());
+            LoaderRegion region = worldAccess.getCompound().getEngineForHeight(location.getBlockY()).getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
         }
 

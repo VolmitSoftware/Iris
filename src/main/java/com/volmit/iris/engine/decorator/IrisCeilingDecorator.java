@@ -18,23 +18,23 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.DecorationPart;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
+import com.volmit.iris.engine.object.biome.LoaderBiome;
+import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import org.bukkit.block.data.BlockData;
 
 public class IrisCeilingDecorator extends IrisEngineDecorator {
     public IrisCeilingDecorator(Engine engine) {
-        super(engine, "Ceiling", DecorationPart.CEILING);
+        super(engine, "Ceiling", IrisDecorationPart.CEILING);
     }
 
     @BlockCoordinates
     @Override
-    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
+    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, LoaderBiome biome, int height, int max) {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
 
         if (decorator != null) {

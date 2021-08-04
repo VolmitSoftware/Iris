@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.hunk.storage;
 
+import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -47,7 +48,7 @@ public class ArrayHunk<T> extends StorageHunk<T> implements Hunk<T> {
     }
 
     private int index(int x, int y, int z) {
-        return (z * getWidth() * getHeight()) + (y * getWidth()) + x;
+        return Cache.to1D(x, y, z, getWidth(), getHeight());
     }
 
     @Override

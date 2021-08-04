@@ -29,6 +29,7 @@ import com.volmit.iris.engine.parallel.MultiBurst;
 import com.volmit.iris.engine.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.*;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
@@ -557,6 +558,18 @@ public interface Hunk<T> {
         return this;
     }
 
+    default Hunk<T> iterateSyncIO(Consumer4IO<Integer, Integer, Integer, T> c) throws IOException {
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
+                    c.accept(i, j, k, get(i, j, k));
+                }
+            }
+        }
+
+        return this;
+    }
+
     default Hunk<T> iterate(int parallelism, Consumer3<Integer, Integer, Integer> c) {
         compute3D(parallelism, (x, y, z, h) ->
         {
@@ -969,6 +982,26 @@ public interface Hunk<T> {
      */
     default T getClosest(int x, int y, int z) {
         return getRaw(x >= getWidth() ? getWidth() - 1 : x < 0 ? 0 : x, y >= getHeight() ? getHeight() - 1 : y < 0 ? 0 : y, z >= getDepth() ? getDepth() - 1 : z < 0 ? 0 : z);
+    }
+
+    default BlockPosition getCenter()
+    {
+        return new BlockPosition(getCenterX(), getCenterY(), getCenterZ());
+    }
+
+    default int getCenterX()
+    {
+        return Math.round(getWidth() / 2);
+    }
+
+    default int getCenterY()
+    {
+        return Math.round(getHeight() / 2);
+    }
+
+    default int getCenterZ()
+    {
+        return Math.round(getDepth() / 2);
     }
 
     default void fill(T t) {

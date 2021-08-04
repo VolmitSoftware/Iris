@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
 public class IrisComplex implements DataProvider {
-    public static AtomicBoolean cacheLock = new AtomicBoolean(false);
     private RNG rng;
     private double fluidHeight;
     private IrisData data;

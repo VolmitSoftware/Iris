@@ -30,6 +30,7 @@ import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.*;
 import org.bukkit.util.BlockVector;
+import org.bukkit.util.Vector;
 
 import java.util.List;
 
@@ -394,7 +395,6 @@ public class IrisObjectRotation {
                 v.rotateAroundY(getYRotation(spiny));
             }
         }
-
 
         return v;
     }

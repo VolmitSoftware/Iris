@@ -97,6 +97,7 @@ public class PlannedStructure {
             options.setMode(i.getPiece().getPlaceMode());
         }
 
+        IrisObject vo = i.getOgObject();
         IrisObject v = i.getObject();
         int sx = (v.getW() / 2);
         int sz = (v.getD() / 2);
@@ -111,7 +112,7 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
 
-        int h = v.place(xx, height, zz, placer, options, rng, (b) -> {
+        int h = vo.place(xx, height, zz, placer, options, rng, (b) -> {
             int xf = b.getX();
             int yf = b.getY();
             int zf = b.getZ();

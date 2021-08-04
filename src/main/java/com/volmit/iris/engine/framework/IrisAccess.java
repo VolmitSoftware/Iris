@@ -26,6 +26,8 @@ import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.headless.HeadlessGenerator;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.parallel.MultiBurst;
@@ -124,7 +126,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             return null;
         }
 
-        IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(250, false);
         long s = M.ms();
         int cpus = (Runtime.getRuntime().availableProcessors());
@@ -137,7 +138,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         }
 
         if (engines.isEmpty()) {
-            IrisComplex.cacheLock.set(false);
             return null;
         }
 
@@ -193,12 +193,10 @@ public interface IrisAccess extends Hotloadable, DataProvider {
 
             if (M.ms() - s > timeout) {
                 running.set(false);
-                IrisComplex.cacheLock.set(false);
                 return null;
             }
         }
 
-        IrisComplex.cacheLock.set(false);
         running.set(false);
         return location.get();
     }
@@ -209,7 +207,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             return null;
         }
 
-        IrisComplex.cacheLock.set(true);
         ChronoLatch cl = new ChronoLatch(3000, false);
         long s = M.ms();
         int cpus = (Runtime.getRuntime().availableProcessors());
@@ -222,7 +219,6 @@ public interface IrisAccess extends Hotloadable, DataProvider {
         }
 
         if (engines.isEmpty()) {
-            IrisComplex.cacheLock.set(false);
             return null;
         }
 
@@ -269,13 +265,11 @@ public interface IrisAccess extends Hotloadable, DataProvider {
             if (M.ms() - s > timeout) {
                 triesc.accept(tries.get());
                 running.set(false);
-                IrisComplex.cacheLock.set(false);
                 return null;
             }
         }
 
         triesc.accept(tries.get());
-        IrisComplex.cacheLock.set(false);
         running.set(false);
         return location.get();
     }

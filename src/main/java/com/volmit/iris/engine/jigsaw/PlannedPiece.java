@@ -44,6 +44,7 @@ import org.bukkit.util.BlockVector;
 public class PlannedPiece {
     private IrisPosition position;
     private IrisObject object;
+    private IrisObject ogObject;
     private IrisJigsawPiece piece;
     private IrisObjectRotation rotation;
     private IrisData data;
@@ -65,10 +66,12 @@ public class PlannedPiece {
         this.position = position;
         this.data = piece.getLoader();
         this.setRotation(rot);
+        this.ogObject = data.getObjectLoader().load(piece.getObject());
         this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
         this.object.setLoadKey(piece.getObject());
+        this.ogObject.setLoadKey(piece.getObject());
         this.connected = new KList<>();
     }
 
@@ -150,11 +153,12 @@ public class PlannedPiece {
                 minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
 
-        getPiece().getPlacementOptions().getRotation().setEnabled(false);
+        getPiece().getPlacementOptions().setRotation(rotation);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);
+
         // TODO: REAL CLASSES!!!!!!!
-        getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
+        getOgObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z, IrisData data) {
                 return position.getY();

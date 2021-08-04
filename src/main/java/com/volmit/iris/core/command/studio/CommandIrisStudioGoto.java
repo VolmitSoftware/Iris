@@ -23,6 +23,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
@@ -82,6 +83,7 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 IrisAccess g = IrisWorlds.access(world);
                 IrisBiome b = IrisData.loadAnyBiome(args[0]);
                 IrisRegion r = IrisData.loadAnyRegion(args[0]);
+                IrisJigsawStructure s = IrisData.loadAnyJigsawStructure(args[0]);
 
                 if (b != null) {
                     J.a(() -> {
@@ -95,6 +97,17 @@ public class CommandIrisStudioGoto extends MortarCommand {
                         }
                     });
                 } else if (r != null) {
+                    J.a(() -> {
+                        Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+
+                        if (l == null) {
+                            sender.sendMessage("Couldn't find " + r.getName() + ".");
+                        } else {
+                            sender.sendMessage("Found " + r.getName() + "!");
+                            J.s(() -> sender.player().teleport(l));
+                        }
+                    });
+                }else if (s != null) {
                     J.a(() -> {
                         Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 

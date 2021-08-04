@@ -725,13 +725,14 @@ public class IrisObject extends IrisRegistrant {
         KMap<BlockVector, BlockData> d = new KMap<>();
 
         for (BlockVector i : getBlocks().keySet()) {
-            d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(Objects.requireNonNull(getBlocks().get(i)).clone(), spinx, spiny, spinz));
+            d.put(r.rotate(i.clone(), spinx, spiny, spinz), r.rotate(getBlocks().get(i).clone(),
+                    spinx, spiny, spinz));
         }
 
         KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
 
         for (BlockVector i : getStates().keySet()) {
-            dx.put(r.rotate(i.clone(), spinx, spiny, spinz), Objects.requireNonNull(getStates().get(i)));
+            dx.put(r.rotate(i.clone(), spinx, spiny, spinz), getStates().get(i));
         }
 
         blocks = d;

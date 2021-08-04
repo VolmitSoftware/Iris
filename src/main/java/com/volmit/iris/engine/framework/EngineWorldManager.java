@@ -18,12 +18,21 @@
 
 package com.volmit.iris.engine.framework;
 
+import org.bukkit.Chunk;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 @SuppressWarnings("EmptyMethod")
 public interface EngineWorldManager {
     void close();
+
+    double getEnergy();
+
+    int getEntityCount();
+
+    int getChunkCount();
+
+    double getEntitySaturation();
 
     void onTick();
 
@@ -32,4 +41,6 @@ public interface EngineWorldManager {
     void onBlockBreak(BlockBreakEvent e);
 
     void onBlockPlace(BlockPlaceEvent e);
+
+    void onChunkLoad(Chunk e, boolean generated);
 }

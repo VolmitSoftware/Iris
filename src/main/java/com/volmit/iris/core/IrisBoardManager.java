@@ -33,7 +33,11 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -43,12 +47,13 @@ import java.util.List;
 
 public class IrisBoardManager implements BoardProvider, Listener {
 
+    private BossBar energyBar;
     private final BoardManager manager;
     private String mem = "...";
     public final RollingSequence hits = new RollingSequence(20);
     public final RollingSequence tp = new RollingSequence(100);
     private final ChronoLatch cl = new ChronoLatch(1000);
-
+    private final ChronoLatch ecl = new ChronoLatch(50);
 
     public IrisBoardManager() {
         Iris.instance.registerListener(this);
@@ -57,6 +62,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
                 .boardProvider(this)
                 .scoreDirection(ScoreDirection.DOWN)
                 .build());
+        energyBar = Bukkit.createBossBar("Spawner Energy " + 0, BarColor.BLUE, BarStyle.SOLID);
         //@done
     }
 
@@ -74,8 +80,11 @@ public class IrisBoardManager implements BoardProvider, Listener {
         if (isIrisWorld(p.getWorld())) {
             manager.remove(p);
             manager.setup(p);
+            energyBar.removePlayer(p);
+            energyBar.addPlayer(p);
         } else {
             manager.remove(p);
+            energyBar.removePlayer(p);
         }
     }
 
@@ -110,6 +119,11 @@ public class IrisBoardManager implements BoardProvider, Listener {
         }
 
         Engine engine = g.getCompound().getEngineForHeight(y);
+        if(ecl.flip())
+        {
+            energyBar.setProgress(Math.min(1000D, engine.getWorldManager().getEnergy()) / 1000D);
+            energyBar.setTitle("Spawner Energy: " + Form.f((int)Math.min(1000D, engine.getWorldManager().getEnergy())));
+        }
 
         int parallaxChunks = 0;
         int parallaxRegions = 0;
@@ -141,9 +155,9 @@ public class IrisBoardManager implements BoardProvider, Listener {
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
             v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getFramework().getComplex().getSlopeStream().get(x, z), 2));
-            v.add(C.AQUA + "Features " + C.GRAY + ": " + Form.f(f.size()));
-            v.add(C.AQUA + "R:  " + C.GRAY + ": " + engine.getFramework().getComplex().getRegionIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
-            v.add(C.AQUA + "B:  " + C.GRAY + ": " + engine.getFramework().getComplex().getBaseBiomeIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
+            v.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
+            v.add(C.AQUA + "Energy" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEnergy(), 0));
+            v.add(C.AQUA + "Sat" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEntityCount()) + "e / " + Form.f(engine.getWorldManager().getChunkCount()) + "c (" + Form.pc(engine.getWorldManager().getEntitySaturation(), 0) + ")");
         }
 
         if (Iris.jobCount() > 0) {
@@ -159,5 +173,6 @@ public class IrisBoardManager implements BoardProvider, Listener {
 
     public void disable() {
         manager.onDisable();
+        energyBar.removeAll();
     }
 }

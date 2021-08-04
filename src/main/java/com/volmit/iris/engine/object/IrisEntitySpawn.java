@@ -52,6 +52,9 @@ public class IrisEntitySpawn implements IRare {
     @Desc("The entity")
     private String entity = "";
 
+    @Desc("The energy multiplier when calculating spawn energy usage")
+    private double energyMultiplier = 1;
+
     @MinNumber(1)
     @Desc("The 1 in RARITY chance for this entity to spawn")
     private int rarity = 1;
@@ -68,7 +71,7 @@ public class IrisEntitySpawn implements IRare {
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-    public boolean spawn(Engine gen, Chunk c, RNG rng) {
+    public int spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
         int s = 0;
 
@@ -108,7 +111,7 @@ public class IrisEntitySpawn implements IRare {
             }
         }
 
-        return s > 0;
+        return s;
     }
 
     public IrisEntity getRealEntity(Engine g) {

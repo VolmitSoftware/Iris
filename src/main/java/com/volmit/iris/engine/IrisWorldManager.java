@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine;
 
-import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
@@ -28,11 +28,17 @@ import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.engine.IrisEngineSpawnerCooldown;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
@@ -43,35 +49,81 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class IrisWorldManager extends EngineAssignedWorldManager {
-    private final int art;
+    private final Looper looper;
     private final KMap<Long, Long> chunkCooldowns;
+    private double energy = 25;
     private int entityCount = 0;
     private final ChronoLatch cl;
+    private final ChronoLatch ecl;
     private int actuallySpawned = 0;
+    private int cooldown = 0;
+
+    public IrisWorldManager() {
+        super(null);
+        cl = null;
+        ecl = null;
+        chunkCooldowns = null;
+        looper = null;
+    }
 
     public IrisWorldManager(Engine engine) {
         super(engine);
-        cl = new ChronoLatch(5000);
+        cl = new ChronoLatch(1000);
+        ecl = new ChronoLatch(250);
         chunkCooldowns = new KMap<>();
-        art = J.ar(this::onAsyncTick, 7);
+        energy = 25;
+        looper = new Looper() {
+            @Override
+            protected long loop() {
+                if(energy < 650)
+                {
+                    if(ecl.flip())
+                    {
+                        energy *= 1.03;
+                        fixEnergy();
+                    }
+                }
+
+                onAsyncTick();
+
+                return 50;
+            }
+        };
+        looper.setPriority(Thread.MIN_PRIORITY);
+        looper.setName("Iris World Manager");
+        looper.start();
     }
 
-    private void onAsyncTick() {
+    private boolean onAsyncTick() {
         actuallySpawned = 0;
-        if (!getEngine().getWorld().hasRealWorld()) {
-            return;
+
+        if(energy < 35)
+        {
+            J.sleep(200);
+            return false;
         }
 
-        if ((double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length + 1) > 1) {
-            return;
+        if (!getEngine().getWorld().hasRealWorld()) {
+            Iris.debug("Can't spawn. No real world");
+            J.sleep(10000);
+            return false;
+        }
+
+        double epx = getEntitySaturation();
+        if (epx > 1) {
+            Iris.debug("Can't spawn. The entity per chunk ratio is at " + Form.pc(epx, 2) + " > 100% (total entities " + entityCount + ")");
+            J.sleep(5000);
+            return false;
         }
 
         if (cl.flip()) {
             J.s(() -> entityCount = getEngine().getWorld().realWorld().getEntities().size());
         }
 
-        int maxGroups = 3;
+        int maxGroups = 1;
         int chunkCooldownSeconds = 60;
 
         for (Long i : chunkCooldowns.k()) {
@@ -80,28 +132,39 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
         }
 
-        int spawnBuffer = 32;
+        int spawnBuffer = RNG.r.i(2, 12);
 
-        for (Chunk c : getEngine().getWorld().realWorld().getLoadedChunks()) {
-
-            if (spawnBuffer-- < 0) {
-                break;
+        Chunk[] cc = getEngine().getWorld().realWorld().getLoadedChunks();
+        while(spawnBuffer-- > 0)
+        {
+            if(cc.length == 0)
+            {
+                Iris.debug("Can't spawn. No chunks!");
+                return false;
             }
 
+            Chunk c = cc[RNG.r.nextInt(cc.length)];
             IrisBiome biome = getEngine().getSurfaceBiome(c);
             IrisRegion region = getEngine().getRegion(c);
             spawnIn(c, biome, region, maxGroups);
             chunkCooldowns.put(Cache.key(c), M.ms());
         }
 
-        if (actuallySpawned <= 0) {
-            J.sleep(5000);
-        }
+        energy -= (actuallySpawned / 2D);
+        return actuallySpawned > 0;
+    }
+
+    private void fixEnergy() {
+        energy = M.clip(energy, 1D, 1000D);
     }
 
     private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, int max) {
-        if (c.getEntities().length > 2) {
-            return;
+        for(Entity i : c.getEntities())
+        {
+            if(i instanceof LivingEntity)
+            {
+                return;
+            }
         }
 
         //@builder
@@ -129,9 +192,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void spawn(Chunk c, IrisEntitySpawn i) {
-        if (i.spawn(getEngine(), c, RNG.r)) {
-            actuallySpawned++;
+        int s = i.spawn(getEngine(), c, RNG.r);
+        actuallySpawned+= s;
+        if (s > 0) {
             getCooldown(i.getReferenceSpawner()).spawn(getEngine());
+            energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1) - 1);
         }
     }
 
@@ -182,17 +247,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         return cd;
     }
 
-    public KMap<UUID, KList<Chunk>> mapChunkBiomes() {
-        KMap<UUID, KList<Chunk>> data = new KMap<>();
-
-        for (Chunk i : getEngine().getWorld().realWorld().getLoadedChunks()) {
-            data.compute(getEngine().getBiomeID(i.getX() << 4, i.getZ() << 4),
-                    (k, v) -> v != null ? v : new KList<>()).add(i);
-        }
-
-        return data;
-    }
-
     @Override
     public void onTick() {
 
@@ -201,6 +255,21 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void onSave() {
         getEngine().getParallax().saveAll();
+    }
+
+    @Override
+    public void onChunkLoad(Chunk e, boolean generated) {
+        if(generated)
+        {
+            energy += 1.2;
+        }
+
+        else
+        {
+            energy += 0.3;
+        }
+
+        fixEnergy();
     }
 
     @Override
@@ -267,6 +336,16 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void close() {
         super.close();
-        J.car(art);
+        looper.interrupt();
+    }
+
+    @Override
+    public int getChunkCount() {
+        return getEngine().getWorld().realWorld().getLoadedChunks().length;
+    }
+
+    @Override
+    public double getEntitySaturation() {
+        return (double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length + 1) * 1.665;
     }
 }

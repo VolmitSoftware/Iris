@@ -39,6 +39,9 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
+    @Desc("The energy multiplier when calculating spawn energy usage")
+    private double energyMultiplier = 1;
+
     @Desc("The block of 24 hour time to contain this spawn in.")
     private IrisTimeBlock timeBlock = new IrisTimeBlock();
 

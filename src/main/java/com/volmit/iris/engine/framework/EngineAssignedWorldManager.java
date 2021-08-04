@@ -20,15 +20,22 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 public abstract class EngineAssignedWorldManager extends EngineAssignedComponent implements EngineWorldManager, Listener {
     private final int taskId;
+
+    public EngineAssignedWorldManager() {
+        super(null, null);
+        taskId = -1;
+    }
 
     public EngineAssignedWorldManager(Engine engine) {
         super(engine, "World");
@@ -61,6 +68,13 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void on(BlockPlaceEvent e) {
         if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
             onBlockPlace(e);
+        }
+    }
+
+    @EventHandler
+    public void on(ChunkLoadEvent e) {
+        if (e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
+            onChunkLoad(e.getChunk(), e.isNewChunk());
         }
     }
 

@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import org.bukkit.block.data.BlockData;

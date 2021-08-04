@@ -24,7 +24,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -20,7 +20,7 @@ package com.volmit.iris.engine.decorator;
 
 import com.volmit.iris.engine.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.object.DecorationPart;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorator;

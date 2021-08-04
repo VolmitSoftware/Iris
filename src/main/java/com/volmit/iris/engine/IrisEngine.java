@@ -24,7 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
-import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;

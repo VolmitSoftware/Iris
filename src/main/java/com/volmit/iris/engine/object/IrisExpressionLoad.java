@@ -22,7 +22,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;

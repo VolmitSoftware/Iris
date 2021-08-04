@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.parallax;
 
 import com.google.gson.Gson;
-import com.volmit.iris.engine.hunk.io.HunkIOAdapter;
-import com.volmit.iris.engine.hunk.io.PaletteHunkIOAdapter;
+import com.volmit.iris.util.hunk.io.HunkIOAdapter;
+import com.volmit.iris.util.hunk.io.PaletteHunkIOAdapter;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.oldnbt.CompoundTag;
 import lombok.AllArgsConstructor;
@@ -29,9 +29,7 @@ import lombok.Data;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Function;
 

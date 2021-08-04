@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.noise.CellGenerator;
+import com.volmit.iris.util.noise.CellGenerator;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;

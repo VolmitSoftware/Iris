@@ -23,7 +23,7 @@ import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.data.DataProvider;
-import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;

@@ -21,7 +21,7 @@ package com.volmit.iris.core.pregenerator.methods;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;

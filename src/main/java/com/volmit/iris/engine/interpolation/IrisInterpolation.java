@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;

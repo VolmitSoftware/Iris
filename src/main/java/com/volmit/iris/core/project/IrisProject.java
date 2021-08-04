@@ -30,7 +30,7 @@ import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;

@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.object.matter;
 
-import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.hunk.storage.StorageHunk;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.StorageHunk;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer4;
 import lombok.Data;

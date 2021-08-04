@@ -23,7 +23,7 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.engine.data.mca.MCAUtil;
 import com.volmit.iris.engine.data.mca.NBTWorld;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import lombok.Data;

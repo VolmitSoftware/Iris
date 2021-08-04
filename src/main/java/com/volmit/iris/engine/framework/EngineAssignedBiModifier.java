@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 
-import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.hunk.Hunk;
 
 public abstract class EngineAssignedBiModifier<A, B> extends EngineAssignedComponent implements EngineBiModifier<A, B> {
     public EngineAssignedBiModifier(Engine engine, String name) {

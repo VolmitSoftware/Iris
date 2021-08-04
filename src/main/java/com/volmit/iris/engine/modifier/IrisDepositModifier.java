@@ -20,7 +20,7 @@ package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.hunk.Hunk;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
 import com.volmit.iris.engine.object.IrisObject;

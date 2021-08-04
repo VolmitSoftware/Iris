@@ -21,7 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.noise.CellGenerator;
+import com.volmit.iris.util.noise.CellGenerator;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;

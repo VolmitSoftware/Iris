@@ -25,11 +25,11 @@ import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.DataProvider;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
-import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.common.CaveResult;
-import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.engine.stream.interpolation.Interpolated;
+import com.volmit.iris.util.stream.ProceduralStream;
+import com.volmit.iris.util.stream.interpolation.Interpolated;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
@@ -41,7 +41,6 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
 public class IrisComplex implements DataProvider {

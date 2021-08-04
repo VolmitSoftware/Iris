@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.stream.ProceduralStream;
+import com.volmit.iris.util.stream.ProceduralStream;
 
 import java.util.function.Function;
 

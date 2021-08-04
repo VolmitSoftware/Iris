@@ -19,7 +19,7 @@
 package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.parallel.MultiBurst;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NastyFunction;
 import com.volmit.iris.util.function.NastyFuture;

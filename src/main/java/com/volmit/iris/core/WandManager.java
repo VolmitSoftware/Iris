@@ -24,10 +24,13 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.hunk.storage.MappedHunk;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -214,6 +217,40 @@ public class WandManager implements Listener {
                 BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
                 s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
             }
+
+            return s;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates an Iris Object from the 2 coordinates selected with a wand
+     *
+     * @param wand The wand itemstack
+     * @return The new object
+     */
+    public static IrisMatter createSchematic(Player p, ItemStack wand) {
+        if (!isWand(wand)) {
+            return null;
+        }
+
+        try {
+            Location[] f = getCuboid(wand);
+            Cuboid c = new Cuboid(f[0], f[1]);
+            IrisMatter s = new IrisMatter(c.getSizeX(), c.getSizeY(), c.getSizeZ());
+            Iris.info(s.getWidth() + " " + s.getHeight() + " " + s.getDepth());
+            s.getHeader().setAuthor(p.getName());
+            s.slice(BlockData.class)
+                    .readFrom(c.getWorld(),
+                            c.getLowerNE().getBlockX(),
+                            c.getLowerNE().getBlockY(), c.getLowerNE().getBlockZ());
+
+            Iris.info("Slices: " + s.getSliceMap().size());
+            Iris.info("Entries " + s.getSlice(BlockData.class).getCount());
 
             return s;
         } catch (Throwable e) {

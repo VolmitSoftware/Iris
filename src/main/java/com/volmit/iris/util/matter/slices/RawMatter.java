@@ -18,7 +18,10 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.util.matter.MatterHunk;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.storage.MappedHunk;
+import com.volmit.iris.util.matter.MatterReader;
+import com.volmit.iris.util.matter.MatterWriter;
 import com.volmit.iris.util.matter.MatterSlice;
 import lombok.Getter;
 
@@ -26,23 +29,39 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public abstract class RawMatter<T> extends MatterHunk<T> implements MatterSlice<T> {
+public abstract class RawMatter<T> extends MappedHunk<T> implements MatterSlice<T> {
     @Getter
     private final Class<T> type;
+    private final KMap<Class<?>, MatterWriter<?, T>> injectors;
+    private final KMap<Class<?>, MatterReader<?, T>> ejectors;
 
     public RawMatter(int width, int height, int depth, Class<T> type) {
         super(width, height, depth);
+        injectors = new KMap<>();
+        ejectors = new KMap<>();
         this.type = type;
     }
 
-    @Override
-    public void setRaw(int x, int y, int z, T t) {
+    protected <W> void registerWriter(Class<W> mediumType, MatterWriter<W, T> injector)
+    {
+        injectors.put(mediumType, injector);
+    }
 
+    protected <W> void registerReader(Class<W> mediumType, MatterReader<W, T> injector)
+    {
+        ejectors.put(mediumType, injector);
     }
 
     @Override
-    public T getRaw(int x, int y, int z) {
-        return null;
+    public <W> MatterWriter<W, T> writeInto(Class<W> mediumType)
+    {
+        return (MatterWriter<W, T>) injectors.get(mediumType);
+    }
+
+    @Override
+    public <W> MatterReader<W, T> readFrom(Class<W> mediumType)
+    {
+        return (MatterReader<W, T>) ejectors.get(mediumType);
     }
 
     @Override

@@ -74,6 +74,11 @@ public class PlannedStructure {
         }
 
         generateTerminators();
+
+        for(PlannedPiece i : pieces)
+        {
+            Iris.debug("Place: " + i.getObject().getLoadKey() + " at @ relative " + i.getPosition().toString());
+        }
     }
 
     public KList<Runnable> place(IObjectPlacer placer, EngineParallaxManager e) {

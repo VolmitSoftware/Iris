@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.storage;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
@@ -35,6 +36,10 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
     public MappedHunk(int w, int h, int d) {
         super(w, h, d);
         data = new KMap<>();
+    }
+
+    public int getEntryCount() {
+        return data.size();
     }
 
     @Override

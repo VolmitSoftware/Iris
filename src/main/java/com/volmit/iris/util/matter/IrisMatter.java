@@ -22,6 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KMap;
 import lombok.Getter;
 
+import java.lang.reflect.InvocationTargetException;
+
 public class IrisMatter implements Matter {
     private static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
 
@@ -45,6 +47,7 @@ public class IrisMatter implements Matter {
         this.height = height;
         this.depth = depth;
         this.header = new MatterHeader();
+        this.sliceMap = new KMap<>();
     }
 
     @Override
@@ -55,7 +58,13 @@ public class IrisMatter implements Matter {
             return null;
         }
 
-        return (MatterSlice<T>) slice;
+        try {
+            return slice.getClass().getConstructor(int.class, int.class, int.class).newInstance(getWidth(), getHeight(), getDepth());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {

@@ -18,9 +18,13 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.MappedHunk;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -33,6 +37,90 @@ public interface MatterSlice<T> extends Hunk<T> {
 
     T readNode(DataInputStream din) throws IOException;
 
+    <W> MatterWriter<W, T> writeInto(Class<W> mediumType);
+
+    <W> MatterReader<W, T> readFrom(Class<W> mediumType);
+
+    default Class<?> getClass(Object w)
+    {
+        Class<?> c = w.getClass();
+
+        if(w instanceof World)
+        {
+            c = World.class;
+        }else if(w instanceof BlockData)
+        {
+            c = BlockData.class;
+        }
+
+        return c;
+    }
+
+    default <W> boolean writeInto(W w, int x, int y, int z)
+    {
+        MatterWriter<W, T> injector = (MatterWriter<W, T>) writeInto(getClass(w));
+
+        if(injector == null)
+        {
+            return false;
+        }
+
+        for(int i = x; i < x + getWidth(); i++)
+        {
+            for(int j = y; j < y + getHeight(); j++)
+            {
+                for(int k = z; k < z + getDepth(); k++)
+                {
+                    injector.writeMatter(w, get(i - x, j - y, k - z), i, j, k);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    default <W> boolean readFrom(W w, int x, int y, int z)
+    {
+        MatterReader<W, T> ejector = (MatterReader<W, T>) readFrom(getClass(w));
+
+        if(ejector == null)
+        {
+            return false;
+        }
+
+        for(int i = x; i < x + getWidth(); i++)
+        {
+            for(int j = y; j < y + getHeight(); j++)
+            {
+                for(int k = z; k < z + getDepth(); k++)
+                {
+                    set(i - x, j - y, k - z, ejector.readMatter(w, i, j, k));
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // BlockMatter<T>
+    //   RawMatter<T>      ex MappedHunk<T>
+    //     IMatterSlice<T> ex Hunk<T>
+
+    default int getCount()
+    {
+        return ((MappedHunk<?>)this).getEntryCount();
+    }
+
+    default boolean canWrite(Class<?> mediumType)
+    {
+        return writeInto(mediumType) != null;
+    }
+
+    default boolean canRead(Class<?> mediumType)
+    {
+        return readFrom(mediumType) != null;
+    }
+
     default void write(DataOutputStream dos) throws IOException {
         int w = getWidth();
         int h = getHeight();
@@ -40,9 +128,9 @@ public interface MatterSlice<T> extends Hunk<T> {
         MatterPalette<T> palette = new MatterPalette<T>(this);
         iterateSync((x, y, z, b) -> palette.assign(b));
         palette.writePalette(dos);
-        Varint.writeUnsignedVarInt(((MatterHunk<?>) this).getCount(), dos);
+        Varint.writeUnsignedVarInt(getCount(), dos);
         iterateSyncIO((x, y, z, b) -> {
-            Varint.writeUnsignedVarInt((z * w * h) + (y * w) + x, dos);
+            Varint.writeUnsignedVarInt(Cache.to1D(x, y, z, w, h), dos);
             palette.writeNode(b, dos);
         });
     }
@@ -51,7 +139,6 @@ public interface MatterSlice<T> extends Hunk<T> {
         int w = getWidth();
         int h = getHeight();
 
-        // canonical is read in parent
         MatterPalette<T> palette = new MatterPalette<T>(this, din);
         int nodes = Varint.readUnsignedVarInt(din);
         int[] pos;

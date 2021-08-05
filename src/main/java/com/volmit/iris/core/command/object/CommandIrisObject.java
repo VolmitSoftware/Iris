@@ -33,6 +33,12 @@ public class CommandIrisObject extends MortarCommand {
     private CommandIrisObjectDust dust;
 
     @Command
+    private CommandIrisObjectPasteMatter mpaste;
+
+    @Command
+    private CommandIrisObjectSaveMatter msave;
+
+    @Command
     private CommandIrisObjectXPY xpy;
 
     @Command

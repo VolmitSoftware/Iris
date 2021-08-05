@@ -25,6 +25,8 @@ import java.io.*;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * When Red Matter isn't enough
@@ -208,6 +210,14 @@ public interface Matter {
      */
     Map<Class<?>, MatterSlice<?>> getSliceMap();
 
+    default void write(File f) throws IOException
+    {
+        FileOutputStream out = new FileOutputStream(f);
+        GZIPOutputStream gzo = new GZIPOutputStream(out);
+        write(gzo);
+        gzo.close();
+    }
+
     /**
      * Writes the data to the output stream. The data will be flushed to the provided output
      * stream however the provided stream will NOT BE CLOSED, so be sure to actually close it
@@ -229,6 +239,20 @@ public interface Matter {
         }
 
         dos.flush();
+    }
+
+    static Matter read(File f) throws IOException, ClassNotFoundException
+    {
+        FileInputStream in = new FileInputStream(f);
+        GZIPInputStream gzi = new GZIPInputStream(in);
+        Matter m = read(gzi);
+        gzi.close();
+        return m;
+    }
+
+    static Matter read(InputStream in) throws IOException, ClassNotFoundException
+    {
+        return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 
     /**

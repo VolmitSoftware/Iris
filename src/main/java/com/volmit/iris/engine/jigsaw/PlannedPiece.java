@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.jigsaw;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
@@ -30,6 +31,7 @@ import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectRotation;
+import com.volmit.iris.engine.object.objects.IrisObjectTranslate;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.AxisAlignedBB;
@@ -159,6 +161,7 @@ public class PlannedPiece {
                 minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
 
+        getPiece().getPlacementOptions().setTranslate(new IrisObjectTranslate());
         getPiece().getPlacementOptions().setRotation(rotation);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);

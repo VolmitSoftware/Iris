@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.object.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

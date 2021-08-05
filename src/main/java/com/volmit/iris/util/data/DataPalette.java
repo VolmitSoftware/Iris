@@ -39,12 +39,9 @@ public class DataPalette<T> {
         return palette;
     }
 
-    public T get(int index)
-    {
-        synchronized (palette)
-        {
-            if(!palette.hasIndex(index))
-            {
+    public T get(int index) {
+        synchronized (palette) {
+            if (!palette.hasIndex(index)) {
                 return null;
             }
 

@@ -19,38 +19,35 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.hunk.Hunk;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public interface MatterSlice<T> extends Hunk<T>
-{
+public interface MatterSlice<T> extends Hunk<T> {
     Class<T> getType();
 
     void writeNode(T b, DataOutputStream dos) throws IOException;
 
     T readNode(DataInputStream din) throws IOException;
 
-    default void write(DataOutputStream dos) throws IOException
-    {
+    default void write(DataOutputStream dos) throws IOException {
         int w = getWidth();
         int h = getHeight();
         dos.writeUTF(getType().getCanonicalName());
         MatterPalette<T> palette = new MatterPalette<T>(this);
-        iterateSync((x,y,z,b) -> palette.assign(b));
+        iterateSync((x, y, z, b) -> palette.assign(b));
         palette.writePalette(dos);
         Varint.writeUnsignedVarInt(((MatterHunk<?>) this).getCount(), dos);
-        iterateSyncIO((x,y,z,b) -> {
+        iterateSyncIO((x, y, z, b) -> {
             Varint.writeUnsignedVarInt((z * w * h) + (y * w) + x, dos);
             palette.writeNode(b, dos);
         });
     }
 
-    default void read(DataInputStream din) throws IOException
-    {
+    default void read(DataInputStream din) throws IOException {
         int w = getWidth();
         int h = getHeight();
 
@@ -59,8 +56,7 @@ public interface MatterSlice<T> extends Hunk<T>
         int nodes = Varint.readUnsignedVarInt(din);
         int[] pos;
 
-        while(nodes-- > 0)
-        {
+        while (nodes-- > 0) {
             pos = Cache.to3D(Varint.readUnsignedVarInt(din), w, h);
             setRaw(pos[0], pos[1], pos[2], palette.readNode(din));
         }

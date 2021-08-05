@@ -18,12 +18,12 @@
 
 package com.volmit.iris.engine.object.noise;
 
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.CNGFactory;
 import com.volmit.iris.util.noise.NoiseType;
-import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.math.RNG;
 
 @Desc("Styles of noise")
 

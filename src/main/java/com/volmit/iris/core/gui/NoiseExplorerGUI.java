@@ -20,15 +20,15 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.event.EventHandler;

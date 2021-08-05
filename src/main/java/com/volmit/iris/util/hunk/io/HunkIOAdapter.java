@@ -19,8 +19,8 @@
 package com.volmit.iris.util.hunk.io;
 
 import com.volmit.iris.util.data.IOAdapter;
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.function.Function3;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.CustomOutputStream;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 

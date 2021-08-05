@@ -17,14 +17,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CommandIrisObjectAnalyze extends MortarCommand {
@@ -99,7 +92,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
 
 
                 } else
-                amounts.put(block, amounts.get(block) + 1);
+                    amounts.put(block, amounts.get(block) + 1);
 
                 if (!materials.containsKey(block.getMaterial())) {
                     materials.put(block.getMaterial(), 1);
@@ -130,7 +123,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
                 if (data.getAsString(true).contains("[")) {
                     string = string + " --> [" + data.getAsString(true).split("\\[")[1]
                             .replaceAll("true", ChatColor.GREEN + "true" + ChatColor.GRAY)
-                            .replaceAll("false", ChatColor.RED + "false" + ChatColor.GRAY)+ "*" + dataAmount;
+                            .replaceAll("false", ChatColor.RED + "false" + ChatColor.GRAY) + "*" + dataAmount;
                 }
 
                 sender.sendMessage(string);

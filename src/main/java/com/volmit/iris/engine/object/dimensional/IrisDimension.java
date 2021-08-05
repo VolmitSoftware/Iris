@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
@@ -46,12 +46,12 @@ import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.trees.IrisTreeSettings;
-import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -340,19 +340,17 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<KList<Position2>> strongholdsCache = new AtomicCache<>();
 
-    public KList<Position2> getStrongholds(long seed)
-    {
+    public KList<Position2> getStrongholds(long seed) {
         return strongholdsCache.aquire(() -> {
             KList<Position2> pos = new KList<>();
             int jump = strongholdJumpDistance;
             RNG rng = new RNG((seed * 223) + 12945);
 
-            for(int i = 0; i < maxStrongholds; i++)
-            {
+            for (int i = 0; i < maxStrongholds; i++) {
                 int m = i + 1;
                 pos.add(new Position2(
-                        (int) ((rng.i( jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
-                        (int) ((rng.i( jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
+                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
+                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
                 ));
             }
 

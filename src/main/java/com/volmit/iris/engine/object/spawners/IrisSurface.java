@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object.spawners;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
@@ -44,6 +43,7 @@ public enum IrisSurface {
 
     /**
      * Check if this Iris surface matches the blockstate provided
+     *
      * @param state The blockstate
      * @return True if it matches
      */

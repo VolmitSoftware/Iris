@@ -52,16 +52,12 @@ public class CommandIrisWhatFeatures extends MortarCommand {
             Player p = sender.player();
             Chunk c = p.getLocation().getChunk();
 
-            if(IrisWorlds.isIrisWorld(c.getWorld()))
-            {int m = 1;
-                for(IrisFeaturePositional i : ((Engine)IrisWorlds.access(c.getWorld()).getEngineAccess(p.getLocation().getBlockY())).getFramework().getEngineParallax().getFeaturesInChunk(c))
-                {
+            if (IrisWorlds.isIrisWorld(c.getWorld())) {
+                int m = 1;
+                for (IrisFeaturePositional i : ((Engine) IrisWorlds.access(c.getWorld()).getEngineAccess(p.getLocation().getBlockY())).getFramework().getEngineParallax().getFeaturesInChunk(c)) {
                     sender.sendMessage("#" + m++ + " " + new JSONObject(new Gson().toJson(i)).toString(4));
                 }
-            }
-
-            else
-            {
+            } else {
                 sender.sendMessage("Iris worlds only.");
             }
         } else {

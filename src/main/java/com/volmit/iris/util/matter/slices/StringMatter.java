@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.matter.Sliced;
 
 import java.io.DataInputStream;
@@ -26,12 +25,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class StringMatter extends RawMatter<String>
-{
-    public StringMatter()
-    {
-        this(1,1,1);
+public class StringMatter extends RawMatter<String> {
+    public StringMatter() {
+        this(1, 1, 1);
     }
+
     public StringMatter(int width, int height, int depth) {
         super(width, height, depth, String.class);
     }

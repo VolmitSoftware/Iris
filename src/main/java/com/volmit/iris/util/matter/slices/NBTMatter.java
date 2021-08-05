@@ -19,16 +19,13 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.nbt.io.NBTUtil;
-import com.volmit.iris.util.nbt.io.NamedTag;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class NBTMatter<T extends Tag<?>> extends RawMatter<T>
-{
+public class NBTMatter<T extends Tag<?>> extends RawMatter<T> {
     public NBTMatter(int width, int height, int depth, Class<T> c) {
         super(width, height, depth, c);
     }

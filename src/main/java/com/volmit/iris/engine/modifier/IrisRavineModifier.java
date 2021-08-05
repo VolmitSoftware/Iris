@@ -18,16 +18,16 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

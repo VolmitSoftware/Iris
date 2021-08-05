@@ -22,11 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeMutation;
+import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
@@ -37,22 +37,22 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.IrisObjectScale;
 import com.volmit.iris.engine.object.regional.IrisRegion;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.jigsaw.PlannedStructure;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
@@ -225,10 +225,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
         }
 
-        pos.add(forEachFeature(x<<4, z<<4));
-        pos.add(forEachFeature(((x+1)<<4)-1, z<<4));
-        pos.add(forEachFeature(x<<4, ((z+1)<<4)-1));
-        pos.add(forEachFeature(((x+1)<<4)-1, ((z+1)<<4)-1));
+        pos.add(forEachFeature(x << 4, z << 4));
+        pos.add(forEachFeature(((x + 1) << 4) - 1, z << 4));
+        pos.add(forEachFeature(x << 4, ((z + 1) << 4) - 1));
+        pos.add(forEachFeature(((x + 1) << 4) - 1, ((z + 1) << 4) - 1));
         pos.removeDuplicates();
         return pos;
     }
@@ -598,10 +598,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             }
 
             for (IrisFeaturePotential j : p.getAddFeatures()) {
-                if(j.hasZone(rng, xx >> 4, zz >> 4))
-                {
+                if (j.hasZone(rng, xx >> 4, zz >> 4)) {
                     ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                    rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
+                    rw.getFeatures().add(new IrisFeaturePositional(xx + 1, zz - 1, j.getZone()));
                 }
             }
         }
@@ -646,10 +645,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                 }
 
                 for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
-                    if(j.hasZone(rng, xx >> 4, zz >> 4))
-                    {
+                    if (j.hasZone(rng, xx >> 4, zz >> 4)) {
                         ParallaxChunkMeta rw = getParallaxAccess().getMetaRW(xx >> 4, zz >> 4);
-                        rw.getFeatures().add(new IrisFeaturePositional(xx+1, zz-1, j.getZone()));
+                        rw.getFeatures().add(new IrisFeaturePositional(xx + 1, zz - 1, j.getZone()));
                     }
                 }
             }

@@ -19,16 +19,16 @@
 package com.volmit.iris.engine.object.jigsaw;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.engine.object.objects.ObjectPlaceMode;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
+import com.volmit.iris.engine.object.objects.ObjectPlaceMode;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

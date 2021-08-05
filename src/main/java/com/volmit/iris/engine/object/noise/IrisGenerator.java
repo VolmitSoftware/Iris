@@ -19,14 +19,14 @@
 package com.volmit.iris.engine.object.noise;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.util.noise.CellGenerator;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CellGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

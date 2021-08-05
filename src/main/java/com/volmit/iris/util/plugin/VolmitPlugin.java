@@ -152,8 +152,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         }).start();
     }
 
-    public File getJarFile()
-    {
+    public File getJarFile() {
         return getFile();
     }
 

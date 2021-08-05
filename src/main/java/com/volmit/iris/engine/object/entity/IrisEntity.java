@@ -157,8 +157,7 @@ public class IrisEntity extends IrisRegistrant {
     public Entity spawn(Engine gen, Location at, RNG rng) {
         Entity e = doSpawn(at);
 
-        if(e == null)
-        {
+        if (e == null) {
             return null;
         }
 
@@ -291,13 +290,9 @@ public class IrisEntity extends IrisRegistrant {
             // Due to the structure of iris, we will call it sync and busy wait until it's done.
             AtomicReference<Entity> ae = new AtomicReference<>();
 
-            try
-            {
+            try {
                 J.s(() -> ae.set(doSpawn(at)));
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 return null;
             }
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -305,8 +300,7 @@ public class IrisEntity extends IrisRegistrant {
             while (ae.get() == null) {
                 J.sleep(25);
 
-                if(p.getMilliseconds() > 500)
-                {
+                if (p.getMilliseconds() > 500) {
                     return null;
                 }
             }

@@ -20,8 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.matter.MatterHunk;
 import com.volmit.iris.util.matter.MatterSlice;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 
 import java.io.DataInputStream;
@@ -32,8 +30,7 @@ public abstract class RawMatter<T> extends MatterHunk<T> implements MatterSlice<
     @Getter
     private final Class<T> type;
 
-    public RawMatter(int width, int height, int depth, Class<T> type)
-    {
+    public RawMatter(int width, int height, int depth, Class<T> type) {
         super(width, height, depth);
         this.type = type;
     }

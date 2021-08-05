@@ -24,14 +24,14 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
-import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
 import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
@@ -136,7 +136,8 @@ public class IrisEntitySpawn implements IRare {
         try {
             IrisEntity irisEntity = getRealEntity(g);
 
-            if (!irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock().getState())) return null; //Make sure it can spawn on the block
+            if (!irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock().getState()))
+                return null; //Make sure it can spawn on the block
 
             Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
             if (e != null) {

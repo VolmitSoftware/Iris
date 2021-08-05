@@ -19,7 +19,6 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
 import lombok.Data;
 
 import java.awt.*;

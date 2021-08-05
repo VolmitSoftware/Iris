@@ -107,7 +107,7 @@ public class CommandIrisStudioGoto extends MortarCommand {
                             J.s(() -> sender.player().teleport(l));
                         }
                     });
-                }else if (s != null) {
+                } else if (s != null) {
                     J.a(() -> {
                         Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 

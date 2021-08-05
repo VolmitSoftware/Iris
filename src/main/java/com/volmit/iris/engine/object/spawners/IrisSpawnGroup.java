@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object.spawners;
 
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
 
 @Desc("Terrain modes are used to decide the generator type currently used")
 public enum IrisSpawnGroup {

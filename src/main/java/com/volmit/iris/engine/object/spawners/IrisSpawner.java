@@ -18,12 +18,12 @@
 
 package com.volmit.iris.engine.object.spawners;
 
-import com.volmit.iris.engine.object.basic.IrisRate;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.engine.object.basic.IrisTimeBlock;
-import com.volmit.iris.engine.object.basic.IrisWeather;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.basic.IrisRate;
+import com.volmit.iris.engine.object.basic.IrisTimeBlock;
+import com.volmit.iris.engine.object.basic.IrisWeather;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.entity.IrisEntitySpawn;
 import com.volmit.iris.util.collection.KList;

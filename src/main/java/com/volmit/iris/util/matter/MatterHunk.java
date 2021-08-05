@@ -18,10 +18,10 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.storage.StorageHunk;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.StorageHunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -38,8 +38,7 @@ public class MatterHunk<T> extends StorageHunk<T> implements Hunk<T> {
         data = new KMap<>();
     }
 
-    public int getCount()
-    {
+    public int getCount() {
         return data.size();
     }
 

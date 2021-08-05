@@ -20,7 +20,6 @@ package com.volmit.iris.util.io;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.math.M;
 
 import java.io.File;
 
@@ -96,8 +95,7 @@ public class FolderWatcher extends FileWatcher {
     }
 
     public boolean checkModifiedFast() {
-        if(watchers == null || watchers.isEmpty())
-        {
+        if (watchers == null || watchers.isEmpty()) {
             return checkModified();
         }
 

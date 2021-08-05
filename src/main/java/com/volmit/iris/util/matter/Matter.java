@@ -28,7 +28,7 @@ import java.util.function.Function;
 
 /**
  * When Red Matter isn't enough
- *
+ * <p>
  * UVI width
  * UVI height
  * UVI depth
@@ -36,135 +36,136 @@ import java.util.function.Function;
  * UTF author
  * UVL createdAt
  * UVI version
- *   UTF sliceType (canonical class name)
- *   UVI nodeCount (for each slice)
- *     UVI position [(z * w * h) + (y * w) + x]
- *     ??? nodeData
- *
+ * UTF sliceType (canonical class name)
+ * UVI nodeCount (for each slice)
+ * UVI position [(z * w * h) + (y * w) + x]
+ * ??? nodeData
  */
 public interface Matter {
     int VERSION = 1;
 
     /**
      * Get the header information
+     *
      * @return the header info
      */
     MatterHeader getHeader();
 
     /**
      * Get the width of this matter
+     *
      * @return the width
      */
     int getWidth();
 
     /**
      * Get the height of this matter
+     *
      * @return the height
      */
     int getHeight();
 
     /**
      * Get the depth of this matter
+     *
      * @return the depth
      */
     int getDepth();
 
     /**
      * Get the center of this matter
+     *
      * @return the center
      */
-    default BlockPosition getCenter()
-    {
+    default BlockPosition getCenter() {
         return new BlockPosition(getCenterX(), getCenterY(), getCenterZ());
     }
 
     /**
      * Create a slice from the given type
-     * @param type the type class
+     *
+     * @param type   the type class
      * @param matter the matter this slice will go into (size provider)
-     * @param <T> the type
+     * @param <T>    the type
      * @return the slice (or null if not supported)
      */
     <T> MatterSlice<T> createSlice(Class<T> type, Matter matter);
 
     /**
      * Get the size of this matter
+     *
      * @return the size
      */
-    default BlockPosition getSize()
-    {
+    default BlockPosition getSize() {
         return new BlockPosition(getWidth(), getHeight(), getDepth());
     }
 
     /**
      * Get the center X of this matter
+     *
      * @return the center X
      */
-    default int getCenterX()
-    {
+    default int getCenterX() {
         return Math.round(getWidth() / 2);
     }
 
     /**
      * Get the center Y of this matter
+     *
      * @return the center Y
      */
-    default int getCenterY()
-    {
+    default int getCenterY() {
         return Math.round(getHeight() / 2);
     }
 
     /**
      * Get the center Z of this matter
+     *
      * @return the center Z
      */
-    default int getCenterZ()
-    {
+    default int getCenterZ() {
         return Math.round(getDepth() / 2);
     }
 
     /**
      * Return the slice for the given type
-     * @param t the type class
+     *
+     * @param t   the type class
      * @param <T> the type
      * @return the slice or null
      */
-    default <T> MatterSlice<T> getSlice(Class<T> t)
-    {
+    default <T> MatterSlice<T> getSlice(Class<T> t) {
         return (MatterSlice<T>) getSliceMap().get(t);
     }
 
     /**
      * Delete the slice for the given type
-     * @param c the type class
+     *
+     * @param c   the type class
      * @param <T> the type
      * @return the deleted slice, or null if it diddn't exist
      */
-    default <T> MatterSlice<T> deleteSlice(Class<?> c)
-    {
+    default <T> MatterSlice<T> deleteSlice(Class<?> c) {
         return (MatterSlice<T>) getSliceMap().remove(c);
     }
 
     /**
      * Put a given slice type
-     * @param c the slice type class
+     *
+     * @param c     the slice type class
      * @param slice the slice to assign to the type
-     * @param <T> the slice type
+     * @param <T>   the slice type
      * @return the overwritten slice if there was an existing slice of that type
      */
-    default <T> MatterSlice<T> putSlice(Class<?> c, MatterSlice<T> slice)
-    {
+    default <T> MatterSlice<T> putSlice(Class<?> c, MatterSlice<T> slice) {
         return (MatterSlice<T>) getSliceMap().put(c, slice);
     }
 
-    default <T> MatterSlice<T> slice(Class<?> c)
-    {
-        if(!hasSlice(c))
-        {
+    default <T> MatterSlice<T> slice(Class<?> c) {
+        if (!hasSlice(c)) {
             MatterSlice<?> s = createSlice(c, this);
 
-            if(s == null)
-            {
+            if (s == null) {
                 return null;
             }
 
@@ -176,33 +177,33 @@ public interface Matter {
 
     /**
      * Check if a slice exists for a given type
+     *
      * @param c the slice class type
      * @return true if it exists
      */
-    default boolean hasSlice(Class<?> c)
-    {
+    default boolean hasSlice(Class<?> c) {
         return getSlice(c) != null;
     }
 
     /**
      * Remove all slices
      */
-    default void clearSlices()
-    {
+    default void clearSlices() {
         getSliceMap().clear();
     }
 
     /**
      * Get the set backing the slice map keys (slice types)
+     *
      * @return the slice types
      */
-    default Set<Class<?>> getSliceTypes()
-    {
+    default Set<Class<?>> getSliceTypes() {
         return getSliceMap().keySet();
     }
 
     /**
      * Get all slices
+     *
      * @return the real slice map
      */
     Map<Class<?>, MatterSlice<?>> getSliceMap();
@@ -210,11 +211,11 @@ public interface Matter {
     /**
      * Writes the data to the output stream. The data will be flushed to the provided output
      * stream however the provided stream will NOT BE CLOSED, so be sure to actually close it
+     *
      * @param out the output stream
      * @throws IOException shit happens yo
      */
-    default void write(OutputStream out) throws IOException
-    {
+    default void write(OutputStream out) throws IOException {
         DataOutputStream dos = new DataOutputStream(out);
         // Write size
         Varint.writeUnsignedVarInt(getWidth(), dos);
@@ -223,8 +224,7 @@ public interface Matter {
         dos.writeByte(getSliceTypes().size() + Byte.MIN_VALUE);
         getHeader().write(dos);
 
-        for(Class<?> i : getSliceTypes())
-        {
+        for (Class<?> i : getSliceTypes()) {
             getSlice(i).write(dos);
         }
 
@@ -234,7 +234,8 @@ public interface Matter {
     /**
      * Reads the input stream into a matter object using a matter factory.
      * Does not close the input stream. Be a man, close it yourself.
-     * @param in the input stream
+     *
+     * @param in            the input stream
      * @param matterFactory the matter factory (size) -> new MatterImpl(size);
      * @return the matter object
      * @throws IOException shit happens yo
@@ -249,8 +250,7 @@ public interface Matter {
         int sliceCount = din.readByte() - Byte.MIN_VALUE;
         matter.getHeader().read(din);
 
-        while(sliceCount-- > 0)
-        {
+        while (sliceCount-- > 0) {
             Class<?> type = Class.forName(din.readUTF());
             MatterSlice<?> slice = matter.createSlice(type, matter);
             slice.read(din);

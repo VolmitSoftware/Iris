@@ -18,11 +18,11 @@
 
 package com.volmit.iris.util.stream.convert;
 
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.stream.ArraySignificance;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.Significance;
-import com.volmit.iris.util.collection.KList;
 
 public class SignificanceStream<K extends Significance<T>, T> extends BasicStream<K> {
     private final ProceduralStream<T> stream;

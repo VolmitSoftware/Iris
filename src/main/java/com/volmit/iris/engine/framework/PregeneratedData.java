@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import lombok.Data;
 import org.bukkit.block.Biome;

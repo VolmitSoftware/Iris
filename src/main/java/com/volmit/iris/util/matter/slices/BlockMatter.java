@@ -29,11 +29,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class BlockMatter extends RawMatter<BlockData>
-{
-    public BlockMatter()
-    {
-        this(1,1,1);
+public class BlockMatter extends RawMatter<BlockData> {
+    public BlockMatter() {
+        this(1, 1, 1);
     }
 
     public BlockMatter(int width, int height, int depth) {

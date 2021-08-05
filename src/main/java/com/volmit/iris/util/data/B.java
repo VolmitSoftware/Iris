@@ -203,7 +203,8 @@ public class B {
                     //If we get to here, the state is okay so we can use it
                     newStates.put(key, stateMap.get(key));
 
-                } catch (IllegalArgumentException ignored) { }
+                } catch (IllegalArgumentException ignored) {
+                }
             }
 
             //Combine all the "good" states again

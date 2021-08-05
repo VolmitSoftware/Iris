@@ -19,12 +19,12 @@
 package com.volmit.iris.engine.object.loot;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

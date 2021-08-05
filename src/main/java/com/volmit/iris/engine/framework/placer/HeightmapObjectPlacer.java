@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.framework.placer;
 
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.TileState;

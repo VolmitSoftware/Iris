@@ -20,10 +20,10 @@ package com.volmit.iris.engine.object.noise;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.interpolation.Interpolated;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.stream.ProceduralStream;
+import com.volmit.iris.util.stream.interpolation.Interpolated;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

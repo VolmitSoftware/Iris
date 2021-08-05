@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
 
 public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent implements EngineModifier<T> {
     public EngineAssignedModifier(Engine engine, String name) {

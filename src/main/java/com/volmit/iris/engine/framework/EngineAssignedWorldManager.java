@@ -59,25 +59,21 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     @EventHandler
     public void on(EntitySpawnEvent e) {
         if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
-            if(e.getEntityType().equals(EntityType.ENDER_SIGNAL))
-            {
+            if (e.getEntityType().equals(EntityType.ENDER_SIGNAL)) {
                 KList<Position2> p = getEngine().getDimension().getStrongholds(getEngine().getWorld().seed());
                 Position2 px = new Position2(e.getEntity().getLocation().getBlockX(), e.getEntity().getLocation().getBlockZ());
                 Position2 pr = null;
                 double d = Double.MAX_VALUE;
 
-                for(Position2 i : p)
-                {
+                for (Position2 i : p) {
                     double dx = i.distance(px);
-                    if(dx < d)
-                    {
+                    if (dx < d) {
                         d = dx;
                         pr = i;
                     }
                 }
 
-                if(pr != null)
-                {
+                if (pr != null) {
                     e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.ITEM_TRIDENT_THROW, 1f, 1.6f);
                     ((EnderSignal) e.getEntity()).setTargetLocation(new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ()));
                 }

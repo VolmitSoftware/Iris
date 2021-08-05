@@ -82,15 +82,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
-                if(precount != null)
-                {
+                if (precount != null) {
                     entityCount = 0;
-                    for(Entity i : precount)
-                    {
-                        if(i instanceof LivingEntity)
-                        {
-                            if(!i.isDead())
-                            {
+                    for (Entity i : precount) {
+                        if (i instanceof LivingEntity) {
+                            if (!i.isDead()) {
                                 entityCount++;
                             }
                         }
@@ -99,10 +95,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     precount = null;
                 }
 
-                if(energy < 650)
-                {
-                    if(ecl.flip())
-                    {
+                if (energy < 650) {
+                    if (ecl.flip()) {
                         energy *= 1 + (0.02 * M.clip((1D - getEntitySaturation()), 0D, 1D));
                         fixEnergy();
                     }
@@ -121,8 +115,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private boolean onAsyncTick() {
         actuallySpawned = 0;
 
-        if(energy < 100)
-        {
+        if (energy < 100) {
             J.sleep(200);
             return false;
         }
@@ -156,10 +149,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         int spawnBuffer = RNG.r.i(2, 12);
 
         Chunk[] cc = getEngine().getWorld().realWorld().getLoadedChunks();
-        while(spawnBuffer-- > 0)
-        {
-            if(cc.length == 0)
-            {
+        while (spawnBuffer-- > 0) {
+            if (cc.length == 0) {
                 Iris.debug("Can't spawn. No chunks!");
                 return false;
             }
@@ -180,10 +171,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, int max) {
-        for(Entity i : c.getEntities())
-        {
-            if(i instanceof LivingEntity)
-            {
+        for (Entity i : c.getEntities()) {
+            if (i instanceof LivingEntity) {
                 return;
             }
         }
@@ -214,7 +203,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void spawn(Chunk c, IrisEntitySpawn i) {
         int s = i.spawn(getEngine(), c, RNG.r);
-        actuallySpawned+= s;
+        actuallySpawned += s;
         if (s > 0) {
             getCooldown(i.getReferenceSpawner()).spawn(getEngine());
             energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
@@ -280,13 +269,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
-        if(generated)
-        {
+        if (generated) {
             energy += 1.2;
-        }
-
-        else
-        {
+        } else {
             energy += 0.3;
         }
 
@@ -367,8 +352,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public double getEntitySaturation() {
-        if(!getEngine().getWorld().hasRealWorld())
-        {
+        if (!getEngine().getWorld().hasRealWorld()) {
             return 1;
         }
 

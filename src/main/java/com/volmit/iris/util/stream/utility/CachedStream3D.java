@@ -19,9 +19,9 @@
 package com.volmit.iris.util.stream.utility;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.math.BlockPosition;
 
 public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStream<T> {
     private final ProceduralStream<T> stream;

@@ -20,15 +20,15 @@ package com.volmit.iris.engine.object.block;
 
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
+import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

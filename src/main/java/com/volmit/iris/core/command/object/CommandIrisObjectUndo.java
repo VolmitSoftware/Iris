@@ -29,12 +29,8 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+
+import java.util.*;
 
 public class CommandIrisObjectUndo extends MortarCommand {
 
@@ -147,6 +143,7 @@ public class CommandIrisObjectUndo extends MortarCommand {
 
     /**
      * Reverts all the block changes provided, 200 blocks per tick
+     *
      * @param blocks The blocks to remove
      */
     private static void revert(Map<Block, BlockData> blocks) {

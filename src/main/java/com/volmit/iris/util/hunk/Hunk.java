@@ -18,19 +18,19 @@
 
 package com.volmit.iris.util.hunk;
 
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.function.*;
 import com.volmit.iris.util.hunk.io.HunkIOAdapter;
 import com.volmit.iris.util.hunk.storage.*;
 import com.volmit.iris.util.hunk.view.*;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.InterpolationMethod3D;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
+import com.volmit.iris.util.math.BlockPosition;
+import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.function.*;
-import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -984,23 +984,19 @@ public interface Hunk<T> {
         return getRaw(x >= getWidth() ? getWidth() - 1 : x < 0 ? 0 : x, y >= getHeight() ? getHeight() - 1 : y < 0 ? 0 : y, z >= getDepth() ? getDepth() - 1 : z < 0 ? 0 : z);
     }
 
-    default BlockPosition getCenter()
-    {
+    default BlockPosition getCenter() {
         return new BlockPosition(getCenterX(), getCenterY(), getCenterZ());
     }
 
-    default int getCenterX()
-    {
+    default int getCenterX() {
         return Math.round(getWidth() / 2);
     }
 
-    default int getCenterY()
-    {
+    default int getCenterY() {
         return Math.round(getHeight() / 2);
     }
 
-    default int getCenterZ()
-    {
+    default int getCenterZ() {
         return Math.round(getDepth() / 2);
     }
 

@@ -18,10 +18,8 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.DataPalette;
 import com.volmit.iris.util.data.IOAdapter;
-import com.volmit.iris.util.data.NibbleDataPalette;
 import com.volmit.iris.util.data.Varint;
 
 import java.io.DataInputStream;
@@ -32,8 +30,7 @@ public class MatterPalette<T> implements IOAdapter<T> {
     private final MatterSlice<T> slice;
     private final DataPalette<T> palette;
 
-    public MatterPalette(MatterSlice<T> slice)
-    {
+    public MatterPalette(MatterSlice<T> slice) {
         this.slice = slice;
         palette = new DataPalette<T>();
     }

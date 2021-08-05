@@ -18,10 +18,10 @@
 
 package com.volmit.iris.engine.object.jigsaw;
 
-import com.volmit.iris.engine.object.objects.IrisDirection;
-import com.volmit.iris.engine.object.entity.IrisEntity;
-import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.entity.IrisEntity;
+import com.volmit.iris.engine.object.objects.IrisDirection;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -21,12 +21,12 @@ package com.volmit.iris.engine.decorator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 

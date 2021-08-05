@@ -19,12 +19,12 @@
 package com.volmit.iris.engine.object.biome;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.DataProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

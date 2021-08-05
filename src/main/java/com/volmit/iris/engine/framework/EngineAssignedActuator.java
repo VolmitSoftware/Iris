@@ -18,8 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
 
 public abstract class EngineAssignedActuator<T> extends EngineAssignedComponent implements EngineActuator<T> {
     public EngineAssignedActuator(Engine engine, String name) {

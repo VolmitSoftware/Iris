@@ -18,12 +18,12 @@
 
 package com.volmit.iris.engine.object.mods;
 
-import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectReplace;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

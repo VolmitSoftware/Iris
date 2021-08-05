@@ -20,13 +20,13 @@ package com.volmit.iris.engine.object.feature;
 
 import com.google.gson.Gson;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.spawners.IrisSpawner;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

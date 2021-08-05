@@ -18,10 +18,10 @@
 
 package com.volmit.iris.util.stream.arithmetic;
 
-import com.volmit.iris.util.stream.BasicStream;
-import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
+import com.volmit.iris.util.stream.BasicStream;
+import com.volmit.iris.util.stream.ProceduralStream;
 
 public class MinningStream<T> extends BasicStream<T> {
     private final Function3<Double, Double, Double, Double> add;

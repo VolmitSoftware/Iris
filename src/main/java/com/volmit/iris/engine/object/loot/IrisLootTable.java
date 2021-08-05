@@ -18,12 +18,12 @@
 
 package com.volmit.iris.engine.object.loot;
 
-import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;

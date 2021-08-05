@@ -25,11 +25,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class BooleanMatter extends RawMatter<Boolean>
-{
-    public BooleanMatter()
-    {
-        this(1,1,1);
+public class BooleanMatter extends RawMatter<Boolean> {
+    public BooleanMatter() {
+        this(1, 1, 1);
     }
 
     public BooleanMatter(int width, int height, int depth) {

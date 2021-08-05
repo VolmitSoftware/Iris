@@ -33,9 +33,6 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
-import com.volmit.iris.util.io.JarScanner;
-import com.volmit.iris.util.matter.Sliced;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -43,8 +40,10 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;
 import com.volmit.iris.util.plugin.VolmitPlugin;
@@ -67,7 +66,6 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.Date;
 
@@ -108,10 +106,8 @@ public class Iris extends VolmitPlugin implements Listener {
         JarScanner js = new JarScanner(instance.getJarFile(), s);
         KList<Object> v = new KList<>();
         J.attempt(js::scan);
-        for(Class<?> i : js.getClasses())
-        {
-            if(slicedClass == null || i.isAnnotationPresent(slicedClass))
-            {
+        for (Class<?> i : js.getClasses()) {
+            if (slicedClass == null || i.isAnnotationPresent(slicedClass)) {
                 try {
                     v.add(i.getDeclaredConstructor().newInstance());
                 } catch (Throwable ignored) {
@@ -122,7 +118,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
         return v;
     }
-
 
     public void onEnable() {
         instance = this;

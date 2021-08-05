@@ -19,12 +19,12 @@
 package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NastyFunction;
 import com.volmit.iris.util.function.NastyFuture;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.math.FinalInteger;
+import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
 
 import java.util.concurrent.Callable;

@@ -19,15 +19,15 @@
 package com.volmit.iris.engine.object.regional;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.biome.InferredType;
-import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
-import com.volmit.iris.util.noise.CellGenerator;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.biome.InferredType;
+import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CellGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

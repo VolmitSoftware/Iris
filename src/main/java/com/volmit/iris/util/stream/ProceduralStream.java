@@ -20,19 +20,19 @@ package com.volmit.iris.util.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.engine.object.noise.IrisStyledRange;
 import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.object.noise.IrisStyledRange;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.function.Function2;
+import com.volmit.iris.util.function.Function3;
+import com.volmit.iris.util.function.Function4;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.stream.arithmetic.*;
 import com.volmit.iris.util.stream.convert.*;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
 import com.volmit.iris.util.stream.sources.FunctionStream;
 import com.volmit.iris.util.stream.utility.*;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.function.Function2;
-import com.volmit.iris.util.function.Function3;
-import com.volmit.iris.util.function.Function4;
-import com.volmit.iris.util.math.RNG;
 
 import java.util.List;
 import java.util.function.Function;

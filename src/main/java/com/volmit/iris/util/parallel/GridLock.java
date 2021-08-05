@@ -19,8 +19,8 @@
 package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.function.NastyRunnable;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IORunnable;
 
 import java.io.IOException;

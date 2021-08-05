@@ -1,6 +1,6 @@
 name: Iris Bug Report
 description: File a bug report for Iris
-labels: [bug]
+labels: [ bug ]
 body:
   - type: markdown
     attributes:

@@ -74,6 +74,7 @@ public class WandManager implements Listener {
 
     /**
      * Draw the outline of a selected region
+     *
      * @param d The cuboid
      * @param p The player to show it to
      */
@@ -83,6 +84,7 @@ public class WandManager implements Listener {
 
     /**
      * Draw the outline of a selected region
+     *
      * @param d A pair of locations
      * @param p The player to show them to
      */
@@ -191,6 +193,7 @@ public class WandManager implements Listener {
 
     /**
      * Creates an Iris Object from the 2 coordinates selected with a wand
+     *
      * @param wand The wand itemstack
      * @return The new object
      */
@@ -223,6 +226,7 @@ public class WandManager implements Listener {
 
     /**
      * Converts a user friendly location string to an actual Location
+     *
      * @param s The string
      * @return The location
      */
@@ -239,6 +243,7 @@ public class WandManager implements Listener {
 
     /**
      * Get a user friendly string of a location
+     *
      * @param loc The location
      * @return The string
      */
@@ -252,6 +257,7 @@ public class WandManager implements Listener {
 
     /**
      * Create a new blank Iris wand
+     *
      * @return The wand itemstack
      */
     public static ItemStack createWand() {
@@ -260,6 +266,7 @@ public class WandManager implements Listener {
 
     /**
      * Create a new dust itemstack
+     *
      * @return The stack
      */
     public static ItemStack createDust() {
@@ -277,6 +284,7 @@ public class WandManager implements Listener {
 
     /**
      * Is the player holding Dust?
+     *
      * @param p The player
      * @return True if they are
      */
@@ -287,6 +295,7 @@ public class WandManager implements Listener {
 
     /**
      * Is the itemstack passed Iris dust?
+     *
      * @param is The itemstack
      * @return True if it is
      */
@@ -296,8 +305,9 @@ public class WandManager implements Listener {
 
     /**
      * Update the location on an Iris wand
+     *
      * @param left True for first location, false for second
-     * @param a The location
+     * @param a    The location
      * @param item The wand
      * @return The updated wand
      */
@@ -318,6 +328,7 @@ public class WandManager implements Listener {
 
     /**
      * Finds an existing wand in a users inventory
+     *
      * @param inventory The inventory to search
      * @return The slot number the wand is in. Or -1 if none are found
      */
@@ -341,6 +352,7 @@ public class WandManager implements Listener {
 
     /**
      * Creates an Iris wand. The locations should be the currently selected locations, or null
+     *
      * @param a Location A
      * @param b Location B
      * @return A new wand
@@ -360,6 +372,7 @@ public class WandManager implements Listener {
 
     /**
      * Get a pair of locations that are selected in an Iris wand
+     *
      * @param is The wand item
      * @return An array with the 2 locations
      */
@@ -370,6 +383,7 @@ public class WandManager implements Listener {
 
     /**
      * Is a player holding an Iris wand
+     *
      * @param p The player
      * @return True if they are
      */
@@ -380,6 +394,7 @@ public class WandManager implements Listener {
 
     /**
      * Is the itemstack passed an Iris wand
+     *
      * @param is The itemstack
      * @return True if it is
      */

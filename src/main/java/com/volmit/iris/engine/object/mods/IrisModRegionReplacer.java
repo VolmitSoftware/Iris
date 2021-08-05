@@ -18,11 +18,11 @@
 
 package com.volmit.iris.engine.object.mods;
 
-import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

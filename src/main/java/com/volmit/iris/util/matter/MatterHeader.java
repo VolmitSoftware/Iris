@@ -32,15 +32,13 @@ public class MatterHeader {
     private long createdAt = M.ms();
     private int version = Matter.VERSION;
 
-    public void write(DataOutputStream out) throws IOException
-    {
+    public void write(DataOutputStream out) throws IOException {
         out.writeUTF(author);
         Varint.writeUnsignedVarLong(createdAt, out);
         Varint.writeUnsignedVarInt(version, out);
     }
 
-    public void read(DataInputStream din) throws IOException
-    {
+    public void read(DataInputStream din) throws IOException {
         setAuthor(din.readUTF());
         setCreatedAt(Varint.readUnsignedVarLong(din));
         setVersion(Varint.readUnsignedVarInt(din));

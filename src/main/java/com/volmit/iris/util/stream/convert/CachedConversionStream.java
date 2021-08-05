@@ -18,9 +18,9 @@
 
 package com.volmit.iris.util.stream.convert;
 
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.stream.BasicLayer;
 import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.collection.KMap;
 
 import java.util.function.Function;
 

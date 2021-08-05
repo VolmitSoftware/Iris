@@ -19,12 +19,12 @@
 package com.volmit.iris.util.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 
 import java.util.HashMap;
 

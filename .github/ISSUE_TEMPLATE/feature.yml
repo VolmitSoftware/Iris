@@ -1,6 +1,6 @@
 name: Iris Feature Request
 description: File a feature request for Iris. If you want to report a bug this is not the place.
-labels: [feature]
+labels: [ feature ]
 body:
   - type: markdown
     attributes:

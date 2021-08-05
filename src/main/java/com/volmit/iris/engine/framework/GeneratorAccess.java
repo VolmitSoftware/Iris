@@ -20,11 +20,11 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
+import com.volmit.iris.util.data.DataProvider;
 
 public interface GeneratorAccess extends DataProvider, Renderer {
     IrisRegion getRegion(int x, int z);

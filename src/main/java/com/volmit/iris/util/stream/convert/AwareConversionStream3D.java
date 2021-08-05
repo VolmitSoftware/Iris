@@ -18,9 +18,9 @@
 
 package com.volmit.iris.util.stream.convert;
 
+import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.function.Function4;
 
 public class AwareConversionStream3D<T, V> extends BasicStream<V> {
     private final ProceduralStream<T> stream;

@@ -20,7 +20,6 @@ package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.util.nbt.tag.Tag;
 
-import javax.inject.Named;
 import java.io.*;
 import java.util.zip.GZIPInputStream;
 

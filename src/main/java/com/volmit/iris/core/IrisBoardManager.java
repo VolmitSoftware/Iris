@@ -119,10 +119,9 @@ public class IrisBoardManager implements BoardProvider, Listener {
         }
 
         Engine engine = g.getCompound().getEngineForHeight(y);
-        if(ecl.flip())
-        {
+        if (ecl.flip()) {
             energyBar.setProgress(Math.min(1000D, engine.getWorldManager().getEnergy()) / 1000D);
-            energyBar.setTitle("Spawner Energy: " + Form.f((int)Math.min(1000D, engine.getWorldManager().getEnergy())));
+            energyBar.setTitle("Spawner Energy: " + Form.f((int) Math.min(1000D, engine.getWorldManager().getEnergy())));
         }
 
         int parallaxChunks = 0;

@@ -20,15 +20,9 @@ package com.volmit.iris.util.matter;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.io.JarScanner;
-import com.volmit.iris.util.matter.slices.BlockMatter;
-import com.volmit.iris.util.matter.slices.BooleanMatter;
 import lombok.Getter;
-import org.bukkit.block.data.BlockData;
 
-import java.util.Map;
-
-public class IrisMatter implements Matter{
+public class IrisMatter implements Matter {
     private static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
 
     @Getter
@@ -46,8 +40,7 @@ public class IrisMatter implements Matter{
     @Getter
     private KMap<Class<?>, MatterSlice<?>> sliceMap;
 
-    public IrisMatter(int width, int height, int depth)
-    {
+    public IrisMatter(int width, int height, int depth) {
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -58,8 +51,7 @@ public class IrisMatter implements Matter{
     public <T> MatterSlice<T> createSlice(Class<T> type, Matter m) {
         MatterSlice<?> slice = slicers.get(type);
 
-        if(slice == null)
-        {
+        if (slice == null) {
             return null;
         }
 
@@ -68,8 +60,7 @@ public class IrisMatter implements Matter{
 
     private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {
         KMap<Class<?>, MatterSlice<?>> c = new KMap<>();
-        for(Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class))
-        {
+        for (Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class)) {
             MatterSlice<?> s = (MatterSlice<?>) i;
             c.put(s.getType(), s);
         }

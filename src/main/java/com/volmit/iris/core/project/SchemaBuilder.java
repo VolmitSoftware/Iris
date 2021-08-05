@@ -35,6 +35,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SchemaBuilder {
     private static final String SYMBOL_LIMIT__N = "*";
@@ -221,6 +222,22 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Item Type (use ctrl+space for auto complete!)");
 
+                } else if(k.isAnnotationPresent(RegistryListSpecialEntity.class)) {
+                    String key = "enum-reg-specialentity";
+
+                    if(!definitions.containsKey(key))
+                    {
+                        JSONObject j = new JSONObject();
+                        KList<String> list = new KList<>();
+                        list.addAll(Iris.linkMythicMobs.getMythicMobTypes().stream().map(s -> "MythicMobs:" + s).collect(Collectors.toList()));
+                        //TODO add Citizens stuff here too
+                        j.put("enum", list.toJSONStringArray());
+                        definitions.put(key, j);
+                    }
+
+                    fancyType = "Mythic Mob Type";
+                    prop.put("$ref", "#/definitions/" + key);
+                    description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
                 } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                     String key = "enum-font";
 

@@ -21,27 +21,34 @@ package com.volmit.iris.core.nms.v17_1;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.IntTag;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;
+import net.minecraft.nbt.*;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.level.biome.BiomeBase;
-import net.minecraft.world.level.block.BlockChest;
 import net.minecraft.world.level.block.entity.TileEntity;
+import net.minecraft.world.level.block.state.IBlockData;
 import net.minecraft.world.level.chunk.BiomeStorage;
+import net.minecraft.world.level.chunk.Chunk;
+import net.minecraft.world.level.chunk.ChunkSection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
-import org.bukkit.block.TileState;
-import org.bukkit.craftbukkit.v1_16_R1.block.impl.CraftBamboo;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_17_R1.block.impl.CraftChest;
+import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
+import net.minecraft.world.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -68,11 +75,94 @@ public class NMSBinding17_1 implements INMSBinding {
     @Override
     public CompoundTag serializeTile(Location location) {
         TileEntity e = ((CraftWorld)location.getWorld()).getHandle().getTileEntity(new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
+
+        if(e == null)
+        {
+            return null;
+        }
+
+        NBTTagCompound tag = new NBTTagCompound();
+        e.save(tag);
+        return convert(tag);
     }
 
     @Override
     public void deserializeTile(CompoundTag s, Location newPosition) {
+        NBTTagCompound c = convert(s);
 
+        if(c != null)
+        {
+            int x = newPosition.getBlockX();
+            int y = newPosition.getBlockY();
+            int z = newPosition.getBlockZ();
+            WorldServer w = ((CraftWorld)newPosition.getWorld()).getHandle();
+            Chunk ch = w.getChunkAt(x >> 4, z >> 4);
+            ChunkSection sect = ch.getSections()[y >> 4];
+            IBlockData block = sect.getBlocks().a(x & 15, y & 15, z & 15);
+            BlockPosition pos = new BlockPosition(x, y, z);
+            ch.b(TileEntity.create(pos, block, c));
+        }
+    }
+
+    private NBTTagCompound convert(CompoundTag tag)
+    {
+        try {
+            ByteArrayOutputStream boas = new ByteArrayOutputStream();
+            NBTUtil.write(tag, boas, false);
+            DataInputStream din = new DataInputStream(new ByteArrayInputStream(boas.toByteArray()));
+            NBTTagCompound c = NBTCompressedStreamTools.a((DataInput) din);
+            din.close();
+            return c;
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private CompoundTag convert(NBTTagCompound tag)
+    {
+        try {
+            ByteArrayOutputStream boas = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(boas);
+            NBTCompressedStreamTools.a(tag, (DataOutput) dos);
+            dos.close();
+            return (CompoundTag) NBTUtil.read(new ByteArrayInputStream(boas.toByteArray()), false).getTag();
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public CompoundTag serializeEntity(org.bukkit.entity.Entity be) {
+        Entity entity = ((CraftEntity)be).getHandle();
+        NBTTagCompound tag = new NBTTagCompound();
+        entity.save(tag);
+        CompoundTag t = convert(tag);
+        t.putInt("btype", be.getType().ordinal());
+        return t;
+    }
+
+    @Override
+    public org.bukkit.entity.Entity deserializeEntity(CompoundTag s, Location newPosition) {
+
+        EntityType type = EntityType.values()[s.getInt("btype")];
+        s.remove("btype");
+        NBTTagCompound tag = convert(s);
+        NBTTagList pos = tag.getList("Pos", 6);
+        pos.a(0, NBTTagDouble.a(newPosition.getX()));
+        pos.a(1, NBTTagDouble.a(newPosition.getY()));
+        pos.a(2, NBTTagDouble.a(newPosition.getZ()));
+        tag.set("Pos", pos);
+        org.bukkit.entity.Entity be = newPosition.getWorld().spawnEntity(newPosition, type);
+        ((CraftEntity)be).getHandle().load(tag);
+
+        return be;
     }
 
     @Override

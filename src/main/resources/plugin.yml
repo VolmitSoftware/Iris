@@ -4,7 +4,7 @@ main: ${main}
 load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho ]
 website: volmit.com
-description: More than a Dimenson!
+description: More than a Dimension!
 libraries:
   - org.zeroturnaround:zt-zip:1.14
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2

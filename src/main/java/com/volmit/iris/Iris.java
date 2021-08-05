@@ -21,6 +21,7 @@ package com.volmit.iris;
 import com.volmit.iris.core.*;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
+import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.world.CommandLocate;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
@@ -90,6 +91,9 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @com.volmit.iris.util.plugin.Command
     public CommandIris commandIris;
+
+    @com.volmit.iris.util.plugin.Command
+    public CommandIrisStudio commandStudio;
 
     public Iris() {
         instance = this;

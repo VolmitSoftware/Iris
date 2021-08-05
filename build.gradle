@@ -125,11 +125,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
     implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
-    implementation 'org.bukkit.craftbukkit:1.17:1.17'
     implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
-    implementation 'org.bukkit.craftbukkit:1.16.5:1.16.5'
-    implementation 'org.bukkit.craftbukkit:1.16.3:1.16.3'
-    implementation 'org.bukkit.craftbukkit:1.16.1:1.16.1'
     implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.0-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.10.10'
 

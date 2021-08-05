@@ -18,10 +18,17 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 
+@Sliced
 public class CompoundMatter extends NBTMatter<CompoundTag>
 {
+    public CompoundMatter()
+    {
+        this(1,1,1);
+    }
+
     public CompoundMatter(int width, int height, int depth) {
         super(width, height, depth, CompoundTag.class);
     }

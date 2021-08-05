@@ -16,33 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.matter;
 
-import com.volmit.iris.util.matter.Sliced;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Sliced {
 
-@Sliced
-public class BooleanMatter extends RawMatter<Boolean>
-{
-    public BooleanMatter()
-    {
-        this(1,1,1);
-    }
-
-    public BooleanMatter(int width, int height, int depth) {
-        super(width, height, depth, Boolean.class);
-    }
-
-    @Override
-    public void writeNode(Boolean b, DataOutputStream dos) throws IOException {
-        dos.writeBoolean(b);
-    }
-
-    @Override
-    public Boolean readNode(DataInputStream din) throws IOException {
-        return din.readBoolean();
-    }
 }

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -27,8 +28,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Sliced
 public class BlockMatter extends RawMatter<BlockData>
 {
+    public BlockMatter()
+    {
+        this(1,1,1);
+    }
+
     public BlockMatter(int width, int height, int depth) {
         super(width, height, depth, BlockData.class);
     }

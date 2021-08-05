@@ -152,6 +152,11 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         }).start();
     }
 
+    public File getJarFile()
+    {
+        return getFile();
+    }
+
     public void l(Object l) {
         Iris.info("[" + getName() + "]: " + l);
     }

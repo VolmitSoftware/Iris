@@ -33,6 +33,8 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.util.io.JarScanner;
+import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
@@ -64,6 +66,8 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.Date;
 
@@ -98,6 +102,25 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public static void callEvent(Event e) {
         J.s(() -> Bukkit.getPluginManager().callEvent(e));
+    }
+
+    public static KList<Object> initialize(String s, Class<? extends Annotation> slicedClass) {
+        JarScanner js = new JarScanner(instance.getJarFile(), s);
+        KList<Object> v = new KList<>();
+        J.attempt(js::scan);
+        for(Class<?> i : js.getClasses())
+        {
+            if(slicedClass == null || i.isAnnotationPresent(slicedClass))
+            {
+                try {
+                    v.add(i.getDeclaredConstructor().newInstance());
+                } catch (Throwable ignored) {
+
+                }
+            }
+        }
+
+        return v;
     }
 
 

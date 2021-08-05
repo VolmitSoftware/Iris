@@ -157,6 +157,23 @@ public interface Matter {
         return (MatterSlice<T>) getSliceMap().put(c, slice);
     }
 
+    default <T> MatterSlice<T> slice(Class<?> c)
+    {
+        if(!hasSlice(c))
+        {
+            MatterSlice<?> s = createSlice(c, this);
+
+            if(s == null)
+            {
+                return null;
+            }
+
+            putSlice(c, (MatterSlice<T>) s);
+        }
+
+        return (MatterSlice<T>) getSlice(c);
+    }
+
     /**
      * Check if a slice exists for a given type
      * @param c the slice class type

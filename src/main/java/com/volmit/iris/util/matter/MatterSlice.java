@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;

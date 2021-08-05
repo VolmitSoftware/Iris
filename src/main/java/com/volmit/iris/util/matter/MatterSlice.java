@@ -24,6 +24,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.objectweb.asm.ClassWriter;
 
 import java.io.DataInputStream;
@@ -51,6 +52,9 @@ public interface MatterSlice<T> extends Hunk<T> {
         }else if(w instanceof BlockData)
         {
             c = BlockData.class;
+        }else if(w instanceof Entity)
+        {
+            c = Entity.class;
         }
 
         return c;

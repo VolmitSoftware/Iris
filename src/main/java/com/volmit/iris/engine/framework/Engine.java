@@ -35,6 +35,7 @@ import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -61,6 +62,8 @@ import java.util.UUID;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
     void close();
+
+    IrisContext getContext();
 
     double getMaxBiomeObjectDensity();
 

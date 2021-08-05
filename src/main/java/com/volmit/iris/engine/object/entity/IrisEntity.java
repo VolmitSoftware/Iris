@@ -23,6 +23,7 @@ import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.RegistryListSpecialEntity;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.loot.IrisLoot;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
@@ -149,6 +150,10 @@ public class IrisEntity extends IrisRegistrant {
 
     @Desc("The surface type to spawn this mob on")
     private IrisSurface surface = IrisSurface.LAND;
+
+    @RegistryListSpecialEntity
+    @Desc("Create a mob from another plugin, such as Mythic Mobs. Should be in the format of a namespace of PluginName:MobName")
+    private String specialType = "";
 
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
@@ -308,6 +313,15 @@ public class IrisEntity extends IrisRegistrant {
             return ae.get();
         }
 
+        if (isSpecialType()) {
+            if (specialType.toLowerCase().startsWith("mythicmobs:")) {
+                return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
+            } else {
+                Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
+                return null;
+            }
+        }
+
 
         return at.getWorld().spawnEntity(at, getType());
     }
@@ -316,6 +330,10 @@ public class IrisEntity extends IrisRegistrant {
         return false;
 
         // TODO: return Iris.linkCitizens.supported() && someType is not empty;
+    }
+
+    public boolean isSpecialType() {
+        return specialType != null && !specialType.equals("");
     }
 
     @Override

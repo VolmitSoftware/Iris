@@ -25,6 +25,7 @@ import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.world.CommandLocate;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
+import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
@@ -81,6 +82,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisBoardManager board;
     public static MultiverseCoreLink linkMultiverseCore;
     public static OraxenLink linkOraxen;
+    public static MythicMobsLink linkMythicMobs;
     public static TreeManager saplingManager;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static IrisCompat compat;
@@ -132,6 +134,7 @@ public class Iris extends VolmitPlugin implements Listener {
         board = new IrisBoardManager();
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
+        linkMythicMobs = new MythicMobsLink();
         saplingManager = new TreeManager();
         edit = new EditManager();
         configWatcher = new FileWatcher(getDataFile("settings.json"));

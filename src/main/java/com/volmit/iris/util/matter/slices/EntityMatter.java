@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.matter.MatterEntity;
 import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.io.NBTUtil;
@@ -28,23 +29,22 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class TileMatter extends RawMatter<MatterTile> {
-    public TileMatter() {
+public class EntityMatter extends RawMatter<MatterEntity> {
+    public EntityMatter() {
         this(1, 1, 1);
     }
 
-    public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterTile.class);
+    public EntityMatter(int width, int height, int depth) {
+        super(width, height, depth, MatterEntity.class);
     }
 
     @Override
-    public void writeNode(MatterTile b, DataOutputStream dos) throws IOException {
+    public void writeNode(MatterEntity b, DataOutputStream dos) throws IOException {
         NBTUtil.write(b.getTileData(), dos, false);
-
     }
 
     @Override
-    public MatterTile readNode(DataInputStream din) throws IOException {
-        return new MatterTile((CompoundTag) NBTUtil.read(din, false).getTag());
+    public MatterEntity readNode(DataInputStream din) throws IOException {
+        return new MatterEntity((CompoundTag) NBTUtil.read(din, false).getTag());
     }
 }

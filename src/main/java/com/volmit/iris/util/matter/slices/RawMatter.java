@@ -21,8 +21,8 @@ package com.volmit.iris.util.matter.slices;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
 import com.volmit.iris.util.matter.MatterReader;
-import com.volmit.iris.util.matter.MatterWriter;
 import com.volmit.iris.util.matter.MatterSlice;
+import com.volmit.iris.util.matter.MatterWriter;
 import lombok.Getter;
 
 import java.io.DataInputStream;
@@ -42,25 +42,21 @@ public abstract class RawMatter<T> extends MappedHunk<T> implements MatterSlice<
         this.type = type;
     }
 
-    protected <W> void registerWriter(Class<W> mediumType, MatterWriter<W, T> injector)
-    {
+    protected <W> void registerWriter(Class<W> mediumType, MatterWriter<W, T> injector) {
         injectors.put(mediumType, injector);
     }
 
-    protected <W> void registerReader(Class<W> mediumType, MatterReader<W, T> injector)
-    {
+    protected <W> void registerReader(Class<W> mediumType, MatterReader<W, T> injector) {
         ejectors.put(mediumType, injector);
     }
 
     @Override
-    public <W> MatterWriter<W, T> writeInto(Class<W> mediumType)
-    {
+    public <W> MatterWriter<W, T> writeInto(Class<W> mediumType) {
         return (MatterWriter<W, T>) injectors.get(mediumType);
     }
 
     @Override
-    public <W> MatterReader<W, T> readFrom(Class<W> mediumType)
-    {
+    public <W> MatterReader<W, T> readFrom(Class<W> mediumType) {
         return (MatterReader<W, T>) ejectors.get(mediumType);
     }
 

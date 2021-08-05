@@ -75,8 +75,7 @@ public class PlannedStructure {
 
         generateTerminators();
 
-        for(PlannedPiece i : pieces)
-        {
+        for (PlannedPiece i : pieces) {
             Iris.debug("Place: " + i.getObject().getLoadKey() + " at @ relative " + i.getPosition().toString());
         }
     }

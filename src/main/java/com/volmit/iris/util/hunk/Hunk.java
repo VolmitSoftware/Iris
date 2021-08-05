@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.hunk;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.*;
@@ -29,8 +28,6 @@ import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.InterpolationMethod3D;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -40,7 +37,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
-import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
@@ -1273,24 +1269,23 @@ public interface Hunk<T> {
         return t;
     }
 
-    static IrisPosition rotatedBounding(int w, int h, int d, double x, double y, double z)
-    {
-        int[] iii = {0,0,0};
-        int[] aaa = {w,h,d};
-        int[] aai = {w,h,0};
-        int[] iaa = {0,h,d};
-        int[] aia = {w,0,d};
-        int[] iai = {0,h,0};
-        int[] iia = {0,0,d};
-        int[] aii = {w,0,0};
-        rotate(x,y,z,iii);
-        rotate(x,y,z,aaa);
-        rotate(x,y,z,aai);
-        rotate(x,y,z,iaa);
-        rotate(x,y,z,aia);
-        rotate(x,y,z,iai);
-        rotate(x,y,z,iia);
-        rotate(x,y,z,aii);
+    static IrisPosition rotatedBounding(int w, int h, int d, double x, double y, double z) {
+        int[] iii = {0, 0, 0};
+        int[] aaa = {w, h, d};
+        int[] aai = {w, h, 0};
+        int[] iaa = {0, h, d};
+        int[] aia = {w, 0, d};
+        int[] iai = {0, h, 0};
+        int[] iia = {0, 0, d};
+        int[] aii = {w, 0, 0};
+        rotate(x, y, z, iii);
+        rotate(x, y, z, aaa);
+        rotate(x, y, z, aai);
+        rotate(x, y, z, iaa);
+        rotate(x, y, z, aia);
+        rotate(x, y, z, iai);
+        rotate(x, y, z, iia);
+        rotate(x, y, z, aii);
         int maxX = max(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
         int minX = min(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
         int maxY = max(iii[1], aaa[1], aai[1], iaa[1], aia[1], iai[1], iia[1], aii[1]);
@@ -1300,30 +1295,29 @@ public interface Hunk<T> {
         return new IrisPosition(maxX - minX, maxY - minY, maxZ - minZ);
     }
 
-    default Hunk<T> rotate(double x, double y, double z, Supplier3R<Integer, Integer, Integer, Hunk<T>> builder)
-    {
+    default Hunk<T> rotate(double x, double y, double z, Supplier3R<Integer, Integer, Integer, Hunk<T>> builder) {
         int w = getWidth();
         int h = getHeight();
         int d = getDepth();
-        int i,j,k;
-        int[] c = {w/2,h/2,d/2};
-        int[] b = {0,0,0};
-        int[] iii = {0,0,0};
-        int[] aaa = {w,h,d};
-        int[] aai = {w,h,0};
-        int[] iaa = {0,h,d};
-        int[] aia = {w,0,d};
-        int[] iai = {0,h,0};
-        int[] iia = {0,0,d};
-        int[] aii = {w,0,0};
-        rotate(x,y,z,iii);
-        rotate(x,y,z,aaa);
-        rotate(x,y,z,aai);
-        rotate(x,y,z,iaa);
-        rotate(x,y,z,aia);
-        rotate(x,y,z,iai);
-        rotate(x,y,z,iia);
-        rotate(x,y,z,aii);
+        int i, j, k;
+        int[] c = {w / 2, h / 2, d / 2};
+        int[] b = {0, 0, 0};
+        int[] iii = {0, 0, 0};
+        int[] aaa = {w, h, d};
+        int[] aai = {w, h, 0};
+        int[] iaa = {0, h, d};
+        int[] aia = {w, 0, d};
+        int[] iai = {0, h, 0};
+        int[] iia = {0, 0, d};
+        int[] aii = {w, 0, 0};
+        rotate(x, y, z, iii);
+        rotate(x, y, z, aaa);
+        rotate(x, y, z, aai);
+        rotate(x, y, z, iaa);
+        rotate(x, y, z, aia);
+        rotate(x, y, z, iai);
+        rotate(x, y, z, iia);
+        rotate(x, y, z, aii);
         int maxX = max(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
         int minX = min(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
         int maxY = max(iii[1], aaa[1], aai[1], iaa[1], aia[1], iai[1], iia[1], aii[1]);
@@ -1331,26 +1325,19 @@ public interface Hunk<T> {
         int maxZ = max(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
         int minZ = min(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
         Hunk<T> r = builder.get(maxX - minX, maxY - minY, maxZ - minZ);
-        int[] cr = {(maxX - minX)/2,(maxY - minY)/2,(maxZ - minZ)/2};
+        int[] cr = {(maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2};
 
-        for(i = 0; i < w; i++)
-        {
-            for(j = 0; j < h; j++)
-            {
-                for(k = 0; k < d; k++)
-                {
+        for (i = 0; i < w; i++) {
+            for (j = 0; j < h; j++) {
+                for (k = 0; k < d; k++) {
                     b[0] = i - c[0];
                     b[1] = j - c[1];
                     b[2] = k - c[2];
                     rotate(x, y, z, b);
 
-                    try
-                    {
+                    try {
                         r.set(b[0] + cr[0], b[1] + cr[1], b[2] + cr[2], get(i, j, k));
-                    }
-
-                    catch(Throwable e)
-                    {
+                    } catch (Throwable e) {
 
                     }
                 }
@@ -1360,30 +1347,24 @@ public interface Hunk<T> {
         return r;
     }
 
-    static int max(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
-    {
+    static int max(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8) {
         return Math.max(Math.max(Math.max(a5, a6), Math.max(a7, a8)), Math.max(Math.max(a1, a2), Math.max(a3, a4)));
     }
 
-    static int min(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
-    {
+    static int min(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8) {
         return Math.min(Math.min(Math.min(a5, a6), Math.min(a7, a8)), Math.min(Math.min(a1, a2), Math.min(a3, a4)));
     }
 
-    static void rotate(double x, double y, double z, int[] c)
-    {
-        if(x % 360 != 0)
-        {
+    static void rotate(double x, double y, double z, int[] c) {
+        if (x % 360 != 0) {
             rotateAroundX(Math.toRadians(x), c);
         }
 
-        if(y % 360 != 0)
-        {
+        if (y % 360 != 0) {
             rotateAroundY(Math.toRadians(y), c);
         }
 
-        if(z % 360 != 0)
-        {
+        if (z % 360 != 0) {
             rotateAroundZ(Math.toRadians(z), c);
         }
     }
@@ -1393,8 +1374,8 @@ public interface Hunk<T> {
     }
 
     static void rotateAroundX(double cos, double sin, int[] c) {
-        int y = (int) Math.floor(cos * (double)(c[1]+0.5) - sin * (double)(c[2]+0.5));
-        int z = (int) Math.floor(sin * (double)(c[1]+0.5) + cos * (double)(c[2]+0.5));
+        int y = (int) Math.floor(cos * (double) (c[1] + 0.5) - sin * (double) (c[2] + 0.5));
+        int z = (int) Math.floor(sin * (double) (c[1] + 0.5) + cos * (double) (c[2] + 0.5));
         c[1] = y;
         c[2] = z;
     }
@@ -1404,8 +1385,8 @@ public interface Hunk<T> {
     }
 
     static void rotateAroundY(double cos, double sin, int[] c) {
-        int x = (int) Math.floor(cos * (double)(c[0]+0.5) + sin * (double)(c[2]+0.5));
-        int z = (int) Math.floor(-sin * (double)(c[0]+0.5) + cos * (double)(c[2]+0.5));
+        int x = (int) Math.floor(cos * (double) (c[0] + 0.5) + sin * (double) (c[2] + 0.5));
+        int z = (int) Math.floor(-sin * (double) (c[0] + 0.5) + cos * (double) (c[2] + 0.5));
         c[0] = x;
         c[2] = z;
     }
@@ -1415,8 +1396,8 @@ public interface Hunk<T> {
     }
 
     static void rotateAroundZ(double cos, double sin, int[] c) {
-        int x = (int) Math.floor(cos * (double)(c[0]+0.5) - sin * (double)(c[1]+0.5));
-        int y = (int) Math.floor(sin * (double)(c[0]+0.5) + cos * (double)(c[1]+0.5));
+        int x = (int) Math.floor(cos * (double) (c[0] + 0.5) - sin * (double) (c[1] + 0.5));
+        int y = (int) Math.floor(sin * (double) (c[0] + 0.5) + cos * (double) (c[1] + 0.5));
         c[0] = x;
         c[1] = y;
     }

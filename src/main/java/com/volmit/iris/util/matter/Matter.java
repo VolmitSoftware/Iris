@@ -181,20 +181,19 @@ public interface Matter {
 
     /**
      * Rotate a matter object into a new object
+     *
      * @param x the x rotation (degrees)
      * @param y the y rotation (degrees)
      * @param z the z rotation (degrees)
      * @return the new rotated matter object
      */
-    default Matter rotate(double x, double y, double z)
-    {
+    default Matter rotate(double x, double y, double z) {
         IrisPosition rs = Hunk.rotatedBounding(getWidth(), getHeight(), getDepth(), x, y, z);
         Matter n = new IrisMatter(rs.getX(), rs.getY(), rs.getZ());
         n.getHeader().setAuthor(getHeader().getAuthor());
         n.getHeader().setCreatedAt(getHeader().getCreatedAt());
 
-        for(Class<?> i : getSliceTypes())
-        {
+        for (Class<?> i : getSliceTypes()) {
             getSlice(i).rotateSliceInto(n, x, y, z);
         }
 
@@ -234,8 +233,7 @@ public interface Matter {
      */
     Map<Class<?>, MatterSlice<?>> getSliceMap();
 
-    default void write(File f) throws IOException
-    {
+    default void write(File f) throws IOException {
         FileOutputStream out = new FileOutputStream(f);
         GZIPOutputStream gzo = new GZIPOutputStream(out);
         write(gzo);
@@ -265,8 +263,7 @@ public interface Matter {
         dos.flush();
     }
 
-    static Matter read(File f) throws IOException, ClassNotFoundException
-    {
+    static Matter read(File f) throws IOException, ClassNotFoundException {
         FileInputStream in = new FileInputStream(f);
         GZIPInputStream gzi = new GZIPInputStream(in);
         Matter m = read(gzi);
@@ -274,8 +271,7 @@ public interface Matter {
         return m;
     }
 
-    static Matter read(InputStream in) throws IOException, ClassNotFoundException
-    {
+    static Matter read(InputStream in) throws IOException, ClassNotFoundException {
         return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 

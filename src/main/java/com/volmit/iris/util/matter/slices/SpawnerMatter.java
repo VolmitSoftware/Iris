@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.matter.Sliced;
 
@@ -27,6 +26,7 @@ public class SpawnerMatter extends RegistryMatter<IrisSpawner> {
     public SpawnerMatter() {
         this(1, 1, 1);
     }
+
     public SpawnerMatter(int width, int height, int depth) {
         super(width, height, depth, IrisSpawner.class);
     }

@@ -184,21 +184,21 @@ public class IrisComplex implements DataProvider {
         ).convertAware2D(ProceduralStream::get).cache2D(cacheSize);
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
-                .zoom(r.getLandBiomeZoom())
-                .selectRarity(r.getLandBiomes(), (i) -> data.getBiomeLoader().load(i))
-                .convertCached((s) -> data.getBiomeLoader().load(s)
-                        .setInferredType(InferredType.LAND))
-        ).convertAware2D(ProceduralStream::get)
+                        -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
+                        .zoom(r.getLandBiomeZoom())
+                        .selectRarity(r.getLandBiomes(), (i) -> data.getBiomeLoader().load(i))
+                        .convertCached((s) -> data.getBiomeLoader().load(s)
+                                .setInferredType(InferredType.LAND))
+                ).convertAware2D(ProceduralStream::get)
                 .cache2D(cacheSize);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
         seaBiomeStream = regionStream.convert((r)
-                -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
-                .zoom(r.getSeaBiomeZoom())
-                .selectRarity(r.getSeaBiomes(), (i) -> data.getBiomeLoader().load(i))
-                .convertCached((s) -> data.getBiomeLoader().load(s)
-                        .setInferredType(InferredType.SEA))
-        ).convertAware2D(ProceduralStream::get)
+                        -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
+                        .zoom(r.getSeaBiomeZoom())
+                        .selectRarity(r.getSeaBiomes(), (i) -> data.getBiomeLoader().load(i))
+                        .convertCached((s) -> data.getBiomeLoader().load(s)
+                                .setInferredType(InferredType.SEA))
+                ).convertAware2D(ProceduralStream::get)
                 .cache2D(cacheSize);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         shoreBiomeStream = regionStream.convert((r)
@@ -240,18 +240,18 @@ public class IrisComplex implements DataProvider {
             return 1D;
         });
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                b -> focus)).convertAware2D((b, x, z) -> {
-            for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
-                IrisBiome bx = i.filter(x, z, b, rng);
+                        b -> focus)).convertAware2D((b, x, z) -> {
+                    for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
+                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                if (bx != null) {
-                    bx.setInferredType(b.getInferredType());
-                    return bx;
-                }
-            }
+                        if (bx != null) {
+                            bx.setInferredType(b.getInferredType());
+                            return bx;
+                        }
+                    }
 
-            return b;
-        })
+                    return b;
+                })
                 .cache2D(cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),
@@ -270,18 +270,18 @@ public class IrisComplex implements DataProvider {
                 })
                 .cache2D(cacheSize);
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                b -> focus)).convertAware2D((b, x, z) -> {
-            for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
-                IrisBiome bx = i.filter(x, z, b, rng);
+                        b -> focus)).convertAware2D((b, x, z) -> {
+                    for (IrisFeaturePositional i : engine.getFramework().getEngineParallax().forEachFeature(x, z)) {
+                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                if (bx != null) {
-                    bx.setInferredType(b.getInferredType());
-                    return bx;
-                }
-            }
+                        if (bx != null) {
+                            bx.setInferredType(b.getInferredType());
+                            return bx;
+                        }
+                    }
 
-            return b;
-        })
+                    return b;
+                })
                 .cache2D(cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),
@@ -357,10 +357,10 @@ public class IrisComplex implements DataProvider {
             return m;
         }, Interpolated.INT).cache2D(cacheSize);
         baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {
-            UUID d = regionIDStream.get(x, z);
-            return new UUID(b.getLoadKey().hashCode() * 818223L,
-                    d.hashCode());
-        })
+                    UUID d = regionIDStream.get(x, z);
+                    return new UUID(b.getLoadKey().hashCode() * 818223L,
+                            d.hashCode());
+                })
                 .cache2D(cacheSize);
         islandTopStream = islandStream.convertAware2D((i, x, z) ->
                 i ? heightStream.round()

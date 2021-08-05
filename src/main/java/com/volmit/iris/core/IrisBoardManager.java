@@ -47,7 +47,7 @@ import java.util.List;
 
 public class IrisBoardManager implements BoardProvider, Listener {
 
-    private BossBar energyBar;
+    private final BossBar energyBar;
     private final BoardManager manager;
     private String mem = "...";
     public final RollingSequence hits = new RollingSequence(20);

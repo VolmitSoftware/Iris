@@ -23,6 +23,8 @@ import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.World;
+import org.bukkit.block.Chest;
+import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.DataInputStream;
@@ -30,26 +32,23 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class BlockMatter extends RawMatter<BlockData> {
-    public BlockMatter() {
+public class TileMatter extends RawMatter<TileState> {
+    public TileMatter() {
         this(1, 1, 1);
     }
 
-    public BlockMatter(int width, int height, int depth) {
-        super(width, height, depth, BlockData.class);
-        registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
-        registerWriter(ParallaxWorld.class, (w, d, x, y, z) -> w.setBlock(x, y, z, d));
-        registerReader(World.class, (w, x, y, z) -> w.getBlockAt(x, y, z).getBlockData());
-        registerReader(ParallaxWorld.class, ParallaxAccess::getBlock);
+    public TileMatter(int width, int height, int depth) {
+        super(width, height, depth, TileState.class);
+
     }
 
     @Override
-    public void writeNode(BlockData b, DataOutputStream dos) throws IOException {
-        dos.writeUTF(b.getAsString(true));
+    public void writeNode(TileState b, DataOutputStream dos) throws IOException {
+
     }
 
     @Override
-    public BlockData readNode(DataInputStream din) throws IOException {
-        return B.get(din.readUTF());
+    public TileState readNode(DataInputStream din) throws IOException {
+        return null;
     }
 }

@@ -20,8 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.util.context.IrisContext;
-import com.volmit.iris.util.nbt.io.NBTUtil;
-import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

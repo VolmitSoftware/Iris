@@ -69,11 +69,11 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
         ready = false;
         try {
             connect().command(SyndicateInstallPack
-                    .builder()
-                    .dimension(dimension)
-                    .pack(pack)
-                    .seed(seed)
-                    .build())
+                            .builder()
+                            .dimension(dimension)
+                            .pack(pack)
+                            .seed(seed)
+                            .build())
                     .output((o) -> {
                         File to = new File(Iris.getTemp(), "send-" + pack + ".zip");
                         ZipUtil.pack(dimension.getLoader().getDataFolder(), to);
@@ -87,12 +87,12 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
                         to.deleteOnExit();
                     })
                     .build().go((response, data) -> {
-                if (response instanceof SyndicateBusy) {
-                    throw new RuntimeException("Service is busy, will try later");
-                }
+                        if (response instanceof SyndicateBusy) {
+                            throw new RuntimeException("Service is busy, will try later");
+                        }
 
-                ready = true;
-            });
+                        ready = true;
+                    });
             ready = true;
         } catch (Throwable throwable) {
             if (throwable instanceof RuntimeException) {
@@ -156,21 +156,21 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
             connect()
                     .command(SyndicateGetProgress.builder()
                             .pack(pack).build()).output((i) -> {
-            }).build().go((response, o) -> {
-                if (response instanceof SyndicateSendProgress) {
-                    if (((SyndicateSendProgress) response).isAvailable()) {
-                        progress.set(((SyndicateSendProgress) response).getProgress());
-                        File f = new File(worldFolder, "region/r." + x + "." + z + ".mca");
-                        try {
-                            f.getParentFile().mkdirs();
-                            IO.writeAll(f, o);
-                            progress.set(1000);
-                        } catch (Throwable e) {
-                            e.printStackTrace();
+                    }).build().go((response, o) -> {
+                        if (response instanceof SyndicateSendProgress) {
+                            if (((SyndicateSendProgress) response).isAvailable()) {
+                                progress.set(((SyndicateSendProgress) response).getProgress());
+                                File f = new File(worldFolder, "region/r." + x + "." + z + ".mca");
+                                try {
+                                    f.getParentFile().mkdirs();
+                                    IO.writeAll(f, o);
+                                    progress.set(1000);
+                                } catch (Throwable e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }
-                    }
-                }
-            });
+                    });
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -186,64 +186,64 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
 
         try {
             connect().command(SyndicateGenerate
-                    .builder()
-                    .x(x).z(z).pack(pack)
-                    .build())
+                            .builder()
+                            .x(x).z(z).pack(pack)
+                            .build())
                     .build().go((response, data) -> {
-                if (response instanceof SyndicateOK) {
-                    listener.onNetworkStarted(x, z);
-                    J.a(() -> {
-                        double lastp = 0;
-                        int calls = 0;
-                        boolean installed = false;
-                        while (true) {
-                            J.sleep(100);
-                            double progress = checkProgress(x, z);
+                        if (response instanceof SyndicateOK) {
+                            listener.onNetworkStarted(x, z);
+                            J.a(() -> {
+                                double lastp = 0;
+                                int calls = 0;
+                                boolean installed = false;
+                                while (true) {
+                                    J.sleep(100);
+                                    double progress = checkProgress(x, z);
 
-                            if (progress == 1000) {
-                                installed = true;
-                                AtomicInteger a = new AtomicInteger(calls);
-                                PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                                    if (a.decrementAndGet() < 0) {
-                                        listener.onNetworkGeneratedChunk(xx, zz);
+                                    if (progress == 1000) {
+                                        installed = true;
+                                        AtomicInteger a = new AtomicInteger(calls);
+                                        PregenTask.iterateRegion(x, z, (xx, zz) -> {
+                                            if (a.decrementAndGet() < 0) {
+                                                listener.onNetworkGeneratedChunk(xx, zz);
+                                            }
+                                        });
+                                        calls = 1024;
+                                    } else if (progress < 0) {
+                                        break;
                                     }
-                                });
-                                calls = 1024;
-                            } else if (progress < 0) {
-                                break;
-                            }
 
-                            int change = (int) Math.floor((progress - lastp) * 1024D);
-                            change = change == 0 ? 1 : change;
+                                    int change = (int) Math.floor((progress - lastp) * 1024D);
+                                    change = change == 0 ? 1 : change;
 
-                            AtomicInteger a = new AtomicInteger(calls);
-                            AtomicInteger b = new AtomicInteger(change);
-                            PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                                if (a.decrementAndGet() < 0) {
-                                    if (b.decrementAndGet() >= 0) {
-                                        listener.onNetworkGeneratedChunk(xx, zz);
-                                    }
+                                    AtomicInteger a = new AtomicInteger(calls);
+                                    AtomicInteger b = new AtomicInteger(change);
+                                    PregenTask.iterateRegion(x, z, (xx, zz) -> {
+                                        if (a.decrementAndGet() < 0) {
+                                            if (b.decrementAndGet() >= 0) {
+                                                listener.onNetworkGeneratedChunk(xx, zz);
+                                            }
+                                        }
+                                    });
+                                    calls += change;
                                 }
+
+                                if (!installed) {
+                                    // TODO RETRY REGION
+                                    return;
+                                }
+
+                                listener.onNetworkDownloaded(x, z);
                             });
-                            calls += change;
+                        } else if (response instanceof SyndicateInstallFirst) {
+                            ready = false;
+                            throw new RuntimeException();
+                        } else if (response instanceof SyndicateBusy) {
+                            throw new RuntimeException();
+                        } else {
+                            throw new RuntimeException();
                         }
-
-                        if (!installed) {
-                            // TODO RETRY REGION
-                            return;
-                        }
-
-                        listener.onNetworkDownloaded(x, z);
                     });
-                } else if (response instanceof SyndicateInstallFirst) {
-                    ready = false;
-                    throw new RuntimeException();
-                } else if (response instanceof SyndicateBusy) {
-                    throw new RuntimeException();
-                } else {
-                    throw new RuntimeException();
-                }
-            });
         } catch (Throwable throwable) {
 
             if (throwable instanceof RuntimeException) {

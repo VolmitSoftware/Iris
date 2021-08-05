@@ -74,14 +74,14 @@ public class IrisCaverns {
     public ProceduralStream<Double> stream(RNG rng, IrisData data) {
         if (preThresholdInterpolation) {
             return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
-                    -> (getZone(xx, yy, zz, rng, data)
-                    .getCarved(rng, data, xx, yy, zz)), Interpolated.DOUBLE)
+                            -> (getZone(xx, yy, zz, rng, data)
+                            .getCarved(rng, data, xx, yy, zz)), Interpolated.DOUBLE)
                     .cache3D(65535));
         }
 
         return streamCache.aquire(() -> ProceduralStream.of((xx, yy, zz)
-                -> (getZone(xx, yy, zz, rng, data)
-                .isCarved(rng, data, xx, yy, zz) ? 1D : 0D), Interpolated.DOUBLE)
+                        -> (getZone(xx, yy, zz, rng, data)
+                        .isCarved(rng, data, xx, yy, zz) ? 1D : 0D), Interpolated.DOUBLE)
                 .cache3D(65535));
     }
 

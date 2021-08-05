@@ -25,12 +25,9 @@ import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.what.CommandIrisWhat;
 import com.volmit.iris.core.command.world.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
-import org.bukkit.util.Vector;
 
 public class CommandIris extends MortarCommand {
     @Command

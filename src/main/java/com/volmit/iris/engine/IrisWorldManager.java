@@ -179,23 +179,23 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
         //@builder
         spawnRandomly(Stream.concat(Stream.concat(
-                getData().getSpawnerLoader()
-                        .loadAll(getDimension().getEntitySpawners())
-                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
-                getData().getSpawnerLoader().streamAll(getEngine().getFramework().getEngineParallax()
-                        .getFeaturesInChunk(c).stream()
-                        .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
-                        .filter(this::canSpawn))
-                        .filter((i) -> i.isValid(biome))
-                        .flatMap(this::stream),
-                Stream.concat(getData().getSpawnerLoader()
-                                .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
+                                        getData().getSpawnerLoader()
+                                                .loadAll(getDimension().getEntitySpawners())
+                                                .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
+                                        getData().getSpawnerLoader().streamAll(getEngine().getFramework().getEngineParallax()
+                                                        .getFeaturesInChunk(c).stream()
+                                                        .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
+                                                .filter(this::canSpawn))
+                                .filter((i) -> i.isValid(biome))
                                 .flatMap(this::stream),
-                        getData().getSpawnerLoader()
-                                .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                                .flatMap(this::stream)))
+                        Stream.concat(getData().getSpawnerLoader()
+                                        .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
+                                        .flatMap(this::stream),
+                                getData().getSpawnerLoader()
+                                        .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
+                                        .flatMap(this::stream)))
                 .collect(Collectors.toList()))
                 .popRandom(RNG.r, max).forEach((i) -> spawn(c, i));
         //@done

@@ -20,35 +20,25 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ProjectManager;
-import com.volmit.iris.core.WandManager;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.objects.IrisObject;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
-import com.volmit.iris.engine.object.objects.IrisObjectRotation;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
-import org.bukkit.*;
+import org.bukkit.HeightMap;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class CommandIrisObjectPasteMatter extends MortarCommand {
 

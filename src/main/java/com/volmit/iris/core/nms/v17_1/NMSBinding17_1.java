@@ -21,18 +21,25 @@ package com.volmit.iris.core.nms.v17_1;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.BiomeBase;
+import net.minecraft.world.level.block.BlockChest;
+import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.chunk.BiomeStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.TileState;
+import org.bukkit.craftbukkit.v1_16_R1.block.impl.CraftBamboo;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_17_R1.block.impl.CraftChest;
 import org.bukkit.generator.ChunkGenerator;
 
 import java.lang.reflect.Field;
@@ -56,6 +63,16 @@ public class NMSBinding17_1 implements INMSBinding {
         }
 
         return null;
+    }
+
+    @Override
+    public CompoundTag serializeTile(Location location) {
+        TileEntity e = ((CraftWorld)location.getWorld()).getHandle().getTileEntity(new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
+    }
+
+    @Override
+    public void deserializeTile(CompoundTag s, Location newPosition) {
+
     }
 
     @Override

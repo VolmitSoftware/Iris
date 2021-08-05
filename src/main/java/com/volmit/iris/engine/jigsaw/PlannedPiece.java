@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.jigsaw;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;

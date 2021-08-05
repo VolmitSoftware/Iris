@@ -32,23 +32,17 @@ public class IrisContext {
     private static ChronoLatch cl = new ChronoLatch(60000);
     private static KMap<Thread, IrisContext> context = new KMap<>();
 
-    public static IrisContext get()
-    {
+    public static IrisContext get() {
         return context.get(Thread.currentThread());
     }
 
-    public static void touch(IrisContext c)
-    {
-        synchronized (context)
-        {
+    public static void touch(IrisContext c) {
+        synchronized (context) {
             context.put(Thread.currentThread(), c);
 
-            if(cl.flip())
-            {
-                for(Thread i : context.k())
-                {
-                    if(!i.isAlive())
-                    {
+            if (cl.flip()) {
+                for (Thread i : context.k()) {
+                    if (!i.isAlive()) {
                         context.remove(i);
                     }
                 }
@@ -58,18 +52,15 @@ public class IrisContext {
 
     private final Engine engine;
 
-    public void touch()
-    {
+    public void touch() {
         IrisContext.touch(this);
     }
 
-    public IrisData getData()
-    {
+    public IrisData getData() {
         return engine.getData();
     }
 
-    public IrisComplex getComplex()
-    {
+    public IrisComplex getComplex() {
         return engine.getFramework().getComplex();
     }
 }

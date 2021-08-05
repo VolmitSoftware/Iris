@@ -34,7 +34,7 @@ import java.util.*;
 
 public class CommandIrisObjectUndo extends MortarCommand {
 
-    private static Map<UUID, Deque<Map<Block, BlockData>>> undos = new HashMap<>();
+    private static final Map<UUID, Deque<Map<Block, BlockData>>> undos = new HashMap<>();
 
     public CommandIrisObjectUndo() {
         super("undo", "u", "revert");

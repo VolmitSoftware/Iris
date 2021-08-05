@@ -348,7 +348,11 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void write(File file) throws IOException {
-        file.getParentFile().mkdirs();
+        if(file == null)
+        {
+            return;
+        }
+
         FileOutputStream out = new FileOutputStream(file);
         write(out);
         out.close();

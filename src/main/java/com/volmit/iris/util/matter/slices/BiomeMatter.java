@@ -18,14 +18,8 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.matter.Sliced;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 @Sliced
 public class BiomeMatter extends RegistryMatter<IrisBiome> {

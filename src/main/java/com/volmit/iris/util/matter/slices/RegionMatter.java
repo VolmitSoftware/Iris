@@ -19,7 +19,6 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.util.matter.Sliced;
 
 @Sliced
@@ -27,6 +26,7 @@ public class RegionMatter extends RegistryMatter<IrisRegistrant> {
     public RegionMatter() {
         this(1, 1, 1);
     }
+
     public RegionMatter(int width, int height, int depth) {
         super(width, height, depth, IrisRegistrant.class);
     }

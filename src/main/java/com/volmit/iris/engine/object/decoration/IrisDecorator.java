@@ -122,7 +122,7 @@ public class IrisDecorator {
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
         return varianceGenerator.aquire(() ->
                 variance.create(
-                        rng.nextParallelRNG(getBlockData(data).size()), data)
+                                rng.nextParallelRNG(getBlockData(data).size()), data)
                         .scale(1D / variance.getZoom()));
     }
 

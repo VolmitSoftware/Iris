@@ -109,7 +109,7 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
                 lastHotloadTime += p.getMilliseconds();
                 lastHotloadTime /= 2;
 
-                return 120 + (long) (lastHotloadTime / 2) + Math.min(hotloaderMisses * 125, 1375);
+                return 120 + (lastHotloadTime / 2) + Math.min(hotloaderMisses * 125, 1375);
             }
         };
         ticker.setPriority(Thread.MIN_PRIORITY);

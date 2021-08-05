@@ -25,7 +25,6 @@ import com.volmit.iris.util.hunk.storage.MappedHunk;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
-import org.objectweb.asm.ClassWriter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -42,39 +41,30 @@ public interface MatterSlice<T> extends Hunk<T> {
 
     <W> MatterReader<W, T> readFrom(Class<W> mediumType);
 
-    default Class<?> getClass(Object w)
-    {
+    default Class<?> getClass(Object w) {
         Class<?> c = w.getClass();
 
-        if(w instanceof World)
-        {
+        if (w instanceof World) {
             c = World.class;
-        }else if(w instanceof BlockData)
-        {
+        } else if (w instanceof BlockData) {
             c = BlockData.class;
-        }else if(w instanceof Entity)
-        {
+        } else if (w instanceof Entity) {
             c = Entity.class;
         }
 
         return c;
     }
 
-    default <W> boolean writeInto(W w, int x, int y, int z)
-    {
+    default <W> boolean writeInto(W w, int x, int y, int z) {
         MatterWriter<W, T> injector = (MatterWriter<W, T>) writeInto(getClass(w));
 
-        if(injector == null)
-        {
+        if (injector == null) {
             return false;
         }
 
-        for(int i = x; i < x + getWidth(); i++)
-        {
-            for(int j = y; j < y + getHeight(); j++)
-            {
-                for(int k = z; k < z + getDepth(); k++)
-                {
+        for (int i = x; i < x + getWidth(); i++) {
+            for (int j = y; j < y + getHeight(); j++) {
+                for (int k = z; k < z + getDepth(); k++) {
                     injector.writeMatter(w, get(i - x, j - y, k - z), i, j, k);
                 }
             }
@@ -83,21 +73,16 @@ public interface MatterSlice<T> extends Hunk<T> {
         return true;
     }
 
-    default <W> boolean readFrom(W w, int x, int y, int z)
-    {
+    default <W> boolean readFrom(W w, int x, int y, int z) {
         MatterReader<W, T> ejector = (MatterReader<W, T>) readFrom(getClass(w));
 
-        if(ejector == null)
-        {
+        if (ejector == null) {
             return false;
         }
 
-        for(int i = x; i < x + getWidth(); i++)
-        {
-            for(int j = y; j < y + getHeight(); j++)
-            {
-                for(int k = z; k < z + getDepth(); k++)
-                {
+        for (int i = x; i < x + getWidth(); i++) {
+            for (int j = y; j < y + getHeight(); j++) {
+                for (int k = z; k < z + getDepth(); k++) {
                     set(i - x, j - y, k - z, ejector.readMatter(w, i, j, k));
                 }
             }
@@ -110,18 +95,15 @@ public interface MatterSlice<T> extends Hunk<T> {
     //   RawMatter<T>      ex MappedHunk<T>
     //     IMatterSlice<T> ex Hunk<T>
 
-    default int getCount()
-    {
-        return ((MappedHunk<?>)this).getEntryCount();
+    default int getCount() {
+        return ((MappedHunk<?>) this).getEntryCount();
     }
 
-    default boolean canWrite(Class<?> mediumType)
-    {
+    default boolean canWrite(Class<?> mediumType) {
         return writeInto(mediumType) != null;
     }
 
-    default boolean canRead(Class<?> mediumType)
-    {
+    default boolean canRead(Class<?> mediumType) {
         return readFrom(mediumType) != null;
     }
 
@@ -153,8 +135,7 @@ public interface MatterSlice<T> extends Hunk<T> {
         }
     }
 
-    default void rotateSliceInto(Matter n, double x, double y, double z)
-    {
-        rotate(x,y,z, (_x, _y, _z) -> n.slice(getType()));
+    default void rotateSliceInto(Matter n, double x, double y, double z) {
+        rotate(x, y, z, (_x, _y, _z) -> n.slice(getType()));
     }
 }

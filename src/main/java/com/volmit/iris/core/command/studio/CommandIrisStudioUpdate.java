@@ -21,9 +21,19 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.scheduling.J;
+
+import java.io.File;
+import java.io.IOException;
 
 public class CommandIrisStudioUpdate extends MortarCommand {
     public CommandIrisStudioUpdate() {
@@ -50,6 +60,58 @@ public class CommandIrisStudioUpdate extends MortarCommand {
             return true;
         }
 
+        for(String i : args)
+        {
+            if(i.equals("--rewrite-objects"))
+            {
+                IrisData data = new IrisData(Iris.proj.getWorkspaceFolder(args[0]));
+                int t = data.getObjectLoader().getPossibleKeys().length;
+                ChronoLatch cl = new ChronoLatch(250, false);
+                MultiBurst bx = new MultiBurst("Object Rewriter",Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
+                BurstExecutor b = bx.burst();
+                int g = 0;
+                for(String f : data.getObjectLoader().getPossibleKeys())
+                {
+                    int finalG1 = g;
+                    b.queue(() -> {
+
+                        if(cl.flip())
+                        {
+                            Iris.info("Rewriting: " + Form.f(t - finalG1) + " Objects Left");
+                        }
+                        File ff = data.getObjectLoader().findFile(f);
+                        IrisObject oo = new IrisObject(0,0,0);
+                        try {
+                            oo.read(ff);
+                        } catch (Throwable e) {
+                            Iris.error("FAILER TO READ: " + f);
+                            return;
+                        }
+
+                        if(oo == null)
+                        {
+                            Iris.error("FAILER TO READ: " + f);
+                            return;
+                        }
+
+                        try {
+                            oo.write(ff);
+                        } catch (IOException e) {
+                            Iris.error("FAILURE TO WRITE: " + oo.getLoadFile());
+                        }
+                    });
+                    g++;
+                }
+
+                int finalG = g;
+                J.a(() -> {
+                    b.complete();
+                    bx.shutdownNow();
+                    sender.sendMessage("Done! Rewrote " + Form.f(finalG) + " Objects!");
+                });
+            }
+        }
+
         if (new IrisProject(Iris.proj.getWorkspaceFolder(args[0])).updateWorkspace()) {
             sender.sendMessage("Updated Code Workspace for " + args[0]);
         } else {
@@ -61,6 +123,6 @@ public class CommandIrisStudioUpdate extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return "[dimension]";
+        return "[dimension] [--rewrite-objects]";
     }
 }

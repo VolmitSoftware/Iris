@@ -24,6 +24,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.objectweb.asm.ClassWriter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -146,5 +147,10 @@ public interface MatterSlice<T> extends Hunk<T> {
             pos = Cache.to3D(Varint.readUnsignedVarInt(din), w, h);
             setRaw(pos[0], pos[1], pos[2], palette.readNode(din));
         }
+    }
+
+    default void rotateSliceInto(Matter n, double x, double y, double z)
+    {
+        rotate(x,y,z, (_x, _y, _z) -> n.slice(getType()));
     }
 }

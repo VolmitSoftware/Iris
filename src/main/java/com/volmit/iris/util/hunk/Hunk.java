@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.*;
 import com.volmit.iris.util.hunk.io.HunkIOAdapter;
@@ -242,18 +243,6 @@ public interface Hunk<T> {
 
     default Hunk<T> invertY() {
         return new InvertedHunkView<T>(this);
-    }
-
-    default Hunk<T> rotateX(double degrees) {
-        return new RotatedXHunkView<T>(this, degrees);
-    }
-
-    default Hunk<T> rotateY(double degrees) {
-        return new RotatedYHunkView<T>(this, degrees);
-    }
-
-    default Hunk<T> rotateZ(double degrees) {
-        return new RotatedZHunkView<T>(this, degrees);
     }
 
     default int getMaximumDimension() {
@@ -1284,7 +1273,34 @@ public interface Hunk<T> {
         return t;
     }
 
-    default Hunk<T> rotate(double x, double y, double z)
+    static IrisPosition rotatedBounding(int w, int h, int d, double x, double y, double z)
+    {
+        int[] iii = {0,0,0};
+        int[] aaa = {w,h,d};
+        int[] aai = {w,h,0};
+        int[] iaa = {0,h,d};
+        int[] aia = {w,0,d};
+        int[] iai = {0,h,0};
+        int[] iia = {0,0,d};
+        int[] aii = {w,0,0};
+        rotate(x,y,z,iii);
+        rotate(x,y,z,aaa);
+        rotate(x,y,z,aai);
+        rotate(x,y,z,iaa);
+        rotate(x,y,z,aia);
+        rotate(x,y,z,iai);
+        rotate(x,y,z,iia);
+        rotate(x,y,z,aii);
+        int maxX = max(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
+        int minX = min(iii[0], aaa[0], aai[0], iaa[0], aia[0], iai[0], iia[0], aii[0]);
+        int maxY = max(iii[1], aaa[1], aai[1], iaa[1], aia[1], iai[1], iia[1], aii[1]);
+        int minY = min(iii[1], aaa[1], aai[1], iaa[1], aia[1], iai[1], iia[1], aii[1]);
+        int maxZ = max(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
+        int minZ = min(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
+        return new IrisPosition(maxX - minX, maxY - minY, maxZ - minZ);
+    }
+
+    default Hunk<T> rotate(double x, double y, double z, Supplier3R<Integer, Integer, Integer, Hunk<T>> builder)
     {
         int w = getWidth();
         int h = getHeight();
@@ -1314,7 +1330,7 @@ public interface Hunk<T> {
         int minY = min(iii[1], aaa[1], aai[1], iaa[1], aia[1], iai[1], iia[1], aii[1]);
         int maxZ = max(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
         int minZ = min(iii[2], aaa[2], aai[2], iaa[2], aia[2], iai[2], iia[2], aii[2]);
-        Hunk<T> r = Hunk.newArrayHunk(maxX - minX, maxY - minY, maxZ - minZ);
+        Hunk<T> r = builder.get(maxX - minX, maxY - minY, maxZ - minZ);
         int[] cr = {(maxX - minX)/2,(maxY - minY)/2,(maxZ - minZ)/2};
 
         for(i = 0; i < w; i++)

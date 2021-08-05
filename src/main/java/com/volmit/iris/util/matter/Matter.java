@@ -18,7 +18,9 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 
 import java.io.*;
@@ -175,6 +177,28 @@ public interface Matter {
         }
 
         return (MatterSlice<T>) getSlice(c);
+    }
+
+    /**
+     * Rotate a matter object into a new object
+     * @param x the x rotation (degrees)
+     * @param y the y rotation (degrees)
+     * @param z the z rotation (degrees)
+     * @return the new rotated matter object
+     */
+    default Matter rotate(double x, double y, double z)
+    {
+        IrisPosition rs = Hunk.rotatedBounding(getWidth(), getHeight(), getDepth(), x, y, z);
+        Matter n = new IrisMatter(rs.getX(), rs.getY(), rs.getZ());
+        n.getHeader().setAuthor(getHeader().getAuthor());
+        n.getHeader().setCreatedAt(getHeader().getCreatedAt());
+
+        for(Class<?> i : getSliceTypes())
+        {
+            getSlice(i).rotateSliceInto(n, x, y, z);
+        }
+
+        return n;
     }
 
     /**

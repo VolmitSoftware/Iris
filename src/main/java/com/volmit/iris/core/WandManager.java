@@ -20,6 +20,7 @@ package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.DustRevealer;
+import com.volmit.iris.core.wand.WandSelection;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
@@ -29,6 +30,7 @@ import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -57,22 +59,30 @@ public class WandManager implements Listener {
     public WandManager() {
         wand = createWand();
         dust = createDust();
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
-        {
+
+        J.ar(() -> {
             for (Player i : Bukkit.getOnlinePlayers()) {
                 tick(i);
             }
-        }, 0, 5);
+        }, 0);
     }
 
     public void tick(Player p) {
-        try {
-            if (isWand(p.getInventory().getItemInMainHand())) {
-                Location[] d = getCuboid(p.getInventory().getItemInMainHand());
-                draw(d, p);
+        try
+        {
+            try {
+                if (isWand(p.getInventory().getItemInMainHand())) {
+                    Location[] d = getCuboid(p.getInventory().getItemInMainHand());
+                    new WandSelection(new Cuboid(d[0], d[1]), p).draw();
+                }
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
-        } catch (Throwable e) {
-            Iris.reportError(e);
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
         }
     }
 

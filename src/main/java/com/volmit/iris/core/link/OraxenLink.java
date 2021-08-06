@@ -18,26 +18,86 @@
 
 package com.volmit.iris.core.link;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
+import io.th0rgal.oraxen.items.ItemBuilder;
+import io.th0rgal.oraxen.items.OraxenItems;
+import io.th0rgal.oraxen.mechanics.Mechanic;
+import io.th0rgal.oraxen.mechanics.MechanicFactory;
+import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanic;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
+import io.th0rgal.oraxen.utils.Utils;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.plugin.Plugin;
 
+import java.lang.reflect.Field;
+import java.util.Map;
+
 public class OraxenLink {
+    private static final String[] EMPTY = new String[0];
+
     public boolean supported() {
         return getOraxen() != null;
     }
 
     public BlockData getBlockDataFor(String id) {
-        // TODO: Unimplemented
-        return B.get("AIR");
+        if(!supported())
+        {
+            return null;
+        }
+
+        MechanicFactory f = getFactory(id);
+
+        if(f == null)
+        {
+            return null;
+        }
+
+        Mechanic m = f.getMechanic(id);
+
+        // TODO: Why isnt there a simple getBlockData() function?
+        if(m.getFactory() instanceof NoteBlockMechanicFactory)
+        {
+            return ((NoteBlockMechanicFactory) m.getFactory()).createNoteBlockData(id);
+        }
+
+        else if(m.getFactory() instanceof BlockMechanicFactory)
+        {
+            MultipleFacing newBlockData = (MultipleFacing)Bukkit.createBlockData(Material.MUSHROOM_STEM);
+            Utils.setBlockFacing(newBlockData, ((BlockMechanic)m).getCustomVariation());
+            return newBlockData;
+        }
+
+        return null;
     }
 
-    public ItemStack getItemStackForType(String item) {
+    public MechanicFactory getFactory(String id)
+    {
+        if(!supported())
+        {
+            return null;
+        }
+
         try {
-            Object itemBuilder = Class.forName("io.th0rgal.oraxen.items.OraxenItems").getDeclaredMethod("getItemById", String.class).invoke(null, item);
-            return (ItemStack) itemBuilder.getClass().getDeclaredMethod("getReferenceClone").invoke(itemBuilder);
+            Field f = MechanicsManager.class.getDeclaredField("FACTORIES_BY_MECHANIC_ID");
+            f.setAccessible(true);
+            Map<String, MechanicFactory> map = (Map<String, MechanicFactory>) f.get(null);
+
+            for(MechanicFactory i : map.values())
+            {
+                if(i.getItems().contains(id))
+                {
+                    return i;
+                }
+            }
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -46,13 +106,22 @@ public class OraxenLink {
     }
 
     public String[] getItemTypes() {
-        try {
-            return supported() ? (String[]) Class.forName("io.th0rgal.oraxen.items.OraxenItems").getDeclaredMethod("getItemNames").invoke(null) : new String[0];
-        } catch (Throwable e) {
-            e.printStackTrace();
+        if(!supported())
+        {
+            return EMPTY;
         }
 
-        return new String[0];
+        KList<String> v = new KList<>();
+
+        for(String i : OraxenItems.getItemNames())
+        {
+            if(getBlockDataFor(i) != null)
+            {
+                v.add(i);
+            }
+        }
+
+        return v.toArray(new String[0]);
     }
 
     public Plugin getOraxen() {

@@ -19,12 +19,18 @@
 package com.volmit.iris.util.format;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 
+import java.awt.color.ColorSpace;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -181,7 +187,7 @@ public enum C {
     /**
      * Represents magical characters that change around randomly
      */
-    MAGIC('k', 0x10, true) {
+    MAGIC("<obf>", 'k', 0x10, true) {
         @Override
         public net.md_5.bungee.api.ChatColor asBungee() {
             return net.md_5.bungee.api.ChatColor.MAGIC;
@@ -208,7 +214,7 @@ public enum C {
     /**
      * Makes the text appear underlined.
      */
-    UNDERLINE('n', 0x13, true) {
+    UNDERLINE("<underlined>", 'n', 0x13, true) {
         @Override
         public net.md_5.bungee.api.ChatColor asBungee() {
             return net.md_5.bungee.api.ChatColor.UNDERLINE;
@@ -244,6 +250,7 @@ public enum C {
     private final static C[] COLORS = new C[]{C.BLACK, C.DARK_BLUE, C.DARK_GREEN, C.DARK_AQUA, C.DARK_RED, C.DARK_PURPLE, C.GOLD, C.GRAY, C.DARK_GRAY, C.BLUE, C.GREEN, C.AQUA, C.RED, C.LIGHT_PURPLE, C.YELLOW, C.WHITE};
     private final int intCode;
     private final char code;
+    private final String token;
     private final boolean isFormat;
     private final String toString;
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -254,22 +261,22 @@ public enum C {
     private final static Map<DyeColor, String> dyeHexMap = new HashMap<>();
 
     static {
-        chatHexMap.put(C.BLACK, "#000");
-        chatHexMap.put(C.DARK_BLUE, "#00a");
-        chatHexMap.put(C.DARK_GREEN, "#0a0");
-        chatHexMap.put(C.DARK_AQUA, "#0aa");
-        chatHexMap.put(C.DARK_RED, "#a00");
-        chatHexMap.put(C.DARK_PURPLE, "#a0a");
-        chatHexMap.put(C.GOLD, "#fa0");
-        chatHexMap.put(C.GRAY, "#999");
-        chatHexMap.put(C.DARK_GRAY, "#555");
-        chatHexMap.put(C.BLUE, "#55f");
-        chatHexMap.put(C.GREEN, "#5c5");
-        chatHexMap.put(C.AQUA, "#5cc");
-        chatHexMap.put(C.RED, "#f55");
-        chatHexMap.put(C.LIGHT_PURPLE, "#f5f");
-        chatHexMap.put(C.YELLOW, "#cc5");
-        chatHexMap.put(C.WHITE, "#aaa");
+        chatHexMap.put(C.BLACK, "#000000");
+        chatHexMap.put(C.DARK_BLUE, "#0000AA");
+        chatHexMap.put(C.DARK_GREEN, "#00AA00");
+        chatHexMap.put(C.DARK_AQUA, "#00AAAA");
+        chatHexMap.put(C.DARK_RED, "#AA0000");
+        chatHexMap.put(C.DARK_PURPLE, "#AA00AA");
+        chatHexMap.put(C.GOLD, "#FFAA00");
+        chatHexMap.put(C.GRAY, "#AAAAAA");
+        chatHexMap.put(C.DARK_GRAY, "#555555");
+        chatHexMap.put(C.BLUE, "#5555FF");
+        chatHexMap.put(C.GREEN, "#55FF55");
+        chatHexMap.put(C.AQUA, "#55FFFF");
+        chatHexMap.put(C.RED, "#FF5555");
+        chatHexMap.put(C.LIGHT_PURPLE, "#FF55FF");
+        chatHexMap.put(C.YELLOW, "#FFFF55");
+        chatHexMap.put(C.WHITE, "#FFFFFF");
         dyeChatMap.put(DyeColor.BLACK, C.DARK_GRAY);
         dyeChatMap.put(DyeColor.BLUE, C.DARK_BLUE);
         dyeChatMap.put(DyeColor.BROWN, C.GOLD);
@@ -305,14 +312,76 @@ public enum C {
     }
 
     C(char code, int intCode) {
-        this(code, intCode, false);
+        this("^", code, intCode, false);
     }
 
-    C(char code, int intCode, boolean isFormat) {
+    C(String token, char code, int intCode) {
+        this(token, code, intCode, false);
+    }
+
+    C( char code, int intCode, boolean isFormat) {
+        this("^", code, intCode, false);
+    }
+    C(String token, char code, int intCode, boolean isFormat) {
         this.code = code;
+        this.token = token.equalsIgnoreCase("^") ? "<" + name().toLowerCase(Locale.ROOT) + ">" : token;
         this.intCode = intCode;
         this.isFormat = isFormat;
         this.toString = new String(new char[]{COLOR_CHAR, code});
+    }
+
+    public static float[] spin(float[] c, int shift)
+    {
+        return new float[]{spin(c[0], shift),spin(c[1], shift),spin(c[2], shift)};
+    }
+
+    public static float[] spin(float[] c, int a,int b, int d)
+    {
+        return new float[]{spin(c[0], a),spin(c[1], b),spin(c[2], d)};
+    }
+
+    public static float spin(float c, int shift)
+    {
+        float g = ((((int)Math.floor(c * 360)) + shift) % 360) / 360F;
+        return g < 0 ? 1f - g : g;
+    }
+
+    public static String aura(String msg, int hrad, int srad, int vrad) {
+        StringBuilder b = new StringBuilder();
+        boolean c = false;
+
+        for(char i : msg.toCharArray())
+        {
+            if(c)
+            {
+                c = false;
+
+                C o = C.getByChar(i);
+
+                if(hrad != 0 || srad != 0 || vrad != 0)
+                {
+                    //TODO: Spin to win
+                    b.append(C.getByChar(i).token);
+                }
+
+                else
+                {
+                    b.append(C.getByChar(i).token);
+                }
+
+                continue;
+            }
+
+            if(i == C.COLOR_CHAR)
+            {
+                c = true;
+                continue;
+            }
+
+            b.append(i);
+        }
+
+        return b.toString();
     }
 
     public net.md_5.bungee.api.ChatColor asBungee() {
@@ -341,7 +410,7 @@ public enum C {
     }
 
     public String hex() {
-        return chatToHex(chatColor());
+        return chatToHex(this);
     }
 
     /**
@@ -371,7 +440,8 @@ public enum C {
      */
     public static C getByChar(char code) {
         try {
-            return BY_CHAR.get(code);
+            C c = BY_CHAR.get(code);
+            return c == null ? C.WHITE : c;
         } catch (Exception e) {
             Iris.reportError(e);
             return C.WHITE;
@@ -436,12 +506,12 @@ public enum C {
     }
 
     @SuppressWarnings("unlikely-arg-type")
-    public static String chatToHex(ChatColor clr) {
+    public static String chatToHex(C clr) {
         if (chatHexMap.containsKey(clr)) {
             return chatHexMap.get(clr);
         }
 
-        return "#000";
+        return "#000000";
     }
 
     public static String dyeToHex(DyeColor clr) {
@@ -449,7 +519,7 @@ public enum C {
             return dyeHexMap.get(clr);
         }
 
-        return "#000";
+        return "#000000";
     }
 
     public static Color hexToColor(String hex) {

@@ -28,11 +28,11 @@ import com.volmit.iris.engine.object.objects.IrisDirection;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.io.Converter;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.io.SKConversion;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -42,6 +42,7 @@ import com.volmit.iris.util.nbt.tag.IntTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import net.kyori.adventure.text.minimessage.parser.Token;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -62,41 +63,7 @@ public class ConversionManager {
         J.s(() ->
                 J.attemptAsync(() ->
                 {
-                    if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
-                        converters.add(new Converter() {
-                            @Override
-                            public String getOutExtension() {
-                                return "iob";
-                            }
 
-                            @Override
-                            public String getInExtension() {
-                                return "schem";
-                            }
-
-                            @Override
-                            public void convert(File in, File out) {
-                                SKConversion.convertSchematic(in, out);
-                            }
-                        });
-
-                        converters.add(new Converter() {
-                            @Override
-                            public String getOutExtension() {
-                                return "iob";
-                            }
-
-                            @Override
-                            public String getInExtension() {
-                                return "schematic";
-                            }
-
-                            @Override
-                            public void convert(File in, File out) {
-                                SKConversion.convertSchematic(in, out);
-                            }
-                        });
-                    }
                 }), 5);
     }
 

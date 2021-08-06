@@ -8,8 +8,8 @@ description: More than a Dimension!
 libraries:
   - org.zeroturnaround:zt-zip:1.14
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
-  - org.ow2.asm:asm:9.0
-  - com.google.code.gson:gson:2.8.5
+  - org.ow2.asm:asm:9.2
+  - com.google.code.gson:gson:2.8.7
   - it.unimi.dsi:fastutil:8.5.4
   - com.google.guava:guava:30.1.1-jre
 commands:

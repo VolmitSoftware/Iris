@@ -18,9 +18,17 @@
 
 package com.volmit.iris.util.plugin;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.C;
 import lombok.Getter;
 import lombok.Setter;
+import net.kyori.adventure.Adventure;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.platform.AudienceProvider;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.transformation.inbuild.GradientTransformation;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -179,13 +187,16 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
-        s.sendMessage(C.translateAlternateColorCodes('&', getTag()) + message);
+        String t = C.translateAlternateColorCodes('&', getTag() + message);
+        String a = C.aura(t, 12, 0, 0);
+        Component c = MiniMessage.get().parse(a);
+        Iris.audiences.sender(s).sendMessage(c);
     }
 
     @Override
     public void sendMessage(String[] messages) {
         for (String str : messages)
-            s.sendMessage(C.translateAlternateColorCodes('&', getTag() + str));
+            sendMessage(str);
     }
 
     @Override

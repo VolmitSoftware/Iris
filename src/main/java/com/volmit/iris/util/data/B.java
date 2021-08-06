@@ -233,6 +233,8 @@ public class B {
             return bd;
         }
 
+        Iris.warn("Unknown Block Data: " + ix);
+
         return AIR;
     }
 
@@ -566,12 +568,20 @@ public class B {
                     v = v.split("\\Q[\\E")[0];
                 }
 
-                if (v.contains(":")) {
-                    v = v.split("\\Q:\\E")[1];
-                }
-
                 bt.add(v);
             }
+        }
+
+        try
+        {
+            for (String i : Iris.linkOraxen.getItemTypes()) {
+                bt.add("oraxen:" + i);
+            }
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
         }
 
         return bt.toArray(new String[0]);
@@ -583,12 +593,6 @@ public class B {
         for (Material i : Material.values()) {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
-        }
-
-        if (Iris.linkOraxen.supported()) {
-            for (String i : Iris.linkOraxen.getItemTypes()) {
-                bt.add("oraxen:" + i);
-            }
         }
 
         return bt.toArray(new String[0]);

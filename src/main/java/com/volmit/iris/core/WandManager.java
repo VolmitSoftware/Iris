@@ -26,6 +26,8 @@ import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.IrisMatter;
+import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -232,26 +234,15 @@ public class WandManager implements Listener {
      * @param wand The wand itemstack
      * @return The new object
      */
-    public static IrisMatter createSchematic(Player p, ItemStack wand) {
+    public static Matter createMatterSchem(Player p, ItemStack wand) {
         if (!isWand(wand)) {
             return null;
         }
 
         try {
             Location[] f = getCuboid(wand);
-            Cuboid c = new Cuboid(f[0], f[1]);
-            IrisMatter s = new IrisMatter(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-            Iris.info(s.getWidth() + " " + s.getHeight() + " " + s.getDepth());
-            s.getHeader().setAuthor(p.getName());
-            s.slice(BlockData.class)
-                    .readFrom(c.getWorld(),
-                            c.getLowerNE().getBlockX(),
-                            c.getLowerNE().getBlockY(), c.getLowerNE().getBlockZ());
 
-            Iris.info("Slices: " + s.getSliceMap().size());
-            Iris.info("Entries " + s.getSlice(BlockData.class).getCount());
-
-            return s;
+            return WorldMatter.createMatter(p.getName(), f[0], f[1]);
         } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);

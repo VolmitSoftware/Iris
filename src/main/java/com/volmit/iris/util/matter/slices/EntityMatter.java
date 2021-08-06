@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
@@ -41,6 +42,10 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
     public EntityMatter() {
         this(1, 1, 1);
+    }
+
+    public EntityMatter(int width, int height, int depth) {
+        super(width, height, depth, MatterEntityGroup.class);
         registerWriter(World.class, ((w, d, x, y, z) -> {
             for(MatterEntity i : d.getEntities())
             {
@@ -57,10 +62,10 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
                 for(Entity i : entities)
                 {
                     g.getEntities().add(new MatterEntity(
-                        Math.abs(i.getLocation().getX()) - Math.abs(i.getLocation().getBlockX()),
-                        Math.abs(i.getLocation().getY()) - Math.abs(i.getLocation().getBlockY()),
-                        Math.abs(i.getLocation().getZ()) - Math.abs(i.getLocation().getBlockZ()),
-                        INMS.get().serializeEntity(i)
+                            Math.abs(i.getLocation().getX()) - Math.abs(i.getLocation().getBlockX()),
+                            Math.abs(i.getLocation().getY()) - Math.abs(i.getLocation().getBlockY()),
+                            Math.abs(i.getLocation().getZ()) - Math.abs(i.getLocation().getBlockZ()),
+                            INMS.get().serializeEntity(i)
                     ));
                 }
 
@@ -69,10 +74,6 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
             return null;
         });
-    }
-
-    public EntityMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterEntityGroup.class);
     }
 
     /**
@@ -94,9 +95,9 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
             return super.readFrom(w, x, y, z);
         }
 
-        MatterReader<W, MatterEntityGroup> ejector = (MatterReader<W, MatterEntityGroup>) readFrom(getClass(w));
+        MatterReader<W, MatterEntityGroup> reader = (MatterReader<W, MatterEntityGroup>) readFrom(World.class);
 
-        if (ejector == null) {
+        if (reader == null) {
             return false;
         }
 
@@ -110,7 +111,7 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
         for(IrisPosition i : entityCache.keySet())
         {
-            MatterEntityGroup g = ejector.readMatter(w, i.getX(), i.getY(), i.getZ());
+            MatterEntityGroup g = reader.readMatter(w, i.getX(), i.getY(), i.getZ());
 
             if(g != null)
             {

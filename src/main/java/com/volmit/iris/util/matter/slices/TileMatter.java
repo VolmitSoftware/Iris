@@ -36,6 +36,10 @@ import java.io.IOException;
 public class TileMatter extends RawMatter<MatterTile> {
     public TileMatter() {
         this(1, 1, 1);
+    }
+
+    public TileMatter(int width, int height, int depth) {
+        super(width, height, depth, MatterTile.class);
         registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
         registerReader(World.class, (w, x, y, z) -> {
             Location l = new Location(w, x, y, z);
@@ -51,10 +55,6 @@ public class TileMatter extends RawMatter<MatterTile> {
 
             return null;
         });
-    }
-
-    public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterTile.class);
     }
 
     @Override

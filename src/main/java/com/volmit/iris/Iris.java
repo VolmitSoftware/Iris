@@ -129,6 +129,8 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
+        getServer().getPluginManager().registerEvents(new DolphinManager(), this);
+        getServer().getPluginManager().registerEvents(new VillagerManager(), this);
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);

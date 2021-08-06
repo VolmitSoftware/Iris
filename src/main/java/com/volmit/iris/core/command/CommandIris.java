@@ -21,6 +21,7 @@ package com.volmit.iris.core.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.command.jigsaw.CommandIrisJigsaw;
 import com.volmit.iris.core.command.object.CommandIrisObject;
+import com.volmit.iris.core.command.pregen.CommandIrisPregen;
 import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.what.CommandIrisWhat;
 import com.volmit.iris.core.command.world.*;

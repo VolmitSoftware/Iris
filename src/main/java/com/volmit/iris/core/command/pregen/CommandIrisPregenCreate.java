@@ -16,7 +16,7 @@ import java.util.Arrays;
 
 public class CommandIrisPregenCreate extends MortarCommand {
 
-    private static final KList<String> argus = new KList<>("radius=<radius>", "width=<width>", "height=<height>", "x=<centerX>", "z=<centerZ>");
+    private static final KList<String> argus = new KList<>("radius=", "width=", "height=", "x=", "z=");
 
     public CommandIrisPregenCreate() {
         super("create", "c", "new", "+");

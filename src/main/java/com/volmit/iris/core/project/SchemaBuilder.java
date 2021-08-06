@@ -561,8 +561,14 @@ public class SchemaBuilder {
     }
 
     private String getFieldDescription(Field r) {
+
         if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
+        }
+
+        // suppress warnings on bukkit classes
+        if (r.getDeclaringClass().getName().startsWith("org.bukkit.")){
+            return "Bukkit package classes and enums have no descriptions";
         }
 
         warnings.addIfMissing("Missing @Desc on field " + r.getName() + " (" + r.getType() + ") in " + r.getDeclaringClass().getCanonicalName());

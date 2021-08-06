@@ -1,10 +1,12 @@
 package com.volmit.iris.engine.object.villager;
 
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.S;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -57,10 +59,46 @@ public class IrisVillagerTrade {
      * ingredient 1, (if defined ingredient 2) and the result are valid items
      */
     public boolean isValidItems(){
-        if (ingredient1 == null || result == null || minTrades <= 0 || maxTrades <= 0 || maxTrades < minTrades){
+        KList<String> warnings = new KList<>();
+        if (ingredient1 == null) {
+            warnings.add("Ingredient 1 is null");
+        }
+
+        if (result == null) {
+            warnings.add("Result is null");
+        }
+
+        if (minTrades <= 0) {
+            warnings.add("Negative minimal trades");
+        }
+
+        if (maxTrades <= 0) {
+            warnings.add("Negative maximal trades");
+        }
+
+        if (minTrades > maxTrades) {
+            warnings.add("More minimal than maximal trades");
+        }
+
+        if (ingredient1 != null && !ingredient1.getType().isItem()){
+            warnings.add("Ingredient 1 is not an item");
+        }
+
+        if (ingredient2 != null && !ingredient2.getType().isItem()){
+            warnings.add("Ingredient 2 is not an item");
+        }
+
+        if (result != null && !result.getType().isItem()){
+            warnings.add("Result is not an item");
+        }
+
+        if (warnings.isEmpty()) {
+            return true;
+        } else {
+            Iris.warn("Faulty item in cartographer item overrides: " + this);
+            warnings.forEach(w -> Iris.warn("   " + w));
             return false;
         }
-        return ingredient1.getType().isItem() && (ingredient2 == null || ingredient2.getType().isItem()) && result.getType().isItem();
     }
 
     /**

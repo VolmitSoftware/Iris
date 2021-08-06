@@ -33,7 +33,8 @@ public class IrisVillagerOverride {
     @Required
     @Desc("""
             The items to override the cartographer trade with.
-            By default, this is 3 emeralds + 3 glass blocks -> 1 spyglass.
+            By default, this is:
+                3 emeralds + 3 glass blocks -> 1 spyglass.
                 Can trade 3 to 5 times""")
     @ArrayType(min = 1, type = IrisVillagerTrade.class)
     private KList<IrisVillagerTrade> items = new KList<>(new IrisVillagerTrade()

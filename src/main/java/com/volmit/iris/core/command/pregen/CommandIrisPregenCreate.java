@@ -21,9 +21,9 @@ public class CommandIrisPregenCreate extends MortarCommand {
         setDescription("""
                 Create a new pregeneration task.
                 Command usage & examples:
-                /iris pregen [radius=<radius>] [width=<width>] [height=<height>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
-                /iris pregen radius=5000 x=10r z=10r world=IrisWorld
-                /iris pregen 5k -here
+                /iris pregen create [radius=<radius>] [width=<width>] [height=<height>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
+                /iris pregen create radius=5000 x=10r z=10r world=IrisWorld
+                /iris pregen create 5k -here
                 
                 <radius>:  Sets both width and height to a value.
                 <x> & <z>: Give the center point of the pregeneration.

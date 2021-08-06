@@ -55,21 +55,37 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
+import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.loot.LootTable;
+import org.bukkit.metadata.MetadataValue;
+import org.bukkit.permissions.PermissionAttachment;
+import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
-import java.util.Date;
+import java.util.*;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -87,6 +103,17 @@ public class Iris extends VolmitPlugin implements Listener {
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+
+    // TODO: Fix maps' behaviour so it doesn't crash Iris worlds
+    static class NoDolphin implements Listener {
+        @EventHandler
+        public void on(EntitySpawnEvent event) {
+            if (event.getEntityType().equals(EntityType.DOLPHIN)) {
+                Iris.debug("Cancelled Dolphin because of the map glitch (https://github.com/VolmitSoftware/Iris/issues/499) @ " + event.getLocation().getBlockX() + "/" + event.getLocation().getBlockY() + "/" + event.getLocation().getBlockZ());
+                event.setCancelled(true);
+            }
+        }
+    }
 
     @Permission
     public static PermissionIris perm;
@@ -140,6 +167,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
+        getServer().getPluginManager().registerEvents(new NoDolphin(), this);
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);

@@ -2,30 +2,29 @@ package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.entity.IrisEntityVillagerOverride;
-import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.engine.object.villager.IrisVillagerOverride;
+import com.volmit.iris.engine.object.villager.IrisVillagerTrade;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityInteractEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.VillagerAcquireTradeEvent;
-import org.bukkit.inventory.MerchantRecipe;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 
 public class InteractionManager implements Listener {
 
     /**
-     * Prevents dolphins from trying to locate a treasure map.
+     * Prevents dolphins from being fed, to locate a treasure map.
      * Note: This results in odd dolphin behaviour, but it's the best we can do.
      */
     @EventHandler
-    public void on(EntityPickupItemEvent event){
-        if (!IrisToolbelt.isIrisWorld(event.getEntity().getWorld())){
+    public void on(PlayerInteractEntityEvent event){
+        if (!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())){
             return;
         }
 
-        if (event.getEntityType().equals(EntityType.DOLPHIN)){
+        Material hand = event.getPlayer().getInventory().getItem(event.getHand()).getType();
+        if (event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))){
             event.setCancelled(true);
         }
     }
@@ -41,7 +40,7 @@ public class InteractionManager implements Listener {
 
         // Iris.info("Trade event: type " + event.getRecipe().getResult().getType() + " / meta " + event.getRecipe().getResult().getItemMeta() + " / data " + event.getRecipe().getResult().getData());
         if (event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)){
-            IrisEntityVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getVillagerTrade();
+            IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getPatchCartographers();
 
             if (override.isDisableTrade()){
                 event.setCancelled(true);
@@ -49,16 +48,15 @@ public class InteractionManager implements Listener {
                 return;
             }
 
-            if (!override.getItems().isValidItems()){
+            if (override.getValidItems() == null){
                 event.setCancelled(true);
-                Iris.debug("Cancelled cartographer trade because override items not valid @ " + event.getEntity().getLocation());
+                Iris.debug("Cancelled cartographer trade because no override items are valid @ " + event.getEntity().getLocation());
                 return;
             }
 
-            MerchantRecipe recipe = new MerchantRecipe(override.getItems().getResult(), override.getItems().getAmount());
-            recipe.setIngredients(override.getItems().getIngredients());
-            event.setRecipe(recipe);
-            Iris.debug("Overrode cartographer trade with: " + recipe + " to prevent allowing cartography map trades");
+            IrisVillagerTrade trade = override.getValidItems().getRandom();
+            event.setRecipe(trade.convert());
+            Iris.debug("Overrode cartographer trade with: " + trade + " to prevent allowing cartography map trades");
         }
     }
 }

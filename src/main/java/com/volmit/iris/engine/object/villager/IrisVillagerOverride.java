@@ -1,8 +1,10 @@
-package com.volmit.iris.engine.object.entity;
+package com.volmit.iris.engine.object.villager;
 
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.DependsOn;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 @Desc("Override cartographer map trades with others or disable the trade altogether")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisEntityVillagerOverride {
+public class IrisVillagerOverride {
     @Desc("""
                     Disable the trade altogether.
                     If a cartographer villager gets a new explorer map trade:
@@ -33,10 +35,17 @@ public class IrisEntityVillagerOverride {
             The items to override the cartographer trade with.
             By default, this is 3 emeralds + 3 glass blocks -> 1 spyglass.
                 Can trade 3 to 5 times""")
-    private IrisEntityVillagerOverrideItems items = new IrisEntityVillagerOverrideItems()
+    @ArrayType(min = 1, type = IrisVillagerTrade.class)
+    private KList<IrisVillagerTrade> items = new KList<>(new IrisVillagerTrade()
             .setIngredient1(new ItemStack(Material.EMERALD, 3))
             .setIngredient2(new ItemStack(Material.GLASS, 3))
             .setResult(new ItemStack(Material.SPYGLASS))
             .setMinTrades(3)
-            .setMaxTrades(5);
+            .setMaxTrades(5));
+
+    public KList<IrisVillagerTrade> getValidItems(){
+        KList<IrisVillagerTrade> valid = new KList<>();
+        getItems().stream().filter(IrisVillagerTrade::isValidItems).forEach(valid::add);
+        return valid.size() == 0 ? null : valid;
+    }
 }

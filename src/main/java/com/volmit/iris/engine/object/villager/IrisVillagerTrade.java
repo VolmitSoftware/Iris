@@ -1,8 +1,9 @@
-package com.volmit.iris.engine.object.entity;
+package com.volmit.iris.engine.object.villager;
 
 
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MerchantRecipe;
 
 import java.util.List;
 
@@ -19,10 +21,10 @@ import java.util.List;
 @AllArgsConstructor
 
 @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-@Desc("Override cartographer map trades with these items. ")
+@Desc("Represents a villager trade.")
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class IrisEntityVillagerOverrideItems {
+public class IrisVillagerTrade {
 
     @Required
     @RegistryListItemType
@@ -77,5 +79,14 @@ public class IrisEntityVillagerOverrideItems {
      */
     public int getAmount() {
         return RNG.r.i(minTrades, maxTrades);
+    }
+
+    /**
+     * @return the trade as a merchant recipe
+     */
+    public MerchantRecipe convert(){
+        MerchantRecipe recipe = new MerchantRecipe(getResult(), getAmount());
+        recipe.setIngredients(getIngredients());
+        return recipe;
     }
 }

@@ -332,7 +332,7 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisBiomeMutation> mutations = new KList<>();
 
     @Desc("Cartographer map trade overrides")
-    private IrisEntityVillagerOverride villagerTrade = new IrisEntityVillagerOverride().setDisableTrade(false);
+    private IrisEntityVillagerOverride patchCartographers = new IrisEntityVillagerOverride().setDisableTrade(false);
 
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();

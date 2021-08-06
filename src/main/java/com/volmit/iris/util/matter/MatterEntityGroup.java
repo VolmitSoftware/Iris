@@ -18,15 +18,12 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
-public class MatterEntity {
-    private final double xOff;
-    private final double yOff;
-    private final double zOff;
-    private final CompoundTag entityData;
+public class MatterEntityGroup {
+    private final KList<MatterEntity> entities = new KList<>();
 }

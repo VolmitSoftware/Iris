@@ -28,6 +28,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 
 public interface INMSBinding {
+    boolean hasTile(Location l);
+
     CompoundTag serializeTile(Location location);
 
     void deserializeTile(CompoundTag s, Location newPosition);

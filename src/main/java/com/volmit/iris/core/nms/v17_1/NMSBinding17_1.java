@@ -73,6 +73,11 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
+    public boolean hasTile(Location l) {
+       return ((CraftWorld)l.getWorld()).getHandle().getTileEntity(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
+    }
+
+    @Override
     public CompoundTag serializeTile(Location location) {
         TileEntity e = ((CraftWorld)location.getWorld()).getHandle().getTileEntity(new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
 

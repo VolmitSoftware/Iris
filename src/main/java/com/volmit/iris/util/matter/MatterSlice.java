@@ -65,7 +65,12 @@ public interface MatterSlice<T> extends Hunk<T> {
         for (int i = x; i < x + getWidth(); i++) {
             for (int j = y; j < y + getHeight(); j++) {
                 for (int k = z; k < z + getDepth(); k++) {
-                    injector.writeMatter(w, get(i - x, j - y, k - z), i, j, k);
+                    T g = get(i - x, j - y, k - z);
+
+                    if(g != null)
+                    {
+                        injector.writeMatter(w, g, i, j, k);
+                    }
                 }
             }
         }
@@ -83,7 +88,12 @@ public interface MatterSlice<T> extends Hunk<T> {
         for (int i = x; i < x + getWidth(); i++) {
             for (int j = y; j < y + getHeight(); j++) {
                 for (int k = z; k < z + getDepth(); k++) {
-                    set(i - x, j - y, k - z, ejector.readMatter(w, i, j, k));
+                    T v = ejector.readMatter(w, i, j, k);
+
+                    if(v != null)
+                    {
+                        set(i - x, j - y, k - z, v);
+                    }
                 }
             }
         }

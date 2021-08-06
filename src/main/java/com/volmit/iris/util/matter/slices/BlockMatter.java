@@ -39,7 +39,10 @@ public class BlockMatter extends RawMatter<BlockData> {
         super(width, height, depth, BlockData.class);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
         registerWriter(ParallaxWorld.class, (w, d, x, y, z) -> w.setBlock(x, y, z, d));
-        registerReader(World.class, (w, x, y, z) -> w.getBlockAt(x, y, z).getBlockData());
+        registerReader(World.class, (w, x, y, z) -> {
+            BlockData d = w.getBlockAt(x, y, z).getBlockData();
+            return d.getMaterial().isAir() ? null : d;
+        });
         registerReader(ParallaxWorld.class, ParallaxAccess::getBlock);
     }
 

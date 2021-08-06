@@ -18,10 +18,15 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.parallax.ParallaxAccess;
+import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import org.bukkit.Location;
+import org.bukkit.World;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,6 +36,21 @@ import java.io.IOException;
 public class TileMatter extends RawMatter<MatterTile> {
     public TileMatter() {
         this(1, 1, 1);
+        registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
+        registerReader(World.class, (w, x, y, z) -> {
+            Location l = new Location(w, x, y, z);
+            if(INMS.get().hasTile(l))
+            {
+                CompoundTag tag = INMS.get().serializeTile(l);
+
+                if(tag != null)
+                {
+                    return new MatterTile(tag);
+                }
+            }
+
+            return null;
+        });
     }
 
     public TileMatter(int width, int height, int depth) {
@@ -40,7 +60,6 @@ public class TileMatter extends RawMatter<MatterTile> {
     @Override
     public void writeNode(MatterTile b, DataOutputStream dos) throws IOException {
         NBTUtil.write(b.getTileData(), dos, false);
-
     }
 
     @Override

@@ -168,16 +168,26 @@ public class CommandIrisPregenCreate extends MortarCommand {
             }
         }
 
-        KList<String> details = new KList<>(
-                "Pregeneration details:",
-                "   - World        > " + world.getName(),
-                "   - Width/Height > " + width + "/" + height,
-                "   - Center x,z   > " + x + "," + z,
-                failed.isEmpty() ? "(No failed arguments)" : "FAILED ARGS:"
-        );
-        failed.forEach(s ->
-            details.add("   - " + s)
-        );
+        StringBuilder details = new StringBuilder("Pregeneration details:");
+
+        details.append("\n")
+                .append("   - World        > ")
+                .append(world.getName())
+                .append("\n")
+                .append("   - Width/Height > ")
+                .append(width)
+                .append("/")
+                .append(height)
+                .append("\n")
+                .append("   - Center x,z   > ")
+                .append(x)
+                .append(",")
+                .append(z)
+                .append("\n")
+                .append(failed.isEmpty() ? "(No failed arguments)" : "FAILED ARGS:");
+        for (String s : failed) {
+            details.append(s).append("\n");
+        }
 
         if (pregenerate(world, width, height, x, z)){
             sender.sendMessage("Successfully started pregen");

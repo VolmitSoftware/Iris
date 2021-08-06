@@ -553,10 +553,6 @@ public class SchemaBuilder {
             return "object";
         }
 
-        if (c.getPackageName().startsWith("org.bukkit.")){
-            return "object";
-        }
-
         if (!c.isAnnotationPresent(Desc.class)) {
             warnings.addIfMissing("Unsupported Type: " + c.getCanonicalName() + " Did you forget @Desc?");
         }

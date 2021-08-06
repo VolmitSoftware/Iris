@@ -55,6 +55,7 @@ public class CommandIrisPregen extends MortarCommand {
 
         sender.sendMessage("Iris Pregen Commands:");
         printHelp(sender);
+        sender.sendMessage("Pregen wiki page: https://docs.volmit.com/iris/pregeneration");
         return true;
     }
 

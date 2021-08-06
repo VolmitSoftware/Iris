@@ -553,6 +553,10 @@ public class SchemaBuilder {
             return "object";
         }
 
+        if (c.getPackageName().startsWith("org.bukkit.")){
+            return "object";
+        }
+
         if (!c.isAnnotationPresent(Desc.class)) {
             warnings.addIfMissing("Unsupported Type: " + c.getCanonicalName() + " Did you forget @Desc?");
         }
@@ -578,6 +582,11 @@ public class SchemaBuilder {
     private String getDescription(Class<?> r) {
         if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
+        }
+
+        // suppress warnings on bukkit classes
+        if (r.getDeclaringClass().getName().startsWith("org.bukkit.")){
+            return "Bukkit package classes and enums have no descriptions";
         }
 
         if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {

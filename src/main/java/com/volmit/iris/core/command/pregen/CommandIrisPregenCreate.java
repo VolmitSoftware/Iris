@@ -10,9 +10,11 @@ import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.checkerframework.checker.units.qual.K;
+
 
 public class CommandIrisPregenCreate extends MortarCommand {
+
+    private static final KList<String> argus = new KList<>("radius=<radius>", "width=<width>", "height=<height>", "x=<centerX>", "z=<centerZ>");
 
     public CommandIrisPregenCreate() {
         super("create", "c", "new", "+");
@@ -39,13 +41,41 @@ public class CommandIrisPregenCreate extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
-        list.add("5000");
-        list.add("size=5000 world=IrisWorld x=500 z=-1000");
-        list.add("5000 world=IrisWorld x=500 z=-1000");
-        list.add("world=IrisWorld x=500 z=-1000");
-        for (World w : Bukkit.getServer().getWorlds()) {
-            list.add(w.getName());
+        // Add arguments
+        argus.forEach(p -> {
+            boolean hasArg = false;
+            for (String arg : args) {
+                if (!arg.contains("=") || !p.contains("=")){
+                    continue;
+                }
+                if (arg.split("=")[0].equals(p.split("=")[0])) {
+                    hasArg = true;
+                    break;
+                }
+            }
+            if (!hasArg){
+                list.add(p);
+            }
+        });
+
+        // Add -here
+        boolean hasHere = false;
+        for (String arg : args) {
+            if (arg.equals("-here")) {
+                hasHere = true;
+                break;
+            }
         }
+        if (!hasHere){
+            list.add("-here");
+        }
+
+        // Add Iris worlds
+        Bukkit.getWorlds().forEach(w -> {
+            if (IrisToolbelt.isIrisWorld(w)){
+                list.add("world=" + w.getName());
+            }
+        });
     }
 
     @Override

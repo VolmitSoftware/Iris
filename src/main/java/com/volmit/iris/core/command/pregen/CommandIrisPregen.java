@@ -49,8 +49,12 @@ public class CommandIrisPregen extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        if (!IrisToolbelt.isIrisWorld(sender.player().getWorld())){
-            sender.sendMessage("Pregen only works in Iris worlds!");
+        if (sender.isPlayer()) {
+            if (!IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+                sender.sendMessage("Pregen only works in Iris worlds!");
+            }
+        } else {
+            sender.sendMessage("Note that pregeneration only works in Iris worlds!");
         }
 
         sender.sendMessage("Iris Pregen Commands:");

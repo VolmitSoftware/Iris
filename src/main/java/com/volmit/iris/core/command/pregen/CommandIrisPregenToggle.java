@@ -32,6 +32,6 @@ public class CommandIrisPregenToggle extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return null;
+        return "";
     }
 }

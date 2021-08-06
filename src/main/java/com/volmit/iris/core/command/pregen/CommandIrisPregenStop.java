@@ -38,6 +38,6 @@ public class CommandIrisPregenStop extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return null;
+        return "";
     }
 }

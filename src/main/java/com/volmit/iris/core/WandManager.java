@@ -64,7 +64,7 @@ public class WandManager implements Listener {
             for (Player i : Bukkit.getOnlinePlayers()) {
                 tick(i);
             }
-        }, 0);
+        }, 5);
     }
 
     public void tick(Player p) {

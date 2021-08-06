@@ -50,12 +50,17 @@ import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;
 import com.volmit.iris.util.plugin.VolmitPlugin;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.GroupedExecutor;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
-import org.bukkit.*;
+import net.kyori.adventure.platform.AudienceProvider;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
+import net.kyori.adventure.text.serializer.ComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -74,6 +79,7 @@ import java.util.*;
 public class Iris extends VolmitPlugin implements Listener {
     public static KList<GroupedExecutor> executors = new KList<>();
     public static Iris instance;
+    public static BukkitAudiences audiences;
     public static ProjectManager proj;
     public static ConversionManager convert;
     public static WandManager wand;
@@ -86,6 +92,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+    private static VolmitSender sender;
 
     @Permission
     public static PermissionIris perm;
@@ -101,6 +108,30 @@ public class Iris extends VolmitPlugin implements Listener {
         INMS.get();
         IO.delete(new File("iris"));
         installDataPacks();
+    }
+
+    public void onEnable() {
+        audiences = BukkitAudiences.create(this);
+        fixShading();
+        sender = new VolmitSender(Bukkit.getConsoleSender());
+        sender.setTag(getTag());
+        instance = this;
+        compat = IrisCompat.configured(getDataFile("compat.json"));
+        proj = new ProjectManager();
+        convert = new ConversionManager();
+        wand = new WandManager();
+        board = new IrisBoardManager();
+        linkMultiverseCore = new MultiverseCoreLink();
+        linkOraxen = new OraxenLink();
+        linkMythicMobs = new MythicMobsLink();
+        saplingManager = new TreeManager();
+        edit = new EditManager();
+        configWatcher = new FileWatcher(getDataFile("settings.json"));
+        getServer().getPluginManager().registerEvents(new CommandLocate(), this);
+        getServer().getPluginManager().registerEvents(new WandManager(), this);
+        super.onEnable();
+        Bukkit.getPluginManager().registerEvents(this, this);
+        J.s(this::lateBind);
     }
 
     public static void callEvent(Event e) {
@@ -124,26 +155,8 @@ public class Iris extends VolmitPlugin implements Listener {
         return v;
     }
 
-    public void onEnable() {
-        instance = this;
-        compat = IrisCompat.configured(getDataFile("compat.json"));
-        proj = new ProjectManager();
-        convert = new ConversionManager();
-        wand = new WandManager();
-        board = new IrisBoardManager();
-        linkMultiverseCore = new MultiverseCoreLink();
-        linkOraxen = new OraxenLink();
-        linkMythicMobs = new MythicMobsLink();
-        saplingManager = new TreeManager();
-        edit = new EditManager();
-        configWatcher = new FileWatcher(getDataFile("settings.json"));
-        getServer().getPluginManager().registerEvents(new CommandLocate(), this);
-        getServer().getPluginManager().registerEvents(new WandManager(), this);
-        getServer().getPluginManager().registerEvents(new DolphinManager(), this);
-        getServer().getPluginManager().registerEvents(new VillagerManager(), this);
-        super.onEnable();
-        Bukkit.getPluginManager().registerEvents(this, this);
-        J.s(this::lateBind);
+    private void fixShading() {
+        ShadeFix.fix(ComponentSerializer.class);
     }
 
     private void lateBind() {
@@ -426,15 +439,9 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public static void msg(String string) {
         try {
-            if (instance == null) {
-                System.out.println("[Iris]: " + string);
-                return;
-            }
-
-            String msg = C.GRAY + "[" + C.GREEN + "Iris" + C.GRAY + "]: " + string;
-            Bukkit.getConsoleSender().sendMessage(msg);
+            sender.sendMessage(string);
         } catch (Throwable e) {
-            System.out.println("[Iris]: " + string);
+            System.out.println(string);
             Iris.reportError(e);
         }
     }

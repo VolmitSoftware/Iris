@@ -104,17 +104,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
 
-    // TODO: Fix maps' behaviour so it doesn't crash Iris worlds
-    static class NoDolphin implements Listener {
-        @EventHandler
-        public void on(EntitySpawnEvent event) {
-            if (event.getEntityType().equals(EntityType.DOLPHIN)) {
-                Iris.debug("Cancelled Dolphin because of the map glitch (https://github.com/VolmitSoftware/Iris/issues/499) @ " + event.getLocation().getBlockX() + "/" + event.getLocation().getBlockY() + "/" + event.getLocation().getBlockZ());
-                event.setCancelled(true);
-            }
-        }
-    }
-
     @Permission
     public static PermissionIris perm;
 
@@ -167,7 +156,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
-        getServer().getPluginManager().registerEvents(new NoDolphin(), this);
+        getServer().getPluginManager().registerEvents(new InteractionManager(), this);
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);

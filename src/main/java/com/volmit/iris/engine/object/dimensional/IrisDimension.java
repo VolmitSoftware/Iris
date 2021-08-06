@@ -34,6 +34,7 @@ import com.volmit.iris.engine.object.carve.IrisCaveFluid;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.engine.object.carve.IrisCaverns;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
+import com.volmit.iris.engine.object.entity.IrisEntityVillagerOverride;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
@@ -329,6 +330,9 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisBiomeMutation.class)
     @Desc("Define biome mutations for this dimension")
     private KList<IrisBiomeMutation> mutations = new KList<>();
+
+    @Desc("Cartographer map trade overrides")
+    private IrisEntityVillagerOverride villagerTrade = new IrisEntityVillagerOverride().setDisableTrade(false);
 
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();

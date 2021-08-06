@@ -184,15 +184,15 @@ public class CommandIrisPregenCreate extends MortarCommand {
                 .append(",")
                 .append(z)
                 .append("\n")
-                .append(failed.isEmpty() ? "(No failed arguments)" : "FAILED ARGS:");
+                .append(failed.isEmpty() ? "(No failed arguments)" : "FAILED ARGS:\n");
         for (String s : failed) {
             details.append(s).append("\n");
         }
 
         if (pregenerate(world, width, height, x, z)){
-            sender.sendMessage("Successfully started pregen");
+            details.append("Successfully started pregen");
         } else {
-            sender.sendMessage("Failed to start pregen. Doublecheck your arguments!");
+            details.append("Failed to start pregen. Doublecheck your arguments!");
         }
         sender.sendMessage(details.toString());
 

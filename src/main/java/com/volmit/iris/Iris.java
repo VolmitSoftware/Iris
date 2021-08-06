@@ -55,8 +55,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -69,7 +68,7 @@ import org.bukkit.plugin.Plugin;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
-import java.util.Date;
+import java.util.*;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -140,6 +139,8 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
+        getServer().getPluginManager().registerEvents(new DolphinManager(), this);
+        getServer().getPluginManager().registerEvents(new VillagerManager(), this);
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);

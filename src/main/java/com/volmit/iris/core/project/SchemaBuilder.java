@@ -532,15 +532,15 @@ public class SchemaBuilder {
     }
 
     private String getType(Class<?> c) {
-        if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(byte.class)) {
+        if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(Long.class)) {
             return "integer";
         }
 
-        if (c.equals(float.class) || c.equals(double.class)) {
+        if (c.equals(float.class) || c.equals(double.class) || c.equals(Float.class) || c.equals(Double.class)) {
             return "number";
         }
 
-        if (c.equals(boolean.class)) {
+        if (c.equals(boolean.class)||c.equals(Boolean.class)) {
             return "boolean";
         }
 
@@ -552,11 +552,11 @@ public class SchemaBuilder {
             return "array";
         }
 
-        if (c.equals(KMap.class) || c.equals(ItemStack.class) || c.equals(ItemMeta.class) || c.equals(MaterialData.class)) {
+        if (c.equals(KMap.class)) {
             return "object";
         }
 
-        if (!c.isAnnotationPresent(Desc.class)) {
+        if (!c.isAnnotationPresent(Desc.class) && c.getCanonicalName().startsWith("com.volmit.iris.")) {
             warnings.addIfMissing("Unsupported Type: " + c.getCanonicalName() + " Did you forget @Desc?");
         }
 

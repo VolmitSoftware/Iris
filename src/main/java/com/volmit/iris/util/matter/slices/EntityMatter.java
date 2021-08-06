@@ -75,6 +75,18 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
         super(width, height, depth, MatterEntityGroup.class);
     }
 
+    /**
+     * The readFrom is overridden only if W is a Bukkit World, instead of looping
+     * across every block position, we simply use getNearbyEntities and cache each
+     * block position with a list of entities within that block, and directly feed
+     * the reader with the entities we capture.
+     * @param w the world
+     * @param x the x offset
+     * @param y the y offset
+     * @param z the z offset
+     * @param <W> the type
+     * @return true if we read
+     */
     @Override
     public synchronized <W> boolean readFrom(W w, int x, int y, int z) {
         if(!(w instanceof World))

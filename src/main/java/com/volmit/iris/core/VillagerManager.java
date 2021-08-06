@@ -20,24 +20,26 @@ public class VillagerManager implements Listener {
         }
 
         // Iris.info("Trade event: type " + event.getRecipe().getResult().getType() + " / meta " + event.getRecipe().getResult().getItemMeta() + " / data " + event.getRecipe().getResult().getData());
-        if (event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)){
-            IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getPatchCartographers();
-
-            if (override.isDisableTrade()){
-                event.setCancelled(true);
-                Iris.debug("Cancelled cartographer trade @ " + event.getEntity().getLocation());
-                return;
-            }
-
-            if (override.getValidItems() == null){
-                event.setCancelled(true);
-                Iris.debug("Cancelled cartographer trade because no override items are valid @ " + event.getEntity().getLocation());
-                return;
-            }
-
-            IrisVillagerTrade trade = override.getValidItems().getRandom();
-            event.setRecipe(trade.convert());
-            Iris.debug("Overrode cartographer trade with: " + trade + " to prevent allowing cartography map trades");
+        if (!event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)) {
+            return;
         }
+
+        IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getPatchCartographers();
+
+        if (override.isDisableTrade()){
+            event.setCancelled(true);
+            Iris.debug("Cancelled cartographer trade @ " + event.getEntity().getLocation());
+            return;
+        }
+
+        if (override.getValidItems() == null){
+            event.setCancelled(true);
+            Iris.debug("Cancelled cartographer trade because no override items are valid @ " + event.getEntity().getLocation());
+            return;
+        }
+
+        IrisVillagerTrade trade = override.getValidItems().getRandom();
+        event.setRecipe(trade.convert());
+        Iris.debug("Overrode cartographer trade with: " + trade + " to prevent allowing cartography map trades");
     }
 }

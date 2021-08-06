@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
@@ -241,6 +242,35 @@ public interface Matter {
     }
 
     /**
+     * Remove any slices that are empty
+     */
+    default void trimSlices()
+    {
+        Set<Class<?>> drop = null;
+
+        for(Class<?> i : getSliceTypes())
+        {
+            if(getSlice(i).getCount() == 0)
+            {
+                if(drop == null)
+                {
+                    drop = new KSet<>();
+                }
+
+                drop.add(i);
+            }
+        }
+
+        if(drop != null)
+        {
+            for(Class<?> i : drop)
+            {
+                deleteSlice(i);
+            }
+        }
+    }
+
+    /**
      * Writes the data to the output stream. The data will be flushed to the provided output
      * stream however the provided stream will NOT BE CLOSED, so be sure to actually close it
      *
@@ -248,12 +278,12 @@ public interface Matter {
      * @throws IOException shit happens yo
      */
     default void write(OutputStream out) throws IOException {
+        trimSlices();
         DataOutputStream dos = new DataOutputStream(out);
-        // Write size
         Varint.writeUnsignedVarInt(getWidth(), dos);
         Varint.writeUnsignedVarInt(getHeight(), dos);
         Varint.writeUnsignedVarInt(getDepth(), dos);
-        dos.writeByte(getSliceTypes().size() + Byte.MIN_VALUE);
+        dos.writeByte(getSliceTypes().size());
         getHeader().write(dos);
 
         for (Class<?> i : getSliceTypes()) {
@@ -286,19 +316,28 @@ public interface Matter {
      */
     static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
         DataInputStream din = new DataInputStream(in);
-        // Read size into new matter object
         Matter matter = matterFactory.apply(new BlockPosition(
                 Varint.readUnsignedVarInt(din),
                 Varint.readUnsignedVarInt(din),
                 Varint.readUnsignedVarInt(din)));
-        int sliceCount = din.readByte() - Byte.MIN_VALUE;
+        int sliceCount = din.readByte();
         matter.getHeader().read(din);
 
         while (sliceCount-- > 0) {
-            Class<?> type = Class.forName(din.readUTF());
-            MatterSlice<?> slice = matter.createSlice(type, matter);
-            slice.read(din);
-            matter.putSlice(type, slice);
+            String cn = din.readUTF();
+            try
+            {
+                Class<?> type = Class.forName(cn);
+                MatterSlice<?> slice = matter.createSlice(type, matter);
+                slice.read(din);
+                matter.putSlice(type, slice);
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
+                throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
+            }
         }
 
         return matter;

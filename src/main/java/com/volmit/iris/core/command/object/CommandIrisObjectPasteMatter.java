@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.HeightMap;
@@ -84,8 +85,7 @@ public class CommandIrisObjectPasteMatter extends MortarCommand {
         File f = new File(args[0]);
         try {
             Matter matter = Matter.read(f);
-            matter.slice(BlockData.class)
-                    .writeInto(p.getWorld(), p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
+            WorldMatter.placeMatter(matter, p.getLocation());
         } catch (Throwable e) {
             e.printStackTrace();
         }

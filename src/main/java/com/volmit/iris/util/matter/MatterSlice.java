@@ -18,10 +18,12 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -55,6 +57,10 @@ public interface MatterSlice<T> extends Hunk<T> {
         return c;
     }
 
+    default boolean writeInto(Location location) {
+        return writeInto(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
+
     default <W> boolean writeInto(W w, int x, int y, int z) {
         MatterWriter<W, T> injector = (MatterWriter<W, T>) writeInto(getClass(w));
 
@@ -62,20 +68,13 @@ public interface MatterSlice<T> extends Hunk<T> {
             return false;
         }
 
-        for (int i = x; i < x + getWidth(); i++) {
-            for (int j = y; j < y + getHeight(); j++) {
-                for (int k = z; k < z + getDepth(); k++) {
-                    T g = get(i - x, j - y, k - z);
-
-                    if(g != null)
-                    {
-                        injector.writeMatter(w, g, i, j, k);
-                    }
-                }
-            }
-        }
+        iterateSync((a,b,c,t) -> injector.writeMatter(w, t, a+x, b+y, c+z));
 
         return true;
+    }
+
+    default boolean readFrom(Location location) {
+        return readFrom(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
     }
 
     default <W> boolean readFrom(W w, int x, int y, int z) {

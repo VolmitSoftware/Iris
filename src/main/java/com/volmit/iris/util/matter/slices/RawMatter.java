@@ -32,32 +32,32 @@ import java.io.IOException;
 public abstract class RawMatter<T> extends MappedHunk<T> implements MatterSlice<T> {
     @Getter
     private final Class<T> type;
-    private final KMap<Class<?>, MatterWriter<?, T>> injectors;
-    private final KMap<Class<?>, MatterReader<?, T>> ejectors;
+    protected final KMap<Class<?>, MatterWriter<?, T>> writers;
+    protected final KMap<Class<?>, MatterReader<?, T>> readers;
 
     public RawMatter(int width, int height, int depth, Class<T> type) {
         super(width, height, depth);
-        injectors = new KMap<>();
-        ejectors = new KMap<>();
+        writers = new KMap<>();
+        readers = new KMap<>();
         this.type = type;
     }
 
     protected <W> void registerWriter(Class<W> mediumType, MatterWriter<W, T> injector) {
-        injectors.put(mediumType, injector);
+        writers.put(mediumType, injector);
     }
 
     protected <W> void registerReader(Class<W> mediumType, MatterReader<W, T> injector) {
-        ejectors.put(mediumType, injector);
+        readers.put(mediumType, injector);
     }
 
     @Override
     public <W> MatterWriter<W, T> writeInto(Class<W> mediumType) {
-        return (MatterWriter<W, T>) injectors.get(mediumType);
+        return (MatterWriter<W, T>) writers.get(mediumType);
     }
 
     @Override
     public <W> MatterReader<W, T> readFrom(Class<W> mediumType) {
-        return (MatterReader<W, T>) ejectors.get(mediumType);
+        return (MatterReader<W, T>) readers.get(mediumType);
     }
 
     @Override

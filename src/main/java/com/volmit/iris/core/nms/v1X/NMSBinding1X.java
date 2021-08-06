@@ -19,9 +19,11 @@
 package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 
 public class NMSBinding1X implements INMSBinding {
@@ -40,6 +42,31 @@ public class NMSBinding1X implements INMSBinding {
         }
 
         return false;
+    }
+
+    @Override
+    public boolean hasTile(Location l) {
+        return false;
+    }
+
+    @Override
+    public CompoundTag serializeTile(Location location) {
+        return null;
+    }
+
+    @Override
+    public void deserializeTile(CompoundTag s, Location newPosition) {
+
+    }
+
+    @Override
+    public CompoundTag serializeEntity(Entity location) {
+        return null;
+    }
+
+    @Override
+    public Entity deserializeEntity(CompoundTag s, Location newPosition) {
+        return null;
     }
 
     @Override

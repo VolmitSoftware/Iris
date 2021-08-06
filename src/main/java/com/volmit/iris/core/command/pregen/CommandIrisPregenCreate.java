@@ -11,6 +11,8 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
+import java.util.Arrays;
+
 
 public class CommandIrisPregenCreate extends MortarCommand {
 
@@ -71,11 +73,15 @@ public class CommandIrisPregenCreate extends MortarCommand {
         }
 
         // Add Iris worlds
-        Bukkit.getWorlds().forEach(w -> {
-            if (IrisToolbelt.isIrisWorld(w)){
-                list.add("world=" + w.getName());
-            }
-        });
+        if (Bukkit.getWorlds().isEmpty()){
+            list.add("world=<name>");
+        } else {
+            Bukkit.getWorlds().forEach(w -> {
+                if (IrisToolbelt.isIrisWorld(w)) {
+                    list.add("world=" + w.getName());
+                }
+            });
+        }
     }
 
     @Override
@@ -178,7 +184,7 @@ public class CommandIrisPregenCreate extends MortarCommand {
         } else {
             sender.sendMessage("Failed to start pregen. Doublecheck your arguments!");
         }
-        sender.sendMessage(details.array());
+        sender.sendMessage(details.toString());
 
         return true;
     }

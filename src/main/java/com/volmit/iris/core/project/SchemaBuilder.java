@@ -28,6 +28,9 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffectType;
 
 import java.awt.*;
@@ -529,7 +532,7 @@ public class SchemaBuilder {
     }
 
     private String getType(Class<?> c) {
-        if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class)) {
+        if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(byte.class)) {
             return "integer";
         }
 
@@ -549,7 +552,7 @@ public class SchemaBuilder {
             return "array";
         }
 
-        if (c.equals(KMap.class)) {
+        if (c.equals(KMap.class) || c.equals(ItemStack.class) || c.equals(ItemMeta.class) || c.equals(MaterialData.class)) {
             return "object";
         }
 
@@ -578,11 +581,6 @@ public class SchemaBuilder {
     private String getDescription(Class<?> r) {
         if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
-        }
-
-        // suppress warnings on bukkit classes
-        if (r.getDeclaringClass().getName().startsWith("org.bukkit.")){
-            return "Bukkit package classes and enums have no descriptions";
         }
 
         if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {

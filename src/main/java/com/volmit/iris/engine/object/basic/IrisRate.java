@@ -48,4 +48,8 @@ public class IrisRate {
     public ChronoLatch toChronoLatch() {
         return new ChronoLatch(getInterval());
     }
+
+    public boolean isInfinite() {
+        return per.toMilliseconds() == 0;
+    }
 }

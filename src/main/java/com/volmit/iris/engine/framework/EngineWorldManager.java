@@ -43,4 +43,6 @@ public interface EngineWorldManager {
     void onBlockPlace(BlockPlaceEvent e);
 
     void onChunkLoad(Chunk e, boolean generated);
+
+    void chargeEnergy();
 }

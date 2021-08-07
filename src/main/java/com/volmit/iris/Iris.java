@@ -134,6 +134,7 @@ public class Iris extends VolmitPlugin implements Listener {
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);
+        splash();
     }
 
     public static void callEvent(Event e) {
@@ -165,7 +166,6 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(() -> PaperLib.suggestPaper(this));
         J.a(() -> IO.delete(getTemp()));
         J.a(this::bstats);
-        J.a(this::splash, 20);
         J.ar(this::checkConfigHotload, 60);
         J.sr(this::tickQueue, 0);
         J.s(this::setupPapi);

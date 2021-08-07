@@ -188,6 +188,12 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
+        if(message.contains("<NOMINI>"))
+        {
+            s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
+            return;
+        }
+
         try
         {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
@@ -198,6 +204,10 @@ public class VolmitSender implements CommandSender {
 
         catch(Throwable e)
         {
+            String t = C.translateAlternateColorCodes('&', getTag() + message);
+            String a =  C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
+
+            Iris.debug("<NOMINI>Failure to parse " + a);
             s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));
         }
     }

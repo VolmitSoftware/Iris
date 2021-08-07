@@ -48,6 +48,9 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The energy multiplier when calculating spawn energy usage")
     private double energyMultiplier = 1;
 
+    @Desc("This spawner will not spawn in a given chunk if that chunk has more than the defined amount of living entities.")
+    private int maxEntitiesPerChunk = 1;
+
     @Desc("The block of 24 hour time to contain this spawn in.")
     private IrisTimeBlock timeBlock = new IrisTimeBlock();
 
@@ -56,6 +59,9 @@ public class IrisSpawner extends IrisRegistrant {
 
     @Desc("The maximum rate this spawner can fire")
     private IrisRate maximumRate = new IrisRate();
+
+    @Desc("The maximum rate this spawner can fire on a specific chunk")
+    private IrisRate maximumRatePerChunk = new IrisRate();
 
     @Desc("Where should these spawns be placed")
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;

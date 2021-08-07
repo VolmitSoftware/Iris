@@ -19,20 +19,29 @@
 package com.volmit.iris.engine.object.engine;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.basic.IrisRate;
-import com.volmit.iris.util.math.M;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
+import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 @Data
-public class IrisEngineSpawnerCooldown {
-    private long lastSpawn = 0;
-    private String spawner;
+public class IrisEngineChunkData {
+    private long chunk;
+    private KList<IrisEngineSpawnerCooldown> cooldowns = new KList<>();
 
-    public void spawn(Engine engine) {
-        lastSpawn = M.ms();
+    public void cleanup(Engine engine)
+    {
+        for(IrisEngineSpawnerCooldown i : getCooldowns().copy())
+        {
+            IrisSpawner sp = engine.getData().getSpawnerLoader().load(i.getSpawner());
+
+            if(sp == null || i.canSpawn(sp.getMaximumRate()))
+            {
+                getCooldowns().remove(i);
+            }
+        }
     }
 
-    public boolean canSpawn(IrisRate s) {
-        return M.ms() - lastSpawn > s.getInterval();
+    public boolean isEmpty() {
+        return cooldowns.isEmpty();
     }
 }

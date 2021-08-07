@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -41,7 +42,16 @@ public class CommandIrisStudioSummon extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+            if (data == null) {
+                sender.sendMessage("Tab complete options only work for summons while in an Iris world.");
+            } else if (args.length == 0) {
+                list.add(data.getEntityLoader().getPossibleKeys());
+            } else if (args.length == 1) {
+                list.add(data.getEntityLoader().getPossibleKeys(args[0]));
+            }
+        }
     }
 
     @Override

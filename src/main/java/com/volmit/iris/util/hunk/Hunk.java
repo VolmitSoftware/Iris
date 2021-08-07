@@ -1401,4 +1401,9 @@ public interface Hunk<T> {
         c[0] = x;
         c[1] = y;
     }
+
+    default boolean isEmpty()
+    {
+        return false;
+    }
 }

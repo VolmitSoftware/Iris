@@ -332,4 +332,16 @@ public interface Matter {
 
         return matter;
     }
+
+    default int getTotalCount()
+    {
+        int m = 0;
+
+        for(MatterSlice<?> i : getSliceMap().values())
+        {
+            m+= i.getCount();
+        }
+
+        return m;
+    }
 }

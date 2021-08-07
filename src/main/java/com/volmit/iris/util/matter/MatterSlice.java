@@ -26,6 +26,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.util.BlockVector;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -144,5 +145,20 @@ public interface MatterSlice<T> extends Hunk<T> {
 
     default void rotateSliceInto(Matter n, double x, double y, double z) {
         rotate(x, y, z, (_x, _y, _z) -> n.slice(getType()));
+    }
+
+    default boolean containsKey(BlockVector v)
+    {
+        return get(v.getBlockX(), v.getBlockY(), v.getBlockZ()) != null;
+    }
+
+    default void put(BlockVector v, T d)
+    {
+        set(v.getBlockX(), v.getBlockY(), v.getBlockZ(), d);
+    }
+
+    default T get(BlockVector v)
+    {
+        return get(v.getBlockX(), v.getBlockY(), v.getBlockZ());
     }
 }

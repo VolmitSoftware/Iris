@@ -18,11 +18,16 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 
 import javax.xml.crypto.Data;
 import java.io.*;
@@ -167,11 +172,26 @@ public interface Matter {
         return (MatterSlice<T>) getSliceMap().put(c, slice);
     }
 
+    default Class<?> getClass(Object w) {
+        Class<?> c = w.getClass();
+
+        if (w instanceof World) {
+            c = World.class;
+        } else if (w instanceof BlockData) {
+            c = BlockData.class;
+        } else if (w instanceof Entity) {
+            c = Entity.class;
+        }
+
+        return c;
+    }
+
     default <T> MatterSlice<T> slice(Class<?> c) {
         if (!hasSlice(c)) {
             MatterSlice<?> s = createSlice(c, this);
 
             if (s == null) {
+                Iris.error("Unable to find a slice for class " + C.DARK_RED + c.getCanonicalName());
                 return null;
             }
 

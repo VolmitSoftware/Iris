@@ -1,5 +1,6 @@
 package com.volmit.iris.core;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -22,6 +23,7 @@ public class DolphinManager implements Listener {
         Material hand = event.getPlayer().getInventory().getItem(event.getHand()).getType();
         if (event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))) {
             event.setCancelled(true);
+            Iris.debug("Cancelled dolphin feed event because of potential server crash @ " + event.getPlayer().getLocation());
         }
     }
 }

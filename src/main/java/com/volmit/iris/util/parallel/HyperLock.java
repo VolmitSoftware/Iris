@@ -64,14 +64,34 @@ public class HyperLock {
 
     public void withNasty(int x, int z, NastyRunnable r) throws Throwable {
         lock(x, z);
-        r.run();
-        unlock(x, z);
+        Throwable ee = null;
+        try {
+            r.run();
+        } catch (Throwable e) {
+            ee = e;
+        } finally {
+            unlock(x, z);
+
+            if (ee != null) {
+                throw ee;
+            }
+        }
     }
 
     public void withIO(int x, int z, IORunnable r) throws IOException {
         lock(x, z);
-        r.run();
-        unlock(x, z);
+        IOException ee = null;
+        try {
+            r.run();
+        } catch (IOException e) {
+            ee = e;
+        } finally {
+            unlock(x, z);
+
+            if (ee != null) {
+                throw ee;
+            }
+        }
     }
 
     public <T> T withResult(int x, int z, Supplier<T> r) {

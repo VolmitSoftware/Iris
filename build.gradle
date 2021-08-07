@@ -32,7 +32,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.6.2'
+version '1.6.5'
 def apiVersion = '1.17'
 def name = 'Iris'
 def main = 'com.volmit.iris.Iris'

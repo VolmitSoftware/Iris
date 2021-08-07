@@ -21,21 +21,16 @@ package com.volmit.iris.core.command;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-public class CommandIrisDebug extends MortarCommand {
-    @Command
-    private CommandIrisDebugSpawnerBoost boost;
-
-    public CommandIrisDebug() {
-        super("debug", "dbg");
+public class CommandIrisAura extends MortarCommand {
+    public CommandIrisAura() {
+        super("aura", "au");
         requiresPermission(Iris.perm.studio);
-        setDescription("Toggle debug mode");
+        setDescription("Set aura spins");
         setCategory("Studio");
     }
-
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
@@ -44,15 +39,24 @@ public class CommandIrisDebug extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        IrisSettings.get().getGeneral().setDebug(!IrisSettings.get().getGeneral().isDebug());
-        IrisSettings.get().forceSave();
-        sender.sendMessage("Debug Mode: " + (IrisSettings.get().getGeneral().isDebug() ? "Enabled" : "Disabled"));
+        try {
+            int h = Integer.parseInt(args[0]);
+            int s = Integer.parseInt(args[1]);
+            int b = Integer.parseInt(args[2]);
+            IrisSettings.get().getGeneral().setSpinh(h);
+            IrisSettings.get().getGeneral().setSpins(s);
+            IrisSettings.get().getGeneral().setSpinb(b);
+            IrisSettings.get().forceSave();
+            sender.sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
+        } catch (Throwable b) {
+            sender.sendMessage(getArgsUsage());
+        }
 
         return true;
     }
 
     @Override
     protected String getArgsUsage() {
-        return "<number> [|,&,^,>>,<<,%] <other>";
+        return "<spinH> <spinS> <spinB>";
     }
 }

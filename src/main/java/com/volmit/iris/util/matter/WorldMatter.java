@@ -24,26 +24,21 @@ import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
 
 public class WorldMatter {
-    public static void placeMatter(Matter matter, Location at)
-    {
-        if(matter.hasSlice(BlockData.class))
-        {
+    public static void placeMatter(Matter matter, Location at) {
+        if (matter.hasSlice(BlockData.class)) {
             matter.slice(BlockData.class).writeInto(at);
         }
 
-        if(matter.hasSlice(MatterEntityGroup.class))
-        {
+        if (matter.hasSlice(MatterEntityGroup.class)) {
             matter.slice(MatterEntityGroup.class).writeInto(at);
         }
 
-        if(matter.hasSlice(MatterTile.class))
-        {
+        if (matter.hasSlice(MatterTile.class)) {
             matter.slice(MatterTile.class).writeInto(at);
         }
     }
 
-    public static Matter createMatter(String author, Location a, Location b)
-    {
+    public static Matter createMatter(String author, Location a, Location b) {
         Cuboid c = new Cuboid(a, b);
         Matter s = new IrisMatter(c.getSizeX(), c.getSizeY(), c.getSizeZ());
         Iris.info(s.getWidth() + " " + s.getHeight() + " " + s.getDepth());

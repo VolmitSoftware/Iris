@@ -19,16 +19,13 @@
 package com.volmit.iris.util.format;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
-import com.volmit.iris.util.plugin.VolmitSender;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 
-import java.awt.color.ColorSpace;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -139,6 +136,14 @@ public enum C {
             return net.md_5.bungee.api.ChatColor.GREEN;
         }
     },
+
+    IRIS("<#1bb19e>", 'a', 0xA) {
+        @Override
+        public net.md_5.bungee.api.ChatColor asBungee() {
+            return net.md_5.bungee.api.ChatColor.GREEN;
+        }
+    },
+
     /**
      * Represents aqua
      */
@@ -238,8 +243,10 @@ public enum C {
         public net.md_5.bungee.api.ChatColor asBungee() {
             return net.md_5.bungee.api.ChatColor.RESET;
         }
-    };
+    },
 
+
+    ;
     /**
      * The special character which prefixes all chat colour codes. Use this if you
      * need to dynamically convert colour codes from your custom format.
@@ -263,6 +270,7 @@ public enum C {
     static {
         chatHexMap.put(C.BLACK, "#000000");
         chatHexMap.put(C.DARK_BLUE, "#0000AA");
+        chatHexMap.put(C.IRIS, "#1bb19e");
         chatHexMap.put(C.DARK_GREEN, "#00AA00");
         chatHexMap.put(C.DARK_AQUA, "#00AAAA");
         chatHexMap.put(C.DARK_RED, "#AA0000");
@@ -319,9 +327,10 @@ public enum C {
         this(token, code, intCode, false);
     }
 
-    C( char code, int intCode, boolean isFormat) {
+    C(char code, int intCode, boolean isFormat) {
         this("^", code, intCode, false);
     }
+
     C(String token, char code, int intCode, boolean isFormat) {
         this.code = code;
         this.token = token.equalsIgnoreCase("^") ? "<" + name().toLowerCase(Locale.ROOT) + ">" : token;
@@ -330,50 +339,59 @@ public enum C {
         this.toString = new String(new char[]{COLOR_CHAR, code});
     }
 
-    public static float[] spin(float[] c, int shift)
-    {
-        return new float[]{spin(c[0], shift),spin(c[1], shift),spin(c[2], shift)};
+    public static float[] spin(float[] c, int shift) {
+        return new float[]{spin(c[0], shift), spinc(c[1], shift), spinc(c[2], shift)};
     }
 
-    public static float[] spin(float[] c, int a,int b, int d)
-    {
-        return new float[]{spin(c[0], a),spin(c[1], b),spin(c[2], d)};
+    public static float[] spin(float[] c, int a, int b, int d) {
+        return new float[]{spin(c[0], a), spinc(c[1], b), spinc(c[2], d)};
     }
 
-    public static float spin(float c, int shift)
-    {
-        float g = ((((int)Math.floor(c * 360)) + shift) % 360) / 360F;
+    public static float spin(float c, int shift) {
+        float g = ((((int) Math.floor(c * 360)) + shift) % 360) / 360F;
         return g < 0 ? 1f - g : g;
     }
 
-    public static String aura(String msg, int hrad, int srad, int vrad) {
+    public static float spinc(float c, int shift) {
+        float g = ((((int) Math.floor(c * 255)) + shift)) / 255F;
+        return Math.max(0f, Math.min(g, 1f));
+    }
+
+    public static java.awt.Color spin(java.awt.Color c, int h, int s, int b) {
+        float[] hsb = java.awt.Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), null);
+        hsb = spin(hsb, h, s, b);
+        return java.awt.Color.getHSBColor(hsb[0], hsb[1], hsb[2]);
+    }
+
+    public static String spinToHex(C color, int h, int s, int b) {
+        return "#" + Integer.toHexString(spin(color.awtColor(), h, s, b).getRGB()).substring(2);
+    }
+
+    public static String aura(String s, int hrad, int srad, int vrad) {
+        String msg = compress(s);
         StringBuilder b = new StringBuilder();
         boolean c = false;
 
-        for(char i : msg.toCharArray())
-        {
-            if(c)
-            {
+        for (char i : msg.toCharArray()) {
+            if (c) {
                 c = false;
 
                 C o = C.getByChar(i);
 
-                if(hrad != 0 || srad != 0 || vrad != 0)
-                {
-                    //TODO: Spin to win
-                    b.append(C.getByChar(i).token);
-                }
-
-                else
-                {
+                if (hrad != 0 || srad != 0 || vrad != 0) {
+                    b.append("<gradient:")
+                            .append(spinToHex(o, hrad, srad, vrad))
+                            .append(":")
+                            .append(spinToHex(o, -hrad, -srad, -vrad))
+                            .append(">");
+                } else {
                     b.append(C.getByChar(i).token);
                 }
 
                 continue;
             }
 
-            if(i == C.COLOR_CHAR)
-            {
+            if (i == C.COLOR_CHAR) {
                 c = true;
                 continue;
             }
@@ -382,6 +400,10 @@ public enum C {
         }
 
         return b.toString();
+    }
+
+    public static String compress(String c) {
+        return BaseComponent.toLegacyText(TextComponent.fromLegacyText(c));
     }
 
     public net.md_5.bungee.api.ChatColor asBungee() {
@@ -399,7 +421,7 @@ public enum C {
 
     @Override
     public String toString() {
-        return toString;
+        return intCode == -1 ? token : toString;
     }
 
     /**
@@ -411,6 +433,10 @@ public enum C {
 
     public String hex() {
         return chatToHex(this);
+    }
+
+    public java.awt.Color awtColor() {
+        return java.awt.Color.decode(hex());
     }
 
     /**
@@ -638,6 +664,7 @@ public enum C {
             case RED -> (byte) 12;
             case WHITE -> (byte) 15;
             case YELLOW -> (byte) 14;
+            default -> (byte) 15;
         };
     }
 
@@ -657,6 +684,7 @@ public enum C {
             case GREEN -> (byte) 5;
             case LIGHT_PURPLE -> (byte) 2;
             case WHITE -> (byte) 0;
+            default -> (byte) 15;
         };
     }
 

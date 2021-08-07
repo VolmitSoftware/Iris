@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter;
+package com.volmit.iris.util.hunk;
 
-import com.volmit.iris.util.collection.KList;
-import lombok.Data;
-
-@Data
-public class MatterEntityGroup {
-    private final KList<MatterEntity> entities = new KList<>();
+@FunctionalInterface
+public interface HunkFactory {
+    <T> Hunk<T> create(int w, int h, int d);
 }

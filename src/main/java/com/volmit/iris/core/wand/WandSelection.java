@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.wand;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -33,23 +32,18 @@ public class WandSelection {
     private final Cuboid c;
     private final Player p;
 
-    public WandSelection(Cuboid c, Player p)
-    {
+    public WandSelection(Cuboid c, Player p) {
         this.c = c;
         this.p = p;
     }
 
-    public void draw()
-    {
+    public void draw() {
         double accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(c.getCenter()));
         double dist = M.lerp(0.125, 3.5, accuracy);
 
-        for(double i = c.getLowerX()-1; i < c.getUpperX()+1; i+=0.25)
-        {
-            for(double j = c.getLowerY()-1; j < c.getUpperY()+1; j+=0.25)
-            {
-                for(double k = c.getLowerZ()-1; k < c.getUpperZ()+1; k+=0.25)
-                {
+        for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
+            for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {
+                for (double k = c.getLowerZ() - 1; k < c.getUpperZ() + 1; k += 0.25) {
                     boolean ii = i == c.getLowerX() || i == c.getUpperX();
                     boolean jj = j == c.getLowerY() || j == c.getUpperY();
                     boolean kk = k == c.getLowerZ() || k == c.getUpperZ();
@@ -85,28 +79,23 @@ public class WandSelection {
                         accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
                         dist = M.lerp(0.125, 3.5, accuracy);
 
-                        if(M.r(M.min(dist, 1D) * 0.99))
-                        {
+                        if (M.r(M.min(dist * 5, 0.9D) * 0.995)) {
                             continue;
                         }
 
-                        if(ii && jj)
-                        {
+                        if (ii && jj) {
                             a.add(0, 0, RNG.r.d(-0.3, 0.3));
                         }
 
-                        if(kk && jj)
-                        {
+                        if (kk && jj) {
                             a.add(RNG.r.d(-0.3, 0.3), 0, 0);
                         }
 
-                        if(ii && kk)
-                        {
+                        if (ii && kk) {
                             a.add(0, RNG.r.d(-0.3, 0.3), 0);
                         }
 
-                        if(p.getLocation().distanceSquared(a) < 256 * 256)
-                        {
+                        if (p.getLocation().distanceSquared(a) < 256 * 256) {
                             Color color = Color.getHSBColor((float) (0.5f + (Math.sin((i + j + k + (p.getTicksLived() / 2f)) / (20f)) / 2)), 1, 1);
                             int r = color.getRed();
                             int g = color.getGreen();
@@ -115,7 +104,7 @@ public class WandSelection {
                             p.spawnParticle(Particle.REDSTONE, a.getX(), a.getY(), a.getZ(),
                                     1, 0, 0, 0, 0,
                                     new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
-                                            (float) dist*2f));
+                                            (float) dist * 3f));
                         }
                     }
                 }

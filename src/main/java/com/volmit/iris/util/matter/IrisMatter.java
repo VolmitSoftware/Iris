@@ -23,7 +23,7 @@ import com.volmit.iris.util.collection.KMap;
 import lombok.Getter;
 
 public class IrisMatter implements Matter {
-    private static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
+    protected static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
 
     @Getter
     private final MatterHeader header;

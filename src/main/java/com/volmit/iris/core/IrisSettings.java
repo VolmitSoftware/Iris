@@ -107,6 +107,9 @@ public class IrisSettings {
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
         public String forceMainWorld = "";
+        public int spinh = -20;
+        public int spins = 7;
+        public int spinb = 8;
     }
 
     @Data

@@ -31,11 +31,13 @@ public class MythicMobsLink {
 
     /**
      * Spawn a mythic mob at this location
-     * @param mob The mob
+     *
+     * @param mob      The mob
      * @param location The location
      * @return The mob, or null if it can't be spawned
      */
-    public @Nullable Entity spawnMob(String mob, Location location) {
+    public @Nullable
+    Entity spawnMob(String mob, Location location) {
         if (!isEnabled()) return null;
 
         if (spawnMobFunction != null) {
@@ -72,7 +74,7 @@ public class MythicMobsLink {
             return mobs;
         }
 
-        if(isEnabled()) {
+        if (isEnabled()) {
 
             try {
                 Class<?> mythicMobClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs");

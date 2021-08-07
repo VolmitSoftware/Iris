@@ -43,6 +43,14 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
         return data.size();
     }
 
+    public boolean isMapped() {
+        return true;
+    }
+
+    public boolean isEmpty() {
+        return data.isEmpty();
+    }
+
     @Override
     public void setRaw(int x, int y, int z, T t) {
         if (t == null) {

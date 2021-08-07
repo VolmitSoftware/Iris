@@ -26,14 +26,12 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -68,8 +66,7 @@ public class WandManager implements Listener {
     }
 
     public void tick(Player p) {
-        try
-        {
+        try {
             try {
                 if (isWand(p.getInventory().getItemInMainHand())) {
                     Location[] d = getCuboid(p.getInventory().getItemInMainHand());
@@ -78,10 +75,7 @@ public class WandManager implements Listener {
             } catch (Throwable e) {
                 Iris.reportError(e);
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }

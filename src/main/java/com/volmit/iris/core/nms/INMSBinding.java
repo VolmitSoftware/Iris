@@ -23,7 +23,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
-import org.bukkit.block.TileState;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 

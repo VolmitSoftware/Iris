@@ -25,7 +25,7 @@ import lombok.Data;
 
 @Data
 public class IrisEngineSpawnerCooldown {
-    private long lastSpawn;
+    private long lastSpawn = 0;
     private String spawner;
 
     public void spawn(Engine engine) {

@@ -18,11 +18,16 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 
 import java.io.*;
 import java.util.Map;
@@ -87,7 +92,7 @@ public interface Matter {
     }
 
     /**
-     * Create a slice from the given type
+     * Create a slice from the given type (full is false)
      *
      * @param type   the type class
      * @param matter the matter this slice will go into (size provider)
@@ -166,11 +171,26 @@ public interface Matter {
         return (MatterSlice<T>) getSliceMap().put(c, slice);
     }
 
+    default Class<?> getClass(Object w) {
+        Class<?> c = w.getClass();
+
+        if (w instanceof World) {
+            c = World.class;
+        } else if (w instanceof BlockData) {
+            c = BlockData.class;
+        } else if (w instanceof Entity) {
+            c = Entity.class;
+        }
+
+        return c;
+    }
+
     default <T> MatterSlice<T> slice(Class<?> c) {
         if (!hasSlice(c)) {
             MatterSlice<?> s = createSlice(c, this);
 
             if (s == null) {
+                Iris.error("Unable to find a slice for class " + C.DARK_RED + c.getCanonicalName());
                 return null;
             }
 
@@ -244,16 +264,12 @@ public interface Matter {
     /**
      * Remove any slices that are empty
      */
-    default void trimSlices()
-    {
+    default void trimSlices() {
         Set<Class<?>> drop = null;
 
-        for(Class<?> i : getSliceTypes())
-        {
-            if(getSlice(i).getCount() == 0)
-            {
-                if(drop == null)
-                {
+        for (Class<?> i : getSliceTypes()) {
+            if (getSlice(i).getEntryCount() == 0) {
+                if (drop == null) {
                     drop = new KSet<>();
                 }
 
@@ -261,10 +277,8 @@ public interface Matter {
             }
         }
 
-        if(drop != null)
-        {
-            for(Class<?> i : drop)
-            {
+        if (drop != null) {
+            for (Class<?> i : drop) {
                 deleteSlice(i);
             }
         }
@@ -278,8 +292,11 @@ public interface Matter {
      * @throws IOException shit happens yo
      */
     default void write(OutputStream out) throws IOException {
+        writeDos(new DataOutputStream(out));
+    }
+
+    default void writeDos(DataOutputStream dos) throws IOException {
         trimSlices();
-        DataOutputStream dos = new DataOutputStream(out);
         Varint.writeUnsignedVarInt(getWidth(), dos);
         Varint.writeUnsignedVarInt(getHeight(), dos);
         Varint.writeUnsignedVarInt(getDepth(), dos);
@@ -289,8 +306,6 @@ public interface Matter {
         for (Class<?> i : getSliceTypes()) {
             getSlice(i).write(dos);
         }
-
-        dos.flush();
     }
 
     static Matter read(File f) throws IOException, ClassNotFoundException {
@@ -325,21 +340,27 @@ public interface Matter {
 
         while (sliceCount-- > 0) {
             String cn = din.readUTF();
-            try
-            {
+            try {
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
                 slice.read(din);
                 matter.putSlice(type, slice);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
             }
         }
 
         return matter;
+    }
+
+    default int getTotalCount() {
+        int m = 0;
+
+        for (MatterSlice<?> i : getSliceMap().values()) {
+            m += i.getEntryCount();
+        }
+
+        return m;
     }
 }

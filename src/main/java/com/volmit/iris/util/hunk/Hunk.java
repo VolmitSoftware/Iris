@@ -61,6 +61,14 @@ public interface Hunk<T> {
         return new HunkView<T>(src);
     }
 
+    default boolean isMapped() {
+        return false;
+    }
+
+    default int getEntryCount() {
+        return getWidth() * getHeight() * getDepth();
+    }
+
     static <A, B> Hunk<B> convertedReadView(Hunk<A> src, Function<A, B> reader) {
         return new FunctionalHunkView<A, B>(src, reader, null);
     }
@@ -1059,6 +1067,42 @@ public interface Hunk<T> {
         setRaw(x, y, z, t);
     }
 
+    /**
+     * Create a hunk that is optimized for specific uses
+     *
+     * @param w          width
+     * @param h          height
+     * @param d          depth
+     * @param type       the class type
+     * @param packed     if the hunk is generally more than 50% full (non-null nodes)
+     * @param concurrent if this hunk must be thread safe
+     * @param <T>        the type
+     * @return the hunk
+     */
+    static <T> Hunk<T> newHunk(int w, int h, int d, Class<T> type, boolean packed, boolean concurrent) {
+        if (type.equals(Double.class)) {
+            return concurrent ?
+                    packed ? (Hunk<T>) newAtomicDoubleHunk(w, h, d) : newMappedHunk(w, h, d)
+                    : packed ? newArrayHunk(w, h, d) : newMappedHunkSynced(w, h, d);
+        }
+
+        if (type.equals(Integer.class)) {
+            return concurrent ?
+                    packed ? (Hunk<T>) newAtomicIntegerHunk(w, h, d) : newMappedHunk(w, h, d)
+                    : packed ? newArrayHunk(w, h, d) : newMappedHunkSynced(w, h, d);
+        }
+
+        if (type.equals(Long.class)) {
+            return concurrent ?
+                    packed ? (Hunk<T>) newAtomicLongHunk(w, h, d) : newMappedHunk(w, h, d)
+                    : packed ? newArrayHunk(w, h, d) : newMappedHunkSynced(w, h, d);
+        }
+
+        return concurrent ?
+                packed ? newAtomicHunk(w, h, d) : newMappedHunk(w, h, d)
+                : packed ? newArrayHunk(w, h, d) : newMappedHunkSynced(w, h, d);
+    }
+
     default void setIfExists(int x, int y, int z, T t) {
         if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight() || z < 0 || z >= getDepth()) {
             return;
@@ -1400,5 +1444,9 @@ public interface Hunk<T> {
         int y = (int) Math.floor(sin * (double) (c[0] + 0.5) + cos * (double) (c[1] + 0.5));
         c[0] = x;
         c[1] = y;
+    }
+
+    default boolean isEmpty() {
+        return false;
     }
 }

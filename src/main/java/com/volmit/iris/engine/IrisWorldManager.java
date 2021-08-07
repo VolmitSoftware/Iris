@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.object.engine.IrisEngineChunkData;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.engine.IrisEngineSpawnerCooldown;
 import com.volmit.iris.engine.object.entity.IrisEntitySpawn;
@@ -61,6 +62,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private int entityCount = 0;
     private final ChronoLatch cl;
     private final ChronoLatch ecl;
+    private final ChronoLatch cln;
+    private long charge = 0;
     private int actuallySpawned = 0;
     private int cooldown = 0;
     private List<Entity> precount = new KList<>();
@@ -69,12 +72,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         super(null);
         cl = null;
         ecl = null;
+        cln = null;
         chunkCooldowns = null;
         looper = null;
     }
 
     public IrisWorldManager(Engine engine) {
         super(engine);
+        cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
         chunkCooldowns = new KMap<>();
@@ -82,6 +87,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
+                if (M.ms() < charge) {
+                    energy += 70;
+                }
+
+                if (cln.flip()) {
+                    engine.getEngineData().cleanup(getEngine());
+                }
+
                 if (precount != null) {
                     entityCount = 0;
                     for (Entity i : precount) {
@@ -137,7 +150,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             J.s(() -> precount = getEngine().getWorld().realWorld().getEntities());
         }
 
-        int maxGroups = 1;
         int chunkCooldownSeconds = 60;
 
         for (Long i : chunkCooldowns.k()) {
@@ -158,7 +170,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             Chunk c = cc[RNG.r.nextInt(cc.length)];
             IrisBiome biome = getEngine().getSurfaceBiome(c);
             IrisRegion region = getEngine().getRegion(c);
-            spawnIn(c, biome, region, maxGroups);
+            spawnIn(c, biome, region);
             chunkCooldowns.put(Cache.key(c), M.ms());
         }
 
@@ -170,15 +182,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         energy = M.clip(energy, 1D, 1000D);
     }
 
-    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region, int max) {
-        for (Entity i : c.getEntities()) {
-            if (i instanceof LivingEntity) {
-                return;
-            }
-        }
-
+    private void spawnIn(Chunk c, IrisBiome biome, IrisRegion region) {
         //@builder
-        spawnRandomly(Stream.concat(Stream.concat(
+        IrisEntitySpawn v = spawnRandomly(Stream.concat(Stream.concat(
                                         getData().getSpawnerLoader()
                                                 .loadAll(getDimension().getEntitySpawners())
                                                 .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
@@ -197,16 +203,57 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                                         .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
                                         .flatMap(this::stream)))
                 .collect(Collectors.toList()))
-                .popRandom(RNG.r, max).forEach((i) -> spawn(c, i));
+                .popRandom(RNG.r);
+
+        if (v != null && v.getReferenceSpawner() != null) {
+            int maxEntCount = v.getReferenceSpawner().getMaxEntitiesPerChunk();
+
+            for (Entity i : c.getEntities()) {
+                if (i instanceof LivingEntity) {
+                    if (-maxEntCount <= 0) {
+                        return;
+                    }
+                }
+            }
+
+            spawn(c, v);
+        }
         //@done
     }
 
     private void spawn(Chunk c, IrisEntitySpawn i) {
-        int s = i.spawn(getEngine(), c, RNG.r);
-        actuallySpawned += s;
-        if (s > 0) {
-            getCooldown(i.getReferenceSpawner()).spawn(getEngine());
-            energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
+        boolean allow = true;
+
+        if (!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite()) {
+            allow = false;
+            IrisEngineChunkData cd = getEngine().getEngineData().getChunk(c.getX(), c.getZ());
+            IrisEngineSpawnerCooldown sc = null;
+            for (IrisEngineSpawnerCooldown j : cd.getCooldowns()) {
+                if (j.getSpawner().equals(i.getReferenceSpawner().getLoadKey())) {
+                    sc = j;
+                    break;
+                }
+            }
+
+            if (sc == null) {
+                sc = new IrisEngineSpawnerCooldown();
+                sc.setSpawner(i.getReferenceSpawner().getLoadKey());
+                cd.getCooldowns().add(sc);
+            }
+
+            if (sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk())) {
+                sc.spawn(getEngine());
+                allow = true;
+            }
+        }
+
+        if (allow) {
+            int s = i.spawn(getEngine(), c, RNG.r);
+            actuallySpawned += s;
+            if (s > 0) {
+                getCooldown(i.getReferenceSpawner()).spawn(getEngine());
+                energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
+            }
         }
     }
 
@@ -276,6 +323,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         fixEnergy();
+    }
+
+    @Override
+    public void chargeEnergy() {
+        charge = M.ms() + 3000;
     }
 
     @Override

@@ -16,12 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter;
+package com.volmit.iris.engine.object.engine;
 
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 @Data
-public class MatterEntityGroup {
-    private final KList<MatterEntity> entities = new KList<>();
+public class IrisEngineChunkData {
+    private long chunk;
+    private KList<IrisEngineSpawnerCooldown> cooldowns = new KList<>();
+
+    public void cleanup(Engine engine) {
+        for (IrisEngineSpawnerCooldown i : getCooldowns().copy()) {
+            IrisSpawner sp = engine.getData().getSpawnerLoader().load(i.getSpawner());
+
+            if (sp == null || i.canSpawn(sp.getMaximumRate())) {
+                getCooldowns().remove(i);
+            }
+        }
+    }
+
+    public boolean isEmpty() {
+        return cooldowns.isEmpty();
+    }
 }

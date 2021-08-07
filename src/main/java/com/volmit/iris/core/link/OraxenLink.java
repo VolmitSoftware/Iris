@@ -18,11 +18,7 @@
 
 package com.volmit.iris.core.link;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.B;
-import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.OraxenItems;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
@@ -33,7 +29,6 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic
 import io.th0rgal.oraxen.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.plugin.Plugin;
@@ -49,40 +44,32 @@ public class OraxenLink {
     }
 
     public BlockData getBlockDataFor(String id) {
-        if(!supported())
-        {
+        if (!supported()) {
             return null;
         }
 
         MechanicFactory f = getFactory(id);
 
-        if(f == null)
-        {
+        if (f == null) {
             return null;
         }
 
         Mechanic m = f.getMechanic(id);
 
         // TODO: Why isnt there a simple getBlockData() function?
-        if(m.getFactory() instanceof NoteBlockMechanicFactory)
-        {
+        if (m.getFactory() instanceof NoteBlockMechanicFactory) {
             return ((NoteBlockMechanicFactory) m.getFactory()).createNoteBlockData(id);
-        }
-
-        else if(m.getFactory() instanceof BlockMechanicFactory)
-        {
-            MultipleFacing newBlockData = (MultipleFacing)Bukkit.createBlockData(Material.MUSHROOM_STEM);
-            Utils.setBlockFacing(newBlockData, ((BlockMechanic)m).getCustomVariation());
+        } else if (m.getFactory() instanceof BlockMechanicFactory) {
+            MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
+            Utils.setBlockFacing(newBlockData, ((BlockMechanic) m).getCustomVariation());
             return newBlockData;
         }
 
         return null;
     }
 
-    public MechanicFactory getFactory(String id)
-    {
-        if(!supported())
-        {
+    public MechanicFactory getFactory(String id) {
+        if (!supported()) {
             return null;
         }
 
@@ -91,10 +78,8 @@ public class OraxenLink {
             f.setAccessible(true);
             Map<String, MechanicFactory> map = (Map<String, MechanicFactory>) f.get(null);
 
-            for(MechanicFactory i : map.values())
-            {
-                if(i.getItems().contains(id))
-                {
+            for (MechanicFactory i : map.values()) {
+                if (i.getItems().contains(id)) {
                     return i;
                 }
             }
@@ -106,17 +91,14 @@ public class OraxenLink {
     }
 
     public String[] getItemTypes() {
-        if(!supported())
-        {
+        if (!supported()) {
             return EMPTY;
         }
 
         KList<String> v = new KList<>();
 
-        for(String i : OraxenItems.getItemNames())
-        {
-            if(getBlockDataFor(i) != null)
-            {
+        for (String i : OraxenItems.getItemNames()) {
+            if (getBlockDataFor(i) != null) {
                 v.add(i);
             }
         }

@@ -60,27 +60,23 @@ public class CommandIrisStudioUpdate extends MortarCommand {
             return true;
         }
 
-        for(String i : args)
-        {
-            if(i.equals("--rewrite-objects"))
-            {
+        for (String i : args) {
+            if (i.equals("--rewrite-objects")) {
                 IrisData data = new IrisData(Iris.proj.getWorkspaceFolder(args[0]));
                 int t = data.getObjectLoader().getPossibleKeys().length;
                 ChronoLatch cl = new ChronoLatch(250, false);
-                MultiBurst bx = new MultiBurst("Object Rewriter",Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
+                MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
                 BurstExecutor b = bx.burst();
                 int g = 0;
-                for(String f : data.getObjectLoader().getPossibleKeys())
-                {
+                for (String f : data.getObjectLoader().getPossibleKeys()) {
                     int finalG1 = g;
                     b.queue(() -> {
 
-                        if(cl.flip())
-                        {
+                        if (cl.flip()) {
                             Iris.info("Rewriting: " + Form.f(t - finalG1) + " Objects Left");
                         }
                         File ff = data.getObjectLoader().findFile(f);
-                        IrisObject oo = new IrisObject(0,0,0);
+                        IrisObject oo = new IrisObject(0, 0, 0);
                         try {
                             oo.read(ff);
                         } catch (Throwable e) {
@@ -88,8 +84,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
                             return;
                         }
 
-                        if(oo == null)
-                        {
+                        if (oo == null) {
                             Iris.error("FAILER TO READ: " + f);
                             return;
                         }

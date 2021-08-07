@@ -14,8 +14,8 @@ public class VillagerManager implements Listener {
      * Replace or disable villager trade add event to prevent explorer map
      */
     @EventHandler
-    public void on(VillagerAcquireTradeEvent event){
-        if (!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))){
+    public void on(VillagerAcquireTradeEvent event) {
+        if (!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
             return;
         }
 
@@ -26,13 +26,13 @@ public class VillagerManager implements Listener {
 
         IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getPatchCartographers();
 
-        if (override.isDisableTrade()){
+        if (override.isDisableTrade()) {
             event.setCancelled(true);
             Iris.debug("Cancelled cartographer trade @ " + event.getEntity().getLocation());
             return;
         }
 
-        if (override.getValidItems() == null){
+        if (override.getValidItems() == null) {
             event.setCancelled(true);
             Iris.debug("Cancelled cartographer trade because no override items are valid @ " + event.getEntity().getLocation());
             return;

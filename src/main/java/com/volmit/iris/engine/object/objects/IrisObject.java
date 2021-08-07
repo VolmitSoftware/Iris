@@ -36,8 +36,9 @@ import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.IrisLock;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -56,26 +57,37 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
-@Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant {
-    private static final Vector HALF = new Vector(0.5, 0.5, 0.5);
-    private static final BlockData AIR = B.get("CAVE_AIR");
-    private static final BlockData VAIR = B.get("VOID_AIR");
-    private static final BlockData VAIR_DEBUG = B.get("COBWEB");
-    private static final BlockData[] SNOW_LAYERS = new BlockData[]{B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
-    public static boolean shitty = false;
+    protected static final Vector HALF = new Vector(0.5, 0.5, 0.5);
+    protected static final BlockData AIR = B.get("CAVE_AIR");
+    protected static final BlockData VAIR = B.get("VOID_AIR");
+    protected static final BlockData VAIR_DEBUG = B.get("COBWEB");
+    protected static final BlockData[] SNOW_LAYERS = new BlockData[]{B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
+
     private KMap<BlockVector, BlockData> blocks;
     private KMap<BlockVector, TileData<? extends TileState>> states;
+    @Getter
+    @Setter
     private int w;
+    @Getter
+    @Setter
     private int d;
+    @Getter
+    @Setter
     private int h;
-    private transient final IrisLock readLock = new IrisLock("read-conclock");
+    protected transient final IrisLock readLock = new IrisLock("read-conclock");
+    @Getter
+    @Setter
     private transient BlockVector center;
-    private transient volatile boolean smartBored = false;
-    private transient IrisLock lock = new IrisLock("Preloadcache");
-    private transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
-
+    @Getter
+    @Setter
+    protected transient volatile boolean smartBored = false;
+    @Getter
+    @Setter
+    protected transient IrisLock lock = new IrisLock("Preloadcache");
+    @Setter
+    protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
 
     public IrisObject(int w, int h, int d) {
         blocks = new KMap<>();
@@ -330,10 +342,6 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void read(File file) throws IOException {
-        if (shitty) {
-            return;
-        }
-
         FileInputStream fin = new FileInputStream(file);
         try {
             read(fin);
@@ -348,8 +356,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void write(File file) throws IOException {
-        if(file == null)
-        {
+        if (file == null) {
             return;
         }
 
@@ -862,7 +869,7 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        setBlocks(b);
+        blocks = b;
     }
 
     public void tricubic(int rad) {
@@ -891,7 +898,7 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        setBlocks(b);
+        blocks = b;
     }
 
     public void trihermite(int rad) {
@@ -924,7 +931,7 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        setBlocks(b);
+        blocks = b;
     }
 
     private BlockData nearestBlockData(int x, int y, int z) {

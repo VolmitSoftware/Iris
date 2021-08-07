@@ -26,56 +26,57 @@ import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
 public class CommandIrisStudio extends MortarCommand {
-    @Command
-    private CommandIrisStudioCreate create;
-
-    @Command
-    private CommandIrisStudioOpen open;
-
-    @Command
-    private CommandIrisStudioSummon summon;
-
-    @Command
-    private CommandIrisStudioClose close;
-
-    @Command
-    private CommandIrisStudioPackage pkg;
-
-    @Command
-    private CommandIrisStudioUpdate update;
-
-    @Command
-    private CommandIrisStudioGoto got0;
-
-    @Command
-    private CommandIrisStudioEditBiome ebiome;
-
-    @Command
-    private CommandIrisStudioHotload hotload;
-
-    @Command
-    private CommandIrisStudioExplorer exp;
 
     @Command
     private CommandIrisStudioBeautify beautify;
 
     @Command
-    private CommandIrisStudioProfile profile;
-
-    @Command
-    private CommandIrisStudioExplorerGenerator generator;
-
-    @Command
-    private CommandIrisStudioLoot loot;
-
-    @Command
-    private CommandIrisStudioTPStudio tps;
+    private CommandIrisStudioClose close;
 
     @Command
     private CommandIrisStudioConvert convert;
 
     @Command
+    private CommandIrisStudioCreate create;
+
+    @Command
+    private CommandIrisStudioEditBiome editbiome;
+
+    @Command
+    private CommandIrisStudioExplorer exp;
+
+    @Command
+    private CommandIrisStudioExplorerGenerator generator;
+
+    @Command
+    private CommandIrisStudioGoto got0;
+
+    @Command
+    private CommandIrisStudioHotload hotload;
+
+    @Command
+    private CommandIrisStudioLoot loot;
+
+    @Command
     private CommandIrisStudioMap map;
+
+    @Command
+    private CommandIrisStudioOpen open;
+
+    @Command
+    private CommandIrisStudioPackage pkg;
+
+    @Command
+    private CommandIrisStudioProfile profile;
+
+    @Command
+    private CommandIrisStudioSummon summon;
+
+    @Command
+    private CommandIrisStudioTPStudio tps;
+
+    @Command
+    private CommandIrisStudioUpdate update;
 
     public CommandIrisStudio() {
         super("studio", "std", "s");

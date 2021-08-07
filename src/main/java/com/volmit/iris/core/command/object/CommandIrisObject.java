@@ -60,13 +60,13 @@ public class CommandIrisObject extends MortarCommand {
     private CommandIrisObjectP2 p2;
 
     @Command
-    private CommandIrisObjectSave save;
-
-    @Command
     private CommandIrisObjectPaste paste;
 
     @Command
     private CommandIrisObjectUndo undo;
+
+    @Command
+    private CommandIrisObjectSave save;
 
     @Command
     private CommandIrisObjectAnalyze analyze;

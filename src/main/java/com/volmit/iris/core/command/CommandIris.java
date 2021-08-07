@@ -30,44 +30,33 @@ import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
 public class CommandIris extends MortarCommand {
-    @Command
-    private CommandIrisCreate create;
 
     @Command
-    private CommandIrisVerify verify;
-
-    @Command
-    private CommandIrisDebug debug;
-
-    @Command
-    private CommandIrisFix fix;
-
-    @Command
-    private CommandIrisStudio studio;
-
-    @Command
-    private CommandIrisJigsaw jigsaw;
-
-    @Command
-    private CommandIrisObject object;
-
-    @Command
-    private CommandIrisDownload download;
-
-    @Command
-    private CommandIrisUpdateProject updateProject;
-
-    @Command
-    private CommandIrisUpdateWorld updateWorld;
+    private CommandIrisAura aura;
 
     @Command
     private CommandIrisBitwise bitwise;
 
     @Command
-    private CommandIrisWhat what;
+    private CommandIrisCreate create;
+
+    @Command
+    private CommandIrisDebug debug;
+
+    @Command
+    private CommandIrisDownload download;
+
+    @Command
+    private CommandIrisFix fix;
+
+    @Command
+    private CommandIrisJigsaw jigsaw;
 
     @Command
     private CommandIrisMetrics metrics;
+
+    @Command
+    private CommandIrisObject object;
 
     @Command
     private CommandIrisPregen pregen;
@@ -76,7 +65,19 @@ public class CommandIris extends MortarCommand {
     private CommandIrisReload reload;
 
     @Command
-    private CommandIrisAura aura;
+    private CommandIrisStudio studio;
+
+    @Command
+    private CommandIrisUpdateProject updateProject;
+
+    @Command
+    private CommandIrisUpdateWorld updateWorld;
+
+    @Command
+    private CommandIrisVerify verify;
+
+    @Command
+    private CommandIrisWhat what;
 
     public CommandIris() {
         super("iris", "ir", "irs");

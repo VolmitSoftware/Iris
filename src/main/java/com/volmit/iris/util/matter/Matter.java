@@ -24,6 +24,7 @@ import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.Map;
 import java.util.Set;
@@ -87,7 +88,7 @@ public interface Matter {
     }
 
     /**
-     * Create a slice from the given type
+     * Create a slice from the given type (full is false)
      *
      * @param type   the type class
      * @param matter the matter this slice will go into (size provider)
@@ -248,7 +249,7 @@ public interface Matter {
         Set<Class<?>> drop = null;
 
         for (Class<?> i : getSliceTypes()) {
-            if (getSlice(i).getCount() == 0) {
+            if (getSlice(i).getEntryCount() == 0) {
                 if (drop == null) {
                     drop = new KSet<>();
                 }
@@ -272,8 +273,11 @@ public interface Matter {
      * @throws IOException shit happens yo
      */
     default void write(OutputStream out) throws IOException {
+        writeDos(new DataOutputStream(out));
+    }
+
+    default void writeDos(DataOutputStream dos) throws IOException {
         trimSlices();
-        DataOutputStream dos = new DataOutputStream(out);
         Varint.writeUnsignedVarInt(getWidth(), dos);
         Varint.writeUnsignedVarInt(getHeight(), dos);
         Varint.writeUnsignedVarInt(getDepth(), dos);
@@ -283,8 +287,6 @@ public interface Matter {
         for (Class<?> i : getSliceTypes()) {
             getSlice(i).write(dos);
         }
-
-        dos.flush();
     }
 
     static Matter read(File f) throws IOException, ClassNotFoundException {
@@ -339,7 +341,7 @@ public interface Matter {
 
         for(MatterSlice<?> i : getSliceMap().values())
         {
-            m+= i.getCount();
+            m+= i.getEntryCount();
         }
 
         return m;

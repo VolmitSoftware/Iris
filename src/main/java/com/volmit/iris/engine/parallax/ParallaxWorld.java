@@ -114,6 +114,7 @@ public class ParallaxWorld implements ParallaxAccess {
 
             if (lr != null) {
                 v += lr.unload();
+                Iris.debug("Unloaded Parallax Region " + C.RED + x + " " + z);
             }
         }
 
@@ -128,6 +129,7 @@ public class ParallaxWorld implements ParallaxAccess {
 
         ParallaxRegion v = new ParallaxRegion(burst, height, folder, x, z);
         loadedRegions.put(key(x, z), v);
+        Iris.debug("Loaded Parallax Region " + C.RED + x + " " + z);
 
         return v;
     }

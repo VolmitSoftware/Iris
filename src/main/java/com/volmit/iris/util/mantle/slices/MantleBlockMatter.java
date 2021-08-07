@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.mantle.slices;
 
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.matter.Sliced;
+import com.volmit.iris.util.matter.slices.RawMatter;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
@@ -30,18 +31,20 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class BlockMatter extends RawMatter<BlockData> {
-    public BlockMatter() {
+public class MantleBlockMatter extends RawMatter<BlockData> {
+    public MantleBlockMatter() {
         this(1, 1, 1);
     }
 
-    public BlockMatter(int width, int height, int depth) {
+    public MantleBlockMatter(int width, int height, int depth) {
         super(width, height, depth, BlockData.class);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
+        registerWriter(ParallaxWorld.class, (w, d, x, y, z) -> w.setBlock(x, y, z, d));
         registerReader(World.class, (w, x, y, z) -> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();
             return d.getMaterial().isAir() ? null : d;
         });
+        registerReader(ParallaxWorld.class, ParallaxAccess::getBlock);
     }
 
     @Override

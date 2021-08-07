@@ -524,7 +524,41 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
-        msg(C.LIGHT_PURPLE + string);
+        try
+        {
+            throw new RuntimeException();
+        }
+
+        catch(Throwable e)
+        {
+            try
+            {
+                String[] cc = e.getStackTrace()[1].getClassName().split("\\Q.\\E");
+
+                if(cc.length > 5)
+                {
+                    debug(cc[3] + "/" + cc[4] + "/" + cc[cc.length-1], e.getStackTrace()[1].getLineNumber(), string);
+                }
+
+                else
+                {
+                    debug(cc[3] + "/" + cc[4], e.getStackTrace()[1].getLineNumber(), string);
+                }
+            }
+
+            catch(Throwable ex)
+            {
+                debug("Origin", -1, string);
+            }
+        }
+    }
+
+    public static void debug(String category, int line, String string) {
+        if (!IrisSettings.get().getGeneral().isDebug()) {
+            return;
+        }
+
+        msg("<gradient:#095fe0:#a848db>" + category + " <#bf3b76>" + line + "<reset> " +  C.LIGHT_PURPLE + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
     }
 
     public static void verbose(String string) {

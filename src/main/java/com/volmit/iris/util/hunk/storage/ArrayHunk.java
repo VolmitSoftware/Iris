@@ -20,6 +20,7 @@ package com.volmit.iris.util.hunk.storage;
 
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.HunkFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

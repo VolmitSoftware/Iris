@@ -99,14 +99,6 @@ public interface MatterSlice<T> extends Hunk<T> {
         return true;
     }
 
-    // BlockMatter<T>
-    //   RawMatter<T>      ex MappedHunk<T>
-    //     IMatterSlice<T> ex Hunk<T>
-
-    default int getCount() {
-        return ((MappedHunk<?>) this).getEntryCount();
-    }
-
     default boolean canWrite(Class<?> mediumType) {
         return writeInto(mediumType) != null;
     }
@@ -122,24 +114,41 @@ public interface MatterSlice<T> extends Hunk<T> {
         MatterPalette<T> palette = new MatterPalette<T>(this);
         iterateSync((x, y, z, b) -> palette.assign(b));
         palette.writePalette(dos);
-        Varint.writeUnsignedVarInt(getCount(), dos);
-        iterateSyncIO((x, y, z, b) -> {
-            Varint.writeUnsignedVarInt(Cache.to1D(x, y, z, w, h), dos);
-            palette.writeNode(b, dos);
-        });
+        dos.writeBoolean(isMapped());
+
+        if(isMapped())
+        {
+            Varint.writeUnsignedVarInt(getEntryCount(), dos);
+            iterateSyncIO((x, y, z, b) -> {
+                Varint.writeUnsignedVarInt(Cache.to1D(x, y, z, w, h), dos);
+                palette.writeNode(b, dos);
+            });
+        }
+
+        else
+        {
+            iterateSyncIO((x, y, z, b) -> palette.writeNode(b, dos));
+        }
     }
 
     default void read(DataInputStream din) throws IOException {
         int w = getWidth();
         int h = getHeight();
-
         MatterPalette<T> palette = new MatterPalette<T>(this, din);
-        int nodes = Varint.readUnsignedVarInt(din);
-        int[] pos;
+        if(din.readBoolean())
+        {
+            int nodes = Varint.readUnsignedVarInt(din);
+            int[] pos;
 
-        while (nodes-- > 0) {
-            pos = Cache.to3D(Varint.readUnsignedVarInt(din), w, h);
-            setRaw(pos[0], pos[1], pos[2], palette.readNode(din));
+            while (nodes-- > 0) {
+                pos = Cache.to3D(Varint.readUnsignedVarInt(din), w, h);
+                setRaw(pos[0], pos[1], pos[2], palette.readNode(din));
+            }
+        }
+
+        else
+        {
+            iterateSyncIO((x, y, z, b) -> setRaw(x, y, z, palette.readNode(din)));
         }
     }
 

@@ -228,24 +228,10 @@ public class IrisEngine extends BlockPopulator implements Engine {
                 }
                 case ISLANDS -> {
                     getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
-
                 }
             }
 
             getMetrics().getTotal().put(p.getMilliseconds());
-
-            if (IrisSettings.get().getGeneral().isDebug()) {
-                KList<String> v = new KList<>();
-                KMap<String, Double> g = getMetrics().pull();
-
-                for (String i : g.sortKNumber()) {
-                    if (g.get(i) != null) {
-                        v.add(C.RESET + "" + C.LIGHT_PURPLE + i + ": " + C.UNDERLINE + C.BLUE + Form.duration(g.get(i), 0) + C.RESET + C.GRAY + "");
-                    }
-                }
-
-                Iris.debug(v.toString(", "));
-            }
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
@@ -258,7 +244,9 @@ public class IrisEngine extends BlockPopulator implements Engine {
         f.getParentFile().mkdirs();
         try {
             IO.writeAll(f, new Gson().toJson(getEngineData()));
+            Iris.debug("Saved Engine Data");
         } catch (IOException e) {
+            Iris.error("Failed to save Engine Data");
             e.printStackTrace();
         }
     }

@@ -27,6 +27,7 @@ import com.volmit.iris.util.scheduling.Looper;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 public class MultiBurst {
     public static final MultiBurst burst = new MultiBurst("Iris", IrisSettings.get().getConcurrency().getMiscThreadPriority(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getMiscThreadCount()));
@@ -53,13 +54,13 @@ public class MultiBurst {
                 if (M.ms() - last.get() > TimeUnit.MINUTES.toMillis(1) && service != null) {
                     service.shutdown();
                     service = null;
-                    Iris.debug("Shutting down MultiBurst Pool " + getName() + " to conserve resource.");
+                    Iris.debug("Shutting down MultiBurst Pool " + getName() + " to conserve resources.");
                 }
 
                 return 60000;
             }
         };
-        heartbeat.setName(name);
+        heartbeat.setName(name + " Monitor");
         heartbeat.start();
     }
 
@@ -121,6 +122,10 @@ public class MultiBurst {
 
     public CompletableFuture<?> complete(Runnable o) {
         return CompletableFuture.runAsync(o, getService());
+    }
+
+    public <T> CompletableFuture<T> completeValue(Supplier<T> o) {
+        return CompletableFuture.supplyAsync(o, getService());
     }
 
     public void shutdownNow() {

@@ -6,10 +6,10 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-public class CommandIrisPregenToggle extends MortarCommand {
+public class CommandIrisPregenPause extends MortarCommand {
 
-    public CommandIrisPregenToggle() {
-        super("toggle", "t", "pause", "continue", "p", "c");
+    public CommandIrisPregenPause() {
+        super("pause", "toggle", "t", "continue", "resume", "p", "c", "unpause", "up");
         requiresPermission(Iris.perm);
         setCategory("Pregen");
         setDescription("Toggle an ongoing pregeneration task");
@@ -18,9 +18,9 @@ public class CommandIrisPregenToggle extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (PregeneratorJob.pauseResume()){
-            sender.sendMessage("Toggled pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running"));
+            sender.sendMessage("Paused/unpaused pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running") + ".");
         } else {
-            sender.sendMessage("No active pregeneration tasks to toggle");
+            sender.sendMessage("No active pregeneration tasks to pause/unpause.");
         }
         return true;
     }

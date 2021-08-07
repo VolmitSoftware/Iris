@@ -33,7 +33,7 @@ public class CommandIrisPregen extends MortarCommand {
     private CommandIrisPregenStop stop;
 
     @Command
-    private CommandIrisPregenToggle toggle;
+    private CommandIrisPregenPause toggle;
 
     public CommandIrisPregen() {
         super("pregen", "preg", "p");

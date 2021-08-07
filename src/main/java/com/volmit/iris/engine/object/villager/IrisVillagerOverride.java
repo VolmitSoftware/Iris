@@ -44,6 +44,10 @@ public class IrisVillagerOverride {
             .setMinTrades(3)
             .setMaxTrades(5));
 
+    /**
+     * Get valid items to enter in trade
+     * @return list of items or null if none are found
+     */
     public KList<IrisVillagerTrade> getValidItems() {
         KList<IrisVillagerTrade> valid = new KList<>();
         getItems().stream().filter(IrisVillagerTrade::isValidItems).forEach(valid::add);

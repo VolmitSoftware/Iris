@@ -1,7 +1,10 @@
 package com.volmit.iris.engine.object.location;
 
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.DependsOn;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.villager.IrisVillagerOverride;
+import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,4 +24,9 @@ public class IrisLocations {
 
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
+
+    @DependsOn("preventLocate")
+    @Desc("A list of StructureTypes to override with objects")
+    @ArrayType(min = 1, type = IrisLocations.class)
+    private KList<IrisLocation> locations = new KList<>();
 }

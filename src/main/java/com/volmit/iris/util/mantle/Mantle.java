@@ -27,6 +27,7 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -96,7 +97,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        MantleMatter matter = null;
+        Matter matter = null;
         try {
             matter = get((x >> 4) >> 5, (z >> 4) >> 5).get()
                     .getOrCreate((x >> 4) & 31, (z >> 4) & 31)

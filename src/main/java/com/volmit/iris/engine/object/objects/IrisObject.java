@@ -86,7 +86,6 @@ public class IrisObject extends IrisRegistrant {
     @Getter
     @Setter
     protected transient IrisLock lock = new IrisLock("Preloadcache");
-    @Getter
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
 

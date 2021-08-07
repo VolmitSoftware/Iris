@@ -87,7 +87,8 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MultiverseCoreLink linkMultiverseCore;
     public static OraxenLink linkOraxen;
     public static MythicMobsLink linkMythicMobs;
-    public static TreeManager saplingManager;
+    public static EyeOfEnderManager eyeOfEnderManager;
+    public static LocationManager locationManager;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
@@ -123,13 +124,16 @@ public class Iris extends VolmitPlugin implements Listener {
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
         linkMythicMobs = new MythicMobsLink();
-        saplingManager = new TreeManager();
         edit = new EditManager();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
-        getServer().getPluginManager().registerEvents(new CommandLocate(), this);
+
+        locationManager = new LocationManager();
+        eyeOfEnderManager = new EyeOfEnderManager();
         getServer().getPluginManager().registerEvents(new WandManager(), this);
         getServer().getPluginManager().registerEvents(new DolphinManager(), this);
         getServer().getPluginManager().registerEvents(new VillagerManager(), this);
+        getServer().getPluginManager().registerEvents(eyeOfEnderManager, this);
+        getServer().getPluginManager().registerEvents(locationManager, this);
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);

@@ -18,13 +18,10 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
-import com.volmit.iris.util.nbt.mca.Section;
-import lombok.Data;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -40,29 +37,28 @@ public class MantleChunk {
 
     /**
      * Create a mantle chunk
+     *
      * @param sectionHeight the height of the world in sections (blocks >> 4)
      */
     @ChunkCoordinates
-    public MantleChunk(int sectionHeight)
-    {
+    public MantleChunk(int sectionHeight) {
         sections = new AtomicReferenceArray<>(sectionHeight);
     }
 
     /**
      * Load a mantle chunk from a data stream
+     *
      * @param sectionHeight the height of the world in sections (blocks >> 4)
-     * @param din the data input
-     * @throws IOException shit happens
+     * @param din           the data input
+     * @throws IOException            shit happens
      * @throws ClassNotFoundException shit happens
      */
     public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
         this(sectionHeight);
         int s = Varint.readUnsignedVarInt(din);
 
-        for(int i = 0; i < s; i++)
-        {
-            if(din.readBoolean())
-            {
+        for (int i = 0; i < s; i++) {
+            if (din.readBoolean()) {
                 sections.set(i, Matter.read(din));
             }
         }
@@ -70,59 +66,56 @@ public class MantleChunk {
 
     /**
      * Check if a section exists (same as get(section) != null)
+     *
      * @param section the section (0 - (worldHeight >> 4))
      * @return true if it exists
      */
     @ChunkCoordinates
-    public boolean exists(int section)
-    {
+    public boolean exists(int section) {
         return get(section) != null;
     }
 
     /**
      * Get thje matter at the given section or null if it doesnt exist
+     *
      * @param section the section (0 - (worldHeight >> 4))
      * @return the matter or null if it doesnt exist
      */
     @ChunkCoordinates
-    public Matter get(int section)
-    {
+    public Matter get(int section) {
         return sections.get(section);
     }
 
     /**
      * Clear all matter from this chunk
      */
-    public void clear()
-    {
-        for(int i = 0; i < sections.length(); i++)
-        {
+    public void clear() {
+        for (int i = 0; i < sections.length(); i++) {
             delete(i);
         }
     }
 
     /**
      * Delete the matter from the given section
+     *
      * @param section the section (0 - (worldHeight >> 4))
      */
     @ChunkCoordinates
-    public void delete(int section)
-    {
+    public void delete(int section) {
         sections.set(section, null);
     }
 
     /**
      * Get or create a new matter section at the given section
+     *
      * @param section the section (0 - (worldHeight >> 4))
      * @return the matter
      */
     @ChunkCoordinates
-    public Matter getOrCreate(int section)
-    {
+    public Matter getOrCreate(int section) {
         Matter matter = get(section);
 
-        if(matter == null)
-        {
+        if (matter == null) {
             matter = new IrisMatter(16, 16, 16);
             sections.set(section, matter);
         }
@@ -132,23 +125,19 @@ public class MantleChunk {
 
     /**
      * Write this chunk to a data stream
+     *
      * @param dos the stream
      * @throws IOException shit happens
      */
     public void write(DataOutputStream dos) throws IOException {
         Varint.writeUnsignedVarInt(sections.length(), dos);
 
-        for(int i = 0; i < sections.length(); i++)
-        {
-            if(exists(i))
-            {
+        for (int i = 0; i < sections.length(); i++) {
+            if (exists(i)) {
                 dos.writeBoolean(true);
                 Matter matter = get(i);
                 matter.writeDos(dos);
-            }
-
-            else
-            {
+            } else {
                 dos.writeBoolean(false);
             }
         }

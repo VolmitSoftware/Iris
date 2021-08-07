@@ -18,8 +18,6 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.engine.parallax.ParallaxAccess;
-import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.World;

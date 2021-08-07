@@ -67,19 +67,12 @@ public class HyperLock {
         Throwable ee = null;
         try {
             r.run();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             ee = e;
-        }
-
-        finally
-        {
+        } finally {
             unlock(x, z);
 
-            if(ee != null)
-            {
+            if (ee != null) {
                 throw ee;
             }
         }
@@ -90,19 +83,12 @@ public class HyperLock {
         IOException ee = null;
         try {
             r.run();
-        }
-
-        catch(IOException e)
-        {
+        } catch (IOException e) {
             ee = e;
-        }
-
-        finally
-        {
+        } finally {
             unlock(x, z);
 
-            if(ee != null)
-            {
+            if (ee != null) {
                 throw ee;
             }
         }

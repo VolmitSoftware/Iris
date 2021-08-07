@@ -21,7 +21,6 @@ package com.volmit.iris.util.matter;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.storage.MappedHunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -116,17 +115,13 @@ public interface MatterSlice<T> extends Hunk<T> {
         palette.writePalette(dos);
         dos.writeBoolean(isMapped());
 
-        if(isMapped())
-        {
+        if (isMapped()) {
             Varint.writeUnsignedVarInt(getEntryCount(), dos);
             iterateSyncIO((x, y, z, b) -> {
                 Varint.writeUnsignedVarInt(Cache.to1D(x, y, z, w, h), dos);
                 palette.writeNode(b, dos);
             });
-        }
-
-        else
-        {
+        } else {
             iterateSyncIO((x, y, z, b) -> palette.writeNode(b, dos));
         }
     }
@@ -135,8 +130,7 @@ public interface MatterSlice<T> extends Hunk<T> {
         int w = getWidth();
         int h = getHeight();
         MatterPalette<T> palette = new MatterPalette<T>(this, din);
-        if(din.readBoolean())
-        {
+        if (din.readBoolean()) {
             int nodes = Varint.readUnsignedVarInt(din);
             int[] pos;
 
@@ -144,10 +138,7 @@ public interface MatterSlice<T> extends Hunk<T> {
                 pos = Cache.to3D(Varint.readUnsignedVarInt(din), w, h);
                 setRaw(pos[0], pos[1], pos[2], palette.readNode(din));
             }
-        }
-
-        else
-        {
+        } else {
             iterateSyncIO((x, y, z, b) -> setRaw(x, y, z, palette.readNode(din)));
         }
     }
@@ -156,18 +147,15 @@ public interface MatterSlice<T> extends Hunk<T> {
         rotate(x, y, z, (_x, _y, _z) -> n.slice(getType()));
     }
 
-    default boolean containsKey(BlockVector v)
-    {
+    default boolean containsKey(BlockVector v) {
         return get(v.getBlockX(), v.getBlockY(), v.getBlockZ()) != null;
     }
 
-    default void put(BlockVector v, T d)
-    {
+    default void put(BlockVector v, T d) {
         set(v.getBlockX(), v.getBlockY(), v.getBlockZ(), d);
     }
 
-    default T get(BlockVector v)
-    {
+    default T get(BlockVector v) {
         return get(v.getBlockX(), v.getBlockY(), v.getBlockZ());
     }
 }

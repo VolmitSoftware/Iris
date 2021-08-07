@@ -47,8 +47,7 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
         return true;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return data.isEmpty();
     }
 

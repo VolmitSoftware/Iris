@@ -29,7 +29,6 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.Map;
 import java.util.Set;
@@ -355,13 +354,11 @@ public interface Matter {
         return matter;
     }
 
-    default int getTotalCount()
-    {
+    default int getTotalCount() {
         int m = 0;
 
-        for(MatterSlice<?> i : getSliceMap().values())
-        {
-            m+= i.getEntryCount();
+        for (MatterSlice<?> i : getSliceMap().values()) {
+            m += i.getEntryCount();
         }
 
         return m;

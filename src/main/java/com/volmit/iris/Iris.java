@@ -524,30 +524,18 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
-        try
-        {
+        try {
             throw new RuntimeException();
-        }
-
-        catch(Throwable e)
-        {
-            try
-            {
+        } catch (Throwable e) {
+            try {
                 String[] cc = e.getStackTrace()[1].getClassName().split("\\Q.\\E");
 
-                if(cc.length > 5)
-                {
-                    debug(cc[3] + "/" + cc[4] + "/" + cc[cc.length-1], e.getStackTrace()[1].getLineNumber(), string);
-                }
-
-                else
-                {
+                if (cc.length > 5) {
+                    debug(cc[3] + "/" + cc[4] + "/" + cc[cc.length - 1], e.getStackTrace()[1].getLineNumber(), string);
+                } else {
                     debug(cc[3] + "/" + cc[4], e.getStackTrace()[1].getLineNumber(), string);
                 }
-            }
-
-            catch(Throwable ex)
-            {
+            } catch (Throwable ex) {
                 debug("Origin", -1, string);
             }
         }
@@ -558,7 +546,7 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
-        msg("<gradient:#095fe0:#a848db>" + category + " <#bf3b76>" + line + "<reset> " +  C.LIGHT_PURPLE + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
+        msg("<gradient:#095fe0:#a848db>" + category + " <#bf3b76>" + line + "<reset> " + C.LIGHT_PURPLE + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
     }
 
     public static void verbose(String string) {

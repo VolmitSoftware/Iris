@@ -102,40 +102,29 @@ public class CommandIrisStudioBeautify extends MortarCommand {
     }
 
     private void fixBlocks(JSONObject obj, File f) {
-        for(String i : obj.keySet())
-        {
+        for (String i : obj.keySet()) {
             Object o = obj.get(i);
 
-            if(i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":"))
-            {
+            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
                 obj.put(i, "minecraft:" + o);
                 Iris.debug("Updated Block Key: " + o + " to " + obj.getString(i) + " in " + f.getPath());
             }
 
-            if(o instanceof JSONObject)
-            {
+            if (o instanceof JSONObject) {
                 fixBlocks((JSONObject) o, f);
-            }
-
-            else if(o instanceof JSONArray)
-            {
+            } else if (o instanceof JSONArray) {
                 fixBlocks((JSONArray) o, f);
             }
         }
     }
 
     private void fixBlocks(JSONArray obj, File f) {
-        for(int i = 0; i < obj.length(); i++)
-        {
+        for (int i = 0; i < obj.length(); i++) {
             Object o = obj.get(i);
 
-            if(o instanceof JSONObject)
-            {
+            if (o instanceof JSONObject) {
                 fixBlocks((JSONObject) o, f);
-            }
-
-            else if(o instanceof JSONArray)
-            {
+            } else if (o instanceof JSONArray) {
                 fixBlocks((JSONArray) o, f);
             }
         }

@@ -27,7 +27,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 
 public class CommandIrisPregen extends MortarCommand {
     @Command
-    private CommandIrisPregenCreate start;
+    private CommandIrisPregenStart start;
 
     @Command
     private CommandIrisPregenStop stop;

@@ -14,25 +14,31 @@ import org.bukkit.World;
 import java.util.Arrays;
 
 
-public class CommandIrisPregenCreate extends MortarCommand {
+public class CommandIrisPregenStart extends MortarCommand {
 
     private static final KList<String> argus = new KList<>("radius=", "width=", "height=", "x=", "z=");
 
-    public CommandIrisPregenCreate() {
-        super("create", "c", "new", "+");
+    public CommandIrisPregenStart() {
+        super("start", "s", "create", "c", "new", "+");
         requiresPermission(Iris.perm);
         setCategory("Pregen");
         setDescription("""
                 Create a new pregeneration task.
-                Command usage & examples:
-                /iris pregen create [radius=<radius>] [width=<width>] [height=<height>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
-                /iris pregen create radius=5000 x=10r z=10r world=IrisWorld
-                /iris pregen create 5k -here
+                Command usage:
+                /iris pregen create [radius=<radius>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
                 
-                <radius>:  Sets both width and height to a value.
-                <x> & <z>: Give the center point of the pregeneration.
-                <world>:   Specify a specific world name for generation as well (required for console)
+                Examples:
+                /iris pregen start 5k -here
+                /iris pregen start radius=5000 x=10r z=10r world=IrisWorld
+                /iris pregen start 10k world=WorldName
+                
+                <radius>:  Sets both width and height to a value. (Size is: 2 * radius by 2 * radius)
+                <x> & <z>: Give the center point of the pregen.
+                <world>:   Specify a different world name for generation than the one you're currently in.
+                           The console is not in any world, so this is required for console!
+                           If you specify this, the `-here` is ignored.
                 -here:     If added, the center location is set to your position (player only)
+                           This overrides <x> and <z>.
                 
                 For all numeric values (radius, centerX, etc.) you may use:
                 c => 16, r => 512, k => 1000
@@ -86,14 +92,15 @@ public class CommandIrisPregenCreate extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return "<radius> [width=<width>] [height=<height>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]";
+        return "<radius> [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]";
     }
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
 
         if (PregeneratorJob.getInstance() != null) {
-            sender.sendMessage("Pregeneration task already ongoing. You can stop it with /ir p stop");
+            sender.sendMessage("Pregeneration task already ongoing. You can stop it with /ir p stop.");
+            sender.sendMessage("Cannot create new pregen while one is already going. Cancelling...");
             return true;
         }
 
@@ -104,6 +111,7 @@ public class CommandIrisPregenCreate extends MortarCommand {
         int z = 0;
         boolean here = false;
 
+        // Check all arguments
         KList<String> failed = new KList<>();
         for (String a : args) {
             if (a.equals("-here")){
@@ -143,12 +151,14 @@ public class CommandIrisPregenCreate extends MortarCommand {
             }
         }
 
+        // Checking if a radius was specified or forgotten
         if (width == -1 || height == -1){
-            sender.sendMessage("Radius or (width & height) not specified. Cancelling...");
+            sender.sendMessage("Radius not specified! Cancelling...");
             sender.sendMessage(getDescription());
             return true;
         }
 
+        // World specified & cancelling `-here` if it's another world
         if (world == null){
             if (sender.isPlayer()){
                 world = sender.player().getWorld();
@@ -157,8 +167,18 @@ public class CommandIrisPregenCreate extends MortarCommand {
                 sender.sendMessage(getDescription());
                 return true;
             }
+        } else {
+            if (sender.isPlayer()){
+                if (!world.equals(sender.player().getWorld())){
+                    if (here) {
+                        sender.sendMessage("Ignoring `-here` because `world=` is specified!");
+                        here = false;
+                    }
+                }
+            }
         }
 
+        // Checking if -here is used
         if (here){
             if (sender.isPlayer()) {
                 x = sender.player().getLocation().getBlockX();
@@ -168,32 +188,39 @@ public class CommandIrisPregenCreate extends MortarCommand {
             }
         }
 
-        StringBuilder details = new StringBuilder("Pregeneration details:");
-
-        details.append("\n")
+        // Build details print
+        StringBuilder details = new StringBuilder("Pregeneration details:")
+                .append("\n")
                 .append("   - World        > ")
                 .append(world.getName())
                 .append("\n")
-                .append("   - Width/Height > ")
+                .append("   - Radius > ")
                 .append(width)
-                .append("/")
-                .append(height)
-                .append("\n")
+                .append("(")
+                .append(width * 2)
+                .append(" by ")
+                .append(height * 2)
+                .append(")\n")
                 .append("   - Center x,z   > ")
                 .append(x)
                 .append(",")
                 .append(z)
                 .append("\n")
-                .append(failed.isEmpty() ? "(No failed arguments)" : "FAILED ARGS:\n");
+
+        // Append failed args
+                .append(failed.isEmpty() ? "(No failed arguments)\n" : "FAILED ARGS:\n");
         for (String s : failed) {
             details.append(s).append("\n");
         }
 
+        // Start pregen and append info to details
         if (pregenerate(world, width, height, x, z)){
             details.append("Successfully started pregen");
         } else {
             details.append("Failed to start pregen. Doublecheck your arguments!");
         }
+
+        // Send details
         sender.sendMessage(details.toString());
 
         return true;
@@ -224,6 +251,12 @@ public class CommandIrisPregenCreate extends MortarCommand {
         return true;
     }
 
+    /**
+     * Get the ingeger value from an argument that may contain `c` `chunks` `r` `regions` or `k`<br>
+     * "5r" returns 5 * 512 = 2560
+     * @param arg the string argument to parse into a value
+     * @return the integer value result
+     */
     private int getVal(String arg) {
 
         if (arg.toLowerCase().endsWith("c") || arg.toLowerCase().endsWith("chunks")) {
@@ -243,7 +276,7 @@ public class CommandIrisPregenCreate extends MortarCommand {
 
     /**
      * Checks if the
-     * @param arg argument
+     * @param arg string value
      * @return is valid -> true
      */
     private boolean isVal(String arg) {

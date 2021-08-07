@@ -85,7 +85,7 @@ public class WandSelection {
                         accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
                         dist = M.lerp(0.125, 3.5, accuracy);
 
-                        if(M.r(M.min(dist, 1D) * 0.99))
+                        if(M.r(M.min(dist*5, 0.9D) * 0.995))
                         {
                             continue;
                         }
@@ -115,7 +115,7 @@ public class WandSelection {
                             p.spawnParticle(Particle.REDSTONE, a.getX(), a.getY(), a.getZ(),
                                     1, 0, 0, 0, 0,
                                     new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
-                                            (float) dist*2f));
+                                            (float) dist*3f));
                         }
                     }
                 }

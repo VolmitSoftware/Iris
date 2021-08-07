@@ -21,6 +21,8 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.matter.IrisMatter;
+import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.nbt.mca.Section;
 import lombok.Data;
 
@@ -29,15 +31,30 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
+/**
+ * Represents a mantle chunk. Mantle chunks contain sections of matter (see matter api)
+ * Mantle Chunks are fully atomic & thread safe
+ */
 public class MantleChunk {
-    private final AtomicReferenceArray<MantleMatter> sections;
+    private final AtomicReferenceArray<Matter> sections;
 
+    /**
+     * Create a mantle chunk
+     * @param sectionHeight the height of the world in sections (blocks >> 4)
+     */
     @ChunkCoordinates
     public MantleChunk(int sectionHeight)
     {
         sections = new AtomicReferenceArray<>(sectionHeight);
     }
 
+    /**
+     * Load a mantle chunk from a data stream
+     * @param sectionHeight the height of the world in sections (blocks >> 4)
+     * @param din the data input
+     * @throws IOException shit happens
+     * @throws ClassNotFoundException shit happens
+     */
     public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
         this(sectionHeight);
         int s = Varint.readUnsignedVarInt(din);
@@ -46,23 +63,36 @@ public class MantleChunk {
         {
             if(din.readBoolean())
             {
-                sections.set(i, MantleMatter.read(din));
+                sections.set(i, Matter.read(din));
             }
         }
     }
 
+    /**
+     * Check if a section exists (same as get(section) != null)
+     * @param section the section (0 - (worldHeight >> 4))
+     * @return true if it exists
+     */
     @ChunkCoordinates
     public boolean exists(int section)
     {
         return get(section) != null;
     }
 
+    /**
+     * Get thje matter at the given section or null if it doesnt exist
+     * @param section the section (0 - (worldHeight >> 4))
+     * @return the matter or null if it doesnt exist
+     */
     @ChunkCoordinates
-    public MantleMatter get(int section)
+    public Matter get(int section)
     {
         return sections.get(section);
     }
 
+    /**
+     * Clear all matter from this chunk
+     */
     public void clear()
     {
         for(int i = 0; i < sections.length(); i++)
@@ -71,26 +101,40 @@ public class MantleChunk {
         }
     }
 
+    /**
+     * Delete the matter from the given section
+     * @param section the section (0 - (worldHeight >> 4))
+     */
     @ChunkCoordinates
     public void delete(int section)
     {
         sections.set(section, null);
     }
 
+    /**
+     * Get or create a new matter section at the given section
+     * @param section the section (0 - (worldHeight >> 4))
+     * @return the matter
+     */
     @ChunkCoordinates
-    public MantleMatter getOrCreate(int section)
+    public Matter getOrCreate(int section)
     {
-        MantleMatter matter = get(section);
+        Matter matter = get(section);
 
         if(matter == null)
         {
-            matter = new MantleMatter(16, 16, 16);
+            matter = new IrisMatter(16, 16, 16);
             sections.set(section, matter);
         }
 
         return matter;
     }
 
+    /**
+     * Write this chunk to a data stream
+     * @param dos the stream
+     * @throws IOException shit happens
+     */
     public void write(DataOutputStream dos) throws IOException {
         Varint.writeUnsignedVarInt(sections.length(), dos);
 
@@ -99,7 +143,7 @@ public class MantleChunk {
             if(exists(i))
             {
                 dos.writeBoolean(true);
-                MantleMatter matter = get(i);
+                Matter matter = get(i);
                 matter.writeDos(dos);
             }
 

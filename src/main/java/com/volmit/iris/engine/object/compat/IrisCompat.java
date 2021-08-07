@@ -30,6 +30,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
+import java.io.IOException;
 
 @Data
 public class IrisCompat {
@@ -155,7 +156,12 @@ public class IrisCompat {
         J.attemptAsync(() -> IO.writeAll(new File(f.getParentFile(), "compat.default.json"), defa));
 
         if (!f.exists()) {
-            J.attemptAsync(() -> IO.writeAll(f, defa));
+            try {
+                IO.writeAll(f, defa);
+            } catch (IOException e) {
+                Iris.error("Failed to write to compat file");
+                Iris.reportError(e);
+            }
         }
 
         try {

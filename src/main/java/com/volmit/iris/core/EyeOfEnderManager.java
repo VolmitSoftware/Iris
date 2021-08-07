@@ -1,9 +1,7 @@
 package com.volmit.iris.core;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import lombok.Getter;
-import org.bukkit.StructureType;
 import org.bukkit.entity.EnderSignal;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,6 +14,11 @@ public class EyeOfEnderManager implements Listener {
 
     @EventHandler
     public void on(EntitySpawnEvent e){
+
+        if (e.isCancelled()){
+            return;
+        }
+
         if (!(e.getEntity() instanceof EnderSignal entity)){
             return;
         }

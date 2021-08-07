@@ -16,6 +16,11 @@ public class DolphinManager implements Listener {
      */
     @EventHandler
     public void on(PlayerInteractEntityEvent event) {
+
+        if (event.isCancelled()){
+            return;
+        }
+
         if (!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())) {
             return;
         }

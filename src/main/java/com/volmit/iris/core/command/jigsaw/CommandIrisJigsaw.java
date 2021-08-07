@@ -69,6 +69,6 @@ public class CommandIrisJigsaw extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return "";
+        return "[subcommand]";
     }
 }

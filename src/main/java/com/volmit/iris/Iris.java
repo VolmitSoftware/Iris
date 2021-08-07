@@ -56,7 +56,6 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
-import net.kyori.adventure.platform.AudienceProvider;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.Bukkit;
@@ -73,7 +72,7 @@ import org.bukkit.plugin.Plugin;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
-import java.util.*;
+import java.util.Date;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -443,13 +442,9 @@ public class Iris extends VolmitPlugin implements Listener {
         try {
             sender.sendMessage(string);
         } catch (Throwable ignored) {
-            try
-            {
+            try {
                 System.out.println(string);
-            }
-
-            catch(Throwable ignored1)
-            {
+            } catch (Throwable ignored1) {
 
             }
         }

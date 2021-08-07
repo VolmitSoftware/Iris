@@ -19,11 +19,6 @@
 package com.volmit.iris.util.format;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.plugin.VolmitSender;
-import net.kyori.adventure.text.minimessage.transformation.inbuild.FontTransformation;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang.Validate;
@@ -31,8 +26,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 
-import java.awt.color.ColorSpace;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -334,9 +327,10 @@ public enum C {
         this(token, code, intCode, false);
     }
 
-    C( char code, int intCode, boolean isFormat) {
+    C(char code, int intCode, boolean isFormat) {
         this("^", code, intCode, false);
     }
+
     C(String token, char code, int intCode, boolean isFormat) {
         this.code = code;
         this.token = token.equalsIgnoreCase("^") ? "<" + name().toLowerCase(Locale.ROOT) + ">" : token;
@@ -345,37 +339,31 @@ public enum C {
         this.toString = new String(new char[]{COLOR_CHAR, code});
     }
 
-    public static float[] spin(float[] c, int shift)
-    {
-        return new float[]{spin(c[0], shift),spinc(c[1], shift),spinc(c[2], shift)};
+    public static float[] spin(float[] c, int shift) {
+        return new float[]{spin(c[0], shift), spinc(c[1], shift), spinc(c[2], shift)};
     }
 
-    public static float[] spin(float[] c, int a,int b, int d)
-    {
-        return new float[]{spin(c[0], a),spinc(c[1], b),spinc(c[2], d)};
+    public static float[] spin(float[] c, int a, int b, int d) {
+        return new float[]{spin(c[0], a), spinc(c[1], b), spinc(c[2], d)};
     }
 
-    public static float spin(float c, int shift)
-    {
-        float g = ((((int)Math.floor(c * 360)) + shift) % 360) / 360F;
+    public static float spin(float c, int shift) {
+        float g = ((((int) Math.floor(c * 360)) + shift) % 360) / 360F;
         return g < 0 ? 1f - g : g;
     }
 
-    public static float spinc(float c, int shift)
-    {
-        float g = ((((int)Math.floor(c * 255)) + shift)) / 255F;
+    public static float spinc(float c, int shift) {
+        float g = ((((int) Math.floor(c * 255)) + shift)) / 255F;
         return Math.max(0f, Math.min(g, 1f));
     }
 
-    public static java.awt.Color spin(java.awt.Color c, int h, int s, int b)
-    {
+    public static java.awt.Color spin(java.awt.Color c, int h, int s, int b) {
         float[] hsb = java.awt.Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), null);
         hsb = spin(hsb, h, s, b);
         return java.awt.Color.getHSBColor(hsb[0], hsb[1], hsb[2]);
     }
 
-    public static String spinToHex(C color, int h, int s, int b)
-    {
+    public static String spinToHex(C color, int h, int s, int b) {
         return "#" + Integer.toHexString(spin(color.awtColor(), h, s, b).getRGB()).substring(2);
     }
 
@@ -384,33 +372,26 @@ public enum C {
         StringBuilder b = new StringBuilder();
         boolean c = false;
 
-        for(char i : msg.toCharArray())
-        {
-            if(c)
-            {
+        for (char i : msg.toCharArray()) {
+            if (c) {
                 c = false;
 
                 C o = C.getByChar(i);
 
-                if(hrad != 0 || srad != 0 || vrad != 0)
-                {
+                if (hrad != 0 || srad != 0 || vrad != 0) {
                     b.append("<gradient:")
                             .append(spinToHex(o, hrad, srad, vrad))
                             .append(":")
                             .append(spinToHex(o, -hrad, -srad, -vrad))
                             .append(">");
-                }
-
-                else
-                {
+                } else {
                     b.append(C.getByChar(i).token);
                 }
 
                 continue;
             }
 
-            if(i == C.COLOR_CHAR)
-            {
+            if (i == C.COLOR_CHAR) {
                 c = true;
                 continue;
             }
@@ -421,8 +402,7 @@ public enum C {
         return b.toString();
     }
 
-    public static String compress(String c)
-    {
+    public static String compress(String c) {
         return BaseComponent.toLegacyText(TextComponent.fromLegacyText(c));
     }
 
@@ -455,8 +435,7 @@ public enum C {
         return chatToHex(this);
     }
 
-    public java.awt.Color awtColor()
-    {
+    public java.awt.Color awtColor() {
         return java.awt.Color.decode(hex());
     }
 

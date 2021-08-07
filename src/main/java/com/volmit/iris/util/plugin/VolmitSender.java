@@ -23,13 +23,8 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 import lombok.Getter;
 import lombok.Setter;
-import net.kyori.adventure.Adventure;
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.platform.AudienceProvider;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.transformation.inbuild.GradientTransformation;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -188,24 +183,19 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
-        if(message.contains("<NOMINI>"))
-        {
+        if (message.contains("<NOMINI>")) {
             s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
             return;
         }
 
-        try
-        {
+        try {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
-            String a =  C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
+            String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
             Component c = MiniMessage.get().parse(a);
             Iris.audiences.sender(s).sendMessage(c);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
-            String a =  C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
+            String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
 
             Iris.debug("<NOMINI>Failure to parse " + a);
             s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));

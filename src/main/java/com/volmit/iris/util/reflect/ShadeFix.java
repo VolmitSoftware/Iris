@@ -19,8 +19,7 @@
 package com.volmit.iris.util.reflect;
 
 public class ShadeFix {
-    public static void fix(Class<?> c)
-    {
+    public static void fix(Class<?> c) {
         c.getCanonicalName();
     }
 }

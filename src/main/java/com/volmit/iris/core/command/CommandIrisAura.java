@@ -39,8 +39,7 @@ public class CommandIrisAura extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        try
-        {
+        try {
             int h = Integer.parseInt(args[0]);
             int s = Integer.parseInt(args[1]);
             int b = Integer.parseInt(args[2]);
@@ -49,10 +48,7 @@ public class CommandIrisAura extends MortarCommand {
             IrisSettings.get().getGeneral().setSpinb(b);
             IrisSettings.get().forceSave();
             sender.sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
-        }
-
-        catch(Throwable b)
-        {
+        } catch (Throwable b) {
             sender.sendMessage(getArgsUsage());
         }
 

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
@@ -68,7 +67,7 @@ public interface MatterSlice<T> extends Hunk<T> {
             return false;
         }
 
-        iterateSync((a,b,c,t) -> injector.writeMatter(w, t, a+x, b+y, c+z));
+        iterateSync((a, b, c, t) -> injector.writeMatter(w, t, a + x, b + y, c + z));
 
         return true;
     }
@@ -89,8 +88,7 @@ public interface MatterSlice<T> extends Hunk<T> {
                 for (int k = z; k < z + getDepth(); k++) {
                     T v = ejector.readMatter(w, i, j, k);
 
-                    if(v != null)
-                    {
+                    if (v != null) {
                         set(i - x, j - y, k - z, v);
                     }
                 }

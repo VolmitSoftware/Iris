@@ -19,8 +19,6 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data

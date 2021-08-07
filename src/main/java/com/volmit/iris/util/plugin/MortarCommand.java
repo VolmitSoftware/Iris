@@ -91,7 +91,7 @@ public abstract class MortarCommand implements ICommand {
 
             b = true;
 
-            sender.sendMessage("" + C.GREEN + i.getNode() + " " + "<font:minecraft:uniform>"  + (getArgsUsage().trim().isEmpty() ? "" : (C.WHITE + i.getArgsUsage())) + C.GRAY + " - " + i.getDescription());
+            sender.sendMessage("" + C.GREEN + i.getNode() + " " + "<font:minecraft:uniform>" + (getArgsUsage().trim().isEmpty() ? "" : (C.WHITE + i.getArgsUsage())) + C.GRAY + " - " + i.getDescription());
         }
 
         if (!b) {

@@ -23,14 +23,17 @@ import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.IntTag;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
 import net.minecraft.core.IRegistryWritable;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NBTCompressedStreamTools;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagDouble;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.WorldServer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.biome.BiomeBase;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.block.state.IBlockData;
@@ -44,7 +47,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
-import net.minecraft.world.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -74,15 +76,14 @@ public class NMSBinding17_1 implements INMSBinding {
 
     @Override
     public boolean hasTile(Location l) {
-       return ((CraftWorld)l.getWorld()).getHandle().getTileEntity(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
+        return ((CraftWorld) l.getWorld()).getHandle().getTileEntity(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
     }
 
     @Override
     public CompoundTag serializeTile(Location location) {
-        TileEntity e = ((CraftWorld)location.getWorld()).getHandle().getTileEntity(new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
+        TileEntity e = ((CraftWorld) location.getWorld()).getHandle().getTileEntity(new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
 
-        if(e == null)
-        {
+        if (e == null) {
             return null;
         }
 
@@ -95,12 +96,11 @@ public class NMSBinding17_1 implements INMSBinding {
     public void deserializeTile(CompoundTag s, Location newPosition) {
         NBTTagCompound c = convert(s);
 
-        if(c != null)
-        {
+        if (c != null) {
             int x = newPosition.getBlockX();
             int y = newPosition.getBlockY();
             int z = newPosition.getBlockZ();
-            WorldServer w = ((CraftWorld)newPosition.getWorld()).getHandle();
+            WorldServer w = ((CraftWorld) newPosition.getWorld()).getHandle();
             Chunk ch = w.getChunkAt(x >> 4, z >> 4);
             ChunkSection sect = ch.getSections()[y >> 4];
             IBlockData block = sect.getBlocks().a(x & 15, y & 15, z & 15);
@@ -109,8 +109,7 @@ public class NMSBinding17_1 implements INMSBinding {
         }
     }
 
-    private NBTTagCompound convert(CompoundTag tag)
-    {
+    private NBTTagCompound convert(CompoundTag tag) {
         try {
             ByteArrayOutputStream boas = new ByteArrayOutputStream();
             NBTUtil.write(tag, boas, false);
@@ -118,18 +117,14 @@ public class NMSBinding17_1 implements INMSBinding {
             NBTTagCompound c = NBTCompressedStreamTools.a((DataInput) din);
             din.close();
             return c;
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 
         return null;
     }
 
-    private CompoundTag convert(NBTTagCompound tag)
-    {
+    private CompoundTag convert(NBTTagCompound tag) {
         try {
             ByteArrayOutputStream boas = new ByteArrayOutputStream();
             DataOutputStream dos = new DataOutputStream(boas);
@@ -145,7 +140,7 @@ public class NMSBinding17_1 implements INMSBinding {
 
     @Override
     public CompoundTag serializeEntity(org.bukkit.entity.Entity be) {
-        Entity entity = ((CraftEntity)be).getHandle();
+        Entity entity = ((CraftEntity) be).getHandle();
         NBTTagCompound tag = new NBTTagCompound();
         entity.save(tag);
         CompoundTag t = convert(tag);
@@ -165,7 +160,7 @@ public class NMSBinding17_1 implements INMSBinding {
         pos.a(2, NBTTagDouble.a(newPosition.getZ()));
         tag.set("Pos", pos);
         org.bukkit.entity.Entity be = newPosition.getWorld().spawnEntity(newPosition, type);
-        ((CraftEntity)be).getHandle().load(tag);
+        ((CraftEntity) be).getHandle().load(tag);
 
         return be;
     }

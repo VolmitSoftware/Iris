@@ -1,6 +1,5 @@
 package com.volmit.iris.core;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -15,13 +14,13 @@ public class DolphinManager implements Listener {
      * Note: This results in odd dolphin behaviour, but it's the best we can do.
      */
     @EventHandler
-    public void on(PlayerInteractEntityEvent event){
-        if (!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())){
+    public void on(PlayerInteractEntityEvent event) {
+        if (!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())) {
             return;
         }
 
         Material hand = event.getPlayer().getInventory().getItem(event.getHand()).getType();
-        if (event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))){
+        if (event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))) {
             event.setCancelled(true);
         }
     }

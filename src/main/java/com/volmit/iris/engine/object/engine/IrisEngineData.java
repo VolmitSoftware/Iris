@@ -20,7 +20,6 @@ package com.volmit.iris.engine.object.engine;
 
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.meta.IrisEnchantment;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import lombok.Data;
@@ -31,20 +30,16 @@ public class IrisEngineData {
     private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
     private KList<IrisEngineChunkData> chunks = new KList<>();
 
-    public void removeChunk(int x, int z)
-    {
+    public void removeChunk(int x, int z) {
         long k = Cache.key(x, z);
         chunks.removeWhere((i) -> i.getChunk() == k);
     }
 
-    public IrisEngineChunkData getChunk(int x, int z)
-    {
+    public IrisEngineChunkData getChunk(int x, int z) {
         long k = Cache.key(x, z);
 
-        for(IrisEngineChunkData i : chunks)
-        {
-            if(i.getChunk() == k)
-            {
+        for (IrisEngineChunkData i : chunks) {
+            if (i.getChunk() == k) {
                 return i;
             }
         }
@@ -56,22 +51,18 @@ public class IrisEngineData {
     }
 
     public void cleanup(Engine engine) {
-        for(IrisEngineSpawnerCooldown i : getSpawnerCooldowns().copy())
-        {
+        for (IrisEngineSpawnerCooldown i : getSpawnerCooldowns().copy()) {
             IrisSpawner sp = engine.getData().getSpawnerLoader().load(i.getSpawner());
 
-            if(sp == null || i.canSpawn(sp.getMaximumRate()))
-            {
+            if (sp == null || i.canSpawn(sp.getMaximumRate())) {
                 getSpawnerCooldowns().remove(i);
             }
         }
 
-        for(IrisEngineChunkData i : chunks.copy())
-        {
+        for (IrisEngineChunkData i : chunks.copy()) {
             i.cleanup(engine);
 
-            if(i.isEmpty())
-            {
+            if (i.isEmpty()) {
                 getChunks().remove(i);
             }
         }

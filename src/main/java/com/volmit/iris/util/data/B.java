@@ -572,15 +572,11 @@ public class B {
             }
         }
 
-        try
-        {
+        try {
             for (String i : Iris.linkOraxen.getItemTypes()) {
                 bt.add("oraxen:" + i);
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 

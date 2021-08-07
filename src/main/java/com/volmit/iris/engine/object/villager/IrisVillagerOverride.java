@@ -22,11 +22,11 @@ import org.bukkit.inventory.ItemStack;
 @EqualsAndHashCode(callSuper = false)
 public class IrisVillagerOverride {
     @Desc("""
-                    Disable the trade altogether.
-                    If a cartographer villager gets a new explorer map trade:
-                    If this is enabled -> the trade is removed
-                    If this is disabled -> the trade is replaced with the "override" setting below
-                    Default is true, so if you omit this, trades will be removed.""")
+            Disable the trade altogether.
+            If a cartographer villager gets a new explorer map trade:
+            If this is enabled -> the trade is removed
+            If this is disabled -> the trade is replaced with the "override" setting below
+            Default is true, so if you omit this, trades will be removed.""")
     private boolean disableTrade = true;
 
     @DependsOn("disableTrade")
@@ -44,7 +44,7 @@ public class IrisVillagerOverride {
             .setMinTrades(3)
             .setMaxTrades(5));
 
-    public KList<IrisVillagerTrade> getValidItems(){
+    public KList<IrisVillagerTrade> getValidItems() {
         KList<IrisVillagerTrade> valid = new KList<>();
         getItems().stream().filter(IrisVillagerTrade::isValidItems).forEach(valid::add);
         return valid.size() == 0 ? null : valid;

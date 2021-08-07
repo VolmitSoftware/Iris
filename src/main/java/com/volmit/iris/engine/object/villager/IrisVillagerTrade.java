@@ -4,9 +4,7 @@ package com.volmit.iris.engine.object.villager;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.scheduling.S;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -58,7 +56,7 @@ public class IrisVillagerTrade {
      * mintrades > 0, maxtrades > 0, maxtrades > mintrades, and<br>
      * ingredient 1, (if defined ingredient 2) and the result are valid items
      */
-    public boolean isValidItems(){
+    public boolean isValidItems() {
         KList<String> warnings = new KList<>();
         if (ingredient1 == null) {
             warnings.add("Ingredient 1 is null");
@@ -80,15 +78,15 @@ public class IrisVillagerTrade {
             warnings.add("More minimal than maximal trades");
         }
 
-        if (ingredient1 != null && !ingredient1.getType().isItem()){
+        if (ingredient1 != null && !ingredient1.getType().isItem()) {
             warnings.add("Ingredient 1 is not an item");
         }
 
-        if (ingredient2 != null && !ingredient2.getType().isItem()){
+        if (ingredient2 != null && !ingredient2.getType().isItem()) {
             warnings.add("Ingredient 2 is not an item");
         }
 
-        if (result != null && !result.getType().isItem()){
+        if (result != null && !result.getType().isItem()) {
             warnings.add("Result is not an item");
         }
 
@@ -103,10 +101,11 @@ public class IrisVillagerTrade {
 
     /**
      * Get the ingredients
+     *
      * @return The list of 1 or 2 ingredients (depending on if ing2 is null)
      */
     public List<ItemStack> getIngredients() {
-        if (!isValidItems()){
+        if (!isValidItems()) {
             return null;
         }
         return ingredient2 == null ? new KList<>(ingredient1) : new KList<>(ingredient1, ingredient2);
@@ -122,7 +121,7 @@ public class IrisVillagerTrade {
     /**
      * @return the trade as a merchant recipe
      */
-    public MerchantRecipe convert(){
+    public MerchantRecipe convert() {
         MerchantRecipe recipe = new MerchantRecipe(getResult(), getAmount());
         recipe.setIngredients(getIngredients());
         return recipe;

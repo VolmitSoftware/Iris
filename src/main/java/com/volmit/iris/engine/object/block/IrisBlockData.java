@@ -149,10 +149,8 @@ public class IrisBlockData extends IrisRegistrant {
         });
     }
 
-    private String keyify(String dat)
-    {
-        if(dat.contains(":"))
-        {
+    private String keyify(String dat) {
+        if (dat.contains(":")) {
             return dat;
         }
 

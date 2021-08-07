@@ -348,8 +348,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void write(File file) throws IOException {
-        if(file == null)
-        {
+        if (file == null) {
             return;
         }
 

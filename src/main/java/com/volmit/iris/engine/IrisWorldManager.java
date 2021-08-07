@@ -87,13 +87,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
-                if(M.ms() < charge)
-                {
+                if (M.ms() < charge) {
                     energy += 70;
                 }
 
-                if(cln.flip())
-                {
+                if (cln.flip()) {
                     engine.getEngineData().cleanup(getEngine());
                 }
 
@@ -207,14 +205,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 .collect(Collectors.toList()))
                 .popRandom(RNG.r);
 
-        if(v != null && v.getReferenceSpawner() != null)
-        {
+        if (v != null && v.getReferenceSpawner() != null) {
             int maxEntCount = v.getReferenceSpawner().getMaxEntitiesPerChunk();
 
             for (Entity i : c.getEntities()) {
                 if (i instanceof LivingEntity) {
-                    if(-maxEntCount <= 0)
-                    {
+                    if (-maxEntCount <= 0) {
                         return;
                     }
                 }
@@ -228,36 +224,30 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private void spawn(Chunk c, IrisEntitySpawn i) {
         boolean allow = true;
 
-        if(!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite())
-        {
+        if (!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite()) {
             allow = false;
             IrisEngineChunkData cd = getEngine().getEngineData().getChunk(c.getX(), c.getZ());
             IrisEngineSpawnerCooldown sc = null;
-            for(IrisEngineSpawnerCooldown j : cd.getCooldowns())
-            {
-                if(j.getSpawner().equals(i.getReferenceSpawner().getLoadKey()))
-                {
+            for (IrisEngineSpawnerCooldown j : cd.getCooldowns()) {
+                if (j.getSpawner().equals(i.getReferenceSpawner().getLoadKey())) {
                     sc = j;
                     break;
                 }
             }
 
-            if(sc == null)
-            {
+            if (sc == null) {
                 sc = new IrisEngineSpawnerCooldown();
                 sc.setSpawner(i.getReferenceSpawner().getLoadKey());
                 cd.getCooldowns().add(sc);
             }
 
-            if(sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk()))
-            {
+            if (sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk())) {
                 sc.spawn(getEngine());
                 allow = true;
             }
         }
 
-        if(allow)
-        {
+        if (allow) {
             int s = i.spawn(getEngine(), c, RNG.r);
             actuallySpawned += s;
             if (s > 0) {

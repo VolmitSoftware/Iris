@@ -18,13 +18,15 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Varint;
-import com.volmit.iris.util.matter.*;
+import com.volmit.iris.util.matter.MatterEntity;
+import com.volmit.iris.util.matter.MatterEntityGroup;
+import com.volmit.iris.util.matter.MatterReader;
+import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
@@ -47,20 +49,17 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
     public EntityMatter(int width, int height, int depth) {
         super(width, height, depth, MatterEntityGroup.class);
         registerWriter(World.class, ((w, d, x, y, z) -> {
-            for(MatterEntity i : d.getEntities())
-            {
-                Location realPosition = new Location(w, x+i.getXOff(), y+i.getYOff(), z+i.getZOff());
+            for (MatterEntity i : d.getEntities()) {
+                Location realPosition = new Location(w, x + i.getXOff(), y + i.getYOff(), z + i.getZOff());
                 INMS.get().deserializeEntity(i.getEntityData(), realPosition);
             }
         }));
         registerReader(World.class, (w, x, y, z) -> {
-            IrisPosition pos = new IrisPosition(x,y,z);
+            IrisPosition pos = new IrisPosition(x, y, z);
             KList<Entity> entities = entityCache.get(pos);
             MatterEntityGroup g = new MatterEntityGroup();
-            if(entities != null)
-            {
-                for(Entity i : entities)
-                {
+            if (entities != null) {
+                for (Entity i : entities) {
                     g.getEntities().add(new MatterEntity(
                             Math.abs(i.getLocation().getX()) - Math.abs(i.getLocation().getBlockX()),
                             Math.abs(i.getLocation().getY()) - Math.abs(i.getLocation().getBlockY()),
@@ -81,17 +80,17 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
      * across every block position, we simply use getNearbyEntities and cache each
      * block position with a list of entities within that block, and directly feed
      * the reader with the entities we capture.
-     * @param w the world
-     * @param x the x offset
-     * @param y the y offset
-     * @param z the z offset
+     *
+     * @param w   the world
+     * @param x   the x offset
+     * @param y   the y offset
+     * @param z   the z offset
      * @param <W> the type
      * @return true if we read
      */
     @Override
     public synchronized <W> boolean readFrom(W w, int x, int y, int z) {
-        if(!(w instanceof World))
-        {
+        if (!(w instanceof World)) {
             return super.readFrom(w, x, y, z);
         }
 
@@ -103,18 +102,15 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
         entityCache = new KMap<>();
 
-        for(Entity i : ((World) w).getNearbyEntities(new BoundingBox(x, y, z, x + getWidth(), y + getHeight(), z + getHeight())))
-        {
+        for (Entity i : ((World) w).getNearbyEntities(new BoundingBox(x, y, z, x + getWidth(), y + getHeight(), z + getHeight()))) {
             entityCache.compute(new IrisPosition(i.getLocation()),
                     (k, v) -> v == null ? new KList<>() : v).add(i);
         }
 
-        for(IrisPosition i : entityCache.keySet())
-        {
+        for (IrisPosition i : entityCache.keySet()) {
             MatterEntityGroup g = reader.readMatter(w, i.getX(), i.getY(), i.getZ());
 
-            if(g != null)
-            {
+            if (g != null) {
                 set(i.getX() - x, i.getY() - y, i.getZ() - z, g);
             }
         }
@@ -127,11 +123,10 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
     @Override
     public void writeNode(MatterEntityGroup b, DataOutputStream dos) throws IOException {
         Varint.writeUnsignedVarInt(b.getEntities().size(), dos);
-        for(MatterEntity i : b.getEntities())
-        {
-            dos.writeByte((int)(i.getXOff() * 255) + Byte.MIN_VALUE);
-            dos.writeByte((int)(i.getYOff() * 255) + Byte.MIN_VALUE);
-            dos.writeByte((int)(i.getZOff() * 255) + Byte.MIN_VALUE);
+        for (MatterEntity i : b.getEntities()) {
+            dos.writeByte((int) (i.getXOff() * 255) + Byte.MIN_VALUE);
+            dos.writeByte((int) (i.getYOff() * 255) + Byte.MIN_VALUE);
+            dos.writeByte((int) (i.getZOff() * 255) + Byte.MIN_VALUE);
             NBTUtil.write(i.getEntityData(), dos, false);
         }
     }
@@ -141,12 +136,11 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
         MatterEntityGroup g = new MatterEntityGroup();
         int c = Varint.readUnsignedVarInt(din);
 
-        while(c-- > 0)
-        {
+        while (c-- > 0) {
             g.getEntities().add(new MatterEntity(
-                    ((int)din.readByte() - Byte.MIN_VALUE) / 255F,
-                    ((int)din.readByte() - Byte.MIN_VALUE) / 255F,
-                    ((int)din.readByte() - Byte.MIN_VALUE) / 255F,
+                    ((int) din.readByte() - Byte.MIN_VALUE) / 255F,
+                    ((int) din.readByte() - Byte.MIN_VALUE) / 255F,
+                    ((int) din.readByte() - Byte.MIN_VALUE) / 255F,
                     (CompoundTag) NBTUtil.read(din, false).getTag()));
         }
 

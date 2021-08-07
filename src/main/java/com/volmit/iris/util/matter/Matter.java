@@ -244,16 +244,12 @@ public interface Matter {
     /**
      * Remove any slices that are empty
      */
-    default void trimSlices()
-    {
+    default void trimSlices() {
         Set<Class<?>> drop = null;
 
-        for(Class<?> i : getSliceTypes())
-        {
-            if(getSlice(i).getCount() == 0)
-            {
-                if(drop == null)
-                {
+        for (Class<?> i : getSliceTypes()) {
+            if (getSlice(i).getCount() == 0) {
+                if (drop == null) {
                     drop = new KSet<>();
                 }
 
@@ -261,10 +257,8 @@ public interface Matter {
             }
         }
 
-        if(drop != null)
-        {
-            for(Class<?> i : drop)
-            {
+        if (drop != null) {
+            for (Class<?> i : drop) {
                 deleteSlice(i);
             }
         }
@@ -325,16 +319,12 @@ public interface Matter {
 
         while (sliceCount-- > 0) {
             String cn = din.readUTF();
-            try
-            {
+            try {
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
                 slice.read(din);
                 matter.putSlice(type, slice);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
             }

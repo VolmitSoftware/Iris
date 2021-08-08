@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineComponent;
 import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.common.IObjectPlacer;

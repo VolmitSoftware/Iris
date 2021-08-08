@@ -32,6 +32,6 @@ public class IrisEngineMantle implements EngineMantle {
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
-        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle/" + engine.getIndex()), engine.getTarget().getHeight());
+        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
     }
 }

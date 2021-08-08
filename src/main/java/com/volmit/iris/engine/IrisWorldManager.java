@@ -87,6 +87,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
+                if(getEngine().isClosed())
+                {
+                    interrupt();
+                }
+
                 if(getDimension().isInfiniteEnergy())
                 {
                     energy += 1000;
@@ -133,6 +138,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private boolean onAsyncTick() {
+        if(getEngine().isClosed())
+        {
+            return false;
+        }
+
         actuallySpawned = 0;
 
         if (energy < 100) {
@@ -154,7 +164,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         if (cl.flip()) {
-            J.s(() -> precount = getEngine().getWorld().realWorld().getEntities());
+            try
+            {
+                J.s(() -> precount = getEngine().getWorld().realWorld().getEntities());
+            }
+
+            catch(Throwable e)
+            {
+                close();
+            }
         }
 
         int chunkCooldownSeconds = 60;

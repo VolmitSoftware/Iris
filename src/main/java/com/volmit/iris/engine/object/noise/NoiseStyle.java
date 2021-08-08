@@ -45,7 +45,7 @@ public enum NoiseStyle {
 
     @Desc("Clover Noise")
     CLOVER(rng -> new CNG(rng, NoiseType.CLOVER, 1D, 1).scale(0.06).bake()),
-
+    
     @Desc("CLOVER noise creates the same noise level for cells, changes noise level on cell borders.")
     CLOVER_STARCAST_3(rng -> new CNG(rng, NoiseType.CLOVER_STARCAST_3, 1D, 1)),
 

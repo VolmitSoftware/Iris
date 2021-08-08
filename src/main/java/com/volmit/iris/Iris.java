@@ -29,7 +29,7 @@ import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
@@ -266,8 +266,8 @@ public class Iris extends VolmitPlugin implements Listener {
             proj.close();
 
             for (World i : Bukkit.getWorlds()) {
-                if (IrisWorlds.isIrisWorld(i)) {
-                    IrisWorlds.access(i).close();
+                if (IrisToolbelt.isIrisWorld(i)) {
+                    IrisToolbelt.access(i).close();
                 }
             }
 

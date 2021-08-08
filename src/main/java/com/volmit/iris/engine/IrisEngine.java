@@ -20,24 +20,34 @@ package com.volmit.iris.engine;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
+import com.volmit.iris.engine.actuator.IrisBiomeActuator;
+import com.volmit.iris.engine.actuator.IrisDecorantActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
+import com.volmit.iris.engine.modifier.IrisCaveModifier;
+import com.volmit.iris.engine.modifier.IrisDepositModifier;
+import com.volmit.iris.engine.modifier.IrisPostModifier;
+import com.volmit.iris.engine.modifier.IrisRavineModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
+import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -47,62 +57,48 @@ import org.bukkit.generator.BlockPopulator;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+@Data
 public class IrisEngine extends BlockPopulator implements Engine {
-    @Getter
     private final EngineCompound compound;
-
-    @Getter
     private final EngineTarget target;
-
-    @Getter
     private final IrisContext context;
-
-    @Getter
-    private final EngineFramework framework;
-
-    @Getter
     private final EngineEffects effects;
-
-    @Getter
+    private final EngineExecutionEnvironment execution;
     private final EngineWorldManager worldManager;
-
-    @Setter
-    @Getter
     private volatile int parallelism;
-
-    @Getter
     private final int index;
-
-    @Getter
     private final EngineMetrics metrics;
-
-    @Setter
-    @Getter
     private volatile int minHeight;
     private boolean failing;
     private boolean closed;
     private int cacheId;
     private final int art;
-
-    @Getter
     private double maxBiomeObjectDensity;
-
-    @Getter
     private double maxBiomeLayerDensity;
-
-    @Getter
     private double maxBiomeDecoratorDensity;
-
+    private final IrisComplex complex;
+    private final EngineParallaxManager engineParallax;
+    private final EngineActuator<BlockData> terrainNormalActuator;
+    private final EngineActuator<BlockData> terrainIslandActuator;
+    private final EngineActuator<BlockData> decorantActuator;
+    private final EngineActuator<Biome> biomeActuator;
+    private final EngineModifier<BlockData> depositModifier;
+    private final EngineModifier<BlockData> caveModifier;
+    private final EngineModifier<BlockData> ravineModifier;
+    private final EngineModifier<BlockData> postModifier;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
+    private final AtomicBoolean cleaning;
+    private final ChronoLatch cleanLatch;
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
+        execution = new IrisExecutionEnvironment(this);
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
         this.target = target;
         getData().setEngine(this);
         getEngineData();
-        this.framework = new IrisEngineFramework(this);
         worldManager = new IrisWorldManager(this);
         this.compound = compound;
         minHeight = 0;
@@ -116,10 +112,26 @@ public class IrisEngine extends BlockPopulator implements Engine {
         Iris.callEvent(new IrisEngineHotloadEvent(this));
         context = new IrisContext(this);
         context.touch();
+        this.complex = new IrisComplex(this);
+        this.engineParallax = new IrisEngineParallax(this);
+        this.terrainNormalActuator = new IrisTerrainNormalActuator(this);
+        this.terrainIslandActuator = new IrisTerrainIslandActuator(this);
+        this.decorantActuator = new IrisDecorantActuator(this);
+        this.biomeActuator = new IrisBiomeActuator(this);
+        this.depositModifier = new IrisDepositModifier(this);
+        this.ravineModifier = new IrisRavineModifier(this);
+        this.caveModifier = new IrisCaveModifier(this);
+        this.postModifier = new IrisPostModifier(this);
+        cleaning = new AtomicBoolean(false);
+        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
+                .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
+
     }
 
     @Override
     public IrisEngineData getEngineData() {
+        World w = null;
+
         return engineData.aquire(() -> {
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + "-" + getIndex() + ".json");
 
@@ -173,9 +185,16 @@ public class IrisEngine extends BlockPopulator implements Engine {
         J.car(art);
         closed = true;
         getWorldManager().close();
-        getFramework().close();
         getTarget().close();
         saveEngineData();
+        getEngineParallax().close();
+        getTerrainActuator().close();
+        getDecorantActuator().close();
+        getBiomeActuator().close();
+        getDepositModifier().close();
+        getRavineModifier().close();
+        getCaveModifier().close();
+        getPostModifier().close();
     }
 
     @Override
@@ -185,7 +204,35 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void recycle() {
-        getFramework().recycle();
+        if (!cleanLatch.flip()) {
+            return;
+        }
+
+        if (cleaning.get()) {
+            cleanLatch.flipDown();
+            return;
+        }
+
+        cleaning.set(true);
+
+        try {
+            getParallax().cleanup();
+            getData().getObjectLoader().clean();
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Cleanup failed!");
+            e.printStackTrace();
+        }
+
+        cleaning.lazySet(false);
+    }
+
+
+    public EngineActuator<BlockData> getTerrainActuator() {
+        return switch (getDimension().getTerrainMode()) {
+            case NORMAL -> getTerrainNormalActuator();
+            case ISLANDS -> getTerrainIslandActuator();
+        };
     }
 
     @BlockCoordinates
@@ -211,18 +258,18 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
-                    getFramework().getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
-                    getFramework().getBiomeActuator().actuate(x, z, vbiomes, multicore);
-                    getFramework().getCaveModifier().modify(x, z, vblocks, multicore);
-                    getFramework().getRavineModifier().modify(x, z, vblocks, multicore);
-                    getFramework().getPostModifier().modify(x, z, vblocks, multicore);
-                    getFramework().getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getFramework().getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
-                    getFramework().getDepositModifier().modify(x, z, blocks, multicore);
+                    getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
+                    getTerrainActuator().actuate(x, z, vblocks, multicore);
+                    getBiomeActuator().actuate(x, z, vbiomes, multicore);
+                    getCaveModifier().modify(x, z, vblocks, multicore);
+                    getRavineModifier().modify(x, z, vblocks, multicore);
+                    getPostModifier().modify(x, z, vblocks, multicore);
+                    getDecorantActuator().actuate(x, z, blocks, multicore);
+                    getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
+                    getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {
-                    getFramework().getTerrainActuator().actuate(x, z, vblocks, multicore);
+                    getTerrainActuator().actuate(x, z, vblocks, multicore);
                 }
             }
 

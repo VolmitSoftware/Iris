@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.object.basic.IrisColor;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -34,6 +35,7 @@ import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
+import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
@@ -61,9 +63,31 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
+    IrisComplex getComplex();
+
+    void recycle();
+
+    EngineParallaxManager getEngineParallax();
+
+    EngineActuator<BlockData> getTerrainActuator();
+
+    EngineActuator<BlockData> getDecorantActuator();
+
+    EngineActuator<Biome> getBiomeActuator();
+
+    EngineModifier<BlockData> getCaveModifier();
+
+    EngineModifier<BlockData> getRavineModifier();
+
+    EngineModifier<BlockData> getDepositModifier();
+
+    EngineModifier<BlockData> getPostModifier();
+
     void close();
 
     IrisContext getContext();
+
+    EngineExecutionEnvironment getExecution();
 
     double getMaxBiomeObjectDensity();
 
@@ -78,18 +102,14 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     void setParallelism(int parallelism);
 
     default UUID getBiomeID(int x, int z) {
-        return getFramework().getComplex().getBaseBiomeIDStream().get(x, z);
+        return getComplex().getBaseBiomeIDStream().get(x, z);
     }
 
     int getParallelism();
 
     EngineTarget getTarget();
 
-    EngineFramework getFramework();
-
     void setMinHeight(int min);
-
-    void recycle();
 
     int getIndex();
 
@@ -149,7 +169,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
         double heightFactor = M.lerpInverse(0, getHeight(), height);
-        Color irc = region.getColor(this.getFramework().getComplex(), RenderType.BIOME);
+        Color irc = region.getColor(this.getComplex(), RenderType.BIOME);
         Color ibc = biome.getColor(this, RenderType.BIOME);
         Color rc = irc != null ? irc : Color.GREEN.darker();
         Color bc = ibc != null ? ibc : biome.isAquatic() ? Color.BLUE : Color.YELLOW;
@@ -161,7 +181,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @BlockCoordinates
     @Override
     default IrisRegion getRegion(int x, int z) {
-        return getFramework().getComplex().getRegionStream().get(x, z);
+        return getComplex().getRegionStream().get(x, z);
     }
 
     @Override
@@ -172,13 +192,13 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @BlockCoordinates
     @Override
     default IrisBiome getCaveBiome(int x, int z) {
-        return getFramework().getComplex().getCaveBiomeStream().get(x, z);
+        return getComplex().getCaveBiomeStream().get(x, z);
     }
 
     @BlockCoordinates
     @Override
     default IrisBiome getSurfaceBiome(int x, int z) {
-        return getFramework().getComplex().getTrueBiomeStream().get(x, z);
+        return getComplex().getTrueBiomeStream().get(x, z);
     }
 
     @BlockCoordinates
@@ -189,7 +209,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     @BlockCoordinates
     default int getHeight(int x, int z, boolean ignoreFluid) {
-        return getFramework().getEngineParallax().getHighest(x, z, getData(), ignoreFluid);
+        return getEngineParallax().getHighest(x, z, getData(), ignoreFluid);
     }
 
     @BlockCoordinates
@@ -323,7 +343,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
             list.clear();
         }
 
-        list.addAll(r.getLootTables(getFramework().getComplex()));
+        list.addAll(r.getLootTables(getComplex()));
     }
 
     @BlockCoordinates
@@ -331,8 +351,8 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
         int rz = b.getZ();
-        double he = getFramework().getComplex().getHeightStream().get(rx, rz);
-        PlacedObject po = getFramework().getEngine().getObjectPlacement(rx, b.getY(), rz);
+        double he = getComplex().getHeightStream().get(rx, rz);
+        PlacedObject po = getObjectPlacement(rx, b.getY(), rz);
         if (po != null && po.getPlacement() != null) {
 
             if (B.isStorageChest(b.getBlockData())) {
@@ -342,9 +362,9 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
                 }
             }
         }
-        IrisRegion region = getFramework().getComplex().getRegionStream().get(rx, rz);
-        IrisBiome biomeSurface = getFramework().getComplex().getTrueBiomeStream().get(rx, rz);
-        IrisBiome biomeUnder = b.getY() < he ? getFramework().getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
+        IrisRegion region = getComplex().getRegionStream().get(rx, rz);
+        IrisBiome biomeSurface = getComplex().getTrueBiomeStream().get(rx, rz);
+        IrisBiome biomeUnder = b.getY() < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
         KList<IrisLootTable> tables = new KList<>();
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         injectTables(tables, getDimension().getLoot());

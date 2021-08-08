@@ -16,22 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.engine.scripting;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.util.mantle.Mantle;
-import lombok.Data;
+import org.apache.bsf.BSFManager;
 
-import java.io.File;
+public interface EngineExecutionEnvironment {
+    Engine getEngine();
 
-@Data
-public class IrisEngineMantle implements EngineMantle {
-    private final Engine engine;
-    private final Mantle mantle;
+    IrisScriptingAPI getAPI();
 
-    public IrisEngineMantle(Engine engine) {
-        this.engine = engine;
-        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle/" + engine.getIndex()), engine.getTarget().getHeight());
+    BSFManager getManager();
+
+    void execute(String script);
+
+    Object evaluate(String script);
+
+    default void close() {
+
     }
 }

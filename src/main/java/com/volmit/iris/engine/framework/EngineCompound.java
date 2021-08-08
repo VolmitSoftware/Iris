@@ -156,7 +156,7 @@ public interface EngineCompound extends Listener, Hotloadable, DataProvider {
             Engine e = getEngine(i);
 
             if (e.getDimension().isBedrock()) {
-                int m = ((IrisTerrainNormalActuator) e.getFramework().getTerrainActuator()).getLastBedrock();
+                int m = ((IrisTerrainNormalActuator) e.getTerrainActuator()).getLastBedrock();
 
                 if (f > m) {
                     f = m;

@@ -178,10 +178,11 @@ public class ResourceLoader<T extends IrisRegistrant> {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             T t = new Gson().fromJson(IO.readAll(j), objectClass);
-            loadCache.put(key, t);
             t.setLoadKey(name);
             t.setLoadFile(j);
             t.setLoader(manager);
+            getManager().preprocessObject(t);
+            loadCache.put(key, t);
             logLoad(j, t);
             lock.unlock();
             tlt.addAndGet(p.getMilliseconds());

@@ -62,11 +62,11 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
-        int h = getFramework().getEngineParallax().trueHeight(x, z);
-        int ha = getFramework().getEngineParallax().trueHeight(x + 1, z);
-        int hb = getFramework().getEngineParallax().trueHeight(x, z + 1);
-        int hc = getFramework().getEngineParallax().trueHeight(x - 1, z);
-        int hd = getFramework().getEngineParallax().trueHeight(x, z - 1);
+        int h = getEngine().getEngineParallax().trueHeight(x, z);
+        int ha = getEngine().getEngineParallax().trueHeight(x + 1, z);
+        int hb = getEngine().getEngineParallax().trueHeight(x, z + 1);
+        int hc = getEngine().getEngineParallax().trueHeight(x - 1, z);
+        int hd = getEngine().getEngineParallax().trueHeight(x, z - 1);
 
         // Floating Nibs
         int g = 0;
@@ -234,7 +234,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
             IrisBiome cave = getComplex().getCaveBiomeStream().get(x, z);
 
             if (cave != null) {
-                for (CaveResult i : ((IrisCaveModifier) getFramework().getCaveModifier()).genCaves(x, z, 0, 0, null)) {
+                for (CaveResult i : ((IrisCaveModifier) getEngine().getCaveModifier()).genCaves(x, z, 0, 0, null)) {
                     if (i.getCeiling() >= currentData.getMax2DParallelism() || i.getFloor() < 0) {
                         continue;
                     }

@@ -72,15 +72,11 @@ public interface EngineComponent {
         return getTarget().getWorld().seed();
     }
 
-    default EngineFramework getFramework() {
-        return getEngine().getFramework();
-    }
-
     default int getParallelism() {
         return getEngine().getParallelism();
     }
 
     default IrisComplex getComplex() {
-        return getFramework().getComplex();
+        return getEngine().getComplex();
     }
 }

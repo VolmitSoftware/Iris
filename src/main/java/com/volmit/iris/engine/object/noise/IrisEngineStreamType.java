@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.noise;
 
-import com.volmit.iris.engine.framework.EngineFramework;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.stream.ProceduralStream;
 
@@ -56,13 +56,13 @@ public enum IrisEngineStreamType {
     @Desc("Represents the identity of regions. Each region has a unique number (very large numbers)")
     REGION_IDENTITY((f) -> f.getComplex().getRegionIdentityStream());
 
-    private final Function<EngineFramework, ProceduralStream<Double>> getter;
+    private final Function<Engine, ProceduralStream<Double>> getter;
 
-    IrisEngineStreamType(Function<EngineFramework, ProceduralStream<Double>> getter) {
+    IrisEngineStreamType(Function<Engine, ProceduralStream<Double>> getter) {
         this.getter = getter;
     }
 
-    public ProceduralStream<Double> get(EngineFramework engine) {
+    public ProceduralStream<Double> get(Engine engine) {
         return getter.apply(engine);
     }
 }

@@ -731,6 +731,8 @@ public class EngineCompositeGenerator extends ChunkGenerator implements IrisAcce
             ticker.interrupt();
         }
 
+        cleaner.interrupt();
+
         if (getComposite() != null) {
             getComposite().close();
 

@@ -34,12 +34,15 @@ public class PregenTask {
     private Position2 center = new Position2(0, 0);
 
     @Builder.Default
-    private int radius = 1;
+    private int width = 1;
+
+    @Builder.Default
+    private int height = 1;
 
     private static final KList<Position2> order = computeChunkOrder();
 
     public void iterateRegions(Spiraled s) {
-        new Spiraler(radius * 2, radius * 2, s)
+        new Spiraler(getWidth() * 2, getHeight() * 2, s)
                 .setOffset(center.getX(), center.getZ()).drain();
     }
 
@@ -50,7 +53,7 @@ public class PregenTask {
     }
 
     public void iterateAllChunks(Spiraled s) {
-        new Spiraler(radius * 2, radius * 2, (x, z) -> iterateRegion(x, z, s))
+        new Spiraler(getWidth() * 2, getHeight() * 2, (x, z) -> iterateRegion(x, z, s))
                 .setOffset(center.getX(), center.getZ()).drain();
     }
 

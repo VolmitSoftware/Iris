@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
@@ -47,14 +48,16 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.AtomicDoubleHunk;
+import com.volmit.iris.util.hunk.storage.AtomicLongHunk;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -66,14 +69,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class IrisEngine extends BlockPopulator implements Engine {
     // TODO: Remove block population, stop using bukkit
+    private final AtomicInteger generated;
+    private final AtomicInteger generatedLast;
+    private final AtomicDouble perSecond;
+    private final AtomicLong lastGPS;
     private final EngineTarget target;
     private final IrisContext context;
     private final EngineEffects effects;
+    private final ChronoLatch perSecondLatch;
     private final EngineExecutionEnvironment execution;
     private final EngineWorldManager worldManager;
     private volatile int parallelism;
@@ -104,7 +114,12 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
+        generatedLast = new AtomicInteger(0);
+        perSecond = new AtomicDouble(0);
+        perSecondLatch = new ChronoLatch(1000, false);
         wallClock = new AtomicRollingSequence(32);
+        lastGPS = new AtomicLong(M.ms());
+        generated = new AtomicInteger(0);
         execution = new IrisExecutionEnvironment(this);
         // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256+ " height)");
@@ -168,14 +183,27 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public int getGenerated() {
-        // TODO: IMPL
-        return 0;
+        return generated.get();
     }
 
     @Override
     public double getGeneratedPerSecond() {
-        // TODO: IMPL
-        return 0;
+        if(perSecondLatch.flip())
+        {
+            double g = generated.get() - generatedLast.get();
+            generatedLast.set(generated.get());
+
+            if(g == 0)
+            {
+                return 0;
+            }
+
+            long dur = M.ms() - lastGPS.get();
+            lastGPS.set(M.ms());
+            perSecond.set(1000D / ((double)dur / g));
+        }
+
+        return perSecond.get();
     }
 
     @Override
@@ -360,6 +388,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             }
 
             getMetrics().getTotal().put(p.getMilliseconds());
+            generated.incrementAndGet();
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

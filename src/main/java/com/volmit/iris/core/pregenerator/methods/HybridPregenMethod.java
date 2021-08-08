@@ -22,8 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.headless.HeadlessWorld;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.common.HeadlessWorld;
 import com.volmit.iris.util.math.Position2;
 import org.bukkit.World;
 
@@ -42,7 +42,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     private boolean supportsHeadless(World world) {
-        return IrisWorlds.access(world) != null && !IrisSettings.get().getGenerator().isDisableMCA();
+        return IrisToolbelt.access(world) != null && !IrisSettings.get().getGenerator().isDisableMCA();
     }
 
     @Override

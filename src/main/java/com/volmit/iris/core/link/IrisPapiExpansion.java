@@ -19,9 +19,9 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -51,46 +51,46 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer player, String p) {
         Location l = null;
-        IrisAccess a = null;
+        PlatformChunkGenerator a = null;
 
         if (player.isOnline()) {
             l = player.getPlayer().getLocation();
-            a = IrisWorlds.access(l.getWorld());
+            a = IrisToolbelt.access(l.getWorld());
         }
 
         if (p.equalsIgnoreCase("biome_name")) {
             if (a != null) {
-                return a.getBiome(l).getName();
+                return a.getEngine().getBiome(l).getName();
             }
         } else if (p.equalsIgnoreCase("biome_id")) {
             if (a != null) {
-                return a.getBiome(l).getLoadKey();
+                return a.getEngine().getBiome(l).getLoadKey();
             }
         } else if (p.equalsIgnoreCase("biome_file")) {
             if (a != null) {
-                return a.getBiome(l).getLoadFile().getPath();
+                return a.getEngine().getBiome(l).getLoadFile().getPath();
             }
         } else if (p.equalsIgnoreCase("region_name")) {
             if (a != null) {
-                return a.getRegion(l).getName();
+                return a.getEngine().getRegion(l).getName();
             }
         } else if (p.equalsIgnoreCase("region_id")) {
             if (a != null) {
-                return a.getRegion(l).getLoadKey();
+                return a.getEngine().getRegion(l).getLoadKey();
             }
         } else if (p.equalsIgnoreCase("region_file")) {
             if (a != null) {
-                return a.getRegion(l).getLoadFile().getPath();
+                return a.getEngine().getRegion(l).getLoadFile().getPath();
             }
         } else if (p.equalsIgnoreCase("terrain_slope")) {
             if (a != null) {
-                return ((Engine) a.getEngineAccess(l.getBlockY()))
+                return (a.getEngine())
                         .getComplex().getSlopeStream()
                         .get(l.getX(), l.getZ()) + "";
             }
         } else if (p.equalsIgnoreCase("terrain_height")) {
             if (a != null) {
-                return (int) Math.round(a.getHeight(l)) + "";
+                return (int) Math.round(a.getEngine().getHeight(l.getBlockX(), l.getBlockZ())) + "";
             }
         } else if (p.equalsIgnoreCase("world_mode")) {
             if (a != null) {
@@ -102,7 +102,7 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
             }
         } else if (p.equalsIgnoreCase("world_speed")) {
             if (a != null) {
-                return a.getGeneratedPerSecond() + "/s";
+                return a.getEngine().getGeneratedPerSecond() + "/s";
             }
         }
 

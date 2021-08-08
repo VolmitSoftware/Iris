@@ -21,10 +21,9 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.RenderType;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.regional.IrisRegion;
@@ -156,11 +155,9 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     public boolean updateEngine() {
         if (engine.isClosed()) {
-            int index = engine.getIndex();
-
             if (world.hasRealWorld()) {
                 try {
-                    engine = IrisWorlds.access(world.realWorld()).getCompound().getEngine(index);
+                    engine = IrisToolbelt.access(world.realWorld()).getEngine();
                     return !engine.isClosed();
                 } catch (Throwable e) {
 
@@ -779,9 +776,9 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         }
     }
 
-    public static void launch(IrisAccess g, int i) {
+    public static void launch(Engine g, int i) {
         J.a(() ->
-                createAndShowGUI(g.getCompound().getEngine(i), i, g.getCompound().getWorld()));
+                createAndShowGUI(g, i, g.getWorld()));
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {

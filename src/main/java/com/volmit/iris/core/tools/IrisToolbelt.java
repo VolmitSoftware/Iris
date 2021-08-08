@@ -26,11 +26,13 @@ import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.platform.HeadlessGenerator;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 
@@ -80,7 +82,11 @@ public class IrisToolbelt {
      * @return true if it is an Iris Access world
      */
     public static boolean isIrisWorld(World world) {
-        return access(world) != null;
+        if (world == null) {
+            return false;
+        }
+
+        return world.getGenerator() instanceof PlatformChunkGenerator;
     }
 
     /**
@@ -89,8 +95,12 @@ public class IrisToolbelt {
      * @param world the given world
      * @return the IrisAccess or null if it's not an Iris World
      */
-    public static IrisAccess access(World world) {
-        return IrisWorlds.access(world);
+    public static PlatformChunkGenerator access(World world) {
+        if (isIrisWorld(world)) {
+            return ((PlatformChunkGenerator) world.getGenerator());
+        }
+
+        return null;
     }
 
     /**
@@ -109,15 +119,15 @@ public class IrisToolbelt {
      * otherwise Hybrid mode is used.
      *
      * @param task   the scheduled task
-     * @param access the Iris Generator
+     * @param gen the Iris Generator
      * @return the pregenerator job (already started)
      */
-    public static PregeneratorJob pregenerate(PregenTask task, IrisAccess access) {
-        if (access.isHeadless()) {
-            return pregenerate(task, new HeadlessPregenMethod(access.getHeadlessGenerator().getWorld(), access.getHeadlessGenerator()));
+    public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
+        if (gen.isHeadless()) {
+            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator)gen).getWorld(), (HeadlessGenerator) gen));
         }
 
-        return pregenerate(task, new HybridPregenMethod(access.getCompound().getWorld().realWorld(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())));
+        return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())));
     }
 
     /**
@@ -142,7 +152,33 @@ public class IrisToolbelt {
      *
      * @param world the world to evac
      */
-    public static void evacuate(World world) {
-        IrisWorlds.evacuate(world);
+    public static boolean evacuate(World world) {
+        for (World i : Bukkit.getWorlds()) {
+            if (!i.getName().equals(world.getName())) {
+                for (Player j : world.getPlayers()) {
+                    new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
+                    j.teleport(i.getSpawnLocation());
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean evacuate(World world, String m) {
+        for (World i : Bukkit.getWorlds()) {
+            if (!i.getName().equals(world.getName())) {
+                for (Player j : world.getPlayers()) {
+                    new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
+                    j.teleport(i.getSpawnLocation());
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }

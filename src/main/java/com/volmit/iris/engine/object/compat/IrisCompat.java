@@ -155,28 +155,33 @@ public class IrisCompat {
         String defa = new JSONObject(new Gson().toJson(def)).toString(4);
         J.attemptAsync(() -> IO.writeAll(new File(f.getParentFile(), "compat.default.json"), defa));
 
+
         if (!f.exists()) {
+            J.a(() -> {
+                try {
+                    IO.writeAll(f, defa);
+                } catch (IOException e) {
+                    Iris.error("Failed to write to compat file");
+                    Iris.reportError(e);
+                }
+            });
+        } else {
+            // If the file doesn't exist, no additional mappings are present outside default
+            // so we shouldn't try getting them
             try {
-                IO.writeAll(f, defa);
-            } catch (IOException e) {
-                Iris.error("Failed to write to compat file");
+                IrisCompat rea = new Gson().fromJson(IO.readAll(f), IrisCompat.class);
+
+                for (IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
+                    def.getBlockFilters().add(i);
+                }
+
+                for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
+                    def.getItemFilters().add(i);
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
                 Iris.reportError(e);
             }
-        }
-
-        try {
-            IrisCompat rea = new Gson().fromJson(IO.readAll(f), IrisCompat.class);
-
-            for (IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
-                def.getBlockFilters().add(i);
-            }
-
-            for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
-                def.getItemFilters().add(i);
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Iris.reportError(e);
         }
 
         return def;

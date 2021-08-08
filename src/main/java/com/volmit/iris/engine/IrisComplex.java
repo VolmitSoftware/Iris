@@ -220,11 +220,11 @@ public class IrisComplex implements DataProvider {
                         .convertAware2D(this::implode).cache2D(cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().seed(), true);
+            return getHeight(engine, x, z, engine.getWorld().seed(), true);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         heightStreamNoFeatures = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().seed(), false);
+            return getHeight(engine, x, z, engine.getWorld().seed(), false);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
@@ -433,7 +433,7 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed, boolean features) {
+    private double getHeight(Engine engine, double x, double z, long seed, boolean features) {
         double h = 0;
 
         for (IrisGenerator gen : generators) {
@@ -469,29 +469,15 @@ public class IrisComplex implements DataProvider {
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {
-        for (IrisGenerator i : generators) {
-            if (i.getLoadKey().equals(cachedGenerator.getLoadKey())) {
-                return;
-            }
-        }
-
-        generators.add(cachedGenerator);
+        generators.addIfMissing(cachedGenerator);
     }
 
     private IrisBiome implode(IrisBiome b, Double x, Double z) {
-        if (b.getChildren().isEmpty()) {
-            return b;
-        }
-
-        return implode(b, x, z, 3);
+        return b.getChildren().isEmpty() ? b : implode(b, x, z, 3);
     }
 
     private IrisBiome implode(IrisBiome b, Double x, Double z, int max) {
-        if (max < 0) {
-            return b;
-        }
-
-        if (b.getChildren().isEmpty()) {
+        if (max < 0 || b.getChildren().isEmpty()) {
             return b;
         }
 

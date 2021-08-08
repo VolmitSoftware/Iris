@@ -87,8 +87,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
+                if(getDimension().isInfiniteEnergy())
+                {
+                    energy += 1000;
+                    fixEnergy();
+                }
+
                 if (M.ms() < charge) {
                     energy += 70;
+                    fixEnergy();
                 }
 
                 if (cln.flip()) {

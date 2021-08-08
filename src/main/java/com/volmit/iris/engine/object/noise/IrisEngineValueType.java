@@ -32,10 +32,7 @@ public enum IrisEngineValueType {
     ENGINE_MIN_HEIGHT((f) -> Double.valueOf(f.getMinHeight())),
 
     @Desc("Represents virtual top of the engine in the compound. If this engine is below another engine, it's max height would be at the minHeight of the next engine - 1")
-    ENGINE_MAX_HEIGHT((f) -> Double.valueOf(f.getMaxHeight())),
-
-    @Desc("Represents the position of the engine in the dimensional compound. The bottom (first) dimension stasts at 0. Each new dimension added stacks on top with n+1 for the id.")
-    ENGINE_INDEX((f) -> Double.valueOf(f.getIndex())),
+    ENGINE_MAX_HEIGHT((f) -> Double.valueOf(f.getWorld().maxHeight())),
 
     @Desc("The fluid height defined in the dimension file")
     FLUID_HEIGHT((f) -> Double.valueOf(f.getComplex().getFluidHeight())),

@@ -473,4 +473,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     {
         return getWorld().getHeight();
     }
+
+    boolean isStudio();
 }

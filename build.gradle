@@ -137,13 +137,14 @@ dependencies {
     implementation "net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT"
     implementation "net.kyori:adventure-platform-bukkit:4.0.0-SNAPSHOT"
     implementation 'net.kyori:adventure-api:4.8.1'
-\
-// Dynamically Loaded
+
+    // Dynamically Loaded
     implementation 'it.unimi.dsi:fastutil:8.5.4'
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'com.google.code.gson:gson:2.8.7'
     implementation 'org.ow2.asm:asm:9.2'
     implementation 'com.google.guava:guava:30.1.1-jre'
+
 
 }

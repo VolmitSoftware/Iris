@@ -19,6 +19,12 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.common.IrisScript;
+import com.volmit.iris.engine.object.dimensional.IrisDimensionIndex;
+import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
 import java.awt.*;
@@ -26,6 +32,11 @@ import java.io.File;
 
 @Data
 public abstract class IrisRegistrant {
+    @Desc("Preprocess this object in-memory when it's loaded, run scripts using the variable 'Iris.getPreprocessorObject()' and modify properties about this object before it's used.")
+    @RegistryListResource(IrisScript.class)
+    @ArrayType(min = 1, type = String.class)
+    private KList<String> preprocessors = new KList<>();
+
     private transient IrisData loader;
 
     private transient String loadKey;

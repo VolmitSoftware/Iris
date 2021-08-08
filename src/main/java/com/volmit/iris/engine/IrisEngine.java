@@ -79,6 +79,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private volatile int parallelism;
     private final EngineMetrics metrics;
     private volatile int minHeight;
+    private final boolean studio;
     private boolean failing;
     private boolean closed;
     private int cacheId;
@@ -101,7 +102,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
 
-    public IrisEngine(EngineTarget target) {
+    public IrisEngine(EngineTarget target, boolean studio) {
+        this.studio = studio;
         wallClock = new AtomicRollingSequence(32);
         execution = new IrisExecutionEnvironment(this);
         // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
@@ -162,6 +164,23 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             return new IrisEngineData();
         });
+    }
+
+    @Override
+    public int getGenerated() {
+        // TODO: IMPL
+        return 0;
+    }
+
+    @Override
+    public double getGeneratedPerSecond() {
+        // TODO: IMPL
+        return 0;
+    }
+
+    @Override
+    public boolean isStudio() {
+        return studio;
     }
 
     private void computeBiomeMaxes() {
@@ -393,12 +412,5 @@ public class IrisEngine extends BlockPopulator implements Engine {
     @Override
     public int getCacheID() {
         return cacheId;
-    }
-
-    @Override
-    public void hotload() {
-        Iris.callEvent(new IrisEngineHotloadEvent(this));
-        getEngineData().getStatistics().hotloaded();
-        cacheId = RNG.r.nextInt();
     }
 }

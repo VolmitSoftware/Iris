@@ -60,7 +60,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         this.world = world;
         burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
-        engine = new IrisEngine(new EngineTarget(world.getWorld(),world.getDimension(), world.getDimension().getLoader()));
+        engine = new IrisEngine(new EngineTarget(world.getWorld(),world.getDimension(), world.getDimension().getLoader()), isStudio());
     }
 
     @ChunkCoordinates

@@ -105,4 +105,8 @@ public class IrisWorld {
 
         return (KList<? extends T>) NO_ENTITIES;
     }
+
+    public int getHeight() {
+        return maxHeight - minHeight;
+    }
 }

@@ -468,4 +468,9 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     double getGeneratedPerSecond();
+
+    default int getHeight()
+    {
+        return getWorld().getHeight();
+    }
 }

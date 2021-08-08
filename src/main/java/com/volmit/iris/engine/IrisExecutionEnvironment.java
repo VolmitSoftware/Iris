@@ -49,6 +49,11 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
         }
     }
 
+    @Override
+    public IrisScriptingAPI getAPI() {
+        return api;
+    }
+
     public void execute(String script)
     {
         try {
@@ -67,21 +72,5 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
         }
 
         return null;
-    }
-
-    @Override
-    public void execute(String script, double x, double y, double z) {
-        api.setX(x);
-        api.setY(y);
-        api.setZ(z);
-        execute(script);
-    }
-
-    @Override
-    public Object evaluate(String script, double x, double y, double z) {
-        api.setX(x);
-        api.setY(y);
-        api.setZ(z);
-        return evaluate(script);
     }
 }

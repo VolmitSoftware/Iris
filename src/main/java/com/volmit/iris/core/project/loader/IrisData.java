@@ -36,6 +36,9 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
@@ -76,6 +79,54 @@ public class IrisData {
         this.id = RNG.r.imax();
         closed = false;
         hotloaded();
+    }
+
+    public void preprocessObject(IrisRegistrant t)
+    {
+        try
+        {
+            IrisContext ctx = IrisContext.get();
+            Engine engine = this.engine;
+
+            if(engine == null && ctx != null && ctx.getEngine() != null)
+            {
+                engine = ctx.getEngine();
+            }
+
+            if(engine == null && t.getPreprocessors().isNotEmpty())
+            {
+                Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
+                try
+                {
+                    throw new RuntimeException();
+                }
+
+                catch(Throwable ex)
+                {
+                    ex.printStackTrace();
+                }
+            }
+
+            if(engine != null && t.getPreprocessors().isNotEmpty())
+            {
+                synchronized (this)
+                {
+                    engine.getExecution().getAPI().setPreprocessorObject(t);
+
+                    for(String i : t.getPreprocessors())
+                    {
+                        engine.getExecution().execute(i);
+                        Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
+                    }
+                }
+            }
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("Failed to preprocess object!");
+            e.printStackTrace();
+        }
     }
 
     public void close() {

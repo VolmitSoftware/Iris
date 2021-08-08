@@ -20,6 +20,7 @@ package com.volmit.iris.core.project;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -90,6 +91,26 @@ public class SchemaBuilder {
         o.put("description", getDescription(c));
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
+
+        if(c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c))
+        {
+            for (Field k : IrisRegistrant.class.getDeclaredFields()) {
+                k.setAccessible(true);
+
+                if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
+                    continue;
+                }
+
+                JSONObject property = buildProperty(k, c);
+
+                if (property.getBoolean("!required")) {
+                    required.put(k.getName());
+                }
+
+                property.remove("!required");
+                properties.put(k.getName(), property);
+            }
+        }
 
         for (Field k : c.getDeclaredFields()) {
             k.setAccessible(true);

@@ -20,6 +20,7 @@ package com.volmit.iris.engine.scripting;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineFramework;
@@ -31,6 +32,7 @@ import lombok.Data;
 @Data
 public class IrisScriptingAPI {
     private final Engine engine;
+    private IrisRegistrant preprocessorObject;
     private double x = 0;
     private double y = 0;
     private double z = 0;

@@ -25,15 +25,13 @@ public interface EngineExecutionEnvironment
 {
     Engine getEngine();
 
+    IrisScriptingAPI getAPI();
+
     BSFManager getManager();
 
     void execute(String script);
 
     Object evaluate(String script);
-
-    void execute(String script, double x, double y, double z);
-
-    Object evaluate(String script, double x, double y, double z);
 
     default void close()
     {

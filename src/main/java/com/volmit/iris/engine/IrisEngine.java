@@ -101,6 +101,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
 
     public IrisEngine(EngineTarget target, EngineCompound compound, int index) {
+        execution = new IrisExecutionEnvironment(this);
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getHeight() + " height)");
         metrics = new EngineMetrics(32);
         this.target = target;
@@ -120,7 +121,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         Iris.callEvent(new IrisEngineHotloadEvent(this));
         context = new IrisContext(this);
         context.touch();
-        execution = new IrisExecutionEnvironment(this);
     }
 
     @Override

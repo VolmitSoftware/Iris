@@ -81,15 +81,15 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         for (File i : getFolders()) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js")) {
-                    m.add(j.getName().replaceAll("\\Q.iob\\E", ""));
+                    m.add(j.getName().replaceAll("\\Q.js\\E", ""));
                 } else if (j.isDirectory()) {
                     for (File k : j.listFiles()) {
                         if (k.isFile() && k.getName().endsWith(".js")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.iob\\E", ""));
+                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.js\\E", ""));
                         } else if (k.isDirectory()) {
                             for (File l : k.listFiles()) {
                                 if (l.isFile() && l.getName().endsWith(".js")) {
-                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.iob\\E", ""));
+                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.js\\E", ""));
                                 }
                             }
                         }

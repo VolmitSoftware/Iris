@@ -31,6 +31,7 @@ import lombok.Data;
 public class IrisContext {
     private static ChronoLatch cl = new ChronoLatch(60000);
     private static KMap<Thread, IrisContext> context = new KMap<>();
+    private final Engine engine;
 
     public static IrisContext get() {
         return context.get(Thread.currentThread());
@@ -50,8 +51,6 @@ public class IrisContext {
         }
     }
 
-    private final Engine engine;
-
     public void touch() {
         IrisContext.touch(this);
     }
@@ -61,6 +60,6 @@ public class IrisContext {
     }
 
     public IrisComplex getComplex() {
-        return engine.getFramework().getComplex();
+        return engine.getComplex();
     }
 }

@@ -316,6 +316,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Define carve layers")
     private KList<IrisCarveLayer> carveLayers = new KList<>();
 
+    @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
+    private boolean infiniteEnergy = false;
+
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("The rock zoom mostly for zooming in on a wispy palette")

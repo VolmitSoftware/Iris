@@ -51,7 +51,7 @@ import java.util.Objects;
 public class CommandIrisWhatObjects extends MortarCommand {
     public CommandIrisWhatObjects() {
         super("objects", "o", "obj", "capture", "capt");
-        setDescription("Capture nearby information to help with reporting problems");
+        setDescription("Capture nearby information to help with reporting problems. Can specify the number of threads like /ir w o 4");
         requiresPermission(Iris.perm.studio);
         setCategory("World");
     }

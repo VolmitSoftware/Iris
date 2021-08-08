@@ -38,12 +38,12 @@ public class IrisRenderer {
         BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
 
         switch (currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getTrueBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case BIOME_LAND -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getLandBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case BIOME_SEA -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getSeaBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case REGION -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getRegionStream().get(x, z).getColor(renderer.getFramework().getComplex(), currentType).getRGB();
-            case CAVE_LAND -> colorFunction = (x, z) -> renderer.getFramework().getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(renderer.getFramework().getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> renderer.getComplex().getTrueBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_LAND -> colorFunction = (x, z) -> renderer.getComplex().getLandBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_SEA -> colorFunction = (x, z) -> renderer.getComplex().getSeaBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case REGION -> colorFunction = (x, z) -> renderer.getComplex().getRegionStream().get(x, z).getColor(renderer.getComplex(), currentType).getRGB();
+            case CAVE_LAND -> colorFunction = (x, z) -> renderer.getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(renderer.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
         double x, z;

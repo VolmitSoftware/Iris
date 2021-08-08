@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
@@ -35,6 +36,8 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
@@ -58,6 +61,7 @@ public class IrisData {
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
+    private ResourceLoader<IrisScript> scriptLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
@@ -74,6 +78,40 @@ public class IrisData {
         this.id = RNG.r.imax();
         closed = false;
         hotloaded();
+    }
+
+    public void preprocessObject(IrisRegistrant t) {
+        try {
+            IrisContext ctx = IrisContext.get();
+            Engine engine = this.engine;
+
+            if (engine == null && ctx != null && ctx.getEngine() != null) {
+                engine = ctx.getEngine();
+            }
+
+            if (engine == null && t.getPreprocessors().isNotEmpty()) {
+                Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
+                try {
+                    throw new RuntimeException();
+                } catch (Throwable ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            if (engine != null && t.getPreprocessors().isNotEmpty()) {
+                synchronized (this) {
+                    engine.getExecution().getAPI().setPreprocessorObject(t);
+
+                    for (String i : t.getPreprocessors()) {
+                        engine.getExecution().execute(i);
+                        Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            Iris.error("Failed to preprocess object!");
+            e.printStackTrace();
+        }
     }
 
     public void close() {
@@ -96,6 +134,8 @@ public class IrisData {
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            } else if (registrant.equals(IrisScript.class)) {
+                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
             } else {
                 r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
             }
@@ -133,6 +173,7 @@ public class IrisData {
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
+        this.scriptLoader = registerLoader(IrisScript.class);
     }
 
     public void dump() {
@@ -193,6 +234,10 @@ public class IrisData {
 
     public static IrisSpawner loadAnySpaner(String key) {
         return loadAny(key, (dm) -> dm.getSpawnerLoader().load(key, false));
+    }
+
+    public static IrisScript loadAnyScript(String key) {
+        return loadAny(key, (dm) -> dm.getScriptLoader().load(key, false));
     }
 
     public static IrisRegion loadAnyRegion(String key) {

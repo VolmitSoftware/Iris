@@ -59,11 +59,11 @@ public class IrisExpressionLoad {
 
     public double getValue(RNG rng, IrisData data, double x, double z) {
         if (engineValue != null) {
-            return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
+            return valueCache.aquire(() -> engineValue.get(data.getEngine()));
         }
 
         if (engineStreamValue != null) {
-            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
+            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine())).get(x, z);
         }
 
         if (styleValue != null) {
@@ -75,11 +75,11 @@ public class IrisExpressionLoad {
 
     public double getValue(RNG rng, IrisData data, double x, double y, double z) {
         if (engineValue != null) {
-            return valueCache.aquire(() -> engineValue.get(data.getEngine().getFramework()));
+            return valueCache.aquire(() -> engineValue.get(data.getEngine()));
         }
 
         if (engineStreamValue != null) {
-            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine().getFramework())).get(x, z);
+            return streamCache.aquire(() -> engineStreamValue.get(data.getEngine())).get(x, z);
         }
 
         if (styleValue != null) {

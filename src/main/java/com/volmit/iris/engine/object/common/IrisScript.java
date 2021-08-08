@@ -16,22 +16,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.engine.object.common;
 
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.core.project.loader.IrisRegistrant;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.io.File;
-
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class IrisEngineMantle implements EngineMantle {
-    private final Engine engine;
-    private final Mantle mantle;
+public class IrisScript extends IrisRegistrant {
+    private final String source;
 
-    public IrisEngineMantle(Engine engine) {
-        this.engine = engine;
-        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle/" + engine.getIndex()), engine.getTarget().getHeight());
+    public IrisScript() {
+        this("");
+    }
+
+    public IrisScript(String source) {
+        this.source = source;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "scripts";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Script";
+    }
+
+    public String toString() {
+        return source;
     }
 }

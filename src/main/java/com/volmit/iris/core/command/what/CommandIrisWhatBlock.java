@@ -31,10 +31,9 @@ import org.bukkit.entity.Player;
 public class CommandIrisWhatBlock extends MortarCommand {
     public CommandIrisWhatBlock() {
         super("block", "l", "bl");
-        setDescription("Get the block data for looking.");
+        setDescription("Get the block data of the block you're looking at.");
         requiresPermission(Iris.perm.studio);
         setCategory("Wut");
-        setDescription("WAILA, WAWLA etc");
     }
 
     @Override

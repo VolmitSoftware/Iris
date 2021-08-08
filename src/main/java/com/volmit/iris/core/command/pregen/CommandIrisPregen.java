@@ -16,33 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.command.jigsaw;
+package com.volmit.iris.core.command.pregen;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-public class CommandIrisJigsaw extends MortarCommand {
+public class CommandIrisPregen extends MortarCommand {
     @Command
-    private CommandIrisJigsawNew create;
+    private CommandIrisPregenStart start;
 
     @Command
-    private CommandIrisJigsawEdit edit;
+    private CommandIrisPregenStop stop;
 
     @Command
-    private CommandIrisJigsawSave save;
+    private CommandIrisPregenPause toggle;
 
-    @Command
-    private CommandIrisJigsawPlace place;
-
-    public CommandIrisJigsaw() {
-        super("jigsaw", "jig", "jsw", "j");
+    public CommandIrisPregen() {
+        super("pregen", "preg", "p");
         requiresPermission(Iris.perm);
-        setCategory("Jigsaw");
-        setDescription("Iris jigsaw commands");
+        setCategory("Pregen");
+        setDescription("Pregeneration Commands");
     }
 
     @Override
@@ -52,18 +49,17 @@ public class CommandIrisJigsaw extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        if (!IrisSettings.get().isStudio()) {
-            sender.sendMessage("To use Iris Studio Jigsaw, please enable studio in Iris/settings.json");
-            return true;
+        if (sender.isPlayer()) {
+            if (!IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+                sender.sendMessage("Pregen only works in Iris worlds!");
+            }
+        } else {
+            sender.sendMessage("Note that pregeneration only works in Iris worlds!");
         }
 
-        if (!sender.isPlayer()) {
-            sender.sendMessage("Ingame only");
-            return true;
-        }
-
-        sender.sendMessage("Iris Jigsaw Commands:");
+        sender.sendMessage("Iris Pregen Commands:");
         printHelp(sender);
+        sender.sendMessage("Pregen wiki page: https://docs.volmit.com/iris/pregeneration");
         return true;
     }
 

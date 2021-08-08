@@ -42,7 +42,6 @@ public class CommandIrisWhat extends MortarCommand {
 
     public CommandIrisWhat() {
         super("what", "w", "?");
-        setDescription("Get timings for this world");
         requiresPermission(Iris.perm.studio);
         setCategory("Wut");
         setDescription("Figure out what stuff is");
@@ -62,6 +61,6 @@ public class CommandIrisWhat extends MortarCommand {
 
     @Override
     protected String getArgsUsage() {
-        return "";
+        return "[subcommand]";
     }
 }

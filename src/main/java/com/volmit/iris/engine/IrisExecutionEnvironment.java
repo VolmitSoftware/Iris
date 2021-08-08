@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.engine.scripting.IrisScriptingAPI;
+import com.volmit.iris.util.format.C;
 import lombok.Data;
 import org.apache.bsf.BSFEngine;
 import org.apache.bsf.BSFException;
@@ -56,6 +57,7 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
 
     public void execute(String script)
     {
+        Iris.debug("Execute Script (void) " + C.DARK_GREEN + script);
         try {
             javaScriptEngine.exec("", 0, 0, getEngine().getData().getScriptLoader().load(script));
         } catch (BSFException e) {
@@ -65,6 +67,7 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
 
     public Object evaluate(String script)
     {
+        Iris.debug("Execute Script (for result) " + C.DARK_GREEN + script);
         try {
             return javaScriptEngine.eval("", 0, 0, getEngine().getData().getScriptLoader().load(script));
         } catch (BSFException e) {

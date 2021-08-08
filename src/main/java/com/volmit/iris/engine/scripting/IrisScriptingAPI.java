@@ -28,6 +28,8 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.noise.IrisExpression;
 import lombok.Data;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
 @Data
 public class IrisScriptingAPI {
@@ -36,6 +38,8 @@ public class IrisScriptingAPI {
     private double x = 0;
     private double y = 0;
     private double z = 0;
+    private Location location;
+    private Entity entity;
 
     public IrisScriptingAPI(Engine engine)
     {

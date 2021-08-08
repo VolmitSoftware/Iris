@@ -21,10 +21,8 @@ package com.volmit.iris.engine.object.entity;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListSpecialEntity;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.loot.IrisLoot;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
@@ -155,17 +153,46 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("Create a mob from another plugin, such as Mythic Mobs. Should be in the format of a namespace of PluginName:MobName")
     private String specialType = "";
 
+    @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @RegistryListResource(IrisScript.class)
+    private String spawnerScript = "";
+
+    @ArrayType(min = 1, type = String.class)
+    @Desc("Set the entity type to UNKNOWN, then define a script here. You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @RegistryListResource(IrisScript.class)
+    private KList<String> postSpawnScripts = new KList<>();
+
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
-        Entity e = doSpawn(at);
+        Entity ee = doSpawn(at);
 
-        if (e == null) {
+        if(!spawnerScript.isEmpty() && ee == null)
+        {
+            synchronized (this)
+            {
+                gen.getExecution().getAPI().setLocation(at);
+                try
+                {
+                    ee = (Entity) gen.getExecution().evaluate(spawnerScript);
+                }
+
+                catch(Throwable ex)
+                {
+                    Iris.error("You must return an Entity in your scripts to use entity scripts!");
+                    ex.printStackTrace();
+                }
+            }
+        }
+
+        if(ee == null)
+        {
             return null;
         }
 
+        Entity e = ee;
         e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);
         e.setCustomNameVisible(isCustomNameVisible());
         e.setGlowing(isGlowing());
@@ -286,10 +313,29 @@ public class IrisEntity extends IrisRegistrant {
             spawnEffect.apply(e);
         }
 
+        if(postSpawnScripts.isNotEmpty())
+        {
+            synchronized (this)
+            {
+                gen.getExecution().getAPI().setLocation(at);
+                gen.getExecution().getAPI().setEntity(ee);
+
+                for(String i : postSpawnScripts)
+                {
+                    gen.getExecution().execute(i);
+                }
+            }
+        }
+
         return e;
     }
 
     private Entity doSpawn(Location at) {
+        if(type.equals(EntityType.UNKNOWN))
+        {
+            return null;
+        }
+
         if (!Bukkit.isPrimaryThread()) {
             // Someone called spawn (worldedit maybe?) on a non server thread
             // Due to the structure of iris, we will call it sync and busy wait until it's done.

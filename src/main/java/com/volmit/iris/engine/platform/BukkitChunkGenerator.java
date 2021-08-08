@@ -111,7 +111,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         IrisData data = new IrisData(dataLocation);
         IrisDimension realDimension = data.getDimensionLoader().load(dimension);
         EngineTarget target = new EngineTarget(world, realDimension, data);
-        Engine engine = new IrisEngine(target);
+        Engine engine = new IrisEngine(target, isStudio());
         populators.clear();
         populators.add((BlockPopulator) engine);
         return engine;

@@ -241,7 +241,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
             }
 
-            spawn(c, v);
+            try
+            {
+                spawn(c, v);
+            }
+
+            catch(Throwable e)
+            {
+                J.s(() -> spawn(c, v));
+            }
         }
         //@done
     }

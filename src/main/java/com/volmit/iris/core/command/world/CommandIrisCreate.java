@@ -51,6 +51,42 @@ public class CommandIrisCreate extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
+        boolean seed = false;
+        boolean type = false;
+
+        File packsFolder = new File("plugins/Iris/packs/");
+        packsFolder.mkdirs();
+
+        for (String arg : args) {
+            if (arg.equals("seed=")){
+                list.add("seed=random");
+                list.add("seed=1234");
+            } else if (arg.startsWith("seed=")){
+                seed = true;
+            } else if (arg.equals("type=")){
+                for (File dim : packsFolder.listFiles()){
+                    if (dim.isDirectory()) {
+                        list.add("type=" + dim.getName());
+                    }
+                }
+                type = true;
+            } else if (arg.startsWith("type=")){
+                type = true;
+            }
+        }
+
+        if (!seed){
+            list.add("seed=random");
+            list.add("seed=1234");
+        }
+
+        if (!type){
+            for (File dim : packsFolder.listFiles()){
+                if (dim.isDirectory()) {
+                    list.add("type=" + dim.getName());
+                }
+            }
+        }
     }
 
     @Override

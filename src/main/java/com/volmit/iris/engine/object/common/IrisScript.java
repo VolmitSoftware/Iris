@@ -16,24 +16,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.bsf;
+package com.volmit.iris.engine.object.common;
 
-/**
- * BSFDeclaredBeans are used internally by BSF to encapsulate information being
- * passed between a BSFManager and its various BSFEngines. Note that the
- * constructor is not public because this is not a public class.
- * 
- * @author  Matthew J. Duftler
- * @author  Sanjiva Weerawarana
- */
-public class BSFDeclaredBean {
-	public String name;
-	public Object bean;
-	public Class type;
+import com.volmit.iris.core.project.loader.IrisRegistrant;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.bukkit.Bukkit;
 
-	BSFDeclaredBean(String name, Object bean, Class type) {
-		this.name = name;
-		this.bean = bean;
-		this.type = type;
-	}
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class IrisScript extends IrisRegistrant {
+    private final String source;
+
+    public IrisScript()
+    {
+        this("");
+    }
+
+    public IrisScript(String source)
+    {
+        this.source = source;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "scripts";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Script";
+    }
+
+    public String toString()
+    {
+        return source;
+    }
 }

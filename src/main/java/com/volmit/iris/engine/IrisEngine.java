@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
+import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -63,6 +64,9 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Getter
     private final EngineEffects effects;
+
+    @Getter
+    private final EngineExecutionEnvironment execution;
 
     @Getter
     private final EngineWorldManager worldManager;
@@ -116,10 +120,13 @@ public class IrisEngine extends BlockPopulator implements Engine {
         Iris.callEvent(new IrisEngineHotloadEvent(this));
         context = new IrisContext(this);
         context.touch();
+        execution = new IrisExecutionEnvironment(this);
     }
 
     @Override
     public IrisEngineData getEngineData() {
+        World w = null;
+
         return engineData.aquire(() -> {
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + "-" + getIndex() + ".json");
 

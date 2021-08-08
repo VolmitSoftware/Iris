@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
@@ -58,6 +59,7 @@ public class IrisData {
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
+    private ResourceLoader<IrisScript> scriptLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
@@ -96,7 +98,11 @@ public class IrisData {
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            } else {
+            }
+            else if (registrant.equals(IrisScript.class)) {
+                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            }
+            else {
                 r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
             }
 
@@ -133,6 +139,7 @@ public class IrisData {
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
+        this.scriptLoader = registerLoader(IrisScript.class);
     }
 
     public void dump() {
@@ -193,6 +200,10 @@ public class IrisData {
 
     public static IrisSpawner loadAnySpaner(String key) {
         return loadAny(key, (dm) -> dm.getSpawnerLoader().load(key, false));
+    }
+
+    public static IrisScript loadAnyScript(String key) {
+        return loadAny(key, (dm) -> dm.getScriptLoader().load(key, false));
     }
 
     public static IrisRegion loadAnyRegion(String key) {

@@ -20,75 +20,36 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-public class CommandIrisStudio extends MortarCommand {
-    @Command
-    private CommandIrisStudioCreate create;
-
-    @Command
-    private CommandIrisStudioExecute execute;
-
-    @Command
-    private CommandIrisStudioOpen open;
-
-    @Command
-    private CommandIrisStudioSummon summon;
-
-    @Command
-    private CommandIrisStudioClose close;
-
-    @Command
-    private CommandIrisStudioPackage pkg;
-
-    @Command
-    private CommandIrisStudioUpdate update;
-
-    @Command
-    private CommandIrisStudioGoto got0;
-
-    @Command
-    private CommandIrisStudioEditBiome ebiome;
-
-    @Command
-    private CommandIrisStudioHotload hotload;
-
-    @Command
-    private CommandIrisStudioExplorer exp;
-
-    @Command
-    private CommandIrisStudioBeautify beautify;
-
-    @Command
-    private CommandIrisStudioProfile profile;
-
-    @Command
-    private CommandIrisStudioExplorerGenerator generator;
-
-    @Command
-    private CommandIrisStudioLoot loot;
-
-    @Command
-    private CommandIrisStudioTPStudio tps;
-
-    @Command
-    private CommandIrisStudioConvert convert;
-
-    @Command
-    private CommandIrisStudioMap map;
-
-    public CommandIrisStudio() {
-        super("studio", "std", "s");
+public class CommandIrisStudioExecute extends MortarCommand {
+    public CommandIrisStudioExecute() {
+        super("execute", "ex");
         requiresPermission(Iris.perm.studio);
+        setDescription("Execute a script");
         setCategory("Studio");
     }
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+            if (data == null) {
+                sender.sendMessage("Tab complete options only work for summons while in an Iris world.");
+            } else if (args.length == 0) {
+                list.add(data.getScriptLoader().getPossibleKeys());
+            } else if (args.length == 1) {
+                list.add(data.getScriptLoader().getPossibleKeys(args[0]));
+            }
+        }
     }
 
     @Override
@@ -98,13 +59,19 @@ public class CommandIrisStudio extends MortarCommand {
             return true;
         }
 
-        sender.sendMessage("Iris Studio Commands:");
-        printHelp(sender);
+        IrisAccess a = IrisToolbelt.access(sender.player().getWorld());
+
+        if(a != null)
+        {
+            ((Engine)a.getEngineAccess(0)).getExecution().execute(args[0]);
+            Iris.info("Executed. See script output in console.");
+        }
+
         return true;
     }
 
     @Override
     protected String getArgsUsage() {
-        return "[subcommand]";
+        return "";
     }
 }

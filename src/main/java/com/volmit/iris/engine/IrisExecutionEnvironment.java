@@ -18,16 +18,70 @@
 
 package com.volmit.iris.engine;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
+import com.volmit.iris.engine.scripting.IrisScriptingAPI;
 import lombok.Data;
+import org.apache.bsf.BSFEngine;
+import org.apache.bsf.BSFException;
+import org.apache.bsf.BSFManager;
+import org.apache.bsf.engines.javascript.JavaScriptEngine;
 
 @Data
 public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
+    private final BSFManager manager;
     private final Engine engine;
+    private final IrisScriptingAPI api;
+    private JavaScriptEngine javaScriptEngine;
 
-    IrisExecutionEnvironment(Engine engine)
+    public IrisExecutionEnvironment(Engine engine)
     {
         this.engine = engine;
+        this.api = new IrisScriptingAPI(engine);
+        this.manager = new BSFManager();
+        this.manager.setClassLoader(Iris.class.getClassLoader());
+        try {
+            this.manager.declareBean("Iris", api, api.getClass());
+            this.javaScriptEngine = (JavaScriptEngine) this.manager.loadScriptingEngine("javascript");
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void execute(String script)
+    {
+        try {
+            javaScriptEngine.exec("", 0, 0, getEngine().getData().getScriptLoader().load(script));
+        } catch (BSFException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Object evaluate(String script)
+    {
+        try {
+            return javaScriptEngine.eval("", 0, 0, getEngine().getData().getScriptLoader().load(script));
+        } catch (BSFException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public void execute(String script, double x, double y, double z) {
+        api.setX(x);
+        api.setY(y);
+        api.setZ(z);
+        execute(script);
+    }
+
+    @Override
+    public Object evaluate(String script, double x, double y, double z) {
+        api.setX(x);
+        api.setY(y);
+        api.setZ(z);
+        return evaluate(script);
     }
 }

@@ -19,10 +19,21 @@
 package com.volmit.iris.engine.scripting;
 
 import com.volmit.iris.engine.framework.Engine;
+import org.apache.bsf.BSFManager;
 
 public interface EngineExecutionEnvironment
 {
     Engine getEngine();
+
+    BSFManager getManager();
+
+    void execute(String script);
+
+    Object evaluate(String script);
+
+    void execute(String script, double x, double y, double z);
+
+    Object evaluate(String script, double x, double y, double z);
 
     default void close()
     {

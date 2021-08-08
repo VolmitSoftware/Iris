@@ -92,8 +92,7 @@ public class SchemaBuilder {
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
 
-        if(c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c))
-        {
+        if (c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
             for (Field k : IrisRegistrant.class.getDeclaredFields()) {
                 k.setAccessible(true);
 

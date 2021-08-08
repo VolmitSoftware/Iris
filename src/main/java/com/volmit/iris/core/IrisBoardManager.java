@@ -148,12 +148,12 @@ public class IrisBoardManager implements BoardProvider, Listener {
         if (engine != null) {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
-            f.add(engine.getFramework().getEngineParallax().forEachFeature(x, z));
+            f.add(engine.getEngineParallax().forEachFeature(x, z));
             v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
-            v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getFramework().getComplex().getSlopeStream().get(x, z), 2));
+            v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
             v.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
             v.add(C.AQUA + "Energy" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEnergy(), 0));
             v.add(C.AQUA + "Sat" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEntityCount()) + "e / " + Form.f(engine.getWorldManager().getChunkCount()) + "c (" + Form.pc(engine.getWorldManager().getEntitySaturation(), 0) + ")");

@@ -21,20 +21,17 @@ package com.volmit.iris.engine.object.common;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.bukkit.Bukkit;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class IrisScript extends IrisRegistrant {
     private final String source;
 
-    public IrisScript()
-    {
+    public IrisScript() {
         this("");
     }
 
-    public IrisScript(String source)
-    {
+    public IrisScript(String source) {
         this.source = source;
     }
 
@@ -48,8 +45,7 @@ public class IrisScript extends IrisRegistrant {
         return "Script";
     }
 
-    public String toString()
-    {
+    public String toString() {
         return source;
     }
 }

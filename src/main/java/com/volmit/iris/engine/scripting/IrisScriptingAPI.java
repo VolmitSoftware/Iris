@@ -23,7 +23,6 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.noise.IrisExpression;
@@ -41,70 +40,53 @@ public class IrisScriptingAPI {
     private Location location;
     private Entity entity;
 
-    public IrisScriptingAPI(Engine engine)
-    {
+    public IrisScriptingAPI(Engine engine) {
         this.engine = engine;
     }
 
-    public IrisData getData()
-    {
+    public IrisData getData() {
         return getEngine().getData();
     }
 
-    public EngineFramework getFramework()
-    {
-        return getEngine().getFramework();
+    public IrisComplex getComplex() {
+        return getEngine().getComplex();
     }
 
-    public IrisComplex getComplex()
-    {
-        return getFramework().getComplex();
-    }
-
-    public long getSeed()
-    {
+    public long getSeed() {
         return getEngine().getTarget().getWorld().seed();
     }
 
-    public double expression(String expressionName, double x, double y, double z)
-    {
+    public double expression(String expressionName, double x, double y, double z) {
         IrisExpression expression = getData().getExpressionLoader().load(expressionName);
         return expression.evaluate(getComplex().getRng(), x, y, z);
     }
 
-    public double expression(String expressionName, double x, double z)
-    {
+    public double expression(String expressionName, double x, double z) {
         IrisExpression expression = getData().getExpressionLoader().load(expressionName);
         return expression.evaluate(getComplex().getRng(), x, z);
     }
 
-    public IrisBiome getBiomeAt(int x, int z)
-    {
+    public IrisBiome getBiomeAt(int x, int z) {
         return getEngine().getSurfaceBiome(x, z);
     }
 
-    public IrisDimension getDimension()
-    {
+    public IrisDimension getDimension() {
         return getEngine().getDimension();
     }
 
-    public void info(String log)
-    {
+    public void info(String log) {
         Iris.info(log);
     }
 
-    public void debug(String log)
-    {
+    public void debug(String log) {
         Iris.debug(log);
     }
 
-    public void warn(String log)
-    {
+    public void warn(String log) {
         Iris.warn(log);
     }
 
-    public void error(String log)
-    {
+    public void error(String log) {
         Iris.error(log);
     }
 }

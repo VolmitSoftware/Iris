@@ -87,13 +87,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper = new Looper() {
             @Override
             protected long loop() {
-                if(getEngine().isClosed())
-                {
+                if (getEngine().isClosed()) {
                     interrupt();
                 }
 
-                if(getDimension().isInfiniteEnergy())
-                {
+                if (getDimension().isInfiniteEnergy()) {
                     energy += 1000;
                     fixEnergy();
                 }
@@ -138,8 +136,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private boolean onAsyncTick() {
-        if(getEngine().isClosed())
-        {
+        if (getEngine().isClosed()) {
             return false;
         }
 
@@ -164,13 +161,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         if (cl.flip()) {
-            try
-            {
+            try {
                 J.s(() -> precount = getEngine().getWorld().realWorld().getEntities());
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 close();
             }
         }
@@ -213,7 +206,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                                         getData().getSpawnerLoader()
                                                 .loadAll(getDimension().getEntitySpawners())
                                                 .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
-                                        getData().getSpawnerLoader().streamAll(getEngine().getFramework().getEngineParallax()
+                                        getData().getSpawnerLoader().streamAll(getEngine().getEngineParallax()
                                                         .getFeaturesInChunk(c).stream()
                                                         .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
                                                 .filter(this::canSpawn))
@@ -241,13 +234,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
             }
 
-            try
-            {
+            try {
                 spawn(c, v);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 J.s(() -> spawn(c, v));
             }
         }

@@ -191,12 +191,12 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
 
         switch (currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getFramework().getComplex().getTrueBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case BIOME_LAND -> colorFunction = (x, z) -> engine.getFramework().getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case BIOME_SEA -> colorFunction = (x, z) -> engine.getFramework().getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case REGION -> colorFunction = (x, z) -> engine.getFramework().getComplex().getRegionStream().get(x, z).getColor(engine.getFramework().getComplex(), currentType).getRGB();
-            case CAVE_LAND -> colorFunction = (x, z) -> engine.getFramework().getComplex().getCaveBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(engine.getFramework().getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getComplex().getTrueBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case BIOME_LAND -> colorFunction = (x, z) -> engine.getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case BIOME_SEA -> colorFunction = (x, z) -> engine.getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case REGION -> colorFunction = (x, z) -> engine.getComplex().getRegionStream().get(x, z).getColor(engine.getComplex(), currentType).getRGB();
+            case CAVE_LAND -> colorFunction = (x, z) -> engine.getComplex().getCaveBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(engine.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
         return colorFunction.apply(wx, wz);
@@ -629,8 +629,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     }
 
     private void renderHoverOverlay(Graphics2D g, boolean detailed) {
-        IrisBiome biome = engine.getFramework().getComplex().getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz));
-        IrisRegion region = engine.getFramework().getComplex().getRegionStream().get(getWorldX(hx), getWorldZ(hz));
+        IrisBiome biome = engine.getComplex().getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz));
+        IrisRegion region = engine.getComplex().getRegionStream().get(getWorldX(hx), getWorldZ(hz));
         KList<String> l = new KList<>();
         l.add("Biome: " + biome.getName());
         l.add("Region: " + region.getName() + "(" + region.getLoadKey() + ")");
@@ -692,7 +692,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     }
 
     private void open() {
-        IrisComplex complex = engine.getFramework().getComplex();
+        IrisComplex complex = engine.getComplex();
         File r = null;
         switch (currentType) {
             case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT -> r = complex.getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
@@ -710,7 +710,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             if (player != null) {
                 int xx = (int) getWorldX(hx);
                 int zz = (int) getWorldZ(hz);
-                double h = engine.getFramework().getComplex().getTrueHeightStream().get(xx, zz);
+                double h = engine.getComplex().getTrueHeightStream().get(xx, zz);
                 player.teleport(new Location(player.getWorld(), xx, h, zz));
                 notify("Teleporting to " + xx + ", " + (int) h + ", " + zz);
             } else {

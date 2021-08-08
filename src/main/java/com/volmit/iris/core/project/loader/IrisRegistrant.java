@@ -23,7 +23,6 @@ import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.common.IrisScript;
-import com.volmit.iris.engine.object.dimensional.IrisDimensionIndex;
 import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 

@@ -25,7 +25,6 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -61,9 +60,8 @@ public class CommandIrisStudioExecute extends MortarCommand {
 
         IrisAccess a = IrisToolbelt.access(sender.player().getWorld());
 
-        if(a != null)
-        {
-            ((Engine)a.getEngineAccess(0)).getExecution().execute(args[0]);
+        if (a != null) {
+            ((Engine) a.getEngineAccess(0)).getExecution().execute(args[0]);
             Iris.info("Executed. See script output in console.");
         }
 

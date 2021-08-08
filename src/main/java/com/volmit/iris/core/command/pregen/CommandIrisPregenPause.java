@@ -17,7 +17,7 @@ public class CommandIrisPregenPause extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        if (PregeneratorJob.pauseResume()){
+        if (PregeneratorJob.pauseResume()) {
             sender.sendMessage("Paused/unpaused pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running") + ".");
         } else {
             sender.sendMessage("No active pregeneration tasks to pause/unpause.");

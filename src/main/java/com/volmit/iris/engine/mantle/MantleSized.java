@@ -19,5 +19,5 @@
 package com.volmit.iris.engine.mantle;
 
 public interface MantleSized {
-    public int getMaxChunkSize();
+    int getMaxChunkSize();
 }

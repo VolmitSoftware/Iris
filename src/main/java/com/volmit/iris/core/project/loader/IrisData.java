@@ -38,7 +38,6 @@ import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
@@ -81,49 +80,35 @@ public class IrisData {
         hotloaded();
     }
 
-    public void preprocessObject(IrisRegistrant t)
-    {
-        try
-        {
+    public void preprocessObject(IrisRegistrant t) {
+        try {
             IrisContext ctx = IrisContext.get();
             Engine engine = this.engine;
 
-            if(engine == null && ctx != null && ctx.getEngine() != null)
-            {
+            if (engine == null && ctx != null && ctx.getEngine() != null) {
                 engine = ctx.getEngine();
             }
 
-            if(engine == null && t.getPreprocessors().isNotEmpty())
-            {
+            if (engine == null && t.getPreprocessors().isNotEmpty()) {
                 Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
-                try
-                {
+                try {
                     throw new RuntimeException();
-                }
-
-                catch(Throwable ex)
-                {
+                } catch (Throwable ex) {
                     ex.printStackTrace();
                 }
             }
 
-            if(engine != null && t.getPreprocessors().isNotEmpty())
-            {
-                synchronized (this)
-                {
+            if (engine != null && t.getPreprocessors().isNotEmpty()) {
+                synchronized (this) {
                     engine.getExecution().getAPI().setPreprocessorObject(t);
 
-                    for(String i : t.getPreprocessors())
-                    {
+                    for (String i : t.getPreprocessors()) {
                         engine.getExecution().execute(i);
                         Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
                     }
                 }
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("Failed to preprocess object!");
             e.printStackTrace();
         }
@@ -149,11 +134,9 @@ public class IrisData {
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            }
-            else if (registrant.equals(IrisScript.class)) {
+            } else if (registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            }
-            else {
+            } else {
                 r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
             }
 

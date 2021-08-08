@@ -74,10 +74,6 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     int getParallaxSize();
 
-    default EngineFramework getFramework() {
-        return getEngine().getFramework();
-    }
-
     default ParallaxAccess getParallaxAccess() {
         return getEngine().getParallax();
     }
@@ -87,7 +83,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
     }
 
     default IrisComplex getComplex() {
-        return getEngine().getFramework().getComplex();
+        return getEngine().getComplex();
     }
 
     default KList<IrisRegion> getAllRegions() {
@@ -214,13 +210,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         KList<IrisFeaturePositional> pos = new KList<>();
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
+            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
 
         for (IrisFeaturePositional i : getParallaxAccess().getMetaR(x, z).getFeatures()) {
-            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getFramework().getComplex().getRng(), getData())) {
+            if (i.shouldFilter((x << 4) + 8, (z << 4) + 8, getEngine().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
@@ -242,7 +238,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng(), getData())) {
+            if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
                 pos.add(i);
             }
         }
@@ -259,7 +255,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
                 try {
                     for (IrisFeaturePositional k : m.getFeatures()) {
-                        if (k.shouldFilter(x, z, getEngine().getFramework().getComplex().getRng(), getData())) {
+                        if (k.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
                             pos.add(k);
                         }
                     }

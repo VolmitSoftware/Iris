@@ -37,10 +37,8 @@ public class ZoneMatter extends RawMatter<IrisFeaturePositional> {
 
     @Override
     public void setRaw(int x, int y, int z, IrisFeaturePositional t) {
-        for(int i = 0; i < getHeight(); i++)
-        {
-            if(get(x, i, z) == null)
-            {
+        for (int i = 0; i < getHeight(); i++) {
+            if (get(x, i, z) == null) {
                 super.setRaw(x, i, z, t);
                 break;
             }

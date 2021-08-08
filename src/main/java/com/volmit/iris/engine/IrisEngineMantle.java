@@ -30,8 +30,7 @@ public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle mantle;
 
-    public IrisEngineMantle(Engine engine)
-    {
+    public IrisEngineMantle(Engine engine) {
         this.engine = engine;
         this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle/" + engine.getIndex()), engine.getTarget().getHeight());
     }

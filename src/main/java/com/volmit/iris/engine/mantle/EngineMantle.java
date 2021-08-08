@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineFramework;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -33,8 +32,7 @@ import com.volmit.iris.util.mantle.Mantle;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-public interface EngineMantle extends IObjectPlacer
-{
+public interface EngineMantle extends IObjectPlacer {
     BlockData AIR = B.get("AIR");
 
     Mantle getMantle();
@@ -65,7 +63,7 @@ public interface EngineMantle extends IObjectPlacer
 
     @Override
     default void set(int x, int y, int z, BlockData d) {
-        getMantle().set(x,y,z,d == null ? AIR : d);
+        getMantle().set(x, y, z, d == null ? AIR : d);
     }
 
     @Override
@@ -76,7 +74,7 @@ public interface EngineMantle extends IObjectPlacer
 
     @Override
     default BlockData get(int x, int y, int z) {
-        BlockData block = getMantle().get(x,y,z,BlockData.class);
+        BlockData block = getMantle().get(x, y, z, BlockData.class);
 
         if (block == null) {
             return AIR;
@@ -110,8 +108,7 @@ public interface EngineMantle extends IObjectPlacer
         return getEngine().getDimension().isDebugSmartBore();
     }
 
-    default void trim(long dur)
-    {
+    default void trim(long dur) {
         getMantle().trim(dur);
     }
 
@@ -131,16 +128,11 @@ public interface EngineMantle extends IObjectPlacer
         return getEngine().getDimension();
     }
 
-    default EngineFramework getFramework() {
-        return getEngine().getFramework();
-    }
-
     default IrisComplex getComplex() {
-        return getFramework().getComplex();
+        return getEngine().getComplex();
     }
 
-    default void close()
-    {
+    default void close() {
         getMantle().close();
     }
 }

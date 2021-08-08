@@ -85,7 +85,7 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         } else if (p.equalsIgnoreCase("terrain_slope")) {
             if (a != null) {
                 return ((Engine) a.getEngineAccess(l.getBlockY()))
-                        .getFramework().getComplex().getSlopeStream()
+                        .getComplex().getSlopeStream()
                         .get(l.getX(), l.getZ()) + "";
             }
         } else if (p.equalsIgnoreCase("terrain_height")) {

@@ -20,20 +20,12 @@ package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.common.IrisScript;
-import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
 

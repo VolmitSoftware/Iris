@@ -18,10 +18,7 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
@@ -63,8 +60,7 @@ public class MantleChunk {
         int s = din.readByte();
         int f = din.readByte();
 
-        for(int i = 0; i < f; i++)
-        {
+        for (int i = 0; i < f; i++) {
             flags.add(din.readUTF());
         }
 
@@ -75,21 +71,15 @@ public class MantleChunk {
         }
     }
 
-    public void flag(String s, boolean f)
-    {
-        if(f)
-        {
+    public void flag(String s, boolean f) {
+        if (f) {
             flags.add(s);
-        }
-
-        else
-        {
+        } else {
             flags.remove(s);
         }
     }
 
-    public boolean isFlagged(String s)
-    {
+    public boolean isFlagged(String s) {
         return flags.contains(s);
     }
 
@@ -162,8 +152,7 @@ public class MantleChunk {
         dos.writeByte(sections.length());
         dos.writeByte(flags.size());
 
-        for(String i : flags)
-        {
+        for (String i : flags) {
             dos.writeUTF(i);
         }
 

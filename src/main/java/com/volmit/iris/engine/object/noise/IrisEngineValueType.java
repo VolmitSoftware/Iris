@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.noise;
 
-import com.volmit.iris.engine.framework.EngineFramework;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 
 import java.util.function.Function;
@@ -26,28 +26,28 @@ import java.util.function.Function;
 @Desc("Represents a value from the engine")
 public enum IrisEngineValueType {
     @Desc("Represents actual height of the engine")
-    ENGINE_HEIGHT((f) -> Double.valueOf(f.getEngine().getHeight())),
+    ENGINE_HEIGHT((f) -> Double.valueOf(f.getHeight())),
 
     @Desc("Represents virtual bottom of the engine in the compound. If this engine is on top of another engine, it's min height would be at the maxHeight of the previous engine + 1")
-    ENGINE_MIN_HEIGHT((f) -> Double.valueOf(f.getEngine().getMinHeight())),
+    ENGINE_MIN_HEIGHT((f) -> Double.valueOf(f.getMinHeight())),
 
     @Desc("Represents virtual top of the engine in the compound. If this engine is below another engine, it's max height would be at the minHeight of the next engine - 1")
-    ENGINE_MAX_HEIGHT((f) -> Double.valueOf(f.getEngine().getMaxHeight())),
+    ENGINE_MAX_HEIGHT((f) -> Double.valueOf(f.getMaxHeight())),
 
     @Desc("Represents the position of the engine in the dimensional compound. The bottom (first) dimension stasts at 0. Each new dimension added stacks on top with n+1 for the id.")
-    ENGINE_INDEX((f) -> Double.valueOf(f.getEngine().getIndex())),
+    ENGINE_INDEX((f) -> Double.valueOf(f.getIndex())),
 
     @Desc("The fluid height defined in the dimension file")
     FLUID_HEIGHT((f) -> Double.valueOf(f.getComplex().getFluidHeight())),
     ;
 
-    private final Function<EngineFramework, Double> getter;
+    private final Function<Engine, Double> getter;
 
-    IrisEngineValueType(Function<EngineFramework, Double> getter) {
+    IrisEngineValueType(Function<Engine, Double> getter) {
         this.getter = getter;
     }
 
-    public Double get(EngineFramework engine) {
+    public Double get(Engine engine) {
         return getter.apply(engine);
     }
 }

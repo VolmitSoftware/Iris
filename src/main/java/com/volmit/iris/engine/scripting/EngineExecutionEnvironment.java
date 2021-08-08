@@ -21,8 +21,7 @@ package com.volmit.iris.engine.scripting;
 import com.volmit.iris.engine.framework.Engine;
 import org.apache.bsf.BSFManager;
 
-public interface EngineExecutionEnvironment
-{
+public interface EngineExecutionEnvironment {
     Engine getEngine();
 
     IrisScriptingAPI getAPI();
@@ -33,8 +32,7 @@ public interface EngineExecutionEnvironment
 
     Object evaluate(String script);
 
-    default void close()
-    {
+    default void close() {
 
     }
 }

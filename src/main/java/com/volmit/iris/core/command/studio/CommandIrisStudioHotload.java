@@ -20,8 +20,8 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -57,12 +57,12 @@ public class CommandIrisStudioHotload extends MortarCommand {
         Player p = sender.player();
         World world = p.getWorld();
 
-        if (!IrisWorlds.isIrisWorld(world)) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
             sender.sendMessage("You must be in an iris world.");
             return true;
         }
 
-        IrisAccess worldAccess = IrisWorlds.access(world);
+        PlatformChunkGenerator worldAccess = IrisToolbelt.access(world);
         if (worldAccess == null) {
             sender.sendMessage("Could not gain access to the world you are in");
         } else {

@@ -20,8 +20,8 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.util.collection.KList;
@@ -56,18 +56,18 @@ public class CommandIrisStudioLoot extends MortarCommand {
 
         if (sender.isPlayer()) {
             Player p = sender.player();
-            IrisAccess prov = IrisWorlds.access(sender.player().getWorld());
+            Engine prov = IrisToolbelt.access(sender.player().getWorld()).getEngine();
 
             if (!Iris.proj.isProjectOpen()) {
                 sender.sendMessage("You can only use /iris studio loot in a studio world of iris.");
                 return true;
             }
 
-            KList<IrisLootTable> tables = prov.getCompound().getEngine(p.getLocation().getBlockY()).getLootTables(RNG.r, p.getLocation().getBlock());
+            KList<IrisLootTable> tables = prov.getLootTables(RNG.r, p.getLocation().getBlock());
             Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
             try {
-                Iris.proj.getActiveProject().getActiveProvider().getCompound().getEngine(p.getLocation().getBlockY()).addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+                Iris.proj.getActiveProject().getActiveProvider().getEngine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
             } catch (Throwable e) {
                 Iris.reportError(e);
                 sender.sendMessage("You can only use /iris loot in a studio world of iris.");
@@ -109,7 +109,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
                     inv.clear();
                 }
 
-                Iris.proj.getActiveProject().getActiveProvider().getCompound().getEngine(p.getLocation().getBlockY()).addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+                Iris.proj.getActiveProject().getActiveProvider().getEngine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
             }, 0, fast ? 5 : 35));
 
             return true;

@@ -19,8 +19,8 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.Spiraler;
@@ -46,22 +46,18 @@ public class CommandIrisFix extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         try {
-            IrisAccess a = IrisWorlds.access(sender.player().getWorld());
-            if (a.getCompound().getSize() > 1) {
-                sender.sendMessage("Cant fix engine composite worlds!");
-                return true;
-            }
+            Engine a = IrisToolbelt.access(sender.player().getWorld()).getEngine();
 
             int viewDistance = args.length > 0 ? Integer.parseInt(args[0]) : -1;
             if (viewDistance <= 1) {
                 J.a(() -> {
-                    int fixed = a.getCompound().getDefaultEngine().getEngineParallax().repairChunk(sender.player().getLocation().getChunk());
+                    int fixed = a.getEngineParallax().repairChunk(sender.player().getLocation().getChunk());
                     sender.sendMessage("Fixed " + Form.f(fixed) + " blocks!");
                 });
             } else {
                 AtomicInteger v = new AtomicInteger();
                 J.a(() -> {
-                    new Spiraler(viewDistance, viewDistance, (x, z) -> v.set(v.get() + a.getCompound().getDefaultEngine().getEngineParallax().repairChunk(sender.player().getWorld().getChunkAt(x, z)))).drain();
+                    new Spiraler(viewDistance, viewDistance, (x, z) -> v.set(v.get() + a.getEngineParallax().repairChunk(sender.player().getWorld().getChunkAt(x, z)))).drain();
                     sender.sendMessage("Fixed " + Form.f(v.get()) + " blocks in " + (viewDistance * viewDistance) + " chunks!");
                 });
             }

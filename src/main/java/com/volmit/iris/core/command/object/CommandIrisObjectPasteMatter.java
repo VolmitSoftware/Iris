@@ -21,7 +21,7 @@ package com.volmit.iris.core.command.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
@@ -52,8 +52,8 @@ public class CommandIrisObjectPasteMatter extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisToolbelt.access(sender.player().getWorld()).getEngine().getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for objects while in an Iris world.");
             } else if (args.length == 0) {

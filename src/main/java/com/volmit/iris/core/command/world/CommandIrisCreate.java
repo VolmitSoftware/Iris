@@ -24,8 +24,8 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorldCreator;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -220,9 +220,7 @@ public class CommandIrisCreate extends MortarCommand {
 
             File iris = new File(folder, "iris");
             iris.mkdirs();
-
             dim = Iris.proj.installIntoWorld(sender, type, folder);
-
             WorldCreator wc = new IrisWorldCreator().dimension(dim.getLoadKey()).name(worldName)
                     .productionMode().seed(seed).create();
 
@@ -236,7 +234,7 @@ public class CommandIrisCreate extends MortarCommand {
                     int req = 800;
                     while (!done.get()) {
                         boolean derp = false;
-                        double v = (double) ((IrisAccess) wc.generator()).getGenerated() / (double) req;
+                        double v = (double) ((PlatformChunkGenerator) wc.generator()).getEngine().getGenerated() / (double) req;
 
                         if (last > v || v > 1) {
                             derp = true;

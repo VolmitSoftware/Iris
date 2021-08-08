@@ -30,9 +30,10 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
@@ -435,7 +436,23 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Generator ID: " + id + " requested by bukkit/plugin. Assuming IrisDimension: " + id);
         }
 
-        return new EngineCompositeGenerator(dimension, true);
+        IrisDimension d = IrisData.loadAnyDimension(dimension);
+
+        if(d == null)
+        {
+            throw new RuntimeException("Can't find dimension " + dimension + "!");
+        }
+
+        IrisWorld w = IrisWorld.builder()
+                .name(worldName)
+                .seed(RNG.r.lmax())
+                .environment(d.getEnvironment())
+                .worldFolder(new File(worldName))
+                .minHeight(0)
+                .maxHeight(256)
+                .build();
+
+        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"),  dimension);
     }
 
     public static void msg(String string) {

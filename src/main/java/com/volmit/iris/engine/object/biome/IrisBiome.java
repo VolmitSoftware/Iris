@@ -22,10 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.common.IRare;
@@ -306,7 +306,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public double getHeight(IrisAccess xg, double x, double z, long seed) {
+    public double getHeight(Engine xg, double x, double z, long seed) {
         double height = 0;
 
         for (IrisBiomeGeneratorLink i : generators) {

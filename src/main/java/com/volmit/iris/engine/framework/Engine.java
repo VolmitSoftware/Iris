@@ -25,6 +25,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.object.basic.IrisColor;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -37,6 +38,7 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
@@ -54,6 +56,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -61,9 +64,12 @@ import org.bukkit.inventory.ItemStack;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.function.Consumer;
 
-public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer, Hotloadable {
+public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer {
     IrisComplex getComplex();
+
+    void printMetrics(CommandSender sender);
 
     void recycle();
 
@@ -111,9 +117,10 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     void setMinHeight(int min);
 
-    int getIndex();
-
-    int getMinHeight();
+    default int getMinHeight()
+    {
+        return getTarget().getWorld().minHeight();
+    }
 
     @BlockCoordinates
     double modifyX(double x);
@@ -121,7 +128,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @BlockCoordinates
     double modifyZ(double z);
 
-    @ChunkCoordinates
+    @BlockCoordinates
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore);
 
     EngineMetrics getMetrics();
@@ -141,10 +148,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     default String getName() {
         return getDimension().getName();
-    }
-
-    default int getHeight() {
-        return getTarget().getHeight();
     }
 
     default IrisData getData() {
@@ -168,7 +171,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         IrisRegion region = getRegion((int) x, (int) z);
         IrisBiome biome = getSurfaceBiome((int) x, (int) z);
         int height = getHeight((int) x, (int) z);
-        double heightFactor = M.lerpInverse(0, getHeight(), height);
+        double heightFactor = M.lerpInverse(0, getTarget().getHeight(), height);
         Color irc = region.getColor(this.getComplex(), RenderType.BIOME);
         Color ibc = biome.getColor(this, RenderType.BIOME);
         Color rc = irc != null ? irc : Color.GREEN.darker();
@@ -404,17 +407,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         scramble(inv, rng);
     }
 
-    default int getMaxHeight() {
-        return getHeight() + getMinHeight();
-    }
-
     EngineEffects getEffects();
-
-    EngineCompound getCompound();
-
-    default boolean isStudio() {
-        return getCompound().isStudio();
-    }
 
     default MultiBurst burst() {
         return getTarget().getBurster();
@@ -434,11 +427,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getRegion(l.getBlockX(), l.getBlockZ());
     }
 
-    @BlockCoordinates
-    default boolean contains(Location l) {
-        return l.getBlockY() >= getMinHeight() && l.getBlockY() <= getMaxHeight();
-    }
-
     IrisBiome getFocus();
 
     IrisEngineData getEngineData();
@@ -450,4 +438,34 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     default IrisRegion getRegion(Chunk c) {
         return getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
+
+    default KList<IrisBiome> getAllBiomes() {
+        KMap<String, IrisBiome> v = new KMap<>();
+
+        IrisDimension dim = getDimension();
+        dim.getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i));
+
+        try {
+            dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
+        } catch (Throwable ignored) {
+            Iris.reportError(ignored);
+
+        }
+
+        return v.v();
+    }
+
+    int getGenerated();
+
+    default IrisPosition lookForBiome(IrisBiome biome, int checks, Consumer<Integer> progress)
+    {
+        return null;
+    }
+
+    default IrisPosition lookForRegion(IrisRegion biome, int checks, Consumer<Integer> progress)
+    {
+        return null;
+    }
+
+    double getGeneratedPerSecond();
 }

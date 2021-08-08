@@ -21,9 +21,9 @@ package com.volmit.iris.engine.jigsaw;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineParallaxManager;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -174,7 +174,7 @@ public class PlannedStructure {
             Iris.sq(() -> {
                 for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
                     if (j.getSpawnEntity() != null) {
-                        IrisAccess a = IrisWorlds.access(world);
+                        Engine a = IrisToolbelt.access(world).getEngine();
                         if (a == null) {
                             Iris.warn("Cannot spawn entities from jigsaw in non Iris world!");
                             break;
@@ -183,7 +183,7 @@ public class PlannedStructure {
                         IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
 
                         if (a != null) {
-                            Entity entity = e.spawn(a.getCompound().getEngineForHeight(p.getY()), new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
+                            Entity entity = e.spawn(a, new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
                             if (j.isKeepEntity()) {
                                 entity.setPersistent(true);
                             }

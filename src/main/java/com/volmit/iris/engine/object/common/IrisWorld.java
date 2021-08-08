@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
@@ -76,11 +76,16 @@ public class IrisWorld {
 
     public void evacuate() {
         if (hasRealWorld()) {
-            IrisWorlds.evacuate(realWorld());
+            IrisToolbelt.evacuate(realWorld());
         }
     }
 
     public void bind(World world) {
+        if(hasRealWorld())
+        {
+           return;
+        }
+
         bindWorld(this, world);
     }
 

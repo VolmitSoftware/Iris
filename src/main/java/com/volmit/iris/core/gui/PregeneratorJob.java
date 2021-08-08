@@ -103,9 +103,9 @@ public class PregeneratorJob implements PregenListener {
         return instance;
     }
 
-    public static void pauseResume() {
+    public static boolean pauseResume() {
         if (instance == null) {
-            return;
+            return false;
         }
 
         if (isPaused()) {
@@ -113,6 +113,7 @@ public class PregeneratorJob implements PregenListener {
         } else {
             instance.pregenerator.pause();
         }
+        return true;
     }
 
     public static boolean isPaused() {

@@ -136,6 +136,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         writer.close();
     }
 
+    @Override
+    public boolean isStudio() {
+        return false;
+    }
+
     public KList<Position2> getChunksInRegion(int x, int z) {
         try {
             return MCAUtil.sampleChunkPositions(writer.getRegionFile(x, z));

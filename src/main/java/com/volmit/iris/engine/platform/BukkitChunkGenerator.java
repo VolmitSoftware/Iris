@@ -91,6 +91,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         getEngine().close();
     }
 
+    @Override
+    public boolean isStudio() {
+        return studio;
+    }
+
 
     @Override
     public void hotload() {

@@ -37,7 +37,6 @@ public class CommandIrisWhatFeatures extends MortarCommand {
         setDescription("Get the noise feature data in chunk.");
         requiresPermission(Iris.perm.studio);
         setCategory("Wut");
-        setDescription("WAILA, WAWLA etc");
     }
 
     @Override

@@ -30,10 +30,9 @@ import org.bukkit.entity.Player;
 public class CommandIrisWhatHand extends MortarCommand {
     public CommandIrisWhatHand() {
         super("hand", "h");
-        setDescription("Get the block data for holding.");
+        setDescription("Get the block data for the block you're holding.");
         requiresPermission(Iris.perm.studio);
         setCategory("Wut");
-        setDescription("What block am I holding");
     }
 
     @Override

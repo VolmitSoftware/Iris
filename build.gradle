@@ -34,18 +34,18 @@ plugins {
 }
 
 group 'com.volmit.plague'
-version 'pleae-work-0.1'
+version 'Test-0.1'
 def apiVersion = '1.17'
-def name = 'Plague'
+def name = getRootProject().getName() // See settings.gradle
 def main = 'com.volmit.plague.core.Plague'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
-registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins')
-registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins')
-registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
-registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/Development/MCServer/plugins')
-registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
+registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins', name)
+registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins', name)
+registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins', name)
+registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/Development/MCServer/plugins', name)
+registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
 // ==============================================================
 
 def dependsDir = "${buildDir}/libs/dependencies/" as String
@@ -74,15 +74,15 @@ task release(type: ProGuardTask) {
     verbose()
 }
 
-def registerCustomOutputTask(dname, path) {
-    tasks.register('build' + dname, Copy) {
+def registerCustomOutputTask(name, path, plugin) {
+    tasks.register('build' + name, Copy) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
-        from(file('build/libs/' + name + '-' + version + '-all.jar'))
+        from(file('build/libs/' + plugin + '-' + version + '-all.jar'))
         into(file(path))
         rename { String fileName ->
-            fileName.replace(name + '-' + version + '-all.jar', name + ".jar")
+            fileName.replace(plugin + '-' + version + '-all.jar', plugin + ".jar")
         }
     }
 }
@@ -92,10 +92,10 @@ file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParent
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
-            'name': name.toString(),
-            'version': version.toString(),
-            'main': main.toString(),
-            'apiversion': apiVersion.toString()
+                'name': name.toString(),
+                'version': version.toString(),
+                'main': main.toString(),
+                'apiversion': apiVersion.toString()
         )
     }
 }
@@ -112,17 +112,17 @@ repositories {
 }
 
 shadowJar
-{
-    minimize()
-    append("plugin.yml")
-    relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
-    relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
-    dependencies {
-        include(dependency('io.papermc:paperlib'))
-        include(dependency('com.dfsek:Paralithic'))
-        include(dependency('net.kyori:'))
-    }
-}
+        {
+            minimize()
+            append("plugin.yml")
+            relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
+            relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+            dependencies {
+                include(dependency('io.papermc:paperlib'))
+                include(dependency('com.dfsek:Paralithic'))
+                include(dependency('net.kyori:'))
+            }
+        }
 
 dependencies {
     // Provided or Classpath

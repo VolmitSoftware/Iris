@@ -72,15 +72,15 @@ task release(type: proguard.gradle.ProGuardTask) {
     verbose()
 }
 
-def registerCustomOutputTask(name, path) {
-    tasks.register('build' + name, Copy) {
+def registerCustomOutputTask(dname, path) {
+    tasks.register('build' + dname, Copy) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
         from(file('build/libs/Iris-' + version + '-all.jar'))
         into(file(path))
         rename { String fileName ->
-            fileName.replace('Iris-' + version + '-all.jar', "Iris.jar")
+            fileName.replace(name + '-' + version + '-all.jar', name + ".jar")
         }
     }
 }
@@ -90,10 +90,10 @@ file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParent
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
-                'name': name.toString(),
-                'version': version.toString(),
-                'main': main.toString(),
-                'apiversion': apiVersion.toString()
+            'name': name.toString(),
+            'version': version.toString(),
+            'main': main.toString(),
+            'apiversion': apiVersion.toString()
         )
     }
 }

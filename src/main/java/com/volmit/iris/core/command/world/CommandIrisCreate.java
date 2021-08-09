@@ -20,9 +20,7 @@ package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -247,7 +245,7 @@ public class CommandIrisCreate extends MortarCommand {
                 .seed(seed)
                 .productionMode()
                 .create();
-        IrisAccess gen = (IrisAccess) wc.generator();
+        PlatformChunkGenerator gen = (PlatformChunkGenerator) wc.generator();
 
         if (gen == null){
             sender.sendMessage("Failed to create generator! Gen is null!");
@@ -267,7 +265,7 @@ public class CommandIrisCreate extends MortarCommand {
                 while (!done.get()) {
 
                     boolean shouldBeDone = false;
-                    double v = (double) gen.getGenerated() / req;
+                    double v = (double) gen.getEngine().getGenerated() / req;
 
                     if (last > v || v > 1) {
                         shouldBeDone = true;

@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
@@ -66,7 +67,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void placeObjects(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, Consumer<Runnable> post) {
-
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
                 try {
@@ -95,7 +95,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
         }
     }
-    
+
+    @BlockCoordinates
     private void placeObject(RNG rng, int x, int z, IrisObjectPlacement objectPlacement, Consumer<Runnable> post) {
         for (int i = 0; i < objectPlacement.getDensity(); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));

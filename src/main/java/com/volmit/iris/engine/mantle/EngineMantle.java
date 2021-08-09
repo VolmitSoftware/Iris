@@ -34,6 +34,7 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
@@ -217,5 +218,12 @@ public interface EngineMantle extends IObjectPlacer {
     default void insertMatter(int x, int z, Hunk<BlockData> blocks)
     {
 
+    }
+
+    @BlockCoordinates
+    default void updateBlock(int x, int y, int z)
+    {
+        getMantle().flag(x>>4, z>>4, MantleFlag.UPDATE, true);
+        getMantle().set(x,y,z,true);
     }
 }

@@ -24,7 +24,6 @@ import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleComponent;
 import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
-import com.volmit.iris.engine.mantle.components.MantleVacuumComponent;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import lombok.Data;
@@ -46,7 +45,6 @@ public class IrisEngineMantle implements EngineMantle {
         components = new KList<>();
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
-        registerComponent(new MantleVacuumComponent(this));
     }
 
     @Override

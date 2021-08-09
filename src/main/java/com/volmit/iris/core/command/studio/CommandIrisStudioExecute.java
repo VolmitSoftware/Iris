@@ -30,7 +30,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 
 public class CommandIrisStudioExecute extends MortarCommand {
     public CommandIrisStudioExecute() {
-        super("execute", "ex");
+        super("execute", "ex", "exec");
         requiresPermission(Iris.perm.studio);
         setDescription("Execute a script");
         setCategory("Studio");
@@ -44,12 +44,13 @@ public class CommandIrisStudioExecute extends MortarCommand {
                 sender.sendMessage("Tab complete options only work for summons while in an Iris world.");
             } else if (args.length == 0) {
                 list.add(data.getScriptLoader().getPossibleKeys());
-            } else if (args.length == 1) {
+            } else {
                 list.add(data.getScriptLoader().getPossibleKeys(args[0]));
             }
         }
     }
 
+    @SuppressWarnings("null")
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (!IrisSettings.get().isStudio()) {
@@ -57,13 +58,17 @@ public class CommandIrisStudioExecute extends MortarCommand {
             return true;
         }
 
-        PlatformChunkGenerator a = IrisToolbelt.access(sender.player().getWorld());
-
-        if (a != null) {
-            a.getEngine().getExecution().execute(args[0]);
-            Iris.info("Executed. See script output in console.");
+        if (!sender.isPlayer() || !IrisToolbelt.isIrisWorld(sender.player().getWorld())){
+            sender.sendMessage("To execute scripts you must be in an Iris world as a player");
         }
+        Iris.info("Executing script: " + args[0] + ". See script output in console.");
 
+        try {
+            IrisToolbelt.access(sender.player().getWorld()).getEngine().getExecution().execute(args[0]);
+        } catch (Throwable e){
+            Iris.reportError(e);
+            sender.sendMessage("Failed to execute script " + args[0] + "!");
+        }
         return true;
     }
 

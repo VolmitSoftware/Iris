@@ -27,6 +27,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -103,6 +104,24 @@ public class Mantle {
     {
         try {
             get(x >> 5, z >> 5).get().get(x & 31, z & 31).flag(flag, flagged);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @ChunkCoordinates
+    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags)
+    {
+        for(MantleFlag i : requiredFlags)
+        {
+            if(!hasFlag(x, z, i))
+            {
+                return;
+            }
+        }
+
+        try {
+            get(x >> 5, z >> 5).get().get(x & 31, z & 31).iterate(type, iterator);
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }

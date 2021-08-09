@@ -22,7 +22,7 @@ import com.volmit.iris.util.collection.StateList;
 
 public enum MantleFlag {
     OBJECT,
-    VACUUM,
+    UPDATE,
     JIGSAW,
     FEATURE
     ;

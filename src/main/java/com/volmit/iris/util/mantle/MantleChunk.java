@@ -22,8 +22,10 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.collection.StateList;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterSlice;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -165,6 +167,23 @@ public class MantleChunk {
                 matter.writeDos(dos);
             } else {
                 dos.writeBoolean(false);
+            }
+        }
+    }
+
+    public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer,T> iterator) {
+        for(int i = 0; i < sections.length(); i++)
+        {
+            Matter matter = get(i);
+
+            if(matter != null)
+            {
+                MatterSlice<T> t = matter.getSlice(type);
+
+                if(t != null)
+                {
+                    t.iterateSync(iterator);
+                }
             }
         }
     }

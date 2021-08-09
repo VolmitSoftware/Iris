@@ -56,11 +56,6 @@ public class PlagueCommandParameter
 	 */
 	public Object fitDefault()
 	{
-		if(getType().isArray())
-		{
-			return new Object[0];
-		}
-
 		if(getType().equals(String.class))
 		{
 			return getOptional().defaultString();

@@ -24,7 +24,7 @@ public class KickCommand extends PlagueCommand
 
 			@Name("message")
 			@Description("A kick reason to display.")
-			String[] messages,
+			String messages,
 
 			@Name("broadcast")
 			@Description("If this kick should be broadcasted.")

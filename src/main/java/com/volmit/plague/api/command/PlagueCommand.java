@@ -1,10 +1,10 @@
 package com.volmit.plague.api.command;
 
 import com.volmit.iris.util.collection.KList;
-import com.volmit.plague.api.Description;
+import com.volmit.iris.util.format.C;
+import com.volmit.plague.api.annotations.Description;
 import com.volmit.plague.api.PlagueRegistry;
 import com.volmit.plague.api.PlagueSender;
-import com.volmit.plague.util.C;
 
 import lombok.Getter;
 

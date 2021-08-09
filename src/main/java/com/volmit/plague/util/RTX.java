@@ -1,10 +1,10 @@
 package com.volmit.plague.util;
 
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.json.JSONArray;
+import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-
-
-
 
 /**
  * Raw Text holder
@@ -13,14 +13,13 @@ import org.bukkit.entity.Player;
  */
 public class RTX
 {
-	private JSONArray base;
+	private final JSONArray base = new JSONArray();
 
 	/**
 	 * Create a base raw text holder
 	 */
 	public RTX()
 	{
-		this.base = new JSONArray();
 		base.put("");
 	}
 
@@ -44,7 +43,7 @@ public class RTX
 				add(rt.base.getJSONObject(i));
 			}
 
-			catch(Throwable e)
+			catch(Throwable ignored)
 			{
 
 			}
@@ -166,8 +165,6 @@ public class RTX
 	 *            the command
 	 * @param color
 	 *            the color
-	 * @param formatting
-	 *            the formatting
 	 */
 	public void addTextFireCommand(String text, String cmd, C color)
 	{
@@ -194,8 +191,6 @@ public class RTX
 	 *            the command
 	 * @param color
 	 *            the color
-	 * @param formatting
-	 *            the formatting
 	 */
 	public void addTextSuggestedHoverCommand(String text, RTEX hover, String cmd, C color)
 	{

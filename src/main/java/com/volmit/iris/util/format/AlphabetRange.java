@@ -1,4 +1,4 @@
-package com.volmit.plague.util;
+package com.volmit.iris.util.format;
 
 public class AlphabetRange
 {

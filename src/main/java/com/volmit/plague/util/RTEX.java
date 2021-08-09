@@ -1,43 +1,37 @@
 package com.volmit.plague.util;
 
 
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.ColoredString;
+import com.volmit.iris.util.json.JSONArray;
+import com.volmit.iris.util.json.JSONObject;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-
+import java.util.List;
 
 /**
  * Raw Text EXTRA
  *
  * @author cyberpwn
  */
+@NoArgsConstructor
 public class RTEX
 {
-	private KList<ColoredString> extras;
+	@Getter
+	private final KList<ColoredString> extras = new KList<>();
 
 	/**
 	 * Create a new raw text base
-	 *
-	 * @param extras
-	 *            the extras
+	 * @param extra the extras
 	 */
-	public RTEX(ColoredString... extras)
+	public RTEX(ColoredString... extra)
 	{
-		this.extras = new KList<ColoredString>(extras);
-	}
-
-	public RTEX()
-	{
-		this.extras = new KList<ColoredString>();
-	}
-
-	public KList<ColoredString> getExtras()
-	{
-		return extras;
+		extras.addAll(List.of(extra));
 	}
 
 	/**
-	 * Get the json object for this
-	 *
-	 * @return
+	 * @return the json object for this
 	 */
 	public JSONObject toJSON()
 	{

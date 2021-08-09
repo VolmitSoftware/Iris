@@ -3,6 +3,7 @@ package com.volmit.plague.api;
 import java.util.Set;
 import java.util.UUID;
 
+import com.volmit.iris.util.format.C;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -10,8 +11,6 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
-
-import com.volmit.plague.util.C;
 
 import lombok.Getter;
 import lombok.Setter;

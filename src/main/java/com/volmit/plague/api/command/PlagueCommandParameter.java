@@ -2,11 +2,11 @@ package com.volmit.plague.api.command;
 
 import java.lang.reflect.Parameter;
 
-import com.volmit.plague.api.Description;
-import com.volmit.plague.api.Name;
-import com.volmit.plague.api.Optional;
-import com.volmit.plague.util.C;
-import com.volmit.plague.util.ColoredString;
+import com.volmit.iris.util.format.C;
+import com.volmit.plague.api.annotations.Description;
+import com.volmit.plague.api.annotations.Name;
+import com.volmit.plague.api.annotations.Optional;
+import com.volmit.iris.util.format.ColoredString;
 import com.volmit.plague.util.RTEX;
 import com.volmit.plague.util.RTX;
 
@@ -39,7 +39,7 @@ public class PlagueCommandParameter
 		String close = required ? ">" : "]";
 		//@builder
 		RTEX rtex = new RTEX(
-				new ColoredString(C.GRAY, open), 
+				new ColoredString(C.GRAY, open),
 				new ColoredString(C.WHITE, name), 
 				new ColoredString(C.GRAY, close),
 				new ColoredString(C.GRAY, "\n" + getDescription()),

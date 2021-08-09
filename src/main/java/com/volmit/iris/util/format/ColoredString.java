@@ -1,6 +1,4 @@
-package com.volmit.plague.util;
-
-import com.volmit.plague.util.C;
+package com.volmit.iris.util.format;
 
 /**
  * Represents a colored String

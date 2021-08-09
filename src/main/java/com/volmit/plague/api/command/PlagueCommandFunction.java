@@ -5,13 +5,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.volmit.plague.api.PlagueSender;
-import com.volmit.plague.util.C;
-import com.volmit.plague.util.ColoredString;
+import com.volmit.iris.util.format.ColoredString;
 import com.volmit.plague.util.RTEX;
 import com.volmit.plague.util.RTX;
 

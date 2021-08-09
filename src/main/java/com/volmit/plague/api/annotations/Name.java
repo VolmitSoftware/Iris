@@ -1,4 +1,4 @@
-package com.volmit.plague.api;
+package com.volmit.plague.api.annotations;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;
@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target({TYPE, FIELD, PARAMETER})
-public @interface Permission
+public @interface Name
 {
 	String value();
 }

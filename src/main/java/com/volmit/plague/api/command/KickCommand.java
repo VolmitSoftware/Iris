@@ -1,13 +1,11 @@
 package com.volmit.plague.api.command;
 
-import org.bukkit.Bukkit;
-
-import com.volmit.plague.api.Description;
-import com.volmit.plague.api.Name;
-import com.volmit.plague.api.Optional;
-import com.volmit.plague.api.Permission;
+import com.volmit.plague.api.annotations.Description;
+import com.volmit.plague.api.annotations.Name;
+import com.volmit.plague.api.annotations.Optional;
+import com.volmit.plague.api.annotations.Permission;
 import com.volmit.plague.api.PlagueSender;
-import com.volmit.plague.api.Plagued;
+import com.volmit.plague.api.annotations.Plagued;
 
 @Permission("plugin.kick")
 @Description("A proper kick command")

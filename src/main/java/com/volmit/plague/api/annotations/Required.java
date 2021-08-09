@@ -1,4 +1,4 @@
-package com.volmit.plague.api;
+package com.volmit.plague.api.annotations;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;

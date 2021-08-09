@@ -33,11 +33,11 @@ plugins {
     id "com.github.johnrengelman.shadow" version "7.0.0"
 }
 
-group 'com.volmit.iris'
-version '1.6.7-Experimental'
+group 'com.volmit.plague'
+version 'pleae-work-0.1'
 def apiVersion = '1.17'
-def name = 'Iris'
-def main = 'com.volmit.iris.Iris'
+def name = 'Plague'
+def main = 'com.volmit.plague.core.Plague'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
@@ -79,7 +79,7 @@ def registerCustomOutputTask(dname, path) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
-        from(file('build/libs/Iris-' + version + '-all.jar'))
+        from(file('build/libs/' + name + '-' + version + '-all.jar'))
         into(file(path))
         rename { String fileName ->
             fileName.replace(name + '-' + version + '-all.jar', name + ".jar")

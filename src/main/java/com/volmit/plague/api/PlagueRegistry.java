@@ -1,6 +1,7 @@
 package com.volmit.plague.api;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.plague.api.annotations.Plagued;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

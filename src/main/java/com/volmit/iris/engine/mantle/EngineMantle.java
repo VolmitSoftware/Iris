@@ -21,23 +21,47 @@ package com.volmit.iris.engine.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
+import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.tile.TileData;
-import com.volmit.iris.engine.parallax.ParallaxAccess;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import org.bukkit.Bukkit;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
+// TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
 public interface EngineMantle extends IObjectPlacer {
     BlockData AIR = B.get("AIR");
 
     Mantle getMantle();
 
     Engine getEngine();
+
+    CompletableFuture<Integer> getRadius();
+
+    KList<MantleComponent> getComponents();
+
+    void registerComponent(MantleComponent c);
 
     default int getHighest(int x, int z) {
         return getHighest(x, z, getData());
@@ -116,10 +140,6 @@ public interface EngineMantle extends IObjectPlacer {
         return getEngine().getData();
     }
 
-    default ParallaxAccess getParallax() {
-        return getEngine().getParallax();
-    }
-
     default EngineTarget getTarget() {
         return getEngine().getTarget();
     }
@@ -134,5 +154,54 @@ public interface EngineMantle extends IObjectPlacer {
 
     default void close() {
         getMantle().close();
+    }
+
+    default void saveAllNow()
+    {
+
+    }
+
+    default void save()
+    {
+
+    }
+
+    default void trim()
+    {
+        getMantle().trim(60000);
+    }
+
+    default int getRealRadius()
+    {
+        getMantle().set(0, 34, 292393, Bukkit.getPlayer("cyberpwn"));
+        try {
+            return (int) Math.ceil(getRadius().get() / 2D);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+
+    @ChunkCoordinates
+    default void generateMatter(int x, int z)
+    {
+        if (!getEngine().getDimension().isUseMantle()) {
+            return;
+        }
+
+        KList<Runnable> post = new KList<>();
+        Consumer<Runnable> c = post::add;
+        getComponents().forEach((i) -> getMantle().raiseFlag(x, z, i.getFlag(), () -> i.generateLayer(x, z, c)));
+        post.forEach(Runnable::run);
+    }
+
+    @ChunkCoordinates
+    default void insertMatter(int x, int z, Hunk<BlockData> blocks)
+    {
+
     }
 }

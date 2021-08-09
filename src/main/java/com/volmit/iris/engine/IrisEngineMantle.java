@@ -20,18 +20,37 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
+import com.volmit.iris.engine.mantle.IrisMantleComponent;
+import com.volmit.iris.engine.mantle.MantleComponent;
+import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
+import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
+import com.volmit.iris.engine.mantle.components.MantleVacuumComponent;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import lombok.Data;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 
 @Data
 public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle mantle;
+    private final KList<MantleComponent> components;
+    private final CompletableFuture<Integer> radius;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
         this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
+        radius = CompletableFuture.completedFuture(0); // TODO
+        components = new KList<>();
+        registerComponent(new MantleFeatureComponent(this));
+        registerComponent(new MantleJigsawComponent(this));
+        registerComponent(new MantleVacuumComponent(this));
+    }
+
+    @Override
+    public void registerComponent(MantleComponent c) {
+        components.add(c);
     }
 }

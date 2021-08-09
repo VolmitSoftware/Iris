@@ -29,6 +29,7 @@ import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
+import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
@@ -83,6 +84,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final EngineTarget target;
     private final IrisContext context;
     private final EngineEffects effects;
+    private final EngineMantle mantle;
     private final ChronoLatch perSecondLatch;
     private final EngineExecutionEnvironment execution;
     private final EngineWorldManager worldManager;
@@ -99,7 +101,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private final IrisComplex complex;
-    private final EngineParallaxManager engineParallax;
     private final EngineActuator<BlockData> terrainNormalActuator;
     private final EngineActuator<BlockData> terrainIslandActuator;
     private final EngineActuator<BlockData> decorantActuator;
@@ -121,6 +122,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         lastGPS = new AtomicLong(M.ms());
         generated = new AtomicInteger(0);
         execution = new IrisExecutionEnvironment(this);
+        mantle = new IrisEngineMantle(this);
         // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256+ " height)");
         metrics = new EngineMetrics(32);
@@ -138,7 +140,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         context = new IrisContext(this);
         context.touch();
         this.complex = new IrisComplex(this);
-        this.engineParallax = new IrisEngineParallax(this);
         this.terrainNormalActuator = new IrisTerrainNormalActuator(this);
         this.terrainIslandActuator = new IrisTerrainIslandActuator(this);
         this.decorantActuator = new IrisDecorantActuator(this);
@@ -340,7 +341,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         cleaning.lazySet(false);
     }
 
-
     public EngineActuator<BlockData> getTerrainActuator() {
         return switch (getDimension().getTerrainMode()) {
             case NORMAL -> getTerrainNormalActuator();
@@ -371,14 +371,14 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
-                    getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
+                    getMantle().generateMatter(x>>4, z>>4);
                     getTerrainActuator().actuate(x, z, vblocks, multicore);
                     getBiomeActuator().actuate(x, z, vbiomes, multicore);
                     getCaveModifier().modify(x, z, vblocks, multicore);
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
+                    getMantle().insertMatter(x>>4, z>>4, blocks);
                     getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {

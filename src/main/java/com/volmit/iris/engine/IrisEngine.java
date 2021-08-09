@@ -301,7 +301,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        getEngineParallax().close();
+        getMantle().close();
         getTerrainActuator().close();
         getDecorantActuator().close();
         getBiomeActuator().close();
@@ -330,7 +330,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         cleaning.set(true);
 
         try {
-            getParallax().cleanup();
+            getMantle().trim();
             getData().getObjectLoader().clean();
         } catch (Throwable e) {
             Iris.reportError(e);

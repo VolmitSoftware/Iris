@@ -47,6 +47,8 @@ public class CommandIrisStudioExecute extends MortarCommand {
             } else {
                 list.add(data.getScriptLoader().getPossibleKeys(args[0]));
             }
+        } else {
+            sender.sendMessage("You must be in an Iris world as a player to run scripts!");
         }
     }
 
@@ -60,7 +62,14 @@ public class CommandIrisStudioExecute extends MortarCommand {
 
         if (!sender.isPlayer() || !IrisToolbelt.isIrisWorld(sender.player().getWorld())){
             sender.sendMessage("To execute scripts you must be in an Iris world as a player");
+            return true;
         }
+
+        if (args.length == 0){
+            sender.sendMessage("You need to specify a script name (use auto-completions to see which are available)");
+            return true;
+        }
+
         Iris.info("Executing script: " + args[0] + ". See script output in console.");
 
         try {

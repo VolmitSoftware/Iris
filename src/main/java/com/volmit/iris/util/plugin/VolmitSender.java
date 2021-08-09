@@ -231,7 +231,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public static String pulse(double speed) {
-        return Form.f(invertSpread((((getTick()*15D * speed)%1000D)/1000D)), 3);
+        return Form.f(invertSpread((((getTick()*15D * speed)%1000D)/1000D)), 3).replaceAll("\\Q,\\E", ".");
     }
 
     public static double invertSpread(double v) {

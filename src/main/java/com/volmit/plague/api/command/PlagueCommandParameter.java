@@ -6,7 +6,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.plague.api.annotations.Description;
 import com.volmit.plague.api.annotations.Name;
 import com.volmit.plague.api.annotations.Optional;
-import com.volmit.iris.util.format.ColoredString;
 import com.volmit.plague.util.RTEX;
 import com.volmit.plague.util.RTX;
 
@@ -35,19 +34,29 @@ public class PlagueCommandParameter
 	 */
 	public RTX getHelp()
 	{
+		String open = isRequired() ? "<" : "[";
+		String close = isRequired() ? ">" : "]";
+
 		RTEX rtex = new RTEX()
-				.add(C.GRAY, isRequired() ? "<" : "[")
+				.add(C.GRAY, open)
 				.add(C.WHITE, name)
-				.add(C.GRAY, isRequired() ? ">" : "]")
+				.add(C.GRAY, close)
 				.add(C.GRAY, "\n" + getDescription())
 				.add(isRequired() ? C.RED : C.AQUA, "\n" + (isRequired() ? "REQUIRED" : "Optional"))
 				.add(C.GREEN, " " + (type.getSimpleName()))
 				.add(C.GRAY, isRequired() ? "" : (" (" + fitDefault().toString() + ")"));
 
 		return new RTX()
-				.addText(isRequired() ? "<" : "[", C.GRAY)
+				.addText(open)
 				.addTextHover(name, rtex, C.WHITE)
-				.addText(isRequired() ? ">" : "]" + " ", C.GRAY);
+				.addText(close);
+	}
+
+	/**
+	 * @return true if the parameter is required
+	 */
+	public boolean isRequired() {
+		return optional == null;
 	}
 
 	/**
@@ -112,12 +121,5 @@ public class PlagueCommandParameter
 		}
 
 		return "null";
-	}
-
-	/**
-	 * @return true if the parameter is required
-	 */
-	public boolean isRequired() {
-		return optional == null;
 	}
 }

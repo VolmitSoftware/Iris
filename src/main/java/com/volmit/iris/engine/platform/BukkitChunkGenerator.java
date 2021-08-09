@@ -28,8 +28,10 @@ import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -50,8 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
     private static final BlockData ERROR_BLOCK = Material.RED_GLAZED_TERRACOTTA.createBlockData();
-    private final AtomicReference<CompletableFuture<Engine>> engine = new AtomicReference<>();
-    private final AtomicBoolean busy = new AtomicBoolean(false);
+    private final EngineProvider provider;
     private final IrisWorld world;
     private final File dataLocation;
     private final String dimensionKey;
@@ -67,18 +68,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> initialize());
+        this.provider = new EngineProvider();
         initialize();
     }
 
     public Engine getEngine()
     {
-        try {
-            return engine.get().get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return provider.getEngine();
     }
 
     @Override
@@ -88,7 +84,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void close() {
-        getEngine().close();
+        provider.close();
     }
 
     @Override
@@ -104,17 +100,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private void initialize()
     {
-        engine.set(MultiBurst.burst.completeValue(() -> createEngine(world, dimensionKey, dataLocation)));
-    }
-
-    private Engine createEngine(IrisWorld world, String dimension, File dataLocation) {
-        IrisData data = new IrisData(dataLocation);
-        IrisDimension realDimension = data.getDimensionLoader().load(dimension);
-        EngineTarget target = new EngineTarget(world, realDimension, data);
-        Engine engine = new IrisEngine(target, isStudio());
-        populators.clear();
-        populators.add((BlockPopulator) engine);
-        return engine;
+        provider.provideEngine(world, dimensionKey, dataLocation, isStudio(), (e) -> {
+            populators.clear();
+            populators.add((BlockPopulator) e);
+        });
     }
 
     @Override
@@ -126,7 +115,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
-            engine.get().get().generate(x * 16, z * 16, blocks, biomes, true);
+            getEngine().generate(x * 16, z * 16, blocks, biomes, true);
             return tc.getRaw();
         }
 

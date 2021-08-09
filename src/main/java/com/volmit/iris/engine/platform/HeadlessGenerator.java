@@ -54,13 +54,14 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     private final HeadlessWorld world;
     private final NBTWorld writer;
     private final MultiBurst burst;
-    private final Engine engine;
+    private final EngineProvider provider;
 
     public HeadlessGenerator(HeadlessWorld world) {
         this.world = world;
         burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
-        engine = new IrisEngine(new EngineTarget(world.getWorld(),world.getDimension(), world.getDimension().getLoader()), isStudio());
+        provider = new EngineProvider();
+        provider.provideEngine(world.getWorld(), world.getDimension().getLoadKey(), world.getDimension().getLoader().getDataFolder(), isStudio(), (e) -> {});
     }
 
     @ChunkCoordinates
@@ -76,7 +77,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build();
-            engine.generate(x * 16, z * 16,
+            getEngine().generate(x * 16, z * 16,
                     Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
                     false);
         } catch (Throwable e) {
@@ -132,7 +133,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
 
     public void close() {
         burst.shutdownAndAwait();
-        engine.close();
+        provider.close();
         writer.close();
     }
 
@@ -149,6 +150,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         }
 
         return EMPTYPOINTS;
+    }
+
+    @Override
+    public Engine getEngine() {
+        return provider.getEngine();
     }
 
     @Override

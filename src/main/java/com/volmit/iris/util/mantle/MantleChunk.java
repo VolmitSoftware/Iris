@@ -19,6 +19,8 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.collection.StateList;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
@@ -26,6 +28,7 @@ import com.volmit.iris.util.matter.Matter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
@@ -33,7 +36,8 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
-    private final KSet<String> flags;
+    private static final StateList state = MantleFlag.getStateList();
+    private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
 
     /**
@@ -44,7 +48,7 @@ public class MantleChunk {
     @ChunkCoordinates
     public MantleChunk(int sectionHeight) {
         sections = new AtomicReferenceArray<>(sectionHeight);
-        flags = new KSet<>();
+        flags = new AtomicIntegerArray(MantleFlag.values().length);
     }
 
     /**
@@ -58,10 +62,10 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
         this(sectionHeight);
         int s = din.readByte();
-        int f = din.readByte();
 
-        for (int i = 0; i < f; i++) {
-            flags.add(din.readUTF());
+        for(String i : state.getEnabled(Varint.readUnsignedVarLong(din)))
+        {
+            flags.set(MantleFlag.valueOf(i).ordinal(), 1);
         }
 
         for (int i = 0; i < s; i++) {
@@ -71,16 +75,12 @@ public class MantleChunk {
         }
     }
 
-    public void flag(String s, boolean f) {
-        if (f) {
-            flags.add(s);
-        } else {
-            flags.remove(s);
-        }
+    public void flag(MantleFlag flag, boolean f) {
+        flags.set(flag.ordinal(), f ? 1 : 0);
     }
 
-    public boolean isFlagged(String s) {
-        return flags.contains(s);
+    public boolean isFlagged(MantleFlag flag) {
+        return flags.get(flags.get(flag.ordinal())) == 1;
     }
 
     /**
@@ -150,11 +150,13 @@ public class MantleChunk {
      */
     public void write(DataOutputStream dos) throws IOException {
         dos.writeByte(sections.length());
-        dos.writeByte(flags.size());
+        long data = 0;
 
-        for (String i : flags) {
-            dos.writeUTF(i);
+        for (int i = 0; i < flags.length(); i++) {
+            state.set(data, MantleFlag.values()[i].name(), flags.get(i) == 1);
         }
+
+        Varint.writeUnsignedVarLong(data, dos);
 
         for (int i = 0; i < sections.length(); i++) {
             if (exists(i)) {

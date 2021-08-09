@@ -23,6 +23,7 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -75,6 +76,48 @@ public class Mantle {
         lastUse = new KMap<>();
         ioBurst = new MultiBurst("Iris Mantle[" + dataFolder.hashCode() + "]", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() / 2);
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
+    }
+
+    @ChunkCoordinates
+    public void raiseFlag(int x, int z, MantleFlag flag, Runnable r)
+    {
+        if(!hasFlag(x, z, flag))
+        {
+            flag(x, z, flag, true);
+            r.run();
+        }
+    }
+
+    @ChunkCoordinates
+    public void lowerFlag(int x, int z, MantleFlag flag, Runnable r)
+    {
+        if(hasFlag(x, z, flag))
+        {
+            flag(x, z, flag, false);
+            r.run();
+        }
+    }
+
+    @ChunkCoordinates
+    public void flag(int x, int z, MantleFlag flag, boolean flagged)
+    {
+        try {
+            get(x >> 5, z >> 5).get().get(x & 31, z & 31).flag(flag, flagged);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @ChunkCoordinates
+    public boolean hasFlag(int x, int z, MantleFlag flag)
+    {
+        try {
+            get(x >> 5, z >> 5).get().get(x & 31, z & 31).isFlagged(flag);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     /**

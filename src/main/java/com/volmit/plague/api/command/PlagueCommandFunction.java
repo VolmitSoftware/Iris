@@ -6,6 +6,7 @@ import java.lang.reflect.Parameter;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
+import com.volmit.plague.util.PlagueTypeException;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -21,6 +22,9 @@ import lombok.Data;
 @Data
 public class PlagueCommandFunction
 {
+	private static final KList<String> TRUE = new KList<>("1", "true", "t", "yes", "y", "+");
+	private static final KList<String> FALSE = new KList<>("0", "false", "f", "no", "n", "-");
+
 	private final Method method;
 	private final KList<PlagueCommandParameter> parameters;
 	private int maxParameters;
@@ -161,7 +165,7 @@ public class PlagueCommandFunction
 
 			try
 			{
-				fitted.add(force(par.getType(), v));
+				fitted.add(convert(v, par.getType()));
 			}
 
 			catch(Throwable e)
@@ -185,46 +189,49 @@ public class PlagueCommandFunction
 		return null;
 	}
 
-	public Object force(Class<?> type, String object) throws Throwable
-	{
-		if(type.equals(int.class))
+	/**
+	 * Convert the String object to the specified type
+	 * @param object The String object to convert
+	 * @param type
+	 * @return
+	 * @throws PlagueTypeException
+	 */
+	public Object convert(String object, Class<?> type) throws PlagueTypeException {
+
+		if(type.equals(int.class) || type.equals(Integer.class))
 		{
-			return force(Integer.class, object);
+			try {
+				return Integer.valueOf(object);
+			} catch (NumberFormatException ignored){
+				throw new PlagueTypeException("Attempted cast from " + object + " to integer failed (check the argument)");
+			}
 		}
 
-		if(type.equals(Integer.class))
+		if(type.equals(float.class) || type.equals(Float.class))
 		{
-			return Integer.valueOf(object);
+			try {
+				return Float.valueOf(object);
+			} catch (NumberFormatException ignored){
+				throw new PlagueTypeException("Attempted cast from " + object + " to float failed (check the argument)");
+			}
 		}
 
-		if(type.equals(float.class))
+		if(type.equals(double.class) || type.equals(Double.class))
 		{
-			return force(Float.class, object);
+			try {
+				return Double.valueOf(object);
+			} catch (NumberFormatException ignored){
+				throw new PlagueTypeException("Attempted cast from " + object + " to double failed (check the argument)");
+			}
 		}
 
-		if(type.equals(Float.class))
+		if(type.equals(long.class) || type.equals(Long.class))
 		{
-			return Float.valueOf(object);
-		}
-
-		if(type.equals(double.class))
-		{
-			return force(Double.class, object);
-		}
-
-		if(type.equals(Double.class))
-		{
-			return Double.valueOf(object);
-		}
-
-		if(type.equals(long.class))
-		{
-			return force(Long.class, object);
-		}
-
-		if(type.equals(Long.class))
-		{
-			return Long.valueOf(object);
+			try {
+				return Long.valueOf(object);
+			} catch (NumberFormatException ignored){
+				throw new PlagueTypeException("Attempted cast from " + object + " to long failed (check the argument)");
+			}
 		}
 
 		if(type.equals(String.class))
@@ -239,7 +246,7 @@ public class PlagueCommandFunction
 
 			if(p == null)
 			{
-				throw new NullPointerException("Cannot find player '" + object + "'");
+				throw new PlagueTypeException("Cannot find player '" + object + "'");
 			}
 
 			return p;
@@ -251,7 +258,7 @@ public class PlagueCommandFunction
 
 			if(w == null)
 			{
-				throw new NullPointerException("Cannot find world '" + object + "'");
+				throw new PlagueTypeException("Cannot find world '" + object + "'");
 			}
 
 			return w;
@@ -259,19 +266,25 @@ public class PlagueCommandFunction
 
 		if(type.equals(boolean.class))
 		{
-			return object.equalsIgnoreCase("1") || object.equalsIgnoreCase("true") || object.equalsIgnoreCase("yes") || object.equalsIgnoreCase("t") || object.equalsIgnoreCase("y") || object.equalsIgnoreCase("+");
+			if (TRUE.contains(object)){
+				return true;
+			}
+			if (FALSE.contains(object)){
+				return false;
+			}
+			throw new PlagueTypeException("Cannot find TRUE or FALSE value for: " + object + " (not in definitions lists)");
 		}
 
-		throw new NullPointerException("Plague does not support the parameter type " + type.getCanonicalName());
+		throw new PlagueTypeException("Plague does not support the parameter type " + type.getCanonicalName());
 	}
 
-	public boolean isArgumentCountSupported(int count)
+	/**
+	 * Retrieve whether this function is valid with the provided
+	 * @param amount of arguments
+	 * @return true if the amount of arguments is supported
+	 */
+	public boolean isArgumentAmountSupported(int amount)
 	{
-		if(minParameters >= 0 && count < minParameters)
-		{
-			return false;
-		}
-
-		return maxParameters < 0 || count <= maxParameters;
+		return amount >= minParameters && amount <= maxParameters;
 	}
 }

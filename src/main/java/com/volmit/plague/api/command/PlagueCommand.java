@@ -140,7 +140,7 @@ public abstract class PlagueCommand
 
 		for(PlagueCommandFunction i : getFunctions())
 		{
-			if(i.isArgumentCountSupported(args.size()))
+			if(i.isArgumentAmountSupported(args.size()))
 			{
 				String result = i.invoke(this, sender, args);
 

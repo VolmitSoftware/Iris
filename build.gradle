@@ -1,3 +1,5 @@
+import proguard.gradle.ProGuardTask
+
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -34,19 +36,19 @@ plugins {
 group 'com.volmit.iris'
 version '1.6.7-Experimental'
 def apiVersion = '1.17'
-def name = 'Iris'
+def name = getRootProject().getName()
 def main = 'com.volmit.iris.Iris'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
-registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins');
-registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins');
-registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins');
-registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/Development/MCServer/plugins');
-registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins');
+registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins', name)
+registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins', name)
+registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins', name)
+registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/Development/MCServer/plugins', name)
+registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
 // ==============================================================
 
-def dependsDir = "${buildDir}/libs/dependencies/"
+def dependsDir = "${buildDir}/libs/dependencies/" as String
 
 task copyDepends(type: Copy) {
     dependsOn(":shadowJar")
@@ -55,7 +57,7 @@ task copyDepends(type: Copy) {
     into "${dependsDir}"
 }
 
-task release(type: proguard.gradle.ProGuardTask) {
+task release(type: ProGuardTask) {
     dependsOn(":copyDepends")
     group('proguard')
     configuration 'proguard.pro'
@@ -72,15 +74,15 @@ task release(type: proguard.gradle.ProGuardTask) {
     verbose()
 }
 
-def registerCustomOutputTask(name, path) {
+def registerCustomOutputTask(name, path, plugin) {
     tasks.register('build' + name, Copy) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
-        from(file('build/libs/Iris-' + version + '-all.jar'))
+        from(file('build/libs/' + plugin + '-' + version + '-all.jar'))
         into(file(path))
         rename { String fileName ->
-            fileName.replace('Iris-' + version + '-all.jar', "Iris.jar")
+            fileName.replace(plugin + '-' + version + '-all.jar', plugin + ".jar")
         }
     }
 }

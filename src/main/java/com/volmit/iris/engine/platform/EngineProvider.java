@@ -18,6 +18,8 @@
 
 package com.volmit.iris.engine.platform;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.framework.Engine;
@@ -46,6 +48,7 @@ public class EngineProvider {
             post.accept(engine);
             return engine;
         }));
+        engine.get().whenComplete((e, x) -> Iris.callEvent(new IrisEngineHotloadEvent(e)));
     }
 
     public Engine getEngine()

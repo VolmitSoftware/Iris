@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -31,7 +32,9 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -45,10 +48,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
     private static final BlockData ERROR_BLOCK = Material.RED_GLAZED_TERRACOTTA.createBlockData();
@@ -58,18 +58,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final String dimensionKey;
     private final ReactiveFolder folder;
     private final KList<BlockPopulator> populators;
+    private final ChronoLatch hotloadChecker;
+    private final Looper hotloader;
     private final boolean studio;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey)
     {
         populators = new KList<>();
         this.world = world;
+        this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
-        this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> initialize());
+        this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
         this.provider = new EngineProvider();
         initialize();
+
+        this.hotloader = new Looper() {
+            @Override
+            protected long loop() {
+                if(hotloadChecker.flip())
+                {
+                    folder.check();
+                }
+
+                return 250;
+            }
+        };
+        hotloader.setPriority(Thread.MIN_PRIORITY);
+        hotloader.start();
+        hotloader.setName(getTarget().getWorld().name() + " Hotloader");
     }
 
     public Engine getEngine()
@@ -84,6 +102,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void close() {
+        hotloader.interrupt();
         provider.close();
     }
 
@@ -91,7 +110,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public boolean isStudio() {
         return studio;
     }
-
 
     @Override
     public void hotload() {
@@ -103,6 +121,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         provider.provideEngine(world, dimensionKey, dataLocation, isStudio(), (e) -> {
             populators.clear();
             populators.add((BlockPopulator) e);
+            folder.checkIgnore();
         });
     }
 
@@ -110,6 +129,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try
         {
+            Iris.debug("Generated " + x + " " + z);
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);

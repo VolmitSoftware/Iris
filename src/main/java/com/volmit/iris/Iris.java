@@ -30,6 +30,7 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
@@ -47,6 +48,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;
@@ -68,6 +70,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
@@ -170,7 +173,15 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void callEvent(Event e) {
-        J.s(() -> Bukkit.getPluginManager().callEvent(e));
+        if(!e.isAsynchronous())
+        {
+            J.s(() -> Bukkit.getPluginManager().callEvent(e));
+        }
+
+        else
+        {
+            Bukkit.getPluginManager().callEvent(e);
+        }
     }
 
     public static KList<Object> initialize(String s, Class<? extends Annotation> slicedClass) {

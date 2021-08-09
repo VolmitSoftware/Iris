@@ -135,7 +135,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         effects = new IrisEngineEffects(this);
         art = J.ar(effects::tickRandomPlayer, 0);
         J.a(this::computeBiomeMaxes);
-        Iris.callEvent(new IrisEngineHotloadEvent(this));
         context = new IrisContext(this);
         context.touch();
         this.complex = new IrisComplex(this);

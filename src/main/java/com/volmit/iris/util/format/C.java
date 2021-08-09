@@ -19,6 +19,7 @@
 package com.volmit.iris.util.format;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.plugin.VolmitSender;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang.Validate;
@@ -368,6 +369,10 @@ public enum C {
     }
 
     public static String aura(String s, int hrad, int srad, int vrad) {
+        return aura(s, hrad, srad, vrad, 0.3D);
+    }
+
+    public static String aura(String s, int hrad, int srad, int vrad, double pulse) {
         String msg = compress(s);
         StringBuilder b = new StringBuilder();
         boolean c = false;
@@ -379,11 +384,19 @@ public enum C {
                 C o = C.getByChar(i);
 
                 if (hrad != 0 || srad != 0 || vrad != 0) {
-                    b.append("<gradient:")
-                            .append(spinToHex(o, hrad, srad, vrad))
-                            .append(":")
-                            .append(spinToHex(o, -hrad, -srad, -vrad))
-                            .append(">");
+                    if(pulse > 0)
+                    {
+                        b.append(VolmitSender.pulse(spinToHex(o, hrad, srad, vrad), spinToHex(o, -hrad, -srad, -vrad), pulse));
+                    }
+
+                    else
+                    {
+                        b.append("<gradient:")
+                                .append(spinToHex(o, hrad, srad, vrad))
+                                .append(":")
+                                .append(spinToHex(o, -hrad, -srad, -vrad))
+                                .append(">");
+                    }
                 } else {
                     b.append(C.getByChar(i).token);
                 }

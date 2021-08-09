@@ -198,11 +198,11 @@ public class IrisProject {
                 double v = (double) gx.getEngine().getGenerated() / (double) req;
 
                 if (sender.isPlayer()) {
-                    sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getEngine().getGenerated()) + " Left)"))));
-                    J.sleep(50);
+                    sender.sendProgress(v, "Generating");
+                    J.sleep(16);
                 } else {
-                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - gx.getEngine().getGenerated()) + " Left)")));
-                    J.sleep(1000);
+                    sender.sendProgress(v, "Generating");
+                    J.sleep(16);
                 }
             }
             if (sender.isPlayer()) {
@@ -225,7 +225,7 @@ public class IrisProject {
             assert world != null;
             sender.player().teleport(world.getSpawnLocation());
         } else {
-            sender.sendMessage(C.WHITE + "Generating Complete!");
+            sender.sendAction(C.IRIS + "Generation Complete");
         }
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->

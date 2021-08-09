@@ -38,6 +38,7 @@ version '1.6.7-Experimental'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // See settings.gradle
 def main = 'com.volmit.iris.Iris'
+// You need to also set command usage, aliases and description in src/main/resources/plugin.yml
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================

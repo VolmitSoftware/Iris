@@ -460,7 +460,18 @@ public class Iris extends VolmitPlugin implements Listener {
 
         if(d == null)
         {
-            throw new RuntimeException("Can't find dimension " + dimension + "!");
+            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
+            d = IrisData.loadAnyDimension(dimension);
+
+            if(d == null)
+            {
+                throw new RuntimeException("Can't find dimension " + dimension + "!");
+            }
+
+            else
+            {
+                Iris.info("Resolved missing dimension, proceeding with generation.");
+            }
         }
 
         IrisWorld w = IrisWorld.builder()

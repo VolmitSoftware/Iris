@@ -79,7 +79,7 @@ def registerCustomOutputTask(dname, path) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn ':shadowJar'
-        from(file('build/libs/Iris-' + version + '-all.jar'))
+        from(file('build/libs/' + name + '-' + version + '-all.jar'))
         into(file(path))
         rename { String fileName ->
             fileName.replace(name + '-' + version + '-all.jar', name + ".jar")

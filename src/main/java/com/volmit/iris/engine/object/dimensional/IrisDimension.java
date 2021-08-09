@@ -294,8 +294,8 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The configuration for island mode dimensions")
     private IrisTerrainIsland islandMode = new IrisTerrainIsland();
 
-    @Desc("Disable this to stop placing schematics in biomes")
-    private boolean placeObjects = true;
+    @Desc("Disable this to stop placing objects, entities, features & updates")
+    private boolean useMantle = true;
 
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;

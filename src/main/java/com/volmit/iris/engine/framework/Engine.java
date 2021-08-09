@@ -24,6 +24,7 @@ import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.basic.IrisColor;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -80,9 +81,9 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     void printMetrics(CommandSender sender);
 
-    void recycle();
+    EngineMantle getMantle();
 
-    EngineParallaxManager getEngineParallax();
+    void recycle();
 
     EngineActuator<BlockData> getTerrainActuator();
 
@@ -143,13 +144,13 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     EngineMetrics getMetrics();
 
     default void save() {
-        getParallax().saveAll();
+        getMantle().save();
         getWorldManager().onSave();
         saveEngineData();
     }
 
     default void saveNow() {
-        getParallax().saveAllNOW();
+        getMantle().saveAllNow();
         saveEngineData();
     }
 
@@ -171,10 +172,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return getTarget().getDimension();
     }
 
-    default ParallaxAccess getParallax() {
-        return getTarget().getParallaxWorld();
-    }
-
     @BlockCoordinates
     default Color draw(double x, double z) {
         IrisRegion region = getRegion((int) x, (int) z);
@@ -194,11 +191,6 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @Override
     default IrisRegion getRegion(int x, int z) {
         return getComplex().getRegionStream().get(x, z);
-    }
-
-    @Override
-    default ParallaxAccess getParallaxAccess() {
-        return getParallax();
     }
 
     @BlockCoordinates
@@ -232,6 +224,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         }
 
         if (B.isUpdatable(data)) {
+            // TODO: BLOCK UPDATES
             getParallax().updateBlock(x, y, z);
             getParallax().getMetaRW(x >> 4, z >> 4).setUpdates(true);
         }
@@ -246,6 +239,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     @Override
     default void updateChunk(Chunk c) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
+        // TODO: Mantle block updates
         if (getParallax().getMetaR(c.getX(), c.getZ()).isUpdates()) {
             Hunk<Boolean> b = getParallax().getUpdatesR(c.getX(), c.getZ());
 
@@ -423,7 +417,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
     }
 
     default void clean() {
-        burst().lazy(() -> getParallax().cleanup());
+        burst().lazy(() -> getMantle().trim());
     }
 
     @BlockCoordinates

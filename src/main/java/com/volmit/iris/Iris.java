@@ -43,6 +43,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -74,6 +75,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
+import java.util.UUID;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -135,6 +137,36 @@ public class Iris extends VolmitPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         J.s(this::lateBind);
         splash();
+    }
+
+    public void onDisable() {
+        if (IrisSettings.get().isStudio()) {
+            Iris.debug("Studio Mode Active: Closing Projects");
+            proj.close();
+
+            for (World i : Bukkit.getWorlds()) {
+                if (IrisToolbelt.isIrisWorld(i)) {
+                    Iris.debug("Closing Platform Generator " + i.getName());
+                    IrisToolbelt.access(i).close();
+                }
+            }
+
+            for (GroupedExecutor i : executors) {
+                Iris.debug("Closing Executor " + i.toString());
+                i.closeNow();
+            }
+        }
+
+        executors.clear();
+        board.disable();
+        Iris.debug("Cancelled all tasks");
+        Bukkit.getScheduler().cancelTasks(this);
+        Iris.debug("Unregistered all events");
+        HandlerList.unregisterAll((Plugin) this);
+        Iris.debug("Multiburst Shutting down");
+        MultiBurst.burst.shutdown();
+        Iris.debug("Iris Shutdown");
+        super.onDisable();
     }
 
     public static void callEvent(Event e) {
@@ -260,29 +292,6 @@ public class Iris extends VolmitPlugin implements Listener {
             configWatcher.checkModified();
             Iris.info("Hotloaded settings.json");
         }
-    }
-
-    public void onDisable() {
-        if (IrisSettings.get().isStudio()) {
-            proj.close();
-
-            for (World i : Bukkit.getWorlds()) {
-                if (IrisToolbelt.isIrisWorld(i)) {
-                    IrisToolbelt.access(i).close();
-                }
-            }
-
-            for (GroupedExecutor i : executors) {
-                i.close();
-            }
-        }
-
-        executors.clear();
-        board.disable();
-        Bukkit.getScheduler().cancelTasks(this);
-        HandlerList.unregisterAll((Plugin) this);
-        MultiBurst.burst.shutdown();
-        super.onDisable();
     }
 
     public static void sq(Runnable r) {
@@ -693,6 +702,18 @@ public class Iris extends VolmitPlugin implements Listener {
             }
 
             Iris.debug("Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
+        }
+    }
+
+    static {
+        try
+        {
+            InstanceState.updateInstanceId();
+        }
+
+        catch(Throwable e)
+        {
+
         }
     }
 }

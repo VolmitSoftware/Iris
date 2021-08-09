@@ -16,34 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.scheduling;
+package com.volmit.iris.util.io;
 
-import com.volmit.iris.Iris;
+import com.volmit.iris.util.math.RNG;
 
-public abstract class Looper extends Thread {
-    @SuppressWarnings("BusyWait")
-    public void run() {
-        while (!interrupted()) {
-            try {
-                long m = loop();
+import java.io.File;
+import java.io.IOException;
 
-                if (m < 0) {
-                    break;
-                }
-
-                //noinspection BusyWait
-                Thread.sleep(m);
-            } catch (InterruptedException e) {
-                Iris.reportError(e);
-                break;
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
+public class InstanceState {
+    public static int getInstanceId()
+    {
+        try {
+            return Integer.parseInt(IO.readAll(instanceFile()).trim());
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
 
-        Iris.debug("Iris Thread " + getName() + " Shutdown.");
+        return -1;
     }
 
-    protected abstract long loop();
+    public static void updateInstanceId()
+    {
+        try {
+            IO.writeAll(instanceFile(), RNG.r.imax() + "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static File instanceFile()
+    {
+        File f = new File("plugins/Iris/cache/instance");
+        f.getParentFile().mkdirs();
+        return f;
+    }
 }

@@ -26,6 +26,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.core.report.Report;
 import com.volmit.iris.core.report.ReportType;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -238,11 +239,14 @@ public class IrisProject {
     }
 
     public void close() {
+        Iris.debug("Closing Active Provider");
+        IrisToolbelt.evacuate(activeProvider.getTarget().getWorld().realWorld());
         activeProvider.close();
         File folder = activeProvider.getTarget().getWorld().worldFolder();
         Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().name());
         Bukkit.unloadWorld(activeProvider.getTarget().getWorld().name(), false);
         J.attemptAsync(() -> IO.delete(folder));
+        Iris.debug("Closed Active Provider " + activeProvider.getTarget().getWorld().name());
         activeProvider = null;
     }
 

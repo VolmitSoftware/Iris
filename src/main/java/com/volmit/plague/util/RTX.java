@@ -34,13 +34,17 @@ public class RTX
 		base.put(object);
 	}
 
-	public void addAll(RTX rt)
+	/**
+	 * Add all properties of one RTX to this one
+	 * @param rtx the other RTX
+	 */
+	public RTX addAll(RTX rtx)
 	{
-		for(int i = 0; i < rt.base.length(); i++)
+		for(int i = 0; i < rtx.base.length(); i++)
 		{
 			try
 			{
-				add(rt.base.getJSONObject(i));
+				add(rtx.base.getJSONObject(i));
 			}
 
 			catch(Throwable ignored)
@@ -48,6 +52,8 @@ public class RTX
 
 			}
 		}
+
+		return this;
 	}
 
 	public JSONArray getBase()
@@ -61,12 +67,15 @@ public class RTX
 	 * @param text
 	 *            the text
 	 */
-	public void addText(String text)
+	public RTX addText(String text)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
 		js.put("color", "none");
+
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -77,12 +86,13 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addText(String text, C color)
+	public RTX addText(String text, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
 		js.put("color", color.name().toLowerCase());
 		add(js);
+		return this;
 	}
 
 	/**
@@ -95,7 +105,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextHover(String text, RTEX hover, C color)
+	public RTX addTextHover(String text, RTEX hover, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -106,6 +116,8 @@ public class RTX
 		hoverEvent.put("value", hover.toJSON());
 		js.put("hoverEvent", hoverEvent);
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -118,7 +130,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextSuggestedCommand(String text, String cmd, C color)
+	public RTX addTextSuggestedCommand(String text, String cmd, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -130,6 +142,8 @@ public class RTX
 		js.put("clickEvent", clickEvent);
 
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -142,7 +156,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextOpenURL(String text, String url, C color)
+	public RTX addTextOpenURL(String text, String url, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -154,6 +168,8 @@ public class RTX
 		js.put("clickEvent", clickEvent);
 
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -166,7 +182,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextFireCommand(String text, String cmd, C color)
+	public RTX addTextFireCommand(String text, String cmd, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -178,6 +194,8 @@ public class RTX
 		js.put("clickEvent", clickEvent);
 
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -192,7 +210,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextSuggestedHoverCommand(String text, RTEX hover, String cmd, C color)
+	public RTX addTextSuggestedHoverCommand(String text, RTEX hover, String cmd, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -208,6 +226,8 @@ public class RTX
 		hoverEvent.put("value", hover.toJSON());
 		js.put("hoverEvent", hoverEvent);
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -222,7 +242,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextOpenHoverURL(String text, RTEX hover, String url, C color)
+	public RTX addTextOpenHoverURL(String text, RTEX hover, String url, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -238,6 +258,8 @@ public class RTX
 		hoverEvent.put("value", hover.toJSON());
 		js.put("hoverEvent", hoverEvent);
 		add(js);
+
+		return this;
 	}
 
 	/**
@@ -252,7 +274,7 @@ public class RTX
 	 * @param color
 	 *            the color
 	 */
-	public void addTextFireHoverCommand(String text, RTEX hover, String cmd, C color)
+	public RTX addTextFireHoverCommand(String text, RTEX hover, String cmd, C color)
 	{
 		JSONObject js = new JSONObject();
 		js.put("text", text);
@@ -268,6 +290,8 @@ public class RTX
 		hoverEvent.put("value", hover.toJSON());
 		js.put("hoverEvent", hoverEvent);
 		add(js);
+
+		return this;
 	}
 
 	/**

@@ -15,45 +15,45 @@ import lombok.Data;
 @Data
 public class PlagueCommandParameter
 {
+	private final String name;
 	private final String description;
-	private final boolean required;
 	private final Class<?> type;
 	private final Optional optional;
 	private final boolean vararg;
-	private final String name;
 
 	public PlagueCommandParameter(Parameter p)
 	{
-		this.name = p.isAnnotationPresent(Name.class) ? p.getDeclaredAnnotation(Name.class).value() : p.getName();
-		this.description = p.isAnnotationPresent(Name.class) ? p.getDeclaredAnnotation(Description.class).value() : "No Description";
-		this.required = !p.isAnnotationPresent(Optional.class);
-		optional = p.getDeclaredAnnotation(Optional.class);
-		this.type = p.getType();
+		name = p.isAnnotationPresent(Name.class) ? p.getDeclaredAnnotation(Name.class).value() : p.getName();
+		description = p.isAnnotationPresent(Name.class) ? p.getDeclaredAnnotation(Description.class).value() : "No Description";
+		optional = p.getAnnotation(Optional.class);
+		type = p.getType();
 		vararg = p.isVarArgs();
 	}
 
+	/**
+	 * @return the help description for this parameter (hoverable text)
+	 */
 	public RTX getHelp()
 	{
-		RTX rtx = new RTX();
-		String open = required ? "<" : "[";
-		String close = required ? ">" : "]";
-		//@builder
-		RTEX rtex = new RTEX(
-				new ColoredString(C.GRAY, open),
-				new ColoredString(C.WHITE, name), 
-				new ColoredString(C.GRAY, close),
-				new ColoredString(C.GRAY, "\n" + getDescription()),
-				new ColoredString(required ? C.RED : C.AQUA, "\n" + (required ? "REQUIRED" : "Optional")),
-				new ColoredString(C.GREEN, " " + (type.getSimpleName())),
-				new ColoredString(C.GRAY, required ? "" : (" (" + fitDefault().toString() + ")"))
-				);
-		//@done
-		rtx.addText(open, C.GRAY);
-		rtx.addTextHover(name, rtex, C.WHITE);
-		rtx.addText(close + " ", C.GRAY);
-		return rtx;
+		RTEX rtex = new RTEX()
+				.add(C.GRAY, isRequired() ? "<" : "[")
+				.add(C.WHITE, name)
+				.add(C.GRAY, isRequired() ? ">" : "]")
+				.add(C.GRAY, "\n" + getDescription())
+				.add(isRequired() ? C.RED : C.AQUA, "\n" + (isRequired() ? "REQUIRED" : "Optional"))
+				.add(C.GREEN, " " + (type.getSimpleName()))
+				.add(C.GRAY, isRequired() ? "" : (" (" + fitDefault().toString() + ")"));
+
+		return new RTX()
+				.addText(isRequired() ? "<" : "[", C.GRAY)
+				.addTextHover(name, rtex, C.WHITE)
+				.addText(isRequired() ? ">" : "]" + " ", C.GRAY);
 	}
 
+	/**
+	 * Fit an object to its default
+	 * @return the default type;
+	 */
 	public Object fitDefault()
 	{
 		if(getType().isArray())
@@ -117,5 +117,12 @@ public class PlagueCommandParameter
 		}
 
 		return "null";
+	}
+
+	/**
+	 * @return true if the parameter is required
+	 */
+	public boolean isRequired() {
+		return optional == null;
 	}
 }

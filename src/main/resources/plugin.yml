@@ -4,7 +4,7 @@ main: ${main}
 load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho ]
 website: volmit.com
-description: More than a Dimension!
+description: "Idk"
 libraries:
   - org.zeroturnaround:zt-zip:1.14
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
@@ -15,7 +15,7 @@ libraries:
   - bsf:bsf:2.4.0
   - rhino:js:1.7R2
 commands:
-  iris:
-    aliases: [ ir, irs ]
+  plague:
+    aliases: [ p ]
 api-version: ${apiversion}
 hotload-dependencies: false

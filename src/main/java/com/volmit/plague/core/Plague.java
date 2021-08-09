@@ -16,9 +16,12 @@ public class Plague extends JavaPlugin implements Listener
 {
 	public void onEnable()
 	{
+		PluginCommand cmd = getCommand("plague");
+		if (cmd == null){
+			System.out.println("Yeet plague out the window!");
+			return;
+		}
 		getServer().getPluginManager().registerEvents(this, this);
-		PluginCommand cmd = getCommand("test");
-		assert cmd != null;
 		cmd.setExecutor((s, arg1, arg2, arg3) -> {
 			PlagueSender sender = new PlagueSender(s);
 			KickCommand kc = new KickCommand();

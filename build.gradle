@@ -38,6 +38,7 @@ version 'Test-0.1'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // See settings.gradle
 def main = 'com.volmit.plague.core.Plague'
+// You need to also set command usage, aliases and description in src/main/resources/plugin.yml
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================

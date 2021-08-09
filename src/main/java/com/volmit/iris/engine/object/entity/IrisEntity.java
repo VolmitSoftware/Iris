@@ -238,7 +238,7 @@ public class IrisEntity extends IrisRegistrant {
                             inventory.addItem(i);
                         }
 
-                        gen.getCompound().getEngine(at.getBlockY()).scramble(inventory, rng);
+                        gen.scramble(inventory, rng);
                     }
                 });
             }

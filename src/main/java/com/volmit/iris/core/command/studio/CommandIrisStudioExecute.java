@@ -22,9 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -39,8 +38,8 @@ public class CommandIrisStudioExecute extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisToolbelt.access(sender.player().getWorld()).getEngine().getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for summons while in an Iris world.");
             } else if (args.length == 0) {
@@ -58,10 +57,10 @@ public class CommandIrisStudioExecute extends MortarCommand {
             return true;
         }
 
-        IrisAccess a = IrisToolbelt.access(sender.player().getWorld());
+        PlatformChunkGenerator a = IrisToolbelt.access(sender.player().getWorld());
 
         if (a != null) {
-            ((Engine) a.getEngineAccess(0)).getExecution().execute(args[0]);
+            a.getEngine().getExecution().execute(args[0]);
             Iris.info("Executed. See script output in console.");
         }
 

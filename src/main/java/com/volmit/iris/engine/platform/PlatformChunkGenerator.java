@@ -16,8 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.framework;
+package com.volmit.iris.engine.platform;
 
-public interface IrisAccessProvider {
-    IrisAccess getAccess();
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.framework.Hotloadable;
+import com.volmit.iris.util.data.DataProvider;
+
+import java.io.File;
+
+public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
+    Engine getEngine();
+
+    boolean isHeadless();
+
+    @Override
+    default IrisData getData()
+    {
+        return getEngine().getData();
+    }
+
+    default EngineTarget getTarget()
+    {
+        return getEngine().getTarget();
+    }
+
+    void close();
+
+    boolean isStudio();
 }

@@ -21,9 +21,8 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -42,8 +41,8 @@ public class CommandIrisStudioSummon extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisToolbelt.access(sender.player().getWorld()).getEngine().getData();
             if (data == null) {
                 sender.sendMessage("Tab complete options only work for summons while in an Iris world.");
             } else if (args.length == 0) {
@@ -64,12 +63,12 @@ public class CommandIrisStudioSummon extends MortarCommand {
         if (sender.isPlayer()) {
             Player p = sender.player();
             World world = p.getWorld();
-            if (!IrisWorlds.isIrisWorld(world)) {
+            if (!IrisToolbelt.isIrisWorld(world)) {
                 sender.sendMessage("You must be in an iris world.");
                 return true;
             }
 
-            IrisAccess g = IrisWorlds.access(world);
+            Engine g = IrisToolbelt.access(world).getEngine();
             if (args.length == 0) {
                 for (String i : g.getData().getEntityLoader().getPossibleKeys()) {
                     sender.sendMessage("- " + i);
@@ -83,7 +82,7 @@ public class CommandIrisStudioSummon extends MortarCommand {
                 }
 
                 Location vl = sender.player().getLocation().clone().add(0, 3, 0);
-                e.spawn((Engine) g.getEngineAccess(vl.getBlockY()), vl);
+                e.spawn(g, vl);
             }
         } else {
             sender.sendMessage("Players only.");

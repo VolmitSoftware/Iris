@@ -30,9 +30,11 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.EngineCompositeGenerator;
+import com.volmit.iris.engine.object.noise.NoiseStyle;
+import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
@@ -42,9 +44,11 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;
@@ -66,6 +70,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
@@ -73,6 +78,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
+import java.util.UUID;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -136,8 +142,46 @@ public class Iris extends VolmitPlugin implements Listener {
         splash();
     }
 
+    public void onDisable() {
+        if (IrisSettings.get().isStudio()) {
+            Iris.debug("Studio Mode Active: Closing Projects");
+            proj.close();
+
+            for (World i : Bukkit.getWorlds()) {
+                if (IrisToolbelt.isIrisWorld(i)) {
+                    Iris.debug("Closing Platform Generator " + i.getName());
+                    IrisToolbelt.access(i).close();
+                }
+            }
+
+            for (GroupedExecutor i : executors) {
+                Iris.debug("Closing Executor " + i.toString());
+                i.closeNow();
+            }
+        }
+
+        executors.clear();
+        board.disable();
+        Iris.debug("Cancelled all tasks");
+        Bukkit.getScheduler().cancelTasks(this);
+        Iris.debug("Unregistered all events");
+        HandlerList.unregisterAll((Plugin) this);
+        Iris.debug("Multiburst Shutting down");
+        MultiBurst.burst.shutdown();
+        Iris.debug("Iris Shutdown");
+        super.onDisable();
+    }
+
     public static void callEvent(Event e) {
-        J.s(() -> Bukkit.getPluginManager().callEvent(e));
+        if(!e.isAsynchronous())
+        {
+            J.s(() -> Bukkit.getPluginManager().callEvent(e));
+        }
+
+        else
+        {
+            Bukkit.getPluginManager().callEvent(e);
+        }
     }
 
     public static KList<Object> initialize(String s, Class<? extends Annotation> slicedClass) {
@@ -259,29 +303,6 @@ public class Iris extends VolmitPlugin implements Listener {
             configWatcher.checkModified();
             Iris.info("Hotloaded settings.json");
         }
-    }
-
-    public void onDisable() {
-        if (IrisSettings.get().isStudio()) {
-            proj.close();
-
-            for (World i : Bukkit.getWorlds()) {
-                if (IrisToolbelt.isIrisWorld(i)) {
-                    IrisToolbelt.access(i).close();
-                }
-            }
-
-            for (GroupedExecutor i : executors) {
-                i.close();
-            }
-        }
-
-        executors.clear();
-        board.disable();
-        Bukkit.getScheduler().cancelTasks(this);
-        HandlerList.unregisterAll((Plugin) this);
-        MultiBurst.burst.shutdown();
-        super.onDisable();
     }
 
     public static void sq(Runnable r) {
@@ -435,7 +456,23 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Generator ID: " + id + " requested by bukkit/plugin. Assuming IrisDimension: " + id);
         }
 
-        return new EngineCompositeGenerator(dimension, true);
+        IrisDimension d = IrisData.loadAnyDimension(dimension);
+
+        if(d == null)
+        {
+            throw new RuntimeException("Can't find dimension " + dimension + "!");
+        }
+
+        IrisWorld w = IrisWorld.builder()
+                .name(worldName)
+                .seed(RNG.r.lmax())
+                .environment(d.getEnvironment())
+                .worldFolder(new File(worldName))
+                .minHeight(0)
+                .maxHeight(256)
+                .build();
+
+        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"),  dimension);
     }
 
     public static void msg(String string) {
@@ -676,6 +713,18 @@ public class Iris extends VolmitPlugin implements Listener {
             }
 
             Iris.debug("Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
+        }
+    }
+
+    static {
+        try
+        {
+            InstanceState.updateInstanceId();
+        }
+
+        catch(Throwable e)
+        {
+
         }
     }
 }

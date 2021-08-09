@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.framework.headless;
+package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.EngineCompositeGenerator;
-import com.volmit.iris.engine.object.common.IrisWorld;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.platform.HeadlessGenerator;
+import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
@@ -38,7 +38,7 @@ public class HeadlessWorld {
     private final IrisDimension dimension;
     private final String worldName;
     private final IrisWorld world;
-    private boolean studio = false;
+    private boolean studio;
 
     public HeadlessWorld(String worldName, IrisDimension dimension, long seed) {
         this(worldName, dimension, seed, false);
@@ -59,7 +59,7 @@ public class HeadlessWorld {
         world.worldFolder().mkdirs();
         new File(world.worldFolder(), "region").mkdirs();
 
-        if (!studio && !new File(world.worldFolder(), "iris").exists()) {
+        if (!studio && !new File(world.worldFolder(), "iris/pack").exists()) {
             Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
     }
@@ -72,14 +72,15 @@ public class HeadlessWorld {
         World w = new WorldCreator(worldName)
                 .environment(dimension.getEnvironment())
                 .seed(world.seed())
-                .generator(new EngineCompositeGenerator(dimension.getLoadKey(), !studio))
+                .generator(new BukkitChunkGenerator(world, studio, dimension.getLoader().getDataFolder(),
+                        dimension.getLoadKey()))
                 .createWorld();
         world.realWorld(w);
         return w;
     }
 
     public static HeadlessWorld from(World world) {
-        return new HeadlessWorld(world.getName(), IrisWorlds.access(world).getTarget().getDimension(), world.getSeed());
+        return new HeadlessWorld(world.getName(), IrisToolbelt.access(world).getEngine().getTarget().getDimension(), world.getSeed());
     }
 
     public static HeadlessWorld from(String name, String dimension, long seed) {

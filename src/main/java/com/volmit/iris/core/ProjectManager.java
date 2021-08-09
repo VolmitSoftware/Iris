@@ -356,6 +356,7 @@ public class ProjectManager {
 
     public void close() {
         if (isProjectOpen()) {
+            Iris.debug("Closing Active Project");
             activeProject.close();
             activeProject = null;
         }

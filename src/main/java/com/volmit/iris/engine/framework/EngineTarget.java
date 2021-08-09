@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
+import lombok.Builder;
 import lombok.Data;
 
 import java.io.File;
@@ -34,24 +35,24 @@ public class EngineTarget {
     private final MultiBurst burster;
     private final IrisDimension dimension;
     private IrisWorld world;
-    private final int height;
     private final IrisData data;
     private final ParallaxWorld parallaxWorld;
-    private final boolean inverted;
 
-    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data, int height, boolean inverted, int threads) {
+    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data) {
         this.world = world;
-        this.height = height;
         this.dimension = dimension;
         this.data = data;
-        this.inverted = inverted;
-        this.burster = new MultiBurst("Iris Engine " + dimension.getName(), IrisSettings.get().getConcurrency().getEngineThreadPriority(), threads);
+        this.burster = new MultiBurst("Iris Engine " + dimension.getName(),
+                IrisSettings.get().getConcurrency().getEngineThreadPriority(),
+                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount()));
         this.parallaxBurster = new MultiBurst("Iris Parallax Engine " + dimension.getName(), 3, 4);
-        this.parallaxWorld = new ParallaxWorld(parallaxBurster, 256, new File(world.worldFolder(), "iris/" + dimension.getLoadKey() + "/parallax"));
+        this.parallaxWorld = new ParallaxWorld(parallaxBurster, 256, new File(world.worldFolder(),
+                "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 
-    public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data, int height, int threads) {
-        this(world, dimension, data, height, false, threads);
+    public int getHeight()
+    {
+        return world.maxHeight() - world.minHeight();
     }
 
     public void close() {

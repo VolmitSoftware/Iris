@@ -41,8 +41,8 @@ public class CommandIrisDebugSpawnerBoost extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        ((IrisEngine)
-                IrisToolbelt.access(sender.player().getWorld()).getEngineAccess(sender.player().getLocation().getBlockY())).getWorldManager().chargeEnergy();
+
+                IrisToolbelt.access(sender.player().getWorld()).getEngine().getWorldManager().chargeEnergy();
         return true;
     }
 

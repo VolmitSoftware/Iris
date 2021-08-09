@@ -20,8 +20,9 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.regional.IrisRegion;
@@ -49,8 +50,8 @@ public class CommandIrisStudioGoto extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisWorlds.isIrisWorld(sender.player().getWorld())) {
-            IrisData data = IrisWorlds.access(sender.player().getWorld()).getData();
+        if ((args.length == 0 || args.length == 1) && sender.isPlayer() && IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
+            IrisData data = IrisToolbelt.access(sender.player().getWorld()).getEngine().getData();
             if (data == null) {
                 sender.sendMessage("Issue when loading tab completions. No data found (?)");
             } else if (args.length == 0) {
@@ -75,47 +76,47 @@ public class CommandIrisStudioGoto extends MortarCommand {
                 Player p = sender.player();
                 World world = p.getWorld();
 
-                if (!IrisWorlds.isIrisWorld(world)) {
+                if (!IrisToolbelt.isIrisWorld(world)) {
                     sender.sendMessage("You must be in an iris world.");
                     return true;
                 }
 
-                IrisAccess g = IrisWorlds.access(world);
+                Engine g = IrisToolbelt.access(world).getEngine();
                 IrisBiome b = IrisData.loadAnyBiome(args[0]);
                 IrisRegion r = IrisData.loadAnyRegion(args[0]);
                 IrisJigsawStructure s = IrisData.loadAnyJigsawStructure(args[0]);
 
                 if (b != null) {
                     J.a(() -> {
-                        Location l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+                        IrisPosition l = g.lookForBiome(b, 10000, (v) -> sender.sendMessage("Looking for " + C.BOLD + C.WHITE + b.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
                         if (l == null) {
                             sender.sendMessage("Couldn't find " + b.getName() + ".");
                         } else {
                             sender.sendMessage("Found " + b.getName() + "!");
-                            J.s(() -> sender.player().teleport(l));
+                            J.s(() -> sender.player().teleport(l.toLocation(world)));
                         }
                     });
                 } else if (r != null) {
                     J.a(() -> {
-                        Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+                        IrisPosition l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
                         if (l == null) {
                             sender.sendMessage("Couldn't find " + r.getName() + ".");
                         } else {
                             sender.sendMessage("Found " + r.getName() + "!");
-                            J.s(() -> sender.player().teleport(l));
+                            J.s(() -> sender.player().teleport(l.toLocation(world)));
                         }
                     });
                 } else if (s != null) {
                     J.a(() -> {
-                        Location l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+                        IrisPosition l = g.lookForRegion(r, 60000, (v) -> sender.sendMessage(C.BOLD + "" + C.WHITE + r.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
                         if (l == null) {
                             sender.sendMessage("Couldn't find " + r.getName() + ".");
                         } else {
                             sender.sendMessage("Found " + r.getName() + "!");
-                            J.s(() -> sender.player().teleport(l));
+                            J.s(() -> sender.player().teleport(l.toLocation(world)));
                         }
                     });
                 } else {

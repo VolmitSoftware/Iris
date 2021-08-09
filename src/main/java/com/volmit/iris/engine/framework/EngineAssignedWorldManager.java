@@ -19,13 +19,17 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -47,6 +51,16 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
         super(engine, "World");
         Iris.instance.registerListener(this);
         taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
+    }
+
+    @EventHandler
+    public void on(IrisEngineHotloadEvent e) {
+        for(Player i : e.getEngine().getWorld().getPlayers())
+        {
+            i.playSound(i.getLocation(), Sound.ITEM_TRIDENT_RETURN, 1f, 1.6f);
+            VolmitSender s = new VolmitSender(i);
+            s.sendTitle(C.IRIS + "Engine " + C.AQUA + "<font:minecraft:uniform>Hotloaded", 70, 60, 410);
+        }
     }
 
     @EventHandler

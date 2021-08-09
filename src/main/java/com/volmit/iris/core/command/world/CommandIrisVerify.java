@@ -19,8 +19,9 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.nbt.mca.Chunk;
 import com.volmit.iris.util.nbt.mca.MCAFile;
@@ -50,7 +51,7 @@ public class CommandIrisVerify extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         try {
-            IrisAccess a = IrisWorlds.access(sender.player().getWorld());
+            Engine a = IrisToolbelt.access(sender.player().getWorld()).getEngine();
             File folder = a.getTarget().getWorld().worldFolder();
             File r = new File(folder, "region");
             BurstExecutor e = MultiBurst.burst.burst(r.listFiles().length);

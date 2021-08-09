@@ -19,8 +19,8 @@
 package com.volmit.iris.core.command.what;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
@@ -68,12 +68,12 @@ public class CommandIrisWhatObjects extends MortarCommand {
             Player p = sender.player();
             World world = p.getWorld();
 
-            if (!IrisWorlds.isIrisWorld(world)) {
+            if (!IrisToolbelt.isIrisWorld(world)) {
                 sender.sendMessage("You must be in an iris world.");
                 return true;
             }
 
-            IrisAccess g = IrisWorlds.access(world);
+            Engine g = IrisToolbelt.access(world).getEngine();
             KList<Chunk> chunks = new KList<>();
             int bx = p.getLocation().getChunk().getX();
             int bz = p.getLocation().getChunk().getZ();
@@ -139,7 +139,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
                         for (int k = 0; k < 16; k += 3) {
 
                             assert g != null;
-                            IrisBiome bb = g.getBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
+                            IrisBiome bb = g.getSurfaceBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
                             IrisBiome bxf = g.getCaveBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
                             biomes.addIfMissing(bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")");
                             caveBiomes.addIfMissing(bxf.getName() + " (" + bxf.getLoadFile().getName() + ")");
@@ -199,7 +199,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
         return true;
     }
 
-    private void exportObjects(IrisBiome bb, PrintWriter pw, IrisAccess g, KMap<String, KMap<String, KList<String>>> objects) {
+    private void exportObjects(IrisBiome bb, PrintWriter pw, Engine g, KMap<String, KMap<String, KList<String>>> objects) {
         String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
         int m = 0;
         KSet<String> stop = new KSet<>();

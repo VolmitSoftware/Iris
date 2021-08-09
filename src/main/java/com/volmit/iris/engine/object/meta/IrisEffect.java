@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.meta;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.GeneratorAccess;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -29,6 +29,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import net.minecraft.world.level.GeneratorAccess;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -202,7 +203,7 @@ public class IrisEffect {
         });
     }
 
-    public void apply(Player p, GeneratorAccess g) {
+    public void apply(Player p, Engine g) {
         if (!canTick()) {
             return;
         }

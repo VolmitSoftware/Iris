@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
-import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.math.RollingSequence;
 import org.bukkit.event.Listener;
 
@@ -54,10 +53,6 @@ public interface EngineComponent {
 
     default IrisData getData() {
         return getEngine().getData();
-    }
-
-    default ParallaxAccess getParallax() {
-        return getEngine().getParallax();
     }
 
     default EngineTarget getTarget() {

@@ -633,6 +633,18 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getSurfaceBiome(x, z);
     }
 
+    default String getObjectPlacementKey(int x, int y, int z)
+    {
+        PlacedObject o = getObjectPlacement(x,y,z);
+
+        if(o != null && o.getObject() != null)
+        {
+            return o.getObject().getLoadKey() + "@" + o.getId();
+        }
+
+        return null;
+    }
+
     default PlacedObject getObjectPlacement(int x, int y, int z) {
         String objectAt = getMantle().getMantle().get(x,y,z, String.class);
 

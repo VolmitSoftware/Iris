@@ -26,7 +26,6 @@ import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
-import com.volmit.iris.engine.object.biome.IrisBiomeMutation;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.block.IrisMaterialPalette;
 import com.volmit.iris.engine.object.carve.IrisCarveLayer;
@@ -329,10 +328,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("The palette of blocks for 'water'")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-
-    @ArrayType(min = 1, type = IrisBiomeMutation.class)
-    @Desc("Define biome mutations for this dimension")
-    private KList<IrisBiomeMutation> mutations = new KList<>();
 
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);

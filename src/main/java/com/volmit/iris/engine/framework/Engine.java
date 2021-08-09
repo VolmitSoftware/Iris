@@ -498,7 +498,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return r.get();
     }
 
-    default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
+    default IrisPosition lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
         if (!getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
@@ -515,7 +515,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         AtomicInteger tries = new AtomicInteger(0);
         AtomicBoolean found = new AtomicBoolean(false);
         AtomicBoolean running = new AtomicBoolean(true);
-        AtomicReference<Location> location = new AtomicReference<>();
+        AtomicReference<IrisPosition> location = new AtomicReference<>();
         for (int i = 0; i < cpus; i++) {
             J.a(() -> {
                 try {
@@ -535,7 +535,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
                             if (b != null && b.getLoadKey().equals(biome.getLoadKey())) {
                                 found.lazySet(true);
-                                location.lazySet(new Location(getWorld().realWorld(), x, getHeight(x, z), z));
+                                location.lazySet(new IrisPosition(x, getHeight(x, z), z));
                             }
 
                             tries.getAndIncrement();
@@ -569,7 +569,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         return location.get();
     }
 
-    default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
+    default IrisPosition lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
         if (getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
@@ -586,7 +586,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
         AtomicInteger tries = new AtomicInteger(0);
         AtomicBoolean found = new AtomicBoolean(false);
         AtomicBoolean running = new AtomicBoolean(true);
-        AtomicReference<Location> location = new AtomicReference<>();
+        AtomicReference<IrisPosition> location = new AtomicReference<>();
 
         for (int i = 0; i < cpus; i++) {
             J.a(() -> {
@@ -602,7 +602,7 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
                         if (b != null && b.getLoadKey() != null && b.getLoadKey().equals(reg.getLoadKey())) {
                             found.lazySet(true);
-                            location.lazySet(new Location(getWorld().realWorld(), x, getHeight(x, z), z));
+                            location.lazySet(new IrisPosition(x, getHeight(x, z), z));
                         }
 
                         tries.getAndIncrement();

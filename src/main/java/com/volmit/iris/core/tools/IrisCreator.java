@@ -20,9 +20,10 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenTask;
-import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.framework.headless.HeadlessWorld;
+import com.volmit.iris.engine.object.common.HeadlessWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.platform.HeadlessGenerator;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.exceptions.MissingDimensionException;
 import com.volmit.iris.util.format.C;
@@ -92,9 +93,9 @@ public class IrisCreator {
      * @return the IrisAccess
      * @throws IrisException shit happens
      */
-    public IrisAccess create() throws IrisException {
+    public PlatformChunkGenerator create() throws IrisException {
         IrisDimension d = IrisToolbelt.getDimension(dimension());
-        IrisAccess access = null;
+        PlatformChunkGenerator access = null;
         Consumer<Double> prog = (pxx) -> {
             double px = pxx;
 
@@ -117,7 +118,7 @@ public class IrisCreator {
 
         if (headless) {
             HeadlessWorld w = new HeadlessWorld(name, d, seed, studio);
-            access = w.generate().getGenerator();
+            access = w.generate();
         } else {
             O<Boolean> done = new O<>();
             done.set(false);
@@ -127,32 +128,26 @@ public class IrisCreator {
                     .seed(seed)
                     .studio(studio)
                     .create();
-            access = (IrisAccess) wc.generator();
-            IrisAccess finalAccess1 = access;
+            access = (PlatformChunkGenerator) wc.generator();
+            PlatformChunkGenerator finalAccess1 = access;
 
             J.a(() ->
             {
                 int req = 400;
 
-                while (finalAccess1.getGenerated() < req && !done.get()) {
-                    double v = (double) finalAccess1.getGenerated() / (double) req;
+                while (finalAccess1.getEngine().getGenerated() < req && !done.get()) {
+                    double v = (double) finalAccess1.getEngine().getGenerated() / (double) req;
 
                     if (pregen != null) {
                         v /= 2;
                     }
 
                     if (sender.isPlayer()) {
-                        sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess1.getGenerated()) + " Left)"))));
+                        sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess1.getEngine().getGenerated()) + " Left)"))));
                         J.sleep(50);
                     } else {
-                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess1.getGenerated()) + " Left)")));
+                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess1.getEngine().getGenerated()) + " Left)")));
                         J.sleep(1000);
-                    }
-
-                    if (finalAccess1.isFailing()) {
-
-                        sender.sendMessage("Generation Failed!");
-                        break;
                     }
                 }
 
@@ -186,7 +181,7 @@ public class IrisCreator {
 
         try {
 
-            IrisAccess finalAccess = access;
+            PlatformChunkGenerator finalAccess = access;
             J.sfut(() -> {
                 if (headless) {
                     O<Boolean> done = new O<>();
@@ -196,29 +191,23 @@ public class IrisCreator {
                     {
                         int req = 400;
 
-                        while (finalAccess.getGenerated() < req && !done.get()) {
-                            double v = (double) finalAccess.getGenerated() / (double) req;
+                        while (finalAccess.getEngine().getGenerated() < req && !done.get()) {
+                            double v = (double) finalAccess.getEngine().getGenerated() / (double) req;
                             v = (v / 2) + 0.5;
 
                             if (sender.isPlayer()) {
-                                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)"))));
+                                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getEngine().getGenerated()) + " Left)"))));
                                 J.sleep(50);
                             } else {
-                                sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getGenerated()) + " Left)")));
+                                sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess.getEngine().getGenerated()) + " Left)")));
                                 J.sleep(1000);
-                            }
-
-                            if (finalAccess.isFailing()) {
-
-                                sender.sendMessage("Generation Failed!");
-                                break;
                             }
                         }
 
                         sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
                     });
 
-                    finalAccess.getHeadlessGenerator().getWorld().load();
+                    ((HeadlessGenerator)finalAccess).getWorld().load();
                     done.set(true);
                 }
             }).get();

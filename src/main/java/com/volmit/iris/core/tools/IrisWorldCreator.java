@@ -18,12 +18,15 @@
 
 package com.volmit.iris.core.tools;
 
+import com.sun.jna.Platform;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.framework.EngineCompositeGenerator;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.platform.BukkitChunkGenerator;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 
@@ -77,15 +80,18 @@ public class IrisWorldCreator {
     }
 
     public WorldCreator create() {
-        EngineCompositeGenerator g = new EngineCompositeGenerator(dimensionName, !studio);
-        g.initialize(IrisWorld.builder()
+        IrisWorld w = IrisWorld.builder()
                 .name(name)
                 .minHeight(minHeight)
                 .maxHeight(maxHeight)
                 .seed(seed)
                 .worldFolder(new File(name))
                 .environment(findEnvironment())
-                .build());
+                .build();
+        ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
+                ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder():
+                new File(w.worldFolder(), "iris/pack"), dimensionName);
+
         return new WorldCreator(name)
                 .environment(findEnvironment())
                 .generateStructures(true)

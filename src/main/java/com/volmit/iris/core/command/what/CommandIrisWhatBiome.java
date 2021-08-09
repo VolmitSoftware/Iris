@@ -20,8 +20,8 @@ package com.volmit.iris.core.command.what;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -51,7 +51,7 @@ public class CommandIrisWhatBiome extends MortarCommand {
 
             try {
 
-                IrisAccess g = IrisWorlds.access(w);
+                Engine g = IrisToolbelt.access(w).getEngine();
                 assert g != null;
                 IrisBiome b = g.getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ());
                 sender.sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");

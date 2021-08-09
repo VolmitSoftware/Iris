@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.what;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KList;
@@ -51,9 +51,9 @@ public class CommandIrisWhatFeatures extends MortarCommand {
             Player p = sender.player();
             Chunk c = p.getLocation().getChunk();
 
-            if (IrisWorlds.isIrisWorld(c.getWorld())) {
+            if (IrisToolbelt.isIrisWorld(c.getWorld())) {
                 int m = 1;
-                for (IrisFeaturePositional i : ((Engine) IrisWorlds.access(c.getWorld()).getEngineAccess(p.getLocation().getBlockY())).getEngineParallax().getFeaturesInChunk(c)) {
+                for (IrisFeaturePositional i : ((Engine) IrisToolbelt.access(c.getWorld()).getEngine()).getEngineParallax().getFeaturesInChunk(c)) {
                     sender.sendMessage("#" + m++ + " " + new JSONObject(new Gson().toJson(i)).toString(4));
                 }
             } else {

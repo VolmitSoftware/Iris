@@ -354,7 +354,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onBlockBreak(BlockBreakEvent e) {
-        if (e.getBlock().getWorld().equals(getTarget().getWorld().realWorld()) && getEngine().contains(e.getBlock().getLocation())) {
+        if (e.getBlock().getWorld().equals(getTarget().getWorld().realWorld())) {
             KList<ItemStack> d = new KList<>();
             Runnable drop = () -> J.s(() -> d.forEach((i) -> e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().clone().add(0.5, 0.5, 0.5), i)));
             IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());

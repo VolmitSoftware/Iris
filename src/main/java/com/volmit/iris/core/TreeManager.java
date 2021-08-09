@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -31,6 +30,7 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.engine.object.trees.IrisTreeModes;
 import com.volmit.iris.engine.object.trees.IrisTreeSize;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
@@ -82,26 +82,14 @@ public class TreeManager implements Listener {
             return;
         }
 
-        IrisAccess worldAccess = IrisToolbelt.access(event.getWorld());
+        PlatformChunkGenerator worldAccess = IrisToolbelt.access(event.getWorld());
         if (worldAccess == null) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
             Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
             return;
         }
 
-        if (worldAccess.getCompound() == null) {
-            Iris.debug(this.getClass().getName() + " passed off to vanilla because dimension compound is null");
-            Iris.reportError(new NullPointerException(event.getWorld().getName() + " is accessible but does not have compound"));
-            return;
-        }
-
-        if (worldAccess.getCompound().getRootDimension() == null) {
-            Iris.debug(this.getClass().getName() + " passed off to vanilla because compound's root dimension is null");
-            Iris.reportError(new NullPointerException(event.getWorld().getName() + " is accessible & has compound but has no root dimension"));
-            return;
-        }
-
-        if (!worldAccess.getCompound().getRootDimension().getTreeSettings().isEnabled()) {
+        if (!worldAccess.getEngine().getDimension().getTreeSettings().isEnabled()) {
             Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }
@@ -166,13 +154,7 @@ public class TreeManager implements Listener {
 
             @Override
             public int getFluidHeight() {
-                Engine engine;
-                if (worldAccess.getCompound().getSize() > 1) {
-                    engine = worldAccess.getCompound().getEngine(0);
-                } else {
-                    engine = (Engine) worldAccess.getCompound().getRootDimension();
-                }
-                return engine.getDimension().getFluidHeight();
+                return worldAccess.getEngine().getDimension().getFluidHeight();
             }
 
             @Override
@@ -226,18 +208,18 @@ public class TreeManager implements Listener {
      * @param size        The size of the sapling area
      * @return An object placement which contains the matched tree, or null if none were found / it's disabled.
      */
-    private IrisObjectPlacement getObjectPlacement(IrisAccess worldAccess, Location location, TreeType type, IrisTreeSize size) {
+    private IrisObjectPlacement getObjectPlacement(PlatformChunkGenerator worldAccess, Location location, TreeType type, IrisTreeSize size) {
 
         KList<IrisObjectPlacement> placements = new KList<>();
-        boolean isUseAll = ((Engine) worldAccess.getEngineAccess(location.getBlockY())).getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
+        boolean isUseAll = worldAccess.getEngine().getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
-        IrisBiome biome = worldAccess.getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        IrisBiome biome = worldAccess.getEngine().getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region
         if (isUseAll || placements.isEmpty()) {
-            IrisRegion region = worldAccess.getCompound().getEngineForHeight(location.getBlockY()).getRegion(location.getBlockX(), location.getBlockZ());
+            IrisRegion region = worldAccess.getEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
         }
 

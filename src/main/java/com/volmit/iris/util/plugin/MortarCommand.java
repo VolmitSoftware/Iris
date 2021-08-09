@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.plugin;
 
+import com.google.common.collect.Comparators;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
@@ -26,6 +27,9 @@ import org.bukkit.Sound;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * Represents a pawn command
@@ -196,6 +200,8 @@ public abstract class MortarCommand implements ICommand {
                 }
             }
         }
+
+        p.sort(Comparator.comparing(MortarCommand::getNode));
 
         return p;
     }

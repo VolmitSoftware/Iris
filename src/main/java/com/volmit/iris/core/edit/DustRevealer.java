@@ -19,8 +19,8 @@
 package com.volmit.iris.core.edit;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
-import com.volmit.iris.engine.framework.IrisAccess;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.parallax.ParallaxAccess;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.BlockPosition;
@@ -42,10 +42,10 @@ public class DustRevealer {
 
     public static void spawn(Block block, VolmitSender sender) {
         World world = block.getWorld();
-        IrisAccess access = IrisWorlds.access(world);
+        Engine access = IrisToolbelt.access(world).getEngine();
 
         if (access != null) {
-            ParallaxAccess a = access.getEngineAccess(block.getY()).getParallaxAccess();
+            ParallaxAccess a = access.getParallaxAccess();
 
             if (a.getObject(block.getX(), block.getY(), block.getZ()) != null) {
                 sender.sendMessage("Found object " + a.getObject(block.getX(), block.getY(), block.getZ()));

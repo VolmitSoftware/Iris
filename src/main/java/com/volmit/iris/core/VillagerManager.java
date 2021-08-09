@@ -24,7 +24,8 @@ public class VillagerManager implements Listener {
             return;
         }
 
-        IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getCompound().getRootDimension().getPatchCartographers();
+        IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getEngine()
+                .getDimension().getPatchCartographers();
 
         if (override.isDisableTrade()) {
             event.setCancelled(true);

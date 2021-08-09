@@ -32,6 +32,10 @@ public class IrisEngineEvent extends Event {
     private static final HandlerList handlers = new HandlerList();
     private Engine engine;
 
+    public IrisEngineEvent() {
+        super(true);
+    }
+
     @Override
     public HandlerList getHandlers() {
         return handlers;

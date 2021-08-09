@@ -51,12 +51,8 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
         for (Player i : pr) {
             Location l = i.getLocation();
             boolean pcc = players.containsKey(i.getUniqueId());
-            if (getEngine().contains(l)) {
-                if (!pcc) {
-                    players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));
-                }
-            } else if (pcc) {
-                players.remove(i.getUniqueId());
+            if (!pcc) {
+                players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));
             }
         }
 

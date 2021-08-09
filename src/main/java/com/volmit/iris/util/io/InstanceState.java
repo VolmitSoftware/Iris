@@ -16,22 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.util.io;
 
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.util.mantle.Mantle;
-import lombok.Data;
+import com.volmit.iris.util.math.RNG;
 
 import java.io.File;
+import java.io.IOException;
 
-@Data
-public class IrisEngineMantle implements EngineMantle {
-    private final Engine engine;
-    private final Mantle mantle;
+public class InstanceState {
+    public static int getInstanceId()
+    {
+        try {
+            return Integer.parseInt(IO.readAll(instanceFile()).trim());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
 
-    public IrisEngineMantle(Engine engine) {
-        this.engine = engine;
-        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
+        return -1;
+    }
+
+    public static void updateInstanceId()
+    {
+        try {
+            IO.writeAll(instanceFile(), RNG.r.imax() + "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static File instanceFile()
+    {
+        File f = new File("plugins/Iris/cache/instance");
+        f.getParentFile().mkdirs();
+        return f;
     }
 }

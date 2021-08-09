@@ -19,7 +19,7 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -35,7 +35,7 @@ public class CommandLocate extends MortarCommand implements Listener {
 
     @EventHandler
     public void onPlayerCommandPreprocess(final PlayerCommandPreprocessEvent event) {
-        if (IrisWorlds.isIrisWorld(event.getPlayer().getWorld())) {
+        if (IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())) {
 
             // Make sure the command starts with /locate and does not locate stronghold
             if (event.getMessage().contains("/locate") && event.getMessage().contains("stronghold")) {

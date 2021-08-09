@@ -19,9 +19,8 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
@@ -73,7 +72,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
 
 
     private boolean isIrisWorld(World w) {
-        return IrisWorlds.isIrisWorld(w) && IrisWorlds.access(w).isStudio();
+        return IrisToolbelt.isIrisWorld(w) && IrisToolbelt.access(w).isStudio();
     }
 
     public void updatePlayer(Player p) {
@@ -102,7 +101,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
             return v;
         }
 
-        IrisAccess g = IrisWorlds.access(player.getWorld());
+        Engine engine = IrisToolbelt.access(player.getWorld()).getEngine();
 
         if (cl.flip()) {
             // TODO MEMORY
@@ -113,12 +112,6 @@ public class IrisBoardManager implements BoardProvider, Listener {
         int y = player.getLocation().getBlockY();
         int z = player.getLocation().getBlockZ();
 
-        if (g.getCompound() == null) {
-            v.add("Loading...");
-            return v;
-        }
-
-        Engine engine = g.getCompound().getEngineForHeight(y);
         if (ecl.flip()) {
             energyBar.setProgress(Math.min(1000D, engine.getWorldManager().getEnergy()) / 1000D);
             energyBar.setTitle("Spawner Energy: " + Form.f((int) Math.min(1000D, engine.getWorldManager().getEnergy())));
@@ -129,27 +122,24 @@ public class IrisBoardManager implements BoardProvider, Listener {
         long memoryGuess = 0;
         int loadedObjects = 0;
 
-        for (int i = 0; i < g.getCompound().getSize(); i++) {
-            parallaxRegions += g.getCompound().getEngine(i).getParallax().getRegionCount();
-            parallaxChunks += g.getCompound().getEngine(i).getParallax().getChunkCount();
-            loadedObjects += g.getCompound().getData().getObjectLoader().getSize();
-            memoryGuess += g.getCompound().getData().getObjectLoader().getTotalStorage() * 225L;
-            memoryGuess += parallaxChunks * 3500L;
-            memoryGuess += parallaxRegions * 1700000L;
-        }
+        parallaxRegions +=engine.getParallax().getRegionCount();
+        parallaxChunks += engine.getParallax().getChunkCount();
+        loadedObjects += engine.getData().getObjectLoader().getSize();
+        memoryGuess += engine.getData().getObjectLoader().getTotalStorage() * 225L;
+        memoryGuess += parallaxChunks * 3500L;
+        memoryGuess += parallaxRegions * 1700000L;
 
         tp.put(0); // TODO: CHUNK SPEED
 
 
         v.add("&7&m------------------");
-        v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(g.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / g.getGeneratedPerSecond(), 0));
+        v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
         v.add(C.GREEN + "Memory Use" + C.GRAY + ":  ~" + Form.memSize(memoryGuess, 0));
 
         if (engine != null) {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
             f.add(engine.getEngineParallax().forEachFeature(x, z));
-            v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));

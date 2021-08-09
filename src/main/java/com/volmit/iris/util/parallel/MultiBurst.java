@@ -26,6 +26,7 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -99,7 +100,7 @@ public class MultiBurst {
         burst(r.length).queue(r).complete();
     }
 
-    public void burst(KList<Runnable> r) {
+    public void burst(List<Runnable> r) {
         burst(r.size()).queue(r).complete();
     }
 

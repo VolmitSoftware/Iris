@@ -41,10 +41,14 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -171,6 +175,11 @@ public interface EngineMantle extends IObjectPlacer {
         getMantle().trim(60000);
     }
 
+    default MultiBurst burst()
+    {
+        return getEngine().burst();
+    }
+
     default int getRealRadius()
     {
         getMantle().set(0, 34, 292393, Bukkit.getPlayer("cyberpwn"));
@@ -193,10 +202,15 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        KList<Runnable> post = new KList<>();
+        List<Runnable> post = Collections.synchronizedList(new KList<>());
         Consumer<Runnable> c = post::add;
-        getComponents().forEach((i) -> getMantle().raiseFlag(x, z, i.getFlag(), () -> i.generateLayer(x, z, c)));
-        post.forEach(Runnable::run);
+        getComponents().forEach((i) -> generateMantleComponent(x, z, i, c));
+        burst().burst(post);
+    }
+
+    default void generateMantleComponent(int x, int z, MantleComponent i, Consumer<Runnable> post)
+    {
+        getMantle().raiseFlag(x, z, i.getFlag(), () -> i.generateLayer(x, z, post));
     }
 
     @ChunkCoordinates

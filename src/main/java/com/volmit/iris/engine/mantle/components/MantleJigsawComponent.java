@@ -28,7 +28,8 @@ import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -58,7 +59,7 @@ public class MantleJigsawComponent extends IrisMantleComponent
                     RNG rng = new RNG(Cache.key(xx, zz) + seed());
                     IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
                     IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
-                    generateParallaxJigsaw(rng, xx, zz, biome, region, post);
+                    generateJigsaw(rng, xx, zz, biome, region, post);
                 });
             }
         }
@@ -66,7 +67,8 @@ public class MantleJigsawComponent extends IrisMantleComponent
         burst.complete();
     }
 
-    private void generateParallaxJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, Consumer<Runnable> post) {
+    @ChunkCoordinates
+    private void generateJigsaw(RNG rng, int x, int z, IrisBiome biome, IrisRegion region, Consumer<Runnable> post) {
         boolean placed = false;
 
         if (getDimension().getStronghold() != null) {
@@ -76,7 +78,7 @@ public class MantleJigsawComponent extends IrisMantleComponent
                 for (Position2 pos : poss) {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
-                        placeStructure(pos.toIris(), structure, rng, post);
+                        place(pos.toIris(), structure, rng, post);
                         placed = true;
                     }
                 }
@@ -88,7 +90,7 @@ public class MantleJigsawComponent extends IrisMantleComponent
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeStructure(position, structure, rng, post);
+                    place(position, structure, rng, post);
                     placed = true;
                 }
             }
@@ -99,7 +101,7 @@ public class MantleJigsawComponent extends IrisMantleComponent
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeStructure(position, structure, rng, post);
+                    place(position, structure, rng, post);
                     placed = true;
                 }
             }
@@ -110,14 +112,14 @@ public class MantleJigsawComponent extends IrisMantleComponent
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    placeStructure(position, structure, rng, post);
+                    place(position, structure, rng, post);
                 }
             }
         }
     }
 
-
-    private void placeStructure(IrisPosition position, IrisJigsawStructure structure, RNG rng, Consumer<Runnable> post) {
+    @BlockCoordinates
+    private void place(IrisPosition position, IrisJigsawStructure structure, RNG rng, Consumer<Runnable> post) {
         if (structure.getFeature() != null) {
             if (structure.getFeature().getBlockRadius() == 32) {
                 structure.getFeature().setBlockRadius((double) structure.getMaxDimension() / 3);

@@ -24,6 +24,8 @@ import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.Hotloadable;
 import com.volmit.iris.util.data.DataProvider;
 
+import java.io.File;
+
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     Engine getEngine();
 

@@ -90,7 +90,7 @@ public class IrisWorldCreator {
                 .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
                 ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder():
-                new File(w.worldFolder(), "iris"), dimensionName);
+                new File(w.worldFolder(), "iris/pack"), dimensionName);
 
         return new WorldCreator(name)
                 .environment(findEnvironment())

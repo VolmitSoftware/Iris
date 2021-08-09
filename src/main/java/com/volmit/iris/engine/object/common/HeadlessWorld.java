@@ -59,7 +59,7 @@ public class HeadlessWorld {
         world.worldFolder().mkdirs();
         new File(world.worldFolder(), "region").mkdirs();
 
-        if (!studio && !new File(world.worldFolder(), "iris").exists()) {
+        if (!studio && !new File(world.worldFolder(), "iris/pack").exists()) {
             Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
     }

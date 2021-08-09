@@ -44,12 +44,17 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.ProceduralStream;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -64,6 +69,10 @@ import org.bukkit.inventory.ItemStack;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootProvider, BlockUpdater, Renderer {
@@ -457,14 +466,172 @@ public interface Engine extends DataProvider, Fallible, GeneratorAccess, LootPro
 
     int getGenerated();
 
-    default IrisPosition lookForBiome(IrisBiome biome, int checks, Consumer<Integer> progress)
+    default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout)
     {
-        return null;
+        AtomicInteger checked = new AtomicInteger();
+        AtomicLong time = new AtomicLong(M.ms());
+        AtomicReference<IrisPosition> r = new AtomicReference<>();
+        BurstExecutor b = burst().burst();
+
+        while(M.ms() - time.get() < timeout && r.get() == null)
+        {
+            b.queue(() -> {
+                for(int i = 0; i < 1000; i++)
+                {
+                    if(M.ms() - time.get() > timeout)
+                    {
+                        return;
+                    }
+
+                    int x = RNG.r.i(-29999970, 29999970);
+                    int z = RNG.r.i(-29999970, 29999970);
+                    checked.incrementAndGet();
+                    if(matcher.apply(stream.get(x, z), find))
+                    {
+                        r.set(new IrisPosition(x, 120, z));
+                        time.set(0);
+                    }
+                }
+            });
+        }
+
+        return r.get();
     }
 
-    default IrisPosition lookForRegion(IrisRegion biome, int checks, Consumer<Integer> progress)
-    {
-        return null;
+    default Location lookForBiome(IrisBiome biome, long timeout, Consumer<Integer> triesc) {
+        if (!getWorld().hasRealWorld()) {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
+        ChronoLatch cl = new ChronoLatch(250, false);
+        long s = M.ms();
+        int cpus = (Runtime.getRuntime().availableProcessors());
+
+        if (!getDimension().getAllBiomes(this).contains(biome)) {
+            return null;
+        }
+
+        AtomicInteger tries = new AtomicInteger(0);
+        AtomicBoolean found = new AtomicBoolean(false);
+        AtomicBoolean running = new AtomicBoolean(true);
+        AtomicReference<Location> location = new AtomicReference<>();
+        for (int i = 0; i < cpus; i++) {
+            J.a(() -> {
+                try {
+                    Engine e;
+                    IrisBiome b;
+                    int x, z;
+
+                    while (!found.get() && running.get()) {
+                        try {
+                            x = RNG.r.i(-29999970, 29999970);
+                            z = RNG.r.i(-29999970, 29999970);
+                            b = getSurfaceBiome(x, z);
+
+                            if (b != null && b.getLoadKey() == null) {
+                                continue;
+                            }
+
+                            if (b != null && b.getLoadKey().equals(biome.getLoadKey())) {
+                                found.lazySet(true);
+                                location.lazySet(new Location(getWorld().realWorld(), x, getHeight(x, z), z));
+                            }
+
+                            tries.getAndIncrement();
+                        } catch (Throwable ex) {
+                            Iris.reportError(ex);
+                            ex.printStackTrace();
+                            return;
+                        }
+                    }
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        while (!found.get() || location.get() == null) {
+            J.sleep(50);
+
+            if (cl.flip()) {
+                triesc.accept(tries.get());
+            }
+
+            if (M.ms() - s > timeout) {
+                running.set(false);
+                return null;
+            }
+        }
+
+        running.set(false);
+        return location.get();
+    }
+
+    default Location lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
+        if (getWorld().hasRealWorld()) {
+            Iris.error("Cannot GOTO without a bound world (headless mode)");
+            return null;
+        }
+
+        ChronoLatch cl = new ChronoLatch(3000, false);
+        long s = M.ms();
+        int cpus = (Runtime.getRuntime().availableProcessors());
+
+        if (!getDimension().getRegions().contains(reg.getLoadKey())) {
+            return null;
+        }
+
+        AtomicInteger tries = new AtomicInteger(0);
+        AtomicBoolean found = new AtomicBoolean(false);
+        AtomicBoolean running = new AtomicBoolean(true);
+        AtomicReference<Location> location = new AtomicReference<>();
+
+        for (int i = 0; i < cpus; i++) {
+            J.a(() -> {
+                Engine e;
+                IrisRegion b;
+                int x, z;
+
+                while (!found.get() && running.get()) {
+                    try {
+                        x = RNG.r.i(-29999970, 29999970);
+                        z = RNG.r.i(-29999970, 29999970);
+                        b = getRegion(x, z);
+
+                        if (b != null && b.getLoadKey() != null && b.getLoadKey().equals(reg.getLoadKey())) {
+                            found.lazySet(true);
+                            location.lazySet(new Location(getWorld().realWorld(), x, getHeight(x, z), z));
+                        }
+
+                        tries.getAndIncrement();
+                    } catch (Throwable xe) {
+                        Iris.reportError(xe);
+                        xe.printStackTrace();
+                        return;
+                    }
+                }
+            });
+        }
+
+        while (!found.get() || location.get() != null) {
+            J.sleep(50);
+
+            if (cl.flip()) {
+                triesc.accept(tries.get());
+            }
+
+            if (M.ms() - s > timeout) {
+                triesc.accept(tries.get());
+                running.set(false);
+                return null;
+            }
+        }
+
+        triesc.accept(tries.get());
+        running.set(false);
+        return location.get();
     }
 
     double getGeneratedPerSecond();

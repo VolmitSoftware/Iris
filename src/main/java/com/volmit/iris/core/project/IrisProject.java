@@ -169,67 +169,13 @@ public class IrisProject {
             }
         });
 
-        String wfp = "iris/" + UUID.randomUUID();
-
-        WorldCreator c = new IrisWorldCreator().dimension(getName())
+        J.a(() -> IrisToolbelt.createWorld()
                 .seed(1337)
-                .name(wfp)
-                .studioMode()
-                .create();
-
-        PlatformChunkGenerator gx = ((PlatformChunkGenerator) c.generator());
-        O<Boolean> done = new O<>();
-        done.set(false);
-        activeProvider = gx;
-
-        J.a(() ->
-        {
-            double last = 0;
-            int req = 400;
-
-            while (gx.getEngine().getGenerated() < req) {
-                assert gx != null;
-                double v = (double) gx.getEngine().getGenerated() / (double) req;
-
-                if (sender.isPlayer()) {
-                    sender.sendProgress(v, "Generating");
-                    J.sleep(16);
-                } else {
-                    sender.sendProgress(v, "Generating");
-                    J.sleep(16);
-                }
-            }
-            if (sender.isPlayer()) {
-                sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
-            }
-        });
-
-        //@builder
-        World world = INMS.get().createWorld(c);
-        if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-            world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-            world.setTime(6000);
-        }
-        Iris.linkMultiverseCore.removeFromConfig(world);
-
-        done.set(true);
-
-        if (sender.isPlayer()) {
-            assert world != null;
-            sender.player().teleport(world.getSpawnLocation());
-        } else {
-            sender.sendAction(C.IRIS + "Generation Complete");
-        }
-
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-        {
-            if (sender.isPlayer()) {
-                sender.player().setGameMode(GameMode.SPECTATOR);
-            }
-
-            onDone.run();
-        }, 0);
+                .sender(sender)
+                .studio(true)
+                .name("iris/" + UUID.randomUUID())
+                .dimension(d.getLoadKey())
+                .create());
     }
 
     public void close() {

@@ -42,6 +42,12 @@ public class EngineProvider {
         engine.set(MultiBurst.burst.completeValue(() -> {
             IrisData data = new IrisData(dataLocation);
             IrisDimension realDimension = data.getDimensionLoader().load(dimension);
+
+            if(realDimension == null)
+            {
+                throw new RuntimeException("Cannot find dimension in " + data.getDataFolder().getAbsolutePath() + " with key " + dimension);
+            }
+
             EngineTarget target = new EngineTarget(world, realDimension, data);
             Engine engine = new IrisEngine(target, studio);
             post.accept(engine);

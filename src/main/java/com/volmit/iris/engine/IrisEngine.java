@@ -193,7 +193,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             long dur = M.ms() - lastGPS.get();
             lastGPS.set(M.ms());
-            perSecond.set(1000D / ((double) dur / g));
+            perSecond.set(g / ((double) (dur) / 1000D));
         }
 
         return perSecond.get();

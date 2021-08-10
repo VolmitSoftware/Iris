@@ -62,11 +62,11 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
-        int h = getEngine().getEngineParallax().trueHeight(x, z);
-        int ha = getEngine().getEngineParallax().trueHeight(x + 1, z);
-        int hb = getEngine().getEngineParallax().trueHeight(x, z + 1);
-        int hc = getEngine().getEngineParallax().trueHeight(x - 1, z);
-        int hd = getEngine().getEngineParallax().trueHeight(x, z - 1);
+        int h = getEngine().getMantle().trueHeight(x, z);
+        int ha = getEngine().getMantle().trueHeight(x + 1, z);
+        int hb = getEngine().getMantle().trueHeight(x, z + 1);
+        int hc = getEngine().getMantle().trueHeight(x - 1, z);
+        int hd = getEngine().getMantle().trueHeight(x, z - 1);
 
         // Floating Nibs
         int g = 0;

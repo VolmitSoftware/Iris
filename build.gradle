@@ -34,7 +34,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.6.8-Dangerously-Unstable-Seriously-Im-Warning-You'
+version '1.6.8-Dangerously-Unstable-Seriously-Im-Warning-You-I-Dare-You-I-Double-Dare-You-Just-Do-It-You-Wont'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // See settings.gradle
 def main = 'com.volmit.iris.Iris'

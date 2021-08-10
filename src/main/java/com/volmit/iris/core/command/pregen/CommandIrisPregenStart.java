@@ -11,47 +11,32 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
+import java.util.Objects;
+
 
 public class CommandIrisPregenStart extends MortarCommand {
 
     private static final KList<String> argus = new KList<>("radius=", "x=", "z=");
 
     public CommandIrisPregenStart() {
-        super("start", "s", "create", "c", "new", "+");
+        super("start", "create", "c", "new", "+");
         requiresPermission(Iris.perm);
         setCategory("Pregen");
-        setDescription("""
-                Create a new pregeneration task.
-                Command usage:
-                /iris pregen create [radius=<radius>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
-                                
-                Examples:
-                /iris pregen start 5k -here
-                /iris pregen start radius=5000 x=10r z=10r world=IrisWorld
-                /iris pregen start 10k world=WorldName
-                                
-                <radius>:  Sets both width and height to a value. (Size is: 2 * radius by 2 * radius)
-                <x> & <z>: Give the center point of the pregen.
-                <world>:   Specify a different world name for generation than the one you're currently in.
-                           The console is not in any world, so this is required for console!
-                           If you specify this, the `-here` is ignored.
-                -here:     If added, the center location is set to your position (player only)
-                           This overrides <x> and <z>.
-                                
-                For all numeric values (radius, centerX, etc.) you may use:
-                c => 16, r => 512, k => 1000
-                Example: entering '1000' is the same as '1k' (1 * 1000)
-                https://docs.volmit.com/iris/pregeneration""");
+        setDescription("Create a new pregeneration task.");
     }
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
+        if (args.length == 0){
+            return;
+        }
+
         // Add arguments
         argus.forEach(p -> {
             boolean hasArg = false;
             for (String arg : args) {
-                if (!arg.contains("=") || !p.contains("=")) {
+                if (!arg.contains("=") || !p.contains("=") || arg.equals("=")) {
                     continue;
                 }
                 if (arg.split("=")[0].equals(p.split("=")[0])) {
@@ -96,6 +81,11 @@ public class CommandIrisPregenStart extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
 
+        if (args.length == 0){
+            sender.sendMessage(getHelp());
+            return true;
+        }
+
         if (PregeneratorJob.getInstance() != null) {
             sender.sendMessage("Pregeneration task already ongoing. You can stop it with /ir p stop.");
             sender.sendMessage("Cannot create new pregen while one is already going. Cancelling...");
@@ -123,7 +113,7 @@ public class CommandIrisPregenStart extends MortarCommand {
                         failed.add(a + " (invalid world)");
                         sender.sendMessage("Entered world is " + val + ", but that world does not exist.");
                         sender.sendMessage("Cancelling the command.");
-                        sender.sendMessage(getDescription());
+                        sender.sendMessage(getHelp());
                         return true;
                     }
                 } else if (!isVal(val)) {
@@ -152,7 +142,7 @@ public class CommandIrisPregenStart extends MortarCommand {
         // Checking if a radius was specified or forgotten
         if (width == -1 || height == -1) {
             sender.sendMessage("Radius not specified! Cancelling...");
-            sender.sendMessage(getDescription());
+            sender.sendMessage(getHelp());
             return true;
         }
 
@@ -162,18 +152,12 @@ public class CommandIrisPregenStart extends MortarCommand {
                 world = sender.player().getWorld();
             } else {
                 sender.sendMessage("Must specify world=<name> if sending from console! Cancelling...");
-                sender.sendMessage(getDescription());
+                sender.sendMessage(getHelp());
                 return true;
             }
-        } else {
-            if (sender.isPlayer()) {
-                if (!world.equals(sender.player().getWorld())) {
-                    if (here) {
-                        sender.sendMessage("Ignoring `-here` because `world=` is specified!");
-                        here = false;
-                    }
-                }
-            }
+        } else if (sender.isPlayer() && !world.equals(sender.player().getWorld()) && here) {
+            sender.sendMessage("Ignoring `-here` because `world=` is specified!");
+            here = false;
         }
 
         // Checking if -here is used
@@ -213,7 +197,7 @@ public class CommandIrisPregenStart extends MortarCommand {
 
         // Start pregen and append info to details
         if (pregenerate(world, width, height, x, z)) {
-            details.append("Successfully started pregen");
+            details.append("Successfully started pregen.");
         } else {
             details.append("Failed to start pregen. Doublecheck your arguments!");
         }
@@ -294,5 +278,30 @@ public class CommandIrisPregenStart extends MortarCommand {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Get command help
+     * @return help string
+     */
+    private String getHelp() {
+        return """
+                Create a new pregeneration task.
+                Command usage:
+                /iris pregen create [radius=<radius>] [x=<centerX>] [z=<centerZ>] [world=<world>] [-here]
+                                
+                Examples:
+                /iris pregen start 5k -here
+                /iris pregen start radius=5000 x=10r z=10r world=IrisWorld
+                /iris pregen start 10k world=WorldName
+                                
+                <radius>:  Sets both width and height to a value
+                <x> & <z>: Give the center point of the pregen
+                -here:     Sets the center x and z to the current location
+                <world>:   Specify a world name for generation
+                                
+                In radius, x and z multiply the value by c => 16, r => 512, k => 1000
+                Example: entering '1000' is the same as '1k' (1 * 1000)
+                Make sure to check https://docs.volmit.com/iris/pregeneration for guidance""";
     }
 }

@@ -20,9 +20,7 @@ package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -38,7 +36,6 @@ import org.bukkit.WorldCreator;
 
 import java.io.File;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CommandIrisCreate extends MortarCommand {
@@ -51,85 +48,60 @@ public class CommandIrisCreate extends MortarCommand {
 
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
-        if (args.length == 0) {
-            list.add("[worldname]");
-            return;
-        }
 
-        if (args.length >= 1 || args[args.length - 1].equals("")) { //They are about to type a new argument
-            list.addAll(getBase(args));
-            return;
-        }
+        boolean seed = false;
+        boolean type = false;
 
-        String[] split = args[args.length - 1].split("\\Q=\\E");
-        if (split.length == 0) { //They haven't typed the = yet so just keep the options there
-            list.addAll(getBase(args));
-            return;
-        }
+        File packsFolder = new File("plugins/Iris/packs/");
+        packsFolder.mkdirs();
 
-        String pre = split[0].toLowerCase();
-
-        switch (pre) {
-            case "type" -> {
-                for (String s : Iris.proj.getListing(true).keySet()) {
-                    list.add("type=" + s);
-                }
-                if (!list.contains("type=overworld")) {
-                    list.contains("type=overworld");
-                }
-            }
-            case "seed" -> {
-                list.add("seed=1337");
-                list.add("seed=" + new Random().nextInt());
+        for (String arg : args) {
+            if (arg.equals("seed=")){
                 list.add("seed=random");
-            }
-            case "pregen" -> {
-                list.add("500");
-                list.add("1000");
-                list.add("2000");
-                list.add("5k");
-                list.add("10k");
-                list.add("25k");
+                list.add("seed=1234");
+            } else if (arg.startsWith("seed=")){
+                seed = true;
+            } else if (arg.equals("type=")){
+                for (File dim : packsFolder.listFiles()){
+                    if (dim.isDirectory()) {
+                        list.add("type=" + dim.getName());
+                    }
+                }
+                type = true;
+            } else if (arg.startsWith("type=")){
+                type = true;
             }
         }
-    }
 
-    private KList<String> getBase(String[] args) {
-        KList<String> list = new KList<>();
-        boolean seed = true;
-        boolean type = true;
-        boolean pregen = true;
-
-        for (String s : args) {
-            if (s.toLowerCase().startsWith("seed=")) seed = false;
-            else if (s.toLowerCase().startsWith("type=")) type = false;
-            else if (s.toLowerCase().startsWith("pregen=")) pregen = false;
+        if (!seed){
+            list.add("seed=random");
+            list.add("seed=1234");
         }
 
-        if (seed) list.add("seed=");
-        if (type) list.add("type=");
-        if (pregen) list.add("pregen=");
-        return list;
+        if (!type){
+            for (File dim : packsFolder.listFiles()){
+                if (dim.isDirectory()) {
+                    list.add("type=" + dim.getName());
+                }
+            }
+        }
     }
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
+
+        String worldName;
+        File folder;
+        String dimensionName;
+        IrisDimension dimension;
+        long seed;
+
         if (args.length < 1) {
-            sender.sendMessage("/iris create <NAME> [type=overworld] [seed=1337] [pregen=5000]");
+            sender.sendMessage(getArgsUsage());
             return true;
         }
-        Random random = new Random();
-        String worldName = args[0];
-        String type = IrisSettings.get().getGenerator().getDefaultWorldType();
-        long seed = random.nextLong(); //Random seed when creating a world
-        AtomicInteger pregen = new AtomicInteger(0);
-        boolean multiverse = Iris.linkMultiverseCore.supported();
 
-        for (String i : args) {
-            type = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : type;
-            seed = i.startsWith("seed=") ? (i.split("\\Q=\\E")[1].equalsIgnoreCase("random") ? random.nextLong() : Long.valueOf(i.split("\\Q=\\E")[1])) : seed;
-            pregen.set(i.startsWith("pregen=") ? getVal(i.split("\\Q=\\E")[1]) : pregen.get());
-        }
+        worldName = args[0];
 
         if (worldName.equalsIgnoreCase("iris")) {
             sender.sendMessage("You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
@@ -137,146 +109,180 @@ public class CommandIrisCreate extends MortarCommand {
             return true;
         }
 
-        Iris.linkMultiverseCore.assignWorldType(worldName, type);
-        final AtomicReference<World> world = new AtomicReference<>();
-        IrisDimension dim;
-        File folder = new File(worldName);
+        folder = new File(worldName);
 
-        Runnable onDone = () -> {
-
-            sender.sendMessage(worldName + " Spawn Area generated.");
-            sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method to load this world with the Iris Generator on startup.");
-            sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
-
-            O<Boolean> b = new O<>();
-            b.set(true);
-
-            if (sender.isPlayer()) {
-                try {
-                    sender.player().teleport(world.get().getSpawnLocation());
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                }
-            }
-
-            if (pregen.get() > 0) {
-                b.set(false);
-                int size = pregen.get();
-                size *= 2;
-                sender.sendMessage("Pregenerating " + worldName + " " + size + " x " + size);
-                sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
-
-
-            }
-
-            World ww = world.get();
-            if (ww == null) {
-                sender.sendMessage("World not created, can not finish");
-                return;
-            }
-            J.a(() ->
-            {
-                while (!b.get()) {
-                    J.sleep(1000);
-                }
-
-
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
-                {
-                    ww.save();
-                    sender.sendMessage("All Done!");
-                });
-            });
-        };
-
-        if (multiverse) {
-            dim = IrisData.loadAnyDimension(type);
-
-            if (dim == null) {
-                sender.sendMessage("Cant find dimension type: " + type + ". Did you forget to /ir download " + type + "?");
-                return true;
-            }
-
-            if (dim.getEnvironment() == null) {
-                dim.setEnvironment(World.Environment.NORMAL);
-            }
-
-            if (Iris.linkMultiverseCore == null) {
-                Iris.linkMultiverseCore = new MultiverseCoreLink();
-            }
-
-            String command = "mv create " + worldName + " " + Iris.linkMultiverseCore.envName(dim.getEnvironment());
-            command += " -s " + seed;
-            command += " -g Iris:" + dim.getLoadKey();
-            sender.sendMessage("Delegating " + command);
-            Bukkit.dispatchCommand(sender, command);
-            world.set(Bukkit.getWorld(worldName));
-            onDone.run();
-        } else {
-            if (folder.exists()) {
-                sender.sendMessage("That world folder already exists!");
-                return true;
-            }
-
-            File iris = new File(folder, "iris");
-            iris.mkdirs();
-            dim = Iris.proj.installIntoWorld(sender, type, folder);
-            WorldCreator wc = new IrisWorldCreator().dimension(dim.getLoadKey()).name(worldName)
-                    .productionMode().seed(seed).create();
-
-            J.s(() -> {
-                O<Boolean> done = new O<>();
-                done.set(false);
-
-                J.a(() ->
-                {
-                    double last = 0;
-                    int req = 800;
-                    while (!done.get()) {
-                        boolean derp = false;
-                        double v = (double) ((PlatformChunkGenerator) wc.generator()).getEngine().getGenerated() / (double) req;
-
-                        if (last > v || v > 1) {
-                            derp = true;
-                            v = last;
-                        } else {
-                            last = v;
-                        }
-
-                        sender.sendMessage("Generating " + Form.pc(v) + (derp ? " (Waiting on Server...)" : ""));
-                        J.sleep(3000);
-                    }
-                });
-
-                World w = INMS.get().createWorld(wc);
-                world.set(w);
-                done.set(true);
-            });
+        if (folder.exists()) {
+            sender.sendMessage("That world folder already exists!");
+            return true;
         }
 
+        dimensionName = IrisSettings.get().getGenerator().getDefaultWorldType();
+        seed = new Random().nextLong(); //Random seed when creating a world
 
+        for (String i : args) {
+            dimensionName = i.startsWith("type=") ? i.split("\\Q=\\E")[1] : dimensionName;
+            seed = i.startsWith("seed=") ? Long.parseLong(i.split("\\Q=\\E")[1]) : seed;
+        }
+
+        dimension = Iris.proj.installIntoWorld(sender, dimensionName, folder);
+
+        if (dimension == null) {
+            sender.sendMessage("Cannot find dimension '" + dimensionName + "'. Did you forget to /iris download " + dimensionName + "?");
+            return true;
+        }
+
+        if (dimension.getEnvironment() == null){
+            dimension.setEnvironment(World.Environment.NORMAL);
+        }
+
+        File iris = new File(folder, "iris");
+        iris.mkdirs();
+
+        onDone(sender, createWorld(sender, worldName, dimension, seed));
         return true;
-    }
-
-    private int getVal(String arg) {
-
-        if (arg.toLowerCase().endsWith("c") || arg.toLowerCase().endsWith("chunks")) {
-            return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qc\\E", "").replaceAll("\\Qchunks\\E", "")) * 16;
-        }
-
-        if (arg.toLowerCase().endsWith("r") || arg.toLowerCase().endsWith("regions")) {
-            return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qr\\E", "").replaceAll("\\Qregions\\E", "")) * 512;
-        }
-
-        if (arg.toLowerCase().endsWith("k")) {
-            return Integer.parseInt(arg.toLowerCase().replaceAll("\\Qk\\E", "")) * 1000;
-        }
-
-        return Integer.parseInt(arg.toLowerCase());
     }
 
     @Override
     protected String getArgsUsage() {
-        return "<name> [type=overworld] [seed=1337] [pregen=5000]";
+        return "<name> [type=<type>] [seed=<seed>]";
+    }
+
+    /**
+     * Ran when world is created
+     * @param sender The sender to send updates to
+     * @param world The created world
+     */
+    private void onDone(VolmitSender sender, World world){
+        sender.sendMessage(world.getName() + " Spawn Area generated.");
+        sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method to load this world with the Iris Generator on startup.");
+        sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
+
+        if (sender.isPlayer()) {
+            try {
+                sender.player().teleport(world.getSpawnLocation());
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
+        }
+
+        O<Boolean> b = new O<>();
+        b.set(true);
+
+        J.a(() ->
+        {
+            while (!b.get()) {
+                J.sleep(1000);
+            }
+
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () ->
+            {
+                world.save();
+                sender.sendMessage("All Done!");
+            });
+        });
+    }
+
+    /**
+     * Create a world with either Multiverse (preferred, if supported) or NMS
+     * @param sender The sender to send updates to
+     * @param worldName The name of the world to create
+     * @param dimension The dimension to create the world with
+     * @param seed The seed to use to generate
+     * @return The created world
+     */
+    private World createWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+        if (Iris.linkMultiverseCore.isSupported()) {
+            return createMultiverseWorld(sender, worldName, dimension, seed);
+        } else {
+            return createNMSWorld(sender, worldName, dimension, seed);
+        }
+    }
+
+    /**
+     * Create a world with Multiverse
+     * @param sender The sender to send updates to
+     * @param worldName The name of the world to create
+     * @param dimension The dimension to create the world with
+     * @param seed The seed to use to generate
+     * @return The created world
+     */
+    public World createMultiverseWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+
+        if (!Iris.linkMultiverseCore.isSupported()){
+            sender.sendMessage("A world was attempted to be created with Multiverse but it is not supported!");
+            return null;
+        }
+
+        Iris.linkMultiverseCore.assignWorldType(worldName, dimension.getName());
+
+        StringBuilder command = new StringBuilder("mv create")
+                .append(worldName)
+                .append(" ")
+                .append(Iris.linkMultiverseCore.envName(dimension.getEnvironment()))
+                .append(" -s ")
+                .append(seed)
+                .append(" -g Iris:")
+                .append(dimension.getLoadKey());
+
+        sender.sendMessage("Delegating " + command);
+        Bukkit.dispatchCommand(sender, command.toString());
+        return Bukkit.getWorld(worldName);
+    }
+
+    /**
+     * Create a world using NMS
+     * @param sender The sender to send updates to
+     * @param worldName The name of the world to create
+     * @param dimension The dimension to create the world with
+     * @param seed The seed to use to generate
+     * @return The created world
+     */
+    public World createNMSWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+
+        WorldCreator wc = new IrisWorldCreator()
+                .dimension(dimension.getLoadKey())
+                .name(worldName)
+                .seed(seed)
+                .productionMode()
+                .create();
+        PlatformChunkGenerator gen = (PlatformChunkGenerator) wc.generator();
+
+        if (gen == null){
+            sender.sendMessage("Failed to create generator! Gen is null!");
+            return null;
+        }
+
+        AtomicReference<World> world = new AtomicReference<>();
+
+        J.s(() -> {
+            O<Boolean> done = new O<>();
+            done.set(false);
+
+            J.a(() ->
+            {
+                double last = 0;
+                int req = 800;
+                while (!done.get()) {
+
+                    boolean shouldBeDone = false;
+                    double v = (double) gen.getEngine().getGenerated() / req;
+
+                    if (last > v || v > 1) {
+                        shouldBeDone = true;
+                        v = last;
+                    } else {
+                        last = v;
+                    }
+
+                    sender.sendMessage("Generating " + Form.pc(v) + (shouldBeDone ? " (Waiting on Server...)" : ""));
+                    J.sleep(3000);
+                }
+            });
+
+            world.set(INMS.get().createWorld(wc));
+            done.set(true);
+        });
+
+        return world.get();
     }
 }

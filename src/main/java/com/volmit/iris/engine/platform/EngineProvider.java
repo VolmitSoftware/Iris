@@ -54,14 +54,21 @@ public class EngineProvider {
     public Engine getEngine()
     {
         try {
-            return engine.get().get();
+            Engine e = engine.get().get();
+
+            if(e == null)
+            {
+                throw new RuntimeException("NULL");
+            }
+
+            return e;
         } catch (InterruptedException e) {
             e.printStackTrace();
+            throw new RuntimeException("INTERRUPTED");
         } catch (ExecutionException e) {
             e.printStackTrace();
+            throw new RuntimeException("EXECUTION ERROR");
         }
-
-        return null;
     }
 
     public void close() {

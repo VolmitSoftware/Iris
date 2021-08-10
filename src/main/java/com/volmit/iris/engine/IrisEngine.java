@@ -29,6 +29,7 @@ import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
+import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
@@ -83,6 +84,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final EngineTarget target;
     private final IrisContext context;
     private final EngineEffects effects;
+    private final EngineMantle mantle;
     private final ChronoLatch perSecondLatch;
     private final EngineExecutionEnvironment execution;
     private final EngineWorldManager worldManager;
@@ -99,7 +101,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private final IrisComplex complex;
-    private final EngineParallaxManager engineParallax;
     private final EngineActuator<BlockData> terrainNormalActuator;
     private final EngineActuator<BlockData> terrainIslandActuator;
     private final EngineActuator<BlockData> decorantActuator;
@@ -138,7 +139,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         context = new IrisContext(this);
         context.touch();
         this.complex = new IrisComplex(this);
-        this.engineParallax = new IrisEngineParallax(this);
         this.terrainNormalActuator = new IrisTerrainNormalActuator(this);
         this.terrainIslandActuator = new IrisTerrainIslandActuator(this);
         this.decorantActuator = new IrisDecorantActuator(this);
@@ -150,7 +150,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         cleaning = new AtomicBoolean(false);
         cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
                 .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
-
+        mantle = new IrisEngineMantle(this);
     }
 
     @Override
@@ -300,7 +300,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        getEngineParallax().close();
+        getMantle().close();
         getTerrainActuator().close();
         getDecorantActuator().close();
         getBiomeActuator().close();
@@ -328,18 +328,19 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
         cleaning.set(true);
 
-        try {
-            getParallax().cleanup();
-            getData().getObjectLoader().clean();
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            Iris.error("Cleanup failed!");
-            e.printStackTrace();
-        }
+       J.a(() -> {
+           try {
+               getMantle().trim();
+               getData().getObjectLoader().clean();
+           } catch (Throwable e) {
+               Iris.reportError(e);
+               Iris.error("Cleanup failed!");
+               e.printStackTrace();
+           }
 
-        cleaning.lazySet(false);
+           cleaning.lazySet(false);
+       });
     }
-
 
     public EngineActuator<BlockData> getTerrainActuator() {
         return switch (getDimension().getTerrainMode()) {
@@ -371,14 +372,14 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
-                    getEngineParallax().generateParallaxArea(x >> 4, z >> 4);
+                    getMantle().generateMatter(x>>4, z>>4);
                     getTerrainActuator().actuate(x, z, vblocks, multicore);
                     getBiomeActuator().actuate(x, z, vbiomes, multicore);
                     getCaveModifier().modify(x, z, vblocks, multicore);
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getEngineParallax().insertParallax(x >> 4, z >> 4, blocks);
+                    getMantle().insertMatter(x>>4, z>>4, BlockData.class, blocks);
                     getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {
@@ -388,6 +389,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
+            recycle();
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

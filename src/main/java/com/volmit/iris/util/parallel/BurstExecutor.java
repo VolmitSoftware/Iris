@@ -21,6 +21,7 @@ package com.volmit.iris.util.parallel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 
+import java.util.List;
 import java.util.concurrent.*;
 
 @SuppressWarnings("ALL")
@@ -42,7 +43,7 @@ public class BurstExecutor {
         }
     }
 
-    public BurstExecutor queue(KList<Runnable> r) {
+    public BurstExecutor queue(List<Runnable> r) {
         synchronized (futures) {
             for (Runnable i : r) {
                 CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);

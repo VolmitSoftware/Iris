@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 public class HyperLock {
     private final ConcurrentLinkedHashMap<Long, ReentrantLock> locks;
     private final BiFunction<? super Long, ? super ReentrantLock, ? extends ReentrantLock> accessor;
+    private boolean enabled = true;
 
     public HyperLock() {
         this(1024, false);
@@ -60,6 +61,12 @@ public class HyperLock {
         lock(x, z);
         r.run();
         unlock(x, z);
+    }
+
+    public void withLong(long k, Runnable r) {
+        lock(Cache.keyX(k), Cache.keyZ(k));
+        r.run();
+        unlock(Cache.keyX(k), Cache.keyZ(k));
     }
 
     public void withNasty(int x, int z, NastyRunnable r) throws Throwable {
@@ -120,10 +127,24 @@ public class HyperLock {
     }
 
     public void lock(int x, int z) {
+        if(!enabled)
+        {
+            return;
+        }
+
         getLock(x, z).lock();
     }
 
     public void unlock(int x, int z) {
+        if(!enabled)
+        {
+            return;
+        }
+
         getLock(x, z).unlock();
+    }
+
+    public void disable() {
+        enabled = false;
     }
 }

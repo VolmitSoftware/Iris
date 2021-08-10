@@ -16,31 +16,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter;
+package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.Varint;
-import com.volmit.iris.util.math.M;
-import lombok.Data;
+import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.UUID;
 
-@Data
-public class MatterHeader {
-    private String author = "";
-    private long createdAt = M.ms();
-    private int version = Matter.VERSION;
-
-    public void write(DataOutputStream out) throws IOException {
-        out.writeUTF(author);
-        Varint.writeUnsignedVarLong(createdAt, out);
-        Varint.writeUnsignedVarInt(version, out);
+@Sliced
+public class PlayerMatter extends RawMatter<Player> {
+    public PlayerMatter() {
+        this(1, 1, 1);
     }
 
-    public void read(DataInputStream din) throws IOException {
-        setAuthor(din.readUTF());
-        setCreatedAt(Varint.readUnsignedVarLong(din));
-        setVersion(Varint.readUnsignedVarInt(din));
+    public PlayerMatter(int width, int height, int depth) {
+        super(width, height, depth, Player.class);
+    }
+
+    @Override
+    public void writeNode(Player b, DataOutputStream dos) throws IOException {
+        Varint.writeSignedVarLong(b.getUniqueId().getMostSignificantBits(), dos);
+        Varint.writeSignedVarLong(b.getUniqueId().getLeastSignificantBits(), dos);
+    }
+
+    @Override
+    public Player readNode(DataInputStream din) throws IOException {
+        UUID id = new UUID(Varint.readSignedVarLong(din), Varint.readSignedVarLong(din));
+
+        return Bukkit.getPlayer(id);
     }
 }

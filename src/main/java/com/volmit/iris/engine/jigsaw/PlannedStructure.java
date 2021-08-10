@@ -23,7 +23,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineParallaxManager;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -33,15 +32,17 @@ import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.objects.*;
-import com.volmit.iris.engine.parallax.ParallaxChunkMeta;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+
+import java.util.function.Consumer;
 
 @Data
 public class PlannedStructure {
@@ -80,24 +81,21 @@ public class PlannedStructure {
         }
     }
 
-    public KList<Runnable> place(IObjectPlacer placer, EngineParallaxManager e) {
-        KList<Runnable> after = new KList<>();
+    public void place(IObjectPlacer placer, Mantle e, Consumer<Runnable> post) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();
 
         for (PlannedPiece i : pieces) {
-            if (i.getPiece().getPlaceMode().equals(ObjectPlaceMode.VACUUM)) {
+            if (i.getPiece().getPlacementOptions().usesFeatures()) {
                 place(i, startHeight, options, placer, e);
             } else {
-                after.add(() -> place(i, startHeight, options, placer, e));
+                post.accept(() -> place(i, startHeight, options, placer, e));
             }
         }
-
-        return after;
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, EngineParallaxManager e) {
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
@@ -121,17 +119,8 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-
-        int h = vo.place(xx, height, zz, placer, options, rng, (b) -> {
-            int xf = b.getX();
-            int yf = b.getY();
-            int zf = b.getZ();
-            e.getParallaxAccess().setObject(xf, yf, zf, v.getLoadKey() + "@" + id);
-            ParallaxChunkMeta meta = e.getParallaxAccess().getMetaRW(xf >> 4, zf >> 4);
-            meta.setObjects(true);
-            meta.setMinObject(Math.min(Math.max(meta.getMinObject(), 0), yf));
-            meta.setMaxObject(Math.max(Math.max(meta.getMaxObject(), 0), yf));
-        }, null, getData());
+        int h = vo.place(xx, height, zz, placer, options, rng, (b)
+                -> e.set(b.getX(),  b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
 
 
         for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
@@ -149,13 +138,10 @@ public class PlannedStructure {
                 } else {
                     p.setY(height);
                 }
-                for (int k = 0; k < j.getEntityCount(); k++) {
-                    e.getParallaxAccess().setEntity(p.getX(), p.getY(), p.getZ(), j.getSpawnEntity());
-                }
             }
         }
 
-        if (options.isVacuum()) {
+        if (options.usesFeatures()) {
             double a = Math.max(v.getW(), v.getD());
             IrisFeature f = new IrisFeature();
             f.setConvergeToHeight(h - (v.getH() >> 1) - 1);
@@ -163,9 +149,7 @@ public class PlannedStructure {
             f.setInterpolationRadius(a / 4);
             f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
             f.setStrength(1D);
-            e.getParallaxAccess().getMetaRW(xx >> 4, zz >> 4)
-                    .getFeatures()
-                    .add(new IrisFeaturePositional(xx, zz, f));
+            e.set(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
         }
     }
 

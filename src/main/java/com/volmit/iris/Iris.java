@@ -48,7 +48,6 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.Permission;

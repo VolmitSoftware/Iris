@@ -23,9 +23,11 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -42,6 +44,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.GZIPInputStream;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -75,6 +78,66 @@ public class Mantle {
         lastUse = new KMap<>();
         ioBurst = new MultiBurst("Iris Mantle[" + dataFolder.hashCode() + "]", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() / 2);
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
+    }
+
+    @ChunkCoordinates
+    public void raiseFlag(int x, int z, MantleFlag flag, Runnable r)
+    {
+        if(!hasFlag(x, z, flag))
+        {
+            flag(x, z, flag, true);
+            r.run();
+        }
+    }
+
+    @ChunkCoordinates
+    public void lowerFlag(int x, int z, MantleFlag flag, Runnable r)
+    {
+        if(hasFlag(x, z, flag))
+        {
+            flag(x, z, flag, false);
+            r.run();
+        }
+    }
+
+    @ChunkCoordinates
+    public void flag(int x, int z, MantleFlag flag, boolean flagged)
+    {
+        try {
+            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).flag(flag, flagged);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @ChunkCoordinates
+    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags)
+    {
+        for(MantleFlag i : requiredFlags)
+        {
+            if(!hasFlag(x, z, i))
+            {
+                return;
+            }
+        }
+
+        try {
+            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).iterate(type, iterator);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @ChunkCoordinates
+    public boolean hasFlag(int x, int z, MantleFlag flag)
+    {
+        try {
+            return get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).isFlagged(flag);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     /**
@@ -203,25 +266,26 @@ public class Mantle {
         unload.clear();
 
         for (Long i : lastUse.keySet()) {
-            if (M.ms() - lastUse.get(i) >= idleDuration) {
-                unload.add(i);
-            }
+            hyperLock.withLong(i, () -> {
+                if (M.ms() - lastUse.get(i) >= idleDuration) {
+                    unload.add(i);
+                }
+            });
         }
 
         for (Long i : unload) {
-            TectonicPlate m = loadedRegions.remove(i);
-            lastUse.remove(i);
-            Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + i);
+            hyperLock.withLong(i, () ->{
+                TectonicPlate m = loadedRegions.remove(i);
+                lastUse.remove(i);
 
-            if (m != null) {
-                ioBurst.lazy(() -> {
-                    try {
-                        m.write(fileForRegion(dataFolder, i));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
+                try {
+                    m.write(fileForRegion(dataFolder, i));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+            });
         }
     }
 
@@ -234,9 +298,17 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private CompletableFuture<TectonicPlate> get(int x, int z) {
+    private synchronized CompletableFuture<TectonicPlate> get(int x, int z) {
+        Long k = key(x, z);
+        TectonicPlate p = loadedRegions.get(k);
+
+        if(p != null)
+        {
+            lastUse.put(k, M.ms());
+            return CompletableFuture.completedFuture(p);
+        }
+
         return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
-            Long k = key(x, z);
             lastUse.put(k, M.ms());
             TectonicPlate region = loadedRegions.get(k);
 
@@ -248,10 +320,7 @@ public class Mantle {
 
             if (file.exists()) {
                 try {
-                    FileInputStream fin = new FileInputStream(file);
-                    DataInputStream din = new DataInputStream(fin);
-                    region = new TectonicPlate(worldHeight, din);
-                    din.close();
+                    region = TectonicPlate.read(worldHeight, file);
                     loadedRegions.put(k, region);
                     Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
                 } catch (Throwable e) {
@@ -268,7 +337,7 @@ public class Mantle {
 
             region = new TectonicPlate(worldHeight);
             loadedRegions.put(k, region);
-            Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);
+            Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             return region;
         }));
     }
@@ -286,5 +355,9 @@ public class Mantle {
 
     public static Long key(int x, int z) {
         return Cache.key(x, z);
+    }
+
+    public void saveAll() {
+
     }
 }

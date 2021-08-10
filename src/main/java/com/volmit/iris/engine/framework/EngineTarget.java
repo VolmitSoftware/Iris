@@ -22,21 +22,15 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
-import com.volmit.iris.engine.parallax.ParallaxWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
-import lombok.Builder;
 import lombok.Data;
-
-import java.io.File;
 
 @Data
 public class EngineTarget {
-    private final MultiBurst parallaxBurster;
     private final MultiBurst burster;
     private final IrisDimension dimension;
     private IrisWorld world;
     private final IrisData data;
-    private final ParallaxWorld parallaxWorld;
 
     public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data) {
         this.world = world;
@@ -45,9 +39,6 @@ public class EngineTarget {
         this.burster = new MultiBurst("Iris Engine " + dimension.getName(),
                 IrisSettings.get().getConcurrency().getEngineThreadPriority(),
                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount()));
-        this.parallaxBurster = new MultiBurst("Iris Parallax Engine " + dimension.getName(), 3, 4);
-        this.parallaxWorld = new ParallaxWorld(parallaxBurster, 256, new File(world.worldFolder(),
-                "iris/" + dimension.getLoadKey() + "/parallax"));
     }
 
     public int getHeight()
@@ -56,7 +47,6 @@ public class EngineTarget {
     }
 
     public void close() {
-        parallaxBurster.shutdownLater();
         burster.shutdownLater();
     }
 }

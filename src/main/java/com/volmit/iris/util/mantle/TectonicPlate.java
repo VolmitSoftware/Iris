@@ -21,9 +21,13 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Tectonic Plates are essentially representations of regions in minecraft.
@@ -59,6 +63,16 @@ public class TectonicPlate {
                 chunks.set(i, new MantleChunk(sectionHeight, din));
             }
         }
+    }
+
+    public static TectonicPlate read(int worldHeight, File file) throws IOException, ClassNotFoundException {
+        FileInputStream fin = new FileInputStream(file);
+        GZIPInputStream gzi = new GZIPInputStream(fin);
+        DataInputStream din = new DataInputStream(gzi);
+        TectonicPlate p = new TectonicPlate(worldHeight, din);
+        din.close();
+
+        return p;
     }
 
     /**
@@ -136,11 +150,13 @@ public class TectonicPlate {
      * @throws IOException shit happens
      */
     public void write(File file) throws IOException {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         FileOutputStream fos = new FileOutputStream(file);
-        DataOutputStream dos = new DataOutputStream(fos);
+        GZIPOutputStream gzo = new GZIPOutputStream(fos);
+        DataOutputStream dos = new DataOutputStream(gzo);
         write(dos);
         dos.close();
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0]);
+        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**
@@ -152,10 +168,15 @@ public class TectonicPlate {
     public void write(DataOutputStream dos) throws IOException {
         for (int i = 0; i < chunks.length(); i++) {
             MantleChunk chunk = chunks.get(i);
-            dos.writeBoolean(chunk != null);
 
             if (chunk != null) {
+                dos.writeBoolean(true);
                 chunk.write(dos);
+            }
+
+            else
+            {
+                dos.writeBoolean(false);
             }
         }
     }

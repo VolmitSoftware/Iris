@@ -16,21 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.engine.mantle;
 
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineParallaxManager;
-import lombok.Getter;
+import com.volmit.iris.util.mantle.MantleFlag;
+import lombok.Data;
 
-public class IrisEngineParallax implements EngineParallaxManager {
-    @Getter
-    private final Engine engine;
-
-    @Getter
-    private final int parallaxSize;
-
-    public IrisEngineParallax(Engine engine) {
-        this.engine = engine;
-        parallaxSize = computeParallaxSize();
-    }
+@Data
+public abstract class IrisMantleComponent implements MantleComponent{
+    private final EngineMantle engineMantle;
+    private final MantleFlag flag;
 }

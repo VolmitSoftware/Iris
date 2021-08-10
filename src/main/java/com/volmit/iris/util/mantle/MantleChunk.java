@@ -18,14 +18,20 @@
 
 package com.volmit.iris.util.mantle;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.collection.StateList;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterSlice;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
@@ -33,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
-    private final KSet<String> flags;
+    private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
 
     /**
@@ -44,7 +50,12 @@ public class MantleChunk {
     @ChunkCoordinates
     public MantleChunk(int sectionHeight) {
         sections = new AtomicReferenceArray<>(sectionHeight);
-        flags = new KSet<>();
+        flags = new AtomicIntegerArray(MantleFlag.values().length);
+
+        for (int i = 0; i < flags.length(); i++)
+        {
+            flags.set(i, 0);
+        }
     }
 
     /**
@@ -58,10 +69,10 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
         this(sectionHeight);
         int s = din.readByte();
-        int f = din.readByte();
 
-        for (int i = 0; i < f; i++) {
-            flags.add(din.readUTF());
+        for(int i = 0; i < flags.length(); i++)
+        {
+            flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
         for (int i = 0; i < s; i++) {
@@ -71,16 +82,12 @@ public class MantleChunk {
         }
     }
 
-    public void flag(String s, boolean f) {
-        if (f) {
-            flags.add(s);
-        } else {
-            flags.remove(s);
-        }
+    public void flag(MantleFlag flag, boolean f) {
+        flags.set(flag.ordinal(), f ? 1 : 0);
     }
 
-    public boolean isFlagged(String s) {
-        return flags.contains(s);
+    public boolean isFlagged(MantleFlag flag) {
+        return flags.get(flag.ordinal()) == 1;
     }
 
     /**
@@ -150,19 +157,58 @@ public class MantleChunk {
      */
     public void write(DataOutputStream dos) throws IOException {
         dos.writeByte(sections.length());
-        dos.writeByte(flags.size());
 
-        for (String i : flags) {
-            dos.writeUTF(i);
+        for (int i = 0; i < flags.length(); i++) {
+            dos.writeBoolean(flags.get(i) == 1);
         }
 
         for (int i = 0; i < sections.length(); i++) {
+            trimSlice(i);
+
             if (exists(i)) {
                 dos.writeBoolean(true);
                 Matter matter = get(i);
                 matter.writeDos(dos);
             } else {
                 dos.writeBoolean(false);
+            }
+        }
+    }
+
+    private void trimSlice(int i) {
+        if(exists(i))
+        {
+            Matter m = get(i);
+
+            if(m.getSliceMap().isEmpty())
+            {
+                sections.set(i, null);
+            }
+
+            else{
+                m.trimSlices();
+                if(m.getSliceMap().isEmpty())
+                {
+                    sections.set(i, null);
+                }
+            }
+        }
+    }
+
+    public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer,T> iterator) {
+        for(int i = 0; i < sections.length(); i++)
+        {
+            int bs = (i << 4);
+            Matter matter = get(i);
+
+            if(matter != null)
+            {
+                MatterSlice<T> t = matter.getSlice(type);
+
+                if(t != null)
+                {
+                    t.iterateSync((a, b, c, f) -> iterator.accept(a,b + bs, c, f));
+                }
             }
         }
     }

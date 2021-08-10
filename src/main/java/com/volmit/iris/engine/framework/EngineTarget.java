@@ -41,8 +41,7 @@ public class EngineTarget {
                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount()));
     }
 
-    public int getHeight()
-    {
+    public int getHeight() {
         return world.maxHeight() - world.minHeight();
     }
 

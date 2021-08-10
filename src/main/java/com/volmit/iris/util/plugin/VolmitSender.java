@@ -28,8 +28,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.transformation.inbuild.GradientTransformation;
-import net.kyori.adventure.text.minimessage.transformation.inbuild.RainbowTransformation;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -45,7 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -193,95 +190,79 @@ public class VolmitSender implements CommandSender {
         s.sendMessage("========================================================");
     }
 
-    public void sendTitle(String title, String subtitle, int i, int s, int o)
-    {
+    public void sendTitle(String title, String subtitle, int i, int s, int o) {
         Iris.audiences.player(player()).showTitle(Title.title(
                 createComponent(title),
                 createComponent(subtitle),
                 Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
-    public static long getTick()
-    {
+    public static long getTick() {
         return M.ms() / 16;
     }
 
-    public void sendProgress(double percent, String thing)
-    {
-        if(percent < 0)
-        {
+    public void sendProgress(double percent, String thing) {
+        if (percent < 0) {
             int l = 44;
             int g = (int) (1D * l);
             sendTitle(C.IRIS + thing + " ", 0, 500, 250);
-            sendActionNoProcessing("" + "" + pulse("#00ff80","#00373d",1D)+"<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
-        }
-
-        else
-        {
+            sendActionNoProcessing("" + "" + pulse("#00ff80", "#00373d", 1D) + "<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
+        } else {
             int l = 44;
             int g = (int) (percent * l);
             sendTitle(C.IRIS + thing + " " + C.BLUE + "<font:minecraft:uniform>" + Form.pc(percent, 0), 0, 500, 250);
-            sendActionNoProcessing("" + "" + pulse("#00ff80","#00373d",1D)+"<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
+            sendActionNoProcessing("" + "" + pulse("#00ff80", "#00373d", 1D) + "<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
         }
     }
 
-    public static String pulse(String colorA, String colorB, double speed)
-    {
+    public static String pulse(String colorA, String colorB, double speed) {
         return "<gradient:" + colorA + ":" + colorB + ":" + pulse(speed) + ">";
     }
 
     public static String pulse(double speed) {
-        return Form.f(invertSpread((((getTick()*15D * speed)%1000D)/1000D)), 3).replaceAll("\\Q,\\E", ".");
+        return Form.f(invertSpread((((getTick() * 15D * speed) % 1000D) / 1000D)), 3).replaceAll("\\Q,\\E", ".");
     }
 
     public static double invertSpread(double v) {
         return ((1D - v) * 2D) - 1D;
     }
 
-    public void sendAction(String action)
-    {
+    public void sendAction(String action) {
         Iris.audiences.player(player()).sendActionBar(createNoPrefixComponent(action));
     }
 
-    public void sendActionNoProcessing(String action)
-    {
+    public void sendActionNoProcessing(String action) {
         Iris.audiences.player(player()).sendActionBar(createNoPrefixComponentNoProcessing(action));
     }
 
-    public void sendTitle(String subtitle, int i, int s, int o)
-    {
+    public void sendTitle(String subtitle, int i, int s, int o) {
         Iris.audiences.player(player()).showTitle(Title.title(
                 createNoPrefixComponent(" "),
                 createNoPrefixComponent(subtitle),
                 Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
-    private Component createNoPrefixComponent(String message)
-    {
+    private Component createNoPrefixComponent(String message) {
         String t = C.translateAlternateColorCodes('&', message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb(), 0.36);
         return MiniMessage.get().parse(a);
     }
 
-    private Component createNoPrefixComponentNoProcessing(String message)
-    {
+    private Component createNoPrefixComponentNoProcessing(String message) {
         return MiniMessage.get().parse(message);
     }
 
-    private Component createComponent(String message)
-    {
+    private Component createComponent(String message) {
         String t = C.translateAlternateColorCodes('&', getTag() + message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
         return MiniMessage.get().parse(a);
     }
 
-    public <T> void showWaiting(String passive, CompletableFuture<T> f)
-    {
+    public <T> void showWaiting(String passive, CompletableFuture<T> f) {
         AtomicInteger v = new AtomicInteger();
         AtomicReference<T> g = new AtomicReference<>();
         v.set(J.ar(() -> {
-            if(f.isDone() && g.get() != null)
-            {
+            if (f.isDone() && g.get() != null) {
                 J.car(v.get());
                 sendAction(" ");
                 return;

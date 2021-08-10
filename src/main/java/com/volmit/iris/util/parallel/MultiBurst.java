@@ -20,7 +20,6 @@ package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
@@ -55,8 +54,7 @@ public class MultiBurst {
         heartbeat = new Looper() {
             @Override
             protected long loop() {
-                if(instance != InstanceState.getInstanceId())
-                {
+                if (instance != InstanceState.getInstanceId()) {
                     shutdownNow();
                     return -1;
                 }

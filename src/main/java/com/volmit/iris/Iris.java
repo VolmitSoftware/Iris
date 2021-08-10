@@ -30,13 +30,12 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -69,7 +68,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 
@@ -77,7 +75,6 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
-import java.util.UUID;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -172,13 +169,9 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void callEvent(Event e) {
-        if(!e.isAsynchronous())
-        {
+        if (!e.isAsynchronous()) {
             J.s(() -> Bukkit.getPluginManager().callEvent(e));
-        }
-
-        else
-        {
+        } else {
             Bukkit.getPluginManager().callEvent(e);
         }
     }
@@ -457,18 +450,13 @@ public class Iris extends VolmitPlugin implements Listener {
 
         IrisDimension d = IrisData.loadAnyDimension(dimension);
 
-        if(d == null)
-        {
+        if (d == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
             d = IrisData.loadAnyDimension(dimension);
 
-            if(d == null)
-            {
+            if (d == null) {
                 throw new RuntimeException("Can't find dimension " + dimension + "!");
-            }
-
-            else
-            {
+            } else {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
@@ -482,7 +470,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 .maxHeight(256)
                 .build();
 
-        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"),  dimension);
+        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dimension);
     }
 
     public static void msg(String string) {
@@ -727,13 +715,9 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     static {
-        try
-        {
+        try {
             InstanceState.updateInstanceId();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
     }

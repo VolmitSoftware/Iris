@@ -118,13 +118,13 @@ public class IrisToolbelt {
      * Start a pregenerator task. If the supplied generator is headless, headless mode is used,
      * otherwise Hybrid mode is used.
      *
-     * @param task   the scheduled task
-     * @param gen the Iris Generator
+     * @param task the scheduled task
+     * @param gen  the Iris Generator
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
         if (gen.isHeadless()) {
-            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator)gen).getWorld(), (HeadlessGenerator) gen));
+            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen));
         }
 
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())));

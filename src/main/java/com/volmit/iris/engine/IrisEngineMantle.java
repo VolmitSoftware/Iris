@@ -21,7 +21,6 @@ package com.volmit.iris.engine;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleComponent;
 import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
@@ -287,10 +286,7 @@ public class IrisEngineMantle implements EngineMantle {
                     z = Math.max(max, z);
                 }
             }
-        }
-
-        else
-        {
+        } else {
             return 0;
         }
 

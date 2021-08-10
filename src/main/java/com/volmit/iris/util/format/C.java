@@ -384,13 +384,9 @@ public enum C {
                 C o = C.getByChar(i);
 
                 if (hrad != 0 || srad != 0 || vrad != 0) {
-                    if(pulse > 0)
-                    {
+                    if (pulse > 0) {
                         b.append(VolmitSender.pulse(spinToHex(o, hrad, srad, vrad), spinToHex(o, -hrad, -srad, -vrad), pulse));
-                    }
-
-                    else
-                    {
+                    } else {
                         b.append("<gradient:")
                                 .append(spinToHex(o, hrad, srad, vrad))
                                 .append(":")

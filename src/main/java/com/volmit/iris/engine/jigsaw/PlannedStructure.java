@@ -120,7 +120,7 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         int h = vo.place(xx, height, zz, placer, options, rng, (b)
-                -> e.set(b.getX(),  b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+                -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
 
 
         for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {

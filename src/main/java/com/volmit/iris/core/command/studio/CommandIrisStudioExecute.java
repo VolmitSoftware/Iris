@@ -22,8 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -60,12 +58,12 @@ public class CommandIrisStudioExecute extends MortarCommand {
             return true;
         }
 
-        if (!sender.isPlayer() || !IrisToolbelt.isIrisWorld(sender.player().getWorld())){
+        if (!sender.isPlayer() || !IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
             sender.sendMessage("To execute scripts you must be in an Iris world as a player");
             return true;
         }
 
-        if (args.length == 0){
+        if (args.length == 0) {
             sender.sendMessage("You need to specify a script name (use auto-completions to see which are available)");
             return true;
         }
@@ -74,7 +72,7 @@ public class CommandIrisStudioExecute extends MortarCommand {
 
         try {
             IrisToolbelt.access(sender.player().getWorld()).getEngine().getExecution().execute(args[0]);
-        } catch (Throwable e){
+        } catch (Throwable e) {
             Iris.reportError(e);
             sender.sendMessage("Failed to execute script " + args[0] + "!");
         }

@@ -22,7 +22,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import lombok.Data;
 
 @Data
-public abstract class IrisMantleComponent implements MantleComponent{
+public abstract class IrisMantleComponent implements MantleComponent {
     private final EngineMantle engineMantle;
     private final MantleFlag flag;
 }

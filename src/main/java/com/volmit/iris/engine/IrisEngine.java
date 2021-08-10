@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
@@ -41,7 +40,6 @@ import com.volmit.iris.engine.object.engine.IrisEngineData;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -49,8 +47,6 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.storage.AtomicDoubleHunk;
-import com.volmit.iris.util.hunk.storage.AtomicLongHunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -123,7 +119,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         generated = new AtomicInteger(0);
         execution = new IrisExecutionEnvironment(this);
         // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256+ " height)");
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height)");
         metrics = new EngineMetrics(32);
         this.target = target;
         getData().setEngine(this);
@@ -187,19 +183,17 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public double getGeneratedPerSecond() {
-        if(perSecondLatch.flip())
-        {
+        if (perSecondLatch.flip()) {
             double g = generated.get() - generatedLast.get();
             generatedLast.set(generated.get());
 
-            if(g == 0)
-            {
+            if (g == 0) {
                 return 0;
             }
 
             long dur = M.ms() - lastGPS.get();
             lastGPS.set(M.ms());
-            perSecond.set(1000D / ((double)dur / g));
+            perSecond.set(1000D / ((double) dur / g));
         }
 
         return perSecond.get();
@@ -250,7 +244,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         }
 
         for (String j : timings.k()) {
-            weights.put(getName() + "."  + j, (wallClock / totalWeight) * timings.get(j));
+            weights.put(getName() + "." + j, (wallClock / totalWeight) * timings.get(j));
         }
 
         totals.put(getName(), wallClock);
@@ -328,18 +322,18 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
         cleaning.set(true);
 
-       J.a(() -> {
-           try {
-               getMantle().trim();
-               getData().getObjectLoader().clean();
-           } catch (Throwable e) {
-               Iris.reportError(e);
-               Iris.error("Cleanup failed!");
-               e.printStackTrace();
-           }
+        J.a(() -> {
+            try {
+                getMantle().trim();
+                getData().getObjectLoader().clean();
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                Iris.error("Cleanup failed!");
+                e.printStackTrace();
+            }
 
-           cleaning.lazySet(false);
-       });
+            cleaning.lazySet(false);
+        });
     }
 
     public EngineActuator<BlockData> getTerrainActuator() {
@@ -372,14 +366,14 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
-                    getMantle().generateMatter(x>>4, z>>4);
+                    getMantle().generateMatter(x >> 4, z >> 4);
                     getTerrainActuator().actuate(x, z, vblocks, multicore);
                     getBiomeActuator().actuate(x, z, vbiomes, multicore);
                     getCaveModifier().modify(x, z, vblocks, multicore);
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getMantle().insertMatter(x>>4, z>>4, BlockData.class, blocks);
+                    getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks);
                     getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {

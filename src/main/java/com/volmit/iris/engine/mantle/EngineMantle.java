@@ -31,7 +31,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -46,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -156,28 +154,23 @@ public interface EngineMantle extends IObjectPlacer {
         getMantle().close();
     }
 
-    default void saveAllNow()
-    {
+    default void saveAllNow() {
         getMantle().saveAll();
     }
 
-    default void save()
-    {
+    default void save() {
 
     }
 
-    default void trim()
-    {
+    default void trim() {
         getMantle().trim(60000);
     }
 
-    default MultiBurst burst()
-    {
+    default MultiBurst burst() {
         return getEngine().burst();
     }
 
-    default int getRealRadius()
-    {
+    default int getRealRadius() {
         try {
             return (int) Math.ceil(getRadius().get() / 2D);
         } catch (InterruptedException e) {
@@ -191,8 +184,7 @@ public interface EngineMantle extends IObjectPlacer {
 
 
     @ChunkCoordinates
-    default void generateMatter(int x, int z)
-    {
+    default void generateMatter(int x, int z) {
         if (!getEngine().getDimension().isUseMantle()) {
             return;
         }
@@ -217,14 +209,12 @@ public interface EngineMantle extends IObjectPlacer {
         burst().burst(post);
     }
 
-    default void generateMantleComponent(int x, int z, MantleComponent c, Consumer<Runnable> post)
-    {
+    default void generateMantleComponent(int x, int z, MantleComponent c, Consumer<Runnable> post) {
         getMantle().raiseFlag(x, z, c.getFlag(), () -> c.generateLayer(x, z, post));
     }
 
     @ChunkCoordinates
-    default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks)
-    {
+    default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks) {
         if (!getEngine().getDimension().isUseMantle()) {
             return;
         }
@@ -233,23 +223,20 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @BlockCoordinates
-    default void updateBlock(int x, int y, int z)
-    {
-        getMantle().flag(x>>4, z>>4, MantleFlag.UPDATE, true);
-        getMantle().set(x,y,z,true);
+    default void updateBlock(int x, int y, int z) {
+        getMantle().flag(x >> 4, z >> 4, MantleFlag.UPDATE, true);
+        getMantle().set(x, y, z, true);
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c)
-    {
+    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
         return getFeaturesInChunk(c.getX(), c.getZ());
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z)
-    {
+    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
         KList<IrisFeaturePositional> pos = new KList<>();
-        getMantle().iterateChunk(x, z, IrisFeaturePositional.class, (a,b,c,f) -> pos.add(f), MantleFlag.FEATURE);
+        getMantle().iterateChunk(x, z, IrisFeaturePositional.class, (a, b, c, f) -> pos.add(f), MantleFlag.FEATURE);
         return pos;
     }
 

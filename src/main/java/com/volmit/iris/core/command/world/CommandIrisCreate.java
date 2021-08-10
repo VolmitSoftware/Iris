@@ -56,30 +56,30 @@ public class CommandIrisCreate extends MortarCommand {
         packsFolder.mkdirs();
 
         for (String arg : args) {
-            if (arg.equals("seed=")){
+            if (arg.equals("seed=")) {
                 list.add("seed=random");
                 list.add("seed=1234");
-            } else if (arg.startsWith("seed=")){
+            } else if (arg.startsWith("seed=")) {
                 seed = true;
-            } else if (arg.equals("type=")){
-                for (File dim : packsFolder.listFiles()){
+            } else if (arg.equals("type=")) {
+                for (File dim : packsFolder.listFiles()) {
                     if (dim.isDirectory()) {
                         list.add("type=" + dim.getName());
                     }
                 }
                 type = true;
-            } else if (arg.startsWith("type=")){
+            } else if (arg.startsWith("type=")) {
                 type = true;
             }
         }
 
-        if (!seed){
+        if (!seed) {
             list.add("seed=random");
             list.add("seed=1234");
         }
 
-        if (!type){
-            for (File dim : packsFolder.listFiles()){
+        if (!type) {
+            for (File dim : packsFolder.listFiles()) {
                 if (dim.isDirectory()) {
                     list.add("type=" + dim.getName());
                 }
@@ -131,7 +131,7 @@ public class CommandIrisCreate extends MortarCommand {
             return true;
         }
 
-        if (dimension.getEnvironment() == null){
+        if (dimension.getEnvironment() == null) {
             dimension.setEnvironment(World.Environment.NORMAL);
         }
 
@@ -149,10 +149,11 @@ public class CommandIrisCreate extends MortarCommand {
 
     /**
      * Ran when world is created
+     *
      * @param sender The sender to send updates to
-     * @param world The created world
+     * @param world  The created world
      */
-    private void onDone(VolmitSender sender, World world){
+    private void onDone(VolmitSender sender, World world) {
         sender.sendMessage(world.getName() + " Spawn Area generated.");
         sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method to load this world with the Iris Generator on startup.");
         sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
@@ -184,13 +185,14 @@ public class CommandIrisCreate extends MortarCommand {
 
     /**
      * Create a world with either Multiverse (preferred, if supported) or NMS
-     * @param sender The sender to send updates to
+     *
+     * @param sender    The sender to send updates to
      * @param worldName The name of the world to create
      * @param dimension The dimension to create the world with
-     * @param seed The seed to use to generate
+     * @param seed      The seed to use to generate
      * @return The created world
      */
-    private World createWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+    private World createWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed) {
         if (Iris.linkMultiverseCore.isSupported()) {
             return createMultiverseWorld(sender, worldName, dimension, seed);
         } else {
@@ -200,15 +202,16 @@ public class CommandIrisCreate extends MortarCommand {
 
     /**
      * Create a world with Multiverse
-     * @param sender The sender to send updates to
+     *
+     * @param sender    The sender to send updates to
      * @param worldName The name of the world to create
      * @param dimension The dimension to create the world with
-     * @param seed The seed to use to generate
+     * @param seed      The seed to use to generate
      * @return The created world
      */
-    public World createMultiverseWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+    public World createMultiverseWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed) {
 
-        if (!Iris.linkMultiverseCore.isSupported()){
+        if (!Iris.linkMultiverseCore.isSupported()) {
             sender.sendMessage("A world was attempted to be created with Multiverse but it is not supported!");
             return null;
         }
@@ -231,13 +234,14 @@ public class CommandIrisCreate extends MortarCommand {
 
     /**
      * Create a world using NMS
-     * @param sender The sender to send updates to
+     *
+     * @param sender    The sender to send updates to
      * @param worldName The name of the world to create
      * @param dimension The dimension to create the world with
-     * @param seed The seed to use to generate
+     * @param seed      The seed to use to generate
      * @return The created world
      */
-    public World createNMSWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed){
+    public World createNMSWorld(VolmitSender sender, String worldName, IrisDimension dimension, long seed) {
 
         WorldCreator wc = new IrisWorldCreator()
                 .dimension(dimension.getLoadKey())
@@ -247,7 +251,7 @@ public class CommandIrisCreate extends MortarCommand {
                 .create();
         PlatformChunkGenerator gen = (PlatformChunkGenerator) wc.generator();
 
-        if (gen == null){
+        if (gen == null) {
             sender.sendMessage("Failed to create generator! Gen is null!");
             return null;
         }

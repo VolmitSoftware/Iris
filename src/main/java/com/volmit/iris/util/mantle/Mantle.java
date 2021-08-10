@@ -34,9 +34,7 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
 
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -44,7 +42,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.GZIPInputStream;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -81,28 +78,23 @@ public class Mantle {
     }
 
     @ChunkCoordinates
-    public void raiseFlag(int x, int z, MantleFlag flag, Runnable r)
-    {
-        if(!hasFlag(x, z, flag))
-        {
+    public void raiseFlag(int x, int z, MantleFlag flag, Runnable r) {
+        if (!hasFlag(x, z, flag)) {
             flag(x, z, flag, true);
             r.run();
         }
     }
 
     @ChunkCoordinates
-    public void lowerFlag(int x, int z, MantleFlag flag, Runnable r)
-    {
-        if(hasFlag(x, z, flag))
-        {
+    public void lowerFlag(int x, int z, MantleFlag flag, Runnable r) {
+        if (hasFlag(x, z, flag)) {
             flag(x, z, flag, false);
             r.run();
         }
     }
 
     @ChunkCoordinates
-    public void flag(int x, int z, MantleFlag flag, boolean flagged)
-    {
+    public void flag(int x, int z, MantleFlag flag, boolean flagged) {
         try {
             get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).flag(flag, flagged);
         } catch (InterruptedException | ExecutionException e) {
@@ -111,12 +103,9 @@ public class Mantle {
     }
 
     @ChunkCoordinates
-    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags)
-    {
-        for(MantleFlag i : requiredFlags)
-        {
-            if(!hasFlag(x, z, i))
-            {
+    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags) {
+        for (MantleFlag i : requiredFlags) {
+            if (!hasFlag(x, z, i)) {
                 return;
             }
         }
@@ -129,8 +118,7 @@ public class Mantle {
     }
 
     @ChunkCoordinates
-    public boolean hasFlag(int x, int z, MantleFlag flag)
-    {
+    public boolean hasFlag(int x, int z, MantleFlag flag) {
         try {
             return get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).isFlagged(flag);
         } catch (InterruptedException | ExecutionException e) {
@@ -274,7 +262,7 @@ public class Mantle {
         }
 
         for (Long i : unload) {
-            hyperLock.withLong(i, () ->{
+            hyperLock.withLong(i, () -> {
                 TectonicPlate m = loadedRegions.remove(i);
                 lastUse.remove(i);
 
@@ -302,8 +290,7 @@ public class Mantle {
         Long k = key(x, z);
         TectonicPlate p = loadedRegions.get(k);
 
-        if(p != null)
-        {
+        if (p != null) {
             lastUse.put(k, M.ms());
             return CompletableFuture.completedFuture(p);
         }

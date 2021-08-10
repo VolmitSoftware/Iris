@@ -33,13 +33,11 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-public class MantleJigsawComponent extends IrisMantleComponent
-{
+public class MantleJigsawComponent extends IrisMantleComponent {
     public MantleJigsawComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.JIGSAW);
     }

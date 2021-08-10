@@ -29,7 +29,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import net.minecraft.world.level.GeneratorAccess;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;

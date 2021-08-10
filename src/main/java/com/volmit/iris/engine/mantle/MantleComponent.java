@@ -27,44 +27,35 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-public interface MantleComponent
-{
-    default int getRadius()
-    {
+public interface MantleComponent {
+    default int getRadius() {
         return getEngineMantle().getRealRadius();
     }
 
-    default IrisData getData()
-    {
+    default IrisData getData() {
         return getEngineMantle().getData();
     }
 
-    default IrisDimension getDimension()
-    {
+    default IrisDimension getDimension() {
         return getEngineMantle().getEngine().getDimension();
     }
 
-    default IrisComplex getComplex()
-    {
+    default IrisComplex getComplex() {
         return getEngineMantle().getComplex();
     }
 
-    default long seed()
-    {
+    default long seed() {
         return getEngineMantle().getEngine().getTarget().getWorld().seed();
     }
 
-    default BurstExecutor burst()
-    {
+    default BurstExecutor burst() {
         return getEngineMantle().getEngine().burst().burst();
     }
 
     EngineMantle getEngineMantle();
 
-    default Mantle getMantle()
-    {
+    default Mantle getMantle() {
         return getEngineMantle().getMantle();
     }
 

@@ -18,10 +18,6 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.collection.StateList;
-import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -52,8 +48,7 @@ public class MantleChunk {
         sections = new AtomicReferenceArray<>(sectionHeight);
         flags = new AtomicIntegerArray(MantleFlag.values().length);
 
-        for (int i = 0; i < flags.length(); i++)
-        {
+        for (int i = 0; i < flags.length(); i++) {
             flags.set(i, 0);
         }
     }
@@ -70,8 +65,7 @@ public class MantleChunk {
         this(sectionHeight);
         int s = din.readByte();
 
-        for(int i = 0; i < flags.length(); i++)
-        {
+        for (int i = 0; i < flags.length(); i++) {
             flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
@@ -176,38 +170,30 @@ public class MantleChunk {
     }
 
     private void trimSlice(int i) {
-        if(exists(i))
-        {
+        if (exists(i)) {
             Matter m = get(i);
 
-            if(m.getSliceMap().isEmpty())
-            {
+            if (m.getSliceMap().isEmpty()) {
                 sections.set(i, null);
-            }
-
-            else{
+            } else {
                 m.trimSlices();
-                if(m.getSliceMap().isEmpty())
-                {
+                if (m.getSliceMap().isEmpty()) {
                     sections.set(i, null);
                 }
             }
         }
     }
 
-    public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer,T> iterator) {
-        for(int i = 0; i < sections.length(); i++)
-        {
+    public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
+        for (int i = 0; i < sections.length(); i++) {
             int bs = (i << 4);
             Matter matter = get(i);
 
-            if(matter != null)
-            {
+            if (matter != null) {
                 MatterSlice<T> t = matter.getSlice(type);
 
-                if(t != null)
-                {
-                    t.iterateSync((a, b, c, f) -> iterator.accept(a,b + bs, c, f));
+                if (t != null) {
+                    t.iterateSync((a, b, c, f) -> iterator.accept(a, b + bs, c, f));
                 }
             }
         }

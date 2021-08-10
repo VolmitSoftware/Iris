@@ -21,7 +21,6 @@ package com.volmit.iris.util.matter.slices;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;

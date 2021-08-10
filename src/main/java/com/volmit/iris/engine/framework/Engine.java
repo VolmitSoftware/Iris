@@ -47,7 +47,6 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
@@ -129,8 +128,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     void setMinHeight(int min);
 
-    default int getMinHeight()
-    {
+    default int getMinHeight() {
         return getTarget().getWorld().minHeight();
     }
 
@@ -245,7 +243,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     updateLighting(x, y, z, c);
                 }
             }
-        },  MantleFlag.UPDATE);
+        }, MantleFlag.UPDATE);
         getMetrics().getUpdates().put(p.getMilliseconds());
     }
 
@@ -448,28 +446,23 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getGenerated();
 
-    default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout)
-    {
+    default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {
         AtomicInteger checked = new AtomicInteger();
         AtomicLong time = new AtomicLong(M.ms());
         AtomicReference<IrisPosition> r = new AtomicReference<>();
         BurstExecutor b = burst().burst();
 
-        while(M.ms() - time.get() < timeout && r.get() == null)
-        {
+        while (M.ms() - time.get() < timeout && r.get() == null) {
             b.queue(() -> {
-                for(int i = 0; i < 1000; i++)
-                {
-                    if(M.ms() - time.get() > timeout)
-                    {
+                for (int i = 0; i < 1000; i++) {
+                    if (M.ms() - time.get() > timeout) {
                         return;
                     }
 
                     int x = RNG.r.i(-29999970, 29999970);
                     int z = RNG.r.i(-29999970, 29999970);
                     checked.incrementAndGet();
-                    if(matcher.apply(stream.get(x, z), find))
-                    {
+                    if (matcher.apply(stream.get(x, z), find)) {
                         r.set(new IrisPosition(x, 120, z));
                         time.set(0);
                     }
@@ -618,8 +611,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     double getGeneratedPerSecond();
 
-    default int getHeight()
-    {
+    default int getHeight() {
         return getWorld().getHeight();
     }
 
@@ -633,12 +625,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getSurfaceBiome(x, z);
     }
 
-    default String getObjectPlacementKey(int x, int y, int z)
-    {
-        PlacedObject o = getObjectPlacement(x,y,z);
+    default String getObjectPlacementKey(int x, int y, int z) {
+        PlacedObject o = getObjectPlacement(x, y, z);
 
-        if(o != null && o.getObject() != null)
-        {
+        if (o != null && o.getObject() != null) {
             return o.getObject().getLoadKey() + "@" + o.getId();
         }
 
@@ -646,7 +636,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
-        String objectAt = getMantle().getMantle().get(x,y,z, String.class);
+        String objectAt = getMantle().getMantle().get(x, y, z, String.class);
 
         if (objectAt == null || objectAt.isEmpty()) {
             return null;

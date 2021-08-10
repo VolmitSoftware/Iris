@@ -81,9 +81,8 @@ public class IrisWorld {
     }
 
     public void bind(World world) {
-        if(hasRealWorld())
-        {
-           return;
+        if (hasRealWorld()) {
+            return;
         }
 
         bindWorld(this, world);

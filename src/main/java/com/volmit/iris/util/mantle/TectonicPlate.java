@@ -172,10 +172,7 @@ public class TectonicPlate {
             if (chunk != null) {
                 dos.writeBoolean(true);
                 chunk.write(dos);
-            }
-
-            else
-            {
+            } else {
                 dos.writeBoolean(false);
             }
         }

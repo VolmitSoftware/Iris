@@ -31,11 +31,8 @@ import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.util.function.Consumer;
 
@@ -111,12 +108,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         f.setInterpolationRadius(objectPlacement.getVacuumInterpolationRadius());
                         f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
                         f.setStrength(1D);
-                        getMantle().set(xx,0,zz,new IrisFeaturePositional(xx, zz, f));
+                        getMantle().set(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
                     }
 
                     for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
                         if (j.hasZone(rng, xx >> 4, zz >> 4)) {
-                            getMantle().set(xx,0,zz,new IrisFeaturePositional(xx, zz, j.getZone()));
+                            getMantle().set(xx, 0, zz, new IrisFeaturePositional(xx, zz, j.getZone()));
                         }
                     }
                 }
@@ -124,10 +121,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
             if (objectPlacement.usesFeatures()) {
                 r.run();
-            }
-
-            else
-            {
+            } else {
                 post.accept(r);
             }
         }

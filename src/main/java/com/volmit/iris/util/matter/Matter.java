@@ -33,8 +33,6 @@ import java.io.*;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * When Red Matter isn't enough

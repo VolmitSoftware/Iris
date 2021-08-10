@@ -20,7 +20,6 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
@@ -90,7 +89,7 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
             }
         } else if (p.equalsIgnoreCase("terrain_height")) {
             if (a != null) {
-                return (int) Math.round(a.getEngine().getHeight(l.getBlockX(), l.getBlockZ())) + "";
+                return Math.round(a.getEngine().getHeight(l.getBlockX(), l.getBlockZ())) + "";
             }
         } else if (p.equalsIgnoreCase("world_mode")) {
             if (a != null) {

@@ -24,8 +24,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class InstanceState {
-    public static int getInstanceId()
-    {
+    public static int getInstanceId() {
         try {
             return Integer.parseInt(IO.readAll(instanceFile()).trim());
         } catch (Throwable e) {
@@ -35,8 +34,7 @@ public class InstanceState {
         return -1;
     }
 
-    public static void updateInstanceId()
-    {
+    public static void updateInstanceId() {
         try {
             IO.writeAll(instanceFile(), RNG.r.imax() + "");
         } catch (IOException e) {
@@ -44,8 +42,7 @@ public class InstanceState {
         }
     }
 
-    private static File instanceFile()
-    {
+    private static File instanceFile() {
         File f = new File("plugins/Iris/cache/instance");
         f.getParentFile().mkdirs();
         return f;

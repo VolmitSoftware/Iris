@@ -207,7 +207,7 @@ public class IrisCreator {
                         sender.player().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(C.WHITE + "Generation Complete"));
                     });
 
-                    ((HeadlessGenerator)finalAccess).getWorld().load();
+                    ((HeadlessGenerator) finalAccess).getWorld().load();
                     done.set(true);
                 }
             }).get();

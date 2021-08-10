@@ -127,8 +127,7 @@ public class HyperLock {
     }
 
     public void lock(int x, int z) {
-        if(!enabled)
-        {
+        if (!enabled) {
             return;
         }
 
@@ -136,8 +135,7 @@ public class HyperLock {
     }
 
     public void unlock(int x, int z) {
-        if(!enabled)
-        {
+        if (!enabled) {
             return;
         }
 

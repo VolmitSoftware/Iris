@@ -27,7 +27,6 @@ import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.parallel.MultiBurst;
-import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -51,13 +50,11 @@ public class EngineProvider {
         engine.get().whenComplete((e, x) -> Iris.callEvent(new IrisEngineHotloadEvent(e)));
     }
 
-    public Engine getEngine()
-    {
+    public Engine getEngine() {
         try {
             Engine e = engine.get().get();
 
-            if(e == null)
-            {
+            if (e == null) {
                 throw new RuntimeException("NULL");
             }
 
@@ -72,12 +69,10 @@ public class EngineProvider {
     }
 
     public void close() {
-        if(engine.get() != null && engine.get().isDone())
-        {
+        if (engine.get() != null && engine.get().isDone()) {
             Engine e = getEngine();
 
-            if(e != null)
-            {
+            if (e != null) {
                 e.close();
             }
         }

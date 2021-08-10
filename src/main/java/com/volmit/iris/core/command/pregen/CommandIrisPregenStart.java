@@ -11,8 +11,6 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
-import java.util.Objects;
-
 
 public class CommandIrisPregenStart extends MortarCommand {
 
@@ -28,7 +26,7 @@ public class CommandIrisPregenStart extends MortarCommand {
     @Override
     public void addTabOptions(VolmitSender sender, String[] args, KList<String> list) {
 
-        if (args.length == 0){
+        if (args.length == 0) {
             return;
         }
 
@@ -81,7 +79,7 @@ public class CommandIrisPregenStart extends MortarCommand {
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
 
-        if (args.length == 0){
+        if (args.length == 0) {
             sender.sendMessage(getHelp());
             return true;
         }
@@ -282,6 +280,7 @@ public class CommandIrisPregenStart extends MortarCommand {
 
     /**
      * Get command help
+     *
      * @return help string
      */
     private String getHelp() {

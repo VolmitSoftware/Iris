@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;

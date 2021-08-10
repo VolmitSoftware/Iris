@@ -23,11 +23,9 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.common.HeadlessWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -61,7 +59,8 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
         provider = new EngineProvider();
-        provider.provideEngine(world.getWorld(), world.getDimension().getLoadKey(), world.getDimension().getLoader().getDataFolder(), isStudio(), (e) -> {});
+        provider.provideEngine(world.getWorld(), world.getDimension().getLoadKey(), world.getDimension().getLoader().getDataFolder(), isStudio(), (e) -> {
+        });
     }
 
     @ChunkCoordinates

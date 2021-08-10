@@ -122,7 +122,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         lastGPS = new AtomicLong(M.ms());
         generated = new AtomicInteger(0);
         execution = new IrisExecutionEnvironment(this);
-        mantle = new IrisEngineMantle(this);
         // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256+ " height)");
         metrics = new EngineMetrics(32);
@@ -151,7 +150,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         cleaning = new AtomicBoolean(false);
         cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
                 .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
-
+        mantle = new IrisEngineMantle(this);
     }
 
     @Override
@@ -329,14 +328,16 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
         cleaning.set(true);
 
-        try {
-            getMantle().trim();
-            getData().getObjectLoader().clean();
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            Iris.error("Cleanup failed!");
-            e.printStackTrace();
-        }
+        J.a(() -> {
+            try {
+                getMantle().trim();
+                getData().getObjectLoader().clean();
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                Iris.error("Cleanup failed!");
+                e.printStackTrace();
+            }
+        });
 
         cleaning.lazySet(false);
     }
@@ -388,6 +389,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
+            recycle();
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

@@ -51,7 +51,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
-    private static final BlockData ERROR_BLOCK = Material.RED_GLAZED_TERRACOTTA.createBlockData();
     private final EngineProvider provider;
     private final IrisWorld world;
     private final File dataLocation;
@@ -150,7 +149,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             for (int i = 0; i < 16; i++) {
                 for (int j = 0; j < 16; j++) {
-                    d.setBlock(i, 0, j, ERROR_BLOCK);
+                    d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
 

@@ -122,8 +122,6 @@ public class IrisBoardManager implements BoardProvider, Listener {
         long memoryGuess = 0;
         int loadedObjects = 0;
 
-        parallaxRegions +=engine.getParallax().getRegionCount();
-        parallaxChunks += engine.getParallax().getChunkCount();
         loadedObjects += engine.getData().getObjectLoader().getSize();
         memoryGuess += engine.getData().getObjectLoader().getTotalStorage() * 225L;
         memoryGuess += parallaxChunks * 3500L;
@@ -139,7 +137,7 @@ public class IrisBoardManager implements BoardProvider, Listener {
         if (engine != null) {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
-            f.add(engine.getEngineParallax().forEachFeature(x, z));
+            f.add(engine.getMantle().forEachFeature(x, z));
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));

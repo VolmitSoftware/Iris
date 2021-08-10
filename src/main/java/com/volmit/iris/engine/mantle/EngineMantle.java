@@ -42,6 +42,7 @@ import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
@@ -215,9 +216,13 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @ChunkCoordinates
-    default void insertMatter(int x, int z, Hunk<BlockData> blocks)
+    default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks)
     {
+        if (!getEngine().getDimension().isUseMantle()) {
+            return;
+        }
 
+        getMantle().iterateChunk(x, z, t, blocks::set);
     }
 
     @BlockCoordinates

@@ -378,7 +378,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getMantle().insertMatter(x>>4, z>>4, blocks);
+                    getMantle().insertMatter(x>>4, z>>4, BlockData.class, blocks);
                     getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {

@@ -174,6 +174,7 @@ public class MantleChunk {
     public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer,T> iterator) {
         for(int i = 0; i < sections.length(); i++)
         {
+            int bs = (i << 4);
             Matter matter = get(i);
 
             if(matter != null)
@@ -182,7 +183,7 @@ public class MantleChunk {
 
                 if(t != null)
                 {
-                    t.iterateSync(iterator);
+                    t.iterateSync((a, b, c, f) -> iterator.accept(a,b + bs, c, f));
                 }
             }
         }

@@ -95,11 +95,7 @@ public class Mantle {
 
     @ChunkCoordinates
     public void flag(int x, int z, MantleFlag flag, boolean flagged) {
-        try {
-            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).flag(flag, flagged);
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).flag(flag, flagged);
     }
 
     @ChunkCoordinates
@@ -110,22 +106,12 @@ public class Mantle {
             }
         }
 
-        try {
-            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).iterate(type, iterator);
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).iterate(type, iterator);
     }
 
     @ChunkCoordinates
     public boolean hasFlag(int x, int z, MantleFlag flag) {
-        try {
-            return get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).isFlagged(flag);
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-
-        return false;
+        return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).isFlagged(flag);
     }
 
     /**
@@ -148,25 +134,9 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        Matter matter = null;
-        try {
-            matter = get((x >> 4) >> 5, (z >> 4) >> 5).get()
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
-                    .getOrCreate(y >> 4);
-        } catch (InterruptedException e) {
-            Iris.error("Failed to get Tectonic Plate " + ((x >> 4) >> 5) + " " + ((z >> 4) >> 5) + " Due to a thread intterruption");
-            Iris.reportError(e);
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            Iris.error("Failed to get Tectonic Plate " + ((x >> 4) >> 5) + " " + ((z >> 4) >> 5) + " Due to a thread execution exception");
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        if (matter == null) {
-            return;
-        }
-
+        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4);
         matter.slice(matter.getClass(t))
                 .set(x & 15, y & 15, z & 15, t);
     }
@@ -193,22 +163,10 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        try {
-            return (T) get((x >> 4) >> 5, (z >> 4) >> 5).get()
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
-                    .getOrCreate(y >> 4).slice(t)
-                    .get(x & 15, y & 15, z & 15);
-        } catch (InterruptedException e) {
-            Iris.error("Failed to get Tectonic Plate " + ((x >> 4) >> 5) + " " + ((z >> 4) >> 5) + " Due to a thread intterruption");
-            Iris.reportError(e);
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            Iris.error("Failed to get Tectonic Plate " + ((x >> 4) >> 5) + " " + ((z >> 4) >> 5) + " Due to a thread execution exception");
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        return null;
+        return (T) get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4).slice(t)
+                .get(x & 15, y & 15, z & 15);
     }
 
     /**
@@ -286,7 +244,41 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private synchronized CompletableFuture<TectonicPlate> get(int x, int z) {
+    private TectonicPlate get(int x, int z) {
+        TectonicPlate p = loadedRegions.get(key(x, z));
+
+        if(p != null)
+        {
+            return p;
+        }
+
+        try {
+            return getSafe(x, z).get();
+        } catch (InterruptedException e) {
+            Iris.error("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption");
+            Iris.reportError(e);
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            Iris.error("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception");
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
+
+        Iris.warn("Retrying to get " + x + " " + z + " Mantle Region");
+        return get(x, z);
+    }
+
+
+    /**
+     * This retreives a future of the Tectonic Plate at the given coordinates.
+     * All methods accessing tectonic plates should go through this method
+     *
+     * @param x the region x
+     * @param z the region z
+     * @return the future of a tectonic plate.
+     */
+    @RegionCoordinates
+    private CompletableFuture<TectonicPlate> getSafe(int x, int z) {
         Long k = key(x, z);
         TectonicPlate p = loadedRegions.get(k);
 

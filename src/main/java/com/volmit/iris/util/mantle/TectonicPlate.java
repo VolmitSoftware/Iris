@@ -24,6 +24,7 @@ import com.volmit.iris.util.format.C;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Tectonic Plates are essentially representations of regions in minecraft.

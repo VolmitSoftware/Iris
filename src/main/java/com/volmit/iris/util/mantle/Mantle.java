@@ -44,6 +44,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.GZIPInputStream;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -103,7 +104,7 @@ public class Mantle {
     public void flag(int x, int z, MantleFlag flag, boolean flagged)
     {
         try {
-            get(x >> 5, z >> 5).get().get(x & 31, z & 31).flag(flag, flagged);
+            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).flag(flag, flagged);
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -121,7 +122,7 @@ public class Mantle {
         }
 
         try {
-            get(x >> 5, z >> 5).get().get(x & 31, z & 31).iterate(type, iterator);
+            get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).iterate(type, iterator);
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -131,7 +132,7 @@ public class Mantle {
     public boolean hasFlag(int x, int z, MantleFlag flag)
     {
         try {
-            get(x >> 5, z >> 5).get().get(x & 31, z & 31).isFlagged(flag);
+            return get(x >> 5, z >> 5).get().getOrCreate(x & 31, z & 31).isFlagged(flag);
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -297,8 +298,15 @@ public class Mantle {
      */
     @RegionCoordinates
     private CompletableFuture<TectonicPlate> get(int x, int z) {
+        Long k = key(x, z);
+        TectonicPlate p = loadedRegions.get(k);
+
+        if(p != null)
+        {
+            return CompletableFuture.completedFuture(p);
+        }
+
         return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
-            Long k = key(x, z);
             lastUse.put(k, M.ms());
             TectonicPlate region = loadedRegions.get(k);
 
@@ -330,7 +338,7 @@ public class Mantle {
 
             region = new TectonicPlate(worldHeight);
             loadedRegions.put(k, region);
-            Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);
+            Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             return region;
         }));
     }
@@ -348,5 +356,26 @@ public class Mantle {
 
     public static Long key(int x, int z) {
         return Cache.key(x, z);
+    }
+
+    public void saveAll() {
+        Iris.debug("Saving The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
+        if (closed.get()) {
+            throw new RuntimeException("The Mantle is closed");
+        }
+
+        BurstExecutor b = ioBurst.burst(loadedRegions.size());
+        for (Long i : loadedRegions.keySet()) {
+            b.queue(() -> {
+                try {
+                    loadedRegions.get(i).write(fileForRegion(dataFolder, i));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        b.complete();
+        Iris.debug("The Mantle has Saved " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 }

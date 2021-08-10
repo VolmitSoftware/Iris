@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.mantle;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.collection.StateList;
 import com.volmit.iris.util.data.Varint;
@@ -38,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
-    private static final StateList state = MantleFlag.getStateList();
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
 
@@ -51,6 +51,11 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight) {
         sections = new AtomicReferenceArray<>(sectionHeight);
         flags = new AtomicIntegerArray(MantleFlag.values().length);
+
+        for (int i = 0; i < flags.length(); i++)
+        {
+            flags.set(i, 0);
+        }
     }
 
     /**
@@ -65,9 +70,9 @@ public class MantleChunk {
         this(sectionHeight);
         int s = din.readByte();
 
-        for(String i : state.getEnabled(Varint.readUnsignedVarLong(din)))
+        for(int i = 0; i < flags.length(); i++)
         {
-            flags.set(MantleFlag.valueOf(i).ordinal(), 1);
+            flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
         for (int i = 0; i < s; i++) {
@@ -82,7 +87,7 @@ public class MantleChunk {
     }
 
     public boolean isFlagged(MantleFlag flag) {
-        return flags.get(flags.get(flag.ordinal())) == 1;
+        return flags.get(flag.ordinal()) == 1;
     }
 
     /**
@@ -152,13 +157,10 @@ public class MantleChunk {
      */
     public void write(DataOutputStream dos) throws IOException {
         dos.writeByte(sections.length());
-        long data = 0;
 
         for (int i = 0; i < flags.length(); i++) {
-            state.set(data, MantleFlag.values()[i].name(), flags.get(i) == 1);
+            dos.writeBoolean(flags.get(i) == 1);
         }
-
-        Varint.writeUnsignedVarLong(data, dos);
 
         for (int i = 0; i < sections.length(); i++) {
             if (exists(i)) {

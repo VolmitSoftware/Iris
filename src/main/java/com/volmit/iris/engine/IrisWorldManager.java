@@ -206,7 +206,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                                         getData().getSpawnerLoader()
                                                 .loadAll(getDimension().getEntitySpawners())
                                                 .shuffleCopy(RNG.r).stream().filter(this::canSpawn),
-                                        getData().getSpawnerLoader().streamAll(getEngine().getEngineParallax()
+                                        getData().getSpawnerLoader().streamAll(getEngine().getMantle()
                                                         .getFeaturesInChunk(c).stream()
                                                         .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
                                                 .filter(this::canSpawn))
@@ -333,7 +333,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onSave() {
-        getEngine().getParallax().saveAll();
+        getEngine().getMantle().save();
     }
 
     @Override

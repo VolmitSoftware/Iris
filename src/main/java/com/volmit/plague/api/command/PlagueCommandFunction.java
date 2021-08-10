@@ -26,7 +26,7 @@ public class PlagueCommandFunction
 	private static final KList<String> FALSE = new KList<>("0", "false", "f", "no", "n", "-");
 
 	private final Method method;
-	private final KList<PlagueCommandParameter> parameters;
+	private final KList<PlagueCommandParameter> parameters = new KList<>();
 	private int maxParameters;
 	private int minParameters;
 	private PlagueCommand command;
@@ -35,7 +35,6 @@ public class PlagueCommandFunction
 	{
 		this.method = method;
 		this.command = command;
-		this.parameters = new KList<>();
 		int optional = 0;
 		int required = 0;
 		boolean infiniteOptional = false;
@@ -51,30 +50,12 @@ public class PlagueCommandFunction
 			PlagueCommandParameter pp = new PlagueCommandParameter(i);
 			parameters.add(pp);
 
-			if(pp.isRequired())
-			{
-				if(pp.isVararg())
-				{
-					infiniteRequired = true;
-				}
-
-				else
-				{
-					required++;
-				}
-			}
-
-			else
-			{
-				if(pp.isVararg())
-				{
-					infiniteOptional = true;
-				}
-
-				else
-				{
-					optional++;
-				}
+			if (pp.isRequired()) {
+				infiniteRequired = pp.isRequired() && pp.isVararg();
+				required += pp.isVararg() ? 0 : 1;
+			} else {
+				infiniteOptional = pp.isRequired() && pp.isVararg();
+				optional += pp.isVararg() ? 0 : 1;
 			}
 		}
 
@@ -82,12 +63,19 @@ public class PlagueCommandFunction
 		minParameters = required;
 	}
 
+	/**
+	 * Retrieve command usage for this command
+	 * @return The RTX command usage
+	 */
 	public RTX getHelp()
 	{
-		RTX rtx = new RTX();
 
-		RTEX rtex = new RTEX(new ColoredString(C.WHITE, command.getNode()), new ColoredString(C.GRAY, "\n" + command.getDescription()));
-		rtx.addTextHover(command.getNode() + " ", rtex, C.LIGHT_PURPLE);
+		RTEX rtex = new RTEX()
+				.add(C.WHITE, command.getNode())
+				.add(C.GRAY, "\n" + command.getDescription());
+
+		RTX rtx = new RTX()
+				.addTextHover(command.getNode() + " ", rtex, C.LIGHT_PURPLE);
 
 		for(PlagueCommandParameter i : parameters)
 		{
@@ -96,6 +84,7 @@ public class PlagueCommandFunction
 
 		return rtx;
 	}
+
 
 	public String invoke(PlagueCommand instance, PlagueSender sender, KList<String> s)
 	{
@@ -192,9 +181,9 @@ public class PlagueCommandFunction
 	/**
 	 * Convert the String object to the specified type
 	 * @param object The String object to convert
-	 * @param type
-	 * @return
-	 * @throws PlagueTypeException
+	 * @param type The type to attempt conversion towards
+	 * @return The converted type
+	 * @throws PlagueTypeException Failed conversions and unsupported parameter types
 	 */
 	public Object convert(String object, Class<?> type) throws PlagueTypeException {
 
@@ -285,6 +274,9 @@ public class PlagueCommandFunction
 	 */
 	public boolean isArgumentAmountSupported(int amount)
 	{
+		if (maxParameters == -1){
+			return amount >= minParameters;
+		}
 		return amount >= minParameters && amount <= maxParameters;
 	}
 }

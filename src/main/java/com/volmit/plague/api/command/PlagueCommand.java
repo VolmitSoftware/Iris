@@ -52,10 +52,7 @@ public abstract class PlagueCommand
 
 	public void sendHelp(PlagueSender sender)
 	{
-		for(PlagueCommandFunction i : getFunctions())
-		{
-			i.getHelp().tellRawTo(sender.player());
-		}
+		getFunctions().forEach(f -> f.getHelp().tellRawTo(sender.player()));
 	}
 
 	public static KList<String> enhanceArgs(String[] args)

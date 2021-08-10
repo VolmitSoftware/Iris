@@ -2,7 +2,7 @@ package com.volmit.plague.util;
 
 public class PlagueTypeException extends Exception {
     public PlagueTypeException() {
-            super();
+            super("Unknown type exception");
 }
 
     public PlagueTypeException(String message) {

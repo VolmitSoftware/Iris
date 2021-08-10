@@ -32,6 +32,24 @@ public class RTEX
 	}
 
 	/**
+	 * Add another ColoredString to the RTEX
+	 * @param string the element to append
+	 */
+	public RTEX add(ColoredString string){
+		extras.add(string);
+		return this;
+	}
+
+	/**
+	 * Add a colored string to the RTEX
+	 * @param c the color of the
+	 * @param s string
+	 */
+	public RTEX add(C c, String s){
+		return add(new ColoredString(c, s));
+	}
+
+	/**
 	 * @return the json object for this
 	 */
 	public JSONObject toJSON()
@@ -51,23 +69,5 @@ public class RTEX
 		js.put("extra", jsa);
 
 		return js;
-	}
-
-	/**
-	 * Add another ColoredString to the RTEX
-	 * @param string the element to append
-	 */
-	public RTEX add(ColoredString string){
-		extras.add(string);
-		return this;
-	}
-
-	/**
-	 * Add a colored string to the RTEX
-	 * @param c the color of the
-	 * @param s string
-	 */
-	public RTEX add(C c, String s){
-		return add(new ColoredString(c, s));
 	}
 }

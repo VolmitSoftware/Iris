@@ -2,9 +2,11 @@ package com.volmit.plague.api;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.plague.api.annotations.Plagued;
+import org.checkerframework.checker.units.qual.A;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 public class PlagueRegistry
 {
@@ -25,47 +27,12 @@ public class PlagueRegistry
 
 	public static KList<Method> getPlaguedMethods(Class<?> c)
 	{
-		KList<Method> p = new KList<>();
-
-		for(Method i : c.getDeclaredMethods())
-		{
-			if(isPlagued(i))
-			{
-				p.add(i);
-			}
-		}
-
-		return p;
-	}
-
-	public static KList<Field> getPlaguedFields(Class<?> c)
-	{
-		KList<Field> p = new KList<>();
-
-		for(Field i : c.getDeclaredFields())
-		{
-			if(isPlagued(i))
-			{
-				p.add(i);
-			}
-		}
-
-		return p;
+		return (KList<Method>) Arrays.stream(c.getDeclaredMethods()).filter(PlagueRegistry::isPlagued).toList();
 	}
 
 	public static KList<Field> getPlaguedFields(Class<?> c, Class<?> superType)
 	{
-		KList<Field> p = new KList<>();
-
-		for(Field i : c.getDeclaredFields())
-		{
-			if(isPlagued(i, superType))
-			{
-				p.add(i);
-			}
-		}
-
-		return p;
+		return (KList<Field>) Arrays.stream(c.getDeclaredFields()).filter(f -> isPlagued(f, superType)).toList();
 	}
 
 	public static <T> T init(Class<T> c, Object... f)

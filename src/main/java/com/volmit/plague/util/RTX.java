@@ -3,6 +3,7 @@ package com.volmit.plague.util;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
  */
 public class RTX
 {
+	@Getter
 	private final JSONArray base = new JSONArray();
 
 	/**
@@ -54,11 +56,6 @@ public class RTX
 		}
 
 		return this;
-	}
-
-	public JSONArray getBase()
-	{
-		return base;
 	}
 
 	/**

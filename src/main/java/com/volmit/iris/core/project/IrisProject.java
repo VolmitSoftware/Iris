@@ -169,13 +169,14 @@ public class IrisProject {
             }
         });
 
-        J.a(() -> IrisToolbelt.createWorld()
+
+        J.a(() -> activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
                 .seed(1337)
                 .sender(sender)
                 .studio(true)
                 .name("iris/" + UUID.randomUUID())
                 .dimension(d.getLoadKey())
-                .create());
+                .create().getGenerator());
     }
 
     public void close() {

@@ -230,7 +230,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         }
     }
 
-
     public void printMetrics(CommandSender sender) {
         KMap<String, Double> totals = new KMap<>();
         KMap<String, Double> weights = new KMap<>();
@@ -285,7 +284,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
             sender.sendMessage("  " + befb + num + afb + ": " + C.BOLD + C.WHITE + Form.pc(weights.get(i), 0));
         }
     }
-
 
     @Override
     public void close() {

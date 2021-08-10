@@ -240,4 +240,42 @@ public interface EngineMantle extends IObjectPlacer {
         getMantle().iterateChunk(x, z, IrisFeaturePositional.class, (a,b,c,f) -> pos.add(f), MantleFlag.FEATURE);
         return pos;
     }
+    
+    @BlockCoordinates
+    default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
+        KList<IrisFeaturePositional> pos = new KList<>();
+
+        if (!getEngine().getDimension().hasFeatures(getEngine())) {
+            return pos;
+        }
+
+        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
+            if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
+                pos.add(i);
+            }
+        }
+
+        int s = getRealRadius();
+        int i, j;
+        int cx = (int) x >> 4;
+        int cz = (int) z >> 4;
+
+        for (i = -s; i <= s; i++) {
+            for (j = -s; j <= s; j++) {
+                try {
+                    for (IrisFeaturePositional k : getFeaturesInChunk(i + cx, j + cx)) {
+                        if (k.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
+                            pos.add(k);
+                        }
+                    }
+                } catch (Throwable e) {
+                    Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            }
+        }
+
+        return pos;
+    }
 }

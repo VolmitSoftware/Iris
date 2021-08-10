@@ -163,12 +163,34 @@ public class MantleChunk {
         }
 
         for (int i = 0; i < sections.length(); i++) {
+            trimSlice(i);
+
             if (exists(i)) {
                 dos.writeBoolean(true);
                 Matter matter = get(i);
                 matter.writeDos(dos);
             } else {
                 dos.writeBoolean(false);
+            }
+        }
+    }
+
+    private void trimSlice(int i) {
+        if(exists(i))
+        {
+            Matter m = get(i);
+
+            if(m.getSliceMap().isEmpty())
+            {
+                sections.set(i, null);
+            }
+
+            else{
+                m.trimSlices();
+                if(m.getSliceMap().isEmpty())
+                {
+                    sections.set(i, null);
+                }
             }
         }
     }

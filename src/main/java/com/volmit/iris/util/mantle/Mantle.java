@@ -266,25 +266,26 @@ public class Mantle {
         unload.clear();
 
         for (Long i : lastUse.keySet()) {
-            if (M.ms() - lastUse.get(i) >= idleDuration) {
-                unload.add(i);
-            }
+            hyperLock.withLong(i, () -> {
+                if (M.ms() - lastUse.get(i) >= idleDuration) {
+                    unload.add(i);
+                }
+            });
         }
 
         for (Long i : unload) {
-            TectonicPlate m = loadedRegions.remove(i);
-            lastUse.remove(i);
-            Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + i);
+            hyperLock.withLong(i, () ->{
+                TectonicPlate m = loadedRegions.remove(i);
+                lastUse.remove(i);
 
-            if (m != null) {
-                ioBurst.lazy(() -> {
-                    try {
-                        m.write(fileForRegion(dataFolder, i));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
+                try {
+                    m.write(fileForRegion(dataFolder, i));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+            });
         }
     }
 
@@ -297,12 +298,13 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private CompletableFuture<TectonicPlate> get(int x, int z) {
+    private synchronized CompletableFuture<TectonicPlate> get(int x, int z) {
         Long k = key(x, z);
         TectonicPlate p = loadedRegions.get(k);
 
         if(p != null)
         {
+            lastUse.put(k, M.ms());
             return CompletableFuture.completedFuture(p);
         }
 
@@ -318,10 +320,7 @@ public class Mantle {
 
             if (file.exists()) {
                 try {
-                    FileInputStream fin = new FileInputStream(file);
-                    DataInputStream din = new DataInputStream(fin);
-                    region = new TectonicPlate(worldHeight, din);
-                    din.close();
+                    region = TectonicPlate.read(worldHeight, file);
                     loadedRegions.put(k, region);
                     Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
                 } catch (Throwable e) {
@@ -359,23 +358,6 @@ public class Mantle {
     }
 
     public void saveAll() {
-        Iris.debug("Saving The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
-        if (closed.get()) {
-            throw new RuntimeException("The Mantle is closed");
-        }
 
-        BurstExecutor b = ioBurst.burst(loadedRegions.size());
-        for (Long i : loadedRegions.keySet()) {
-            b.queue(() -> {
-                try {
-                    loadedRegions.get(i).write(fileForRegion(dataFolder, i));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-
-        b.complete();
-        Iris.debug("The Mantle has Saved " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 }

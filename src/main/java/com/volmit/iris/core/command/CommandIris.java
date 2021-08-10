@@ -44,9 +44,6 @@ public class CommandIris extends MortarCommand {
     private CommandIrisDebug debug;
 
     @Command
-    private CommandIrisFix fix;
-
-    @Command
     private CommandIrisStudio studio;
 
     @Command

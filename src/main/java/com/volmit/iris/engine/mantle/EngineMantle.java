@@ -21,38 +21,32 @@ package com.volmit.iris.engine.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
-import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
-import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
-import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -164,7 +158,7 @@ public interface EngineMantle extends IObjectPlacer {
 
     default void saveAllNow()
     {
-
+        getMantle().saveAll();
     }
 
     default void save()
@@ -184,7 +178,6 @@ public interface EngineMantle extends IObjectPlacer {
 
     default int getRealRadius()
     {
-        getMantle().set(0, 34, 292393, Bukkit.getPlayer("cyberpwn"));
         try {
             return (int) Math.ceil(getRadius().get() / 2D);
         } catch (InterruptedException e) {
@@ -204,15 +197,29 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         List<Runnable> post = Collections.synchronizedList(new KList<>());
         Consumer<Runnable> c = post::add;
-        getComponents().forEach((i) -> generateMantleComponent(x, z, i, c));
+        int s = getRealRadius();
+        BurstExecutor burst = burst().burst();
+
+        for (int i = -s; i <= s; i++) {
+            int xx = i + x;
+            for (int j = -s; j <= s; j++) {
+                int zz = j + z;
+                burst.queue(() -> {
+                    getComponents().forEach((f) -> generateMantleComponent(xx, zz, f, c));
+                });
+            }
+        }
+
+        burst.complete();
         burst().burst(post);
     }
 
-    default void generateMantleComponent(int x, int z, MantleComponent i, Consumer<Runnable> post)
+    default void generateMantleComponent(int x, int z, MantleComponent c, Consumer<Runnable> post)
     {
-        getMantle().raiseFlag(x, z, i.getFlag(), () -> i.generateLayer(x, z, post));
+        getMantle().raiseFlag(x, z, c.getFlag(), () -> c.generateLayer(x, z, post));
     }
 
     @ChunkCoordinates

@@ -40,25 +40,12 @@ public class MantleFeatureComponent extends IrisMantleComponent {
 
     @Override
     public void generateLayer(int x, int z, Consumer<Runnable> post) {
-        int s = getRadius();
-        BurstExecutor burst = burst();
-
-        for (int i = -s; i <= s; i++) {
-            int xx = i + x;
-            int xxx = 8 + (xx << 4);
-            for (int j = -s; j <= s; j++) {
-                int zz = j + z;
-                int zzz = 8 + (zz << 4);
-                burst.queue(() -> {
-                    RNG rng = new RNG(Cache.key(xx, zz) + seed());
-                    IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-                    IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
-                    generateFeatures(rng, xx, zz, region, biome);
-                });
-            }
-        }
-
-        burst.complete();
+        RNG rng = new RNG(Cache.key(x, z) + seed());
+        int xxx = 8 + (x << 4);
+        int zzz = 8 + (z << 4);
+        IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
+        generateFeatures(rng, x, z, region, biome);
     }
 
     @ChunkCoordinates

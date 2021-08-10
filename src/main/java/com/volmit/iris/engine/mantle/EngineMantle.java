@@ -43,6 +43,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -224,5 +225,19 @@ public interface EngineMantle extends IObjectPlacer {
     {
         getMantle().flag(x>>4, z>>4, MantleFlag.UPDATE, true);
         getMantle().set(x,y,z,true);
+    }
+
+    @ChunkCoordinates
+    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c)
+    {
+        return getFeaturesInChunk(c.getX(), c.getZ());
+    }
+
+    @ChunkCoordinates
+    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z)
+    {
+        KList<IrisFeaturePositional> pos = new KList<>();
+        getMantle().iterateChunk(x, z, IrisFeaturePositional.class, (a,b,c,f) -> pos.add(f), MantleFlag.FEATURE);
+        return pos;
     }
 }

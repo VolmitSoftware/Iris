@@ -91,7 +91,6 @@ public interface EngineMantle extends IObjectPlacer {
     @Override
     default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
         // TODO SET TILE
-        Iris.warn("Unable to set tile data in mantles yet.");
     }
 
     @Override

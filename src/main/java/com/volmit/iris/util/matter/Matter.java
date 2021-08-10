@@ -255,7 +255,6 @@ public interface Matter {
      */
     Map<Class<?>, MatterSlice<?>> getSliceMap();
 
-
     default void write(File f) throws IOException {
         write(f, true);
     }

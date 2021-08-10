@@ -63,6 +63,12 @@ public class HyperLock {
         unlock(x, z);
     }
 
+    public void withLong(long k, Runnable r) {
+        lock(Cache.keyX(k), Cache.keyZ(k));
+        r.run();
+        unlock(Cache.keyX(k), Cache.keyZ(k));
+    }
+
     public void withNasty(int x, int z, NastyRunnable r) throws Throwable {
         lock(x, z);
         Throwable ee = null;

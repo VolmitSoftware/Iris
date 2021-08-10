@@ -18,7 +18,9 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.util.data.NibbleDataPalette;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Location;
@@ -104,6 +106,19 @@ public interface MatterSlice<T> extends Hunk<T> {
 
     default boolean canRead(Class<?> mediumType) {
         return readFrom(mediumType) != null;
+    }
+
+    default int getBitsPer(int needed)
+    {
+        int target = 1;
+        for (int i = 1; i < 8; i++) {
+            if (Math.pow(2, i) > needed) {
+                target = i;
+                break;
+            }
+        }
+
+        return target;
     }
 
     default void write(DataOutputStream dos) throws IOException {

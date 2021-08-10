@@ -28,7 +28,7 @@ import java.io.IOException;
 
 @Data
 public class MatterHeader {
-    private String author = "anonymous";
+    private String author = "";
     private long createdAt = M.ms();
     private int version = Matter.VERSION;
 

@@ -328,18 +328,18 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
         cleaning.set(true);
 
-        J.a(() -> {
-            try {
-                getMantle().trim();
-                getData().getObjectLoader().clean();
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                Iris.error("Cleanup failed!");
-                e.printStackTrace();
-            }
-        });
+       J.a(() -> {
+           try {
+               getMantle().trim();
+               getData().getObjectLoader().clean();
+           } catch (Throwable e) {
+               Iris.reportError(e);
+               Iris.error("Cleanup failed!");
+               e.printStackTrace();
+           }
 
-        cleaning.lazySet(false);
+           cleaning.lazySet(false);
+       });
     }
 
     public EngineActuator<BlockData> getTerrainActuator() {

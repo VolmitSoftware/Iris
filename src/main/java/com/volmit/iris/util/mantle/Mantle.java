@@ -56,6 +56,7 @@ public class Mantle {
     private final KSet<Long> unload;
     private final AtomicBoolean closed;
     private final MultiBurst ioBurst;
+    private final AtomicBoolean io;
 
     /**
      * Create a new mantle
@@ -69,6 +70,7 @@ public class Mantle {
         this.closed = new AtomicBoolean(false);
         this.dataFolder = dataFolder;
         this.worldHeight = worldHeight;
+        this.io = new AtomicBoolean(false);
         dataFolder.mkdirs();
         unload = new KSet<>();
         loadedRegions = new KMap<>();
@@ -208,6 +210,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
+        io.set(true);
         Iris.debug("Trimming Tectonic Plates older than " + Form.duration((double) idleDuration, 0));
         unload.clear();
 
@@ -233,6 +236,7 @@ public class Mantle {
                 Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
             });
         }
+        io.set(false);
     }
 
     /**
@@ -245,6 +249,17 @@ public class Mantle {
      */
     @RegionCoordinates
     private TectonicPlate get(int x, int z) {
+        if(io.get())
+        {
+            try {
+                return getSafe(x, z).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
         TectonicPlate p = loadedRegions.get(key(x, z));
 
         if(p != null)

@@ -33,7 +33,7 @@ public @interface Decree {
     String NO_ALIASES = "No Aliases";
 
     /**
-     * The name of this method, which is the actual Method's name by default
+     * The name of this command, which is the Method's name by default
      */
     String name() default METHOD_NAME;
 

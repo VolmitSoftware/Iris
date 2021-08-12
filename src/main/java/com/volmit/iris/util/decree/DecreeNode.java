@@ -21,6 +21,7 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.exceptions.DecreeInstanceException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -44,9 +45,9 @@ public class DecreeNode {
 
         for(Parameter i : method.getParameters())
         {
-            if (i.getDeclaredAnnotation(Param.class) != null) {
+            try {
                 p.add(new DecreeParameter(i));
-            } else {
+            } catch (DecreeInstanceException ignored) {
                 return null;
             }
         }

@@ -20,16 +20,22 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.exceptions.DecreeInstanceException;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 
 public class DecreeParameter {
     private final Parameter parameter;
+    private final Param param;
 
-    public DecreeParameter(Parameter parameter)
-    {
+    public DecreeParameter(Parameter parameter) throws DecreeInstanceException {
         this.parameter = parameter;
+        this.param = parameter.getDeclaredAnnotation(Param.class);
+        if (param == null){
+            throw new DecreeInstanceException("Cannot instantiate DecreeParameter on parameter not annotated by @Param");
+        }
     }
 
     public DecreeParameterHandler<?> getHandler()
@@ -44,32 +50,28 @@ public class DecreeParameter {
 
     public String getName()
     {
-        Param p = parameter.getDeclaredAnnotation(Param.class);
-        return p == null ? parameter.getName() : p.name().isEmpty() ? parameter.getName() : p.name();
+        return param.name().isEmpty() ? parameter.getName() : param.name();
     }
 
     public String getDescription()
     {
-        Param p = parameter.getDeclaredAnnotation(Param.class);
-        return p.name().isEmpty() ? parameter.getName() : p.name();
+        return param.description().isEmpty() ? Param.DEFAULT_DESCRIPTION : param.description();
     }
 
     public boolean isRequired()
     {
-        Param p = parameter.getDeclaredAnnotation(Param.class);
-        return p == null || p.value().equals(Param.REQUIRED);
+        return param.value().equals(Param.REQUIRED);
     }
 
     public KList<String> getAliases()
     {
-        Param p = parameter.getDeclaredAnnotation(Param.class);
         KList<String> d = new KList<>();
 
-        if (p == null || Arrays.equals(p.aliases(), new String[]{Param.NO_ALIAS})){
+        if (Arrays.equals(param.aliases(), new String[]{Param.NO_ALIAS})){
             return d;
         }
 
-        for(String i : p.aliases())
+        for(String i : param.aliases())
         {
             if(i.isEmpty())
             {

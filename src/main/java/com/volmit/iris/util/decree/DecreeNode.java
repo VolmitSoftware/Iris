@@ -29,10 +29,14 @@ import java.util.Arrays;
 
 public class DecreeNode {
     private final Method method;
+    private final Decree decree;
 
-    public DecreeNode(Method method)
-    {
+    public DecreeNode(Method method) throws DecreeInstanceException {
         this.method = method;
+        this.decree = method.getDeclaredAnnotation(Decree.class);
+        if (decree == null){
+            throw new DecreeInstanceException("Cannot instantiate DecreeNode on method not annotated by @Decree");
+        }
     }
 
     /**
@@ -57,32 +61,28 @@ public class DecreeNode {
 
     public String getName()
     {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p == null || p.name().equals(Decree.METHOD_NAME) ? method.getName() : p.name();
+        return decree.name().equals(Decree.METHOD_NAME) ? method.getName() : decree.name();
     }
 
     public DecreeOrigin getOrigin()
     {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p == null ? DecreeOrigin.BOTH : p.origin();
+        return decree.origin();
     }
 
     public String getDescription()
     {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p != null ? p.description() : Decree.DEFAULT_DESCRIPTION;
+        return decree.description().isEmpty() ? Decree.DEFAULT_DESCRIPTION : decree.description();
     }
 
     public KList<String> getAliases()
     {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
         KList<String> d = new KList<>();
 
-        if (p == null || Arrays.equals(p.aliases(), new String[]{Decree.NO_ALIASES})){
+        if (Arrays.equals(decree.aliases(), new String[]{Decree.NO_ALIASES})){
             return d;
         }
 
-        for(String i : p.aliases())
+        for(String i : decree.aliases())
         {
             if(i.isEmpty())
             {

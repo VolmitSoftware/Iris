@@ -24,11 +24,11 @@ import org.bukkit.entity.Player;
 
 public class EXAMPLE
 {
-    @Decree
+    @Decree()
     public void kick(
             @Param(name = "player", description = "The Player to kick from the server", aliases = "p")
                     Player player,
-            @Param(name = "reason", description = "A reason to kick the player for", value = "No reason!", aliases = "r")
+            @Param(name = "reason", description = "A reason to kick the player for", value = "No reason!", aliases = "k")
                     String reason)
     {
         player.kickPlayer(reason);

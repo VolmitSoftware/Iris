@@ -32,11 +32,28 @@ public @interface Decree {
 
     String NO_ALIASES = "No Aliases";
 
+    /**
+     * The name of this method, which is the actual Method's name by default
+     */
     String name() default METHOD_NAME;
 
+    /**
+     * The description of this command.<br>
+     * Is {@link #DEFAULT_DESCRIPTION} by default
+     */
     String description() default DEFAULT_DESCRIPTION;
 
+    /**
+     * The origin this command must come from.<br>
+     * Must be elements of the {@link DecreeOrigin} enum<br>
+     * By default, is {@link DecreeOrigin#BOTH}, meaning both console & player can send the command
+     */
     DecreeOrigin origin() default DecreeOrigin.BOTH;
 
+    /**
+     * The aliases of this parameter (instead of just the {@link #name() name} (if specified) or Method Name (name of method))<br>
+     * Can be initialized as just a string (ex. "alias") or as an array (ex. {"alias1", "alias2"})<br>
+     * If someone uses /plugin foo and you specify alias="f" here, /plugin f will do the exact same.
+     */
     String[] aliases() default {NO_ALIASES};
 }

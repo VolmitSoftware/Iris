@@ -29,7 +29,7 @@ public class DecreeSystem {
      * @param type The type to handle
      * @return The corresponding {@link DecreeParameterHandler}, or null
      */
-    public static DecreeParameterHandler<?> handle(Class<?> type)
+    public static DecreeParameterHandler<?> getHandler(Class<?> type)
     {
         for(DecreeParameterHandler<?> i : handlers)
         {

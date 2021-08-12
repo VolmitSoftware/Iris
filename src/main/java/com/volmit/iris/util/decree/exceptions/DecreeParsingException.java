@@ -16,18 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree;
+package com.volmit.iris.util.decree.exceptions;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Decree {
-    String name() default "methodName";
-
-    String description() default "No Description Provided";
-
-    DecreeOrigin origin() default DecreeOrigin.BOTH;
-
-    String[] aliases() default "";
+public class DecreeParsingException extends Exception{
+    public DecreeParsingException(String message) {
+        super(message);
+    }
 }

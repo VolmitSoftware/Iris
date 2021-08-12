@@ -24,6 +24,11 @@ import com.volmit.iris.util.collection.KList;
 public class DecreeSystem {
     private static final KList<DecreeParameterHandler<?>> handlers = Iris.initialize("com.volmit.iris.util.decree.handlers", null).convert((i) -> (DecreeParameterHandler<?>) i);
 
+    /**
+     * Get the handler for the specified type
+     * @param type The type to handle
+     * @return The corresponding {@link DecreeParameterHandler}, or null
+     */
     public static DecreeParameterHandler<?> handle(Class<?> type)
     {
         for(DecreeParameterHandler<?> i : handlers)
@@ -33,7 +38,6 @@ public class DecreeSystem {
                 return i;
             }
         }
-
         return null;
     }
 }

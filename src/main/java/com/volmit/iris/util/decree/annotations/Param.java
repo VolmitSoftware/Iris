@@ -16,10 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree;
+package com.volmit.iris.util.decree.annotations;
 
-public class DecreeParsingException extends Exception{
-    public DecreeParsingException(String message) {
-        super(message);
-    }
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.PARAMETER)
+public @interface Param {
+    String REQUIRED = "REQUIRED";
+
+    String NO_ALIAS = "No Aliases Provided";
+
+    String DEFAULT_DESCRIPTION = "No Description Provided";
+
+    String name();
+
+    String description() default DEFAULT_DESCRIPTION;
+
+    String value() default REQUIRED;
+
+    String[] aliases() default {NO_ALIAS};
 }

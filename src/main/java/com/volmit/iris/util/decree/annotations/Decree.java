@@ -16,10 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree;
+package com.volmit.iris.util.decree.annotations;
 
-public class DecreeWhichException extends Exception{
-    public DecreeWhichException() {
-        super();
-    }
+import com.volmit.iris.util.decree.DecreeOrigin;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Decree {
+
+    String METHOD_NAME = "Default Method Name";
+
+    String DEFAULT_DESCRIPTION = "No Description Provided";
+
+    String NO_ALIASES = "No Aliases";
+
+    String name() default METHOD_NAME;
+
+    String description() default DEFAULT_DESCRIPTION;
+
+    DecreeOrigin origin() default DecreeOrigin.BOTH;
+
+    String[] aliases() default {NO_ALIASES};
 }

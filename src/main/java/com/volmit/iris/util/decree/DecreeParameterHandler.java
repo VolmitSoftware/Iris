@@ -19,52 +19,84 @@
 package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
-
-import java.util.Locale;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
+import org.jetbrains.annotations.NotNull;
 
 public interface DecreeParameterHandler<T> {
+    /**
+     * Should return the possible values for this type
+     * @return Possibilities for this type.
+     */
     KList<T> getPossibilities();
 
+    /**
+     * Converting the type back to a string (inverse of the {@link #parse(String) parse} method)
+     * @param t The input of the designated type to convert to a String
+     * @return The resulting string
+     */
     String toString(T t);
 
+    /**
+     * Should parse a String into the designated type
+     * @param in The string to parse
+     * @return The value extracted from the string, of the designated type
+     * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
+     * @throws DecreeWhichException Thrown when multiple results are possible
+     */
     T parse(String in) throws DecreeParsingException, DecreeWhichException;
 
-    boolean supports(Class<?> type);
+    /**
+     * Returns whether a certain type is supported by this handler<br>
+     * By default, this checks if the {@link #parse(String) parse} method returns the corresponding type.
+     * Hence, this should only be overwritten if multiple types, outside the designated one, are supported.
+     * @param type The type to check
+     * @return True if supported, false if not
+     */
+    default boolean supports(Class<?> type){
+        try {
+            if (this.getClass().getMethod("parse", String.class).getReturnType().equals(type)){
+                return true;
+            }
+        } catch (NoSuchMethodException ignored){}
+        return false;
+    }
 
+    /**
+     * The possible entries for the inputted string (support for autocomplete on partial entries)
+     * @param input The inputted string to check against
+     * @return A {@link KList} of possibilities
+     */
     default KList<T> getPossibilities(String input)
     {
-        KList<T> p = getPossibilities();
-        KList<T> m = new KList<>();
+        input = input.trim();
+        KList<T> possible = getPossibilities();
+        KList<T> matches = new KList<>();
 
-        if(p != null)
+        if (possible == null || possible.isEmpty()){
+            return matches;
+        }
+
+        if (input.isEmpty())
         {
-            if(input.trim().isEmpty())
-            {
-                return getPossibilities();
-            }
+            return getPossibilities();
+        }
 
-            KList<String> f = p.convert(this::toString);
+        KList<String> converted = possible.convert(v -> toString(v).trim());
 
-            for(int i = 0; i < f.size(); i++)
+        for(int i = 0; i < converted.size(); i++)
+        {
+            String g = converted.get(i);
+            // if
+            // G == I or
+            // I in G or
+            // G in I
+            if(g.equalsIgnoreCase(input) || g.toLowerCase().contains(input.toLowerCase()) || input.toLowerCase().contains(g.toLowerCase()))
             {
-                String g = f.get(i);
-                if(g.equalsIgnoreCase(input))
-                {
-                    m.add(p.get(i));
-                }
-            }
-
-            for(int i = 0; i < f.size(); i++)
-            {
-                String g = f.get(i);
-                if(g.toLowerCase().contains(input.toLowerCase()) || input.toLowerCase().contains(g.toLowerCase()))
-                {
-                    m.addIfMissing(p.get(i));
-                }
+                matches.add(possible.get(i));
             }
         }
 
-        return m;
+        return matches;
     }
 }

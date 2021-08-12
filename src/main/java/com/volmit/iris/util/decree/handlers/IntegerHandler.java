@@ -20,8 +20,8 @@ package com.volmit.iris.util.decree.handlers;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
-import com.volmit.iris.util.decree.DecreeParsingException;
-import net.kyori.adventure.text.minimessage.parser.ParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import org.jetbrains.annotations.NotNull;
 
 public class IntegerHandler implements DecreeParameterHandler<Integer> {
     @Override

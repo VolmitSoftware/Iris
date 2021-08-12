@@ -19,8 +19,10 @@
 package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.decree.annotations.Param;
 
 import java.lang.reflect.Parameter;
+import java.util.Arrays;
 
 public class DecreeParameter {
     private final Parameter parameter;
@@ -52,22 +54,29 @@ public class DecreeParameter {
         return p.name().isEmpty() ? parameter.getName() : p.name();
     }
 
+    public boolean isRequired()
+    {
+        Param p = parameter.getDeclaredAnnotation(Param.class);
+        return p == null || p.value().equals(Param.REQUIRED);
+    }
+
     public KList<String> getAliases()
     {
         Param p = parameter.getDeclaredAnnotation(Param.class);
-        KList<String> d=  new KList<>();
+        KList<String> d = new KList<>();
 
-        if(p != null)
+        if (p == null || Arrays.equals(p.aliases(), new String[]{Param.NO_ALIAS})){
+            return d;
+        }
+
+        for(String i : p.aliases())
         {
-            for(String i : p.aliases())
+            if(i.isEmpty())
             {
-                if(i.isEmpty())
-                {
-                    continue;
-                }
-
-                d.add(i);
+                continue;
             }
+
+            d.add(i);
         }
 
         return d;

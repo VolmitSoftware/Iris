@@ -19,9 +19,12 @@
 package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.decree.annotations.Decree;
+import com.volmit.iris.util.decree.annotations.Param;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Arrays;
 
 public class DecreeNode {
     private final Method method;
@@ -31,13 +34,21 @@ public class DecreeNode {
         this.method = method;
     }
 
+    /**
+     * Get the parameters of this decree node
+     * @return The list of parameters if ALL are annotated by @{@link Param}, else null
+     */
     public KList<DecreeParameter> getParameters()
     {
         KList<DecreeParameter> p = new KList<>();
 
         for(Parameter i : method.getParameters())
         {
-            p.add(new DecreeParameter(i));
+            if (i.getDeclaredAnnotation(Param.class) != null) {
+                p.add(new DecreeParameter(i));
+            } else {
+                return null;
+            }
         }
 
         return p;
@@ -46,7 +57,7 @@ public class DecreeNode {
     public String getName()
     {
         Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p == null || p.name().equals("methodName") ? method.getName() : p.name();
+        return p == null || p.name().equals(Decree.METHOD_NAME) ? method.getName() : p.name();
     }
 
     public DecreeOrigin getOrigin()
@@ -58,7 +69,7 @@ public class DecreeNode {
     public String getDescription()
     {
         Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p != null ? p.description() : "No Description Provided";
+        return p != null ? p.description() : Decree.DEFAULT_DESCRIPTION;
     }
 
     public KList<String> getAliases()
@@ -66,17 +77,18 @@ public class DecreeNode {
         Decree p = method.getDeclaredAnnotation(Decree.class);
         KList<String> d = new KList<>();
 
-        if(p != null)
-        {
-            for(String i : p.aliases())
-            {
-                if(i.isEmpty())
-                {
-                    continue;
-                }
+        if (p == null || Arrays.equals(p.aliases(), new String[]{Decree.NO_ALIASES})){
+            return d;
+        }
 
-                d.add(i);
+        for(String i : p.aliases())
+        {
+            if(i.isEmpty())
+            {
+                continue;
             }
+
+            d.add(i);
         }
 
         return d;

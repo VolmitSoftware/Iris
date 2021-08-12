@@ -38,7 +38,7 @@ public class DecreeParameter {
     }
 
     public DecreeParameterHandler<?> getHandler() {
-        return DecreeCommand.getHandler(getType());
+        return DecreeSystem.getHandler(getType());
     }
 
     public Class<?> getType() {

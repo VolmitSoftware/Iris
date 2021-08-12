@@ -18,11 +18,26 @@
 
 package com.volmit.iris.util.decree;
 
+import com.volmit.iris.util.plugin.VolmitSender;
+
 public enum DecreeOrigin {
     PLAYER,
     CONSOLE,
     /**
      * Both the player and the console
      */
-    BOTH
+    BOTH;
+
+    /**
+     * Check if the origin is valid for a sender
+     * @param sender The sender to check
+     * @return True if valid for origin
+     */
+    public boolean validFor(VolmitSender sender){
+        if (sender.isPlayer()){
+            return this.equals(PLAYER) || this.equals(BOTH);
+        } else {
+            return this.equals(CONSOLE) || this.equals(BOTH);
+        }
+    }
 }

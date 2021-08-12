@@ -38,33 +38,27 @@ public class DecreeParameter {
         }
     }
 
-    public DecreeParameterHandler<?> getHandler()
-    {
+    public DecreeParameterHandler<?> getHandler() {
         return DecreeSystem.getHandler(getType());
     }
 
-    public Class<?> getType()
-    {
+    public Class<?> getType() {
         return parameter.getType();
     }
 
-    public String getName()
-    {
+    public String getName() {
         return param.name().isEmpty() ? parameter.getName() : param.name();
     }
 
-    public String getDescription()
-    {
+    public String getDescription() {
         return param.description().isEmpty() ? Param.DEFAULT_DESCRIPTION : param.description();
     }
 
-    public boolean isRequired()
-    {
+    public boolean isRequired() {
         return param.value().equals(Param.REQUIRED);
     }
 
-    public KList<String> getAliases()
-    {
+    public KList<String> getAliases() {
         KList<String> d = new KList<>();
 
         if (Arrays.equals(param.aliases(), new String[]{Param.NO_ALIAS})){

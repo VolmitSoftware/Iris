@@ -22,7 +22,7 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import org.bukkit.entity.Player;
 
-public class EXAMPLE
+public class EXAMPLE extends DecreeCommand
 {
     @Decree()
     public void kick(

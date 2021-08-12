@@ -43,8 +43,7 @@ public class DecreeNode {
      * Get the parameters of this decree node
      * @return The list of parameters if ALL are annotated by @{@link Param}, else null
      */
-    public KList<DecreeParameter> getParameters()
-    {
+    public KList<DecreeParameter> getParameters() {
         KList<DecreeParameter> p = new KList<>();
 
         for(Parameter i : method.getParameters())
@@ -59,23 +58,19 @@ public class DecreeNode {
         return p;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return decree.name().equals(Decree.METHOD_NAME) ? method.getName() : decree.name();
     }
 
-    public DecreeOrigin getOrigin()
-    {
+    public DecreeOrigin getOrigin() {
         return decree.origin();
     }
 
-    public String getDescription()
-    {
+    public String getDescription() {
         return decree.description().isEmpty() ? Decree.DEFAULT_DESCRIPTION : decree.description();
     }
 
-    public KList<String> getAliases()
-    {
+    public KList<String> getAliases() {
         KList<String> d = new KList<>();
 
         if (Arrays.equals(decree.aliases(), new String[]{Decree.NO_ALIASES})){

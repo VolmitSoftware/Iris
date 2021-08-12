@@ -21,5 +21,8 @@ package com.volmit.iris.util.decree;
 public enum DecreeOrigin {
     PLAYER,
     CONSOLE,
+    /**
+     * Both the player and the console
+     */
     BOTH
 }

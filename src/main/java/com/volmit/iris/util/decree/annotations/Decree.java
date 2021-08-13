@@ -29,16 +29,14 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.TYPE})
 public @interface Decree {
 
-    String METHOD_NAME = "Default Method Name";
-
     String DEFAULT_DESCRIPTION = "No Description Provided";
-
-    String NO_ALIASES = "No Aliases";
 
     /**
      * The name of this command, which is the Method's name by default
      */
-    String name() default METHOD_NAME;
+    String name() default "";
+
+    boolean sync() default false;
 
     /**
      * The description of this command.<br>
@@ -58,5 +56,5 @@ public @interface Decree {
      * Can be initialized as just a string (ex. "alias") or as an array (ex. {"alias1", "alias2"})<br>
      * If someone uses /plugin foo and you specify alias="f" here, /plugin f will do the exact same.
      */
-    String[] aliases() default {NO_ALIASES};
+    String[] aliases() default "";
 }

@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
 public @interface Param {
     String REQUIRED = "REQUIRED";
 
-    String NO_ALIAS = "No Aliases Provided";
+    String NO_ALIAS = "";
 
     String DEFAULT_DESCRIPTION = "No Description Provided";
 

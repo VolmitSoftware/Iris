@@ -48,19 +48,10 @@ public interface DecreeParameterHandler<T> {
 
     /**
      * Returns whether a certain type is supported by this handler<br>
-     * By default, this checks if the {@link #parse(String) parse} method returns the corresponding type.
-     * Hence, this should only be overwritten if multiple types, outside the designated one, are supported.
      * @param type The type to check
      * @return True if supported, false if not
      */
-    default boolean supports(Class<?> type){
-        try {
-            if (this.getClass().getMethod("parse", String.class).getReturnType().equals(type)){
-                return true;
-            }
-        } catch (NoSuchMethodException ignored){}
-        return false;
-    }
+    boolean supports(Class<?> type);
 
     /**
      * The possible entries for the inputted string (support for autocomplete on partial entries)

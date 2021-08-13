@@ -16,16 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree.exceptions;
+package com.volmit.iris.core.decrees;
 
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.decree.DecreeExecutor;
+import com.volmit.iris.util.decree.annotations.Decree;
 
-/**
- * Thrown when more than one option is available for a singular mapping<br>
- * Like having a hashmap where one input maps to two outputs.
- */
-public class DecreeWhichException extends Exception{
-    public DecreeWhichException() {
-        super();
+@Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
+public class DecreeIris implements DecreeExecutor
+{
+    @Decree(description = "Ping self", aliases = "p")
+    public void ping()
+    {
+        sender().sendMessage("Pong!");
     }
 }

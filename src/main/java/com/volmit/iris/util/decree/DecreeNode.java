@@ -21,21 +21,24 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.exceptions.DecreeInstanceException;
+import lombok.Data;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 
+@Data
 public class DecreeNode {
     private final Method method;
+    private final Object instance;
     private final Decree decree;
 
-    public DecreeNode(Method method) throws DecreeInstanceException {
+    public DecreeNode(Object instance, Method method) {
+        this.instance = instance;
         this.method = method;
         this.decree = method.getDeclaredAnnotation(Decree.class);
         if (decree == null){
-            throw new DecreeInstanceException("Cannot instantiate DecreeNode on method not annotated by @Decree");
+            throw new RuntimeException("Cannot instantiate DecreeNode on method " + method.getName() + " in " + method.getDeclaringClass().getCanonicalName() + " not annotated by @Decree");
         }
     }
 
@@ -48,18 +51,14 @@ public class DecreeNode {
 
         for(Parameter i : method.getParameters())
         {
-            try {
-                p.add(new DecreeParameter(i));
-            } catch (DecreeInstanceException ignored) {
-                return null;
-            }
+            p.add(new DecreeParameter(i));
         }
 
         return p;
     }
 
     public String getName() {
-        return decree.name().equals(Decree.METHOD_NAME) ? method.getName() : decree.name();
+        return decree.name().isEmpty() ? method.getName() : decree.name();
     }
 
     public DecreeOrigin getOrigin() {
@@ -70,12 +69,8 @@ public class DecreeNode {
         return decree.description().isEmpty() ? Decree.DEFAULT_DESCRIPTION : decree.description();
     }
 
-    public KList<String> getAliases() {
+    public KList<String> getNames() {
         KList<String> d = new KList<>();
-
-        if (Arrays.equals(decree.aliases(), new String[]{Decree.NO_ALIASES})){
-            return d;
-        }
 
         for(String i : decree.aliases())
         {
@@ -87,6 +82,13 @@ public class DecreeNode {
             d.add(i);
         }
 
+
+        d.add(getName());
+        d.removeDuplicates();
         return d;
+    }
+
+    public boolean isSync() {
+        return decree.sync();
     }
 }

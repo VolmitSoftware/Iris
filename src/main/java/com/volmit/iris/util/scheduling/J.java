@@ -83,6 +83,10 @@ public class J {
         });
     }
 
+    public static void aBukkit(Runnable a) {
+        Bukkit.getScheduler().scheduleAsyncDelayedTask(Iris.instance, a);
+    }
+
     public static <T> Future<T> a(Callable<T> a) {
         return MultiBurst.burst.lazySubmit(a);
     }

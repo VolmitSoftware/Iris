@@ -20,24 +20,124 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.decree.annotations.Decree;
-import com.volmit.iris.util.math.M;
-import org.checkerframework.checker.units.qual.K;
+import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
+import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.List;
 
-public interface DecreeSystem {
+public interface DecreeSystem extends CommandExecutor, TabCompleter {
     KList<DecreeParameterHandler<?>> handlers = Iris.initialize("com.volmit.iris.util.decree.handlers", null).convert((i) -> (DecreeParameterHandler<?>) i);
 
-    /**
-     * Should return the root command<br>
-     * Root must extend {@link DecreeCommand}
-     *
-     * @return The root command class (this#getClass)
-     */
-    Class<? extends DecreeCommand> getRoot();
+    VirtualDecreeCommand getRoot();
+
+    default boolean call(VolmitSender sender, String[] args)
+    {
+        DecreeContext.touch(sender);
+        return getRoot().invoke(sender, enhanceArgs(args));
+    }
+
+    @Nullable
+    @Override
+    default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return new KList<>();
+    }
+
+    @Override
+    default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        J.aBukkit(() -> call(new VolmitSender(sender), args));
+        return true;
+    }
+
+    static KList<String> enhanceArgs(String[] args)
+    {
+        KList<String> a = new KList<>();
+
+        if(args.length == 0)
+        {
+            return a;
+        }
+
+        StringBuilder flat = new StringBuilder();
+        for(String i : args)
+        {
+            if(i.trim().isEmpty())
+            {
+                continue;
+            }
+
+            flat.append(" ").append(i.trim());
+        }
+
+        flat = new StringBuilder(flat.substring(1).trim());
+        StringBuilder arg = new StringBuilder();
+        boolean quoting = false;
+
+        for(int x = 0; x < flat.length(); x++)
+        {
+            char i = flat.charAt(x);
+            char j = x < flat.length() - 1 ? flat.charAt(x + 1) : i;
+            boolean hasNext = x < flat.length();
+
+            if(i == ' ' && !quoting)
+            {
+                if(!arg.toString().trim().isEmpty())
+                {
+                    a.add(arg.toString().trim());
+                    arg = new StringBuilder();
+                }
+            }
+
+            else if(i == '"')
+            {
+                if(!quoting && (arg.length() == 0))
+                {
+                    quoting = true;
+                }
+
+                else if(quoting)
+                {
+                    quoting = false;
+
+                    if(hasNext && j == ' ')
+                    {
+                        if(!arg.toString().trim().isEmpty())
+                        {
+                            a.add(arg.toString().trim());
+                            arg = new StringBuilder();
+                        }
+                    }
+
+                    else if(!hasNext)
+                    {
+                        if(!arg.toString().trim().isEmpty())
+                        {
+                            a.add(arg.toString().trim());
+                            arg = new StringBuilder();
+                        }
+                    }
+                }
+            }
+
+            else
+            {
+                arg.append(i);
+            }
+        }
+
+        if(!arg.toString().trim().isEmpty())
+        {
+            a.add(arg.toString().trim());
+        }
+
+        return a;
+    }
 
     /**
      * Get the handler for the specified type
@@ -53,20 +153,6 @@ public interface DecreeSystem {
                 return i;
             }
         }
-        return null;
-    }
-
-    /**
-     * Gets the method command to from the raw command parameters
-     * @param command The raw command parameters
-     * @return The @{@link Decree} method
-     */
-    default Method getRootCommandFrom(String[] command){
-        return getCommandFrom(new KList<>(command), getRoot());
-    }
-
-
-    default Method getCommandFrom(KList<String> command, Class<? extends DecreeCommand> decree){
         return null;
     }
 }

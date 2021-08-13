@@ -16,16 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree.exceptions;
+package com.volmit.iris.util.decree;
 
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.plugin.VolmitSender;
 
-/**
- * Thrown when more than one option is available for a singular mapping<br>
- * Like having a hashmap where one input maps to two outputs.
- */
-public class DecreeWhichException extends Exception{
-    public DecreeWhichException() {
-        super();
+public interface DecreeExecutor {
+    default VolmitSender sender()
+    {
+        return DecreeContext.get();
+    }
+
+    default <T> T get(T v, T ifUndefined)
+    {
+        return v == null ? ifUndefined : v;
     }
 }

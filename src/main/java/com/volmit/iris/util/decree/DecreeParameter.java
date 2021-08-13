@@ -20,7 +20,6 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.exceptions.DecreeInstanceException;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -29,11 +28,11 @@ public class DecreeParameter {
     private final Parameter parameter;
     private final Param param;
 
-    public DecreeParameter(Parameter parameter) throws DecreeInstanceException {
+    public DecreeParameter(Parameter parameter) {
         this.parameter = parameter;
         this.param = parameter.getDeclaredAnnotation(Param.class);
         if (param == null){
-            throw new DecreeInstanceException("Cannot instantiate DecreeParameter on parameter not annotated by @Param");
+            throw new RuntimeException("Cannot instantiate DecreeParameter on " + parameter.getName() + " in method " + parameter.getDeclaringExecutable().getName() + "(...) in class " + parameter.getDeclaringExecutable().getDeclaringClass().getCanonicalName() + " not annotated by @Param");
         }
     }
 
@@ -57,7 +56,7 @@ public class DecreeParameter {
         return param.value().equals(Param.REQUIRED);
     }
 
-    public KList<String> getAliases() {
+    public KList<String> getNames() {
         KList<String> d = new KList<>();
 
         if (Arrays.equals(param.aliases(), new String[]{Param.NO_ALIAS})){
@@ -73,6 +72,9 @@ public class DecreeParameter {
 
             d.add(i);
         }
+
+        d.add(getName());
+        d.removeDuplicates();
 
         return d;
     }

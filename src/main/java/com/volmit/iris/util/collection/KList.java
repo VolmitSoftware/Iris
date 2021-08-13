@@ -696,4 +696,9 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         t.shuffle(rng);
         return t;
     }
+
+    public KList<T> qdrop() {
+        pop();
+        return this;
+    }
 }

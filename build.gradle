@@ -1,5 +1,3 @@
-import proguard.gradle.ProGuardTask
-
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -58,7 +56,7 @@ task copyDepends(type: Copy) {
     into "${dependsDir}"
 }
 
-task release(type: ProGuardTask) {
+task release(type: proguard.gradle.ProGuardTask) {
     dependsOn(":copyDepends")
     group('proguard')
     configuration 'proguard.pro'

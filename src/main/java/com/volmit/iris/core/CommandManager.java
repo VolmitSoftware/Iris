@@ -19,27 +19,11 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.decrees.DecreeIris;
+import com.volmit.iris.core.decrees.CMDIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.decree.DecreeCommand;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
-import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.server.ServerCommandEvent;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.io.Console;
-import java.util.List;
 
 public class CommandManager implements DecreeSystem {
     private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
@@ -53,7 +37,7 @@ public class CommandManager implements DecreeSystem {
     public VirtualDecreeCommand getRoot() {
         return commandCache.aquire(() -> {
             try {
-                return VirtualDecreeCommand.createRoot(new DecreeIris());
+                return VirtualDecreeCommand.createRoot(new CMDIris());
             } catch (Throwable e) {
                 e.printStackTrace();
             }

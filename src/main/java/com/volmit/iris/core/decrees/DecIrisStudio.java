@@ -21,6 +21,7 @@ package com.volmit.iris.core.decrees;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
+import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
@@ -30,6 +31,7 @@ import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -91,5 +93,30 @@ public class DecIrisStudio implements DecreeExecutor
         Iris.convert.check(sender());
     }
 
-    
+
+    @Decree(description = "Edit the biome you're currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
+    public void editbiome()
+    {
+        if (!Iris.proj.isProjectOpen()){
+            sender().sendMessage(C.RED + "The is no studio currently open!");
+            return;
+        }
+
+        if (!Iris.proj.getActiveProject().getActiveProvider().getEngine().getWorld().realWorld().equals(sender().player().getWorld())){
+            sender().sendMessage(C.RED + "You must be in a studio world to edit a biome!");
+            return;
+        }
+
+
+        try {
+            File f = Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(
+                    sender().player().getLocation().getBlockX(),
+                    sender().player().getLocation().getBlockY(),
+                    sender().player().getLocation().getBlockZ()).getLoadFile();
+            Desktop.getDesktop().open(f);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            sender().sendMessage("Cant find the file. Unsure why this happened.");
+        }
+    }
 }

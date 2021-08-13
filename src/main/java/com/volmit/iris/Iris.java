@@ -70,6 +70,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
@@ -442,7 +443,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
 
     @Override
-    public ChunkGenerator getDefaultWorldGenerator(String worldName, String name) {
+    public ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, String name) {
         String dimensionName;
 
         if (name == null || name.isEmpty()) {

@@ -20,6 +20,7 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.engine.scripting.IrisScriptingAPI;
 import com.volmit.iris.util.format.C;
@@ -54,9 +55,13 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
     }
 
     public void execute(String script) {
-        Iris.debug("Execute Script (void) " + C.DARK_GREEN + script);
+        execute(getEngine().getData().getScriptLoader().load(script));
+    }
+
+    public void execute(IrisScript script) {
+        Iris.debug("Execute Script (void) " + C.DARK_GREEN + script.getLoadKey());
         try {
-            javaScriptEngine.exec("", 0, 0, getEngine().getData().getScriptLoader().load(script));
+            javaScriptEngine.exec("", 0, 0, script);
         } catch (BSFException e) {
             e.printStackTrace();
         }

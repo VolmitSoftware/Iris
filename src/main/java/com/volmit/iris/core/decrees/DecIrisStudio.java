@@ -19,6 +19,8 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -118,5 +120,14 @@ public class DecIrisStudio implements DecreeExecutor
             Iris.reportError(e);
             sender().sendMessage("Cant find the file. Unsure why this happened.");
         }
+    }
+
+    @Decree(description = "Execute a script", aliases = {"ex", "exec", "run"}, origin = DecreeOrigin.PLAYER)
+    public void execute(
+            @Param(name = "script", description = "The script to run", aliases = {"s", "scr"})
+            IrisScript script
+    )
+    {
+        IrisToolbelt.access(sender().player().getWorld()).getEngine().getExecution().execute(script);
     }
 }

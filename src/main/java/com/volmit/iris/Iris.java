@@ -480,9 +480,14 @@ public class Iris extends VolmitPlugin implements Listener {
     public static void msg(String string) {
         try {
             sender.sendMessage(string);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
             try {
-                System.out.println(string);
+                if (sender.isPlayer()) {
+                    Iris.reportError(e);
+                    Iris.error("Failed to send message to player: " + string);
+                } else {
+                    System.out.println("Failed to send message through logger: " + string + " because of " + e.getMessage());
+                }
             } catch (Throwable ignored1) {
 
             }

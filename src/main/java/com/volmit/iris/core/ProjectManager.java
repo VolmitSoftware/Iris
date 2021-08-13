@@ -329,11 +329,7 @@ public class ProjectManager {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender,seed, dimm, () ->
-            {
-                if (sender.isPlayer()) {
-                }
-            });
+            open(sender,seed, dimm, () -> {});
         } catch (Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");

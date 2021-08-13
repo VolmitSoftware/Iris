@@ -20,10 +20,13 @@ package com.volmit.iris.util.decree.annotations;
 
 import com.volmit.iris.util.decree.DecreeOrigin;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD, ElementType.FIELD})
 public @interface Decree {
 
     String METHOD_NAME = "Default Method Name";

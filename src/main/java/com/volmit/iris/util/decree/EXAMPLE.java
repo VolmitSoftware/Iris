@@ -22,9 +22,8 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import org.bukkit.entity.Player;
 
-public class EXAMPLE extends DecreeCommand
-{
-    @Decree()
+public class EXAMPLE extends DecreeCommand {
+    @Decree
     public void kick(
             @Param(name = "player", description = "The Player to kick from the server", aliases = "p")
                     Player player,

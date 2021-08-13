@@ -30,9 +30,9 @@ public class DecIrisStudio implements DecreeExecutor
 {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(name = "dimension", defaultValue = "overworld", aliases = "dim")
+            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
                     IrisDimension dimension,
-            @Param(name = "seed", defaultValue = "1337", aliases = "s")
+            @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed)
     {
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
@@ -46,8 +46,7 @@ public class DecIrisStudio implements DecreeExecutor
             return;
         }
 
-        Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().evacuate();
         Iris.proj.close();
-        sender().sendMessage(C.YELLOW + "Project Closed");
+        sender().sendMessage(C.GREEN + "Project Closed.");
     }
 }

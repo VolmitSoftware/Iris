@@ -29,7 +29,7 @@ public class CMDIris implements DecreeExecutor
 
     @Decree(description = "Ping self", aliases = "p")
     public void ping(
-            @Param(name = "message",defaultValue = "Pong", aliases = {"msg", "m"})
+            @Param(name = "message", defaultValue = "Pong", aliases = {"msg", "m"})
             String message)
     {
         sender().sendMessage(message + "!");

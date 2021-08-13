@@ -35,7 +35,7 @@ public class CMDIrisStudio implements DecreeExecutor
             @Param(name = "seed", defaultValue = "1337", aliases = "s")
                     long seed)
     {
-        Iris.proj.open(sender(), dimension.getLoadKey());
+        Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 
     @Decree(description = "Close an open studio project", aliases = "x", sync = true)

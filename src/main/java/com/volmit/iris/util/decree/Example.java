@@ -22,8 +22,20 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import org.bukkit.entity.Player;
 
-public class EXAMPLE extends DecreeCommand {
-    @Decree
+@Decree(description = "Description goes here!", aliases = {"ex", "e"})
+// The description here is shown when hovering over elements in the chat
+// The parameter `name` is undefined, which means it defaults to the name of the class, lowercase, so "example"
+// The aliases defined give alternate options for calling this category
+// You can also define "origin" which gives who can send the command.
+//  By default, if omitted, this is DecreeOrigin.BOTH, but it can be .PLAYER & .CONSOLE
+public class Example implements DecreeCommand {
+
+    // This subcommand, given that it implements DecreeCommand, is automatically indexed and recognised by Decree.
+    // The way this command is called isn't defined from here.
+    // Since subCommand can have another name than in /iris example subCommand.
+    SubExample subCommand;
+
+    @Decree(description = "Kick a player", aliases = "k", origin = DecreeOrigin.CONSOLE)
     public void kick(
             @Param(name = "player", description = "The Player to kick from the server", aliases = "p")
                     Player player,

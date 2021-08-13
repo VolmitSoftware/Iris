@@ -18,5 +18,6 @@
 
 package com.volmit.iris.util.decree;
 
-public class DecreeCommand {
+
+public interface DecreeCommand {
 }

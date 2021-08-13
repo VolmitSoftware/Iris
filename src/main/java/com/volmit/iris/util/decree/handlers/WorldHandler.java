@@ -67,4 +67,10 @@ public class WorldHandler implements DecreeParameterHandler<World> {
     public boolean supports(Class<?> type) {
         return type.equals(World.class);
     }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return "world";
+    }
 }

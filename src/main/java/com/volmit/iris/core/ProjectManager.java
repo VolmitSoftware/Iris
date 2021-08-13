@@ -322,9 +322,14 @@ public class ProjectManager {
         return activeProject != null && activeProject.isOpen();
     }
 
+
     public void open(VolmitSender sender, String dimm) {
+        open(sender, 1337, dimm);
+    }
+
+    public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender, dimm, () ->
+            open(sender,seed, dimm, () ->
             {
                 if (sender.isPlayer()) {
                 }
@@ -336,14 +341,14 @@ public class ProjectManager {
         }
     }
 
-    public void open(VolmitSender sender, String dimm, Runnable onDone) throws IrisException {
+    public void open(VolmitSender sender, long seed, String dimm, Runnable onDone) throws IrisException {
         if (isProjectOpen()) {
             close();
         }
 
         IrisProject project = new IrisProject(new File(getWorkspaceFolder(), dimm));
         activeProject = project;
-        project.open(sender, onDone);
+        project.open(sender, seed, onDone);
     }
 
     public File getWorkspaceFolder(String... sub) {

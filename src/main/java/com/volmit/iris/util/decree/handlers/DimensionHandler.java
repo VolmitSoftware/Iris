@@ -89,4 +89,10 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
     public boolean supports(Class<?> type) {
         return type.equals(IrisDimension.class);
     }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return "dimension";
+    }
 }

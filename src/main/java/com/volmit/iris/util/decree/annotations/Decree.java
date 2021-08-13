@@ -36,6 +36,12 @@ public @interface Decree {
      */
     String name() default "";
 
+    /**
+     * Only allow if studio mode is enabled
+     * @return defaults to false
+     */
+    boolean studio() default false;
+
     boolean sync() default false;
 
     /**

@@ -87,4 +87,10 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
     public boolean supports(Class<?> type) {
         return type.equals(IrisRegion.class);
     }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return "region";
+    }
 }

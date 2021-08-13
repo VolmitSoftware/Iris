@@ -82,4 +82,21 @@ public class DecreeParameter {
     public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
         return param.defaultValue().isEmpty() ? null : getHandler().parse(param.defaultValue());
     }
+
+    public boolean hasDefault() {
+        return !param.defaultValue().isEmpty();
+    }
+
+    public String example() {
+        KList<?> ff = getHandler().getPossibilities();
+        ff = ff != null ? ff : new KList<>();
+        KList<String> f = ff.convert((i) -> getHandler().toStringForce(i));
+        if(f.isEmpty())
+        {
+            f = new KList<>();
+            f.add(getHandler().getRandomDefault());
+        }
+
+        return f.getRandom();
+    }
 }

@@ -20,10 +20,12 @@ package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import lombok.Setter;
@@ -259,6 +261,11 @@ public class VolmitSender implements CommandSender {
         return MiniMessage.get().parse(a);
     }
 
+    private Component createComponentRaw(String message) {
+        String t = C.translateAlternateColorCodes('&', getTag() + message);
+        return MiniMessage.get().parse(t);
+    }
+
     public <T> void showWaiting(String passive, CompletableFuture<T> f) {
         AtomicInteger v = new AtomicInteger();
         AtomicReference<T> g = new AtomicReference<>();
@@ -292,6 +299,24 @@ public class VolmitSender implements CommandSender {
 
         try {
             Iris.audiences.sender(s).sendMessage(createComponent(message));
+        } catch (Throwable e) {
+            String t = C.translateAlternateColorCodes('&', getTag() + message);
+            String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
+
+            Iris.debug("<NOMINI>Failure to parse " + a);
+            s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));
+        }
+    }
+
+
+    public void sendMessageRaw(String message) {
+        if (message.contains("<NOMINI>")) {
+            s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
+            return;
+        }
+
+        try {
+            Iris.audiences.sender(s).sendMessage(createComponentRaw(message));
         } catch (Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
             String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
@@ -335,6 +360,30 @@ public class VolmitSender implements CommandSender {
         return s.spigot();
     }
 
+    private String pickRandoms(int max, VirtualDecreeCommand i)
+    {
+        KList<String> m = new KList<>();
+        for(int ix = 0; ix < max; ix++)
+        {
+            m.add((i.isNode()
+                    ? (i.getNode().getParameters().isNotEmpty())
+                    ? "<gradient:#aebef2:#aef0f2>Or: <gradient:#5ef288:#99f25e>"
+                    + i.getParentPath()
+                    + " <gradient:#42ecf5:#428df5>"
+                    + i.getName() + " "
+                    + i.getNode().getParameters().shuffleCopy(RNG.r).convert((f)
+                            -> (f.isRequired() || RNG.r.b(0.5)
+                            ? "<gradient:#f2e15e:#c4d45b>" + f.getNames().getRandom() + "="
+                            + "<gradient:#d665f0:#a37feb>" + f.example()
+                            : ""))
+                    .toString(" ")
+                    : ""
+                    : ""));
+        }
+
+        return m.removeDuplicates().convert((iff) -> iff.replaceAll("\\Q  \\E", " ")).toString("\n");
+    }
+
     public void sendDecreeHelp(VirtualDecreeCommand v) {
         int m = v.getNodes().size();
 
@@ -342,7 +391,57 @@ public class VolmitSender implements CommandSender {
         {
             for(VirtualDecreeCommand i : v.getNodes())
             {
-                sendMessage(i.getPath() + " - " + i.getDescription());
+                if(isPlayer())
+                {
+                    //@builder
+                    sendMessageRaw(
+                        "<hover:show_text:'"+
+                        i.getNames().copy().reverse().convert((f) -> "<gradient:#42ecf5:#428df5>" + f).toString(", ") + "\n"
+                        + "<gradient:#dbf296:#e7f0ce>" + i.getDescription() + "\n"
+                        + "<gradient:#a8e0a2:#aef2cd>" + (i.isNode()
+                            ? ((i.getNode().getParameters().isEmpty()
+                                ? "There are no parameters."
+                                : "Hover over all of the parameters to learn more.") + "\n")
+                            : "This is a command category. Run <gradient:#98eda5:#ccf0bd>" + i.getPath())
+                        + (i.isNode()
+                            ? (i.getNode().getParameters().isNotEmpty())
+                                ? "<gradient:#aebef2:#aef0f2>Usage: <gradient:#5ef288:#99f25e>"
+                                    + i.getParentPath()
+                                    + " <gradient:#42ecf5:#428df5>"
+                                    + i.getName() + " "
+                                    + i.getNode().getParameters().convert((f)
+                                        -> "<gradient:#d665f0:#a37feb>" + f.example())
+                                            .toString(" ") + "\n"
+                            : ""
+                        : "")
+                        + (i.isNode() ? pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) : "")
+                        + "'><click:suggest_command:" + i.getPath() + " >"
+                        + "<gradient:#42ecf5:#428df5>" +i.getName() + "</click></hover>"
+                            + (i.isNode() ?
+                                " " + i.getNode().getParameters().convert((f)
+                                    -> "<hover:show_text:'"
+                                        + f.getNames().convert((ff) -> "<gradient:#d665f0:#a37feb>" + ff).toString(", ") + "\n"
+                                            + "<gradient:#dbf296:#e7f0ce>" + f.getDescription() + "\n"
+                                        + (f.isRequired()
+                                            ? "<gradient:#faa796:#f0ba78>This parameter is required."
+                                            : (f.hasDefault()
+                                                ? "<gradient:#78dcf0:#baf7e5>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
+                                                : "<gradient:#78dcf0:#baf7e5>This parameter is optional."))
+                                    + "'>"
+                                        + (f.isRequired() ? "<red>[" : "")
+                                        + "<gradient:#d665f0:#a37feb>" + f.getName()
+                                        + (f.isRequired() ? "<red>]<gray>" : "")
+                                    + "</hover>").toString(" ")
+                                : "<gradient:#afe3d3:#a2dae0> - Category of Commands"
+                                )
+                            );
+                    //@done
+                }
+
+                else
+                {
+                    sendMessage(i.getPath() + "()");
+                }
             }
         }
 

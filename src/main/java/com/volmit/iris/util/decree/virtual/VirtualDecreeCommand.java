@@ -19,6 +19,7 @@
 package com.volmit.iris.util.decree.virtual;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeContext;
@@ -82,10 +83,11 @@ public class VirtualDecreeCommand {
 
             if(childRoot == null)
             {
-                i.set(v, i.getType().getConstructor().newInstance());
+                childRoot = i.getType().getConstructor().newInstance();
+                i.set(v, childRoot);
             }
 
-            c.getNodes().add(createRoot(c, v));
+            c.getNodes().add(createRoot(c, childRoot));
         }
 
         for(Method i : v.getClass().getDeclaredMethods())
@@ -120,9 +122,18 @@ public class VirtualDecreeCommand {
         return "/" + n.reverse().qadd(getName()).toString(" ");
     }
 
+    public String getParentPath()
+    {
+       return getParent().getPath();
+    }
+
     public String getName()
     {
         return isNode() ? getNode().getName() : getType().getDeclaredAnnotation(Decree.class).name();
+    }
+
+    private boolean isStudio() {
+        return isNode() ? getNode().getDecree().studio() : getType().getDeclaredAnnotation(Decree.class).studio();
     }
 
     public String getDescription()
@@ -262,6 +273,12 @@ public class VirtualDecreeCommand {
 
     public boolean invoke(VolmitSender sender, KList<String> args, KList<Integer> skip)
     {
+        if(isStudio() && !IrisSettings.get().isStudio())
+        {
+            sender.sendMessage(C.RED + "To use Iris Studio Commands, please enable studio in Iris/settings.json (settings auto-reload)");
+            return false;
+        }
+
         Iris.debug("@ " + getPath() + " with " + args.toString(", "));
         if(isNode())
         {

@@ -67,4 +67,10 @@ public class PlayerHandler implements DecreeParameterHandler<Player> {
     public boolean supports(Class<?> type) {
         return type.equals(Player.class);
     }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return "playername";
+    }
 }

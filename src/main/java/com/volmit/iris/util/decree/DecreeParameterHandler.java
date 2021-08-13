@@ -37,6 +37,11 @@ public interface DecreeParameterHandler<T> {
      */
     String toString(T t);
 
+    default String toStringForce(Object t)
+    {
+        return toString((T)t);
+    }
+
     /**
      * Should parse a String into the designated type
      * @param in The string to parse
@@ -89,5 +94,10 @@ public interface DecreeParameterHandler<T> {
         }
 
         return matches;
+    }
+
+    default String getRandomDefault()
+    {
+        return "NOEXAMPLE";
     }
 }

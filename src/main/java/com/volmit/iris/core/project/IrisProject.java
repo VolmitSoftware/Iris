@@ -98,12 +98,12 @@ public class IrisProject {
     }
 
     public void open(VolmitSender sender) throws IrisException {
-        open(sender, () ->
+        open(sender, 1337, () ->
         {
         });
     }
 
-    public void open(VolmitSender sender, Runnable onDone) throws IrisException {
+    public void open(VolmitSender sender, long seed, Runnable onDone) throws IrisException {
         if (isOpen()) {
             close();
         }
@@ -171,7 +171,7 @@ public class IrisProject {
 
 
         J.a(() -> activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
-                .seed(1337)
+                .seed(seed)
                 .sender(sender)
                 .studio(true)
                 .name("iris/" + UUID.randomUUID())

@@ -18,12 +18,24 @@
 
 package com.volmit.iris.util.decree;
 
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.plugin.VolmitSender;
 
 public interface DecreeExecutor {
     default VolmitSender sender()
     {
         return DecreeContext.get();
+    }
+
+    default Engine engine()
+    {
+        if(sender().isPlayer())
+        {
+            return IrisToolbelt.access(sender().player().getWorld()).getEngine();
+        }
+
+        return null;
     }
 
     default <T> T get(T v, T ifUndefined)

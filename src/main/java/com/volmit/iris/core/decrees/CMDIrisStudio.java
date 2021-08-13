@@ -18,19 +18,36 @@
 
 package com.volmit.iris.core.decrees;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.format.C;
 
-@Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands")
+@Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CMDIrisStudio implements DecreeExecutor
 {
-    @Decree(description = "Open a new studio world", aliases = "o")
+    @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(name = "dimension", defaultValue = "overworld", aliases = "dim")
-            IrisDimension dimension)
+            @Param(name = "dimension", defaultValue = "overworld", aliases = "dim", required = true)
+                    IrisDimension dimension,
+            @Param(name = "seed", defaultValue = "1337", aliases = "s")
+                    long seed)
     {
-        sender().sendMessage(message + "!");
+        Iris.proj.open(sender(), dimension.getLoadKey());
+    }
+
+    @Decree(description = "Close an open studio project", aliases = "x", sync = true)
+    public void close()
+    {
+        if (!Iris.proj.isProjectOpen()) {
+            sender().sendMessage(C.RED + "No open studio projects.");
+            return;
+        }
+
+        Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().evacuate();
+        Iris.proj.close();
+        sender().sendMessage(C.YELLOW + "Project Closed");
     }
 }

@@ -21,6 +21,7 @@ package com.volmit.iris.util.decree.handlers;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.math.RNG;
 
 public class ByteHandler implements DecreeParameterHandler<Byte> {
     @Override
@@ -49,5 +50,11 @@ public class ByteHandler implements DecreeParameterHandler<Byte> {
     @Override
     public boolean supports(Class<?> type) {
         return type.equals(Byte.class) || type.equals(byte.class);
+    }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return RNG.r.i(0, Byte.MAX_VALUE) + "";
     }
 }

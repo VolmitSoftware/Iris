@@ -27,6 +27,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
+import com.volmit.iris.util.math.RNG;
 
 import java.io.File;
 
@@ -87,5 +88,11 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
     @Override
     public boolean supports(Class<?> type) {
         return type.equals(IrisBiome.class);
+    }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return "biome";
     }
 }

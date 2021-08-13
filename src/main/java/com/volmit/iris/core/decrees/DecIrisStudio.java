@@ -26,7 +26,7 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class CMDIrisStudio implements DecreeExecutor
+public class DecIrisStudio implements DecreeExecutor
 {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
@@ -35,7 +35,7 @@ public class CMDIrisStudio implements DecreeExecutor
             @Param(name = "seed", defaultValue = "1337", aliases = "s")
                     long seed)
     {
-        Iris.proj.open(sender(), dimension.getLoadKey());
+        Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 
     @Decree(description = "Close an open studio project", aliases = "x", sync = true)

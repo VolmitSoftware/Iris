@@ -221,8 +221,8 @@ public class CommandIrisPregenStart extends MortarCommand {
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(x, z))
-                    .width(width >> 9 + 1)
-                    .height(height >> 9 + 1)
+                    .width((width >> 9 + 1) * 2)
+                    .height((height >> 9 + 1) * 2)
                     .build(), world);
         } catch (Throwable e) {
             Iris.reportError(e);

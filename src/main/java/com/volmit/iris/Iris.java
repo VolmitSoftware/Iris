@@ -38,6 +38,8 @@ import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.decree.DecreeCommand;
+import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
@@ -77,7 +79,7 @@ import java.net.URL;
 import java.util.Date;
 
 @SuppressWarnings("CanBeFinal")
-public class Iris extends VolmitPlugin implements Listener {
+public class Iris extends VolmitPlugin implements Listener, DecreeSystem {
     public static KList<GroupedExecutor> executors = new KList<>();
     public static Iris instance;
     public static BukkitAudiences audiences;
@@ -717,8 +719,19 @@ public class Iris extends VolmitPlugin implements Listener {
     static {
         try {
             InstanceState.updateInstanceId();
-        } catch (Throwable e) {
+        } catch (Throwable ignored) {
 
         }
+    }
+
+    /**
+     * Should return the root command class<br>
+     * DecreeSystem extends {@link DecreeCommand} so don't bother implementing both on the root class
+     *
+     * @return The root command class
+     */
+    @Override
+    public Class<? extends DecreeCommand> getRoot() {
+        return this.getClass();
     }
 }

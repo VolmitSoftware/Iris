@@ -79,7 +79,7 @@ import java.net.URL;
 import java.util.Date;
 
 @SuppressWarnings("CanBeFinal")
-public class Iris extends VolmitPlugin implements Listener, DecreeSystem {
+public class Iris extends VolmitPlugin implements Listener {
     public static KList<GroupedExecutor> executors = new KList<>();
     public static Iris instance;
     public static BukkitAudiences audiences;
@@ -91,6 +91,7 @@ public class Iris extends VolmitPlugin implements Listener, DecreeSystem {
     public static MultiverseCoreLink linkMultiverseCore;
     public static OraxenLink linkOraxen;
     public static MythicMobsLink linkMythicMobs;
+    public static CommandManager commandManager;
     public static TreeManager saplingManager;
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
     public static IrisCompat compat;
@@ -130,6 +131,7 @@ public class Iris extends VolmitPlugin implements Listener, DecreeSystem {
         saplingManager = new TreeManager();
         edit = new EditManager();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
+        commandManager = new CommandManager();
         getServer().getPluginManager().registerEvents(new CommandLocate(), this);
         getServer().getPluginManager().registerEvents(new WandManager(), this);
         getServer().getPluginManager().registerEvents(new DolphinManager(), this);
@@ -722,16 +724,5 @@ public class Iris extends VolmitPlugin implements Listener, DecreeSystem {
         } catch (Throwable ignored) {
 
         }
-    }
-
-    /**
-     * Should return the root command class<br>
-     * DecreeSystem extends {@link DecreeCommand} so don't bother implementing both on the root class
-     *
-     * @return The root command class
-     */
-    @Override
-    public Class<? extends DecreeCommand> getRoot() {
-        return this.getClass();
     }
 }

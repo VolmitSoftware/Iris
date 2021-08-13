@@ -21,6 +21,7 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.command.Command;
@@ -51,7 +52,12 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        J.aBukkit(() -> call(new VolmitSender(sender), args));
+        J.aBukkit(() -> {
+            if(!call(new VolmitSender(sender), args))
+            {
+                sender.sendMessage(C.RED + "Unknown Iris Command");
+            }
+        });
         return true;
     }
 

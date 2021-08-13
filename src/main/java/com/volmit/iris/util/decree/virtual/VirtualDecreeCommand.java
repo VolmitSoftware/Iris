@@ -29,6 +29,7 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -203,7 +204,7 @@ public class VirtualDecreeCommand {
                 if(param == null)
                 {
                     Iris.debug("Can't find parameter key for " + key + "=" + value + " in " + getPath());
-                    // TODO: WARN UNKNOWN PARAMETER
+                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + key);
                     continue;
                 }
 
@@ -213,7 +214,7 @@ public class VirtualDecreeCommand {
                     data.put(key, param.getHandler().parse(value));
                 } catch (DecreeParsingException e) {
                     Iris.debug("Can't parse parameter value for " + key + "=" + value + " in " + getPath() + " using handler " + param.getHandler().getClass().getSimpleName());
-                    // TODO: WARN BAD PARAM
+                    sender.sendMessage(C.RED + "Cannot convert \"" + value + "\" into a " + param.getType().getSimpleName());
                     return null;
                 } catch (DecreeWhichException e) {
                     KList<?> validOptions = param.getHandler().getPossibilities(value);
@@ -232,21 +233,21 @@ public class VirtualDecreeCommand {
                     try {
                         data.put(par.getName(), par.getHandler().parse(i));
                     } catch (DecreeParsingException e) {
-                        Iris.debug("Can't parse parameter value for " + par.getNames() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
-                        // TODO: WARN BAD PARAM
+                        Iris.debug("Can't parse parameter value for " + par.getName() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
+                        sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + par.getType().getSimpleName());
                         return null;
                     } catch (DecreeWhichException e) {
-                        Iris.debug("Can't parse parameter value for " + par.getNames() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
+                        Iris.debug("Can't parse parameter value for " + par.getName() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
                         KList<?> validOptions = par.getHandler().getPossibilities(i);
-                        String update = null;
-                        Iris.debug("Client chose " + update + " for " + par.getNames() + "=" + i + " (old) in " + getPath());
+                        String update = null; // TODO: PICK ONE
+                        Iris.debug("Client chose " + update + " for " + par.getName() + "=" + i + " (old) in " + getPath());
                         in.set(ix--, update);
                     }
                 }
 
-                catch(ArrayIndexOutOfBoundsException e)
+                catch(IndexOutOfBoundsException e)
                 {
-                    // TODO: Ignoring parameter (not in method anywhere
+                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + i + " (" + Form.getNumberSuffixThStRd(ix+1) + " argument)");
                 }
             }
         }
@@ -276,20 +277,7 @@ public class VirtualDecreeCommand {
 
         if(args.isEmpty())
         {
-            int m = getNodes().size();
-
-            if(getNodes().isNotEmpty())
-            {
-                for(VirtualDecreeCommand i : getNodes())
-                {
-                    sender.sendMessage(i.getPath() + " - " + i.getDescription());
-                }
-            }
-
-            else
-            {
-                sender.sendMessage(C.RED + "There are no subcommands in this group! Contact support, this is a command design issue!");
-            }
+            sender.sendDecreeHelp(this);
 
             return true;
         }
@@ -320,11 +308,41 @@ public class VirtualDecreeCommand {
         {
             Object value = map.get(i.getName());
 
+            try
+            {
+                if(value == null && !i.getParam().defaultValue().trim().isEmpty())
+                {
+                    value = i.getDefaultValue();
+                }
+            }
+            catch (DecreeParsingException e) {
+                Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
+                sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
+                return false;
+            } catch (DecreeWhichException e) {
+                Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
+                KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
+                String update = null; // TODO: PICK ONE
+                Iris.debug("Client chose " + update + " for " + i.getName() + "=" + i + " (old) in " + getPath());
+                try
+                {
+                    value = i.getDefaultValue();
+                }
+                catch (DecreeParsingException x) {
+                    x.printStackTrace();
+                    Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
+                    sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
+                    return false;
+                } catch (DecreeWhichException x) {
+                    x.printStackTrace();
+                }
+            }
+
             if(value == null)
             {
                 if(i.isRequired())
                 {
-                    // TODO: REQUIRED... UNDEFINED
+                    sender.sendMessage("Missing: " + i.getName() + " (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm+1) + " argument.");
                     return false;
                 }
             }

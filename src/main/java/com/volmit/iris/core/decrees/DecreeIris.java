@@ -20,13 +20,16 @@ package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
+import com.volmit.iris.util.decree.annotations.Param;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecreeIris implements DecreeExecutor
 {
     @Decree(description = "Ping self", aliases = "p")
-    public void ping()
+    public void ping(
+            @Param(name = "message",defaultValue = "Pong", aliases = {"msg", "m"})
+            String message)
     {
-        sender().sendMessage("Pong!");
+        sender().sendMessage(message + "!");
     }
 }

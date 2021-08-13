@@ -20,6 +20,7 @@ package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
@@ -332,5 +333,22 @@ public class VolmitSender implements CommandSender {
     @Override
     public Spigot spigot() {
         return s.spigot();
+    }
+
+    public void sendDecreeHelp(VirtualDecreeCommand v) {
+        int m = v.getNodes().size();
+
+        if(v.getNodes().isNotEmpty())
+        {
+            for(VirtualDecreeCommand i : v.getNodes())
+            {
+                sendMessage(i.getPath() + " - " + i.getDescription());
+            }
+        }
+
+        else
+        {
+            sendMessage(C.RED + "There are no subcommands in this group! Contact support, this is a command design issue!");
+        }
     }
 }

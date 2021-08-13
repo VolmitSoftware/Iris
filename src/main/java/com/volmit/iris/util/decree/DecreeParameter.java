@@ -20,10 +20,14 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
+import lombok.Data;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 
+@Data
 public class DecreeParameter {
     private final Parameter parameter;
     private final Param param;
@@ -53,15 +57,11 @@ public class DecreeParameter {
     }
 
     public boolean isRequired() {
-        return param.value().equals(Param.REQUIRED);
+        return param.required();
     }
 
     public KList<String> getNames() {
         KList<String> d = new KList<>();
-
-        if (Arrays.equals(param.aliases(), new String[]{Param.NO_ALIAS})){
-            return d;
-        }
 
         for(String i : param.aliases())
         {
@@ -77,5 +77,9 @@ public class DecreeParameter {
         d.removeDuplicates();
 
         return d;
+    }
+
+    public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
+        return param.defaultValue().isEmpty() ? null : getHandler().parse(param.defaultValue());
     }
 }

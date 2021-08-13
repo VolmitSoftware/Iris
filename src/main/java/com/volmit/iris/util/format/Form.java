@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.format;
 
+import com.google.common.base.Preconditions;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
 
@@ -37,6 +38,18 @@ public class Form {
     private static final String[] NAMES = new String[]{"Thousand", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion", "Sextillion", "Septillion", "Octillion", "Nonillion", "Decillion", "Undecillion", "Duodecillion", "Tredecillion", "Quattuordecillion", "Quindecillion", "Sexdecillion", "Septendecillion", "Octodecillion", "Novemdecillion", "Vigintillion",};
     private static final BigInteger THOUSAND = BigInteger.valueOf(1000);
     private static final NavigableMap<BigInteger, String> MAP;
+
+    public static String getNumberSuffixThStRd(int day) {
+        if (day >= 11 && day <= 13) {
+            return Form.f(day) + "th";
+        }
+        return switch (day % 10) {
+            case 1 -> Form.f(day) + "st";
+            case 2 -> Form.f(day) + "nd";
+            case 3 -> Form.f(day) + "rd";
+            default -> Form.f(day) + "th";
+        };
+    }
 
     static {
         MAP = new TreeMap<>();

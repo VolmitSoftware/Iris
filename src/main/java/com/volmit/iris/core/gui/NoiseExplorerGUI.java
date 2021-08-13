@@ -108,7 +108,8 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
 
     @EventHandler
     public void on(IrisEngineHotloadEvent e) {
-        generator = loader.get();
+        if (generator != null)
+            generator = loader.get();
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {

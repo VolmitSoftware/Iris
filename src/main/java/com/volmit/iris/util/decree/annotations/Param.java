@@ -48,8 +48,8 @@ public @interface Param {
     /**
      * The default value for this argument.<br>
      * The entered string is parsed to the value similarly to how commandline-text would be.<br>
-     * Default is {@link #REQUIRED}, which indicates the variable MUST be defined.
-     * If you define this, the variable automatically becomes non-required.
+     * Default is {@link #REQUIRED}, which indicates the variable MUST be defined by the person running the command.<br>
+     * If you define this, the variable automatically becomes non-required, but can still be set.
      */
     String value() default REQUIRED;
 

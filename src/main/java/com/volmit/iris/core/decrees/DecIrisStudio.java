@@ -35,6 +35,7 @@ public class DecIrisStudio implements DecreeExecutor
             @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed)
     {
+        sender().sendMessage(C.GREEN + "Opening studio for the " + dimension.getName() + " pack (seed: " + seed + ")");
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 

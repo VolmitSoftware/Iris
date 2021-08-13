@@ -85,7 +85,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static ConversionManager convert;
     public static WandManager wand;
     public static EditManager edit;
-    public static IrisBoardManager board;
+    public static BoardManager board;
     public static MultiverseCoreLink linkMultiverseCore;
     public static OraxenLink linkOraxen;
     public static MythicMobsLink linkMythicMobs;
@@ -121,7 +121,7 @@ public class Iris extends VolmitPlugin implements Listener {
         proj = new ProjectManager();
         convert = new ConversionManager();
         wand = new WandManager();
-        board = new IrisBoardManager();
+        board = new BoardManager();
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
         linkMythicMobs = new MythicMobsLink();

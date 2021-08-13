@@ -136,6 +136,11 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
+        if(y < 0)
+        {
+            return;
+        }
+
         Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
                 .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
                 .getOrCreate(y >> 4);
@@ -163,6 +168,11 @@ public class Mantle {
     public <T> T get(int x, int y, int z, Class<T> t) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
+        }
+
+        if(y < 0)
+        {
+            return null;
         }
 
         return (T) get((x >> 4) >> 5, (z >> 4) >> 5)

@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
-import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
 import com.volmit.iris.util.board.ScoreDirection;
@@ -44,20 +43,20 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import java.util.List;
 
-public class IrisBoardManager implements BoardProvider, Listener {
+public class BoardManager implements BoardProvider, Listener {
 
     private final BossBar energyBar;
-    private final BoardManager manager;
+    private final com.volmit.iris.util.board.BoardManager manager;
     private String mem = "...";
     public final RollingSequence hits = new RollingSequence(20);
     public final RollingSequence tp = new RollingSequence(100);
     private final ChronoLatch cl = new ChronoLatch(1000);
     private final ChronoLatch ecl = new ChronoLatch(50);
 
-    public IrisBoardManager() {
+    public BoardManager() {
         Iris.instance.registerListener(this);
         //@builder
-        manager = new BoardManager(Iris.instance, BoardSettings.builder()
+        manager = new com.volmit.iris.util.board.BoardManager(Iris.instance, BoardSettings.builder()
                 .boardProvider(this)
                 .scoreDirection(ScoreDirection.DOWN)
                 .build());
@@ -104,7 +103,6 @@ public class IrisBoardManager implements BoardProvider, Listener {
         Engine engine = IrisToolbelt.access(player.getWorld()).getEngine();
 
         if (cl.flip()) {
-            // TODO MEMORY
             mem = Form.memSize(0, 2);
         }
 
@@ -127,11 +125,11 @@ public class IrisBoardManager implements BoardProvider, Listener {
         memoryGuess += parallaxChunks * 3500L;
         memoryGuess += parallaxRegions * 1700000L;
 
-        tp.put(0); // TODO: CHUNK SPEED
+        tp.put(engine.getGeneratedPerSecond());
 
 
         v.add("&7&m------------------");
-        v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
+        v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(tp.getAverage(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
         v.add(C.GREEN + "Memory Use" + C.GRAY + ":  ~" + Form.memSize(memoryGuess, 0));
 
         if (engine != null) {

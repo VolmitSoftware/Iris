@@ -84,4 +84,12 @@ public class DecIrisStudio implements DecreeExecutor
         File folder = Iris.proj.getActiveProject().getPath();
         sender().sendMessage("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
+
+    @Decree(description = "Convert objects in the \"convert\" folder", aliases = "conv")
+    public void convert()
+    {
+        Iris.convert.check(sender());
+    }
+
+    
 }

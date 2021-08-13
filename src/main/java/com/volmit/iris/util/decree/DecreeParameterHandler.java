@@ -37,6 +37,11 @@ public interface DecreeParameterHandler<T> {
      */
     String toString(T t);
 
+    /**
+     * Forces conversion to the designated type before converting to a string using {@link #toString(T t)}
+     * @param t The object to convert to string (that should be of this type)
+     * @return The resulting string.
+     */
     default String toStringForce(Object t)
     {
         return toString((T)t);

@@ -57,7 +57,7 @@ public class DecreeParameter {
     }
 
     public boolean isRequired() {
-        return param.required();
+        return !hasDefault();
     }
 
     public KList<String> getNames() {
@@ -80,11 +80,11 @@ public class DecreeParameter {
     }
 
     public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
-        return param.defaultValue().isEmpty() ? null : getHandler().parse(param.defaultValue());
+        return param.defaultValue().equals(Param.REQUIRED) ? null : getHandler().parse(param.defaultValue());
     }
 
     public boolean hasDefault() {
-        return !param.defaultValue().isEmpty();
+        return !param.defaultValue().equals(Param.REQUIRED);
     }
 
     public String example() {

@@ -28,14 +28,14 @@ import java.lang.annotation.Target;
 public @interface Param {
     String DEFAULT_DESCRIPTION = "No Description Provided";
 
+    String REQUIRED = "Required";
+
     /**
      * The main name of this command.<br>
      * Required parameter.<br>
      * This is what is used in game, alongside any (if specified) {@link #aliases() aliases}
      */
     String name();
-
-    boolean required() default false;
 
     /**
      * The description of this parameter, used in help-popups in game.<br>
@@ -49,7 +49,7 @@ public @interface Param {
      * Which indicates the variable MUST be defined by the person running the command.<br>
      * If you define this, the variable automatically becomes non-required, but can still be set.
      */
-    String defaultValue() default "";
+    String defaultValue() default REQUIRED;
 
     /**
      * The aliases of this parameter (instead of just the {@link #name() name} (if specified) or Method Name (name of method))<br>

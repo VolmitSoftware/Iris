@@ -30,7 +30,7 @@ public class DecIrisStudio implements DecreeExecutor
 {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(name = "dimension", defaultValue = "overworld", aliases = "dim", required = true)
+            @Param(name = "dimension", defaultValue = "overworld", aliases = "dim")
                     IrisDimension dimension,
             @Param(name = "seed", defaultValue = "1337", aliases = "s")
                     long seed)

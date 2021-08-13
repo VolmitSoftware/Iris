@@ -327,7 +327,7 @@ public class VirtualDecreeCommand {
 
             try
             {
-                if(value == null && !i.getParam().defaultValue().trim().isEmpty())
+                if(value == null && i.hasDefault())
                 {
                     value = i.getDefaultValue();
                 }

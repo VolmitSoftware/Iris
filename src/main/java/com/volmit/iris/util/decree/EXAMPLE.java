@@ -18,10 +18,6 @@
 
 package com.volmit.iris.util.decree;
 
-<<<<<<< Updated upstream
-=======
-import com.volmit.iris.engine.object.biome.IrisBiome;
->>>>>>> Stashed changes
 import org.bukkit.entity.Player;
 
 public class EXAMPLE

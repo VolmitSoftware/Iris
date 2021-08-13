@@ -24,6 +24,14 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.json.JSONCleaner;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
+
+import java.io.File;
+import java.io.IOException;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class DecIrisStudio implements DecreeExecutor
@@ -35,7 +43,7 @@ public class DecIrisStudio implements DecreeExecutor
             @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed)
     {
-        sender().sendMessage(C.GREEN + "Opening studio for the " + dimension.getName() + " pack (seed: " + seed + ")");
+        sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 
@@ -49,5 +57,31 @@ public class DecIrisStudio implements DecreeExecutor
 
         Iris.proj.close();
         sender().sendMessage(C.GREEN + "Project Closed.");
+    }
+
+    @Decree(description = "Get the version of a pack", aliases = {"v", "ver"})
+    public void version(
+            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim")
+                    IrisDimension dimension
+    )
+    {
+        sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
+    }
+
+    @Decree(description = "Beatify a pack", aliases = {"beauty", "prettify"})
+    public void beautify(
+            @Param(name = "dimension", defaultValue = "overworld", description = "The to-beautify dimension", aliases = "dim")
+                    IrisDimension dimension
+    )
+    {
+        File folder = dimension.getLoadFile();
+        sender().sendMessage("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
+    }
+
+    @Decree(description = "Beatify a pack - must be in studio!", aliases = {"beauty", "prettify"})
+    public void beautify()
+    {
+        File folder = Iris.proj.getActiveProject().getPath();
+        sender().sendMessage("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 }

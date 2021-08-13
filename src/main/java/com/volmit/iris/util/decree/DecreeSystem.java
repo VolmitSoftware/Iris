@@ -53,7 +53,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         J.aBukkit(() -> {
-            if(!call(new VolmitSender(sender), args))
+            if(!call(new VolmitSender(sender, Iris.instance.getTag()), args))
             {
                 sender.sendMessage(C.RED + "Unknown Iris Command");
             }

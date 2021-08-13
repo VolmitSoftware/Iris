@@ -276,7 +276,7 @@ public class VirtualDecreeCommand {
         if(isStudio() && !IrisSettings.get().isStudio())
         {
             sender.sendMessage(C.RED + "To use Iris Studio Commands, please enable studio in Iris/settings.json (settings auto-reload)");
-            return false;
+            return true; // Must still return true because command exists but is not enabled
         }
 
         Iris.debug("@ " + getPath() + " with " + args.toString(", "));

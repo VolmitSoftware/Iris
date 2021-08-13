@@ -20,13 +20,12 @@ package com.volmit.iris.util.decree.handlers;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
-import com.volmit.iris.util.decree.DecreeParsingException;
-import com.volmit.iris.util.decree.DecreeWhichException;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 public class PlayerHandler implements DecreeParameterHandler<Player> {
     @Override
@@ -60,7 +59,7 @@ public class PlayerHandler implements DecreeParameterHandler<Player> {
 
         catch(Throwable e)
         {
-            throw new DecreeParsingException("Unable to find Player \"" + in + "\"");
+            throw new DecreeParsingException("Unable to find Player \"" + in + "\" because of an uncaught exception: " + e);
         }
     }
 

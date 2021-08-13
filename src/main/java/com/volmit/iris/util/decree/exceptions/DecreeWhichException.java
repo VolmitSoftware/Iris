@@ -16,18 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree;
+package com.volmit.iris.util.decree.exceptions;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Decree {
-    String name() default "methodName";
-
-    String description() default "No Description Provided";
-
-    DecreeOrigin origin() default DecreeOrigin.BOTH;
-
-    String[] aliases() default "";
+/**
+ * Thrown when more than one option is available for a singular mapping<br>
+ * Like having a hashmap where one input maps to two outputs.
+ */
+public class DecreeWhichException extends Exception{
+    public DecreeWhichException() {
+        super("More than one option for the entered input");
+    }
 }

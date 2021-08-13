@@ -20,7 +20,7 @@ package com.volmit.iris.util.decree.handlers;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
-import com.volmit.iris.util.decree.DecreeParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
 public class DoubleHandler implements DecreeParameterHandler<Double> {
     @Override

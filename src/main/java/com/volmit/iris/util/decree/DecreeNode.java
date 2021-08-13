@@ -19,64 +19,72 @@
 package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.decree.annotations.Decree;
+import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.exceptions.DecreeInstanceException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Arrays;
 
 public class DecreeNode {
     private final Method method;
+    private final Decree decree;
 
-    public DecreeNode(Method method)
-    {
+    public DecreeNode(Method method) throws DecreeInstanceException {
         this.method = method;
+        this.decree = method.getDeclaredAnnotation(Decree.class);
+        if (decree == null){
+            throw new DecreeInstanceException("Cannot instantiate DecreeNode on method not annotated by @Decree");
+        }
     }
 
-    public KList<DecreeParameter> getParameters()
-    {
+    /**
+     * Get the parameters of this decree node
+     * @return The list of parameters if ALL are annotated by @{@link Param}, else null
+     */
+    public KList<DecreeParameter> getParameters() {
         KList<DecreeParameter> p = new KList<>();
 
         for(Parameter i : method.getParameters())
         {
-            p.add(new DecreeParameter(i));
+            try {
+                p.add(new DecreeParameter(i));
+            } catch (DecreeInstanceException ignored) {
+                return null;
+            }
         }
 
         return p;
     }
 
-    public String getName()
-    {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p == null || p.name().equals("methodName") ? method.getName() : p.name();
+    public String getName() {
+        return decree.name().equals(Decree.METHOD_NAME) ? method.getName() : decree.name();
     }
 
-    public DecreeOrigin getOrigin()
-    {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p == null ? DecreeOrigin.BOTH : p.origin();
+    public DecreeOrigin getOrigin() {
+        return decree.origin();
     }
 
-    public String getDescription()
-    {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
-        return p != null ? p.description() : "No Description Provided";
+    public String getDescription() {
+        return decree.description().isEmpty() ? Decree.DEFAULT_DESCRIPTION : decree.description();
     }
 
-    public KList<String> getAliases()
-    {
-        Decree p = method.getDeclaredAnnotation(Decree.class);
+    public KList<String> getAliases() {
         KList<String> d = new KList<>();
 
-        if(p != null)
-        {
-            for(String i : p.aliases())
-            {
-                if(i.isEmpty())
-                {
-                    continue;
-                }
+        if (Arrays.equals(decree.aliases(), new String[]{Decree.NO_ALIASES})){
+            return d;
+        }
 
-                d.add(i);
+        for(String i : decree.aliases())
+        {
+            if(i.isEmpty())
+            {
+                continue;
             }
+
+            d.add(i);
         }
 
         return d;

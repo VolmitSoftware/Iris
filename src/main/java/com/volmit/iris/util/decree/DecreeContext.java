@@ -18,11 +18,7 @@
 
 package com.volmit.iris.util.decree;
 
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
@@ -33,7 +29,6 @@ import lombok.Data;
 public class DecreeContext {
     private static ChronoLatch cl = new ChronoLatch(60000);
     private static final KMap<Thread, VolmitSender> context = new KMap<>();
-    private final VolmitSender sender;
 
     public static VolmitSender get() {
         return context.get(Thread.currentThread());

@@ -18,26 +18,19 @@
 
 package com.volmit.iris.util.decree;
 
+import com.volmit.iris.util.decree.annotations.Decree;
+import com.volmit.iris.util.decree.annotations.Param;
 import org.bukkit.entity.Player;
 
-public class EXAMPLE
-{
+public class EXAMPLE extends DecreeCommand {
     @Decree
     public void kick(
             @Param(name = "player", description = "The Player to kick from the server", aliases = "p")
                     Player player,
-            @Param(name = "reason", description = "A reason to kick the player for", aliases = "r")
+            @Param(name = "reason", description = "A reason to kick the player for", value = "No reason!", aliases = "k")
                     String reason)
     {
         player.kickPlayer(reason);
         DecreeContext.get().sendMessage("Kicked " + player.getName());
-    }
-
-    @Decree
-    public void kick(
-            @Param(name = "player", description = "The Player to kick from the server", aliases = "p")
-                    Player player)
-    {
-        kick(player, "No Reason!");
     }
 }

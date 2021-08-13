@@ -16,8 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.decree;
+package com.volmit.iris.util.decree.exceptions;
 
+/**
+ * Thrown when a decree parameter is parsed, but parsing fails
+ */
 public class DecreeParsingException extends Exception{
     public DecreeParsingException(String message) {
         super(message);

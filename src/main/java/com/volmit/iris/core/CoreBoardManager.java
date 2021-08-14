@@ -43,7 +43,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import java.util.List;
 
-public class BoardManager implements BoardProvider, Listener {
+public class CoreBoardManager implements BoardProvider, Listener {
 
     private final BossBar energyBar;
     private final com.volmit.iris.util.board.BoardManager manager;
@@ -53,7 +53,7 @@ public class BoardManager implements BoardProvider, Listener {
     private final ChronoLatch cl = new ChronoLatch(1000);
     private final ChronoLatch ecl = new ChronoLatch(50);
 
-    public BoardManager() {
+    public CoreBoardManager() {
         Iris.instance.registerListener(this);
         //@builder
         manager = new com.volmit.iris.util.board.BoardManager(Iris.instance, BoardSettings.builder()

@@ -70,6 +70,12 @@ public interface DecreeParameterHandler<T> {
      */
     default KList<T> getPossibilities(String input)
     {
+        if(input.trim().isEmpty())
+        {
+            KList<T> f = getPossibilities();
+            return f == null ? new KList<>() : f;
+        }
+
         input = input.trim();
         KList<T> possible = getPossibilities();
         KList<T> matches = new KList<>();

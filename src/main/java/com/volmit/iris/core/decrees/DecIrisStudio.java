@@ -19,7 +19,6 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
@@ -50,7 +49,9 @@ import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONCleaner;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -59,6 +60,10 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.JobCollection;
+import com.volmit.iris.util.scheduling.jobs.QueueJob;
+import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.event.inventory.InventoryType;
@@ -67,6 +72,8 @@ import org.bukkit.inventory.Inventory;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
@@ -90,6 +97,193 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
 
         Iris.proj.close();
         success("Project Closed.");
+    }
+
+    @Decree(description = "Create a new studio project", aliases = "+", sync = true)
+    public void create(
+            @Param(name = "name", description = "The name of this new Iris Project.")
+                    String name,
+            @Param(name = "template", description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.")
+                    IrisDimension template)
+    {
+        if (template != null) {
+            Iris.proj.create(sender(), name, template.getLoadKey());
+        } else {
+            Iris.proj.create(sender(), name);
+        }
+    }
+
+    @Decree(description = "Clean an Iris Project, optionally beautifying JSON & fixing block ids with missing keys. Also rebuilds the vscode schemas. ")
+    public void clean(
+            @Param(name = "project", description = "The project to update")
+                    IrisDimension project,
+
+            @Param(name = "beautify", defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
+                    boolean beautify,
+
+            @Param(name = "fix-ids", defaultValue = "true", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
+                    boolean fixIds,
+
+            @Param(name = "rewriteObjects", defaultValue = "false", description = "Imports all objects and re-writes them cleaning up positions & block data in the process.")
+                    boolean rewriteObjects
+    ) {
+        KList<Job> jobs = new KList<>();
+        KList<File> files = new KList<File>();
+        files(Iris.instance.getDataFolder("packs", project.getLoadKey()), files);
+        MultiBurst burst = new MultiBurst("Cleaner", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() * 2);
+
+        jobs.add(new SingleJob("Updating Workspace", () -> {
+            if (!new IrisProject(Iris.proj.getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
+                sender().sendMessage(C.GOLD + "Invalid project: " + project.getLoadKey() + ". Try deleting the code-workspace file and try again.");
+            }
+            J.sleep(250);
+        }));
+
+        sender().sendMessage("Files: " + files.size());
+
+        if(fixIds)
+        {
+            QueueJob<File> r = new QueueJob<>() {
+                @Override
+                public void execute(File f) {
+                    try {
+                        JSONObject p = new JSONObject(IO.readAll(f));
+                        fixBlocks(p);
+                        J.sleep(1);
+                        IO.writeAll(f, p.toString(4));
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public String getName() {
+                    return "Fixing IDs";
+                }
+            };
+
+            r.queue(files);
+            jobs.add(r);
+        }
+
+        if(beautify)
+        {
+            QueueJob<File> r = new QueueJob<>() {
+                @Override
+                public void execute(File f) {
+                    try {
+                        JSONObject p = new JSONObject(IO.readAll(f));
+                        IO.writeAll(f, p.toString(4));
+                        J.sleep(1);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public String getName() {
+                    return "Beautify";
+                }
+            };
+
+            r.queue(files);
+            jobs.add(r);
+        }
+
+        if(rewriteObjects)
+        {
+            QueueJob<Runnable> q = new QueueJob<>() {
+                @Override
+                public void execute(Runnable runnable) {
+                    runnable.run();
+                    J.sleep(50);
+                }
+
+                @Override
+                public String getName() {
+                    return "Rewriting Objects";
+                }
+            };
+
+            IrisData data = new IrisData(Iris.proj.getWorkspaceFolder(project.getLoadKey()));
+            for (String f : data.getObjectLoader().getPossibleKeys()) {
+                CompletableFuture<?> gg = burst.complete(() ->{
+                    File ff = data.getObjectLoader().findFile(f);
+                    IrisObject oo = new IrisObject(0, 0, 0);
+                    try {
+                        oo.read(ff);
+                    } catch (Throwable e) {
+                        Iris.error("FAILER TO READ: " + f);
+                        return;
+                    }
+
+                    try {
+                        oo.write(ff);
+                    } catch (IOException e) {
+                        Iris.error("FAILURE TO WRITE: " + oo.getLoadFile());
+                    }
+                });
+
+                q.queue(() -> {
+                    try {
+                        gg.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
+            jobs.add(q);
+        }
+
+        jobs.add(new SingleJob("Finishing Up", burst::shutdownNow));
+
+        new JobCollection("Cleaning", jobs).execute(sender());
+    }
+
+    public void files(File clean, KList<File> files)
+    {
+        if (clean.isDirectory()) {
+            for (File i : clean.listFiles()) {
+                files(i, files);
+            }
+        } else if (clean.getName().endsWith(".json")) {
+            try {
+                files.add(clean);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
+            }
+        }
+    }
+
+    private void fixBlocks(JSONObject obj) {
+        for (String i : obj.keySet()) {
+            Object o = obj.get(i);
+
+            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+                obj.put(i, "minecraft:" + o);
+            }
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
+            }
+        }
+    }
+
+    private void fixBlocks(JSONArray obj) {
+        for (int i = 0; i < obj.length(); i++) {
+            Object o = obj.get(i);
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
+            }
+        }
     }
 
     @Decree(description = "Get the version of a pack", aliases = {"v", "ver"})
@@ -128,11 +322,7 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
         if (noStudio()) return;
 
         try {
-            File f = engine().getBiome(
-                    player().getLocation().getBlockX(),
-                    player().getLocation().getBlockY(),
-                    player().getLocation().getBlockZ()).getLoadFile();
-            Desktop.getDesktop().open(f);
+            Desktop.getDesktop().open(Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(sender().player().getLocation()).getLoadFile());
         } catch (Throwable e) {
             Iris.reportError(e);
             error("Cant find the file. Unsure why this happened.");
@@ -499,50 +689,8 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
     @Decree(description = "Update your dimension project", aliases = {"upd", "u"})
     public void update(
         @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension to update the workspace of")
-                IrisDimension dimension,
-        @Param(name = "objects", aliases = "o", description = "Whether or not to update your objects to the new object system")
-                boolean rewriteObject)
-    {
-        if (rewriteObject) {
-            IrisData data = dimension.getLoader();
-            int t = data.getObjectLoader().getPossibleKeys().length;
-            ChronoLatch cl = new ChronoLatch(250, false);
-            MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
-            BurstExecutor b = bx.burst();
-            int g = 0;
-            for (String f : data.getObjectLoader().getPossibleKeys()) {
-                int finalG1 = g;
-                b.queue(() -> {
-
-                    if (cl.flip()) {
-                        Iris.info("Rewriting: " + Form.f(t - finalG1) + " Objects Left");
-                    }
-                    File ff = data.getObjectLoader().findFile(f);
-                    IrisObject oo = new IrisObject(0, 0, 0);
-                    try {
-                        oo.read(ff);
-                    } catch (Throwable e) {
-                        Iris.error("FAILER TO READ: " + f);
-                        return;
-                    }
-
-                    try {
-                        oo.write(ff);
-                    } catch (IOException e) {
-                        Iris.error("FAILURE TO WRITE: " + oo.getLoadFile());
-                    }
-                });
-                g++;
-            }
-
-            int finalG = g;
-            message("Attempting object rewrite now...");
-            b.complete();
-            bx.shutdownNow();
-            success("Done! Rewrote " + Form.f(finalG) + " Objects!");
-        }
-
-
+                IrisDimension dimension
+    ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
             success("Updated Code Workspace for " + dimension.getName());
         } else {

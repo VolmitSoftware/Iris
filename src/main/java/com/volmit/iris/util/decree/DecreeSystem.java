@@ -47,8 +47,12 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
     @Nullable
     @Override
     default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return new KList<>();
+        KList<String> enhanced = new KList<>(args);
+        KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
+        v.removeDuplicates();
+        return v;
     }
+
 
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -63,6 +67,11 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
     static KList<String> enhanceArgs(String[] args)
     {
+        return enhanceArgs(args, true);
+    }
+
+    static KList<String> enhanceArgs(String[] args, boolean trim)
+    {
         KList<String> a = new KList<>();
 
         if(args.length == 0)
@@ -73,15 +82,26 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         StringBuilder flat = new StringBuilder();
         for(String i : args)
         {
-            if(i.trim().isEmpty())
+            if(trim)
             {
-                continue;
+                if(i.trim().isEmpty())
+                {
+                    continue;
+                }
+
+                flat.append(" ").append(i.trim());
             }
 
-            flat.append(" ").append(i.trim());
+            else
+            {
+                if(i.endsWith(" "))
+                {
+                    flat.append(" ").append(i.trim()).append(" ");
+                }
+            }
         }
 
-        flat = new StringBuilder(flat.substring(1).trim());
+        flat = new StringBuilder(flat.length() > 0 ? trim ? flat.toString().trim().length() > 0 ?flat.substring(1).trim() : flat.toString().trim() : flat.substring(1) : flat);
         StringBuilder arg = new StringBuilder();
         boolean quoting = false;
 
@@ -93,7 +113,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
             if(i == ' ' && !quoting)
             {
-                if(!arg.toString().trim().isEmpty())
+                if(!arg.toString().trim().isEmpty() && trim)
                 {
                     a.add(arg.toString().trim());
                     arg = new StringBuilder();
@@ -113,7 +133,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
                     if(hasNext && j == ' ')
                     {
-                        if(!arg.toString().trim().isEmpty())
+                        if(!arg.toString().trim().isEmpty() && trim)
                         {
                             a.add(arg.toString().trim());
                             arg = new StringBuilder();
@@ -122,7 +142,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
                     else if(!hasNext)
                     {
-                        if(!arg.toString().trim().isEmpty())
+                        if(!arg.toString().trim().isEmpty() && trim)
                         {
                             a.add(arg.toString().trim());
                             arg = new StringBuilder();
@@ -137,7 +157,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
             }
         }
 
-        if(!arg.toString().trim().isEmpty())
+        if(!arg.toString().trim().isEmpty() && trim)
         {
             a.add(arg.toString().trim());
         }

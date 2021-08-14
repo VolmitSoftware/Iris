@@ -1,74 +1,61 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util.decree.handlers;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
-
-import java.util.Locale;
+import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.RNG;
 
 public class BooleanHandler implements DecreeParameterHandler<Boolean> {
-    private static final KList<String> trues = new KList<>(
-            "true",
-            "yes",
-            "t",
-            "1"
-    );
-    private static final KList<String> falses = new KList<>(
-            "false",
-            "no",
-            "f",
-            "0"
-    );
-
-    /**
-     * Should return the possible values for this type
-     *
-     * @return Possibilities for this type.
-     */
     @Override
     public KList<Boolean> getPossibilities() {
         return null;
     }
 
-    /**
-     * Converting the type back to a string (inverse of the {@link #parse(String) parse} method)
-     *
-     * @param aBoolean The input of the designated type to convert to a String
-     * @return The resulting string
-     */
     @Override
-    public String toString(Boolean aBoolean) {
-        return aBoolean.toString();
+    public String toString(Boolean aByte) {
+        return aByte.toString();
     }
 
-    /**
-     * Should parse a String into the designated type
-     *
-     * @param in The string to parse
-     * @return The value extracted from the string, of the designated type
-     * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
-     * @throws DecreeWhichException   Thrown when multiple results are possible
-     */
     @Override
-    public Boolean parse(String in) throws DecreeParsingException, DecreeWhichException {
-        if (trues.contains(in.toLowerCase())){
-            return true;
+    public Boolean parse(String in) throws DecreeParsingException {
+        try
+        {
+            return Boolean.parseBoolean(in);
         }
-        if (falses.contains(in.toLowerCase())){
-            return false;
+
+        catch(Throwable e)
+        {
+            throw new DecreeParsingException("Unable to parse boolean \"" + in + "\"");
         }
-        throw new DecreeParsingException("Cannot convert \"" + in + "\" to a boolean (" + trues.toString(", ") + " / " + falses.toString(", ") + ")");
     }
 
-    /**
-     * Returns whether a certain type is supported by this handler<br>
-     *
-     * @param type The type to check
-     * @return True if supported, false if not
-     */
     @Override
     public boolean supports(Class<?> type) {
-        return type.equals(boolean.class) || type.equals(Boolean.class);
+        return type.equals(Boolean.class) || type.equals(boolean.class);
+    }
+
+    @Override
+    public String getRandomDefault()
+    {
+        return M.r(0.5) + "";
     }
 }

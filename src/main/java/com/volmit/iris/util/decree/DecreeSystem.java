@@ -47,10 +47,8 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
     @Nullable
     @Override
     default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        Iris.debug("TAB COMPLETE ======================================================");
         KList<String> enhanced = new KList<>(args);
         KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
-        Iris.debug("input: '" + enhanced.toString(" ") + "'");
         v.removeDuplicates();
         return v;
     }

@@ -38,8 +38,6 @@ import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.decree.DecreeCommand;
-import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;

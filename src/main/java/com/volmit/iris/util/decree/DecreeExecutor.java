@@ -21,10 +21,7 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-<<<<<<< HEAD
 import com.volmit.iris.util.format.C;
-=======
->>>>>>> master
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.World;
 import org.bukkit.entity.Player;

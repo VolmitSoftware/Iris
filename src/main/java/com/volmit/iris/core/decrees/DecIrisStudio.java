@@ -21,23 +21,28 @@ package com.volmit.iris.core.decrees;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class DecIrisStudio implements DecreeExecutor
@@ -144,5 +149,27 @@ public class DecIrisStudio implements DecreeExecutor
         NoiseExplorerGUI.launch();
     }
 
-    
+
+    @Decree(description = "Preview created noise generators", aliases = {"generator", "gen"})
+    public void explore(
+            @Param(name = "generator", description = "The generator to explore", aliases = {"gen", "g"})
+                    IrisGenerator generator,
+            @Param(name = "seed", description = "The seed to generate with", aliases = "s", defaultValue = "12345")
+                    long seed)
+    {
+        if (!IrisSettings.get().isUseServerLaunchedGuis()){
+            sender().sendMessage(C.RED + "To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
+
+        Supplier<Function2<Double, Double, Double>> l = () -> {
+
+            if (generator == null) {
+                return (x, z) -> 0D;
+            }
+
+            return (x, z) -> generator.getHeight(x, z, new RNG(seed).nextParallelRNG(3245).lmax());
+        };
+    }
 }

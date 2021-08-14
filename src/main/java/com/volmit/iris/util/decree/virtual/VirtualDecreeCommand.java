@@ -617,6 +617,14 @@ public class VirtualDecreeCommand {
         return Objects.hash(getName(), getDescription(), getType(), getPath());
     }
 
+    @Override
+    public boolean equals(Object obj){
+        if (!(obj instanceof VirtualDecreeCommand)){
+            return false;
+        }
+        return this.hashCode() == obj.hashCode();
+    }
+
     public boolean matches(String in)
     {
         KList<String> a = getNames();

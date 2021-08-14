@@ -18,11 +18,11 @@ public interface DecreeStudioExtension extends DecreeExecutor {
     }
 
     /**
-     * @return true if no studio is open & the player
+     * @return true if no studio is open or the player is not in one
      */
     default boolean noStudio(){
         if (!sender().isPlayer()){
-            error("Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER)");
+            error("Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return true;
         }
         if (!Iris.proj.isProjectOpen()){

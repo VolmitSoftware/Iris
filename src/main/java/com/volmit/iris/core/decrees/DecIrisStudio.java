@@ -19,6 +19,7 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
@@ -35,6 +36,7 @@ import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.noise.IrisInterpolator;
 import com.volmit.iris.engine.object.noise.IrisNoiseGenerator;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -51,10 +53,14 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 
@@ -473,5 +479,74 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
         entity.spawn(engine(), player().getLocation().clone().add(0, 2, 0));
     }
 
-    
+    @Decree(description = "Teleport to the active studio world", aliases = {"tps", "stp", "tp"}, origin = DecreeOrigin.PLAYER)
+    public void tpstudio(){
+        if (!Iris.proj.isProjectOpen()){
+            error("No studio world is open!");
+            return;
+        }
+
+        if (engine().isStudio()){
+            error("You are already in a studio world!");
+            return;
+        }
+
+        success("Sending you to the studio world!");
+        player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
+        player().setGameMode(GameMode.SPECTATOR);
+    }
+
+    @Decree(description = "Update your dimension project", aliases = {"upd", "u"})
+    public void update(
+        @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension to update the workspace of")
+                IrisDimension dimension,
+        @Param(name = "objects", aliases = "o", description = "Whether or not to update your objects to the new object system")
+                boolean rewriteObject)
+    {
+        if (rewriteObject) {
+            IrisData data = dimension.getLoader();
+            int t = data.getObjectLoader().getPossibleKeys().length;
+            ChronoLatch cl = new ChronoLatch(250, false);
+            MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
+            BurstExecutor b = bx.burst();
+            int g = 0;
+            for (String f : data.getObjectLoader().getPossibleKeys()) {
+                int finalG1 = g;
+                b.queue(() -> {
+
+                    if (cl.flip()) {
+                        Iris.info("Rewriting: " + Form.f(t - finalG1) + " Objects Left");
+                    }
+                    File ff = data.getObjectLoader().findFile(f);
+                    IrisObject oo = new IrisObject(0, 0, 0);
+                    try {
+                        oo.read(ff);
+                    } catch (Throwable e) {
+                        Iris.error("FAILER TO READ: " + f);
+                        return;
+                    }
+
+                    try {
+                        oo.write(ff);
+                    } catch (IOException e) {
+                        Iris.error("FAILURE TO WRITE: " + oo.getLoadFile());
+                    }
+                });
+                g++;
+            }
+
+            int finalG = g;
+            message("Attempting object rewrite now...");
+            b.complete();
+            bx.shutdownNow();
+            success("Done! Rewrote " + Form.f(finalG) + " Objects!");
+        }
+
+
+        if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
+            success("Updated Code Workspace for " + dimension.getName());
+        } else {
+            error("Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
+        }
+    }
 }

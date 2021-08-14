@@ -363,6 +363,10 @@ public class ProjectManager {
         }
     }
 
+    public File compilePackage(VolmitSender sender, IrisDimension d, boolean obfuscate, boolean minify) {
+        return new IrisProject(new File(getWorkspaceFolder(), d.getName())).compilePackage(sender, obfuscate, minify);
+    }
+
     public File compilePackage(VolmitSender sender, String d, boolean obfuscate, boolean minify) {
         return new IrisProject(new File(getWorkspaceFolder(), d)).compilePackage(sender, obfuscate, minify);
     }

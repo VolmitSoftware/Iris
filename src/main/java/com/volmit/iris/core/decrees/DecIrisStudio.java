@@ -214,7 +214,19 @@ public class DecIrisStudio implements DecreeExecutor {
         success("Opening map!");
     }
 
-    
+    @Decree(description = "Package a dimension into a compressed format", aliases = "package")
+    public void pkg(
+            @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension pack to compress")
+            IrisDimension dimension,
+            @Param(name = "obfuscate", aliases = "o", description = "Whether or not to obfuscate the pack", defaultValue = "false")
+            boolean obfuscate,
+            @Param(name = "minify", aliases = "m", description = "Whether or not to minify the pack", defaultValue = "true")
+            boolean minify
+    ){
+        J.a(() -> {
+            Iris.proj.compilePackage(sender(), dimension, obfuscate, minify);
+        });
+    }
 
     /**
      * @return true if server GUIs are not enabled

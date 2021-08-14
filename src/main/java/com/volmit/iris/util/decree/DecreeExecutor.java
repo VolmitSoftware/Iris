@@ -21,6 +21,7 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.plugin.VolmitSender;
+import org.bukkit.World;
 
 public interface DecreeExecutor {
     default VolmitSender sender()
@@ -35,6 +36,14 @@ public interface DecreeExecutor {
             return IrisToolbelt.access(sender().player().getWorld()).getEngine();
         }
 
+        return null;
+    }
+
+    default World world()
+    {
+        if (sender().isPlayer()){
+            return sender().player().getWorld();
+        }
         return null;
     }
 

@@ -23,9 +23,14 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
+import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -38,6 +43,7 @@ import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 
 import java.awt.*;
 import java.io.File;
@@ -171,5 +177,41 @@ public class DecIrisStudio implements DecreeExecutor
 
             return (x, z) -> generator.getHeight(x, z, new RNG(seed).nextParallelRNG(3245).lmax());
         };
+    }
+
+    @Decree(description = "Find any biome", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
+    public void find(
+            @Param(name = "biome", description = "The biome to find", aliases = "b")
+            IrisBiome biome
+    )
+    {
+        J.a(() -> {
+            IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+
+            if (l == null) {
+                sender().sendMessage("Couldn't find " + biome.getName() + ".");
+            } else {
+                sender().sendMessage("Found " + biome.getName() + "!");
+                J.s(() -> sender().player().teleport(l.toLocation(world())));
+            }
+        });
+    }
+
+    @Decree(description = "Find any region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
+    public void find(
+            @Param(name = "region", description = "The region to find", aliases = "r")
+                    IrisRegion region
+    )
+    {
+        J.a(() -> {
+            IrisPosition l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+
+            if (l == null) {
+                sender().sendMessage("Couldn't find " + region.getName() + ".");
+            } else {
+                sender().sendMessage("Found " + region.getName() + "!");
+                J.s(() -> sender().player().teleport(l.toLocation(world())));
+            }
+        });
     }
 }

@@ -474,7 +474,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 .minHeight(0)
                 .maxHeight(256)
                 .build();
-        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dim.getName());
+        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dim.getLoadKey());
     }
 
     public static void msg(String string) {

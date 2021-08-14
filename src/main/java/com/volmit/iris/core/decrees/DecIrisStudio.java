@@ -48,7 +48,7 @@ import java.io.File;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class DecIrisStudio implements DecreeExecutor {
+public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(name = "dimension", defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
@@ -226,35 +226,5 @@ public class DecIrisStudio implements DecreeExecutor {
         J.a(() -> {
             Iris.proj.compilePackage(sender(), dimension, obfuscate, minify);
         });
-    }
-
-    /**
-     * @return true if server GUIs are not enabled
-     */
-    private boolean noGUI() {
-        if (!IrisSettings.get().isUseServerLaunchedGuis()){
-            error("You must have server launched GUIs enabled in the settings!");
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @return true if no studio is open & the player
-     */
-    private boolean noStudio(){
-        if (!sender().isPlayer()){
-            error("Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER)");
-            return true;
-        }
-        if (!Iris.proj.isProjectOpen()){
-            error("No studio world is open!");
-            return true;
-        }
-        if (!engine().isStudio()){
-            error("You must be in a studio world!");
-            return true;
-        }
-        return false;
     }
 }

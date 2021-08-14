@@ -60,7 +60,7 @@ public class DecIrisStudio implements DecreeExecutor
             @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed)
     {
-        sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
+        success("Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 
@@ -68,12 +68,12 @@ public class DecIrisStudio implements DecreeExecutor
     public void close()
     {
         if (!Iris.proj.isProjectOpen()) {
-            sender().sendMessage(C.RED + "No open studio projects.");
+            error("No open studio projects.");
             return;
         }
 
         Iris.proj.close();
-        sender().sendMessage(C.GREEN + "Project Closed.");
+        success("Project Closed.");
     }
 
     @Decree(description = "Get the version of a pack", aliases = {"v", "ver"})
@@ -82,7 +82,7 @@ public class DecIrisStudio implements DecreeExecutor
                     IrisDimension dimension
     )
     {
-        sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
+        success("The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
     }
 
     @Decree(description = "Beatify a pack", aliases = {"beauty", "prettify"})
@@ -92,14 +92,14 @@ public class DecIrisStudio implements DecreeExecutor
     )
     {
         File folder = dimension.getLoadFile();
-        sender().sendMessage("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
+        success("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 
     @Decree(description = "Beatify a pack - must be in studio!", aliases = {"beauty", "prettify"})
     public void beautify()
     {
         File folder = Iris.proj.getActiveProject().getPath();
-        sender().sendMessage("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
+        success("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 
     @Decree(description = "Convert objects in the \"convert\" folder", aliases = "conv")
@@ -113,25 +113,25 @@ public class DecIrisStudio implements DecreeExecutor
     public void editbiome()
     {
         if (!Iris.proj.isProjectOpen()){
-            sender().sendMessage(C.RED + "The is no studio currently open!");
+            error("The is no studio currently open!");
             return;
         }
 
-        if (!Iris.proj.getActiveProject().getActiveProvider().getEngine().getWorld().realWorld().equals(sender().player().getWorld())){
-            sender().sendMessage(C.RED + "You must be in a studio world to edit a biome!");
+        if (!Iris.proj.getActiveProject().getActiveProvider().getEngine().getWorld().realWorld().equals(player().getWorld())){
+            error("You must be in a studio world to edit a biome!");
             return;
         }
 
 
         try {
             File f = Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(
-                    sender().player().getLocation().getBlockX(),
-                    sender().player().getLocation().getBlockY(),
-                    sender().player().getLocation().getBlockZ()).getLoadFile();
+                    player().getLocation().getBlockX(),
+                    player().getLocation().getBlockY(),
+                    player().getLocation().getBlockZ()).getLoadFile();
             Desktop.getDesktop().open(f);
         } catch (Throwable e) {
             Iris.reportError(e);
-            sender().sendMessage("Cant find the file. Unsure why this happened.");
+            error("Cant find the file. Unsure why this happened.");
         }
     }
 
@@ -141,17 +141,17 @@ public class DecIrisStudio implements DecreeExecutor
             IrisScript script
     )
     {
-        IrisToolbelt.access(sender().player().getWorld()).getEngine().getExecution().execute(script);
+        engine().getExecution().execute(script);
     }
 
     @Decree(description = "Open the noise explorer (must have a local server!)", aliases = "nmap")
     public void noise()
     {
         if (!IrisSettings.get().isUseServerLaunchedGuis()){
-            sender().sendMessage(C.RED + "To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
+            error("To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
             return;
         }
-        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
+        success("Opening Noise Explorer!");
         NoiseExplorerGUI.launch();
     }
 
@@ -164,10 +164,10 @@ public class DecIrisStudio implements DecreeExecutor
                     long seed)
     {
         if (!IrisSettings.get().isUseServerLaunchedGuis()){
-            sender().sendMessage(C.RED + "To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
+            error("To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
             return;
         }
-        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
+        success("Opening Noise Explorer!");
 
         Supplier<Function2<Double, Double, Double>> l = () -> {
 
@@ -186,13 +186,13 @@ public class DecIrisStudio implements DecreeExecutor
     )
     {
         J.a(() -> {
-            IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+            IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
             if (l == null) {
-                sender().sendMessage("Couldn't find " + biome.getName() + ".");
+                error("Couldn't find " + biome.getName() + ".");
             } else {
-                sender().sendMessage("Found " + biome.getName() + "!");
-                J.s(() -> sender().player().teleport(l.toLocation(world())));
+                success("Found " + biome.getName() + "!");
+                J.s(() -> player().teleport(l.toLocation(world())));
             }
         });
     }
@@ -204,14 +204,32 @@ public class DecIrisStudio implements DecreeExecutor
     )
     {
         J.a(() -> {
-            IrisPosition l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+            IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
             if (l == null) {
-                sender().sendMessage("Couldn't find " + region.getName() + ".");
+                error("Couldn't find " + region.getName() + ".");
             } else {
-                sender().sendMessage("Found " + region.getName() + "!");
-                J.s(() -> sender().player().teleport(l.toLocation(world())));
+                success("Found " + region.getName() + "!");
+                J.s(() -> player().teleport(l.toLocation(world())));
             }
         });
     }
+
+    @Decree(description = "Hotload a studio", aliases = {"hot", "h", "reload"}, origin = DecreeOrigin.PLAYER)
+    public void hotload()
+    {
+        if (!engine().isStudio()){
+            error("You must be in an Iris Studio");
+            return;
+        }
+
+        if (access() == null){
+            error("Could not gain access to the generator of your studio");
+            return;
+        }
+
+        access().hotload();
+    }
+
+    
 }

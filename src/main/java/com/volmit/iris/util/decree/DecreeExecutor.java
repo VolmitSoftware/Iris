@@ -20,13 +20,44 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 public interface DecreeExecutor {
     default VolmitSender sender()
     {
         return DecreeContext.get();
+    }
+
+    default Player player()
+    {
+        if (sender().isPlayer()) {
+            return sender().player();
+        }
+        return null;
+    }
+
+    default void message(String string)
+    {
+        sender().sendMessage(string);
+    }
+
+    default void success(String string)
+    {
+        message(C.GREEN + string);
+    }
+
+    default void error(String string)
+    {
+        message(C.RED + string);
+    }
+
+    default void warn(String string)
+    {
+        message(C.YELLOW + string);
     }
 
     default Engine engine()
@@ -36,6 +67,14 @@ public interface DecreeExecutor {
             return IrisToolbelt.access(sender().player().getWorld()).getEngine();
         }
 
+        return null;
+    }
+
+    default PlatformChunkGenerator access()
+    {
+        if(sender().isPlayer()) {
+            return IrisToolbelt.access(world());
+        }
         return null;
     }
 

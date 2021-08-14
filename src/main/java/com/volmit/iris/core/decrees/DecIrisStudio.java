@@ -21,6 +21,7 @@ package com.volmit.iris.core.decrees;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
+import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IrisScript;
@@ -88,9 +89,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Beatify a pack - must be in studio!", aliases = {"beauty", "prettify"})
     public void beautify() {
-        if (noStudio()){
-            return;
-        }
+        if (noStudio()) return;
         File folder = Iris.proj.getActiveProject().getPath();
         success("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
@@ -104,9 +103,7 @@ public class DecIrisStudio implements DecreeExecutor {
     @Decree(description = "Edit the biome you're currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
     public void editbiome() {
 
-        if (noStudio()){
-            return;
-        }
+        if (noStudio()) return;
 
         try {
             File f = engine().getBiome(
@@ -128,27 +125,21 @@ public class DecIrisStudio implements DecreeExecutor {
         engine().getExecution().execute(script);
     }
 
-    @Decree(description = "Open the noise explorer (must have a local server!)", aliases = "nmap")
+    @Decree(description = "Open the noise explorer (External GUI)", aliases = "nmap")
     public void noise() {
-        if (!IrisSettings.get().isUseServerLaunchedGuis()) {
-            error("To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
-            return;
-        }
+        if (noGUI()) return;
         success("Opening Noise Explorer!");
         NoiseExplorerGUI.launch();
     }
 
 
-    @Decree(description = "Preview created noise generators", aliases = {"generator", "gen"})
+    @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
             @Param(name = "generator", description = "The generator to explore", aliases = {"gen", "g"})
                     IrisGenerator generator,
             @Param(name = "seed", description = "The seed to generate with", aliases = "s", defaultValue = "12345")
                     long seed) {
-        if (!IrisSettings.get().isUseServerLaunchedGuis()) {
-            error("To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
-            return;
-        }
+        if (noGUI()) return;
         success("Opening Noise Explorer!");
 
         Supplier<Function2<Double, Double, Double>> l = () -> {
@@ -159,6 +150,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
             return (x, z) -> generator.getHeight(x, z, new RNG(seed).nextParallelRNG(3245).lmax());
         };
+        NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
     @Decree(description = "Find any biome", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
@@ -197,9 +189,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Hotload a studio", aliases = {"hot", "h", "reload"}, origin = DecreeOrigin.PLAYER)
     public void hotload() {
-        if (noStudio()){
-            return;
-        }
+        if (noStudio()) return;
 
         access().hotload();
     }
@@ -207,13 +197,34 @@ public class DecIrisStudio implements DecreeExecutor {
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER)
     public void loot()
     {
-        if (noStudio()){
-            return;
-        }
+        if (noStudio()) return;
 
         KList<IrisLootTable> tables = engine().getLootTables(RNG.r, player().getLocation().getBlock());
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
+    }
 
+    @Decree(description = "Render a world map (External GUI)", aliases = "render")
+    public void map()
+    {
+        if (noStudio()) return;
+
+        if (noGUI()) return;
+
+        VisionGUI.launch(engine(), 0);
+        success("Opening map!");
+    }
+
+    
+
+    /**
+     * @return true if server GUIs are not enabled
+     */
+    private boolean noGUI() {
+        if (!IrisSettings.get().isUseServerLaunchedGuis()){
+            error("You must have server launched GUIs enabled in the settings!");
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -367,7 +367,7 @@ public class VolmitSender implements CommandSender {
         {
             m.add((i.isNode()
                     ? (i.getNode().getParameters().isNotEmpty())
-                    ? "<gradient:#aebef2:#aef0f2>Or: <gradient:#5ef288:#99f25e>"
+                    ? "<gradient:#aebef2:#aef0f2>✦ <gradient:#5ef288:#99f25e>"
                     + i.getParentPath()
                     + " <gradient:#42ecf5:#428df5>"
                     + i.getName() + " "
@@ -384,11 +384,44 @@ public class VolmitSender implements CommandSender {
         return m.removeDuplicates().convert((iff) -> iff.replaceAll("\\Q  \\E", " ")).toString("\n");
     }
 
+
+    public void sendHeader(String name, int overrideLength)
+    {
+        int len = overrideLength;
+        int h = name.length() + 2;
+        String s = Form.repeat(" ", len - h - 4);
+        String si = Form.repeat("(", 3);
+        String so = Form.repeat(")", 3);
+        String sf = "[";
+        String se = "]";
+
+        if(name.trim().isEmpty())
+        {
+            sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>"  + s + se);
+        }
+
+        else
+        {
+            sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + si + "<reset> <gradient:#3299bf:#323bbf>" + name + "<reset> <font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + so + s + se);
+        }
+    }
+
+    public void sendHeader(String name)
+    {
+        sendHeader(name,46);
+    }
+
     public void sendDecreeHelp(VirtualDecreeCommand v) {
         int m = v.getNodes().size();
 
         if(v.getNodes().isNotEmpty())
         {
+            sendHeader(Form.capitalize(v.getName()) + " Help");
+            if(isPlayer() && v.getParent() != null)
+            {
+                sendMessageRaw("<hover:show_text:'"+"<gradient:#b54b38:#b5a038>Click to go back to <gradient:#3299bf:#323bbf>" + Form.capitalize(v.getParent().getName()) + " Help" +"'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><gradient:#f58571:#f5cd71>〈 Back</click></hover>");
+            }
+
             for(VirtualDecreeCommand i : v.getNodes())
             {
                 if(isPlayer())
@@ -397,15 +430,15 @@ public class VolmitSender implements CommandSender {
                     sendMessageRaw(
                         "<hover:show_text:'"+
                         i.getNames().copy().reverse().convert((f) -> "<gradient:#42ecf5:#428df5>" + f).toString(", ") + "\n"
-                        + "<gradient:#dbf296:#e7f0ce>" + i.getDescription() + "\n"
-                        + "<gradient:#a8e0a2:#aef2cd>" + (i.isNode()
+                        + "<#3fe05a>✎ <gradient:#6ad97d:#6ad9d5><font:minecraft:uniform>" + i.getDescription() + "<reset>\n"
+                        + "<#bbe03f>✒ <gradient:#a8e0a2:#aef2cd>" + (i.isNode()
                             ? ((i.getNode().getParameters().isEmpty()
-                                ? "There are no parameters."
-                                : "Hover over all of the parameters to learn more.") + "\n")
-                            : "This is a command category. Run <gradient:#98eda5:#ccf0bd>" + i.getPath())
+                                ? "<font:minecraft:uniform>There are no parameters.<reset>"
+                                : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>") + "\n")
+                            : "<font:minecraft:uniform>This is a command category. Run <reset><gradient:#98eda5:#ccf0bd>" + i.getPath())
                         + (i.isNode()
                             ? (i.getNode().getParameters().isNotEmpty())
-                                ? "<gradient:#aebef2:#aef0f2>Usage: <gradient:#5ef288:#99f25e>"
+                                ? "<gradient:#aebef2:#aef0f2>✦ <gradient:#5ef288:#99f25e><font:minecraft:uniform>"
                                     + i.getParentPath()
                                     + " <gradient:#42ecf5:#428df5>"
                                     + i.getName() + " "
@@ -414,19 +447,19 @@ public class VolmitSender implements CommandSender {
                                             .toString(" ") + "\n"
                             : ""
                         : "")
-                        + (i.isNode() ? pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) : "")
-                        + "'><click:suggest_command:" + i.getPath() + " >"
-                        + "<gradient:#42ecf5:#428df5>" +i.getName() + "</click></hover>"
+                        + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
+                        + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
+                        + "<#46826a>⇀<gradient:#42ecf5:#428df5> " +i.getName() + "</click></hover>"
                             + (i.isNode() ?
                                 " " + i.getNode().getParameters().convert((f)
                                     -> "<hover:show_text:'"
                                         + f.getNames().convert((ff) -> "<gradient:#d665f0:#a37feb>" + ff).toString(", ") + "\n"
-                                            + "<gradient:#dbf296:#e7f0ce>" + f.getDescription() + "\n"
+                                            + "<#3fe05a>✎ <gradient:#6ad97d:#6ad9d5><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
                                         + (f.isRequired()
-                                            ? "<gradient:#faa796:#f0ba78>This parameter is required."
+                                            ? "<#db4321>⚠ <gradient:#faa796:#f0ba78><font:minecraft:uniform>This parameter is required."
                                             : (f.hasDefault()
-                                                ? "<gradient:#78dcf0:#baf7e5>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
-                                                : "<gradient:#78dcf0:#baf7e5>This parameter is optional."))
+                                                ? "<#2181db>✔ <gradient:#78dcf0:#baf7e5><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
+                                                : "<#a73abd>✔ <gradient:#78dcf0:#baf7e5><font:minecraft:uniform>This parameter is optional."))
                                     + "'>"
                                         + (f.isRequired() ? "<red>[" : "")
                                         + "<gradient:#d665f0:#a37feb>" + f.getName()

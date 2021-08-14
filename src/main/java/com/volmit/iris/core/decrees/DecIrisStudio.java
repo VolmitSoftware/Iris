@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
+import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
@@ -40,7 +41,9 @@ import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.O;
 import org.bukkit.Bukkit;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 
 import java.awt.*;
@@ -138,7 +141,8 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
             @Param(name = "generator", description = "The generator to explore", aliases = {"gen", "g"})
                     IrisGenerator generator,
             @Param(name = "seed", description = "The seed to generate with", aliases = "s", defaultValue = "12345")
-                    long seed) {
+                    long seed
+    ){
         if (noGUI()) return;
         success("Opening Noise Explorer!");
 
@@ -157,34 +161,30 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
     public void find(
             @Param(name = "biome", description = "The biome to find", aliases = "b")
                     IrisBiome biome
-    ) {
-        J.a(() -> {
-            IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+    ){
+        IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-            if (l == null) {
-                error("Couldn't find " + biome.getName() + ".");
-            } else {
-                success("Found " + biome.getName() + "!");
-                J.s(() -> player().teleport(l.toLocation(world())));
-            }
-        });
+        if (l == null) {
+            error("Couldn't find " + biome.getName() + ".");
+        } else {
+            success("Found " + biome.getName() + "!");
+            J.s(() -> player().teleport(l.toLocation(world())));
+        }
     }
 
     @Decree(description = "Find any region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
             @Param(name = "region", description = "The region to find", aliases = "r")
                     IrisRegion region
-    ) {
-        J.a(() -> {
-            IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+    ){
+        IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
-            if (l == null) {
-                error("Couldn't find " + region.getName() + ".");
-            } else {
-                success("Found " + region.getName() + "!");
-                J.s(() -> player().teleport(l.toLocation(world())));
-            }
-        });
+        if (l == null) {
+            error("Couldn't find " + region.getName() + ".");
+        } else {
+            success("Found " + region.getName() + "!");
+            J.s(() -> player().teleport(l.toLocation(world())));
+        }
     }
 
     @Decree(description = "Hotload a studio", aliases = {"hot", "h", "reload"}, origin = DecreeOrigin.PLAYER)
@@ -195,12 +195,46 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER)
-    public void loot()
-    {
+    public void loot(
+            @Param(name = "fast", aliases = "f", description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
+            boolean fast,
+            @Param(name = "add", aliases = "a", description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
+            boolean add
+    ) {
         if (noStudio()) return;
 
         KList<IrisLootTable> tables = engine().getLootTables(RNG.r, player().getLocation().getBlock());
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
+
+        try {
+            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+        } catch (Throwable e){
+            Iris.reportError(e);
+            error("Cannot add items to virtual inventory because of: " + e.getMessage());
+            return;
+        }
+
+
+        O<Integer> ta = new O<>();
+        ta.set(-1);
+
+        ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
+        {
+            if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
+                Bukkit.getScheduler().cancelTask(ta.get());
+                success("Opened inventory!");
+                return;
+            }
+
+            if (!add) {
+                inv.clear();
+            }
+
+            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+        }, 0, fast ? 5 : 35));
+
+        success("Opening inventory now!");
+        player().openInventory(inv);
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
@@ -223,8 +257,14 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
             @Param(name = "minify", aliases = "m", description = "Whether or not to minify the pack", defaultValue = "true")
             boolean minify
     ){
-        J.a(() -> {
-            Iris.proj.compilePackage(sender(), dimension, obfuscate, minify);
-        });
+        Iris.proj.compilePackage(sender(), dimension, obfuscate, minify);
+    }
+
+    @Decree(description = "Profiles a dimension's performance")
+    public void profile(
+            @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension to profile")
+            IrisDimension dimension
+    ){
+
     }
 }

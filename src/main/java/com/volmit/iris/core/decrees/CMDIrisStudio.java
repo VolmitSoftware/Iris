@@ -19,12 +19,15 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeExecutor;
+import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
@@ -38,6 +41,7 @@ import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -54,6 +58,37 @@ public class CMDIrisStudio implements DecreeExecutor
                     long seed)
     {
         Iris.proj.open(sender(), dimension.getLoadKey());
+    }
+
+    @Decree(description = "Create a new studio project", aliases = "+", sync = true)
+    public void create(
+            @Param(name = "name", required = true, description = "The name of this new Iris Project.")
+                    String name,
+            @Param(name = "template", description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.")
+                    IrisDimension template)
+    {
+        if (template != null) {
+            Iris.proj.create(sender(), name, template.getLoadKey());
+        } else {
+            Iris.proj.create(sender(), name);
+        }
+    }
+
+    @Decree(description = "Edit the biome at your current location", aliases = "eb", sync = true, origin = DecreeOrigin.PLAYER)
+    public void editBiome()
+    {
+        if (!Iris.proj.isProjectOpen()) {
+            sender().sendMessage(C.RED + "No open studio projects.");
+            return;
+        }
+        ;
+        try {
+            Desktop.getDesktop().open(Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(sender().player().getLocation()).getLoadFile());
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            sender().sendMessage("Cant find the file. Are you in an Iris Studio world?");
+        }
+
     }
 
     @Decree(description = "Close an open studio project", aliases = "x", sync = true)
@@ -74,10 +109,10 @@ public class CMDIrisStudio implements DecreeExecutor
             @Param(name = "project", required = true, description = "The project to update")
             IrisDimension project,
 
-            @Param(name = "beautify", defaultValue = "false", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
+            @Param(name = "beautify", defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
             boolean beautify,
 
-            @Param(name = "fix-ids", defaultValue = "false", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
+            @Param(name = "fix-ids", defaultValue = "true", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
             boolean fixIds,
 
             @Param(name = "rewriteObjects", defaultValue = "false", description = "Imports all objects and re-writes them cleaning up positions & block data in the process.")

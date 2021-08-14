@@ -260,7 +260,6 @@ public class VirtualDecreeCommand {
                 {
                     if(ignore.contains(i))
                     {
-                        Iris.info(i.getName() + " is ignored");
                         continue;
                     }
 

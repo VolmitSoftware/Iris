@@ -19,6 +19,8 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -130,4 +132,17 @@ public class DecIrisStudio implements DecreeExecutor
     {
         IrisToolbelt.access(sender().player().getWorld()).getEngine().getExecution().execute(script);
     }
+
+    @Decree(description = "Open the noise explorer (must have a local server!)", aliases = "nmap")
+    public void noise()
+    {
+        if (!IrisSettings.get().isUseServerLaunchedGuis()){
+            sender().sendMessage(C.RED + "To use Iris noise GUIs, please enable serverLaunchedGUIs in the settings");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
+        NoiseExplorerGUI.launch();
+    }
+
+    
 }

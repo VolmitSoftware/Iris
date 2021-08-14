@@ -38,8 +38,6 @@ import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.decree.DecreeCommand;
-import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
@@ -87,7 +85,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static ConversionManager convert;
     public static WandManager wand;
     public static EditManager edit;
-    public static BoardManager board;
+    public static CoreBoardManager board;
     public static MultiverseCoreLink linkMultiverseCore;
     public static OraxenLink linkOraxen;
     public static MythicMobsLink linkMythicMobs;
@@ -124,7 +122,7 @@ public class Iris extends VolmitPlugin implements Listener {
         proj = new ProjectManager();
         convert = new ConversionManager();
         wand = new WandManager();
-        board = new BoardManager();
+        board = new CoreBoardManager();
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
         linkMythicMobs = new MythicMobsLink();
@@ -457,6 +455,10 @@ public class Iris extends VolmitPlugin implements Listener {
         if (d == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
             d = IrisData.loadAnyDimension(dimension);
+        if (dimension == null) {
+            Iris.warn("Unable to find dimension type \"" + dimensionName + "\". Looking for online packs...");
+            Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), dimensionName, true);
+            dimension = IrisData.loadAnyDimension(dimensionName);
 
             if (d == null) {
                 throw new RuntimeException("Can't find dimension " + dimension + "!");
@@ -480,7 +482,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static void msg(String string) {
         try {
             sender.sendMessage(string);
-        } catch (Throwable ignored) {
+        } catch (Throwable e) {
             try {
                 System.out.println(string);
             } catch (Throwable ignored1) {

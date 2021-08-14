@@ -265,7 +265,7 @@ public class Violator {
             T f = c.getDeclaredAnnotation(a);
             p(id(f, c), f);
 
-            System.out.println("Set as " + id(f, c) + " as " + ("@" + a.getCanonicalName() + "[" + id(c, null) + "]"));
+            Iris.debug("Set as " + id(f, c) + " as " + ("@" + a.getCanonicalName() + "[" + id(c, null) + "]"));
         }
 
         return (T) g("@" + a.getCanonicalName() + "[" + id(c, null) + "]");

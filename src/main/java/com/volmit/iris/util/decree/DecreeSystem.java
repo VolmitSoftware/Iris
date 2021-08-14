@@ -36,6 +36,10 @@ import java.util.List;
 public interface DecreeSystem extends CommandExecutor, TabCompleter {
     KList<DecreeParameterHandler<?>> handlers = Iris.initialize("com.volmit.iris.util.decree.handlers", null).convert((i) -> (DecreeParameterHandler<?>) i);
 
+    /**
+     * The root class to start command searching from
+     * @return
+     */
     VirtualDecreeCommand getRoot();
 
     default boolean call(VolmitSender sender, String[] args)

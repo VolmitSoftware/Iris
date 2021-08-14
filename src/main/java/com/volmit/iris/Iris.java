@@ -443,40 +443,38 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-        String dimension = IrisSettings.get().getGenerator().getDefaultWorldType();
 
-        if (id != null && !id.isEmpty()) {
-            dimension = id;
-            Iris.info("Generator ID: " + id + " requested by bukkit/plugin. Assuming IrisDimension: " + id);
+        IrisDimension dim;
+        if (id == null || id.isEmpty()){
+            dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
+        } else {
+            dim = IrisData.loadAnyDimension(id);
         }
+        Iris.info("Generator ID: " + id + " requested by bukkit/plugin");
 
-        IrisDimension d = IrisData.loadAnyDimension(dimension);
-
-        if (d == null) {
+        if (dim == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
-            d = IrisData.loadAnyDimension(dimension);
-        if (dimension == null) {
-            Iris.warn("Unable to find dimension type \"" + dimensionName + "\". Looking for online packs...");
-            Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), dimensionName, true);
-            dimension = IrisData.loadAnyDimension(dimensionName);
 
-            if (d == null) {
-                throw new RuntimeException("Can't find dimension " + dimension + "!");
+            Iris.proj.downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
+            dim = IrisData.loadAnyDimension(id);
+
+            if (dim == null) {
+                throw new RuntimeException("Can't find dimension " + id + "!");
             } else {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
+        Iris.info("Assuming IrisDimension: " + dim.getName());
 
         IrisWorld w = IrisWorld.builder()
                 .name(worldName)
                 .seed(RNG.r.lmax())
-                .environment(d.getEnvironment())
+                .environment(dim.getEnvironment())
                 .worldFolder(new File(worldName))
                 .minHeight(0)
                 .maxHeight(256)
                 .build();
-
-        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dimension);
+        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dim.getName());
     }
 
     public static void msg(String string) {

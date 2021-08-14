@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
@@ -459,4 +460,18 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
 
         success("Done! " + report.getPath());
     }
+
+    @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
+    public void summon(
+            @Param(description = "The Iris Entity to spawn", aliases = "e", name = "entity")
+            IrisEntity entity
+    ) {
+        if (noStudio()){
+            return;
+        }
+        success("Spawning entity");
+        entity.spawn(engine(), player().getLocation().clone().add(0, 2, 0));
+    }
+
+    
 }

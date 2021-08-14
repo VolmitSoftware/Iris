@@ -171,6 +171,142 @@ public class VirtualDecreeCommand {
         return node != null;
     }
 
+    public KList<String> tabComplete(KList<String> args, String raw)
+    {
+        KList<Integer> skip = new KList<>();
+        KList<String> tabs = new KList<>();
+        invokeTabComplete(args, skip, tabs, raw);
+        return tabs;
+    }
+
+    private boolean invokeTabComplete(KList<String> args, KList<Integer> skip, KList<String> tabs, String raw)
+    {
+        if(isStudio() && !IrisSettings.get().isStudio())
+        {
+            return false;
+        }
+
+        if(isNode())
+        {
+            tab(args, tabs);
+            skip.add(hashCode());
+            return false;
+        }
+
+        if(args.isEmpty())
+        {
+            tab(args, tabs);
+            return true;
+        }
+
+        String head = args.get(0);
+
+        if (args.size() > 1 || head.endsWith(" "))
+        {
+            VirtualDecreeCommand match = matchNode(head, skip);
+
+            if(match != null)
+            {
+                args.pop();
+                return match.invokeTabComplete(args, skip, tabs, raw);
+            }
+
+            skip.add(hashCode());
+        }
+
+        else
+        {
+            tab(args, tabs);
+        }
+
+        return false;
+    }
+
+    private void tab(KList<String> args, KList<String> tabs) {
+        String last = null;
+        KList<DecreeParameter> ignore = new KList<>();
+        Runnable la = () -> {
+
+        };
+        for(String a : args)
+        {
+            la.run();
+            last = a;
+            la = () -> {
+                if(isNode())
+                {
+                    String sea = a.contains("=") ? a.split("\\Q=\\E")[0] : a;
+                    sea = sea.trim();
+
+                    searching: for(DecreeParameter i : getNode().getParameters())
+                    {
+                        for(String m : i.getNames())
+                        {
+                            if(m.equalsIgnoreCase(sea) || m.toLowerCase().contains(sea.toLowerCase()) || sea.toLowerCase().contains(m.toLowerCase()))
+                            {
+                                ignore.add(i);
+                                continue searching;
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        if(last != null)
+        {
+            if (isNode()) {
+                for(DecreeParameter i : getNode().getParameters())
+                {
+                    if(ignore.contains(i))
+                    {
+                        Iris.info(i.getName() + " is ignored");
+                        continue;
+                    }
+
+                    int g = 0;
+
+                    if(last.contains("="))
+                    {
+                        String[] vv = last.trim().split("\\Q=\\E");
+                        String vx = vv.length == 2 ? vv[1] : "";
+                        for(String f : i.getHandler().getPossibilities(vx).convert((v) -> i.getHandler().toStringForce(v)))
+                        {
+                            g++;
+                            tabs.add(i.getName() +"="+ f);
+                        }
+                    }
+
+                    else
+                    {
+                        for(String f : i.getHandler().getPossibilities("").convert((v) -> i.getHandler().toStringForce(v)))
+                        {
+                            g++;
+                            tabs.add(i.getName() +"="+ f);
+                        }
+                    }
+
+                    if(g == 0)
+                    {
+                        tabs.add(i.getName() + "=");
+                    }
+                }
+            }
+
+            else
+            {
+                for(VirtualDecreeCommand i : getNodes())
+                {
+                    String m = i.getName();
+                    if(m.equalsIgnoreCase(last) || m.toLowerCase().contains(last.toLowerCase()) || last.toLowerCase().contains(m.toLowerCase()))
+                    {
+                        tabs.addAll(i.getNames());
+                    }
+                }
+            }
+        }
+    }
+
     private KMap<String, Object> map(VolmitSender sender, KList<String> in)
     {
         KMap<String, Object> data = new KMap<>();
@@ -396,8 +532,43 @@ public class VirtualDecreeCommand {
         return true;
     }
 
+    public KList<VirtualDecreeCommand> matchAllNodes(String in)
+    {
+        KList<VirtualDecreeCommand> g = new KList<>();
+
+        if(in.trim().isEmpty())
+        {
+            g.addAll(nodes);
+            return g;
+        }
+
+        for(VirtualDecreeCommand i : nodes)
+        {
+            if(i.matches(in))
+            {
+                g.add(i);
+            }
+        }
+
+        for(VirtualDecreeCommand i : nodes)
+        {
+            if(i.deepMatches(in))
+            {
+                g.add(i);
+            }
+        }
+
+        g.removeDuplicates();
+        return g;
+    }
+
     public VirtualDecreeCommand matchNode(String in, KList<Integer> skip)
     {
+        if(in.trim().isEmpty())
+        {
+            return null;
+        }
+
         for(VirtualDecreeCommand i : nodes)
         {
             if(skip.contains(i.hashCode()))

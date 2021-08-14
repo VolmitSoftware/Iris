@@ -5,6 +5,8 @@ import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
+import java.util.Locale;
+
 public class BooleanHandler implements DecreeParameterHandler<Boolean> {
     private static final KList<String> trues = new KList<>(
             "true",
@@ -50,10 +52,10 @@ public class BooleanHandler implements DecreeParameterHandler<Boolean> {
      */
     @Override
     public Boolean parse(String in) throws DecreeParsingException, DecreeWhichException {
-        if (trues.contains(in)){
+        if (trues.contains(in.toLowerCase())){
             return true;
         }
-        if (falses.contains(in)){
+        if (falses.contains(in.toLowerCase())){
             return false;
         }
         throw new DecreeParsingException("Cannot convert \"" + in + "\" to a boolean (" + trues.toString(", ") + " / " + falses.toString(", ") + ")");

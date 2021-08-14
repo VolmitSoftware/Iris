@@ -697,27 +697,25 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static synchronized void reportError(Throwable e) {
-        if (IrisSettings.get().getGeneral().isDebug()) {
-            String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
+        String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 
-            if (e.getCause() != null) {
-                n += "-" + e.getCause().getStackTrace()[0].getClassName() + "-" + e.getCause().getStackTrace()[0].getLineNumber();
-            }
-
-            File f = instance.getDataFile("debug", "caught-exceptions", n + ".txt");
-
-            if (!f.exists()) {
-                J.attempt(() -> {
-                    PrintWriter pw = new PrintWriter(f);
-                    pw.println("Thread: " + Thread.currentThread().getName());
-                    pw.println("First: " + new Date(M.ms()));
-                    e.printStackTrace(pw);
-                    pw.close();
-                });
-            }
-
-            Iris.debug("Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
+        if (e.getCause() != null) {
+            n += "-" + e.getCause().getStackTrace()[0].getClassName() + "-" + e.getCause().getStackTrace()[0].getLineNumber();
         }
+
+        File f = instance.getDataFile("debug", "caught-exceptions", n + ".txt");
+
+        if (!f.exists()) {
+            J.attempt(() -> {
+                PrintWriter pw = new PrintWriter(f);
+                pw.println("Thread: " + Thread.currentThread().getName());
+                pw.println("First: " + new Date(M.ms()));
+                e.printStackTrace(pw);
+                pw.close();
+            });
+        }
+
+        Iris.debug("Exception Logged: " + e.getClass().getSimpleName() + ": " + C.RESET + "" + C.LIGHT_PURPLE + e.getMessage());
     }
 
     static {

@@ -79,11 +79,11 @@ public class DecreeParameter {
     }
 
     public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
-        return param.defaultValue().equals(Param.REQUIRED) ? null : getHandler().parse(param.defaultValue());
+        return param.defaultValue().trim().isEmpty() ? null : getHandler().parse(param.defaultValue().trim());
     }
 
     public boolean hasDefault() {
-        return !param.defaultValue().equals(Param.REQUIRED);
+        return !param.defaultValue().trim().isEmpty();
     }
 
     public String example() {

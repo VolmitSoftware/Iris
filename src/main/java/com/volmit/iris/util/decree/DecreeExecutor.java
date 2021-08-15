@@ -34,10 +34,7 @@ public interface DecreeExecutor {
 
     default Player player()
     {
-        if (sender().isPlayer()) {
-            return sender().player();
-        }
-        return null;
+        return sender().player();
     }
 
     default void message(String string)

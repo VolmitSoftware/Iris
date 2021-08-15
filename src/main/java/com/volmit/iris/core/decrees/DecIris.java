@@ -28,7 +28,7 @@ public class DecIris implements DecreeExecutor
 {
     private DecIrisStudio studio;
 
-    @Decree(description = "Print version information", aliases = {"v", "ver"})
+    @Decree(description = "Print version information")
     public void version(){
         sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }

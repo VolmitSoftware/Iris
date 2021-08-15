@@ -100,13 +100,43 @@ processResources {
 }
 
 repositories {
-    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
-    maven { url 'https://papermc.io/repo/repository/maven-public/' }
-    maven { url 'https://repo.extendedclip.com/content/repositories/placeholderapi/' }
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-    maven { url 'https://repo.jeff-media.de/maven2' }
+    maven {
+        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+        content {
+            includeGroup 'org.spigotmc'
+        }
+    }
+    maven {
+        url 'https://papermc.io/repo/repository/maven-public/'
+        content {
+            includeGroup 'io.papermc'
+        }
+    }
+    maven {
+        url 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
+        content {
+            includeGroup 'me.clip'
+        }
+    }
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        content {
+            includeGroup 'net.kyori'
+        }
+    }
+    maven {
+        url 'https://repo.jeff-media.de/maven2'
+        content {
+            includeGroup 'de.jeff_media'
+        }
+    }
     maven { url 'https://jitpack.io' }
-    maven { url 'https://repo.codemc.io/repository/maven-releases' }
+    maven {
+        url 'https://repo.codemc.io/repository/maven-releases'
+        content {
+            includeGroup 'com.dfsek'
+        }
+    }
     mavenCentral()
     mavenLocal()
     maven {
@@ -115,7 +145,6 @@ repositories {
         content {
             includeGroup 'org.bukkit.craftbukkit'
             includeGroup 'io.th0rgal'
-            includeGroup 'de.jeff_media'
         }
     }
 }

@@ -482,7 +482,7 @@ public class Iris extends VolmitPlugin implements Listener {
             sender.sendMessage(string);
         } catch (Throwable e) {
             try {
-                System.out.println(string);
+                System.out.println(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
             } catch (Throwable ignored1) {
 
             }

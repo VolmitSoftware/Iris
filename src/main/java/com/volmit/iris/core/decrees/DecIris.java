@@ -28,14 +28,6 @@ public class DecIris implements DecreeExecutor
 {
     private DecIrisStudio studio;
 
-    @Decree(description = "Send a message to yourself", aliases = "p")
-    public void ping(
-            @Param(name = "message", description = "The message to send", defaultValue = "Pong", aliases = {"msg", "m"})
-            String message)
-    {
-        sender().sendMessage(message + "!");
-    }
-
     @Decree(description = "Print version information", aliases = {"v", "ver"})
     public void version(){
         sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");

@@ -477,7 +477,7 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
             @Param(name = "minify", aliases = "m", description = "Whether or not to minify the pack", defaultValue = "true")
             boolean minify
     ){
-        Iris.proj.compilePackage(sender(), dimension, obfuscate, minify);
+        Iris.proj.compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
     @Decree(description = "Profiles a dimension's performance", origin = DecreeOrigin.PLAYER)

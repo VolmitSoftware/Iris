@@ -373,7 +373,7 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
                     IrisBiome biome
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
-            error("You must be in an Iris world to use this command!")
+            error("You must be in an Iris world to use this command!");
             return;
         }
 
@@ -393,10 +393,10 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
-            error("You must be in an Iris world to use this command!")
+            error("You must be in an Iris world to use this command!");
             return;
         }
-        
+
         IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
         if (l == null) {

@@ -31,8 +31,6 @@ public interface EngineExecutionEnvironment {
 
     void execute(String script);
 
-    void execute(IrisScript script);
-
     Object evaluate(String script);
 
     default void close() {

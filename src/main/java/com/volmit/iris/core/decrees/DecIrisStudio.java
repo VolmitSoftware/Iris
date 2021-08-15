@@ -334,7 +334,7 @@ public class DecIrisStudio implements DecreeExecutor {
             @Param(name = "script", description = "The script to run", aliases = {"s", "scr"})
                     IrisScript script
     ) {
-        engine().getExecution().execute(script);
+        engine().getExecution().execute(script.getLoadKey());
     }
 
     @Decree(description = "Open the noise explorer (External GUI)", aliases = "nmap")

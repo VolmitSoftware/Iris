@@ -100,13 +100,23 @@ processResources {
 }
 
 repositories {
+    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+    maven { url 'https://papermc.io/repo/repository/maven-public/' }
+    maven { url 'https://repo.extendedclip.com/content/repositories/placeholderapi/' }
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    maven { url 'https://repo.jeff-media.de/maven2' }
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://repo.codemc.io/repository/maven-releases' }
+    mavenCentral()
+    mavenLocal()
     maven {
         allowInsecureProtocol true
         url "http://archive.arcane.art/repository/arcane"
-    }
-    mavenLocal()
-    maven {
-        url 'https://repo.maven.apache.org/maven2'
+        content {
+            includeGroup 'org.bukkit.craftbukkit'
+            includeGroup 'io.th0rgal'
+            includeGroup 'de.jeff_media'
+        }
     }
 }
 

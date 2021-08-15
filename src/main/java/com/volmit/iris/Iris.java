@@ -195,6 +195,10 @@ public class Iris extends VolmitPlugin implements Listener {
         return v;
     }
 
+    public static KList<Object> initialize(String s) {
+        return initialize(s, null);
+    }
+
     private void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }

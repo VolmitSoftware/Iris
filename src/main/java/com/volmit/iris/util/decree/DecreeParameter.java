@@ -98,4 +98,8 @@ public class DecreeParameter {
 
         return f.getRandom();
     }
+
+    public boolean isContextual() {
+        return param.contextual();
+    }
 }

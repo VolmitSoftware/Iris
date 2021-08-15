@@ -55,4 +55,9 @@ public @interface Param {
      * If someone uses /plugin foo bar=baz and you specify alias="b" here, /plugin foo b=baz will do the exact same.
      */
     String[] aliases() default "";
+
+    /**
+     * Attempts to dynamically pull context from the player, default data or something else for supported types
+     */
+    boolean contextual() default false;
 }

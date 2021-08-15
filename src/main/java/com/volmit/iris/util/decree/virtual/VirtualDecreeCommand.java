@@ -22,10 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.DecreeContext;
-import com.volmit.iris.util.decree.DecreeNode;
-import com.volmit.iris.util.decree.DecreeParameter;
-import com.volmit.iris.util.decree.DecreeSystem;
+import com.volmit.iris.util.decree.*;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
@@ -35,6 +32,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import lombok.Getter;
+import org.apache.logging.log4j.core.impl.ThrowableFormatOptions;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -490,13 +488,44 @@ public class VirtualDecreeCommand {
                 }
             }
 
-            if(value == null)
+            if(i.isContextual() && value == null)
             {
-                if(i.isRequired())
+                DecreeContextHandler<?> ch = DecreeContextHandler.contextHandlers.get(i.getType());
+
+                if(ch != null)
                 {
-                    sender.sendMessage("Missing: " + i.getName() + " (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm+1) + " argument.");
-                    return false;
+                    value = ch.handle(sender);
+
+                    if(value != null)
+                    {
+                        Iris.debug("Null Parameter " + i.getName() + " derived a value of " + i.getHandler().toStringForce(value) + " from " + ch.getClass().getSimpleName());
+                    }
+
+                    else
+                    {
+                        Iris.debug("Null Parameter " + i.getName() + " could not derive a value from " + ch.getClass().getSimpleName());
+                    }
                 }
+
+                else
+                {
+                    Iris.debug("Null Parameter " + i.getName() + " is contextual but has no context handler for " + i.getType().getCanonicalName());
+                }
+            }
+
+            if(i.hasDefault() && value == null)
+            {
+                try {
+                    Iris.debug("Null Parameter " + i.getName() + " is using default value " + i.getParam().defaultValue());
+                    value = i.getDefaultValue();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if(i.isRequired() && value == null) {
+                sender.sendMessage("Missing: " + i.getName() + " (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm + 1) + " argument.");
+                return false;
             }
 
             params[vm] = value;

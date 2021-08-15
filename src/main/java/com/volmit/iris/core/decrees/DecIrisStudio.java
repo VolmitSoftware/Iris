@@ -414,7 +414,7 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
         access().hotload();
     }
 
-    @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
     public void loot(
             @Param(name = "fast", aliases = "f", description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
             boolean fast,

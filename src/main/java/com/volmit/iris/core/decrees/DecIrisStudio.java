@@ -19,6 +19,7 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
@@ -55,9 +56,7 @@ import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -78,7 +77,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
+public class DecIrisStudio implements DecreeExecutor {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(name = "dimension", defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
@@ -707,5 +706,36 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
         } else {
             error("Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
         }
+    }
+
+
+    /**
+     * @return true if server GUIs are not enabled
+     */
+    private boolean noGUI() {
+        if (!IrisSettings.get().isUseServerLaunchedGuis()){
+            error("You must have server launched GUIs enabled in the settings!");
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @return true if no studio is open or the player is not in one
+     */
+    private boolean noStudio(){
+        if (!sender().isPlayer()){
+            error("Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
+            return true;
+        }
+        if (!Iris.proj.isProjectOpen()){
+            error("No studio world is open!");
+            return true;
+        }
+        if (!engine().isStudio()){
+            error("You must be in a studio world!");
+            return true;
+        }
+        return false;
     }
 }

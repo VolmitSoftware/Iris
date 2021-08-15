@@ -141,12 +141,16 @@ repositories {
     mavenLocal()
     maven {
         allowInsecureProtocol true
-        url "http://archive.arcane.art/repository/arcane"
+        url 'http://archive.arcane.art/repository/arcane'
         content {
             includeGroup 'org.bukkit.craftbukkit'
             includeGroup 'io.th0rgal'
         }
     }
+
+    // Uncomment this line if the build is failing because of missing dependencies
+    // Its slow but it will resolve any cached dependencies until we can find an alternative repo
+    // maven { allowInsecureProtocol true, url 'http://archive.arcane.art/repository/arcane'}
 }
 
 shadowJar

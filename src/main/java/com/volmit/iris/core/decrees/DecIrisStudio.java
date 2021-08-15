@@ -52,7 +52,6 @@ import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
-import com.volmit.iris.util.json.JSONCleaner;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -292,22 +291,6 @@ public class DecIrisStudio implements DecreeExecutor {
                     IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
-    }
-
-    @Decree(description = "Beatify a pack", aliases = {"beauty", "prettify"})
-    public void beautify(
-            @Param(name = "dimension", defaultValue = "overworld", description = "The to-beautify dimension", aliases = "dim")
-                    IrisDimension dimension
-    ) {
-        File folder = dimension.getLoadFile().getParentFile().getParentFile();
-        sender().sendMessage(C.GREEN + "Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
-    }
-
-    @Decree(description = "Beatify a pack - must be in studio!", aliases = {"beauty", "prettify"})
-    public void beautify() {
-        if (noStudio()) return;
-        File folder = Iris.proj.getActiveProject().getPath();
-        sender().sendMessage(C.GREEN + "Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 
     @Decree(description = "Convert objects in the \"convert\" folder", aliases = "conv")

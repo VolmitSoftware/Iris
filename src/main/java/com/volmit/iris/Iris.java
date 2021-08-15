@@ -450,7 +450,7 @@ public class Iris extends VolmitPlugin implements Listener {
         } else {
             dim = IrisData.loadAnyDimension(id);
         }
-        Iris.info("Generator ID: " + id + " requested by bukkit/plugin");
+        Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
 
         if (dim == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
@@ -464,7 +464,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
-        Iris.info("Assuming IrisDimension: " + dim.getName());
+        Iris.debug("Assuming IrisDimension: " + dim.getName());
 
         IrisWorld w = IrisWorld.builder()
                 .name(worldName)

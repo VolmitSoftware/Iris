@@ -19,7 +19,7 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.decrees.CMDIris;
+import com.volmit.iris.core.decrees.DecIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeSystem;
@@ -37,7 +37,7 @@ public class CommandManager implements DecreeSystem {
     public VirtualDecreeCommand getRoot() {
         return commandCache.aquire(() -> {
             try {
-                return VirtualDecreeCommand.createRoot(new CMDIris());
+                return VirtualDecreeCommand.createRoot(new DecIris());
             } catch (Throwable e) {
                 e.printStackTrace();
             }

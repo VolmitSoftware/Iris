@@ -174,8 +174,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
      * @param type The type to handle
      * @return The corresponding {@link DecreeParameterHandler}, or null
      */
-    static DecreeParameterHandler<?> getHandler(Class<?> type)
-    {
+    static DecreeParameterHandler<?> getHandler(Class<?> type) {
         for(DecreeParameterHandler<?> i : handlers)
         {
             if(i.supports(type))
@@ -183,6 +182,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
                 return i;
             }
         }
+        Iris.error("Unhandled type in Decree Parameter: " + type.getName() + ". This is bad!");
         return null;
     }
 }

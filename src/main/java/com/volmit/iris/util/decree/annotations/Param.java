@@ -35,8 +35,6 @@ public @interface Param {
      */
     String name();
 
-    boolean required() default false;
-
     /**
      * The description of this parameter, used in help-popups in game.<br>
      * The default value is {@link #DEFAULT_DESCRIPTION}

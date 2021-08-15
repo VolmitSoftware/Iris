@@ -25,7 +25,6 @@ import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import lombok.Data;
 
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
 
 @Data
 public class DecreeParameter {
@@ -57,7 +56,7 @@ public class DecreeParameter {
     }
 
     public boolean isRequired() {
-        return param.required();
+        return !hasDefault();
     }
 
     public KList<String> getNames() {
@@ -80,11 +79,11 @@ public class DecreeParameter {
     }
 
     public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
-        return param.defaultValue().isEmpty() ? null : getHandler().parse(param.defaultValue());
+        return param.defaultValue().trim().isEmpty() ? null : getHandler().parse(param.defaultValue().trim());
     }
 
     public boolean hasDefault() {
-        return !param.defaultValue().isEmpty();
+        return !param.defaultValue().trim().isEmpty();
     }
 
     public String example() {

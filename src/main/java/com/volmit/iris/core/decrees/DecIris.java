@@ -18,20 +18,18 @@
 
 package com.volmit.iris.core.decrees;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
-public class CMDIris implements DecreeExecutor
+public class DecIris implements DecreeExecutor
 {
-    private CMDIrisStudio studio;
+    private DecIrisStudio studio;
 
-    @Decree(description = "Ping self", aliases = "p")
-    public void ping(
-            @Param(name = "message",defaultValue = "Pong", aliases = {"msg", "m"})
-            String message)
-    {
-        sender().sendMessage(message + "!");
+    @Decree(description = "Print version information")
+    public void version(){
+        sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 }

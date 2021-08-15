@@ -23,6 +23,7 @@ import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
@@ -371,6 +372,11 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
             @Param(name = "biome", description = "The biome to find", aliases = "b")
                     IrisBiome biome
     ){
+        if (!IrisToolbelt.isIrisWorld(world())){
+            error("You must be in an Iris world to use this command!")
+            return;
+        }
+
         IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
         if (l == null) {
@@ -386,6 +392,11 @@ public class DecIrisStudio implements DecreeExecutor, DecreeStudioExtension {
             @Param(name = "region", description = "The region to find", aliases = "r")
                     IrisRegion region
     ){
+        if (!IrisToolbelt.isIrisWorld(world())){
+            error("You must be in an Iris world to use this command!")
+            return;
+        }
+        
         IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
         if (l == null) {

@@ -71,7 +71,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
         this.root = root;
         this.folderName = folderName;
         loadCache = new KMap<>();
-        Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.WHITE + manager.getDataFolder().getPath());
+        Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.GRAY + manager.getDataFolder().getPath());
     }
 
     public JSONObject buildSchema() {

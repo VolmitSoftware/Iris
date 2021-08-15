@@ -84,19 +84,19 @@ public class DecIrisStudio implements DecreeExecutor {
                     IrisDimension dimension,
             @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed) {
-        success("Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
+        sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
     }
 
     @Decree(description = "Close an open studio project", aliases = "x", sync = true)
     public void close() {
         if (!Iris.proj.isProjectOpen()) {
-            error("No open studio projects.");
+            sender().sendMessage(C.RED + "No open studio projects.");
             return;
         }
 
         Iris.proj.close();
-        success("Project Closed.");
+        sender().sendMessage(C.GREEN + "Project Closed.");
     }
 
     @Decree(description = "Create a new studio project", aliases = "+", sync = true)
@@ -291,7 +291,7 @@ public class DecIrisStudio implements DecreeExecutor {
             @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim")
                     IrisDimension dimension
     ) {
-        success("The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
+        sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
     }
 
     @Decree(description = "Beatify a pack", aliases = {"beauty", "prettify"})
@@ -300,14 +300,14 @@ public class DecIrisStudio implements DecreeExecutor {
                     IrisDimension dimension
     ) {
         File folder = dimension.getLoadFile().getParentFile().getParentFile();
-        success("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
+        sender().sendMessage(C.GREEN + "Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 
     @Decree(description = "Beatify a pack - must be in studio!", aliases = {"beauty", "prettify"})
     public void beautify() {
         if (noStudio()) return;
         File folder = Iris.proj.getActiveProject().getPath();
-        success("Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
+        sender().sendMessage(C.GREEN + "Cleaned " + Form.f(JSONCleaner.clean(sender(), folder)) + " JSON Files");
     }
 
     @Decree(description = "Convert objects in the \"convert\" folder", aliases = "conv")
@@ -325,7 +325,7 @@ public class DecIrisStudio implements DecreeExecutor {
             Desktop.getDesktop().open(Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(sender().player().getLocation()).getLoadFile());
         } catch (Throwable e) {
             Iris.reportError(e);
-            error("Cant find the file. Unsure why this happened.");
+            sender().sendMessage(C.RED + "Cant find the file. Unsure why this happened.");
         }
     }
 
@@ -340,7 +340,7 @@ public class DecIrisStudio implements DecreeExecutor {
     @Decree(description = "Open the noise explorer (External GUI)", aliases = "nmap")
     public void noise() {
         if (noGUI()) return;
-        success("Opening Noise Explorer!");
+        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
         NoiseExplorerGUI.launch();
     }
 
@@ -353,7 +353,7 @@ public class DecIrisStudio implements DecreeExecutor {
                     long seed
     ){
         if (noGUI()) return;
-        success("Opening Noise Explorer!");
+        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
 
         Supplier<Function2<Double, Double, Double>> l = () -> {
 
@@ -372,16 +372,16 @@ public class DecIrisStudio implements DecreeExecutor {
                     IrisBiome biome
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
-            error("You must be in an Iris world to use this command!");
+            sender().sendMessage(C.RED + "You must be in an Iris world to use this command!");
             return;
         }
 
-        IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+        IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
         if (l == null) {
-            error("Couldn't find " + biome.getName() + ".");
+            sender().sendMessage(C.RED + "Couldn't find " + biome.getName() + ".");
         } else {
-            success("Found " + biome.getName() + "!");
+            sender().sendMessage(C.GREEN + "Found " + biome.getName() + "!");
             J.s(() -> player().teleport(l.toLocation(world())));
         }
     }
@@ -392,16 +392,16 @@ public class DecIrisStudio implements DecreeExecutor {
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
-            error("You must be in an Iris world to use this command!");
+            sender().sendMessage(C.RED + "You must be in an Iris world to use this command!");
             return;
         }
 
-        IrisPosition l = engine().lookForRegion(region, 10000, (v) -> message("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+        IrisPosition l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
 
         if (l == null) {
-            error("Couldn't find " + region.getName() + ".");
+            sender().sendMessage(C.RED + "Couldn't find " + region.getName() + ".");
         } else {
-            success("Found " + region.getName() + "!");
+            sender().sendMessage(C.GREEN + "Found " + region.getName() + "!");
             J.s(() -> player().teleport(l.toLocation(world())));
         }
     }
@@ -429,7 +429,7 @@ public class DecIrisStudio implements DecreeExecutor {
             engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         } catch (Throwable e){
             Iris.reportError(e);
-            error("Cannot add items to virtual inventory because of: " + e.getMessage());
+            sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
             return;
         }
 
@@ -441,7 +441,7 @@ public class DecIrisStudio implements DecreeExecutor {
         {
             if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
                 Bukkit.getScheduler().cancelTask(ta.get());
-                success("Opened inventory!");
+                sender().sendMessage(C.GREEN + "Opened inventory!");
                 return;
             }
 
@@ -452,7 +452,7 @@ public class DecIrisStudio implements DecreeExecutor {
             engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         }, 0, fast ? 5 : 35));
 
-        success("Opening inventory now!");
+        sender().sendMessage(C.GREEN + "Opening inventory now!");
         player().openInventory(inv);
     }
 
@@ -464,7 +464,7 @@ public class DecIrisStudio implements DecreeExecutor {
         if (noGUI()) return;
 
         VisionGUI.launch(engine(), 0);
-        success("Opening map!");
+        sender().sendMessage(C.GREEN + "Opening map!");
     }
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
@@ -497,7 +497,7 @@ public class DecIrisStudio implements DecreeExecutor {
         KMap<String, Double> biomeTimings = new KMap<>();
         KMap<String, Double> regionTimings = new KMap<>();
 
-        message("Calculating Performance Metrics for Noise generators");
+        sender().sendMessage("Calculating Performance Metrics for Noise generators");
 
         for (NoiseStyle i : NoiseStyle.values()) {
             CNG c = i.create(new RNG(i.hashCode()));
@@ -525,7 +525,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
         fileText.add("");
 
-        message("Calculating Interpolator Timings...");
+        sender().sendMessage("Calculating Interpolator Timings...");
 
         for (InterpolationMethod i : InterpolationMethod.values()) {
             IrisInterpolator in = new IrisInterpolator();
@@ -555,7 +555,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
         fileText.add("");
 
-        message("Processing Generator Scores: ");
+        sender().sendMessage("Processing Generator Scores: ");
 
         KMap<String, KList<String>> btx = new KMap<>();
 
@@ -655,7 +655,7 @@ public class DecIrisStudio implements DecreeExecutor {
         m += mmm;
 
         fileText.add("Average Score: " + m);
-        message("Score: " + Form.duration(m, 0));
+        sender().sendMessage("Score: " + Form.duration(m, 0));
 
         try {
             IO.writeAll(report, fileText.toString("\n"));
@@ -664,7 +664,7 @@ public class DecIrisStudio implements DecreeExecutor {
             e.printStackTrace();
         }
 
-        success("Done! " + report.getPath());
+        sender().sendMessage(C.GREEN + "Done! " + report.getPath());
     }
 
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
@@ -675,23 +675,23 @@ public class DecIrisStudio implements DecreeExecutor {
         if (noStudio()){
             return;
         }
-        success("Spawning entity");
+        sender().sendMessage(C.GREEN + "Spawning entity");
         entity.spawn(engine(), player().getLocation().clone().add(0, 2, 0));
     }
 
     @Decree(description = "Teleport to the active studio world", aliases = {"tps", "stp", "tp"}, origin = DecreeOrigin.PLAYER)
     public void tpstudio(){
         if (!Iris.proj.isProjectOpen()){
-            error("No studio world is open!");
+            sender().sendMessage(C.RED + "No studio world is open!");
             return;
         }
 
         if (engine().isStudio()){
-            error("You are already in a studio world!");
+            sender().sendMessage(C.RED + "You are already in a studio world!");
             return;
         }
 
-        success("Sending you to the studio world!");
+        sender().sendMessage(C.GREEN + "Sending you to the studio world!");
         player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
         player().setGameMode(GameMode.SPECTATOR);
     }
@@ -702,9 +702,9 @@ public class DecIrisStudio implements DecreeExecutor {
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
-            success("Updated Code Workspace for " + dimension.getName());
+            sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {
-            error("Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
+            sender().sendMessage(C.RED + "Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
         }
     }
 
@@ -714,7 +714,7 @@ public class DecIrisStudio implements DecreeExecutor {
      */
     private boolean noGUI() {
         if (!IrisSettings.get().isUseServerLaunchedGuis()){
-            error("You must have server launched GUIs enabled in the settings!");
+            sender().sendMessage(C.RED + "You must have server launched GUIs enabled in the settings!");
             return true;
         }
         return false;
@@ -725,15 +725,15 @@ public class DecIrisStudio implements DecreeExecutor {
      */
     private boolean noStudio(){
         if (!sender().isPlayer()){
-            error("Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
+            sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return true;
         }
         if (!Iris.proj.isProjectOpen()){
-            error("No studio world is open!");
+            sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }
         if (!engine().isStudio()){
-            error("You must be in a studio world!");
+            sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }
         return false;

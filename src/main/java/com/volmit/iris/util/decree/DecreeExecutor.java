@@ -37,26 +37,6 @@ public interface DecreeExecutor {
         return sender().player();
     }
 
-    default void message(String string)
-    {
-        sender().sendMessage(string);
-    }
-
-    default void success(String string)
-    {
-        message(C.GREEN + string);
-    }
-
-    default void error(String string)
-    {
-        message(C.RED + string);
-    }
-
-    default void warn(String string)
-    {
-        message(C.YELLOW + string);
-    }
-
     default Engine engine()
     {
         if(sender().isPlayer() && IrisToolbelt.access(sender().player().getWorld()) != null)

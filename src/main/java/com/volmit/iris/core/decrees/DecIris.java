@@ -20,10 +20,13 @@ package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
+import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
+import org.bukkit.World;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor
@@ -43,7 +46,7 @@ public class DecIris implements DecreeExecutor
             int s,
             @Param(name = "b", description = "The b color value")
             int b
-    ){
+    ) {
         IrisSettings.get().getGeneral().setSpinh(h);
         IrisSettings.get().getGeneral().setSpins(s);
         IrisSettings.get().getGeneral().setSpinb(b);
@@ -59,7 +62,7 @@ public class DecIris implements DecreeExecutor
             String operator,
             @Param(name = "value2", description = "The second value to run calculations on")
             int val2
-    ){
+    ) {
         Integer v = null;
         switch(operator) {
             case "|" -> v = val1 | val2;
@@ -80,7 +83,7 @@ public class DecIris implements DecreeExecutor
     public void debug(
             @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "true")
             boolean on
-    ){
+    ) {
         IrisSettings.get().getGeneral().setDebug(on);
     }
 
@@ -92,8 +95,18 @@ public class DecIris implements DecreeExecutor
             String branch,
             @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when you're going to edit)")
             boolean trim
-    ){
+    ) {
         sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : ""));
         Iris.proj.downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim);
+    }
+
+    @Decree(description = "Get metrics for your world", aliases = "measure", origin = DecreeOrigin.PLAYER)
+    public void metrics() {
+        if (!IrisToolbelt.isIrisWorld(world())){
+            sender().sendMessage(C.RED + "You must be in an Iris world");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Sending metrics...");
+        engine().printMetrics(sender());
     }
 }

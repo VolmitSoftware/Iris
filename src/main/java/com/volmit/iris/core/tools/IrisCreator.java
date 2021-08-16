@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.common.HeadlessWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -107,7 +108,7 @@ public class IrisCreator {
 
         if(!studio())
         {
-            Iris.proj.installIntoWorld(sender, d.getLoadKey(), new File(name()));
+            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(name()));
         }
 
         PlatformChunkGenerator access = null;

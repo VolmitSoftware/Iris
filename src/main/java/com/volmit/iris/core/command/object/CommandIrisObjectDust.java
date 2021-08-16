@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -51,7 +51,7 @@ public class CommandIrisObjectDust extends MortarCommand {
             return true;
         }
 
-        sender.player().getInventory().addItem(WandManager.createDust());
+        sender.player().getInventory().addItem(WandSVC.createDust());
         sender.player().playSound(sender.player().getLocation(), Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);
 
         return true;

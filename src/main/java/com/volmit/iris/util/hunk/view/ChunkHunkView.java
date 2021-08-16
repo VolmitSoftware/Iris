@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk.view;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.EditSVC;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Chunk;
 import org.bukkit.block.data.BlockData;
@@ -52,11 +53,11 @@ public class ChunkHunkView implements Hunk<BlockData> {
             return;
         }
 
-        Iris.edit.set(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
+        Iris.service(EditSVC.class).set(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
     }
 
     @Override
     public BlockData getRaw(int x, int y, int z) {
-        return Iris.edit.get(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
+        return Iris.service(EditSVC.class).get(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
     }
 }

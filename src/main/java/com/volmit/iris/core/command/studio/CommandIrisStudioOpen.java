@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -50,7 +51,7 @@ public class CommandIrisStudioOpen extends MortarCommand {
         }
 
         sender.sendMessage("Opening studio world...");
-        Iris.proj.open(sender, args[0]);
+        Iris.service(StudioSVC.class).open(sender, args[0]);
         return true;
     }
 

@@ -19,6 +19,7 @@
 package com.volmit.iris.core.command.world;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -64,10 +65,10 @@ public class CommandIrisUpdateWorld extends MortarCommand {
             folder.mkdirs();
 
             if (bfre) {
-                Iris.proj.downloadSearch(sender, args[1], false, true);
+                Iris.service(StudioSVC.class).downloadSearch(sender, args[1], false, true);
             }
 
-            Iris.proj.installIntoWorld(sender, args[1], folder);
+            Iris.service(StudioSVC.class).installIntoWorld(sender, args[1], folder);
         });
 
         return true;

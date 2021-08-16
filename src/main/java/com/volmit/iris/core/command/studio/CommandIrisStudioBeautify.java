@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -54,12 +55,12 @@ public class CommandIrisStudioBeautify extends MortarCommand {
         File clean = null;
 
         if (args.length == 0) {
-            if (!Iris.proj.isProjectOpen()) {
+            if (!Iris.service(StudioSVC.class).isProjectOpen()) {
                 sender.sendMessage("No open project. Either use /iris std beautify <project> or have a project open.");
                 return true;
             }
 
-            clean = Iris.proj.getActiveProject().getPath();
+            clean = Iris.service(StudioSVC.class).getActiveProject().getPath();
         } else {
             clean = Iris.instance.getDataFolder("packs", args[0]);
 

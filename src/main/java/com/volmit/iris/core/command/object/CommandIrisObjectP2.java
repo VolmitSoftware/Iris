@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -57,15 +57,15 @@ public class CommandIrisObjectP2 extends MortarCommand {
 
         Player p = sender.player();
 
-        if (!WandManager.isHoldingWand(p)) {
+        if (!WandSVC.isHoldingWand(p)) {
             sender.sendMessage("Ready your Wand.");
             return true;
         }
 
         ItemStack wand = p.getInventory().getItemInMainHand();
 
-        if (WandManager.isWand(wand)) {
-            Location[] g = WandManager.getCuboid(wand);
+        if (WandSVC.isWand(wand)) {
+            Location[] g = WandSVC.getCuboid(wand);
             g[1] = p.getLocation().getBlock().getLocation().clone().add(0, -1, 0);
 
             if (args.length == 1 && args[0].equals("-l")) {
@@ -73,7 +73,7 @@ public class CommandIrisObjectP2 extends MortarCommand {
                 g[1] = p.getTargetBlock(null, 256).getLocation().clone();
             }
 
-            p.setItemInHand(WandManager.createWand(g[0], g[1]));
+            p.setItemInHand(WandSVC.createWand(g[0], g[1]));
         }
 
         return true;

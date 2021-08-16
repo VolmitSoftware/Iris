@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.DustRevealer;
@@ -28,6 +28,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.WorldMatter;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
@@ -35,7 +36,6 @@ import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
@@ -45,16 +45,17 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import java.awt.*;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class WandManager implements Listener {
-
+public class WandSVC implements IrisService {
     private static ItemStack wand;
     private static ItemStack dust;
 
-    public WandManager() {
+    @Override
+    public void onEnable() {
         wand = createWand();
         dust = createDust();
 
@@ -63,6 +64,11 @@ public class WandManager implements Listener {
                 tick(i);
             }
         }, 0);
+    }
+
+    @Override
+    public void onDisable() {
+
     }
 
     public void tick(Player p) {

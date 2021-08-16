@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
@@ -60,7 +61,7 @@ public class HeadlessWorld {
         new File(world.worldFolder(), "region").mkdirs();
 
         if (!studio && !new File(world.worldFolder(), "iris/pack").exists()) {
-            Iris.proj.installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
+            Iris.service(StudioSVC.class).installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
     }
 

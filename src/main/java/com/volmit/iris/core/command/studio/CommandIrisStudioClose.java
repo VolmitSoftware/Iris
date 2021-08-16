@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -47,7 +48,7 @@ public class CommandIrisStudioClose extends MortarCommand {
             return true;
         }
 
-        if (!Iris.proj.isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender.sendMessage("No open projects.");
             return true;
         }
@@ -56,7 +57,7 @@ public class CommandIrisStudioClose extends MortarCommand {
             World f = null;
 
             for (World i : Bukkit.getWorlds()) {
-                if (i.getWorldFolder().getAbsolutePath().equals(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().worldFolder().getAbsolutePath())) {
+                if (i.getWorldFolder().getAbsolutePath().equals(Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().worldFolder().getAbsolutePath())) {
                     continue;
                 }
 
@@ -65,17 +66,17 @@ public class CommandIrisStudioClose extends MortarCommand {
             }
 
             if (f == null) {
-                for (Player i : Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getPlayers()) {
+                for (Player i : Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().getPlayers()) {
                     i.kickPlayer("Project Closing, No other world to put you in. Rejoin Please!");
                 }
             } else {
-                for (Player i : Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().getPlayers()) {
+                for (Player i : Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().getPlayers()) {
                     i.teleport(f.getSpawnLocation());
                 }
             }
         }
 
-        Iris.proj.close();
+        Iris.service(StudioSVC.class).close();
         sender.sendMessage("Projects Closed & Caches Cleared!");
         return true;
     }

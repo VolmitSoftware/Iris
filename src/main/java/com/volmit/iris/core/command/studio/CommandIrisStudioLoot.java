@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
@@ -58,7 +59,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
             Player p = sender.player();
             Engine prov = IrisToolbelt.access(sender.player().getWorld()).getEngine();
 
-            if (!Iris.proj.isProjectOpen()) {
+            if (!Iris.service(StudioSVC.class).isProjectOpen()) {
                 sender.sendMessage("You can only use /iris studio loot in a studio world of iris.");
                 return true;
             }
@@ -67,7 +68,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
             Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
             try {
-                Iris.proj.getActiveProject().getActiveProvider().getEngine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+                Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
             } catch (Throwable e) {
                 Iris.reportError(e);
                 sender.sendMessage("You can only use /iris loot in a studio world of iris.");
@@ -109,7 +110,7 @@ public class CommandIrisStudioLoot extends MortarCommand {
                     inv.clear();
                 }
 
-                Iris.proj.getActiveProject().getActiveProvider().getEngine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
+                Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ(), 1);
             }, 0, fast ? 5 : 35));
 
             return true;

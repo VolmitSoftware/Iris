@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -50,14 +51,14 @@ public class CommandIrisStudioTPStudio extends MortarCommand {
             return true;
         }
 
-        if (!Iris.proj.isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender.sendMessage("There is not a studio currently loaded.");
             return true;
         }
 
         try {
             sender.sendMessage("Teleporting you to the active studio world.");
-            sender.player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
+            sender.player().teleport(Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
             sender.player().setGameMode(GameMode.SPECTATOR);
         } catch (Throwable e) {
             Iris.reportError(e);

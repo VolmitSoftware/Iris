@@ -24,6 +24,8 @@ import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.ConversionSVC;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -89,17 +91,17 @@ public class DecStudio implements DecreeExecutor {
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed) {
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
-        Iris.proj.open(sender(), seed, dimension.getLoadKey());
+        Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
 
     @Decree(description = "Close an open studio project", aliases = "x", sync = true)
     public void close() {
-        if (!Iris.proj.isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No open studio projects.");
             return;
         }
 
-        Iris.proj.close();
+        Iris.service(StudioSVC.class).close();
         sender().sendMessage(C.GREEN + "Project Closed.");
     }
 
@@ -111,9 +113,9 @@ public class DecStudio implements DecreeExecutor {
                     IrisDimension template)
     {
         if (template != null) {
-            Iris.proj.create(sender(), name, template.getLoadKey());
+            Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
         } else {
-            Iris.proj.create(sender(), name);
+            Iris.service(StudioSVC.class).create(sender(), name);
         }
     }
 
@@ -137,7 +139,7 @@ public class DecStudio implements DecreeExecutor {
         MultiBurst burst = new MultiBurst("Cleaner", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() * 2);
 
         jobs.add(new SingleJob("Updating Workspace", () -> {
-            if (!new IrisProject(Iris.proj.getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
+            if (!new IrisProject(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
                 sender().sendMessage(C.GOLD + "Invalid project: " + project.getLoadKey() + ". Try deleting the code-workspace file and try again.");
             }
             J.sleep(250);
@@ -210,7 +212,7 @@ public class DecStudio implements DecreeExecutor {
                 }
             };
 
-            IrisData data = new IrisData(Iris.proj.getWorkspaceFolder(project.getLoadKey()));
+            IrisData data = new IrisData(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
             for (String f : data.getObjectLoader().getPossibleKeys()) {
                 CompletableFuture<?> gg = burst.complete(() ->{
                     File ff = data.getObjectLoader().findFile(f);
@@ -256,7 +258,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Convert objects in the \"convert\" folder")
     public void convert() {
-        Iris.convert.check(sender());
+        Iris.service(ConversionSVC.class).check(sender());
     }
 
 
@@ -431,7 +433,7 @@ public class DecStudio implements DecreeExecutor {
             @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
             boolean minify
     ){
-        Iris.proj.compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
+        Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
@@ -641,7 +643,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
     public void tpstudio(){
-        if (!Iris.proj.isProjectOpen()){
+        if (!Iris.service(StudioSVC.class).isProjectOpen()){
             sender().sendMessage(C.RED + "No studio world is open!");
             return;
         }
@@ -652,7 +654,7 @@ public class DecStudio implements DecreeExecutor {
         }
 
         sender().sendMessage(C.GREEN + "Sending you to the studio world!");
-        player().teleport(Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
+        player().teleport(Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
         player().setGameMode(GameMode.SPECTATOR);
     }
 
@@ -773,7 +775,7 @@ public class DecStudio implements DecreeExecutor {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return true;
         }
-        if (!Iris.proj.isProjectOpen()){
+        if (!Iris.service(StudioSVC.class).isProjectOpen()){
             sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }

@@ -2,8 +2,8 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ProjectManager;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
@@ -71,7 +71,7 @@ public class CommandIrisObjectAnalyze extends MortarCommand {
             IrisObject obj = IrisData.loadAnyObject(args[0]);
 
             if (obj == null || obj.getLoadFile() == null) {
-                sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
+                sender.sendMessage("Can't find " + args[0] + " in the " + StudioSVC.WORKSPACE_NAME + " folder");
                 return;
             }
 

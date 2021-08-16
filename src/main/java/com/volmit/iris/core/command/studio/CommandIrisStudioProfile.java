@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
@@ -70,12 +71,12 @@ public class CommandIrisStudioProfile extends MortarCommand {
             File report = Iris.instance.getDataFile("profile.txt");
             KList<String> v = new KList<>();
             if (args.length == 0) {
-                if (!Iris.proj.isProjectOpen()) {
+                if (!Iris.service(StudioSVC.class).isProjectOpen()) {
                     sender.sendMessage("No open project. Either use /iris std beautify <project> or have a project open.");
                     return;
                 }
 
-                f = Iris.proj.getActiveProject().getPath();
+                f = Iris.service(StudioSVC.class).getActiveProject().getPath();
             } else {
                 f = Iris.instance.getDataFolder("packs", args[0]);
 

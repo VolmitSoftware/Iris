@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -60,9 +61,9 @@ public class CommandIrisStudioCreate extends MortarCommand {
         }
 
         if (template != null) {
-            Iris.proj.create(sender, args[0], template);
+            Iris.service(StudioSVC.class).create(sender, args[0], template);
         } else {
-            Iris.proj.create(sender, args[0]);
+            Iris.service(StudioSVC.class).create(sender, args[0]);
         }
 
         return true;

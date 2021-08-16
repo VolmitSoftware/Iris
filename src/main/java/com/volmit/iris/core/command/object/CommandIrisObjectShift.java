@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.Direction;
@@ -58,13 +58,13 @@ public class CommandIrisObjectShift extends MortarCommand {
 
         Player p = sender.player();
 
-        if (!WandManager.isHoldingWand(p)) {
+        if (!WandSVC.isHoldingWand(p)) {
             sender.sendMessage("Ready your Wand.");
             return true;
         }
 
         int amt = args.length == 1 ? Integer.parseInt(args[0]) : 1;
-        Location[] b = WandManager.getCuboid(p.getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(p.getInventory().getItemInMainHand());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Direction d = Direction.closest(p.getLocation().getDirection()).reverse();
@@ -73,7 +73,7 @@ public class CommandIrisObjectShift extends MortarCommand {
         Cuboid cursor = new Cuboid(a1, a2);
         b[0] = cursor.getLowerNE();
         b[1] = cursor.getUpperSW();
-        p.getInventory().setItemInMainHand(WandManager.createWand(b[0], b[1]));
+        p.getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
         p.updateInventory();
         p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
 

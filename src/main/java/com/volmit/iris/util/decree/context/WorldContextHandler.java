@@ -1,4 +1,4 @@
-package com.volmit.iris.util.decree.handlers.context;
+package com.volmit.iris.util.decree.context;
 
 import com.volmit.iris.util.decree.DecreeContextHandler;
 import com.volmit.iris.util.plugin.VolmitSender;

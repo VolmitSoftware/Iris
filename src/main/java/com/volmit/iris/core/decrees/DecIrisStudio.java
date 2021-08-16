@@ -285,15 +285,15 @@ public class DecIrisStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Get the version of a pack", aliases = {"v", "ver"})
+    @Decree(description = "Get the version of a pack")
     public void version(
-            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim")
+            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of")
                     IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
     }
 
-    @Decree(description = "Convert objects in the \"convert\" folder", aliases = "conv")
+    @Decree(description = "Convert objects in the \"convert\" folder")
     public void convert() {
         Iris.convert.check(sender());
     }
@@ -312,9 +312,9 @@ public class DecIrisStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Execute a script", aliases = {"ex", "exec", "run"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(
-            @Param(name = "script", description = "The script to run", aliases = {"s", "scr"})
+            @Param(name = "script", description = "The script to run")
                     IrisScript script
     ) {
         engine().getExecution().execute(script.getLoadKey());
@@ -330,9 +330,9 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
-            @Param(name = "generator", description = "The generator to explore", aliases = {"gen", "g"})
+            @Param(name = "generator", description = "The generator to explore")
                     IrisGenerator generator,
-            @Param(name = "seed", description = "The seed to generate with", aliases = "s", defaultValue = "12345")
+            @Param(name = "seed", description = "The seed to generate with", defaultValue = "12345")
                     long seed
     ){
         if (noGUI()) return;
@@ -349,29 +349,11 @@ public class DecIrisStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
-    @Decree(description = "Find any biome", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
-            @Param(name = "biome", description = "The biome to find", aliases = "b")
-                    IrisBiome biome
-    ){
-        if (!IrisToolbelt.isIrisWorld(world())){
-            sender().sendMessage(C.RED + "You must be in an Iris world to use this command!");
-            return;
-        }
-
-        IrisPosition l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
-
-        if (l == null) {
-            sender().sendMessage(C.RED + "Couldn't find " + biome.getName() + ".");
-        } else {
-            sender().sendMessage(C.GREEN + "Found " + biome.getName() + "!");
-            J.s(() -> player().teleport(l.toLocation(world())));
-        }
-    }
-
-    @Decree(description = "Find any region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
-    public void find(
-            @Param(name = "region", description = "The region to find", aliases = "r")
+            @Param(name = "biome", description = "The biome to find")
+                    IrisBiome biome,
+            @Param(name = "region", description = "The region to find")
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
@@ -379,17 +361,40 @@ public class DecIrisStudio implements DecreeExecutor {
             return;
         }
 
-        IrisPosition l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + ": Checked " + Form.f(v) + " Places"));
+        if (biome == null && region == null){
+            sender().sendMessage(C.RED + "You must specify a biome or region!");
+            return;
+        }
+
+        IrisPosition l = null;
+        if (region != null) {
+            l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + " region: Checked " + Form.f(v) + " Places"));
+            if (l == null) {
+                sender().sendMessage(C.YELLOW + "Couldn't find the " + region.getName() + " region.");
+            } else {
+                sender().sendMessage(C.GREEN + "Found the " + region.getName() + " region!.");
+            }
+        }
+
+        if (l == null && biome != null) {
+            l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " biome: Checked " + Form.f(v) + " Places"));
+            if (l == null) {
+                sender().sendMessage(C.YELLOW + "Couldn't find the " + biome.getName() + " biome.");
+            } else {
+                sender().sendMessage(C.GREEN + "Found the " + biome.getName() + " biome!.");
+            }
+        }
 
         if (l == null) {
-            sender().sendMessage(C.RED + "Couldn't find " + region.getName() + ".");
-        } else {
-            sender().sendMessage(C.GREEN + "Found " + region.getName() + "!");
-            J.s(() -> player().teleport(l.toLocation(world())));
+            sender().sendMessage(C.RED + "Could not find the region and / or biome you specified.");
+            return;
         }
+
+        final IrisPosition finalL = l;
+        J.s(() -> player().teleport(finalL.toLocation(world())));
     }
 
-    @Decree(description = "Hotload a studio", aliases = {"hot", "h", "reload"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Hotload a studio", aliases = "reload", origin = DecreeOrigin.PLAYER)
     public void hotload() {
         if (noStudio()) return;
 
@@ -452,11 +457,11 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension pack to compress")
+            @Param(name = "dimension", description = "The dimension pack to compress")
             IrisDimension dimension,
-            @Param(name = "obfuscate", aliases = "o", description = "Whether or not to obfuscate the pack", defaultValue = "false")
+            @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
-            @Param(name = "minify", aliases = "m", description = "Whether or not to minify the pack", defaultValue = "true")
+            @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
             boolean minify
     ){
         Iris.proj.compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
@@ -464,7 +469,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles a dimension's performance", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension to profile")
+            @Param(name = "dimension", description = "The dimension to profile")
             IrisDimension dimension
     ){
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -652,7 +657,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
-            @Param(description = "The Iris Entity to spawn", aliases = "e", name = "entity")
+            @Param(description = "The Iris Entity to spawn", name = "entity")
             IrisEntity entity
     ) {
         if (noStudio()){
@@ -679,9 +684,9 @@ public class DecIrisStudio implements DecreeExecutor {
         player().setGameMode(GameMode.SPECTATOR);
     }
 
-    @Decree(description = "Update your dimension project", aliases = {"upd", "u"})
+    @Decree(description = "Update your dimension project")
     public void update(
-        @Param(name = "dimension", aliases = {"d", "dim"}, description = "The dimension to update the workspace of")
+        @Param(name = "dimension", description = "The dimension to update the workspace of")
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {

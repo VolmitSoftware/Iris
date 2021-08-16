@@ -21,17 +21,62 @@ package com.volmit.iris.core.decrees;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import org.bukkit.World;
+
+import java.io.File;
+import java.util.Objects;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor
 {
     private DecIrisStudio studio;
+
+    private DecIrisPregen pregen;
+
+    @Decree(description = "Create a new world", aliases = "+")
+    public void create(
+            @Param(name = "name", aliases = "worldName", description = "The name of the world to create", defaultValue = "IrisWorld")
+            String name,
+            @Param(name = "type", aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
+            IrisDimension type,
+            @Param(name = "seed", description = "The seed to generate the world with", defaultValue = "1337")
+            long seed
+    ){
+        if (name.equals("iris")) {
+            sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
+            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+            return;
+        }
+
+        if (new File(name).exists()){
+            sender().sendMessage(C.RED + "That folder already exists!");
+            return;
+        }
+
+        try {
+            IrisToolbelt.createWorld()
+                    .dimension(type.getLoadKey())
+                    .name(name)
+                    .seed(seed)
+                    .sender(sender())
+                    .studio(false)
+                    .create();
+        } catch (Throwable e){
+            sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
+            Iris.error("Exception raised during world creation: " + e.getMessage());
+            Iris.reportError(e);
+            return;
+        }
+
+        sender().sendMessage(C.GREEN + "Successfully created your world!");
+    }
 
     @Decree(description = "Print version information")
     public void version(){

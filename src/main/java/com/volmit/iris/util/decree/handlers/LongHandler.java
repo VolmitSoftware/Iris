@@ -23,6 +23,8 @@ import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.math.RNG;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public class LongHandler implements DecreeParameterHandler<Long> {
     @Override
     public KList<Long> getPossibilities() {
@@ -33,7 +35,9 @@ public class LongHandler implements DecreeParameterHandler<Long> {
     public Long parse(String in) throws DecreeParsingException {
         try
         {
-            return Long.parseLong(in);
+            AtomicReference<String> r = new AtomicReference<>(in);
+            double m = getMultiplier(r);
+            return (long)(Long.valueOf(r.get()).doubleValue() * m);
         }
 
         catch(Throwable e)

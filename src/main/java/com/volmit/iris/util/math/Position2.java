@@ -19,6 +19,7 @@
 package com.volmit.iris.util.math;
 
 import com.volmit.iris.engine.object.basic.IrisPosition;
+import org.bukkit.util.Vector;
 
 public class Position2 {
     private int x;
@@ -27,6 +28,11 @@ public class Position2 {
     public Position2(int x, int z) {
         this.x = x;
         this.z = z;
+    }
+
+    public Position2(Vector center) {
+        this.x = center.getBlockX();
+        this.z = center.getBlockZ();
     }
 
     public int getX() {

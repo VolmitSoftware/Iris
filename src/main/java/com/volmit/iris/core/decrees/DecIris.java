@@ -38,11 +38,11 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Set aura spins")
     public void aura(
             @Param(name = "h", description = "The h color value")
-                    int h,
+            int h,
             @Param(name = "s", description = "The s color value")
-                    int s,
+            int s,
             @Param(name = "b", description = "The b color value")
-                    int b
+            int b
     ){
         IrisSettings.get().getGeneral().setSpinh(h);
         IrisSettings.get().getGeneral().setSpins(s);
@@ -74,6 +74,14 @@ public class DecIris implements DecreeExecutor
             return;
         }
         sender().sendMessage(C.GREEN + "" + val1 + " " + operator + " " + val2 + " => " + v);
+    }
+
+    @Decree(description = "Toggle debug")
+    public void debug(
+            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "true")
+            boolean on
+    ){
+        IrisSettings.get().getGeneral().setDebug(on);
     }
 
     

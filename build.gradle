@@ -153,6 +153,10 @@ repositories {
     // maven { allowInsecureProtocol true, url 'http://archive.arcane.art/repository/arcane'}
 }
 
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
 shadowJar
 {
     minimize()

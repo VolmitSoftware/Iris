@@ -94,10 +94,12 @@ public class DecIris implements DecreeExecutor
             @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
             String branch,
             @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when you're going to edit)")
-            boolean trim
+            boolean trim,
+            @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
+            boolean overwrite
     ) {
         sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : ""));
-        Iris.proj.downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim);
+        Iris.proj.downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
     }
 
     @Decree(description = "Get metrics for your world", aliases = "measure", origin = DecreeOrigin.PLAYER)
@@ -108,5 +110,12 @@ public class DecIris implements DecreeExecutor
         }
         sender().sendMessage(C.GREEN + "Sending metrics...");
         engine().printMetrics(sender());
+    }
+
+    @Decree(description = "Reload configuration file (this is also done automatically)")
+    public void reload() {
+        IrisSettings.invalidate();
+        IrisSettings.get();
+        sender().sendMessage(C.GREEN + "Hotloaded settings");
     }
 }

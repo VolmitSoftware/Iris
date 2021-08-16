@@ -310,6 +310,7 @@ public class StudioSVC implements IrisService {
                 l.put(i, a.getString(i));
         }
 
+        // TEMP FIX
         l.put("IrisDimensions/overworld/master", "IrisDimensions/overworld/stable");
         l.put("overworld", "IrisDimensions/overworld/stable");
         return l;

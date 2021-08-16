@@ -20,21 +20,36 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ProjectManager;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.IrisProjectRepo;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.jobs.DownloadJob;
+import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.JobCollection;
+import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.zeroturnaround.zip.ZipUtil;
+import org.zeroturnaround.zip.commons.FileUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
  * Something you really want to wear if working on Iris. Shit gets pretty hectic down there.
@@ -167,6 +182,65 @@ public class IrisToolbelt {
         return false;
     }
 
+    /**
+     * Attempts to ensure that the pack is installed
+     * @param sender the sender
+     * @param dimension the dimension key
+     * @param force force install even if it already exists
+     * @throws Throwable shit happens
+     */
+    public static void ensureInstalled(VolmitSender sender, String dimension, boolean force) throws Throwable {
+        IrisProjectRepo r = IrisProjectRepo.from(dimension);
+
+        if(r != null)
+        {
+            dimension = r.getRepo();
+        }
+
+        File f = Iris.instance.getDataFolder("packs", dimension);
+
+        if(f.exists() && force)
+        {
+            IO.delete(f);
+        }
+
+        KList<Job> j = new KList<>();
+
+        if(!f.exists())
+        {
+            File pack = new File(Iris.getTemp(), UUID.nameUUIDFromBytes(r.toURL().getBytes(StandardCharsets.UTF_8)) + ".zip");
+            j.add(new DownloadJob(r.toURL(), pack));
+            j.add(new SingleJob("Extracting", () -> {
+                File work = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID());
+                ZipUtil.unpack(pack, work);
+                File raw = work.listFiles()[0];
+                try {
+                    FileUtils.copyDirectory(raw, f);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }));
+        }
+
+        if(j.isNotEmpty())
+        {
+            JobCollection c = new JobCollection("Pack", j);
+            c.execute(sender);
+        }
+    }
+
+    public static void download(VolmitSender sender, IrisProjectRepo repository)
+    {
+        String url = repository.toURL();
+        Iris.info("Downmload");
+    }
+
+    /**
+     * Evacuate all players from the world
+     * @param world the world to leave
+     * @param m the message
+     * @return true if it was evacuated.
+     */
     public static boolean evacuate(World world, String m) {
         for (World i : Bukkit.getWorlds()) {
             if (!i.getName().equals(world.getName())) {

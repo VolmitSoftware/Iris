@@ -12,7 +12,7 @@ public interface DecreeContextHandler<T> {
 
         try
         {
-            Iris.initialize("com.volmit.iris.util.decree.handlers.context").forEach((i)
+            Iris.initialize("com.volmit.iris.util.decree.context").forEach((i)
                     -> contextHandlers.put(((DecreeContextHandler<?>)i).getType(), (DecreeContextHandler<?>)i));
         }
 

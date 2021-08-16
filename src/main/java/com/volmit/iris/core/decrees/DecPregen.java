@@ -17,11 +17,11 @@ import org.bukkit.util.Vector;
 public class DecPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
-        @Param(name = "world", description = "The world to pregen", contextual = true)
+        @Param(description = "The world to pregen", contextual = true)
                 World world,
-        @Param(name = "radius", description = "The radius of the pregen in blocks", aliases = "size")
+        @Param(description = "The radius of the pregen in blocks", aliases = "size")
                 int radius,
-        @Param(name = "center", aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
+        @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
                 Vector center
     ) {
         try {

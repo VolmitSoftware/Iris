@@ -79,9 +79,9 @@ import java.util.function.Supplier;
 public class DecStudio implements DecreeExecutor {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
+            @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
                     IrisDimension dimension,
-            @Param(name = "seed", defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
+            @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed) {
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.proj.open(sender(), seed, dimension.getLoadKey());
@@ -100,9 +100,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Create a new studio project", aliases = "+", sync = true)
     public void create(
-            @Param(name = "name", description = "The name of this new Iris Project.")
+            @Param(description = "The name of this new Iris Project.")
                     String name,
-            @Param(name = "template", description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
+            @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
                     IrisDimension template)
     {
         if (template != null) {
@@ -114,10 +114,10 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Clean an Iris Project, optionally beautifying JSON & fixing block ids with missing keys. Also rebuilds the vscode schemas. ")
     public void clean(
-            @Param(name = "project", description = "The project to update", contextual = true)
+            @Param(description = "The project to update", contextual = true)
                     IrisDimension project,
 
-            @Param(name = "beautify", defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
+            @Param(defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
                     boolean beautify,
 
             @Param(name = "fix-ids", defaultValue = "true", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
@@ -241,53 +241,9 @@ public class DecStudio implements DecreeExecutor {
         new JobCollection("Cleaning", jobs).execute(sender());
     }
 
-    public void files(File clean, KList<File> files)
-    {
-        if (clean.isDirectory()) {
-            for (File i : clean.listFiles()) {
-                files(i, files);
-            }
-        } else if (clean.getName().endsWith(".json")) {
-            try {
-                files.add(clean);
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
-            }
-        }
-    }
-
-    private void fixBlocks(JSONObject obj) {
-        for (String i : obj.keySet()) {
-            Object o = obj.get(i);
-
-            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
-                obj.put(i, "minecraft:" + o);
-            }
-
-            if (o instanceof JSONObject) {
-                fixBlocks((JSONObject) o);
-            } else if (o instanceof JSONArray) {
-                fixBlocks((JSONArray) o);
-            }
-        }
-    }
-
-    private void fixBlocks(JSONArray obj) {
-        for (int i = 0; i < obj.length(); i++) {
-            Object o = obj.get(i);
-
-            if (o instanceof JSONObject) {
-                fixBlocks((JSONObject) o);
-            } else if (o instanceof JSONArray) {
-                fixBlocks((JSONArray) o);
-            }
-        }
-    }
-
     @Decree(description = "Get the version of a pack")
     public void version(
-            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim", contextual = true)
+            @Param(defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim", contextual = true)
                     IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
@@ -299,9 +255,9 @@ public class DecStudio implements DecreeExecutor {
     }
 
 
-    @Decree(description = "Edit the biome you're currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
     public void editbiome(
-            @Param(name = "biome", contextual = true, description = "The biome to edit")
+            @Param(contextual = true, description = "The biome to edit")
             IrisBiome biome
     ) {
         if (noStudio()) return;
@@ -316,7 +272,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(
-            @Param(name = "script", description = "The script to run")
+            @Param(description = "The script to run")
                     IrisScript script
     ) {
         engine().getExecution().execute(script.getLoadKey());
@@ -336,9 +292,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
-            @Param(name = "generator", description = "The generator to explore", contextual = true)
+            @Param(description = "The generator to explore", contextual = true)
                     IrisGenerator generator,
-            @Param(name = "seed", description = "The seed to generate with", defaultValue = "12345")
+            @Param(description = "The seed to generate with", defaultValue = "12345")
                     long seed
     ){
         if (noGUI()) return;
@@ -357,9 +313,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
-            @Param(name = "biome", description = "The biome to find")
+            @Param(description = "The biome to find")
                     IrisBiome biome,
-            @Param(name = "region", description = "The region to find")
+            @Param(description = "The region to find")
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
@@ -409,9 +365,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
     public void loot(
-            @Param(name = "fast", aliases = "f", description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
+            @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
             boolean fast,
-            @Param(name = "add", aliases = "a", description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
+            @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
             boolean add
     ) {
         if (noStudio()) return;
@@ -473,9 +429,9 @@ public class DecStudio implements DecreeExecutor {
         Iris.proj.compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
-    @Decree(description = "Profiles a dimension's performance", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(name = "dimension", description = "The dimension to profile", contextual = true)
+            @Param(description = "The dimension to profile", contextual = true)
             IrisDimension dimension
     ){
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -663,7 +619,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
-            @Param(description = "The Iris Entity to spawn", name = "entity")
+            @Param(description = "The Iris Entity to spawn")
             IrisEntity entity
     ) {
         if (!sender().isPlayer()){
@@ -697,7 +653,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension project")
     public void update(
-        @Param(name = "dimension", description = "The dimension to update the workspace of", contextual = true)
+        @Param(description = "The dimension to update the workspace of", contextual = true)
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
@@ -706,7 +662,6 @@ public class DecStudio implements DecreeExecutor {
             sender().sendMessage(C.RED + "Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
         }
     }
-
 
     /**
      * @return true if server GUIs are not enabled
@@ -736,5 +691,51 @@ public class DecStudio implements DecreeExecutor {
             return true;
         }
         return false;
+    }
+
+
+
+    public void files(File clean, KList<File> files)
+    {
+        if (clean.isDirectory()) {
+            for (File i : clean.listFiles()) {
+                files(i, files);
+            }
+        } else if (clean.getName().endsWith(".json")) {
+            try {
+                files.add(clean);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
+            }
+        }
+    }
+
+    private void fixBlocks(JSONObject obj) {
+        for (String i : obj.keySet()) {
+            Object o = obj.get(i);
+
+            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+                obj.put(i, "minecraft:" + o);
+            }
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
+            }
+        }
+    }
+
+    private void fixBlocks(JSONArray obj) {
+        for (int i = 0; i < obj.length(); i++) {
+            Object o = obj.get(i);
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
+            }
+        }
     }
 }

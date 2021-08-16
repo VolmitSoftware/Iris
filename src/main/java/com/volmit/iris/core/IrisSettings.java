@@ -129,6 +129,7 @@ public class IrisSettings {
         public boolean systemEntitySpawnOverrides = true;
         public boolean systemEntityInitialSpawns = true;
         public int maxBiomeChildDepth = 4;
+        public boolean preventLeafDecay = true;
     }
 
     @Data

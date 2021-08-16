@@ -24,6 +24,9 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class IntegerHandler implements DecreeParameterHandler<Integer> {
     @Override
     public KList<Integer> getPossibilities() {
@@ -34,7 +37,9 @@ public class IntegerHandler implements DecreeParameterHandler<Integer> {
     public Integer parse(String in) throws DecreeParsingException {
         try
         {
-            return Integer.parseInt(in);
+            AtomicReference<String> r = new AtomicReference<>(in);
+            double m = getMultiplier(r);
+            return (int)(Integer.valueOf(r.get()).doubleValue() * m);
         }
 
         catch(Throwable e)

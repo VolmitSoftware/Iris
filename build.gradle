@@ -32,7 +32,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.7'
+version '1.7.1'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // See settings.gradle
 def main = 'com.volmit.iris.Iris'
@@ -151,6 +151,10 @@ repositories {
     // Uncomment this line if the build is failing because of missing dependencies
     // Its slow but it will resolve any cached dependencies until we can find an alternative repo
     // maven { allowInsecureProtocol true, url 'http://archive.arcane.art/repository/arcane'}
+}
+
+compileJava {
+    options.compilerArgs << '-parameters'
 }
 
 shadowJar

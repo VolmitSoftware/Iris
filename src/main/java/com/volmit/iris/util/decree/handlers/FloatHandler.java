@@ -24,6 +24,8 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public class FloatHandler implements DecreeParameterHandler<Float> {
     @Override
     public KList<Float> getPossibilities() {
@@ -34,7 +36,9 @@ public class FloatHandler implements DecreeParameterHandler<Float> {
     public Float parse(String in) throws DecreeParsingException {
         try
         {
-            return Float.parseFloat(in);
+            AtomicReference<String> r = new AtomicReference<>(in);
+            double m = getMultiplier(r);
+            return (float)(Float.parseFloat(r.get()) * m);
         }
 
         catch(Throwable e)

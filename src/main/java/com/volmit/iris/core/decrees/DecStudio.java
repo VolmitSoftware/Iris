@@ -318,9 +318,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
-            @Param(description = "The biome to find")
+            @Param(description = "The biome to find", contextual = true)
                     IrisBiome biome,
-            @Param(description = "The region to find")
+            @Param(description = "The region to find", contextual = true)
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
@@ -424,7 +424,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true)
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
             IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
@@ -436,7 +436,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(description = "The dimension to profile", contextual = true)
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "overworld")
             IrisDimension dimension
     ){
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -658,7 +658,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension project")
     public void update(
-        @Param(description = "The dimension to update the workspace of", contextual = true)
+        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {

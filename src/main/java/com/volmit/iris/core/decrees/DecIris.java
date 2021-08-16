@@ -37,8 +37,6 @@ public class DecIris implements DecreeExecutor
 
     private DecPregen pregen;
 
-    private DecWhat what;
-
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
@@ -84,11 +82,11 @@ public class DecIris implements DecreeExecutor
 
     @Decree(description = "Set aura spins")
     public void aura(
-            @Param(description = "The h color value")
+            @Param(description = "The h color value", defaultValue = "-20")
             int h,
-            @Param(description = "The s color value")
+            @Param(description = "The s color value", defaultValue = "7")
             int s,
-            @Param(description = "The b color value")
+            @Param(description = "The b color value", defaultValue = "8")
             int b
     ) {
         IrisSettings.get().getGeneral().setSpinh(h);
@@ -137,7 +135,7 @@ public class DecIris implements DecreeExecutor
             String pack,
             @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
             String branch,
-            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when you're going to edit)")
+            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
             boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
             boolean overwrite

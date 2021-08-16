@@ -41,6 +41,7 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -64,7 +65,11 @@ import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 
@@ -313,9 +318,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
-            @Param(description = "The biome to find")
+            @Param(description = "The biome to find", contextual = true)
                     IrisBiome biome,
-            @Param(description = "The region to find")
+            @Param(description = "The region to find", contextual = true)
                     IrisRegion region
     ){
         if (!IrisToolbelt.isIrisWorld(world())){
@@ -419,7 +424,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true)
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
             IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
@@ -431,7 +436,7 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(description = "The dimension to profile", contextual = true)
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "overworld")
             IrisDimension dimension
     ){
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -653,13 +658,99 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension project")
     public void update(
-        @Param(description = "The dimension to update the workspace of", contextual = true)
+        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
             sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {
             sender().sendMessage(C.RED + "Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
+        }
+    }
+
+    @Decree(description = "Get information about the world around you", origin = DecreeOrigin.PLAYER)
+    public void what(
+            @Param(description = "Whether or not to show dimension information", defaultValue = "true")
+                    boolean dimension,
+            @Param(description = "Whether or not to show region information", defaultValue = "true")
+                    boolean region,
+            @Param(description = "Whether or not to show biome information", defaultValue = "true")
+                    boolean biome,
+            @Param(description = "Whether or not to show information about the block you are looking at", defaultValue = "true")
+                    boolean look,
+            @Param(description = "Whether or not to show information about the block you are holding", defaultValue = "true")
+                    boolean hand
+    ){
+        // Data
+        BlockData handHeld = player().getInventory().getItemInMainHand().getType().createBlockData();
+        Block targetBlock = player().getTargetBlockExact(128, FluidCollisionMode.NEVER);
+        BlockData targetBlockData;
+        if (targetBlock == null) {
+            targetBlockData = null;
+        } else {
+            targetBlockData = targetBlock.getBlockData();
+        }
+        IrisBiome currentBiome = engine().getBiome(player().getLocation());
+        IrisRegion currentRegion = engine().getRegion(player().getLocation());
+        IrisDimension currentDimension = engine().getDimension();
+
+        // Biome, region & dimension
+        if (dimension) {
+            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current dimension:" + C.RESET + "" + C.WHITE + currentDimension.getName());
+        }
+        if (region) {
+            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current region:" + C.RESET + "" + C.WHITE + currentRegion.getName());
+        }
+        if (biome) {
+            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current biome:" + C.RESET + "" + C.WHITE + currentBiome.getName());
+        }
+
+        // Target
+        if (targetBlockData == null){
+            sender().sendMessage(C.RED + "Not looking at any block");
+        } else if (look) {
+            sender().sendMessage(C.GREEN + "" + C.BOLD + "Looked-at block information");
+
+            sender().sendMessage("Material: " + C.GREEN + targetBlockData.getMaterial().name());
+            sender().sendMessage("Full: " + C.WHITE + targetBlockData.getAsString(true));
+
+            if (B.isStorage(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Storage Block (Loot Capable)");
+            }
+
+            if (B.isLit(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Lit Block (Light Capable)");
+            }
+
+            if (B.isFoliage(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Foliage Block");
+            }
+
+            if (B.isDecorant(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Decorant Block");
+            }
+
+            if (B.isFluid(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Fluid Block");
+            }
+
+            if (B.isFoliagePlantable(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Plantable Foliage Block");
+            }
+
+            if (B.isSolid(targetBlockData)) {
+                sender().sendMessage(C.YELLOW + "* Solid Block");
+            }
+        }
+
+        // Hand-held
+        if (!handHeld.getMaterial().equals(Material.AIR)) {
+            sender().sendMessage(C.YELLOW + "No block held");
+        } else if (hand) {
+            sender().sendMessage(C.GREEN + "" + C.BOLD + "Hand-held block information");
+
+            sender().sendMessage("Material: " + C.GREEN + handHeld.getMaterial().name());
+            sender().sendMessage("Full: " + C.WHITE + handHeld.getAsString(true));
         }
     }
 

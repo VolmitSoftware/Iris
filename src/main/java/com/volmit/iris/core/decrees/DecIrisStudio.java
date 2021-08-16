@@ -329,6 +329,10 @@ public class DecIrisStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch();
     }
 
+    @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
+    public void charge() {
+        engine().getWorldManager().chargeEnergy();
+    }
 
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(

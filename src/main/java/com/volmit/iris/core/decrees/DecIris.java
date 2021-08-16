@@ -19,6 +19,7 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
@@ -31,5 +32,21 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Print version information")
     public void version(){
         sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
+    }
+
+    @Decree(description = "Set aura spins")
+    public void aura(
+            @Param(name = "h", description = "The h color value")
+                    int h,
+            @Param(name = "s", description = "The s color value")
+                    int s,
+            @Param(name = "b", description = "The b color value")
+                    int b
+    ){
+        IrisSettings.get().getGeneral().setSpinh(h);
+        IrisSettings.get().getGeneral().setSpins(s);
+        IrisSettings.get().getGeneral().setSpinb(b);
+        IrisSettings.get().forceSave();
+        sender().sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
     }
 }

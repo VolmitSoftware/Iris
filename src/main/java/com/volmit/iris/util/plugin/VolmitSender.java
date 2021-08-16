@@ -459,7 +459,9 @@ public class VolmitSender implements CommandSender {
                                             ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
                                             : (f.hasDefault()
                                                 ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
-                                                : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional."))
+                                                : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
+                                        + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
+                                        + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName() + "<reset>\n"
                                     + "'>"
                                         + (f.isRequired() ? "<red>[" : "")
                                         + "<gradient:#d665f0:#a37feb>" + f.getName()

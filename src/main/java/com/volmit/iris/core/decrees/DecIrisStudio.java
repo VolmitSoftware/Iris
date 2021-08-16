@@ -102,7 +102,7 @@ public class DecIrisStudio implements DecreeExecutor {
     public void create(
             @Param(name = "name", description = "The name of this new Iris Project.")
                     String name,
-            @Param(name = "template", description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.")
+            @Param(name = "template", description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
                     IrisDimension template)
     {
         if (template != null) {
@@ -114,7 +114,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Clean an Iris Project, optionally beautifying JSON & fixing block ids with missing keys. Also rebuilds the vscode schemas. ")
     public void clean(
-            @Param(name = "project", description = "The project to update")
+            @Param(name = "project", description = "The project to update", contextual = true)
                     IrisDimension project,
 
             @Param(name = "beautify", defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
@@ -287,7 +287,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Get the version of a pack")
     public void version(
-            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of")
+            @Param(name = "dimension", defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim", contextual = true)
                     IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
@@ -300,12 +300,14 @@ public class DecIrisStudio implements DecreeExecutor {
 
 
     @Decree(description = "Edit the biome you're currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
-    public void editbiome() {
-
+    public void editbiome(
+            @Param(name = "biome", contextual = true, description = "The biome to edit")
+            IrisBiome biome
+    ) {
         if (noStudio()) return;
 
         try {
-            Desktop.getDesktop().open(Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(sender().player().getLocation()).getLoadFile());
+            Desktop.getDesktop().open(biome.getLoadFile());
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Unsure why this happened.");
@@ -330,7 +332,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
-            @Param(name = "generator", description = "The generator to explore")
+            @Param(name = "generator", description = "The generator to explore", contextual = true)
                     IrisGenerator generator,
             @Param(name = "seed", description = "The seed to generate with", defaultValue = "12345")
                     long seed
@@ -457,7 +459,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress")
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true)
             IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
@@ -469,7 +471,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles a dimension's performance", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(name = "dimension", description = "The dimension to profile")
+            @Param(name = "dimension", description = "The dimension to profile", contextual = true)
             IrisDimension dimension
     ){
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -660,21 +662,26 @@ public class DecIrisStudio implements DecreeExecutor {
             @Param(description = "The Iris Entity to spawn", name = "entity")
             IrisEntity entity
     ) {
-        if (noStudio()){
+        if (!sender().isPlayer()){
+            sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
+            return;
+        }
+        if (IrisToolbelt.isIrisWorld(world())){
+            sender().sendMessage(C.RED + "You can only spawn entities in Iris worlds!");
             return;
         }
         sender().sendMessage(C.GREEN + "Spawning entity");
         entity.spawn(engine(), player().getLocation().clone().add(0, 2, 0));
     }
 
-    @Decree(description = "Teleport to the active studio world", aliases = {"tps", "stp", "tp"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
     public void tpstudio(){
         if (!Iris.proj.isProjectOpen()){
             sender().sendMessage(C.RED + "No studio world is open!");
             return;
         }
 
-        if (engine().isStudio()){
+        if (IrisToolbelt.isIrisWorld(world()) && engine().isStudio()){
             sender().sendMessage(C.RED + "You are already in a studio world!");
             return;
         }
@@ -686,7 +693,7 @@ public class DecIrisStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension project")
     public void update(
-        @Param(name = "dimension", description = "The dimension to update the workspace of")
+        @Param(name = "dimension", description = "The dimension to update the workspace of", contextual = true)
                 IrisDimension dimension
     ){
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {

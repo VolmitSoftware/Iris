@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.format.C;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor
@@ -49,4 +50,31 @@ public class DecIris implements DecreeExecutor
         IrisSettings.get().forceSave();
         sender().sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
     }
+
+    @Decree(description = "Bitwise calculations")
+    public void bitwise(
+            @Param(name = "value1", description = "The first value to run calculations on")
+            int val1,
+            @Param(name = "operator", description = "The operator: | & ^ >> << %")
+            String operator,
+            @Param(name = "value2", description = "The second value to run calculations on")
+            int val2
+    ){
+        Integer v = null;
+        switch(operator) {
+            case "|" -> v = val1 | val2;
+            case "&" -> v = val1 & val2;
+            case "^" -> v = val1 ^ val2;
+            case "%" -> v = val1 % val2;
+            case ">>" -> v = val1 >> val2;
+            case "<<" -> v = val1 << val2;
+        };
+        if (v == null){
+            sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "" + val1 + " " + operator + " " + val2 + " => " + v);
+    }
+
+    
 }

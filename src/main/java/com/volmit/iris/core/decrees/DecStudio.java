@@ -76,7 +76,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class DecIrisStudio implements DecreeExecutor {
+public class DecStudio implements DecreeExecutor {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(name = "dimension", defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
@@ -123,7 +123,7 @@ public class DecIrisStudio implements DecreeExecutor {
             @Param(name = "fix-ids", defaultValue = "true", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
                     boolean fixIds,
 
-            @Param(name = "rewriteObjects", defaultValue = "false", description = "Imports all objects and re-writes them cleaning up positions & block data in the process.")
+            @Param(name = "rewrite-objects", defaultValue = "false", description = "Imports all objects and re-writes them cleaning up positions & block data in the process.")
                     boolean rewriteObjects
     ) {
         KList<Job> jobs = new KList<>();

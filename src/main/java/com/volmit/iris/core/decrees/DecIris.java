@@ -26,25 +26,22 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
-import org.bukkit.World;
 
 import java.io.File;
-import java.util.Objects;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor
 {
-    private DecIrisStudio studio;
+    private DecStudio studio;
 
-    private DecIrisPregen pregen;
+    private DecPregen pregen;
 
-    private DecIrisWhat what;
+    private DecWhat what;
 
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
-            @Param(name = "name", aliases = "worldName", description = "The name of the world to create", defaultValue = "IrisWorld")
+            @Param(name = "name", aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
             String name,
             @Param(name = "type", aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
             IrisDimension type,

@@ -14,7 +14,7 @@ import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
-public class DecIrisPregen implements DecreeExecutor {
+public class DecPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
         @Param(name = "world", description = "The world to pregen", contextual = true)

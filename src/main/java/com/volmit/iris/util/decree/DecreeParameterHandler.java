@@ -23,6 +23,8 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public interface DecreeParameterHandler<T> {
     /**
      * Should return the possible values for this type
@@ -110,5 +112,56 @@ public interface DecreeParameterHandler<T> {
     default String getRandomDefault()
     {
         return "NOEXAMPLE";
+    }
+
+    default double getMultiplier(AtomicReference<String> g)
+    {
+        double multiplier = 1;
+        String in = g.get();
+        boolean valid = true;
+        while(valid) {
+            boolean trim = false;
+            if (in.toLowerCase().endsWith("k"))
+            {
+                multiplier *= 1000;
+                trim = true;
+            }
+
+            else if(in.toLowerCase().endsWith("m"))
+            {
+                multiplier *= 1000000;
+                trim = true;
+            }
+
+            else if(in.toLowerCase().endsWith("h"))
+            {
+                multiplier *= 100;
+                trim = true;
+            }
+
+            else if(in.toLowerCase().endsWith("c"))
+            {
+                multiplier *= 16;
+                trim = true;
+            }
+
+            else if(in.toLowerCase().endsWith("r"))
+            {
+                multiplier *= (16 * 32);
+                trim = true;
+            }
+
+            else {
+                valid = false;
+            }
+
+            if(trim)
+            {
+                in = in.substring(0, in.length() - 1);
+            }
+        }
+
+        g.set(in);
+        return multiplier;
     }
 }

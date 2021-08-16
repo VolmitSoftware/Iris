@@ -163,6 +163,12 @@ public class StudioSVC implements IrisService {
 
         try {
             url = getListing(false).get(key);
+
+            if(url == null)
+            {
+                Iris.warn("ITS ULL for " + key);
+            }
+
             url = url == null ? key : url;
             Iris.info("Assuming URL " + url);
             String branch = "master";
@@ -289,10 +295,6 @@ public class StudioSVC implements IrisService {
     }
 
     public KMap<String, String> getListing(boolean cached) {
-        if (cached && cacheListing != null) {
-            return cacheListing;
-        }
-
         JSONObject a;
 
         if (cached) {
@@ -308,6 +310,8 @@ public class StudioSVC implements IrisService {
                 l.put(i, a.getString(i));
         }
 
+        l.put("IrisDimensions/overworld/master", "IrisDimensions/overworld/stable");
+        l.put("overworld", "IrisDimensions/overworld/stable");
         return l;
     }
 

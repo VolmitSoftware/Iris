@@ -181,40 +181,6 @@ public class IrisToolbelt {
     }
 
     /**
-     * Attempts to ensure that the pack is installed
-     *
-     * @param sender the sender
-     * @param url    the dimension
-     * @throws Throwable shit happens
-     */
-    public static void install(VolmitSender sender, String url) throws Throwable {
-        IrisProjectRepo r = IrisProjectRepo.from(url);
-
-        if (r != null) {
-            url = r.getRepo();
-        }
-
-        File f = Iris.instance.getDataFolder("packs", url);
-        IO.delete(f);
-        KList<Job> j = new KList<>();
-        File pack = new File(Iris.getTemp(), UUID.nameUUIDFromBytes(r.toURL().getBytes(StandardCharsets.UTF_8)) + ".zip");
-        j.add(new DownloadJob(r.toURL(), pack));
-        j.add(new SingleJob("Extracting", () -> {
-            File work = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID());
-            ZipUtil.unpack(pack, work);
-            File raw = work.listFiles()[0];
-            try {
-                FileUtils.copyDirectory(raw, f);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }));
-
-        JobCollection c = new JobCollection("Pack", j);
-        c.execute(sender);
-    }
-
-    /**
      * Evacuate all players from the world
      *
      * @param world the world to leave

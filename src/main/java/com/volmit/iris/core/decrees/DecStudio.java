@@ -110,8 +110,7 @@ public class DecStudio implements DecreeExecutor {
             @Param(description = "The name of this new Iris Project.")
                     String name,
             @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
-                    IrisDimension template)
-    {
+                    IrisDimension template) {
         if (template != null) {
             Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
         } else {
@@ -147,8 +146,7 @@ public class DecStudio implements DecreeExecutor {
 
         sender().sendMessage("Files: " + files.size());
 
-        if(fixIds)
-        {
+        if (fixIds) {
             QueueJob<File> r = new QueueJob<>() {
                 @Override
                 public void execute(File f) {
@@ -173,8 +171,7 @@ public class DecStudio implements DecreeExecutor {
             jobs.add(r);
         }
 
-        if(beautify)
-        {
+        if (beautify) {
             QueueJob<File> r = new QueueJob<>() {
                 @Override
                 public void execute(File f) {
@@ -197,8 +194,7 @@ public class DecStudio implements DecreeExecutor {
             jobs.add(r);
         }
 
-        if(rewriteObjects)
-        {
+        if (rewriteObjects) {
             QueueJob<Runnable> q = new QueueJob<>() {
                 @Override
                 public void execute(Runnable runnable) {
@@ -214,7 +210,7 @@ public class DecStudio implements DecreeExecutor {
 
             IrisData data = new IrisData(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
             for (String f : data.getObjectLoader().getPossibleKeys()) {
-                CompletableFuture<?> gg = burst.complete(() ->{
+                CompletableFuture<?> gg = burst.complete(() -> {
                     File ff = data.getObjectLoader().findFile(f);
                     IrisObject oo = new IrisObject(0, 0, 0);
                     try {
@@ -265,7 +261,7 @@ public class DecStudio implements DecreeExecutor {
     @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
     public void editbiome(
             @Param(contextual = true, description = "The biome to edit")
-            IrisBiome biome
+                    IrisBiome biome
     ) {
         if (noStudio()) return;
 
@@ -303,7 +299,7 @@ public class DecStudio implements DecreeExecutor {
                     IrisGenerator generator,
             @Param(description = "The seed to generate with", defaultValue = "12345")
                     long seed
-    ){
+    ) {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
 
@@ -324,13 +320,13 @@ public class DecStudio implements DecreeExecutor {
                     IrisBiome biome,
             @Param(description = "The region to find", contextual = true)
                     IrisRegion region
-    ){
-        if (!IrisToolbelt.isIrisWorld(world())){
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You must be in an Iris world to use this command!");
             return;
         }
 
-        if (biome == null && region == null){
+        if (biome == null && region == null) {
             sender().sendMessage(C.RED + "You must specify a biome or region!");
             return;
         }
@@ -373,9 +369,9 @@ public class DecStudio implements DecreeExecutor {
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
     public void loot(
             @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
-            boolean fast,
+                    boolean fast,
             @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
-            boolean add
+                    boolean add
     ) {
         if (noStudio()) return;
 
@@ -384,7 +380,7 @@ public class DecStudio implements DecreeExecutor {
 
         try {
             engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
-        } catch (Throwable e){
+        } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
             return;
@@ -414,8 +410,7 @@ public class DecStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
-    public void map()
-    {
+    public void map() {
         if (noStudio()) return;
 
         if (noGUI()) return;
@@ -427,20 +422,20 @@ public class DecStudio implements DecreeExecutor {
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
             @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
-            IrisDimension dimension,
+                    IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
-            boolean obfuscate,
+                    boolean obfuscate,
             @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
-            boolean minify
-    ){
+                    boolean minify
+    ) {
         Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
             @Param(description = "The dimension to profile", contextual = true, defaultValue = "overworld")
-            IrisDimension dimension
-    ){
+                    IrisDimension dimension
+    ) {
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
         File report = Iris.instance.getDataFile("profile.txt");
         IrisProject project = new IrisProject(pack);
@@ -627,13 +622,13 @@ public class DecStudio implements DecreeExecutor {
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
             @Param(description = "The Iris Entity to spawn")
-            IrisEntity entity
+                    IrisEntity entity
     ) {
-        if (!sender().isPlayer()){
+        if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return;
         }
-        if (IrisToolbelt.isIrisWorld(world())){
+        if (IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You can only spawn entities in Iris worlds!");
             return;
         }
@@ -642,13 +637,13 @@ public class DecStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
-    public void tpstudio(){
-        if (!Iris.service(StudioSVC.class).isProjectOpen()){
+    public void tpstudio() {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
             return;
         }
 
-        if (IrisToolbelt.isIrisWorld(world()) && engine().isStudio()){
+        if (IrisToolbelt.isIrisWorld(world()) && engine().isStudio()) {
             sender().sendMessage(C.RED + "You are already in a studio world!");
             return;
         }
@@ -660,9 +655,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension project")
     public void update(
-        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
-                IrisDimension dimension
-    ){
+            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
+                    IrisDimension dimension
+    ) {
         if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
             sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {
@@ -682,7 +677,7 @@ public class DecStudio implements DecreeExecutor {
                     boolean look,
             @Param(description = "Whether or not to show information about the block you are holding", defaultValue = "true")
                     boolean hand
-    ){
+    ) {
         // Data
         BlockData handHeld = player().getInventory().getItemInMainHand().getType().createBlockData();
         Block targetBlock = player().getTargetBlockExact(128, FluidCollisionMode.NEVER);
@@ -708,7 +703,7 @@ public class DecStudio implements DecreeExecutor {
         }
 
         // Target
-        if (targetBlockData == null){
+        if (targetBlockData == null) {
             sender().sendMessage(C.RED + "Not looking at any block");
         } else if (look) {
             sender().sendMessage(C.GREEN + "" + C.BOLD + "Looked-at block information");
@@ -760,7 +755,7 @@ public class DecStudio implements DecreeExecutor {
      * @return true if server GUIs are not enabled
      */
     private boolean noGUI() {
-        if (!IrisSettings.get().isUseServerLaunchedGuis()){
+        if (!IrisSettings.get().isUseServerLaunchedGuis()) {
             sender().sendMessage(C.RED + "You must have server launched GUIs enabled in the settings!");
             return true;
         }
@@ -770,16 +765,16 @@ public class DecStudio implements DecreeExecutor {
     /**
      * @return true if no studio is open or the player is not in one
      */
-    private boolean noStudio(){
-        if (!sender().isPlayer()){
+    private boolean noStudio() {
+        if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return true;
         }
-        if (!Iris.service(StudioSVC.class).isProjectOpen()){
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }
-        if (!engine().isStudio()){
+        if (!engine().isStudio()) {
             sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }
@@ -787,9 +782,7 @@ public class DecStudio implements DecreeExecutor {
     }
 
 
-
-    public void files(File clean, KList<File> files)
-    {
+    public void files(File clean, KList<File> files) {
         if (clean.isDirectory()) {
             for (File i : clean.listFiles()) {
                 files(i, files);

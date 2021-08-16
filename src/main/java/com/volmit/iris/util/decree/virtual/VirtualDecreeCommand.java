@@ -22,7 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.*;
+import com.volmit.iris.util.decree.DecreeContext;
+import com.volmit.iris.util.decree.DecreeContextHandler;
+import com.volmit.iris.util.decree.DecreeNode;
+import com.volmit.iris.util.decree.DecreeParameter;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
@@ -31,15 +34,10 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
-import lombok.Getter;
-import org.apache.logging.log4j.core.impl.ThrowableFormatOptions;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
 
 @Data
@@ -49,8 +47,7 @@ public class VirtualDecreeCommand {
     private final KList<VirtualDecreeCommand> nodes;
     private final DecreeNode node;
 
-    private VirtualDecreeCommand(Class<?> type, VirtualDecreeCommand parent, KList<VirtualDecreeCommand> nodes, DecreeNode node)
-    {
+    private VirtualDecreeCommand(Class<?> type, VirtualDecreeCommand parent, KList<VirtualDecreeCommand> nodes, DecreeNode node) {
         this.parent = parent;
         this.type = type;
         this.nodes = nodes;
@@ -64,23 +61,19 @@ public class VirtualDecreeCommand {
     public static VirtualDecreeCommand createRoot(VirtualDecreeCommand parent, Object v) throws Throwable {
         VirtualDecreeCommand c = new VirtualDecreeCommand(v.getClass(), parent, new KList<>(), null);
 
-        for(Field i : v.getClass().getDeclaredFields())
-        {
-            if(Modifier.isStatic(i.getModifiers()) || Modifier.isFinal(i.getModifiers())|| Modifier.isTransient(i.getModifiers())|| Modifier.isVolatile(i.getModifiers()))
-            {
+        for (Field i : v.getClass().getDeclaredFields()) {
+            if (Modifier.isStatic(i.getModifiers()) || Modifier.isFinal(i.getModifiers()) || Modifier.isTransient(i.getModifiers()) || Modifier.isVolatile(i.getModifiers())) {
                 continue;
             }
 
-            if(!i.getType().isAnnotationPresent(Decree.class))
-            {
+            if (!i.getType().isAnnotationPresent(Decree.class)) {
                 continue;
             }
 
             i.setAccessible(true);
             Object childRoot = i.get(v);
 
-            if(childRoot == null)
-            {
+            if (childRoot == null) {
                 childRoot = i.getType().getConstructor().newInstance();
                 i.set(v, childRoot);
             }
@@ -88,15 +81,12 @@ public class VirtualDecreeCommand {
             c.getNodes().add(createRoot(c, childRoot));
         }
 
-        for(Method i : v.getClass().getDeclaredMethods())
-        {
-            if(Modifier.isStatic(i.getModifiers()) || Modifier.isFinal(i.getModifiers()) || Modifier.isPrivate(i.getModifiers()))
-            {
+        for (Method i : v.getClass().getDeclaredMethods()) {
+            if (Modifier.isStatic(i.getModifiers()) || Modifier.isFinal(i.getModifiers()) || Modifier.isPrivate(i.getModifiers())) {
                 continue;
             }
 
-            if(!i.isAnnotationPresent(Decree.class))
-            {
+            if (!i.isAnnotationPresent(Decree.class)) {
                 continue;
             }
 
@@ -106,13 +96,11 @@ public class VirtualDecreeCommand {
         return c;
     }
 
-    public String getPath()
-    {
+    public String getPath() {
         KList<String> n = new KList<>();
         VirtualDecreeCommand cursor = this;
 
-        while(cursor.getParent() != null)
-        {
+        while (cursor.getParent() != null) {
             cursor = cursor.getParent();
             n.add(cursor.getName());
         }
@@ -120,13 +108,11 @@ public class VirtualDecreeCommand {
         return "/" + n.reverse().qadd(getName()).toString(" ");
     }
 
-    public String getParentPath()
-    {
-       return getParent().getPath();
+    public String getParentPath() {
+        return getParent().getPath();
     }
 
-    public String getName()
-    {
+    public String getName() {
         return isNode() ? getNode().getName() : getType().getDeclaredAnnotation(Decree.class).name();
     }
 
@@ -134,24 +120,19 @@ public class VirtualDecreeCommand {
         return isNode() ? getNode().getDecree().studio() : getType().getDeclaredAnnotation(Decree.class).studio();
     }
 
-    public String getDescription()
-    {
+    public String getDescription() {
         return isNode() ? getNode().getDescription() : getType().getDeclaredAnnotation(Decree.class).description();
     }
 
-    public KList<String> getNames()
-    {
-        if(isNode())
-        {
+    public KList<String> getNames() {
+        if (isNode()) {
             return getNode().getNames();
         }
 
         KList<String> d = new KList<>();
         Decree dc = getType().getDeclaredAnnotation(Decree.class);
-        for(String i : dc.aliases())
-        {
-            if(i.isEmpty())
-            {
+        for (String i : dc.aliases()) {
+            if (i.isEmpty()) {
                 continue;
             }
 
@@ -164,56 +145,45 @@ public class VirtualDecreeCommand {
         return d;
     }
 
-    public boolean isNode()
-    {
+    public boolean isNode() {
         return node != null;
     }
 
-    public KList<String> tabComplete(KList<String> args, String raw)
-    {
+    public KList<String> tabComplete(KList<String> args, String raw) {
         KList<Integer> skip = new KList<>();
         KList<String> tabs = new KList<>();
         invokeTabComplete(args, skip, tabs, raw);
         return tabs;
     }
 
-    private boolean invokeTabComplete(KList<String> args, KList<Integer> skip, KList<String> tabs, String raw)
-    {
-        if(isStudio() && !IrisSettings.get().isStudio())
-        {
+    private boolean invokeTabComplete(KList<String> args, KList<Integer> skip, KList<String> tabs, String raw) {
+        if (isStudio() && !IrisSettings.get().isStudio()) {
             return false;
         }
 
-        if(isNode())
-        {
+        if (isNode()) {
             tab(args, tabs);
             skip.add(hashCode());
             return false;
         }
 
-        if(args.isEmpty())
-        {
+        if (args.isEmpty()) {
             tab(args, tabs);
             return true;
         }
 
         String head = args.get(0);
 
-        if (args.size() > 1 || head.endsWith(" "))
-        {
+        if (args.size() > 1 || head.endsWith(" ")) {
             VirtualDecreeCommand match = matchNode(head, skip);
 
-            if(match != null)
-            {
+            if (match != null) {
                 args.pop();
                 return match.invokeTabComplete(args, skip, tabs, raw);
             }
 
             skip.add(hashCode());
-        }
-
-        else
-        {
+        } else {
             tab(args, tabs);
         }
 
@@ -226,22 +196,18 @@ public class VirtualDecreeCommand {
         Runnable la = () -> {
 
         };
-        for(String a : args)
-        {
+        for (String a : args) {
             la.run();
             last = a;
             la = () -> {
-                if(isNode())
-                {
+                if (isNode()) {
                     String sea = a.contains("=") ? a.split("\\Q=\\E")[0] : a;
                     sea = sea.trim();
 
-                    searching: for(DecreeParameter i : getNode().getParameters())
-                    {
-                        for(String m : i.getNames())
-                        {
-                            if(m.equalsIgnoreCase(sea) || m.toLowerCase().contains(sea.toLowerCase()) || sea.toLowerCase().contains(m.toLowerCase()))
-                            {
+                    searching:
+                    for (DecreeParameter i : getNode().getParameters()) {
+                        for (String m : i.getNames()) {
+                            if (m.equalsIgnoreCase(sea) || m.toLowerCase().contains(sea.toLowerCase()) || sea.toLowerCase().contains(m.toLowerCase())) {
                                 ignore.add(i);
                                 continue searching;
                             }
@@ -251,52 +217,37 @@ public class VirtualDecreeCommand {
             };
         }
 
-        if(last != null)
-        {
+        if (last != null) {
             if (isNode()) {
-                for(DecreeParameter i : getNode().getParameters())
-                {
-                    if(ignore.contains(i))
-                    {
+                for (DecreeParameter i : getNode().getParameters()) {
+                    if (ignore.contains(i)) {
                         continue;
                     }
 
                     int g = 0;
 
-                    if(last.contains("="))
-                    {
+                    if (last.contains("=")) {
                         String[] vv = last.trim().split("\\Q=\\E");
                         String vx = vv.length == 2 ? vv[1] : "";
-                        for(String f : i.getHandler().getPossibilities(vx).convert((v) -> i.getHandler().toStringForce(v)))
-                        {
+                        for (String f : i.getHandler().getPossibilities(vx).convert((v) -> i.getHandler().toStringForce(v))) {
                             g++;
-                            tabs.add(i.getName() +"="+ f);
+                            tabs.add(i.getName() + "=" + f);
+                        }
+                    } else {
+                        for (String f : i.getHandler().getPossibilities("").convert((v) -> i.getHandler().toStringForce(v))) {
+                            g++;
+                            tabs.add(i.getName() + "=" + f);
                         }
                     }
 
-                    else
-                    {
-                        for(String f : i.getHandler().getPossibilities("").convert((v) -> i.getHandler().toStringForce(v)))
-                        {
-                            g++;
-                            tabs.add(i.getName() +"="+ f);
-                        }
-                    }
-
-                    if(g == 0)
-                    {
+                    if (g == 0) {
                         tabs.add(i.getName() + "=");
                     }
                 }
-            }
-
-            else
-            {
-                for(VirtualDecreeCommand i : getNodes())
-                {
+            } else {
+                for (VirtualDecreeCommand i : getNodes()) {
                     String m = i.getName();
-                    if(m.equalsIgnoreCase(last) || m.toLowerCase().contains(last.toLowerCase()) || last.toLowerCase().contains(m.toLowerCase()))
-                    {
+                    if (m.equalsIgnoreCase(last) || m.toLowerCase().contains(last.toLowerCase()) || last.toLowerCase().contains(m.toLowerCase())) {
                         tabs.addAll(i.getNames());
                     }
                 }
@@ -304,40 +255,30 @@ public class VirtualDecreeCommand {
         }
     }
 
-    private KMap<String, Object> map(VolmitSender sender, KList<String> in)
-    {
+    private KMap<String, Object> map(VolmitSender sender, KList<String> in) {
         KMap<String, Object> data = new KMap<>();
 
-        for(int ix = 0; ix <  in.size(); ix++)
-        {
+        for (int ix = 0; ix < in.size(); ix++) {
             String i = in.get(ix);
-            if(i.contains("="))
-            {
+            if (i.contains("=")) {
                 String[] v = i.split("\\Q=\\E");
                 String key = v[0];
                 String value = v[1];
                 DecreeParameter param = null;
 
-                for(DecreeParameter j : getNode().getParameters())
-                {
-                    for(String k : j.getNames())
-                    {
-                        if(k.equalsIgnoreCase(key))
-                        {
+                for (DecreeParameter j : getNode().getParameters()) {
+                    for (String k : j.getNames()) {
+                        if (k.equalsIgnoreCase(key)) {
                             param = j;
                             break;
                         }
                     }
                 }
 
-                if(param == null)
-                {
-                    for(DecreeParameter j : getNode().getParameters())
-                    {
-                        for(String k : j.getNames())
-                        {
-                            if(k.toLowerCase().contains(key.toLowerCase()) || key.toLowerCase().contains(k.toLowerCase()))
-                            {
+                if (param == null) {
+                    for (DecreeParameter j : getNode().getParameters()) {
+                        for (String k : j.getNames()) {
+                            if (k.toLowerCase().contains(key.toLowerCase()) || key.toLowerCase().contains(k.toLowerCase())) {
                                 param = j;
                                 break;
                             }
@@ -345,8 +286,7 @@ public class VirtualDecreeCommand {
                     }
                 }
 
-                if(param == null)
-                {
+                if (param == null) {
                     Iris.debug("Can't find parameter key for " + key + "=" + value + " in " + getPath());
                     sender.sendMessage(C.YELLOW + "Unknown Parameter: " + key);
                     continue;
@@ -367,12 +307,8 @@ public class VirtualDecreeCommand {
                     Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
                     in.set(ix--, update);
                 }
-            }
-
-            else
-            {
-                try
-                {
+            } else {
+                try {
                     DecreeParameter par = getNode().getParameters().get(ix);
                     try {
                         data.put(par.getName(), par.getHandler().parse(i));
@@ -387,11 +323,8 @@ public class VirtualDecreeCommand {
                         Iris.debug("Client chose " + update + " for " + par.getName() + "=" + i + " (old) in " + getPath());
                         in.set(ix--, update);
                     }
-                }
-
-                catch(IndexOutOfBoundsException e)
-                {
-                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + i + " (" + Form.getNumberSuffixThStRd(ix+1) + " argument)");
+                } catch (IndexOutOfBoundsException e) {
+                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + i + " (" + Form.getNumberSuffixThStRd(ix + 1) + " argument)");
                 }
             }
         }
@@ -399,25 +332,20 @@ public class VirtualDecreeCommand {
         return data;
     }
 
-    public boolean invoke(VolmitSender sender, KList<String> realArgs)
-    {
+    public boolean invoke(VolmitSender sender, KList<String> realArgs) {
         return invoke(sender, realArgs, new KList<>());
     }
 
-    public boolean invoke(VolmitSender sender, KList<String> args, KList<Integer> skip)
-    {
-        if(isStudio() && !IrisSettings.get().isStudio())
-        {
+    public boolean invoke(VolmitSender sender, KList<String> args, KList<Integer> skip) {
+        if (isStudio() && !IrisSettings.get().isStudio()) {
             sender.sendMessage(C.RED + "To use Iris Studio Commands, please enable studio in Iris/settings.json (settings auto-reload)");
             return false;
         }
 
         Iris.debug("@ " + getPath() + " with " + args.toString(", "));
-        if(isNode())
-        {
-            Iris.debug("Invoke " +getPath() + "(" + args.toString(",") + ") at ");
-            if(invokeNode(sender, map(sender, args)))
-            {
+        if (isNode()) {
+            Iris.debug("Invoke " + getPath() + "(" + args.toString(",") + ") at ");
+            if (invokeNode(sender, map(sender, args))) {
                 return true;
             }
 
@@ -425,8 +353,7 @@ public class VirtualDecreeCommand {
             return false;
         }
 
-        if(args.isEmpty())
-        {
+        if (args.isEmpty()) {
             sender.sendDecreeHelp(this);
 
             return true;
@@ -435,8 +362,7 @@ public class VirtualDecreeCommand {
         String head = args.get(0);
         VirtualDecreeCommand match = matchNode(head, skip);
 
-        if(match != null)
-        {
+        if (match != null) {
             args.pop();
             return match.invoke(sender, args, skip);
         }
@@ -447,25 +373,20 @@ public class VirtualDecreeCommand {
     }
 
     private boolean invokeNode(VolmitSender sender, KMap<String, Object> map) {
-        if(map == null)
-        {
+        if (map == null) {
             return false;
         }
 
         Object[] params = new Object[getNode().getMethod().getParameterCount()];
         int vm = 0;
-        for(DecreeParameter i : getNode().getParameters())
-        {
+        for (DecreeParameter i : getNode().getParameters()) {
             Object value = map.get(i.getName());
 
-            try
-            {
-                if(value == null && i.hasDefault())
-                {
+            try {
+                if (value == null && i.hasDefault()) {
                     value = i.getDefaultValue();
                 }
-            }
-            catch (DecreeParsingException e) {
+            } catch (DecreeParsingException e) {
                 Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
                 sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
                 return false;
@@ -474,11 +395,9 @@ public class VirtualDecreeCommand {
                 KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
                 String update = null; // TODO: PICK ONE
                 Iris.debug("Client chose " + update + " for " + i.getName() + "=" + i + " (old) in " + getPath());
-                try
-                {
+                try {
                     value = i.getDefaultValue();
-                }
-                catch (DecreeParsingException x) {
+                } catch (DecreeParsingException x) {
                     x.printStackTrace();
                     Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
                     sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
@@ -488,33 +407,23 @@ public class VirtualDecreeCommand {
                 }
             }
 
-            if(i.isContextual() && value == null)
-            {
+            if (i.isContextual() && value == null) {
                 DecreeContextHandler<?> ch = DecreeContextHandler.contextHandlers.get(i.getType());
 
-                if(ch != null)
-                {
+                if (ch != null) {
                     value = ch.handle(sender);
 
-                    if(value != null)
-                    {
+                    if (value != null) {
                         Iris.debug("Null Parameter " + i.getName() + " derived a value of " + i.getHandler().toStringForce(value) + " from " + ch.getClass().getSimpleName());
-                    }
-
-                    else
-                    {
+                    } else {
                         Iris.debug("Null Parameter " + i.getName() + " could not derive a value from " + ch.getClass().getSimpleName());
                     }
-                }
-
-                else
-                {
+                } else {
                     Iris.debug("Null Parameter " + i.getName() + " is contextual but has no context handler for " + i.getType().getCanonicalName());
                 }
             }
 
-            if(i.hasDefault() && value == null)
-            {
+            if (i.hasDefault() && value == null) {
                 try {
                     Iris.debug("Null Parameter " + i.getName() + " is using default value " + i.getParam().defaultValue());
                     value = i.getDefaultValue();
@@ -523,7 +432,7 @@ public class VirtualDecreeCommand {
                 }
             }
 
-            if(i.isRequired() && value == null) {
+            if (i.isRequired() && value == null) {
                 sender.sendMessage("Missing: " + i.getName() + " (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm + 1) + " argument.");
                 return false;
             }
@@ -533,55 +442,41 @@ public class VirtualDecreeCommand {
         }
 
         Runnable rx = () -> {
-            try
-            {
+            try {
                 DecreeContext.touch(sender);
                 getNode().getMethod().setAccessible(true);
                 getNode().getMethod().invoke(getNode().getInstance(), params);
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 throw new RuntimeException("Failed to execute <INSERT REAL NODE HERE>"); // TODO:
             }
         };
 
-        if(getNode().isSync())
-        {
+        if (getNode().isSync()) {
             J.s(rx);
-        }
-
-        else
-        {
+        } else {
             rx.run();
         }
 
         return true;
     }
 
-    public KList<VirtualDecreeCommand> matchAllNodes(String in)
-    {
+    public KList<VirtualDecreeCommand> matchAllNodes(String in) {
         KList<VirtualDecreeCommand> g = new KList<>();
 
-        if(in.trim().isEmpty())
-        {
+        if (in.trim().isEmpty()) {
             g.addAll(nodes);
             return g;
         }
 
-        for(VirtualDecreeCommand i : nodes)
-        {
-            if(i.matches(in))
-            {
+        for (VirtualDecreeCommand i : nodes) {
+            if (i.matches(in)) {
                 g.add(i);
             }
         }
 
-        for(VirtualDecreeCommand i : nodes)
-        {
-            if(i.deepMatches(in))
-            {
+        for (VirtualDecreeCommand i : nodes) {
+            if (i.deepMatches(in)) {
                 g.add(i);
             }
         }
@@ -590,35 +485,27 @@ public class VirtualDecreeCommand {
         return g;
     }
 
-    public VirtualDecreeCommand matchNode(String in, KList<Integer> skip)
-    {
-        if(in.trim().isEmpty())
-        {
+    public VirtualDecreeCommand matchNode(String in, KList<Integer> skip) {
+        if (in.trim().isEmpty()) {
             return null;
         }
 
-        for(VirtualDecreeCommand i : nodes)
-        {
-            if(skip.contains(i.hashCode()))
-            {
+        for (VirtualDecreeCommand i : nodes) {
+            if (skip.contains(i.hashCode())) {
                 continue;
             }
 
-            if(i.matches(in))
-            {
+            if (i.matches(in)) {
                 return i;
             }
         }
 
-        for(VirtualDecreeCommand i : nodes)
-        {
-            if(skip.contains(i.hashCode()))
-            {
+        for (VirtualDecreeCommand i : nodes) {
+            if (skip.contains(i.hashCode())) {
                 continue;
             }
 
-            if(i.deepMatches(in))
-            {
+            if (i.deepMatches(in)) {
                 return i;
             }
         }
@@ -626,14 +513,11 @@ public class VirtualDecreeCommand {
         return null;
     }
 
-    public boolean deepMatches(String in)
-    {
+    public boolean deepMatches(String in) {
         KList<String> a = getNames();
 
-        for(String i : a)
-        {
-            if(i.toLowerCase().contains(in.toLowerCase()) || in.toLowerCase().contains(i.toLowerCase()))
-            {
+        for (String i : a) {
+            if (i.toLowerCase().contains(in.toLowerCase()) || in.toLowerCase().contains(i.toLowerCase())) {
                 return true;
             }
         }
@@ -642,26 +526,23 @@ public class VirtualDecreeCommand {
     }
 
     @Override
-    public int hashCode(){
+    public int hashCode() {
         return Objects.hash(getName(), getDescription(), getType(), getPath());
     }
 
     @Override
-    public boolean equals(Object obj){
-        if (!(obj instanceof VirtualDecreeCommand)){
+    public boolean equals(Object obj) {
+        if (!(obj instanceof VirtualDecreeCommand)) {
             return false;
         }
         return this.hashCode() == obj.hashCode();
     }
 
-    public boolean matches(String in)
-    {
+    public boolean matches(String in) {
         KList<String> a = getNames();
 
-        for(String i : a)
-        {
-            if(i.equalsIgnoreCase(in))
-            {
+        for (String i : a) {
+            if (i.equalsIgnoreCase(in)) {
                 return true;
             }
         }

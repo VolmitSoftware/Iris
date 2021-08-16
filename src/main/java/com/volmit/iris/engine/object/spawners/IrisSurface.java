@@ -21,7 +21,6 @@ package com.volmit.iris.engine.object.spawners;
 import com.volmit.iris.engine.object.annotations.Desc;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Waterlogged;
 
 @Desc("The type of surface entities should spawn on")

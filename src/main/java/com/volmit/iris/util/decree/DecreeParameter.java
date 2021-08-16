@@ -34,7 +34,7 @@ public class DecreeParameter {
     public DecreeParameter(Parameter parameter) {
         this.parameter = parameter;
         this.param = parameter.getDeclaredAnnotation(Param.class);
-        if (param == null){
+        if (param == null) {
             throw new RuntimeException("Cannot instantiate DecreeParameter on " + parameter.getName() + " in method " + parameter.getDeclaringExecutable().getName() + "(...) in class " + parameter.getDeclaringExecutable().getDeclaringClass().getCanonicalName() + " not annotated by @Param");
         }
     }
@@ -62,10 +62,8 @@ public class DecreeParameter {
     public KList<String> getNames() {
         KList<String> d = new KList<>();
 
-        for(String i : param.aliases())
-        {
-            if(i.isEmpty())
-            {
+        for (String i : param.aliases()) {
+            if (i.isEmpty()) {
                 continue;
             }
 
@@ -90,8 +88,7 @@ public class DecreeParameter {
         KList<?> ff = getHandler().getPossibilities();
         ff = ff != null ? ff : new KList<>();
         KList<String> f = ff.convert((i) -> getHandler().toStringForce(i));
-        if(f.isEmpty())
-        {
+        if (f.isEmpty()) {
             f = new KList<>();
             f.add(getHandler().getRandomDefault());
         }

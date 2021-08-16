@@ -33,15 +33,11 @@ public class ShortHandler implements DecreeParameterHandler<Short> {
 
     @Override
     public Short parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
-            return (short)(Short.valueOf(r.get()).doubleValue() * m);
-        }
-
-        catch(Throwable e)
-        {
+            return (short) (Short.valueOf(r.get()).doubleValue() * m);
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse short \"" + in + "\"");
         }
     }
@@ -57,8 +53,7 @@ public class ShortHandler implements DecreeParameterHandler<Short> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return RNG.r.i(0, 99) + "";
     }
 }

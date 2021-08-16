@@ -35,7 +35,6 @@ import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.GroupedExecutor;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -49,7 +48,7 @@ import java.util.UUID;
 public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
     public static final String WORKSPACE_NAME = "packs";
-    private KMap<String, String> cacheListing = null;
+    private final KMap<String, String> cacheListing = null;
     private IrisProject activeProject;
     private static final AtomicCache<Integer> counter = new AtomicCache<>();
 
@@ -323,7 +322,8 @@ public class StudioSVC implements IrisService {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender,seed, dimm, () -> {});
+            open(sender, seed, dimm, () -> {
+            });
         } catch (Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");
@@ -448,8 +448,7 @@ public class StudioSVC implements IrisService {
         create(sender, s, "example");
     }
 
-    public IrisProject getActiveProject()
-    {
+    public IrisProject getActiveProject() {
         return activeProject;
     }
 

@@ -32,8 +32,7 @@ import com.volmit.iris.util.format.C;
 import java.io.File;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
-public class DecIris implements DecreeExecutor
-{
+public class DecIris implements DecreeExecutor {
     private DecStudio studio;
 
     private DecPregen pregen;
@@ -41,19 +40,19 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
-            String name,
+                    String name,
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
-            IrisDimension type,
+                    IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
-            long seed
-    ){
+                    long seed
+    ) {
         if (name.equals("iris")) {
             sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
             sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
             return;
         }
 
-        if (new File(name).exists()){
+        if (new File(name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");
             return;
         }
@@ -66,7 +65,7 @@ public class DecIris implements DecreeExecutor
                     .sender(sender())
                     .studio(false)
                     .create();
-        } catch (Throwable e){
+        } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
             Iris.error("Exception raised during world creation: " + e.getMessage());
             Iris.reportError(e);
@@ -77,18 +76,18 @@ public class DecIris implements DecreeExecutor
     }
 
     @Decree(description = "Print version information")
-    public void version(){
+    public void version() {
         sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 
     @Decree(description = "Set aura spins")
     public void aura(
             @Param(description = "The h color value", defaultValue = "-20")
-            int h,
+                    int h,
             @Param(description = "The s color value", defaultValue = "7")
-            int s,
+                    int s,
             @Param(description = "The b color value", defaultValue = "8")
-            int b
+                    int b
     ) {
         IrisSettings.get().getGeneral().setSpinh(h);
         IrisSettings.get().getGeneral().setSpins(s);
@@ -100,22 +99,22 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Bitwise calculations")
     public void bitwise(
             @Param(description = "The first value to run calculations on")
-            int value1,
+                    int value1,
             @Param(description = "The operator: | & ^ >> << %")
-            String operator,
+                    String operator,
             @Param(description = "The second value to run calculations on")
-            int value2
+                    int value2
     ) {
         Integer v = null;
-        switch(operator) {
+        switch (operator) {
             case "|" -> v = value1 | value2;
             case "&" -> v = value1 & value2;
             case "^" -> v = value1 ^ value2;
             case "%" -> v = value1 % value2;
             case ">>" -> v = value1 >> value2;
             case "<<" -> v = value1 << value2;
-        };
-        if (v == null){
+        }
+        if (v == null) {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;
         }
@@ -125,7 +124,7 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Toggle debug")
     public void debug(
             @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "true")
-            boolean on
+                    boolean on
     ) {
         IrisSettings.get().getGeneral().setDebug(on);
     }
@@ -133,13 +132,13 @@ public class DecIris implements DecreeExecutor
     @Decree(description = "Download a project.")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
-            String pack,
+                    String pack,
             @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
-            String branch,
+                    String branch,
             @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
-            boolean trim,
+                    boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
-            boolean overwrite
+                    boolean overwrite
     ) {
         sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : ""));
         Iris.service(StudioSVC.class).downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
@@ -147,7 +146,7 @@ public class DecIris implements DecreeExecutor
 
     @Decree(description = "Get metrics for your world", aliases = "measure", origin = DecreeOrigin.PLAYER)
     public void metrics() {
-        if (!IrisToolbelt.isIrisWorld(world())){
+        if (!IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");
             return;
         }

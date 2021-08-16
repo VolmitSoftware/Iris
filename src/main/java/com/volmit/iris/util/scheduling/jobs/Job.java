@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.scheduling.jobs;
 
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
@@ -26,8 +25,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface Job
-{
+public interface Job {
     String getName();
 
     void execute();
@@ -36,35 +34,27 @@ public interface Job
 
     int getTotalWork();
 
-    default int getWorkRemaining()
-    {
+    default int getWorkRemaining() {
         return getTotalWork() - getWorkCompleted();
     }
 
     int getWorkCompleted();
 
-    default String getProgressString()
-    {
+    default String getProgressString() {
         return Form.pc(getProgress(), 0);
     }
 
-    default double getProgress()
-    {
-        return (double)getWorkCompleted() / (double)getTotalWork();
+    default double getProgress() {
+        return (double) getWorkCompleted() / (double) getTotalWork();
     }
 
-    default void execute(VolmitSender sender)
-    {
+    default void execute(VolmitSender sender) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         CompletableFuture<?> f = J.afut(this::execute);
         int c = J.ar(() -> {
-            if(sender.isPlayer())
-            {
+            if (sender.isPlayer()) {
                 sender.sendProgress(getProgress(), getName());
-            }
-
-            else
-            {
+            } else {
                 sender.sendMessage(getName() + ": " + getProgressString());
             }
         }, sender.isPlayer() ? 0 : 20);

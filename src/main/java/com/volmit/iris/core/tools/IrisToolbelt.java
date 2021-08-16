@@ -25,7 +25,6 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
-import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -47,7 +46,6 @@ import org.zeroturnaround.zip.commons.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -184,15 +182,15 @@ public class IrisToolbelt {
 
     /**
      * Attempts to ensure that the pack is installed
+     *
      * @param sender the sender
-     * @param url the dimension
+     * @param url    the dimension
      * @throws Throwable shit happens
      */
     public static void install(VolmitSender sender, String url) throws Throwable {
         IrisProjectRepo r = IrisProjectRepo.from(url);
 
-        if(r != null)
-        {
+        if (r != null) {
             url = r.getRepo();
         }
 
@@ -218,8 +216,9 @@ public class IrisToolbelt {
 
     /**
      * Evacuate all players from the world
+     *
      * @param world the world to leave
-     * @param m the message
+     * @param m     the message
      * @return true if it was evacuated.
      */
     public static boolean evacuate(World world, String m) {

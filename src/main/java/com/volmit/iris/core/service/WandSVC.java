@@ -45,7 +45,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import java.awt.*;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Objects;

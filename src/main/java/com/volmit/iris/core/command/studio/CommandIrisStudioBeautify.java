@@ -74,6 +74,7 @@ public class CommandIrisStudioBeautify extends MortarCommand {
 
         return true;
     }
+
     private int clean(VolmitSender s, File clean) {
         int c = 0;
         if (clean.isDirectory()) {
@@ -129,7 +130,6 @@ public class CommandIrisStudioBeautify extends MortarCommand {
             }
         }
     }
-
 
 
     @Override

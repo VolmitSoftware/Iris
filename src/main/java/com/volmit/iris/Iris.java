@@ -107,7 +107,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private void enable() {
         services = new KMap<>();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        
+
         audiences = BukkitAudiences.create(this);
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());

@@ -20,7 +20,6 @@ package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.util.decree.DecreeExecutor;
 
-public class DecSettings implements DecreeExecutor
-{
+public class DecSettings implements DecreeExecutor {
 
 }

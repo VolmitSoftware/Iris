@@ -21,19 +21,20 @@ package com.volmit.iris.util.decree;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 public interface DecreeParameterHandler<T> {
     /**
      * Should return the possible values for this type
+     *
      * @return Possibilities for this type.
      */
     KList<T> getPossibilities();
 
     /**
      * Converting the type back to a string (inverse of the {@link #parse(String) parse} method)
+     *
      * @param t The input of the designated type to convert to a String
      * @return The resulting string
      */
@@ -41,25 +42,27 @@ public interface DecreeParameterHandler<T> {
 
     /**
      * Forces conversion to the designated type before converting to a string using {@link #toString(T t)}
+     *
      * @param t The object to convert to string (that should be of this type)
      * @return The resulting string.
      */
-    default String toStringForce(Object t)
-    {
-        return toString((T)t);
+    default String toStringForce(Object t) {
+        return toString((T) t);
     }
 
     /**
      * Should parse a String into the designated type
+     *
      * @param in The string to parse
      * @return The value extracted from the string, of the designated type
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
-     * @throws DecreeWhichException Thrown when multiple results are possible
+     * @throws DecreeWhichException   Thrown when multiple results are possible
      */
     T parse(String in) throws DecreeParsingException, DecreeWhichException;
 
     /**
      * Returns whether a certain type is supported by this handler<br>
+     *
      * @param type The type to check
      * @return True if supported, false if not
      */
@@ -67,13 +70,12 @@ public interface DecreeParameterHandler<T> {
 
     /**
      * The possible entries for the inputted string (support for autocomplete on partial entries)
+     *
      * @param input The inputted string to check against
      * @return A {@link KList} of possibilities
      */
-    default KList<T> getPossibilities(String input)
-    {
-        if(input.trim().isEmpty())
-        {
+    default KList<T> getPossibilities(String input) {
+        if (input.trim().isEmpty()) {
             KList<T> f = getPossibilities();
             return f == null ? new KList<>() : f;
         }
@@ -82,26 +84,23 @@ public interface DecreeParameterHandler<T> {
         KList<T> possible = getPossibilities();
         KList<T> matches = new KList<>();
 
-        if (possible == null || possible.isEmpty()){
+        if (possible == null || possible.isEmpty()) {
             return matches;
         }
 
-        if (input.isEmpty())
-        {
+        if (input.isEmpty()) {
             return getPossibilities();
         }
 
         KList<String> converted = possible.convert(v -> toString(v).trim());
 
-        for(int i = 0; i < converted.size(); i++)
-        {
+        for (int i = 0; i < converted.size(); i++) {
             String g = converted.get(i);
             // if
             // G == I or
             // I in G or
             // G in I
-            if(g.equalsIgnoreCase(input) || g.toLowerCase().contains(input.toLowerCase()) || input.toLowerCase().contains(g.toLowerCase()))
-            {
+            if (g.equalsIgnoreCase(input) || g.toLowerCase().contains(input.toLowerCase()) || input.toLowerCase().contains(g.toLowerCase())) {
                 matches.add(possible.get(i));
             }
         }
@@ -109,54 +108,36 @@ public interface DecreeParameterHandler<T> {
         return matches;
     }
 
-    default String getRandomDefault()
-    {
+    default String getRandomDefault() {
         return "NOEXAMPLE";
     }
 
-    default double getMultiplier(AtomicReference<String> g)
-    {
+    default double getMultiplier(AtomicReference<String> g) {
         double multiplier = 1;
         String in = g.get();
         boolean valid = true;
-        while(valid) {
+        while (valid) {
             boolean trim = false;
-            if (in.toLowerCase().endsWith("k"))
-            {
+            if (in.toLowerCase().endsWith("k")) {
                 multiplier *= 1000;
                 trim = true;
-            }
-
-            else if(in.toLowerCase().endsWith("m"))
-            {
+            } else if (in.toLowerCase().endsWith("m")) {
                 multiplier *= 1000000;
                 trim = true;
-            }
-
-            else if(in.toLowerCase().endsWith("h"))
-            {
+            } else if (in.toLowerCase().endsWith("h")) {
                 multiplier *= 100;
                 trim = true;
-            }
-
-            else if(in.toLowerCase().endsWith("c"))
-            {
+            } else if (in.toLowerCase().endsWith("c")) {
                 multiplier *= 16;
                 trim = true;
-            }
-
-            else if(in.toLowerCase().endsWith("r"))
-            {
+            } else if (in.toLowerCase().endsWith("r")) {
                 multiplier *= (16 * 32);
                 trim = true;
-            }
-
-            else {
+            } else {
                 valid = false;
             }
 
-            if(trim)
-            {
+            if (trim) {
                 in = in.substring(0, in.length() - 1);
             }
         }

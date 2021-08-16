@@ -18,8 +18,6 @@
 
 package com.volmit.iris.core.project;
 
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import lombok.Data;
 
 import java.io.File;
@@ -28,13 +26,11 @@ import java.io.File;
 public class IrisPack {
     private final File folder;
 
-    public IrisPack(File folder)
-    {
+    public IrisPack(File folder) {
         this.folder = folder;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return getFolder().getName();
     }
 }

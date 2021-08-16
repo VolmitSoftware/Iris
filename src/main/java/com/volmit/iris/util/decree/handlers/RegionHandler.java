@@ -35,12 +35,10 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
         KMap<String, IrisRegion> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles())
-        {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = new IrisData(i, true);
-                for (IrisRegion j : data.getRegionLoader().loadAll(data.getRegionLoader().getPossibleKeys()))
-                {
+                for (IrisRegion j : data.getRegionLoader().loadAll(data.getRegionLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,27 +56,19 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
 
     @Override
     public IrisRegion parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try
-        {
+        try {
             KList<IrisRegion> options = getPossibilities(in);
 
-            if(options.isEmpty())
-            {
+            if (options.isEmpty()) {
                 throw new DecreeParsingException("Unable to find Region \"" + in + "\"");
-            }
-
-            else if(options.size() > 1)
-            {
+            } else if (options.size() > 1) {
                 throw new DecreeWhichException();
             }
 
             return options.get(0);
-        }
-        catch(DecreeParsingException e){
+        } catch (DecreeParsingException e) {
             throw e;
-        }
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to find Region \"" + in + "\" because of an uncaught exception: " + e);
         }
     }
@@ -89,8 +79,7 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return "region";
     }
 }

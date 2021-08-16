@@ -18,13 +18,11 @@
 
 package com.volmit.iris.util.decree.exceptions;
 
-import com.volmit.iris.util.collection.KList;
-
 /**
  * Thrown when more than one option is available for a singular mapping<br>
  * Like having a hashmap where one input maps to two outputs.
  */
-public class DecreeWhichException extends Exception{
+public class DecreeWhichException extends Exception {
     public DecreeWhichException() {
         super();
     }

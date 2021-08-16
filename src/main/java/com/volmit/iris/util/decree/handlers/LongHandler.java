@@ -33,15 +33,11 @@ public class LongHandler implements DecreeParameterHandler<Long> {
 
     @Override
     public Long parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
-            return (long)(Long.valueOf(r.get()).doubleValue() * m);
-        }
-
-        catch(Throwable e)
-        {
+            return (long) (Long.valueOf(r.get()).doubleValue() * m);
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse long \"" + in + "\"");
         }
     }
@@ -57,8 +53,7 @@ public class LongHandler implements DecreeParameterHandler<Long> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return RNG.r.i(0, 99) + "";
     }
 }

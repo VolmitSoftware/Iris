@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.scripting;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.common.IrisScript;
 import org.apache.bsf.BSFManager;
 
 public interface EngineExecutionEnvironment {

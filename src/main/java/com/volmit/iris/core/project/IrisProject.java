@@ -21,11 +21,9 @@ package com.volmit.iris.core.project;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -40,7 +38,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.exceptions.IrisException;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
@@ -52,9 +49,8 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
@@ -446,7 +442,6 @@ public class IrisProject {
         sender.sendMessage("Failed!");
         return null;
     }
-
 
 
     public static int clean(VolmitSender s, File clean) {

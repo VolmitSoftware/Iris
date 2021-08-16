@@ -23,13 +23,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.common.HeadlessWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
-import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
-import com.volmit.iris.util.exceptions.MissingDimensionException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
@@ -38,15 +34,12 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -94,20 +87,17 @@ public class IrisCreator {
      * @throws IrisException shit happens
      */
     public World create() throws IrisException {
-        if(Bukkit.isPrimaryThread())
-        {
+        if (Bukkit.isPrimaryThread()) {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
 
         IrisDimension d = IrisToolbelt.getDimension(dimension());
 
-        if(d == null)
-        {
+        if (d == null) {
             throw new IrisException("Dimension cannot be found null for id " + dimension());
         }
 
-        if(!studio())
-        {
+        if (!studio()) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(name()));
         }
 
@@ -158,15 +148,13 @@ public class IrisCreator {
 
         done.set(true);
 
-        if(sender.isPlayer())
-        {
+        if (sender.isPlayer()) {
             J.s(() -> {
                 sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0));
             });
         }
 
-        if(studio)
-        {
+        if (studio) {
             J.s(() -> {
                 Iris.linkMultiverseCore.removeFromConfig(world.get());
 
@@ -189,8 +177,7 @@ public class IrisCreator {
                 AtomicBoolean dx = new AtomicBoolean(false);
 
                 J.a(() -> {
-                    while(!dx.get())
-                    {
+                    while (!dx.get()) {
                         if (sender.isPlayer()) {
                             sender.sendProgress(pp.get(), "Pregenerating");
                             J.sleep(16);

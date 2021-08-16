@@ -1,21 +1,20 @@
-package com.volmit.iris.util.decree.handlers.context;
+package com.volmit.iris.util.decree.context;
 
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeContextHandler;
 import com.volmit.iris.util.plugin.VolmitSender;
 
-public class BiomeContextHandler implements DecreeContextHandler<IrisBiome> {
-    public Class<IrisBiome> getType(){return IrisBiome.class;}
+public class DimensionContextHandler implements DecreeContextHandler<IrisDimension> {
+    public Class<IrisDimension> getType(){return IrisDimension.class;}
 
-    public IrisBiome handle(VolmitSender sender)
+    public IrisDimension handle(VolmitSender sender)
     {
         if(sender.isPlayer()
                 && IrisToolbelt.isIrisWorld(sender.player().getWorld())
                 && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null)
         {
-            return IrisToolbelt.access(sender.player().getWorld()).getEngine().getBiome(sender.player().getLocation());
+            return IrisToolbelt.access(sender.player().getWorld()).getEngine().getDimension();
         }
 
         return null;

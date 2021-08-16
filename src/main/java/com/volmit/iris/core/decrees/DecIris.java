@@ -84,5 +84,16 @@ public class DecIris implements DecreeExecutor
         IrisSettings.get().getGeneral().setDebug(on);
     }
 
-    
+    @Decree(description = "Download a project.")
+    public void download(
+            @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
+            String pack,
+            @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
+            String branch,
+            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when you're going to edit)")
+            boolean trim
+    ){
+        sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : ""));
+        Iris.proj.downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim);
+    }
 }

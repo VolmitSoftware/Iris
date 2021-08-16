@@ -874,7 +874,7 @@ public class Form {
 
         DF = new DecimalFormat(form);
 
-        return DF.format(i);
+        return DF.format(i).replaceAll("\\Q,\\E", ".");
     }
 
     /**

@@ -33,7 +33,7 @@ public @interface Param {
      * Required parameter.<br>
      * This is what is used in game, alongside any (if specified) {@link #aliases() aliases}
      */
-    String name();
+    String name() default "";
 
     /**
      * The description of this parameter, used in help-popups in game.<br>

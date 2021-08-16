@@ -434,7 +434,7 @@ public class VolmitSender implements CommandSender {
                         + "<#bbe03f>✒ <#a8e0a2>" + (i.isNode()
                             ? ((i.getNode().getParameters().isEmpty()
                                 ? "<font:minecraft:uniform>There are no parameters.<reset>"
-                                : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>") + "\n")
+                                : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>" + "\n"))
                             : "<font:minecraft:uniform>This is a command category. Run <reset><#98eda5>" + i.getPath())
                         + (i.isNode()
                             ? (i.getNode().getParameters().isNotEmpty())
@@ -461,7 +461,7 @@ public class VolmitSender implements CommandSender {
                                                 ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
                                                 : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
                                         + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
-                                        + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName() + "<reset>\n"
+                                        + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName()
                                     + "'>"
                                         + (f.isRequired() ? "<red>[" : "")
                                         + "<gradient:#d665f0:#a37feb>" + f.getName()

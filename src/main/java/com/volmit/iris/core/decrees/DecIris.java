@@ -114,11 +114,11 @@ public class DecIris implements DecreeExecutor
             case ">>" -> v = value1 >> value2;
             case "<<" -> v = value1 << value2;
         };
-        if (v == null){
+        if (v == null) {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;
         }
-        sender().sendMessage(C.GREEN + "" + value1 + " " + operator + " " + value2 + " => " + v);
+        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
     }
 
     @Decree(description = "Toggle debug")

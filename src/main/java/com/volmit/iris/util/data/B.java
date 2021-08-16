@@ -19,6 +19,7 @@
 package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -156,8 +157,13 @@ public class B {
                 bx = Bukkit.createBlockData(ix);
             }
 
-            if (bx instanceof Leaves) {
+            if (bx instanceof Leaves && IrisSettings.get().getGenerator().preventLeafDecay) {
                 ((Leaves) bx).setPersistent(true);
+            }
+
+            else if(bx instanceof Leaves)
+            {
+                ((Leaves) bx).setPersistent(false);
             }
 
             blockDataCache.put(ix, bx);

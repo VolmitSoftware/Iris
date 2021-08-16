@@ -18,12 +18,28 @@
 
 package com.volmit.iris.util.data;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.jobs.DownloadJob;
+import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.JobCollection;
+import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import lombok.Builder;
 import lombok.Data;
+import org.zeroturnaround.zip.ZipUtil;
+import org.zeroturnaround.zip.commons.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.UUID;
 
 @Data
 @Builder
-public class IrisProjectRepo {
+public class IrisPackRepository {
     @Builder.Default
     private String user = "IrisDimensions";
 
@@ -36,11 +52,11 @@ public class IrisProjectRepo {
     @Builder.Default
     private String tag = "";
 
-    public static IrisProjectRepo from(String g) {
+    public static IrisPackRepository from(String g) {
         // https://github.com/IrisDimensions/overworld
         if (g.startsWith("https://github.com/")) {
             String sub = g.split("\\Qgithub.com/\\E")[1];
-            IrisProjectRepo r = IrisProjectRepo.builder()
+            IrisPackRepository r = IrisPackRepository.builder()
                     .user(sub.split("\\Q/\\E")[0])
                     .repo(sub.split("\\Q/\\E")[1]).build();
 
@@ -55,12 +71,12 @@ public class IrisProjectRepo {
             if (f.length == 1) {
                 return from(g);
             } else if (f.length == 2) {
-                return IrisProjectRepo.builder()
+                return IrisPackRepository.builder()
                         .user(f[0])
                         .repo(f[1])
                         .build();
             } else if (f.length >= 3) {
-                IrisProjectRepo r = IrisProjectRepo.builder()
+                IrisPackRepository r = IrisPackRepository.builder()
                         .user(f[0])
                         .repo(f[1])
                         .build();
@@ -74,7 +90,7 @@ public class IrisProjectRepo {
                 return r;
             }
         } else {
-            return IrisProjectRepo.builder()
+            return IrisPackRepository.builder()
                     .user("IrisDimensions")
                     .repo(g)
                     .branch(g.equals("overworld") ? "stable" : "master")
@@ -90,5 +106,25 @@ public class IrisProjectRepo {
         }
 
         return "https://codeload.github.com/" + user + "/" + repo + "/zip/refs/heads/" + branch;
+    }
+
+    public void install(VolmitSender sender) throws MalformedURLException {
+        File pack = Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, getRepo());
+
+        if(!pack.exists())
+        {
+            File dl = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID() + ".zip");
+            File work = new File(Iris.getTemp(), "extk-" + UUID.randomUUID());
+            new JobCollection(Form.capitalize(getRepo()),
+                    new DownloadJob(toURL(), pack),
+                    new SingleJob("Extracting", () -> ZipUtil.unpack(dl, work)),
+                    new SingleJob("Installing", () -> {
+                        try {
+                            FileUtils.copyDirectory(work.listFiles()[0], pack);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    })).execute(sender);
+        }
     }
 }

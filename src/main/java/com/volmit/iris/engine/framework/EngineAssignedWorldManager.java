@@ -78,6 +78,13 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
                 Position2 pr = null;
                 double d = Double.MAX_VALUE;
 
+                Iris.debug("Ps: " + p.size());
+
+                for(Position2 i : p)
+                {
+                    Iris.debug("- " + i.getX() + " " + i.getZ());
+                }
+
                 for (Position2 i : p) {
                     double dx = i.distance(px);
                     if (dx < d) {

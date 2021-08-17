@@ -42,6 +42,10 @@ public class DecIris implements DecreeExecutor {
 
     private DecPregen pregen;
 
+    private DecSettings settings;
+
+    private DecObject object;
+
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")

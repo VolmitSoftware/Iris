@@ -50,10 +50,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
-import com.volmit.iris.util.scheduling.GroupedExecutor;
-import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Queue;
-import com.volmit.iris.util.scheduling.ShurikenQueue;
+import com.volmit.iris.util.scheduling.*;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
@@ -71,6 +68,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
+import java.util.Map;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -705,6 +703,39 @@ public class Iris extends VolmitPlugin implements Listener {
             InstanceState.updateInstanceId();
         } catch (Throwable ignored) {
 
+        }
+    }
+
+    public static void dump()
+    {
+        try
+        {
+            File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
+            FileOutputStream fos = new FileOutputStream(fi );
+            Map<Thread, StackTraceElement[]> f = Thread.getAllStackTraces();
+            PrintWriter pw = new PrintWriter(fos);
+            for(Thread i : f.keySet())
+            {
+                pw.println("========================================");
+                pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
+
+                for(StackTraceElement j : f.get(i))
+                {
+                    pw.println("    @ " + j.toString());
+                }
+
+                pw.println("========================================");
+                pw.println();
+                pw.println();
+            }
+
+            pw.close();
+            System.out.println("DUMPED! See " + fi.getAbsolutePath());
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
         }
     }
 }

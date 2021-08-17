@@ -179,6 +179,11 @@ public class Mantle {
                 .get(x & 15, y & 15, z & 15);
     }
 
+    public boolean isClosed()
+    {
+        return closed.get();
+    }
+
     /**
      * Closes the Mantle. By closing the mantle, you can no longer read or write
      * any data to the mantle or it's Tectonic Plates. Closing will also flush any

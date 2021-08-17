@@ -65,6 +65,8 @@ import org.bukkit.generator.BlockPopulator;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -287,12 +289,11 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void close() {
-        J.car(art);
         closed = true;
+        J.car(art);
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        getMantle().close();
         getTerrainActuator().close();
         getDecorantActuator().close();
         getBiomeActuator().close();
@@ -300,6 +301,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getRavineModifier().close();
         getCaveModifier().close();
         getPostModifier().close();
+        getMantle().close();
+        Iris.debug("Engine Fully Shutdown!");
     }
 
     @Override
@@ -355,7 +358,12 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @BlockCoordinates
     @Override
-    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) {
+    public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) throws WrongEngineBroException {
+        if(closed)
+        {
+            throw new WrongEngineBroException();
+        }
+
         context.touch();
         getEngineData().getStatistics().generatedChunk();
         try {

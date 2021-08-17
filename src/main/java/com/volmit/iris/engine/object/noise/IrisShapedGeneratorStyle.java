@@ -64,4 +64,8 @@ public class IrisShapedGeneratorStyle {
     public IrisShapedGeneratorStyle(NoiseStyle style) {
         this.generator = new IrisGeneratorStyle(style);
     }
+
+    public boolean isFlat() {
+        return min == max || getGenerator().isFlat();
+    }
 }

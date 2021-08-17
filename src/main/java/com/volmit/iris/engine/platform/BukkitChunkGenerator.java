@@ -52,6 +52,8 @@ import java.util.concurrent.Semaphore;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
+    private static final int LOAD_LOCKS = 1_000_000;
+    private final Semaphore loadLock;
     private final Engine engine;
     private final IrisWorld world;
     private final File dataLocation;
@@ -64,6 +66,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         populators = new KList<>();
+        loadLock = new Semaphore(LOAD_LOCKS);
         this.world = world;
         this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;

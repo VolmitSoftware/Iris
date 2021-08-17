@@ -45,10 +45,10 @@ import java.util.stream.Stream;
 @Data
 public class ResourceLoader<T extends IrisRegistrant> {
     public static final AtomicDouble tlt = new AtomicDouble(0);
+    private static final int CACHE_SIZE = 100000;
     protected File root;
     protected String folderName;
     protected String resourceTypeName;
-    protected KMap<String, File> folderMapCache;
     protected KMap<String, T> loadCache;
     protected KList<File> folderCache;
     protected Class<? extends T> objectClass;
@@ -64,7 +64,6 @@ public class ResourceLoader<T extends IrisRegistrant> {
         this.manager = manager;
         sec = new ChronoLatch(5000);
         loads = new AtomicInteger();
-        folderMapCache = new KMap<>();
         this.objectClass = objectClass;
         cname = objectClass.getCanonicalName();
         this.resourceTypeName = resourceTypeName;

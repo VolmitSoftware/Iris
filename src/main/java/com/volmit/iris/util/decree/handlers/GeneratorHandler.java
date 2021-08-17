@@ -37,7 +37,7 @@ public class GeneratorHandler implements DecreeParameterHandler<IrisGenerator> {
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = new IrisData(i, true);
+                IrisData data = IrisData.get(i);
                 for (IrisGenerator j : data.getGeneratorLoader().loadAll(data.getGeneratorLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }

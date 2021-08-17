@@ -37,7 +37,7 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = new IrisData(i, true);
+                IrisData data = IrisData.get(i);
                 for (IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }

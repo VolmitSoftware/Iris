@@ -78,6 +78,7 @@ public class StudioSVC implements IrisService {
 
             for (World i : Bukkit.getWorlds()) {
                 if (IrisToolbelt.isIrisWorld(i)) {
+                    IrisToolbelt.evacuate(i);
                     Iris.debug("Closing Platform Generator " + i.getName());
                     IrisToolbelt.access(i).close();
                 }
@@ -142,7 +143,7 @@ public class StudioSVC implements IrisService {
             return null;
         }
 
-        IrisData dm = new IrisData(irispack);
+        IrisData dm = IrisData.get(irispack);
         dim = dm.getDimensionLoader().load(type);
 
         if (dim == null) {

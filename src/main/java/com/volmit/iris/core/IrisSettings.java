@@ -122,7 +122,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGenerator {
-
         public String defaultWorldType = "overworld";
         public boolean disableMCA = false;
         public boolean systemEffects = true;

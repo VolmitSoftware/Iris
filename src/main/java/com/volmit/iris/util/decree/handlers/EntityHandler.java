@@ -43,7 +43,7 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = new IrisData(i, true);
+                IrisData data = IrisData.get(i);
                 for (IrisEntity j : data.getEntityLoader().loadAll(data.getEntityLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }

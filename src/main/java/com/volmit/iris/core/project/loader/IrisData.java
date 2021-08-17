@@ -47,6 +47,7 @@ import java.util.function.Function;
 
 @Data
 public class IrisData {
+    private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -68,16 +69,30 @@ public class IrisData {
     private Engine engine;
     private final int id;
 
-    public IrisData(File dataFolder) {
-        this(dataFolder, false);
+    public static IrisData get(File dataFolder)
+    {
+        return dataLoaders.compute(dataFolder, (k,v) -> v == null ? new IrisData(dataFolder) : v);
     }
 
-    public IrisData(File dataFolder, boolean oneshot) {
+    private IrisData(File dataFolder) {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
         closed = false;
         hotloaded();
+    }
+
+    public static int cacheSize() {
+        int m = 0;
+        for(IrisData i : dataLoaders.values())
+        {
+            for(ResourceLoader<?> j : i.getLoaders().values())
+            {
+                m+=j.getLoadCache().size();
+            }
+        }
+
+        return m;
     }
 
     public void preprocessObject(IrisRegistrant t) {
@@ -125,7 +140,7 @@ public class IrisData {
     }
 
     public IrisData copy() {
-        return new IrisData(dataFolder);
+        return IrisData.get(dataFolder);
     }
 
     private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
@@ -260,7 +275,7 @@ public class IrisData {
         try {
             for (File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles())) {
                 if (i.isDirectory()) {
-                    IrisData dm = new IrisData(i, true);
+                    IrisData dm = get(i);
                     T t = v.apply(dm);
 
                     if (t != null) {

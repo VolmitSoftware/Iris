@@ -167,4 +167,8 @@ public class IrisBiomeCustom {
 
         return 0;
     }
+
+    public String getId() {
+        return id.toLowerCase();
+    }
 }

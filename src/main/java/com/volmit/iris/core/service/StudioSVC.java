@@ -189,7 +189,7 @@ public class StudioSVC implements IrisService {
 
     public void download(VolmitSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException {
         String url = "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
-        sender.sendMessage("Downloading " + url);
+        sender.sendMessage("Downloading " + url + " "); //The extra space stops a bug in adventure API from repeating the last letter of the URL
         File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
         File temp = Iris.getTemp();
         File work = new File(temp, "dl-" + UUID.randomUUID());

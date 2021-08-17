@@ -228,7 +228,7 @@ public class NMSBinding17_1 implements INMSBinding {
     @Override
     public Object getCustomBiomeBaseFor(String mckey) {
         try {
-            return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey)));
+            return getCustomBiomeRegistry().d(ResourceKey.a(IRegistry.aO, new MinecraftKey(mckey.toLowerCase())));
         } catch (Throwable e) {
             Iris.reportError(e);
         }

@@ -106,9 +106,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Define iris cavern zones")
     private IrisCaverns caverns = new IrisCaverns();
 
-    @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
-    private IrisShapedGeneratorStyle undercarriage = null;
-
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
 

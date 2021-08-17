@@ -40,7 +40,6 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
     @Getter
     private final RNG rng;
     private final boolean carving;
-    private final boolean hasUnder;
     @Getter
     private final int lastBedrock = -1;
 
@@ -48,7 +47,6 @@ public class IrisTerrainIslandActuator extends EngineAssignedActuator<BlockData>
         super(engine, "TerrainIsland");
         rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
-        hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }
 
     @BlockCoordinates

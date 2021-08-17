@@ -38,7 +38,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     @Getter
     private final RNG rng;
     private final boolean carving;
-    private final boolean hasUnder;
     @Getter
     private int lastBedrock = -1;
 
@@ -46,7 +45,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         super(engine, "Terrain");
         rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
-        hasUnder = getDimension().getUndercarriage() != null && !getDimension().getUndercarriage().getGenerator().isFlat();
     }
 
     @BlockCoordinates
@@ -88,23 +86,22 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         for (int zf = 0; zf < h.getDepth(); zf++) {
             realX = (int) modX(xf + x);
             realZ = (int) modZ(zf + z);
-            b = hasUnder ? (int) Math.round(getDimension().getUndercarriage().get(rng, getData(), realX, realZ)) : 0;
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
             blocks = null;
             fblocks = null;
 
-            if (hf < b) {
+            if (hf < 0) {
                 continue;
             }
 
-            for (i = hf; i >= b; i--) {
+            for (i = hf; i >= 0; i--) {
                 if (i >= h.getHeight()) {
                     continue;
                 }
 
-                if (i == b) {
+                if (i == 0) {
                     if (getDimension().isBedrock()) {
                         h.set(xf, i, zf, BEDROCK);
                         lastBedrock = i;

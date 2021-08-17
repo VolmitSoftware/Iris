@@ -112,6 +112,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final ChronoLatch cleanLatch;
 
     public IrisEngine(EngineTarget target, boolean studio) {
+        target.getData().dump();
         this.studio = studio;
         generatedLast = new AtomicInteger(0);
         perSecond = new AtomicDouble(0);

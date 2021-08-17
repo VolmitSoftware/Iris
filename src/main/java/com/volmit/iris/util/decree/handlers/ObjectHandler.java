@@ -19,7 +19,7 @@ public class ObjectHandler implements DecreeParameterHandler<IrisObject> {
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = new IrisData(i, true);
+                IrisData data = IrisData.get(i);
                 for (IrisObject j : data.getObjectLoader().loadAll(data.getObjectLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }

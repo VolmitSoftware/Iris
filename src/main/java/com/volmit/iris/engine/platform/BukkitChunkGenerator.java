@@ -112,15 +112,17 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        J.aBukkit(() -> {
-            try {
-                hotloadLock.acquire(HOTLOAD_LOCKS);
-                initialize();
-                hotloadLock.release(HOTLOAD_LOCKS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        J.aBukkit(this::hotloadBLOCKING);
+    }
+
+    public void hotloadBLOCKING() {
+        try {
+            hotloadLock.acquire(HOTLOAD_LOCKS);
+            initialize();
+            hotloadLock.release(HOTLOAD_LOCKS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void initialize() {
@@ -152,6 +154,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             getEngine().generate(x * 16, z * 16, blocks, biomes, true);
             hotloadLock.release();
             return tc.getRaw();
+        }
+
+        catch(WrongEngineBroException e)
+        {
+            hotloadLock.release();
+            hotloadBLOCKING();
+            return generateChunkData(world, ignored, x, z, biome);
         }
 
         catch (Throwable e) {

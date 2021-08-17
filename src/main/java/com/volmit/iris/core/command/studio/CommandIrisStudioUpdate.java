@@ -63,7 +63,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
 
         for (String i : args) {
             if (i.equals("--rewrite-objects")) {
-                IrisData data = new IrisData(Iris.service(StudioSVC.class).getWorkspaceFolder(args[0]));
+                IrisData data = IrisData.get(Iris.service(StudioSVC.class).getWorkspaceFolder(args[0]));
                 int t = data.getObjectLoader().getPossibleKeys().length;
                 ChronoLatch cl = new ChronoLatch(250, false);
                 MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());

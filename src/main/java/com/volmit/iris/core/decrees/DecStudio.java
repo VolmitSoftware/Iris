@@ -208,7 +208,7 @@ public class DecStudio implements DecreeExecutor {
                 }
             };
 
-            IrisData data = new IrisData(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
+            IrisData data = IrisData.get(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
             for (String f : data.getObjectLoader().getPossibleKeys()) {
                 CompletableFuture<?> gg = burst.complete(() -> {
                     File ff = data.getObjectLoader().findFile(f);
@@ -439,7 +439,7 @@ public class DecStudio implements DecreeExecutor {
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
         File report = Iris.instance.getDataFile("profile.txt");
         IrisProject project = new IrisProject(pack);
-        IrisData data = new IrisData(pack);
+        IrisData data = IrisData.get(pack);
 
         KList<String> fileText = new KList<>();
 

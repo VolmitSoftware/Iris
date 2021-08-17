@@ -40,7 +40,7 @@ public class EngineProvider {
     public void provideEngine(IrisWorld world, String dimension, File dataLocation, boolean studio, Consumer<Engine> post) {
         close();
         engine.set(MultiBurst.burst.completeValue(() -> {
-            IrisData data = new IrisData(dataLocation);
+            IrisData data = IrisData.get(dataLocation);
             IrisDimension realDimension = data.getDimensionLoader().load(dimension);
 
             if (realDimension == null) {

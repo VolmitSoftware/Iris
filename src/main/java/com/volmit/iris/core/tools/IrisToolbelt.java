@@ -64,7 +64,7 @@ public class IrisToolbelt {
             return null;
         }
 
-        return new IrisData(pack).getDimensionLoader().load(dimension);
+        return IrisData.get(pack).getDimensionLoader().load(dimension);
     }
 
     /**

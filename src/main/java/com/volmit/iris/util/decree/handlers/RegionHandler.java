@@ -37,7 +37,7 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = new IrisData(i, true);
+                IrisData data = IrisData.get(i);
                 for (IrisRegion j : data.getRegionLoader().loadAll(data.getRegionLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }

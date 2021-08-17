@@ -87,7 +87,7 @@ public class CommandIrisStudioProfile extends MortarCommand {
             }
 
             IrisProject p = new IrisProject(f);
-            IrisData data = new IrisData(f);
+            IrisData data = IrisData.get(f);
             KMap<NoiseStyle, Double> styleTimings = new KMap<>();
             KMap<InterpolationMethod, Double> interpolatorTimings = new KMap<>();
             KMap<String, Double> generatorTimings = new KMap<>();

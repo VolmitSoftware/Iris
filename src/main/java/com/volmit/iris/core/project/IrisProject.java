@@ -249,7 +249,7 @@ public class IrisProject {
         settings.put("[json]", jc);
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
-        IrisData dm = new IrisData(getPath());
+        IrisData dm = IrisData.get(getPath());
 
         for (ResourceLoader<?> r : dm.getLoaders().v()) {
             if (r.supportsSchemas()) {
@@ -265,7 +265,7 @@ public class IrisProject {
 
     public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {
         String dimm = getName();
-        IrisData dm = new IrisData(path);
+        IrisData dm = IrisData.get(path);
         IrisDimension dimension = dm.getDimensionLoader().load(dimm);
         File folder = new File(Iris.instance.getDataFolder(), "exports/" + dimension.getLoadKey());
         folder.mkdirs();

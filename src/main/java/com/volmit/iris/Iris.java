@@ -95,6 +95,8 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private void preEnable() {
         instance = this;
+        services = new KMap<>();
+        initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
         installDataPacks();
@@ -103,9 +105,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @SuppressWarnings("unchecked")
     private void enable() {
-        services = new KMap<>();
-        initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-
         audiences = BukkitAudiences.create(this);
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());
@@ -245,7 +244,7 @@ public class Iris extends VolmitPlugin implements Listener {
             for (File i : packs.listFiles()) {
                 if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = new IrisData(i);
+                    IrisData data = IrisData.get(i);
                     File dims = new File(i, "dimensions");
 
                     if (dims.exists()) {
@@ -339,7 +338,7 @@ public class Iris extends VolmitPlugin implements Listener {
             for (File i : packs.listFiles()) {
                 if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = new IrisData(i);
+                    IrisData data = IrisData.get(i);
                     File dims = new File(i, "dimensions");
 
                     if (dims.exists()) {
@@ -376,7 +375,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean verifyDataPackInstalled(IrisDimension dimension) {
-        IrisData idm = new IrisData(getDataFolder("packs", dimension.getLoadKey()));
+        IrisData idm = IrisData.get(getDataFolder("packs", dimension.getLoadKey()));
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 

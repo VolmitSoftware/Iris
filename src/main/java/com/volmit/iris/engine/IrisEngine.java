@@ -431,7 +431,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
         catch(Throwable e)
         {
-            e.printStackTrace();
+            Iris.reportError(e);
         }
     }
 

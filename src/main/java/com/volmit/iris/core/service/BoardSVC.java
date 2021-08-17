@@ -19,6 +19,7 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
@@ -142,7 +143,7 @@ public class BoardSVC implements IrisService, BoardProvider {
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
             v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
             v.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
-            v.add(C.AQUA + "Energy" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEnergy(), 0));
+            v.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
             v.add(C.AQUA + "Sat" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEntityCount()) + "e / " + Form.f(engine.getWorldManager().getChunkCount()) + "c (" + Form.pc(engine.getWorldManager().getEntitySaturation(), 0) + ")");
         }
 

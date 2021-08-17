@@ -42,6 +42,10 @@ public class DecIris implements DecreeExecutor {
 
     private DecPregen pregen;
 
+    private DecSettings settings;
+
+    private DecObject object;
+
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
@@ -118,12 +122,12 @@ public class DecIris implements DecreeExecutor {
             case "%" -> v = value1 % value2;
             case ">>" -> v = value1 >> value2;
             case "<<" -> v = value1 << value2;
-        }
+        };
         if (v == null) {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;
         }
-        sender().sendMessage(C.GREEN + "" + value1 + " " + operator + " " + value2 + " => " + v);
+        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
     }
 
     @Decree(description = "Toggle debug")
@@ -145,7 +149,7 @@ public class DecIris implements DecreeExecutor {
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
                     boolean overwrite
     ) {
-        sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : ""));
+        sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : "") + (overwrite ? " overwriting" : ""));
         Iris.service(StudioSVC.class).downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
     }
 

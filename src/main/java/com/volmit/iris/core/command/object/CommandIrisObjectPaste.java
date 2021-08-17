@@ -174,7 +174,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
 
         Iris.debug("Loaded object for placement: " + "objects/" + args[0] + ".iob");
 
-        sender.player().getWorld().playSound(sender.player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+        sender.playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
 
         Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
                 Material.POPPY, Material.DANDELION);

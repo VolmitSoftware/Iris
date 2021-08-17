@@ -66,14 +66,12 @@ import com.volmit.iris.util.scheduling.jobs.Job;
 import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
-import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.GameMode;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.util.Vector;
 
 import java.awt.*;
 import java.io.File;
@@ -622,7 +620,9 @@ public class DecStudio implements DecreeExecutor {
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
             @Param(description = "The Iris Entity to spawn")
-                    IrisEntity entity
+                    IrisEntity entity,
+            @Param(description = "The location at which to spawn the entity", defaultValue = "self")
+                    Vector location
     ) {
         if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
@@ -633,7 +633,7 @@ public class DecStudio implements DecreeExecutor {
             return;
         }
         sender().sendMessage(C.GREEN + "Spawning entity");
-        entity.spawn(engine(), player().getLocation().clone().add(0, 2, 0));
+        entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
     }
 
     @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)

@@ -53,7 +53,7 @@ public class CommandIrisObjectWand extends MortarCommand {
         }
 
         sender.player().getInventory().addItem(WandSVC.createWand());
-        sender.player().playSound(sender.player().getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
+        sender.playSound(Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
 
         return true;
     }

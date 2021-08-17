@@ -33,6 +33,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Server;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
@@ -413,60 +414,70 @@ public class VolmitSender implements CommandSender {
             }
 
             for (VirtualDecreeCommand i : v.getNodes()) {
-                if (isPlayer()) {
-                    //@builder
-                    String s = (
-                            "<hover:show_text:'" +
-                                    i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ") + "\n"
-                                    + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription() + "<reset>\n"
-                                    + "<#bbe03f>✒ <#a8e0a2>" + (i.isNode()
-                                    ? ((i.getNode().getParameters().isEmpty()
-                                    ? "<font:minecraft:uniform>There are no parameters.<reset>"
-                                    : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>") + "\n")
-                                    : "<font:minecraft:uniform>This is a command category. Run <reset><#98eda5>" + i.getPath())
-                                    + (i.isNode()
-                                    ? (i.getNode().getParameters().isNotEmpty())
-                                    ? "<#aebef2>✦ <#5ef288><font:minecraft:uniform>"
-                                    + i.getParentPath()
-                                    + " <#42ecf5>"
-                                    + i.getName() + " "
-                                    + i.getNode().getParameters().convert((f)
-                                            -> "<#d665f0>" + f.example())
-                                    .toString(" ") + "\n"
-                                    : ""
-                                    : "")
-                                    + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
-                                    + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
-                                    + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
-                                    + (i.isNode() ?
-                                    " " + i.getNode().getParameters().convert((f)
-                                            -> "<hover:show_text:'"
-                                            + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
-                                            + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
-                                            + (f.isRequired()
-                                            ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
-                                            : (f.hasDefault()
-                                            ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + f.getParam().defaultValue() + "\" if undefined."
-                                            : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
-                                            + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
-                                            + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName() + "<reset>\n"
-                                            + "'>"
-                                            + (f.isRequired() ? "<red>[" : "")
-                                            + "<gradient:#d665f0:#a37feb>" + f.getName()
-                                            + (f.isRequired() ? "<red>]<gray>" : "")
-                                            + "</hover>").toString(" ")
-                                    : "<gradient:#afe3d3:#a2dae0> - Category of Commands"
-                            )
-                    );
-                    //@done
-                    sendMessageRaw(s);
-                    System.out.println(s);
-                } else {
-                    sendMessage(i.getPath() + "()");
-                }
+                sendDecreeHelpNode(i);
             }
         } else {
             sendMessage(C.RED + "There are no subcommands in this group! Contact support, this is a command design issue!");
+        }
+    }
+
+    public void sendDecreeHelpNode(VirtualDecreeCommand i){
+        if (isPlayer()) {
+            //@builder
+            String s = (
+                    "<hover:show_text:'"+
+                            i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ") + "\n"
+                            + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription() + "<reset>\n"
+                            + "<#bbe03f>✒ <#a8e0a2>" + (i.isNode()
+                            ? ((i.getNode().getParameters().isEmpty()
+                            ? "<font:minecraft:uniform>There are no parameters.<reset>"
+                            : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>" + "\n"))
+                            : "<font:minecraft:uniform>This is a command category. Run <reset><#98eda5>" + i.getPath())
+                            + (i.isNode()
+                            ? (i.getNode().getParameters().isNotEmpty())
+                            ? "<#aebef2>✦ <#5ef288><font:minecraft:uniform>"
+                            + i.getParentPath()
+                            + " <#42ecf5>"
+                            + i.getName() + " "
+                            + i.getNode().getParameters().convert((f)
+                                    -> "<#d665f0>" + f.example())
+                            .toString(" ") + "\n"
+                            : ""
+                            : "")
+                            + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
+                            + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
+                            + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
+                            + (i.isNode() ?
+                            " " + i.getNode().getParameters().convert((f)
+                                    -> "<hover:show_text:'"
+                                    + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
+                                    + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
+                                    + (f.isRequired()
+                                    ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
+                                    : (f.hasDefault()
+                                    ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
+                                    : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
+                                    + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
+                                    + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName()
+                                    + "'>"
+                                    + (f.isRequired() ? "<red>[" : "")
+                                    + "<gradient:#d665f0:#a37feb>" + f.getName()
+                                    + (f.isRequired() ? "<red>]<gray>" : "")
+                                    + "</hover>").toString(" ")
+                            : "<gradient:#afe3d3:#a2dae0> - Category of Commands"
+                    )
+            );
+            //@done
+            sendMessageRaw(s);
+            System.out.println(s);
+        } else {
+            sendMessage(i.getPath() + "()");
+        }
+    }
+
+    public void playSound(Sound sound, float volume, float pitch) {
+        if (isPlayer()) {
+            player().playSound(player().getLocation(), sound, volume, pitch);
         }
     }
 }
